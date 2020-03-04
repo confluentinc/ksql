@@ -223,7 +223,7 @@ public class AggregateNode extends PlanNode {
 
     final List<ColumnName> requiredColumnNames = requiredColumns.stream()
         .map(e -> (UnqualifiedColumnReferenceExp) internalSchema.resolveToInternal(e))
-        .map(UnqualifiedColumnReferenceExp::getReference)
+        .map(UnqualifiedColumnReferenceExp::getColumnName)
         .collect(Collectors.toList());
 
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
@@ -298,7 +298,7 @@ public class AggregateNode extends PlanNode {
 
       final Function<Expression, Expression> mapper = e -> {
         final boolean rowKey = e instanceof UnqualifiedColumnReferenceExp
-            && ((UnqualifiedColumnReferenceExp) e).getReference().equals(
+            && ((UnqualifiedColumnReferenceExp) e).getColumnName().equals(
                 SchemaUtil.ROWKEY_NAME);
 
         if (!rowKey || !specialRowTimeHandling) {
@@ -308,7 +308,7 @@ public class AggregateNode extends PlanNode {
         final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) e;
         return new UnqualifiedColumnReferenceExp(
             nameRef.getLocation(),
-            nameRef.getReference()
+            nameRef.getColumnName()
         );
       };
 
@@ -390,8 +390,8 @@ public class AggregateNode extends PlanNode {
                   name));
         }
 
-        final boolean isAggregate = node.getReference().isAggregate();
-        final boolean windowBounds = SchemaUtil.isWindowBound(node.getReference());
+        final boolean isAggregate = node.getColumnName().isAggregate();
+        final boolean windowBounds = SchemaUtil.isWindowBound(node.getColumnName());
 
         if (isAggregate && windowBounds) {
           throw new KsqlException("Window bound " + node + " is not available as a parameter "

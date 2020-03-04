@@ -115,8 +115,7 @@ class QueryStreamWriter implements StreamingOutput {
     // Push queries only return value columns, but query metadata schema includes key and meta:
     final LogicalSchema storedSchema = queryMetadata.getLogicalSchema();
 
-    final Builder actualSchemaBuilder = LogicalSchema.builder()
-        .noImplicitColumns();
+    final Builder actualSchemaBuilder = LogicalSchema.builder();
 
     storedSchema.value().forEach(actualSchemaBuilder::valueColumn);
 

@@ -72,6 +72,7 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -187,6 +188,11 @@ public class RestApiTest {
     if (serviceContext != null) {
       serviceContext.close();
     }
+  }
+
+  @AfterClass
+  public static void classTearDown() {
+    REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
   }
 
   @Test
@@ -409,7 +415,7 @@ public class RestApiTest {
           }
       );
     } catch (final Exception e) {
-      throw new AssertionError("Invalid JSON received: " + response);
+      throw new AssertionError("Invalid JSON received: " + response, e);
     }
   }
 

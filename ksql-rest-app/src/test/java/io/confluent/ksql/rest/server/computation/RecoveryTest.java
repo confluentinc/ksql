@@ -244,7 +244,7 @@ public class RecoveryTest {
     void submitCommands(final String ...statements) {
       for (final String statement : statements) {
         final Response response = ksqlResource.handleKsqlStatements(securityContext,
-            new KsqlRequest(statement, Collections.emptyMap(), null));
+            new KsqlRequest(statement, Collections.emptyMap(), Collections.emptyMap(), null));
         assertThat(response.getStatus(), equalTo(200));
         executeCommands();
       }

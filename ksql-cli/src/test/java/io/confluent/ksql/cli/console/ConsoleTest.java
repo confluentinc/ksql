@@ -75,6 +75,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -99,7 +100,7 @@ public class ConsoleTest {
   private static final String WHITE_SPACE = " \t ";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .noImplicitColumns()
+      .withRowTime()
       .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
       .build();
@@ -541,7 +542,7 @@ public class ConsoleTest {
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
-          + " Table Name | Kafka Topic    | Type | AvroSchema   \n"
+          + " Table Name | Kafka Topic    | Type | Schema       \n"
           + "---------------------------------------------------\n"
           + " TestTopic  | TestKafkaTopic | AVRO | schemaString \n"
           + "---------------------------------------------------\n"));
@@ -1469,7 +1470,9 @@ public class ConsoleTest {
   }
 
   private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {
-    final Builder schemaBuilder = LogicalSchema.builder();
+    final Builder schemaBuilder = LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
 
     for (int idx = 0; idx < fieldTypes.length; idx++) {
       schemaBuilder.valueColumn(ColumnName.of("f_" + idx), fieldTypes[idx]);

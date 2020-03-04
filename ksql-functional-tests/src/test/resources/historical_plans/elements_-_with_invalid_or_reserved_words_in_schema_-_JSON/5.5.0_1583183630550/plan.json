@@ -1,14 +1,14 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM INPUT (`@TIMESTAMP` BIGINT, `FROM` BIGINT) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
-      "sourceName" : "TEST",
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "sourceName" : "INPUT",
+      "schema" : "`ROWKEY` STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT",
       "keyField" : null,
       "timestampColumn" : null,
-      "topicName" : "test_topic",
+      "topicName" : "input",
       "formats" : {
         "keyFormat" : {
           "format" : "KAFKA",
@@ -25,14 +25,14 @@
     "queryPlan" : null
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TS AS SELECT TEST.ID ID\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
-      "sourceName" : "TS",
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "sourceName" : "OUTPUT",
+      "schema" : "`ROWKEY` STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT",
       "keyField" : null,
       "timestampColumn" : null,
-      "topicName" : "TS",
+      "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
           "format" : "KAFKA",
@@ -47,12 +47,12 @@
       "windowInfo" : null
     },
     "queryPlan" : {
-      "sources" : [ "TEST" ],
-      "sink" : "TS",
+      "sources" : [ "INPUT" ],
+      "sink" : "OUTPUT",
       "physicalPlan" : {
         "@type" : "streamSinkV1",
         "properties" : {
-          "queryContext" : "TS"
+          "queryContext" : "OUTPUT"
         },
         "source" : {
           "@type" : "streamSelectV1",
@@ -64,7 +64,7 @@
             "properties" : {
               "queryContext" : "KsqlTopic/Source"
             },
-            "topicName" : "test_topic",
+            "topicName" : "input",
             "formats" : {
               "keyFormat" : {
                 "format" : "KAFKA",
@@ -77,9 +77,9 @@
               "options" : [ ]
             },
             "timestampColumn" : null,
-            "sourceSchema" : "`ROWKEY` STRING KEY, `ID` BIGINT"
+            "sourceSchema" : "`ROWKEY` STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT"
           },
-          "selectExpressions" : [ "ID AS ID" ]
+          "selectExpressions" : [ "`@TIMESTAMP` AS `@TIMESTAMP`", "`FROM` AS `FROM`" ]
         },
         "formats" : {
           "keyFormat" : {
@@ -92,9 +92,9 @@
           },
           "options" : [ ]
         },
-        "topicName" : "TS"
+        "topicName" : "OUTPUT"
       },
-      "queryId" : "CSAS_TS_0"
+      "queryId" : "CSAS_OUTPUT_0"
     }
   } ],
   "configs" : {
@@ -114,7 +114,7 @@
     "ksql.internal.topic.min.insync.replicas" : "1",
     "ksql.streams.shutdown.timeout.ms" : "300000",
     "ksql.new.api.enabled" : "false",
-    "ksql.streams.state.dir" : "/var/folders/p9/bk8xks6s2lndncftdbq36xh80000gp/T/confluent8393051053551629823",
+    "ksql.streams.state.dir" : "/var/folders/bz/qnz23q_j6v12b3b_tm9ztv700000gn/T/confluent501665998288149869",
     "ksql.internal.topic.replicas" : "1",
     "ksql.insert.into.values.enabled" : "true",
     "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",

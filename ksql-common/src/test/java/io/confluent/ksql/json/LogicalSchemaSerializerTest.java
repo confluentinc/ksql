@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -39,6 +40,8 @@ public class LogicalSchemaSerializerTest {
   public void shouldSerializeSchemaWithImplicitColumns() throws Exception {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .build();
 
@@ -53,7 +56,6 @@ public class LogicalSchemaSerializerTest {
   public void shouldSerializeSchemaWithOutImplicitColumns() throws Exception {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumn(ColumnName.of("key0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .build();

@@ -39,6 +39,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AggregateParamsFactoryTest {
 
   private static final LogicalSchema INPUT_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ARGUMENT0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
@@ -210,6 +212,7 @@ public class AggregateParamsFactoryTest {
         schema,
         equalTo(
             LogicalSchema.builder()
+                .withRowTime()
                 .keyColumns(INPUT_SCHEMA.key())
                 .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
@@ -230,6 +233,7 @@ public class AggregateParamsFactoryTest {
         schema,
         equalTo(
             LogicalSchema.builder()
+                .withRowTime()
                 .keyColumns(INPUT_SCHEMA.key())
                 .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
@@ -259,6 +263,7 @@ public class AggregateParamsFactoryTest {
         schema,
         equalTo(
             LogicalSchema.builder()
+                .withRowTime()
                 .keyColumns(INPUT_SCHEMA.key())
                 .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)

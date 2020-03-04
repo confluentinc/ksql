@@ -40,7 +40,7 @@ public class ServerInternalKsqlClientTest {
 
   private static final String KSQL_STATEMENT = "awesome ksql request;";
   private static final KsqlRequest EXPECTED_REQUEST =
-      new KsqlRequest(KSQL_STATEMENT, Collections.emptyMap(), null);
+      new KsqlRequest(KSQL_STATEMENT, Collections.emptyMap(), Collections.emptyMap(), null);
 
   @Mock
   private KsqlResource ksqlResource;

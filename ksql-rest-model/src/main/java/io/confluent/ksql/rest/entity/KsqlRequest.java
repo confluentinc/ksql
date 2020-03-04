@@ -37,19 +37,24 @@ public class KsqlRequest {
   private static final PropertyParser PROPERTY_PARSER = new LocalPropertyParser();
 
   private final String ksql;
-  private final ImmutableMap<String, Object> streamsProperties;
+  private final ImmutableMap<String, Object> configOverrides;
+  private final ImmutableMap<String, Object> requestProperties;
   private final Optional<Long> commandSequenceNumber;
 
   @JsonCreator
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
-      @JsonProperty("streamsProperties") final Map<String, ?> streamsProperties,
+      @JsonProperty("streamsProperties") final Map<String, ?> configOverrides,
+      @JsonProperty("requestProperties") final Map<String, ?> requestProperties,
       @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
     this.ksql = ksql == null ? "" : ksql;
-    this.streamsProperties = streamsProperties == null
+    this.configOverrides = configOverrides == null
         ? ImmutableMap.of()
-        : ImmutableMap.copyOf(serializeClassValues(streamsProperties));
+        : ImmutableMap.copyOf(serializeClassValues(configOverrides));
+    this.requestProperties = requestProperties == null
+        ? ImmutableMap.of()
+        : ImmutableMap.copyOf(serializeClassValues(requestProperties));
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
@@ -57,8 +62,13 @@ public class KsqlRequest {
     return ksql;
   }
 
-  public Map<String, Object> getStreamsProperties() {
-    return coerceTypes(streamsProperties);
+  @JsonProperty("streamsProperties")
+  public Map<String, Object> getConfigOverrides() {
+    return coerceTypes(configOverrides);
+  }
+
+  public Map<String, Object> getRequestProperties() {
+    return coerceTypes(requestProperties);
   }
 
   public Optional<Long> getCommandSequenceNumber() {
@@ -77,20 +87,22 @@ public class KsqlRequest {
 
     final KsqlRequest that = (KsqlRequest) o;
     return Objects.equals(ksql, that.ksql)
-        && Objects.equals(streamsProperties, that.streamsProperties)
+        && Objects.equals(configOverrides, that.configOverrides)
+        && Objects.equals(requestProperties, that.requestProperties)
         && Objects.equals(commandSequenceNumber, that.commandSequenceNumber);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(ksql, streamsProperties, commandSequenceNumber);
+    return Objects.hash(ksql, configOverrides, requestProperties, commandSequenceNumber);
   }
 
   @Override
   public String toString() {
     return "KsqlRequest{"
         + "ksql='" + ksql + '\''
-        + ", streamsProperties=" + streamsProperties
+        + ", configOverrides=" + configOverrides
+        + ", requestProperties=" + requestProperties
         + ", commandSequenceNumber=" + commandSequenceNumber
         + '}';
   }

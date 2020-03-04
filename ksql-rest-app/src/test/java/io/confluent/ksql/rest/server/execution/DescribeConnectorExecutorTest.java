@@ -38,13 +38,14 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeConnector;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -54,6 +55,7 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -135,6 +137,8 @@ public class DescribeConnectorExecutorTest {
     );
     when(source.getSchema()).thenReturn(
         LogicalSchema.builder()
+            .withRowTime()
+            .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("foo"), SqlPrimitiveType.of( SqlBaseType.STRING))
             .build());
     when(source.getDataSourceType()).thenReturn(DataSourceType.KTABLE);

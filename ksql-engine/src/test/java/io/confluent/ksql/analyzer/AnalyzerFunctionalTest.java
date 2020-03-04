@@ -71,6 +71,7 @@ import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -366,8 +367,10 @@ public class AnalyzerFunctionalTest {
     );
 
     final LogicalSchema schema = LogicalSchema.builder()
-            .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BIGINT)
-            .build();
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BIGINT)
+        .build();
 
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
         "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
@@ -659,6 +662,8 @@ public class AnalyzerFunctionalTest {
 
   private void registerKafkaSource() {
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(COL0, SqlTypes.BIGINT)
         .build();
 

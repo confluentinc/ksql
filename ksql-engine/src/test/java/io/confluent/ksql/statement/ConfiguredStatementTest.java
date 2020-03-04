@@ -50,7 +50,7 @@ public class ConfiguredStatementTest {
     props.put("other", "thing");
 
     // Then:
-    assertThat(statement.getOverrides(), is(ImmutableMap.of("this", "that")));
+    assertThat(statement.getConfigOverrides(), is(ImmutableMap.of("this", "that")));
   }
 
   @Test
@@ -60,6 +60,6 @@ public class ConfiguredStatementTest {
         .of(prepared, new HashMap<>(), CONFIG);
 
     // Then:
-    assertThat(statement.getOverrides(), is(instanceOf(ImmutableMap.class)));
+    assertThat(statement.getConfigOverrides(), is(instanceOf(ImmutableMap.class)));
   }
 }

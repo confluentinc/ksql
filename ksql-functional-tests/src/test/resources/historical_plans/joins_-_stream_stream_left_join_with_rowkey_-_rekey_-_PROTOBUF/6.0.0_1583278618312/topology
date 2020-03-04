@@ -1,0 +1,69 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [left_topic])
+      --> KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> KSTREAM-FILTER-0000000002
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: KSTREAM-FILTER-0000000002 (stores: [])
+      --> KSTREAM-KEY-SELECT-0000000003
+      <-- KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-KEY-SELECT-0000000003 (stores: [])
+      --> PrependAliasLeft
+      <-- KSTREAM-FILTER-0000000002
+    Processor: PrependAliasLeft (stores: [])
+      --> Join-left-repartition-filter
+      <-- KSTREAM-KEY-SELECT-0000000003
+    Processor: Join-left-repartition-filter (stores: [])
+      --> Join-left-repartition-sink
+      <-- PrependAliasLeft
+    Sink: Join-left-repartition-sink (topic: Join-left-repartition)
+      <-- Join-left-repartition-filter
+
+  Sub-topology: 1
+    Source: KSTREAM-SOURCE-0000000005 (topics: [right_topic])
+      --> KSTREAM-TRANSFORMVALUES-0000000006
+    Processor: KSTREAM-TRANSFORMVALUES-0000000006 (stores: [])
+      --> KSTREAM-FILTER-0000000007
+      <-- KSTREAM-SOURCE-0000000005
+    Processor: KSTREAM-FILTER-0000000007 (stores: [])
+      --> KSTREAM-KEY-SELECT-0000000008
+      <-- KSTREAM-TRANSFORMVALUES-0000000006
+    Processor: KSTREAM-KEY-SELECT-0000000008 (stores: [])
+      --> PrependAliasRight
+      <-- KSTREAM-FILTER-0000000007
+    Processor: PrependAliasRight (stores: [])
+      --> Join-right-repartition-filter
+      <-- KSTREAM-KEY-SELECT-0000000008
+    Processor: Join-right-repartition-filter (stores: [])
+      --> Join-right-repartition-sink
+      <-- PrependAliasRight
+    Sink: Join-right-repartition-sink (topic: Join-right-repartition)
+      <-- Join-right-repartition-filter
+
+  Sub-topology: 2
+    Source: Join-left-repartition-source (topics: [Join-left-repartition])
+      --> Join-this-windowed
+    Source: Join-right-repartition-source (topics: [Join-right-repartition])
+      --> Join-other-windowed
+    Processor: Join-other-windowed (stores: [KSTREAM-OUTEROTHER-0000000019-store])
+      --> Join-outer-other-join
+      <-- Join-right-repartition-source
+    Processor: Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000018-store])
+      --> Join-this-join
+      <-- Join-left-repartition-source
+    Processor: Join-outer-other-join (stores: [KSTREAM-JOINTHIS-0000000018-store])
+      --> Join-merge
+      <-- Join-other-windowed
+    Processor: Join-this-join (stores: [KSTREAM-OUTEROTHER-0000000019-store])
+      --> Join-merge
+      <-- Join-this-windowed
+    Processor: Join-merge (stores: [])
+      --> Project
+      <-- Join-this-join, Join-outer-other-join
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000022
+      <-- Join-merge
+    Sink: KSTREAM-SINK-0000000022 (topic: LEFT_OUTER_JOIN)
+      <-- Project
+

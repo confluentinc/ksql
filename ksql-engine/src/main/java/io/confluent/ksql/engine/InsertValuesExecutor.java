@@ -44,7 +44,6 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
@@ -152,7 +151,7 @@ public class InsertValuesExecutor {
     final InsertValues insertValues = statement.getStatement();
     final MetaStore metaStore = executionContext.getMetaStore();
     final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
+        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
 
     final DataSource dataSource = getDataSource(config, metaStore, insertValues);
 
@@ -210,7 +209,7 @@ public class InsertValuesExecutor {
 
     final InsertValues insertValues = statement.getStatement();
     final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
+        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
 
     try {
       final RowData row = extractRow(
@@ -441,7 +440,7 @@ public class InsertValuesExecutor {
     try {
       return valueSerde.serializer().serialize(topicName, row);
     } catch (final Exception e) {
-      if (dataSource.getKsqlTopic().getValueFormat().getFormat() == FormatFactory.AVRO) {
+      if (dataSource.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference()) {
         final Throwable rootCause = ExceptionUtils.getRootCause(e);
         if (rootCause instanceof RestClientException) {
           switch (((RestClientException) rootCause).getStatus()) {

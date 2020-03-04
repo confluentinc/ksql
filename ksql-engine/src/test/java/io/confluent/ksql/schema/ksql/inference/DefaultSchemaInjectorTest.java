@@ -50,6 +50,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +82,8 @@ public class DefaultSchemaInjectorTest {
   private static final String SQL_TEXT = "Some SQL";
 
   private static final List<? extends SimpleColumn> SUPPORTED_SCHEMAS = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("intField"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bigIntField"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("doubleField"), SqlTypes.DOUBLE)
@@ -275,7 +278,7 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID=5, VALUE_FORMAT='avro');"
     ));
   }
 
@@ -300,14 +303,14 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID=5, VALUE_FORMAT='avro');"
     ));
   }
 
   @Test
   public void shouldBuildNewCsStatementTextFromId() {
     // Given:
-    when(cs.getProperties()).thenReturn(supportedPropsWith("AVRO_SCHEMA_ID", "42"));
+    when(cs.getProperties()).thenReturn(supportedPropsWith("SCHEMA_ID", "42"));
 
     when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.of(42)))
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
@@ -327,14 +330,14 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID='42', VALUE_FORMAT='avro');"
     ));
   }
 
   @Test
   public void shouldBuildNewCtStatementTextFromId() {
     // Given:
-    when(ct.getProperties()).thenReturn(supportedPropsWith("AVRO_SCHEMA_ID", "42"));
+    when(ct.getProperties()).thenReturn(supportedPropsWith("SCHEMA_ID", "42"));
 
     when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.of(42)))
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
@@ -354,7 +357,7 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID='42', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -368,23 +371,23 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatement().getProperties().getAvroSchemaId(), is(Optional.of(SCHEMA_ID)));
+    assertThat(result.getStatement().getProperties().getSchemaId(), is(Optional.of(SCHEMA_ID)));
 
-    assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID=5"));
+    assertThat(result.getStatementText(), containsString("SCHEMA_ID=5"));
   }
 
   @Test
   public void shouldNotOverwriteExistingSchemaId() {
     // Given:
-    when(cs.getProperties()).thenReturn(supportedPropsWith("AVRO_SCHEMA_ID", "42"));
+    when(cs.getProperties()).thenReturn(supportedPropsWith("SCHEMA_ID", "42"));
 
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatement().getProperties().getAvroSchemaId(), is(Optional.of(42)));
+    assertThat(result.getStatement().getProperties().getSchemaId(), is(Optional.of(42)));
 
-    assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID='42'"));
+    assertThat(result.getStatementText(), containsString("SCHEMA_ID='42'"));
   }
 
   @Test

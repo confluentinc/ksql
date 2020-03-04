@@ -171,10 +171,24 @@ public class ClusterTerminatorTest {
   }
 
   @Test
-  public void shouldCleanUpSchemasForExplicitTopicList() throws Exception {
+  public void shouldCleanUpSchemasForExplicitTopicListAvro() throws Exception {
     // Given:
     givenTopicsExistInKafka("K_Foo");
     givenSinkTopicsExistInMetastore(FormatFactory.AVRO, "K_Foo");
+    givenSchemasForTopicsExistInSchemaRegistry("K_Foo");
+
+    // When:
+    clusterTerminator.terminateCluster(ImmutableList.of("K_Foo"));
+
+    // Then:
+    verifySchemaDeletedForTopics("K_Foo");
+  }
+
+  @Test
+  public void shouldCleanUpSchemasForExplicitTopicListProtobuf() throws Exception {
+    // Given:
+    givenTopicsExistInKafka("K_Foo");
+    givenSinkTopicsExistInMetastore(FormatFactory.PROTOBUF, "K_Foo");
     givenSchemasForTopicsExistInSchemaRegistry("K_Foo");
 
     // When:
@@ -409,10 +423,10 @@ public class ClusterTerminatorTest {
   }
 
   @Test
-  public void shouldNotCleanUpSchemaForNonAvroTopic() throws Exception {
+  public void shouldNotCleanUpSchemaForNonSchemaInferenceSupportedTopic() throws Exception {
     // Given:
     givenTopicsExistInKafka("K_Foo");
-    givenSinkTopicsExistInMetastore(FormatFactory.JSON,"K_Foo");
+    givenSinkTopicsExistInMetastore(FormatFactory.DELIMITED,"K_Foo");
     givenSchemasForTopicsExistInSchemaRegistry("K_Foo");
 
     // When:

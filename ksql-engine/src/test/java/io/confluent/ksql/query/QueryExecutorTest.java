@@ -48,6 +48,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.List;
@@ -89,10 +90,14 @@ public class QueryExecutorTest {
   private static final String STORE_NAME = "store";
   private static final String SUMMARY = "summary";
   private static final Map<String, Object> OVERRIDES = Collections.emptyMap();
+
   private static final LogicalSchema SINK_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("col0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();
+
   private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
   private static final PhysicalSchema SINK_PHYSICAL_SCHEMA = PhysicalSchema.from(
       SINK_SCHEMA,

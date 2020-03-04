@@ -205,7 +205,7 @@ public class LogicalPlanner {
 
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching(
         (expression, alias) -> expression instanceof UnqualifiedColumnReferenceExp
-            && ((UnqualifiedColumnReferenceExp) expression).getReference().equals(
+            && ((UnqualifiedColumnReferenceExp) expression).getColumnName().equals(
                 sourceKeyFieldName),
         projection
     );
@@ -236,7 +236,7 @@ public class LogicalPlanner {
     if (!(partitionBy instanceof UnqualifiedColumnReferenceExp)) {
       keyField = KeyField.none();
     } else {
-      final ColumnName columnName = ((UnqualifiedColumnReferenceExp) partitionBy).getReference();
+      final ColumnName columnName = ((UnqualifiedColumnReferenceExp) partitionBy).getColumnName();
       final LogicalSchema sourceSchema = sourceNode.getSchema();
 
       final Column proposedKey = sourceSchema
@@ -293,7 +293,7 @@ public class LogicalPlanner {
               final QualifiedColumnReferenceExp node,
               final Context<Void> ctx
           ) {
-            return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
+            return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
           }
         };
     final PlanNode repartition = buildRepartitionNode(
@@ -379,13 +379,15 @@ public class LogicalPlanner {
 
   private LogicalSchema buildProjectionSchema(
       final LogicalSchema schema,
-      final List<SelectExpression> projection) {
+      final List<SelectExpression> projection
+  ) {
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         schema,
         functionRegistry
     );
 
-    final Builder builder = LogicalSchema.builder();
+    final Builder builder = LogicalSchema.builder()
+        .withRowTime();
 
     final List<Column> keyColumns = schema.key();
 
@@ -424,6 +426,7 @@ public class LogicalPlanner {
     );
 
     return LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();
@@ -441,6 +444,7 @@ public class LogicalPlanner {
     final SqlType keyType = typeManager.getExpressionSqlType(partitionBy);
 
     return LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();
@@ -472,10 +476,11 @@ public class LogicalPlanner {
         final Context<Void> ctx
     ) {
       if (sourceSchemas.isJoin()) {
-        final SourceName sourceName =
-            sourceSchemas.sourcesWithField(Optional.empty(), node.getReference()).iterator().next();
+        final SourceName sourceName = sourceSchemas
+            .sourcesWithField(Optional.empty(), node.getColumnName()).iterator().next();
+
         return Optional.of(new UnqualifiedColumnReferenceExp(
-            ColumnName.generatedJoinColumnAlias(sourceName, node.getReference())
+            ColumnName.generatedJoinColumnAlias(sourceName, node.getColumnName())
         ));
       }
       return Optional.empty();
@@ -488,10 +493,10 @@ public class LogicalPlanner {
     ) {
       if (sourceSchemas.isJoin()) {
         return Optional.of(new UnqualifiedColumnReferenceExp(
-            ColumnName.generatedJoinColumnAlias(node.getQualifier(), node.getReference())
+            ColumnName.generatedJoinColumnAlias(node.getQualifier(), node.getColumnName())
         ));
       } else {
-        return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
+        return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
       }
     }
   }
@@ -538,7 +543,7 @@ public class LogicalPlanner {
 
     private Expression rewriteFinalSelectExpression(final Expression expression) {
       if (expression instanceof UnqualifiedColumnReferenceExp
-          && ((UnqualifiedColumnReferenceExp) expression).getReference().isAggregate()) {
+          && ((UnqualifiedColumnReferenceExp) expression).getColumnName().isAggregate()) {
         return expression;
       }
       return ExpressionTreeRewriter.rewriteWith(rewriter, expression);

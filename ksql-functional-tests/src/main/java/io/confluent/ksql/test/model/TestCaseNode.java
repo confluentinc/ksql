@@ -128,11 +128,6 @@ public final class TestCaseNode {
     if (this.statements.isEmpty()) {
       throw new InvalidFieldException("statements", "was empty");
     }
-
-    if (!this.inputs.isEmpty() && this.expectedException.isPresent()) {
-      throw new InvalidFieldException("inputs and expectedException",
-          "can not both be set");
-    }
   }
 
   private static <T> ImmutableList<T> immutableCopyOf(final List<T> source) {

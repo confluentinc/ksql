@@ -181,7 +181,7 @@ public class SchemaKStream<K> {
       if (toExpression instanceof UnqualifiedColumnReferenceExp) {
         final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) toExpression;
 
-        if (keyColumnName.equals(nameRef.getReference())) {
+        if (keyColumnName.equals(nameRef.getColumnName())) {
           found = Optional.of(Column.legacyKeyFieldColumn(toName, SqlTypes.STRING));
           break;
         }
@@ -357,7 +357,7 @@ public class SchemaKStream<K> {
       return KeyField.none();
     }
 
-    final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getReference();
+    final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
     final KeyField newKeyField = isRowKey(columnName) ? keyField : KeyField.of(columnName);
     return getSchema().isMetaColumn(columnName) ? KeyField.none() : newKeyField;
   }
@@ -367,7 +367,7 @@ public class SchemaKStream<K> {
       return false;
     }
 
-    final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getReference();
+    final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
     final Optional<Column> existingKey = keyField.resolve(getSchema());
 
     final Column proposedKey = getSchema()
@@ -394,7 +394,7 @@ public class SchemaKStream<K> {
   private static ColumnName fieldNameFromExpression(final Expression expression) {
     if (expression instanceof UnqualifiedColumnReferenceExp) {
       final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) expression;
-      return nameRef.getReference();
+      return nameRef.getColumnName();
     }
     return null;
   }
@@ -521,7 +521,7 @@ public class SchemaKStream<K> {
   static ColumnName groupedKeyNameFor(final List<Expression> groupByExpressions) {
     if (groupByExpressions.size() == 1
         && groupByExpressions.get(0) instanceof UnqualifiedColumnReferenceExp) {
-      return ((UnqualifiedColumnReferenceExp) groupByExpressions.get(0)).getReference();
+      return ((UnqualifiedColumnReferenceExp) groupByExpressions.get(0)).getColumnName();
     }
 
     // this is safe because if we group by multiple fields the original field

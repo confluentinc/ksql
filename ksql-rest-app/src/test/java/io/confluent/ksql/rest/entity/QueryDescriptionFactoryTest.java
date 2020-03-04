@@ -61,12 +61,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryDescriptionFactoryTest {
 
   private static final LogicalSchema TRANSIENT_SCHEMA = LogicalSchema.builder()
-      .noImplicitColumns()
       .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema PERSISTENT_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
       .build();
@@ -191,7 +192,7 @@ public class QueryDescriptionFactoryTest {
   public void shouldExposeAllFieldsForPersistentQueries() {
     assertThat(persistentQueryDescription.getFields(), contains(
         new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null)),
-        new FieldInfo("ROWKEY", new SchemaInfo(SqlBaseType.STRING, null, null)),
+        new FieldInfo("k0", new SchemaInfo(SqlBaseType.STRING, null, null)),
         new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null)),
         new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null))));
   }
@@ -210,7 +211,6 @@ public class QueryDescriptionFactoryTest {
   public void shouldHandleRowTimeInValueSchemaForTransientQuery() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
@@ -244,7 +244,6 @@ public class QueryDescriptionFactoryTest {
   public void shouldHandleRowKeyInValueSchemaForTransientQuery() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)

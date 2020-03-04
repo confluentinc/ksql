@@ -56,19 +56,20 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class TableGroupByBuilderTest {
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
       .withMetaAndKeyColsInValue(false);
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumns(SCHEMA.value())
       .build();
-
-  private static final PhysicalSchema PHYSICAL_SCHEMA =
-      PhysicalSchema.from(SCHEMA, SerdeOption.none());
 
   private static final PhysicalSchema REKEYED_PHYSICAL_SCHEMA =
       PhysicalSchema.from(REKEYED_SCHEMA, SerdeOption.none());
@@ -189,6 +190,7 @@ public class TableGroupByBuilderTest {
 
     // Then:
     assertThat(result.getSchema(), is(is(LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumns(SCHEMA.value())
         .build())));

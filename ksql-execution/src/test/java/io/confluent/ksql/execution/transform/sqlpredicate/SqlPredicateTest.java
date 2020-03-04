@@ -65,7 +65,6 @@ public class SqlPredicateTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .noImplicitColumns()
       .keyColumn(ColumnName.of("ID"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)

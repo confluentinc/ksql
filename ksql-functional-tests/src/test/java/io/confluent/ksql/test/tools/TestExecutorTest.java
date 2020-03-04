@@ -46,6 +46,7 @@ import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -70,6 +71,8 @@ public class TestExecutorTest {
   private static final String SINK_TOPIC_NAME = "sink_topic";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .build();
 
@@ -313,6 +316,7 @@ public class TestExecutorTest {
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(ColumnName.of("key"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
         .build();

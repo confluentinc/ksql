@@ -102,16 +102,25 @@ public class WSQueryEndpointTest {
 
   private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
 
-  private static final KsqlRequest VALID_REQUEST = new KsqlRequest("test-sql",
-      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"), null);
+  private static final KsqlRequest VALID_REQUEST = new KsqlRequest(
+      "test-sql",
+      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+      Collections.emptyMap(),
+      null);
 
-  private static final KsqlRequest ANOTHER_REQUEST = new KsqlRequest("other-sql",
-      ImmutableMap.of(), null);
+  private static final KsqlRequest ANOTHER_REQUEST = new KsqlRequest(
+      "other-sql",
+      ImmutableMap.of(),
+      Collections.emptyMap(),
+      null);
 
   private static final long SEQUENCE_NUMBER = 2L;
   private static final KsqlRequest REQUEST_WITHOUT_SEQUENCE_NUMBER = VALID_REQUEST;
-  private static final KsqlRequest REQUEST_WITH_SEQUENCE_NUMBER = new KsqlRequest("test-sql",
-      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"), SEQUENCE_NUMBER);
+  private static final KsqlRequest REQUEST_WITH_SEQUENCE_NUMBER = new KsqlRequest(
+      "test-sql",
+      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+      Collections.emptyMap(),
+      SEQUENCE_NUMBER);
 
   private static final String VALID_VERSION = Versions.KSQL_V1_WS;
   private static final String[] NO_VERSION_PROPERTY = null;
@@ -389,7 +398,7 @@ public class WSQueryEndpointTest {
     // Then:
     final ConfiguredStatement<Query> configuredStatement = ConfiguredStatement.of(
         PreparedStatement.of(VALID_REQUEST.getKsql(), query),
-        VALID_REQUEST.getStreamsProperties(),
+        VALID_REQUEST.getConfigOverrides(),
         ksqlConfig);
 
     verify(pushQueryPublisher).start(
@@ -436,7 +445,7 @@ public class WSQueryEndpointTest {
     // Then:
     final ConfiguredStatement<Query> configuredStatement = ConfiguredStatement.of(
         PreparedStatement.of(VALID_REQUEST.getKsql(), query),
-        VALID_REQUEST.getStreamsProperties(),
+        VALID_REQUEST.getConfigOverrides(),
         ksqlConfig);
 
     verify(pullQueryPublisher).start(

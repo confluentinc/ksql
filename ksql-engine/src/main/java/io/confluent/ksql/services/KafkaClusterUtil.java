@@ -16,6 +16,7 @@
 package io.confluent.ksql.services;
 
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlServerException;
 import java.util.Collection;
@@ -27,7 +28,9 @@ import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.DescribeClusterOptions;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +78,14 @@ public final class KafkaClusterUtil {
       return brokerConfig.get(configResource);
     } catch (final KsqlServerException e) {
       throw e;
+    } catch (final ClusterAuthorizationException e) {
+      throw new KsqlServerException("Could not get Kafka cluster configuration. "
+          + "Please ensure the ksql principal has " + AclOperation.DESCRIBE_CONFIGS + " rights "
+          + "on the Kafka cluster."
+          + System.lineSeparator()
+          + "See " + DocumentationLinks.SECURITY_REQUIRED_ACLS_DOC_URL + " for more info.",
+          e
+      );
     } catch (final Exception e) {
       throw new KsqlServerException("Could not get Kafka cluster configuration!", e);
     }

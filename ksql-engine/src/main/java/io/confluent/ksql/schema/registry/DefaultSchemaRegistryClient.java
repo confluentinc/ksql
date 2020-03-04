@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.registry;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -144,12 +145,12 @@ public class DefaultSchemaRegistryClient implements SchemaRegistryClient {
 
   @Override
   public List<Integer> deleteSubject(final String s) {
-    throw configException;
+    return ImmutableList.of();
   }
 
   @Override
   public List<Integer> deleteSubject(final Map<String, String> map, final String s) {
-    throw configException;
+    return ImmutableList.of();
   }
 
   @Override

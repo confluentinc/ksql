@@ -96,8 +96,11 @@ public final class StreamFlatMapBuilder {
   public static LogicalSchema buildSchema(
       final LogicalSchema inputSchema,
       final List<FunctionCall> tableFunctions,
-      final FunctionRegistry functionRegistry) {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
+      final FunctionRegistry functionRegistry
+  ) {
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder()
+        .withRowTime();
+
     final List<Column> cols = inputSchema.value();
 
     // We copy all the original columns to the output schema

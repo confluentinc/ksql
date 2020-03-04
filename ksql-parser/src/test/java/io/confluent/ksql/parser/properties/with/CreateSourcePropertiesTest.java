@@ -81,7 +81,7 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getTimestampColumnName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
     assertThat(properties.getWindowType(), is(Optional.empty()));
-    assertThat(properties.getAvroSchemaId(), is(Optional.empty()));
+    assertThat(properties.getSchemaId(), is(Optional.empty()));
     assertThat(properties.getFormatInfo(), is(FormatInfo.of("AvRo")));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
@@ -279,11 +279,11 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(CreateConfigs.AVRO_SCHEMA_ID, new StringLiteral("1"))
+            .put(CreateConfigs.SCHEMA_ID, new StringLiteral("1"))
             .build());
 
     // Then:
-    assertThat(properties.getAvroSchemaId(), is(Optional.of(1)));
+    assertThat(properties.getSchemaId(), is(Optional.of(1)));
   }
 
   @Test
@@ -438,6 +438,7 @@ public class CreateSourcePropertiesTest {
     );
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldProperlyImplementEqualsAndHashCode() {
     new EqualsTester()

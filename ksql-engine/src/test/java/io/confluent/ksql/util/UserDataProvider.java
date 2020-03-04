@@ -28,6 +28,8 @@ import java.util.Map;
 public class UserDataProvider extends TestDataProvider<String> {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("REGISTERTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("GENDER"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("REGIONID"), SqlTypes.STRING)

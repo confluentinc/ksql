@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
+import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.rest.server.computation.ConfigTopicKey.StringKey;
 import java.nio.charset.StandardCharsets;
@@ -81,7 +82,7 @@ public class ConfigTopicKeyTest {
     @Override
     public boolean matchesSafely(final Exception e) {
       return e instanceof SerializationException
-          && e.getCause() instanceof InvalidDefinitionException
+          && e.getCause() instanceof InvalidDefinitionException || e.getCause() instanceof ValueInstantiationException
           && exceptionClass.isInstance(e.getCause().getCause())
           && e.getCause().getCause().getMessage().contains(msg);
     }

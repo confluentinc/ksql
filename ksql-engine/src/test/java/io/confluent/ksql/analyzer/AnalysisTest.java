@@ -32,6 +32,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -49,6 +50,8 @@ public class AnalysisTest {
   private static final WindowInfo A_WINDOW = WindowInfo.of(WindowType.SESSION, Optional.empty());
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("bob"), SqlTypes.BIGINT)
       .build();
 

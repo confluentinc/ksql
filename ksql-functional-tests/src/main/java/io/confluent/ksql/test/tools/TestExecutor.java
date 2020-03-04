@@ -139,10 +139,6 @@ public class TestExecutor implements Closeable {
               stubKafkaService
           );
 
-      testCase.expectedException().map(ee -> {
-        throw new AssertionError("Expected test to throw" + StringDescription.toString(ee));
-      });
-
       writeInputIntoTopics(testCase.getInputRecords(), stubKafkaService);
       final Set<String> inputTopics = testCase.getInputRecords()
           .stream()
@@ -181,6 +177,9 @@ public class TestExecutor implements Closeable {
           .map(Topic::getName)
           .forEach(allTopicNames::add);
 
+      testCase.expectedException().map(ee -> {
+        throw new AssertionError("Expected test to throw" + StringDescription.toString(ee));
+      });
       testCase.getPostConditions().verify(ksqlEngine.getMetaStore(), allTopicNames);
     } catch (final RuntimeException e) {
       final Optional<Matcher<Throwable>> expectedExceptionMatcher = testCase.expectedException();

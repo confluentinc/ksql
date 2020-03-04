@@ -37,6 +37,7 @@ import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -93,6 +94,8 @@ public class QueryStreamWriterTest {
     limitHandlerCapture = newCapture();
 
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
         .build();
 

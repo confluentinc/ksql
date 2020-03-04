@@ -53,6 +53,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -104,6 +105,11 @@ public class ApiIntegrationTest {
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
     );
+  }
+
+  @AfterClass
+  public static void classTearDown() {
+    REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
   }
 
   private Vertx vertx;

@@ -23,7 +23,6 @@ import static io.confluent.ksql.schema.ksql.types.SqlTypes.BOOLEAN;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.DOUBLE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
-import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
 import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
@@ -61,6 +60,7 @@ public class LogicalSchemaTest {
   private static final ColumnName VALUE = ColumnName.of("value");
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .valueColumn(F0, STRING)
       .keyColumn(K0, BIGINT)
       .valueColumn(F1, BIGINT)
@@ -98,14 +98,21 @@ public class LogicalSchemaTest {
         )
         .addEqualityGroup(
             LogicalSchema.builder()
-                .valueColumn(F0, STRING)
-                .valueColumn(F1, BIGINT)
-                .build(),
-
+                .keyColumn(K0, DOUBLE)
+                .valueColumn(V0, STRING)
+                .build()
+        )
+        .addEqualityGroup(
             LogicalSchema.builder()
-                .keyColumn(ROWKEY_NAME, STRING)
-                .valueColumn(F0, STRING)
-                .valueColumn(F1, BIGINT)
+                .keyColumn(K0, BIGINT)
+                .valueColumn(V0, DOUBLE)
+                .build()
+        )
+        .addEqualityGroup(
+            LogicalSchema.builder()
+                .withRowTime()
+                .keyColumn(K0, BIGINT)
+                .valueColumn(V0, STRING)
                 .build()
         )
         .addEqualityGroup(
@@ -131,6 +138,7 @@ public class LogicalSchemaTest {
   public void shouldExposeColumnIndexWithinValueNamespace() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
         .valueColumn(F0, STRING)
         .keyColumn(K0, BIGINT)
         .valueColumn(F1, BIGINT)
@@ -241,7 +249,8 @@ public class LogicalSchemaTest {
   public void shouldPreferValueOverMetaColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        // Implicit meta ROWTIME
+        .withRowTime()
+        .keyColumn(K0, INTEGER)
         .valueColumn(ROWTIME_NAME, BIGINT)
         .build();
 
@@ -288,7 +297,6 @@ public class LogicalSchemaTest {
   public void shouldExposeAllColumnsWithoutImplicits() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(F0, STRING)
         .keyColumn(K0, BIGINT)
         .valueColumn(F1, BIGINT)
@@ -365,6 +373,7 @@ public class LogicalSchemaTest {
   public void shouldConvertSchemaToStringWithReservedWords() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, DOUBLE)
         .valueColumn(F0, BOOLEAN)
         .valueColumn(F1, SqlTypes.struct()
             .field("f0", BIGINT)
@@ -380,7 +389,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(s, is(
-        "ROWKEY STRING KEY, "
+        "k0 DOUBLE KEY, "
             + "`f0` BOOLEAN, "
             + "f1 STRUCT<`f0` BIGINT, f1 BIGINT>"
     ));
@@ -390,6 +399,7 @@ public class LogicalSchemaTest {
   public void shouldAddMetaAndKeyColumnsToValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(K0, INTEGER)
         .keyColumn(K1, STRING)
         .valueColumn(F0, STRING)
@@ -401,6 +411,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(K0, INTEGER)
         .keyColumn(K1, STRING)
         .valueColumn(F0, STRING)
@@ -416,6 +427,7 @@ public class LogicalSchemaTest {
   public void shouldAddWindowedMetaAndKeyColumnsToValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(K0, INTEGER)
         .keyColumn(K1, STRING)
         .valueColumn(F0, STRING)
@@ -428,6 +440,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(K0, INTEGER)
         .keyColumn(K1, STRING)
         .valueColumn(F0, STRING)
@@ -446,6 +459,7 @@ public class LogicalSchemaTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(F0, STRING)
+        .keyColumn(K0, INTEGER)
         .valueColumn(F1, BIGINT)
         .build()
         .withMetaAndKeyColsInValue(false);
@@ -461,8 +475,10 @@ public class LogicalSchemaTest {
   public void shouldRemoveOthersWhenAddingMetasAndKeyColumns() {
     // Given:
     final LogicalSchema ksqlSchema = LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(K0, INTEGER)
         .valueColumn(F0, BIGINT)
-        .valueColumn(ROWKEY_NAME, DOUBLE)
+        .valueColumn(K0, DOUBLE)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, DOUBLE)
         .build();
@@ -472,10 +488,12 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(K0, INTEGER)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, BIGINT)
-        .valueColumn(ROWKEY_NAME, STRING)
+        .valueColumn(K0, INTEGER)
         .build()
     ));
   }
@@ -484,6 +502,7 @@ public class LogicalSchemaTest {
   public void shouldRemoveMetaColumnsFromValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
@@ -494,6 +513,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
@@ -504,6 +524,7 @@ public class LogicalSchemaTest {
   public void shouldRemoveWindowedMetaColumnsFromValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
@@ -514,6 +535,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
@@ -524,8 +546,9 @@ public class LogicalSchemaTest {
   public void shouldRemoveMetaColumnsWhereEverTheyAre() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(K0, INTEGER)
         .valueColumn(F0, BIGINT)
-        .valueColumn(ROWKEY_NAME, STRING)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, BIGINT)
         .build();
@@ -535,6 +558,30 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(K0, INTEGER)
+        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldRemoveKeyColumnsWhereEverTheyAre() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, STRING)
+        .valueColumn(F0, BIGINT)
+        .valueColumn(K0, STRING)
+        .valueColumn(F1, BIGINT)
+        .build();
+
+    // When
+    final LogicalSchema result = schema.withoutMetaAndKeyColsInValue();
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, STRING)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
@@ -635,16 +682,18 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldBuildSchemaWithNoImplicitColumns() {
+  public void shouldBuildSchemaWithNoMetaColumns() {
     // When:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
+        .keyColumn(K0, DOUBLE)
         .valueColumn(F0, BIGINT)
         .build();
 
     // Then:
     assertThat(schema.metadata(), is(empty()));
-    assertThat(schema.key(), is(empty()));
+    assertThat(schema.key(), contains(
+        keyColumn(K0, DOUBLE)
+    ));
     assertThat(schema.value(), contains(
         valueColumn(F0, BIGINT)
     ));
@@ -654,7 +703,6 @@ public class LogicalSchemaTest {
   public void shouldSupportCopyingColumnsFromOtherSchemas() {
     // When:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumns(SOME_SCHEMA.value())
         .valueColumns(SOME_SCHEMA.metadata())
         .valueColumns(SOME_SCHEMA.key())

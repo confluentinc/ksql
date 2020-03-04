@@ -74,6 +74,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -108,6 +109,7 @@ public class CreateSourceFactoryTest {
       TableElements.of(EXPLICIT_ROWKEY, ELEMENT1, ELEMENT2);
 
   private static final LogicalSchema EXPECTED_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(ROWKEY_NAME, SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("hojjat"), BIGINT)
@@ -444,6 +446,8 @@ public class CreateSourceFactoryTest {
     givenCommandFactoriesWithMocks();
     final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
     when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
@@ -579,7 +583,8 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(result.getSchema(), is(LogicalSchema.builder()
-        .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("hojjat"), BIGINT)
         .build()

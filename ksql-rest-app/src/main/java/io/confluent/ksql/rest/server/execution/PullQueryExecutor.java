@@ -75,7 +75,6 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
-import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.FormatOptions;
@@ -89,6 +88,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -126,16 +126,13 @@ public final class PullQueryExecutor {
       VALID_WINDOW_BOUNDS_TYPES.toString();
 
   private final KsqlExecutionContext executionContext;
-  private final Optional<HeartbeatAgent> heartbeatAgent;
   private final RoutingFilterFactory routingFilterFactory;
 
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
-      final Optional<HeartbeatAgent> heartbeatAgent,
       final RoutingFilterFactory routingFilterFactory
   ) {
     this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
-    this.heartbeatAgent = Objects.requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
   }
@@ -217,7 +214,7 @@ public final class PullQueryExecutor {
       final PullQueryContext pullQueryContext
   ) {
     final RoutingOptions routingOptions = new ConfigRoutingOptions(
-        statement.getConfig(), statement.getOverrides());
+        statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
 
     // Get active and standby nodes for this key
     final Locator locator = pullQueryContext.mat.locator();
@@ -252,7 +249,6 @@ public final class PullQueryExecutor {
       final ServiceContext serviceContext,
       final PullQueryContext pullQueryContext
   ) {
-
     if (node.isLocal()) {
       LOG.debug("Query {} executed locally at host {} at timestamp {}.",
                statement.getStatementText(), node.location(), System.currentTimeMillis());
@@ -315,6 +311,63 @@ public final class PullQueryExecutor {
         pullQueryContext.queryId,
         outputSchema,
         rows
+    );
+  }
+
+  @VisibleForTesting
+  TableRowsEntity forwardTo(
+      final KsqlNode owner,
+      final ConfiguredStatement<Query> statement,
+      final ServiceContext serviceContext
+  ) {
+    // Add skip forward flag to properties
+    final Map<String, Object> requestProperties = ImmutableMap.of(
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true);
+    final RestResponse<List<StreamedRow>> response = serviceContext
+        .getKsqlClient()
+        .makeQueryRequest(
+            owner.location(),
+            statement.getStatementText(),
+            statement.getConfigOverrides(),
+            requestProperties
+        );
+
+    if (response.isErroneous()) {
+      throw new KsqlServerException("Forwarding attempt failed: " + response.getErrorMessage());
+    }
+
+    final List<StreamedRow> streamedRows = response.getResponse();
+    if (streamedRows.isEmpty()) {
+      throw new KsqlServerException("Invalid empty response from forwarding call");
+    }
+
+    // Temporary code to convert from QueryStream to TableRowsEntity
+    // Tracked by: https://github.com/confluentinc/ksql/issues/3865
+    final Header header = streamedRows.get(0).getHeader()
+        .orElseThrow(() -> new KsqlServerException("Expected header in first row"));
+
+    final ImmutableList.Builder<List<?>> rows = ImmutableList.builder();
+
+    for (final StreamedRow row : streamedRows.subList(1, streamedRows.size())) {
+      if (row.getErrorMessage().isPresent()) {
+        throw new KsqlStatementException(
+            row.getErrorMessage().get().getMessage(),
+            statement.getStatementText()
+        );
+      }
+
+      if (!row.getRow().isPresent()) {
+        throw new KsqlServerException("Unexpected forwarding response");
+      }
+
+      rows.add(row.getRow().get().values());
+    }
+
+    return new TableRowsEntity(
+        statement.getStatementText(),
+        header.getQueryId(),
+        header.getSchema(),
+        rows.build()
     );
   }
 
@@ -676,7 +729,7 @@ public final class PullQueryExecutor {
       throw invalidWhereClauseException("Invalid WHERE clause: " + comparison, false);
     }
 
-    final String fieldName = column.getReference().toString(FormatOptions.noEscape());
+    final String fieldName = column.getColumnName().toString(FormatOptions.noEscape());
 
     try {
       return ComparisonTarget.valueOf(fieldName.toUpperCase());
@@ -742,7 +795,7 @@ public final class PullQueryExecutor {
     }
 
     final KsqlConfig ksqlConfig = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
+        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
 
     final SelectValueMapper<Object> select = SelectValueMapperFactory.create(
         analysis.getSelectExpressions(),
@@ -792,14 +845,13 @@ public final class PullQueryExecutor {
     }
   }
 
-  private LogicalSchema selectOutputSchema(
+  private static LogicalSchema selectOutputSchema(
       final Result input,
       final KsqlExecutionContext executionContext,
       final ImmutableAnalysis analysis,
       final Optional<WindowType> windowType
   ) {
-    final Builder schemaBuilder = LogicalSchema.builder()
-        .noImplicitColumns();
+    final Builder schemaBuilder = LogicalSchema.builder();
 
     // Copy meta & key columns into the value schema as SelectValueMapper expects it:
     final LogicalSchema schema = input.schema
@@ -851,55 +903,6 @@ public final class PullQueryExecutor {
   private SourceName getSourceName(final ImmutableAnalysis analysis) {
     final DataSource source = analysis.getFromDataSources().get(0).getDataSource();
     return source.getName();
-  }
-
-  @VisibleForTesting
-  TableRowsEntity forwardTo(
-      final KsqlNode owner,
-      final ConfiguredStatement<Query> statement,
-      final ServiceContext serviceContext
-  ) {
-    final RestResponse<List<StreamedRow>> response = serviceContext
-        .getKsqlClient()
-        .makeQueryRequest(owner.location(), statement.getStatementText(), statement.getOverrides());
-
-    if (response.isErroneous()) {
-      throw new KsqlServerException("Proxy attempt failed: " + response.getErrorMessage());
-    }
-
-    final List<StreamedRow> streamedRows = response.getResponse();
-    if (streamedRows.isEmpty()) {
-      throw new KsqlServerException("Invalid empty response from proxy call");
-    }
-
-    // Temporary code to convert from QueryStream to TableRowsEntity
-    // Tracked by: https://github.com/confluentinc/ksql/issues/3865
-    final Header header = streamedRows.get(0).getHeader()
-        .orElseThrow(() -> new KsqlServerException("Expected header in first row"));
-
-    final ImmutableList.Builder<List<?>> rows = ImmutableList.builder();
-
-    for (final StreamedRow row : streamedRows.subList(1, streamedRows.size())) {
-      if (row.getErrorMessage().isPresent()) {
-        throw new KsqlStatementException(
-            row.getErrorMessage().get().getMessage(),
-            statement.getStatementText()
-        );
-      }
-
-      if (!row.getRow().isPresent()) {
-        throw new KsqlServerException("Unexpected proxy response");
-      }
-
-      rows.add(row.getRow().get().values());
-    }
-
-    return new TableRowsEntity(
-        statement.getStatementText(),
-        header.getQueryId(),
-        header.getSchema(),
-        rows.build()
-    );
   }
 
   private KsqlException notMaterializedException(final SourceName sourceTable) {
@@ -961,30 +964,50 @@ public final class PullQueryExecutor {
         final QualifiedColumnReferenceExp node,
         final Context<Void> ctx
     ) {
-      return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
+      return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
     }
   }
 
   private static final class ConfigRoutingOptions implements RoutingOptions {
 
     private final KsqlConfig ksqlConfig;
-    private final Map<String, ?> overrides;
+    private final Map<String, ?> configOverrides;
+    private final Map<String, ?> requestProperties;
 
-    ConfigRoutingOptions(final KsqlConfig ksqlConfig, final Map<String, ?> overrides) {
+    ConfigRoutingOptions(
+        final KsqlConfig ksqlConfig,
+        final Map<String, ?> configOverrides,
+        final Map<String, ?> requestProperties
+    ) {
       this.ksqlConfig = ksqlConfig;
-      this.overrides = overrides;
+      this.configOverrides = configOverrides;
+      this.requestProperties = requestProperties;
     }
 
     private long getLong(final String key) {
-      if (overrides.containsKey(key)) {
-        return (Long) overrides.get(key);
+      if (configOverrides.containsKey(key)) {
+        return (Long) configOverrides.get(key);
       }
       return ksqlConfig.getLong(key);
+    }
+
+    private boolean getForwardedFlag(final String key) {
+      if (requestProperties.containsKey(key)) {
+        return (Boolean) requestProperties.get(key);
+      }
+      return KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING_DEFAULT;
     }
 
     @Override
     public long getOffsetLagAllowed() {
       return getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
     }
+
+    @Override
+    public boolean skipForwardRequest() {
+      return getForwardedFlag(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING);
+    }
+
+
   }
 }

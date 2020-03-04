@@ -50,6 +50,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
@@ -61,6 +62,8 @@ import org.junit.rules.ExternalResource;
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("val"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("val2"), SqlTypes.decimal(2, 1))
       .valueColumn(ColumnName.of("ADDRESS"), SqlTypes.struct()

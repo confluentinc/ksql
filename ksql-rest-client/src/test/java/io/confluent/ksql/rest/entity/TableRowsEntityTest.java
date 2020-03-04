@@ -24,8 +24,8 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Arrays;
@@ -38,7 +38,6 @@ public class TableRowsEntityTest {
   private static final String SOME_SQL = "some SQL";
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
-      .noImplicitColumns()
       .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)

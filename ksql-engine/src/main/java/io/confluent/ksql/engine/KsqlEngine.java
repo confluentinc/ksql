@@ -176,7 +176,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ConfiguredStatement<?> statement
   ) {
     return EngineExecutor
-        .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
+        .create(
+            primaryContext, serviceContext, statement.getConfig(), statement.getConfigOverrides())
         .plan(statement);
   }
 
@@ -198,7 +199,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         serviceContext,
         ConfiguredKsqlPlan.of(
             plan(serviceContext, statement),
-            statement.getOverrides(),
+            statement.getConfigOverrides(),
             statement.getConfig()
         )
     );
@@ -211,7 +212,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   ) {
     try {
       final TransientQueryMetadata query = EngineExecutor
-          .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
+          .create(
+              primaryContext,
+              serviceContext,
+              statement.getConfig(),
+              statement.getConfigOverrides())
           .executeQuery(statement);
       registerQuery(query);
       return query;
@@ -230,7 +235,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final Consumer<GenericRow> rowConsumer
   ) {
     final QueryMetadata query = EngineExecutor
-        .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
+        .create(
+            primaryContext,
+            serviceContext,
+            statement.getConfig(),
+            statement.getConfigOverrides()
+        )
         .executeQuery(statement, rowConsumer);
     registerQuery(query);
     return query;
@@ -276,7 +286,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     if (query.hasEverBeenStarted()) {
       SchemaRegistryUtil
-          .cleanUpInternalTopicAvroSchemas(applicationId, serviceContext.getSchemaRegistryClient());
+          .cleanupInternalTopicSchemas(applicationId, serviceContext.getSchemaRegistryClient());
       serviceContext.getTopicClient().deleteInternalTopics(applicationId);
     }
 

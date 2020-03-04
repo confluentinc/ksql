@@ -96,6 +96,7 @@ final class RestTestCaseBuilder {
       return new RestTestCase(
           testPath,
           testName,
+          test.properties(),
           topics.values(),
           inputRecords,
           outputRecords,

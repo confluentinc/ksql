@@ -40,6 +40,7 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -135,18 +136,19 @@ public final class KsqlTarget {
   ) {
     return post(
         KSQL_PATH,
-        createKsqlRequest(ksql, previousCommandSeqNum),
+        createKsqlRequest(ksql, Collections.emptyMap(), previousCommandSeqNum),
         r -> deserialize(r.getBody(), KsqlEntityList.class)
     );
   }
 
   public RestResponse<List<StreamedRow>> postQueryRequest(
       final String ksql,
+      final Map<String, ?> serverProperties,
       final Optional<Long> previousCommandSeqNum
   ) {
     return post(
         QUERY_PATH,
-        createKsqlRequest(ksql, previousCommandSeqNum),
+        createKsqlRequest(ksql, Collections.emptyMap(), previousCommandSeqNum),
         KsqlTarget::toRows
     );
   }
@@ -168,11 +170,13 @@ public final class KsqlTarget {
 
   private KsqlRequest createKsqlRequest(
       final String ksql,
+      final Map<String, ?> serverProperties,
       final Optional<Long> previousCommandSeqNum
   ) {
     return new KsqlRequest(
         ksql,
         localProperties.toMap(),
+        serverProperties,
         previousCommandSeqNum.orElse(null)
     );
   }
@@ -216,7 +220,8 @@ public final class KsqlTarget {
       final Optional<Long> previousCommandSeqNum,
       final Function<Buffer, T> mapper
   ) {
-    final KsqlRequest ksqlRequest = createKsqlRequest(ksql, previousCommandSeqNum);
+    final KsqlRequest ksqlRequest = createKsqlRequest(
+        ksql, Collections.emptyMap(), previousCommandSeqNum);
     final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
     return executeSync(HttpMethod.POST, QUERY_PATH, ksqlRequest, resp -> pubRef.get(),
         (resp, vcf) -> {

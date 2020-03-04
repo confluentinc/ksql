@@ -44,6 +44,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -56,21 +57,30 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKGroupedStreamTest {
+
   private static final LogicalSchema IN_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("IN0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("IN1"), SqlTypes.INTEGER)
       .build();
+
   private static final LogicalSchema OUT_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("IN0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_0"), SqlTypes.INTEGER)
       .build();
+
   private static final FunctionCall AGG = new FunctionCall(
       FunctionName.of("SUM"),
       ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("IN1")))
   );
+
   private static final KsqlWindowExpression KSQL_WINDOW_EXP = new SessionWindowExpression(
       100, TimeUnit.SECONDS
   );
+
   private static final List<ColumnName> NON_AGGREGATE_COLUMNS = ImmutableList.of(
       ColumnName.of("IN0")
   );

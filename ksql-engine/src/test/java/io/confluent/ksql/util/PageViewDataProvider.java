@@ -28,6 +28,7 @@ import java.util.Map;
 public class PageViewDataProvider extends TestDataProvider<Long> {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("VIEWTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("USERID"), SqlTypes.STRING)

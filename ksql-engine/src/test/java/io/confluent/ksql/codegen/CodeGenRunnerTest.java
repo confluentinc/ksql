@@ -1079,7 +1079,7 @@ public class CodeGenRunnerTest {
                     final QualifiedColumnReferenceExp node,
                     final Context<Void> ctx
                 ) {
-                    return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
+                    return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
                 }
             }::process
         );

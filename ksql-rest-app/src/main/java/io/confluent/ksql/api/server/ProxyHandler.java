@@ -137,7 +137,9 @@ public class ProxyHandler implements Handler<RoutingContext> {
     }
 
     private void requestEnded(final Void v) {
-      beforeEndHook.run();
+      if (beforeEndHook != null) {
+        beforeEndHook.run();
+      }
       to.end();
     }
 

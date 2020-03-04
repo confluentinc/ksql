@@ -21,6 +21,7 @@ import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
+import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
 
 /**
@@ -38,9 +39,9 @@ public interface Endpoints {
    * @param properties     Optional properties for the query
    * @param context        The Vert.x context
    * @param workerExecutor The worker executor to use for blocking operations
-   * @return The publisher
+   * @return A CompletableFuture representing the future result of the operation
    */
-  QueryPublisher createQueryPublisher(String sql, JsonObject properties,
+  CompletableFuture<QueryPublisher> createQueryPublisher(String sql, JsonObject properties,
       Context context, WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
   /**
@@ -52,9 +53,10 @@ public interface Endpoints {
    * @param properties     Optional properties
    * @param acksSubscriber Optional subscriber of acks
    * @param context        The Vert.x context
-   * @return The inserts subscriber
+   * @return A CompletableFuture representing the future result of the operation
    */
-  InsertsStreamSubscriber createInsertsSubscriber(String target, JsonObject properties,
+  CompletableFuture<InsertsStreamSubscriber> createInsertsSubscriber(String target,
+      JsonObject properties,
       Subscriber<InsertResult> acksSubscriber, Context context, WorkerExecutor workerExecutor,
       ApiSecurityContext apiSecurityContext);
 

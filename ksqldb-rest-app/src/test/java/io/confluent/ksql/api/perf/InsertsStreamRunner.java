@@ -32,6 +32,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.codec.BodyCodec;
+import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -148,7 +149,8 @@ public class InsertsStreamRunner extends BasePerfRunner {
   private class InsertsStreamEndpoints implements Endpoints {
 
     @Override
-    public QueryPublisher createQueryPublisher(final String sql, final JsonObject properties,
+    public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+        final JsonObject properties,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext) {
@@ -156,13 +158,14 @@ public class InsertsStreamRunner extends BasePerfRunner {
     }
 
     @Override
-    public InsertsStreamSubscriber createInsertsSubscriber(final String target,
+    public CompletableFuture<InsertsStreamSubscriber> createInsertsSubscriber(final String target,
         final JsonObject properties,
         final Subscriber<InsertResult> acksSubscriber, final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext) {
-      return new InsertsSubscriber(context, acksSubscriber);
+      return CompletableFuture.completedFuture(new InsertsSubscriber(context, acksSubscriber));
     }
+
   }
 
   private class InsertsSubscriber extends BaseSubscriber<JsonObject> implements

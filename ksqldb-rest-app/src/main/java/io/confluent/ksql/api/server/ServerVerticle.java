@@ -15,11 +15,15 @@
 
 package io.confluent.ksql.api.server;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.auth.AuthenticationPlugin;
+import io.confluent.ksql.api.auth.AuthorizationPlugin;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
-import io.confluent.ksql.api.auth.KsqlAuthorizationFilter;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
@@ -30,8 +34,11 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.AuthHandler;
 import io.vertx.ext.web.handler.BasicAuthHandler;
 import io.vertx.ext.web.handler.BodyHandler;
+import java.security.Principal;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,9 +46,14 @@ import org.slf4j.LoggerFactory;
  * The server deploys multiple server verticles. This is where the HTTP2 requests are handled. The
  * actual implementation of the endpoints is provided by an implementation of {@code Endpoints}.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class ServerVerticle extends AbstractVerticle {
 
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final Logger log = LoggerFactory.getLogger(ServerVerticle.class);
+
+  private static final Set<String> NEW_API_ENDPOINTS = ImmutableSet
+      .of("/query-stream", "/inserts-stream", "/close-query");
 
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
@@ -96,19 +108,27 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
-    router.route().failureHandler(ServerVerticle::handleFailure);
+    // We only want to apply failure handler and auth handlers to routes that are not proxied
+    // as Jetty will do it's own auth and failure handler
+    routeFailureToNewApi(router, ServerVerticle::handleFailure);
 
-    getAuthHandler(server).ifPresent(authHandler -> {
-      router.route().handler(ServerVerticle::pauseHandler);
-      router.route().handler(authHandler);
-      server
-          .getSecurityExtension()
-          .getAuthorizationProvider()
-          .ifPresent(ksqlAuthorizationProvider -> router.route()
-              .handler(new KsqlAuthorizationFilter(server.getWorkerExecutor(),
-                  ksqlAuthorizationProvider)));
-      router.route().handler(ServerVerticle::resumeHandler);
-    });
+    final Optional<AuthHandler> authHandler = getAuthHandler(server);
+    final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
+    final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
+
+    if (authHandler.isPresent() || authenticationPlugin.isPresent()) {
+      routeToNewApi(router, ServerVerticle::pauseHandler);
+      if (authenticationPlugin.isPresent()) {
+        routeToNewApi(router, createAuthenticationPluginHandler(authenticationPlugin.get()));
+      } else {
+        routeToNewApi(router, authHandler.get());
+      }
+      securityExtension.getAuthorizationProvider()
+          .ifPresent(ksqlAuthorizationProvider -> routeToNewApi(router,
+              new AuthorizationPlugin(server.getWorkerExecutor(), ksqlAuthorizationProvider)));
+
+      routeToNewApi(router, ServerVerticle::resumeHandler);
+    }
 
     router.route(HttpMethod.POST, "/query-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
@@ -128,6 +148,25 @@ public class ServerVerticle extends AbstractVerticle {
     }
 
     return router;
+  }
+
+  private Handler<RoutingContext> createAuthenticationPluginHandler(
+      final AuthenticationPlugin securityHandlerPlugin) {
+    return routingContext -> {
+      final CompletableFuture<Principal> cf = securityHandlerPlugin
+          .handleAuth(routingContext, server.getWorkerExecutor());
+      cf.thenAccept(principal -> {
+        if (principal == null) {
+          // Not authenticated
+          // Do nothing, response is already ended by the plugin
+        } else {
+          routingContext.next();
+        }
+      }).exceptionally(t -> {
+        routingContext.fail(t);
+        return null;
+      });
+    };
   }
 
   private static void handleFailure(final RoutingContext routingContext) {
@@ -166,7 +205,12 @@ public class ServerVerticle extends AbstractVerticle {
   private static AuthHandler basicAuthHandler(final Server server) {
     final AuthProvider authProvider = new JaasAuthProvider(server, server.getConfig());
     final String realm = server.getConfig().getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
-    return BasicAuthHandler.create(authProvider, realm);
+    final AuthHandler basicAuthHandler = BasicAuthHandler.create(authProvider, realm);
+    // It doesn't matter what we set here as we actually do the authorisation at the
+    // authentication stage and cache the result, but we must add an authority or
+    // no authorisation will be done
+    basicAuthHandler.addAuthority("ksql");
+    return basicAuthHandler;
   }
 
   private static void pauseHandler(final RoutingContext routingContext) {
@@ -180,5 +224,18 @@ public class ServerVerticle extends AbstractVerticle {
     routingContext.request().resume();
     routingContext.next();
   }
+
+  private void routeToNewApi(final Router router, final Handler<RoutingContext> handler) {
+    for (String path : NEW_API_ENDPOINTS) {
+      router.route(path).handler(handler);
+    }
+  }
+
+  private void routeFailureToNewApi(final Router router, final Handler<RoutingContext> handler) {
+    for (String path : NEW_API_ENDPOINTS) {
+      router.route(path).failureHandler(handler);
+    }
+  }
+
 
 }

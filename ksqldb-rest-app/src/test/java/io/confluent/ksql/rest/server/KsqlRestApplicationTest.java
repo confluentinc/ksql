@@ -432,6 +432,7 @@ public class KsqlRestApplicationTest {
             new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory),
         apiSecurityContext -> new KsqlSecurityContext(Optional.empty(), serviceContext),
         securityExtension,
+        Optional.empty(),
         serverState,
         processingLogContext,
         ImmutableList.of(precondition1, precondition2),

@@ -28,6 +28,7 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import org.reactivestreams.Subscriber;
 
@@ -45,27 +46,31 @@ public class TestEndpoints implements Endpoints {
   private ApiSecurityContext lastApiSecurityContext;
 
   @Override
-  public synchronized QueryPublisher createQueryPublisher(final String sql,
+  public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
       final JsonObject properties, final Context context, final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
+    CompletableFuture<QueryPublisher> completableFuture = new CompletableFuture<>();
     if (createQueryPublisherException != null) {
       createQueryPublisherException.fillInStackTrace();
-      throw createQueryPublisherException;
+      completableFuture.completeExceptionally(createQueryPublisherException);
+    } else {
+      this.lastSql = sql;
+      this.lastProperties = properties;
+      this.lastApiSecurityContext = apiSecurityContext;
+      boolean push = sql.toLowerCase().contains("emit changes");
+      TestQueryPublisher queryPublisher = new TestQueryPublisher(context,
+          rowGeneratorFactory.get(),
+          rowsBeforePublisherError,
+          push);
+      queryPublishers.add(queryPublisher);
+      completableFuture.complete(queryPublisher);
     }
-    this.lastSql = sql;
-    this.lastProperties = properties;
-    this.lastApiSecurityContext = apiSecurityContext;
-    boolean push = sql.toLowerCase().contains("emit changes");
-    TestQueryPublisher queryPublisher = new TestQueryPublisher(context,
-        rowGeneratorFactory.get(),
-        rowsBeforePublisherError,
-        push);
-    queryPublishers.add(queryPublisher);
-    return queryPublisher;
+    return completableFuture;
   }
 
   @Override
-  public synchronized InsertsStreamSubscriber createInsertsSubscriber(final String target,
+  public synchronized CompletableFuture<InsertsStreamSubscriber> createInsertsSubscriber(
+      final String target,
       final JsonObject properties,
       final Subscriber<InsertResult> acksSubscriber,
       final Context context,
@@ -78,7 +83,7 @@ public class TestEndpoints implements Endpoints {
     acksPublisher.subscribe(acksSubscriber);
     this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), acksPublisher,
         acksBeforePublisherError);
-    return insertsSubscriber;
+    return CompletableFuture.completedFuture(insertsSubscriber);
   }
 
   public synchronized void setRowGeneratorFactory(

@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlException;
@@ -63,16 +64,19 @@ public class Server {
   private final Set<String> deploymentIds = new HashSet<>();
   private final boolean proxyEnabled;
   private final KsqlSecurityExtension securityExtension;
+  private final Optional<AuthenticationPlugin> authenticationPlugin;
   private WorkerExecutor workerExecutor;
   private int jettyPort = -1;
   private List<URI> listeners = new ArrayList<>();
 
   public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints,
-      final boolean proxyEnabled, final KsqlSecurityExtension securityExtension) {
+      final boolean proxyEnabled, final KsqlSecurityExtension securityExtension,
+      final Optional<AuthenticationPlugin> authenticationPlugin) {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
     this.securityExtension = Objects.requireNonNull(securityExtension);
+    this.authenticationPlugin = Objects.requireNonNull(authenticationPlugin);
     this.maxPushQueryCount = config.getInt(ApiServerConfig.MAX_PUSH_QUERIES);
     this.proxyEnabled = proxyEnabled;
   }
@@ -198,6 +202,10 @@ public class Server {
 
   KsqlSecurityExtension getSecurityExtension() {
     return securityExtension;
+  }
+
+  Optional<AuthenticationPlugin> getAuthenticationPlugin() {
+    return authenticationPlugin;
   }
 
   ApiServerConfig getConfig() {

@@ -18,13 +18,11 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.api.server.QueryStreamHandler.DELIMITED_CONTENT_TYPE;
 import static io.confluent.ksql.api.server.ServerUtils.deserialiseObject;
 
-import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.server.protocol.InsertError;
 import io.confluent.ksql.api.server.protocol.InsertsStreamArgs;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.reactive.BufferedPublisher;
-import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.WorkerExecutor;
@@ -35,9 +33,7 @@ import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,9 +129,10 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
           insertsStreamResponseWriter);
 
       recordParser.pause();
-      createInsertsSubscriberAsync(insertsStreamArgs.get().target,
-          insertsStreamArgs.get().properties,
-          acksSubscriber, ctx, DefaultApiSecurityContext.create(routingContext))
+
+      endpoints.createInsertsSubscriber(insertsStreamArgs.get().target,
+          insertsStreamArgs.get().properties, acksSubscriber, ctx, workerExecutor,
+          DefaultApiSecurityContext.create(routingContext))
           .thenAccept(insertsSubscriber -> {
             publisher = new BufferedPublisher<>(ctx);
 
@@ -215,21 +212,5 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     }
 
   }
-
-  private CompletableFuture<InsertsStreamSubscriber> createInsertsSubscriberAsync(
-      final String target,
-      final JsonObject properties, final Subscriber<InsertResult> acksSubscriber,
-      final Context context,
-      final ApiSecurityContext apiSecurityContext) {
-    final VertxCompletableFuture<InsertsStreamSubscriber> vcf = new VertxCompletableFuture<>();
-    workerExecutor.executeBlocking(
-        p -> p.complete(
-            endpoints.createInsertsSubscriber(target, properties, acksSubscriber, context,
-                workerExecutor, apiSecurityContext)),
-        false,
-        vcf);
-    return vcf;
-  }
-
 
 }

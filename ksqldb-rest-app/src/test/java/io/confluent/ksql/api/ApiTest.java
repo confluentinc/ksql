@@ -752,10 +752,9 @@ public class ApiTest extends BaseApiTest {
   public void shouldUseJsonFormatWhenJsonHeaderInserts() throws Exception {
     // When
     JsonObject params = new JsonObject().put("target", "test-stream");
-    List<JsonObject> rows = DEFAULT_INSERT_ROWS;
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
-    for (JsonObject row : rows) {
+    for (JsonObject row : DEFAULT_INSERT_ROWS) {
       requestBody.appendBuffer(row.toBuffer()).appendString("\n");
     }
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();

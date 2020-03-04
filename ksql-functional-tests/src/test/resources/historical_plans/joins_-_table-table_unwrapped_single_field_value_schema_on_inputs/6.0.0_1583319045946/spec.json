@@ -1,0 +1,49 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1583319045946,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "VARCHAR",
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "VARCHAR",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<NAME1 VARCHAR, NAME2 VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "T1",
+    "key" : 0,
+    "value" : "a",
+    "timestamp" : 0
+  }, {
+    "topic" : "T2",
+    "key" : 0,
+    "value" : "b",
+    "timestamp" : 10
+  }, {
+    "topic" : "T1",
+    "key" : 0,
+    "value" : null,
+    "timestamp" : 20
+  }, {
+    "topic" : "T2",
+    "key" : 0,
+    "value" : null,
+    "timestamp" : 30
+  }, {
+    "topic" : "T1",
+    "key" : 0,
+    "value" : null,
+    "timestamp" : 40
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "NAME1" : "a",
+      "NAME2" : "b"
+    },
+    "timestamp" : 10
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : null,
+    "timestamp" : 20
+  } ]
+}

@@ -98,7 +98,7 @@ public class ApiServerConfig extends AbstractConfig {
   public static final String AUTHENTICATION_ROLES_CONFIG = propertyName("authentication.roles");
   public static final String AUTHENTICATION_ROLES_DOC =
       "Comma-delimited list of JAAS roles authorized to access this cluster. "
-          + "Defaults to '*' meaning all roles will be allowed.";
+          + "Defaults to an empty list meaning no roles will be allowed.";
   public static final List<String> AUTHENTICATION_ROLES_DEFAULT =
       Collections.unmodifiableList(Collections.emptyList());
 

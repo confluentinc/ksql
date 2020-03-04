@@ -154,12 +154,12 @@ public class DistributingExecutor {
       // We can't recover from these exceptions, so our only option is close producer and exit.
       // This catch doesn't abortTransaction() since doing that would throw another exception.
       throw new KsqlServerException(String.format(
-          "Could not write the statement '%s' into the command topic: " + e.getMessage(),
+          "Could not write the statement '%s' into the command topic.",
           statement.getStatementText()), e);
     } catch (final Exception e) {
       transactionalProducer.abortTransaction();
       throw new KsqlServerException(String.format(
-          "Could not write the statement '%s' into the command topic: " + e.getMessage(),
+          "Could not write the statement '%s' into the command topic.",
           statement.getStatementText()), e);
     } finally {
       transactionalProducer.close();

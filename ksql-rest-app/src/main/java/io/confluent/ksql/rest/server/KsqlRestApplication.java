@@ -28,7 +28,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
-import io.confluent.ksql.api.plugin.KsqlServerEndpoints;
+import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
 import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -58,7 +58,6 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutorDelegate;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
@@ -330,7 +329,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlConfigWithPort,
         securityExtension,
         RestServiceContextFactory::create,
-        new PullQueryExecutorDelegate(pullQueryExecutor)
+        pullQueryExecutor
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true);

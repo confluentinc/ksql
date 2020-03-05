@@ -441,5 +441,5 @@ public class KsqlRestApplicationTest {
         Optional.of(lagReportingAgent)
     );
   }
-  
+
 }

@@ -331,9 +331,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     vertx = Vertx.vertx();
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
-    final Binder binder = this.serviceContextBinderFactory
-        .apply(ksqlConfigWithPort, securityExtension);
-
     final Endpoints endpoints = new KsqlServerEndpoints(
         ksqlEngine,
         ksqlConfigWithPort,

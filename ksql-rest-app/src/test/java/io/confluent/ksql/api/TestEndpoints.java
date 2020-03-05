@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api;
 
+import io.confluent.ksql.api.server.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -44,7 +45,8 @@ public class TestEndpoints implements Endpoints {
 
   @Override
   public synchronized QueryPublisher createQueryPublisher(final String sql,
-      final JsonObject properties, final Context context, final WorkerExecutor workerExecutor) {
+      final JsonObject properties, final Context context, final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext) {
     if (createQueryPublisherException != null) {
       createQueryPublisherException.fillInStackTrace();
       throw createQueryPublisherException;
@@ -65,7 +67,8 @@ public class TestEndpoints implements Endpoints {
       final JsonObject properties,
       final Subscriber<InsertResult> acksSubscriber,
       final Context context,
-      final WorkerExecutor workerExecutor) {
+      final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext) {
     this.lastTarget = target;
     this.lastProperties = properties;
     BufferedPublisher<InsertResult> acksPublisher = new BufferedPublisher<>(Vertx.currentContext());

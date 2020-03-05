@@ -139,7 +139,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final VertxCompletableFuture<QueryPublisher> vcf = new VertxCompletableFuture<>();
     server.getWorkerExecutor().executeBlocking(
         p -> p.complete(
-            endpoints.createQueryPublisher(sql, properties, context, server.getWorkerExecutor())),
+            endpoints.createQueryPublisher(sql, properties, context, server.getWorkerExecutor(),
+                new DummyApiSecurityContext())),
         false,
         vcf);
     return vcf;

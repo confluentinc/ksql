@@ -222,7 +222,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     workerExecutor.executeBlocking(
         p -> p.complete(
             endpoints.createInsertsSubscriber(target, properties, acksSubscriber, context,
-                workerExecutor)),
+                workerExecutor, new DummyApiSecurityContext())),
         false,
         vcf);
     return vcf;

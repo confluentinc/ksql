@@ -205,17 +205,19 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public boolean addTopicConfig(final String topicName, final Map<String, ?> overrides) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
 
+    final Map<String, String> stringConfigs = toStringConfigs(overrides);
+
     try {
       final Map<String, String> existingConfig = topicConfig(topicName, false);
 
-      final boolean changed = overrides.entrySet().stream()
+      final boolean changed = stringConfigs.entrySet().stream()
           .anyMatch(e -> !Objects.equals(existingConfig.get(e.getKey()), e.getValue()));
       if (!changed) {
         return false;
       }
 
-      final Set<AlterConfigOp> entries = overrides.entrySet().stream()
-          .map(e -> new ConfigEntry(e.getKey(), e.getValue().toString()))
+      final Set<AlterConfigOp> entries = stringConfigs.entrySet().stream()
+          .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
           .map(ce -> new AlterConfigOp(ce, AlterConfigOp.OpType.SET))
           .collect(Collectors.toSet());
 
@@ -228,7 +230,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
       return true;
     } catch (final UnsupportedVersionException e) {
-      return addTopicConfigLegacy(topicName, overrides);
+      return addTopicConfigLegacy(topicName, stringConfigs);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to set config for Kafka Topic " + topicName, e);
@@ -332,8 +334,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         topic, requiredNumPartition, requiredNumReplicas);
   }
 
-  private Map<String, String> topicConfig(final String topicName,
-      final boolean includeDefaults) {
+  private Map<String, String> topicConfig(
+      final String topicName,
+      final boolean includeDefaults
+  ) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
     final List<ConfigResource> request = Collections.singletonList(resource);
 
@@ -342,8 +346,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           () -> adminClient.get().describeConfigs(request).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE).get(resource);
       return config.entries().stream()
-          .filter(e -> includeDefaults
-              || e.source().equals(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG))
+          .filter(e -> includeDefaults || !e.isDefault())
           .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
@@ -354,12 +357,15 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   // 'alterConfigs' deprecated, but new `incrementalAlterConfigs` only available on Kafka v2.3+
   // So we need to continue to support older brokers until our min requirements reaches v2.3
   @SuppressWarnings({"deprecation", "RedundantSuppression"})
-  private boolean addTopicConfigLegacy(final String topicName, final Map<String, ?> overrides) {
+  private boolean addTopicConfigLegacy(
+      final String topicName,
+      final Map<String, String> overrides
+  ) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
 
     try {
       final Map<String, String> existingConfig = topicConfig(topicName, false);
-      existingConfig.putAll(toStringConfigs(overrides));
+      existingConfig.putAll(overrides);
 
       final Set<ConfigEntry> entries = existingConfig.entrySet().stream()
           .map(e -> new ConfigEntry(e.getKey(), e.getValue()))

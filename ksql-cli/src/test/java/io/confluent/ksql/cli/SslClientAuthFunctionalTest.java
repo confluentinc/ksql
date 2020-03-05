@@ -147,7 +147,6 @@ public class SslClientAuthFunctionalTest {
 
     // Then:
     expectedException.expect(SSLHandshakeException.class);
-    expectedException.expectMessage("Received fatal alert: handshake_failure");
 
     // When:
     makeWsRequest();

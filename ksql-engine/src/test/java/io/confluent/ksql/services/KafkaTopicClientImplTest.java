@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
@@ -841,6 +842,10 @@ public class KafkaTopicClientImplTest {
     };
   }
 
+  @SuppressFBWarnings(
+      value = "REC_CATCH_EXCEPTION",
+      justification = "code won't compile without it"
+  )
   @SuppressWarnings("unchecked")
   private static <T> KafkaFuture<T> failedFuture(final Exception cause) {
     try {
@@ -856,7 +861,6 @@ public class KafkaTopicClientImplTest {
   private static NewTopic newTopic(final String name, final int partitions, final int rf) {
     return newTopic(name, partitions, rf, ImmutableMap.of());
   }
-
   private static NewTopic newTopic(
       final String name,
       final int partitions,

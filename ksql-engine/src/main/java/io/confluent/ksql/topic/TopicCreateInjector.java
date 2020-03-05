@@ -16,7 +16,10 @@ package io.confluent.ksql.topic;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.engine.QueryEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -26,14 +29,21 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -53,18 +63,25 @@ public class TopicCreateInjector implements Injector {
 
   private final KafkaTopicClient topicClient;
   private final MetaStore metaStore;
+  private final SchemaRegistryClient srClient;
 
   public TopicCreateInjector(
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    this(serviceContext.getTopicClient(), executionContext.getMetaStore());
+    this(
+        serviceContext.getTopicClient(),
+        serviceContext.getSchemaRegistryClient(),
+        executionContext.getMetaStore()
+    );
   }
 
   TopicCreateInjector(
       final KafkaTopicClient topicClient,
+      final SchemaRegistryClient schemaRegistryClient,
       final MetaStore metaStore) {
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
+    this.srClient = Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
 
@@ -126,7 +143,15 @@ public class TopicCreateInjector implements Injector {
             properties.getPartitions(),
             properties.getReplicas());
 
-    createTopic(topicPropertiesBuilder, createSource instanceof CreateTable);
+    final TopicProperties info = createTopic(
+        topicPropertiesBuilder, createSource instanceof CreateTable
+    );
+    registerSchema(
+        createSource.getElements().toLogicalSchema(false),
+        info.getTopicName(),
+        properties.getFormatInfo(),
+        statement.getConfig()
+    );
 
     return statement;
   }
@@ -162,6 +187,27 @@ public class TopicCreateInjector implements Injector {
 
     final TopicProperties info = createTopic(topicPropertiesBuilder, shouldCompactTopic);
 
+    // this cast is safe because a C*AS always has a structured data output node as its output
+    final KsqlStructuredDataOutputNode outputNode = (KsqlStructuredDataOutputNode) QueryEngine
+        .buildQueryLogicalPlan(
+            createAsSelect.getQuery(),
+            Optional.of(createAsSelect.getSink()),
+            metaStore,
+            statement.getConfig()
+    );
+
+    final FormatInfo format = outputNode
+        .getKsqlTopic()
+        .getValueFormat()
+        .getFormatInfo();
+
+    registerSchema(
+        outputNode.getSchema(),
+        info.getTopicName(),
+        format,
+        statement.getConfig()
+    );
+
     final T withTopic = (T) createAsSelect.copyWith(properties.withTopic(
         info.getTopicName(),
         info.getPartitions(),
@@ -186,5 +232,26 @@ public class TopicCreateInjector implements Injector {
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
 
     return info;
+  }
+
+  private void registerSchema(
+      final LogicalSchema schema,
+      final String topic,
+      final FormatInfo formatInfo,
+      final KsqlConfig config
+  ) {
+    final Format format = FormatFactory.of(formatInfo);
+    if (format.supportsSchemaInference()
+        && config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) != null
+        && !config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).isEmpty()) {
+      try {
+        srClient.register(
+            topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+            format.toParsedSchema(schema.withoutMetaAndKeyColsInValue().value(), formatInfo)
+        );
+      } catch (IOException | RestClientException e) {
+        throw new KsqlException("Could not register schema for topic!", e);
+      }
+    }
   }
 }

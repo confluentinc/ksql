@@ -22,10 +22,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -53,6 +57,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -78,6 +83,12 @@ public class TopicCreateInjectorTest {
       .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 
+  private static final AvroSchema AVRO_SCHEMA = new AvroSchema(
+      "{\"type\":\"record\",\"name\":\"KsqlDataSourceSchema\","
+      + "\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":"
+      + "[{\"name\":\"F1\",\"type\":[\"null\",\"string\"],\"default\":null}],"
+      + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}");
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -85,6 +96,8 @@ public class TopicCreateInjectorTest {
   private TopicProperties.Builder builder;
   @Mock
   private KafkaTopicClient topicClient;
+  @Mock
+  private SchemaRegistryClient schemaRegistryClient;
   @Mock
   private TopicDescription sourceDescription;
 
@@ -100,9 +113,11 @@ public class TopicCreateInjectorTest {
     parser = new DefaultKsqlParser();
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     overrides = new HashMap<>();
-    config = new KsqlConfig(new HashMap<>());
+    config = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8081"
+    ));
 
-    injector = new TopicCreateInjector(topicClient, metaStore);
+    injector = new TopicCreateInjector(topicClient, schemaRegistryClient, metaStore);
 
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
@@ -294,7 +309,7 @@ public class TopicCreateInjectorTest {
   public void shouldIdentifyAndUseCorrectSourceInJoin() {
     // Given:
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE "
-        + "JOIN J_SOURCE ON SOURCE.X = J_SOURCE.X;");
+        + "JOIN J_SOURCE ON SOURCE.F1 = J_SOURCE.F1;");
 
     // When:
     injector.inject(statement, builder);
@@ -423,6 +438,74 @@ public class TopicCreateInjectorTest {
         10,
         (short) 10,
         ImmutableMap.of());
+  }
+
+  @Test
+  public void shouldNotRegisterSchemaIfSchemaRegistryIsDisabled() {
+    // Given:
+    config = new KsqlConfig(ImmutableMap.of());
+    givenStatement("CREATE STREAM x (f1 VARCHAR) WITH(kafka_topic='expectedName', value_format='AVRO', partitions=1);");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verifyNoMoreInteractions(schemaRegistryClient);
+  }
+
+  @Test
+  public void shouldNotRegisterSchemaForSchemaRegistryDisabledFormatCreateSource() {
+    // Given:
+    givenStatement("CREATE STREAM x (f1 VARCHAR) WITH(kafka_topic='expectedName', value_format='DELIMITED', partitions=1);");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verifyNoMoreInteractions(schemaRegistryClient);
+  }
+
+  @Test
+  public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateSource()
+      throws IOException, RestClientException {
+    // Given:
+    givenStatement("CREATE STREAM x (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(schemaRegistryClient).register("expectedName-value", AVRO_SCHEMA);
+  }
+
+  @Test
+  public void shouldNotRegisterSchemaForSchemaRegistryDisabledFormatCreateAsSelect() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH(value_format='DELIMITED') AS SELECT * FROM SOURCE;");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verifyNoMoreInteractions(schemaRegistryClient);
+  }
+
+  @Test
+  public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateAsSelect()
+      throws IOException, RestClientException {
+    // Given:
+    givenStatement("CREATE STREAM x WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(schemaRegistryClient).register("expectedName-value", AVRO_SCHEMA);
   }
 
   @Test

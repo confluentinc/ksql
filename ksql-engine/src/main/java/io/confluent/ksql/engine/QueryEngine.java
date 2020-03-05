@@ -42,7 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-class QueryEngine {
+public class QueryEngine {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger LOG = LoggerFactory.getLogger(QueryEngine.class);
@@ -64,7 +64,7 @@ class QueryEngine {
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
   }
 
-  static OutputNode buildQueryLogicalPlan(
+  public static OutputNode buildQueryLogicalPlan(
       final Query query,
       final Optional<Sink> sink,
       final MetaStore metaStore,

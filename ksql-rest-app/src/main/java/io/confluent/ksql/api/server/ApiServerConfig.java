@@ -46,11 +46,6 @@ public class ApiServerConfig extends AbstractConfig {
   public static final String DEFAULT_LISTENERS = "http://0.0.0.0:8088";
   public static final String LISTENERS_DOC = "List of listeners to listen for connections on";
 
-  public static final String TLS_ENABLED = propertyName("tls.enabled");
-  public static final boolean DEFAULT_TLS_ENABLED = false;
-  public static final String TLS_ENABLED_DOC =
-      "Is TLS enabled?";
-
   public static final String TLS_KEY_STORE_PATH = propertyName("tls.keystore.path");
   public static final String TLS_KEY_STORE_PATH_DOC =
       "Path to server key store";
@@ -100,12 +95,6 @@ public class ApiServerConfig extends AbstractConfig {
           DEFAULT_LISTENERS,
           Importance.MEDIUM,
           LISTENERS_DOC)
-      .define(
-          TLS_ENABLED,
-          Type.BOOLEAN,
-          DEFAULT_TLS_ENABLED,
-          Importance.MEDIUM,
-          TLS_ENABLED_DOC)
       .define(
           TLS_KEY_STORE_PATH,
           Type.STRING,

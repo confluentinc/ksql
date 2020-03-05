@@ -36,7 +36,6 @@ public class ApiServerConfigTest {
     Map<String, Object> map = new HashMap<>();
     map.put(ApiServerConfig.VERTICLE_INSTANCES, 2);
     map.put(ApiServerConfig.LISTENERS, "http://foo.com:8088,https:://foo.com:8089");
-    map.put(ApiServerConfig.TLS_ENABLED, true);
     map.put(ApiServerConfig.TLS_KEY_STORE_PATH, "uygugy");
     map.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD, "ewfwef");
     map.put(ApiServerConfig.TLS_TRUST_STORE_PATH, "wefewf");
@@ -50,7 +49,6 @@ public class ApiServerConfigTest {
     assertThat(config.getInt(ApiServerConfig.VERTICLE_INSTANCES), is(2));
     assertThat(config.getList(ApiServerConfig.LISTENERS),
         is(Arrays.asList("http://foo.com:8088", "https:://foo.com:8089")));
-    assertThat(config.getBoolean(ApiServerConfig.TLS_ENABLED), is(true));
     assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PATH), is("uygugy"));
     assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PASSWORD), is("ewfwef"));
     assertThat(config.getString(ApiServerConfig.TLS_TRUST_STORE_PATH), is("wefewf"));
@@ -71,7 +69,6 @@ public class ApiServerConfigTest {
     int expectedVerticleInstances = 2 * Runtime.getRuntime().availableProcessors();
     assertThat(config.getInt(ApiServerConfig.VERTICLE_INSTANCES), is(expectedVerticleInstances));
     assertThat(config.getList(ApiServerConfig.LISTENERS), is(Arrays.asList("http://0.0.0.0:8088")));
-    assertThat(config.getBoolean(ApiServerConfig.TLS_ENABLED), is(false));
     assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PATH), is(""));
     assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PASSWORD), is(""));
     assertThat(config.getString(ApiServerConfig.TLS_TRUST_STORE_PATH), is(""));

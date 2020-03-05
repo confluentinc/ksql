@@ -134,7 +134,6 @@ public class ListenersTest extends BaseApiTest {
       String keyStorePassword = ServerKeyStore.keyStoreProps()
           .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
 
-      config.put(ApiServerConfig.TLS_ENABLED, true);
       config.put(ApiServerConfig.TLS_KEY_STORE_PATH, keyStorePath);
       config.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD, keyStorePassword);
     }

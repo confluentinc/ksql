@@ -198,7 +198,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     final String keyStoreLocation = config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
     if (keyStoreLocation != null && !keyStoreLocation.isEmpty()) {
-      origs.put(ApiServerConfig.TLS_ENABLED, true);
       origs.put(ApiServerConfig.TLS_KEY_STORE_PATH, keyStoreLocation);
       final Password keyStorePassword = config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
       origs.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD,

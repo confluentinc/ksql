@@ -62,14 +62,15 @@ public interface SimpleKsqlClient {
   );
 
   /**
-   * Send a request to remote Ksql server to inquire about its view of the status of the cluster.
+   * Send a request to remote Ksql server to enquire about its view of the status of the cluster.
+   *
    * @param serverEndPoint the remote destination.
    * @return response containing the cluster status.
    */
   RestResponse<ClusterStatusResponse> makeClusterStatusRequest(URI serverEndPoint);
 
   /**
-   * Send a request to remote Ksql server to inquire to inquire about which state stores the remote
+   * Send a request to remote Ksql server to enquire about which state stores the remote
    * server maintains as an active and standby.
    *
    * @param serverEndPoint      the remote destination.

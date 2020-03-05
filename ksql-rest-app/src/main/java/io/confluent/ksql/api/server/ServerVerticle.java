@@ -122,8 +122,10 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleFailure(final RoutingContext routingContext) {
-    if (routingContext.statusCode() == 500) {
-      log.error("Unexpected exception in router", routingContext.failure());
+    if (routingContext.failure() != null) {
+      log.error(String.format("Failed to handle request %d %s", routingContext.statusCode(),
+          routingContext.request().path()),
+          routingContext.failure());
     }
     routingContext.response().setStatusCode(routingContext.statusCode()).end();
   }

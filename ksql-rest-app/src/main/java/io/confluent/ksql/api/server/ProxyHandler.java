@@ -27,7 +27,6 @@ import io.vertx.core.net.SocketAddress;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.RoutingContext;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,13 +58,7 @@ public class ProxyHandler implements Handler<RoutingContext> {
         resp -> responseHandler(resp, serverRequest))
         .exceptionHandler(ProxyHandler::exceptionHandler);
 
-    final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-    for (Map.Entry<String, String> header : serverRequest.headers()) {
-      if (!header.getKey().equalsIgnoreCase("host")) {
-        headers.add(header.getKey(), header.getValue());
-      }
-    }
-    clientRequest.headers().setAll(headers);
+    clientRequest.headers().setAll(serverRequest.headers());
 
     if (serverRequest.isEnded()) {
       clientRequest.end();

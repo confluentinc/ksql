@@ -39,7 +39,6 @@ public class TlsTest extends ApiTest {
 
     Map<String, Object> config = new HashMap<>();
     config.put(ApiServerConfig.LISTENERS, "https://localhost:0");
-    config.put(ApiServerConfig.TLS_ENABLED, true);
     config.put(ApiServerConfig.TLS_KEY_STORE_PATH, keyStorePath);
     config.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD, keyStorePassword);
     config.put(ApiServerConfig.TLS_TRUST_STORE_PATH, trustStorePath);

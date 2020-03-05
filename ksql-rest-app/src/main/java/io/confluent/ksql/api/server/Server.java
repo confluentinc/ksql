@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -27,6 +28,9 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
+import io.vertx.ext.auth.AuthProvider;
+import io.vertx.ext.web.handler.AuthHandler;
+import io.vertx.ext.web.handler.BasicAuthHandler;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -206,6 +210,28 @@ public class Server {
 
   public synchronized void setJettyPort(final int jettyPort) {
     this.jettyPort = jettyPort;
+  }
+
+  Optional<AuthHandler> getAuthHandler() {
+    final String authMethod = config.getString(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG);
+    switch (authMethod) {
+      case ApiServerConfig.AUTHENTICATION_METHOD_BASIC:
+        return Optional.of(basicAuthHandler());
+      case ApiServerConfig.AUTHENTICATION_METHOD_NONE:
+        return Optional.empty();
+      default:
+        throw new IllegalStateException(String.format(
+            "Unexpected value for %s: %s",
+            ApiServerConfig.AUTHENTICATION_METHOD_CONFIG,
+            authMethod
+        ));
+    }
+  }
+
+  private AuthHandler basicAuthHandler() {
+    final AuthProvider authProvider = new JaasAuthProvider(this, config);
+    final String realm = config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
+    return BasicAuthHandler.create(authProvider, realm);
   }
 
   private static HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig,

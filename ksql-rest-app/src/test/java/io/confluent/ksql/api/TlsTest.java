@@ -22,8 +22,12 @@ import io.vertx.ext.web.client.WebClientOptions;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.config.SslConfigs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TlsTest extends ApiTest {
+
+  protected static final Logger log = LoggerFactory.getLogger(TlsTest.class);
 
   @Override
   protected ApiServerConfig createServerConfig() {

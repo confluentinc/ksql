@@ -28,8 +28,12 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import java.util.Map;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MaxQueriesTest extends BaseApiTest {
+
+  protected static final Logger log = LoggerFactory.getLogger(MaxQueriesTest.class);
 
   private static final int MAX_QUERIES = 10;
 

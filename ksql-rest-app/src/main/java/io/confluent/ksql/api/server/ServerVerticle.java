@@ -97,17 +97,25 @@ public class ServerVerticle extends AbstractVerticle {
 
   private Router setupRouter() {
     final Router router = Router.router(vertx);
+
+    server.getAuthHandler().ifPresent(authHandler -> {
+      router.route()
+          .handler(ServerVerticle::pauseHandler)
+          .handler(authHandler)
+          .handler(ServerVerticle::resumeHandler);
+    });
+
     router.route(HttpMethod.POST, "/query-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
         .produces("application/json")
         .handler(BodyHandler.create())
-        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context,
-            server));
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server));
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
         .produces("application/json")
         .handler(new InsertsStreamHandler(context, endpoints, server.getWorkerExecutor()));
-    router.route(HttpMethod.POST, "/close-query").handler(BodyHandler.create())
+    router.route(HttpMethod.POST, "/close-query")
+        .handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
     router.route(HttpMethod.GET, "/ws/*").handler(this::websocketHandler);
 
@@ -159,6 +167,18 @@ public class ServerVerticle extends AbstractVerticle {
         }
       }
     });
+  }
+
+  private static void pauseHandler(final RoutingContext routingContext) {
+    // prevent auth handler from reading request body
+    routingContext.request().pause();
+    routingContext.next();
+  }
+
+  private static void resumeHandler(final RoutingContext routingContext) {
+    // Un-pause body handling as async auth provider calls have completed by this point
+    routingContext.request().resume();
+    routingContext.next();
   }
 
   private static final class WebsocketPipe {
@@ -213,5 +233,4 @@ public class ServerVerticle extends AbstractVerticle {
 
     }
   }
-
 }

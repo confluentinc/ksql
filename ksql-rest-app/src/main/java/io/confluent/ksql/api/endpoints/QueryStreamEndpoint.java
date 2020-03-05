@@ -13,87 +13,58 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.plugin;
+package io.confluent.ksql.api.endpoints;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.api.server.InsertResult;
-import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.PushQueryHandle;
-import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
-import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
-import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.function.Supplier;
-import org.apache.kafka.streams.KafkaClientSupplier;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
-import org.reactivestreams.Subscriber;
 
-public class KsqlServerEndpoints implements Endpoints {
+public class QueryStreamEndpoint {
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
-  private final KsqlSecurityExtension securityExtension;
-  private final ServiceContextFactory serviceContextFactory;
-  private final PullQueryApiExecutor pullQueryApiExecutor;
-  private final ReservedInternalTopics reservedInternalTopics;
+  private final PullQueryExecutor pullQueryExecutor;
 
-  public KsqlServerEndpoints(
-      final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig,
-      final KsqlSecurityExtension securityExtension,
-      final ServiceContextFactory serviceContextFactory,
-      final PullQueryApiExecutor pullQueryApiExecutor) {
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
-    this.securityExtension = Objects.requireNonNull(securityExtension);
-    this.serviceContextFactory = Objects.requireNonNull(serviceContextFactory);
-    this.pullQueryApiExecutor = Objects.requireNonNull(pullQueryApiExecutor);
-    this.reservedInternalTopics = new ReservedInternalTopics(ksqlConfig);
+  public QueryStreamEndpoint(final KsqlEngine ksqlEngine, final KsqlConfig ksqlConfig,
+      final PullQueryExecutor pullQueryExecutor) {
+    this.ksqlEngine = ksqlEngine;
+    this.ksqlConfig = ksqlConfig;
+    this.pullQueryExecutor = pullQueryExecutor;
   }
 
-  @Override
   public QueryPublisher createQueryPublisher(
       final String sql, final JsonObject properties,
       final Context context,
-      final WorkerExecutor workerExecutor) {
+      final WorkerExecutor workerExecutor,
+      final ServiceContext serviceContext) {
 
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
     properties.put("auto.offset.reset", "earliest");
 
-    final ServiceContext serviceContext = createServiceContext(new DummyPrincipal());
     final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap());
 
     if (statement.getStatement().isPullQuery()) {
@@ -120,7 +91,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private QueryPublisher createPullQueryPublisher(final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement) {
-    final TableRows tableRows = pullQueryApiExecutor.execute(statement, serviceContext);
+    final TableRowsEntity tableRows = pullQueryExecutor.execute(statement, serviceContext);
     return new PullQueryPublisher(context, tableRows, colNamesFromSchema(tableRows.getSchema()),
         colTypesFromSchema(tableRows.getSchema()));
   }
@@ -142,79 +113,6 @@ public class KsqlServerEndpoints implements Endpoints {
     @SuppressWarnings("unchecked") final PreparedStatement<Query> psq =
         (PreparedStatement<Query>) ps;
     return ConfiguredStatement.of(psq, properties, ksqlConfig);
-  }
-
-  private ServiceContext createServiceContext(final Principal principal) {
-    // Creates a ServiceContext using the user's credentials, so the WS query topics are
-    // accessed with the user permission context (defaults to KSQL service context)
-
-    if (!securityExtension.getUserContextProvider().isPresent()) {
-      return createServiceContext(new DefaultKafkaClientSupplier(),
-          new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get);
-    }
-
-    return securityExtension.getUserContextProvider()
-        .map(provider ->
-            createServiceContext(
-                provider.getKafkaClientSupplier(principal),
-                provider.getSchemaRegistryClientFactory(principal)
-            ))
-        .get();
-  }
-
-  private ServiceContext createServiceContext(
-      final KafkaClientSupplier kafkaClientSupplier,
-      final Supplier<SchemaRegistryClient> srClientFactory
-  ) {
-    return serviceContextFactory.create(ksqlConfig,
-        Optional.empty(),
-        kafkaClientSupplier, srClientFactory);
-  }
-
-  private static class DummyPrincipal implements Principal {
-
-    @Override
-    public String getName() {
-      return "NO_PRINCIPAL";
-    }
-  }
-
-  @Override
-  public InsertsStreamSubscriber createInsertsSubscriber(final String target,
-      final JsonObject properties,
-      final Subscriber<InsertResult> acksSubscriber, final Context context,
-      final WorkerExecutor workerExecutor) {
-    VertxUtils.checkIsWorker();
-    final ServiceContext serviceContext = createServiceContext(new DummyPrincipal());
-    final DataSource dataSource = getDataSource(ksqlEngine.getMetaStore(),
-        SourceName.of(target));
-    if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {
-      throw new KsqlException("Cannot insert into a table");
-    }
-    return InsertsSubscriber.createInsertsSubscriber(serviceContext, properties, dataSource,
-        ksqlConfig, context, acksSubscriber, workerExecutor);
-  }
-
-  private DataSource getDataSource(
-      final MetaStore metaStore,
-      final SourceName sourceName
-  ) {
-    final DataSource dataSource = metaStore.getSource(sourceName);
-    if (dataSource == null) {
-      throw new KsqlException("Cannot insert values into an unknown stream: "
-          + sourceName);
-    }
-
-    if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
-      throw new KsqlException("Cannot insert values into windowed stream");
-    }
-
-    if (reservedInternalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
-      throw new KsqlException("Cannot insert values into read-only topic: "
-          + dataSource.getKafkaTopicName());
-    }
-
-    return dataSource;
   }
 
   private static List<String> colTypesFromSchema(final LogicalSchema logicalSchema) {
@@ -278,4 +176,5 @@ public class KsqlServerEndpoints implements Endpoints {
       queryMetadata.close();
     }
   }
+
 }

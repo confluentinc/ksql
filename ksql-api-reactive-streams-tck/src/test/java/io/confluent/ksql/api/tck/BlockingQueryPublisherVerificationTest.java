@@ -16,7 +16,7 @@
 package io.confluent.ksql.api.tck;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.plugin.BlockingQueryPublisher;
+import io.confluent.ksql.api.endpoints.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.PushQueryHandle;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;

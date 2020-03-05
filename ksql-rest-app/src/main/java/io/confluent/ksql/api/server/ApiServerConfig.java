@@ -38,23 +38,13 @@ public class ApiServerConfig extends AbstractConfig {
   public static final int DEFAULT_VERTICLE_INSTANCES =
       2 * Runtime.getRuntime().availableProcessors();
   public static final String VERTICLE_INSTANCES_DOC =
-      "The number of server verticle instances to start. Usually you want at least many instances"
-          + " as there are cores you want to use, as each instance is single threaded.";
+      "The number of server verticle instances to start per listener. Usually you want at least "
+          + "many instances as there are cores you want to use, as each instance is single "
+          + "threaded.";
 
-  public static final String LISTEN_HOST = propertyName("listen.host");
-  public static final String DEFAULT_LISTEN_HOST = "localhost";
-  public static final String LISTEN_HOST_DOC =
-      "The hostname to listen on";
-
-  public static final String LISTEN_PORT = propertyName("listen.port");
-  public static final int DEFAULT_LISTEN_PORT = 8088;
-  public static final String LISTEN_PORT_DOC =
-      "The port to listen on";
-
-  public static final String TLS_ENABLED = propertyName("tls.enabled");
-  public static final boolean DEFAULT_TLS_ENABLED = false;
-  public static final String TLS_ENABLED_DOC =
-      "Is TLS enabled?";
+  public static final String LISTENERS = propertyName("listeners");
+  public static final String DEFAULT_LISTENERS = "http://0.0.0.0:8088";
+  public static final String LISTENERS_DOC = "List of listeners to listen for connections on";
 
   public static final String TLS_KEY_STORE_PATH = propertyName("tls.keystore.path");
   public static final String TLS_KEY_STORE_PATH_DOC =
@@ -100,24 +90,11 @@ public class ApiServerConfig extends AbstractConfig {
           Importance.MEDIUM,
           VERTICLE_INSTANCES_DOC)
       .define(
-          LISTEN_HOST,
-          Type.STRING,
-          DEFAULT_LISTEN_HOST,
+          LISTENERS,
+          Type.LIST,
+          DEFAULT_LISTENERS,
           Importance.MEDIUM,
-          LISTEN_HOST_DOC)
-      .define(
-          LISTEN_PORT,
-          Type.INT,
-          DEFAULT_LISTEN_PORT,
-          zeroOrPositive(),
-          Importance.MEDIUM,
-          LISTEN_PORT_DOC)
-      .define(
-          TLS_ENABLED,
-          Type.BOOLEAN,
-          DEFAULT_TLS_ENABLED,
-          Importance.MEDIUM,
-          TLS_ENABLED_DOC)
+          LISTENERS_DOC)
       .define(
           TLS_KEY_STORE_PATH,
           Type.STRING,
@@ -168,6 +145,9 @@ public class ApiServerConfig extends AbstractConfig {
     super(CONFIG_DEF, map);
   }
 
+  // Note that this expects config value that is not standard Confluent as defined in BaseConfig.
+  // For "request" client auth, confluent value is "REQUESTED" where value expected here is
+  // "REQUEST"
   public ClientAuth getClientAuth() {
     return ClientAuth.valueOf(getString(TLS_CLIENT_AUTH_REQUIRED).toUpperCase());
   }

@@ -38,14 +38,12 @@ public class TlsTest extends ApiTest {
         .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
     Map<String, Object> config = new HashMap<>();
-    config.put("ksql.apiserver.listen.host", "localhost");
-    config.put("ksql.apiserver.listen.port", 0);
-    config.put("ksql.apiserver.tls.enabled", true);
-    config.put("ksql.apiserver.tls.keystore.path", keyStorePath);
-    config.put("ksql.apiserver.tls.keystore.password", keyStorePassword);
-    config.put("ksql.apiserver.tls.truststore.path", trustStorePath);
-    config.put("ksql.apiserver.tls.truststore.password", trustStorePassword);
-    config.put("ksql.apiserver.verticle.instances", 4);
+    config.put(ApiServerConfig.LISTENERS, "https://localhost:0");
+    config.put(ApiServerConfig.TLS_KEY_STORE_PATH, keyStorePath);
+    config.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD, keyStorePassword);
+    config.put(ApiServerConfig.TLS_TRUST_STORE_PATH, trustStorePath);
+    config.put(ApiServerConfig.TLS_TRUST_STORE_PASSWORD, trustStorePassword);
+    config.put(ApiServerConfig.VERTICLE_INSTANCES, 4);
 
     return new ApiServerConfig(config);
   }
@@ -58,7 +56,7 @@ public class TlsTest extends ApiTest {
         setTrustAll(true).
         setVerifyHost(false).
         setDefaultHost("localhost").
-        setDefaultPort(server.getActualPort());
+        setDefaultPort(server.getListeners().get(0).getPort());
   }
 
 }

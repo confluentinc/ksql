@@ -85,10 +85,6 @@ public class ApiIntegrationTest {
       .withProperty("sasl.mechanism", "PLAIN")
       .withProperty("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(NORMAL_USER))
       .withProperties(ClientTrustStore.trustStoreProps())
-      .withProperty("ksql.new.api.enabled", true)
-      .withProperty("ksql.apiserver.listen.host", "localhost")
-      .withProperty("ksql.apiserver.listen.port", 0)
-      .withProperty("ksql.apiserver.verticle.instances", 4)
       .build();
 
   @ClassRule
@@ -474,7 +470,7 @@ public class ApiIntegrationTest {
   private WebClient createClient() {
     WebClientOptions options = new WebClientOptions().
         setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
-        .setDefaultHost("localhost").setDefaultPort(REST_APP.getActualVertxPort());
+        .setDefaultHost("localhost").setDefaultPort(REST_APP.getListeners().get(0).getPort());
     return WebClient.create(vertx, options);
   }
 

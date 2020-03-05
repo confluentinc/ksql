@@ -25,6 +25,7 @@ import com.google.protobuf.TextFormat;
 import com.google.protobuf.TextFormat.Printer;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import io.confluent.ksql.json.JsonMapper;
 import java.io.IOException;
@@ -326,6 +327,7 @@ public final class RecordFormatter {
     AVRO(0, KafkaAvroDeserializer::new),
     PROTOBUF(0, RecordFormatter::newProtobufDeserializer),
     JSON(RecordFormatter::newJsonDeserializer),
+    JSON_SR(0, KafkaJsonSchemaDeserializer::new),
     KAFKA_INT(IntegerDeserializer::new),
     KAFKA_BIGINT(LongDeserializer::new),
     KAFKA_DOUBLE(DoubleDeserializer::new),

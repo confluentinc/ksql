@@ -35,12 +35,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Message;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.ksql.rest.server.resources.streaming.RecordFormatter.Deserializers;
 import java.text.SimpleDateFormat;
@@ -125,6 +128,7 @@ public class RecordFormatterTest {
       // Then:
       assertThat(formatter.getPossibleKeyFormats(), containsInAnyOrder(
           "AVRO", "SESSION(AVRO)", "TUMBLING(AVRO)", "HOPPING(AVRO)",
+          "JSON_SR", "SESSION(JSON_SR)", "TUMBLING(JSON_SR)", "HOPPING(JSON_SR)",
           "PROTOBUF", "SESSION(PROTOBUF)", "TUMBLING(PROTOBUF)", "HOPPING(PROTOBUF)",
           "JSON", "SESSION(JSON)", "TUMBLING(JSON)", "HOPPING(JSON)",
           "KAFKA_INT", "SESSION(KAFKA_INT)", "TUMBLING(KAFKA_INT)", "HOPPING(KAFKA_INT)",
@@ -146,6 +150,7 @@ public class RecordFormatterTest {
           "AVRO",
           "PROTOBUF",
           "JSON",
+          "JSON_SR",
           "KAFKA_INT",
           "KAFKA_BIGINT",
           "KAFKA_DOUBLE",
@@ -343,6 +348,19 @@ public class RecordFormatterTest {
     private static final Bytes SERIALIZED_SESSION_WINDOWED_PROTOBUF_RECORD = serialize(
         new Windowed<>(PROTOBUF_RECORD, SESSION_WINDOW),
         new SessionWindowedSerializer<>(protobufSerializer())
+    );
+
+    private static final JsonSchema JSON_SCHEMA = new JsonSchema(
+        "{\"str1\": \"string\", \"str2\": \"string\"}");
+    private static final Object JSON_SR_RECORD = ImmutableMap.of("str1", "My first string", "str2", "My second string");
+    private static final Bytes SERIALIZED_JSON_SR_RECORD = serialize(JSON_SR_RECORD, jsonSrSerializer());
+    private static final Bytes SERIALIZED_TIME_WINDOWED_JSON_SR_RECORD = serialize(
+        new Windowed<>(JSON_SR_RECORD, TIME_WINDOW),
+        new TimeWindowedSerializer<>(jsonSrSerializer())
+    );
+    private static final Bytes SERIALIZED_SESSION_WINDOWED_JSON_SR_RECORD = serialize(
+        new Windowed<>(JSON_SR_RECORD, SESSION_WINDOW),
+        new SessionWindowedSerializer<>(jsonSrSerializer())
     );
 
     private static final int KAFKA_INT = 24;
@@ -634,6 +652,95 @@ public class RecordFormatterTest {
 
       // Then:
       assertThat(formatted, is("[str1: \"My first string\" str2: \"My second string\"@1534567890123/1534567899999]"));
+    }
+
+    @Test
+    public void shouldExcludeJsonSrNoSchema() {
+      // Given:
+      // not: givenJsonSrSchemaRegistered();
+
+      // When:
+      deserializers.format(SERIALIZED_JSON_SR_RECORD);
+
+      // Then:
+      assertThat(deserializers.getPossibleFormats(), not(hasItem("JSON_SR")));
+    }
+
+    @Test
+    public void shouldNotExcludeJsonSrOnValidJsonSr() {
+      // Given:
+      givenJsonSrSchemaRegistered();
+
+      // When:
+      deserializers.format(SERIALIZED_JSON_SR_RECORD);
+
+      // Then:
+      assertThat(deserializers.getPossibleFormats(), hasItems(
+          "JSON_SR"
+      ));
+    }
+
+    @Test
+    public void shouldFormatValidJsonSr() {
+      // Given:
+      givenJsonSrSchemaRegistered();
+
+      // When:
+      final String formatted = deserializers.format(SERIALIZED_JSON_SR_RECORD);
+
+      // Then:
+      assertThat(formatted, is("{\"str1\":\"My first string\",\"str2\":\"My second string\"}"));
+    }
+
+    @Test
+    public void shouldNotExcludeTimeWindowedJsonSrOnValidTimeWindowedJsonSr() {
+      // Given:
+      givenJsonSrSchemaRegistered();
+
+      // When:
+      deserializers.format(SERIALIZED_TIME_WINDOWED_JSON_SR_RECORD);
+
+      // Then:
+      assertThat(deserializers.getPossibleFormats(), hasItems(
+          "TUMBLING(JSON_SR)", "HOPPING(JSON_SR)"
+      ));
+    }
+
+    @Test
+    public void shouldFormatValidTimeWindowedJsonSr() {
+      // Given:
+      givenJsonSrSchemaRegistered();
+
+      // When:
+      final String formatted = deserializers.format(SERIALIZED_TIME_WINDOWED_JSON_SR_RECORD);
+
+      assertThat(formatted, is("[{\"str1\":\"My first string\",\"str2\":\"My second string\"}@1234567890123/-]"));
+    }
+
+    @Test
+    public void shouldNotExcludeSessionWindowedJsonSrOnValidTimeWindowedJsonSr() {
+      // Given:
+      givenJsonSrSchemaRegistered();
+
+      // When:
+      deserializers.format(SERIALIZED_SESSION_WINDOWED_JSON_SR_RECORD);
+
+      // Then:
+      assertThat(deserializers.getPossibleFormats(), hasItems(
+          "SESSION(JSON_SR)"
+      ));
+    }
+
+    @Test
+    public void shouldFormatValidSessionWindowedJsonSr() {
+      // Given:
+      givenJsonSrSchemaRegistered();
+
+      // When:
+      final String formatted = deserializers.format(SERIALIZED_SESSION_WINDOWED_JSON_SR_RECORD);
+
+      // Then:
+      assertThat(formatted, is("[{\"str1\":\"My first string\",\"str2\":\"My second string\"}@1534567890123/1534567899999]"));
     }
 
     @Test
@@ -1072,6 +1179,14 @@ public class RecordFormatterTest {
       }
     }
 
+    private void givenJsonSrSchemaRegistered() {
+      try {
+        when(schemaRegistryClient.getSchemaById(anyInt())).thenReturn(JSON_SCHEMA);
+      } catch (final Exception e) {
+        fail("invalid test:" + e.getMessage());
+      }
+    }
+
     private static Bytes getBytes(final int size) {
       final byte[] bytes = new byte[size];
       RNG.nextBytes(bytes);
@@ -1131,6 +1246,14 @@ public class RecordFormatterTest {
 
       final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
       return new KafkaProtobufSerializer<Message>(schemaRegistryClient, props);
+    }
+
+    private static Serializer<Object> jsonSrSerializer() {
+      final Map<String, String> props = new HashMap<>();
+      props.put("schema.registry.url", "localhost:9092");
+
+      final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
+      return new KafkaJsonSchemaSerializer<>(schemaRegistryClient, props);
     }
   }
 

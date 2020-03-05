@@ -28,7 +28,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.Set;
 import org.hamcrest.MatcherAssert;
@@ -46,7 +45,7 @@ public class DdlCommandExecTest {
   private static final SourceName TABLE_NAME = SourceName.of("t1");
   private static final String TOPIC_NAME = "topic";
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("F1"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)
       .build();

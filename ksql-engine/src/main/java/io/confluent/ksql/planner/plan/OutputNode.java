@@ -19,13 +19,11 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -36,7 +34,6 @@ public abstract class OutputNode
     extends PlanNode {
 
   private final PlanNode source;
-  private final LogicalSchema schema;
   private final OptionalInt limit;
   private final Optional<TimestampColumn> timestampColumn;
 
@@ -47,18 +44,12 @@ public abstract class OutputNode
       final OptionalInt limit,
       final Optional<TimestampColumn> timestampColumn
   ) {
-    super(id, source.getNodeOutputType());
+    super(id, source.getNodeOutputType(), schema, source.getSelectExpressions());
 
     this.source = requireNonNull(source, "source");
-    this.schema = requireNonNull(schema, "schema");
     this.limit = requireNonNull(limit, "limit");
     this.timestampColumn =
         requireNonNull(timestampColumn, "timestampColumn");
-  }
-
-  @Override
-  public LogicalSchema getSchema() {
-    return schema;
   }
 
   @Override
@@ -77,11 +68,6 @@ public abstract class OutputNode
   @Override
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
-  }
-
-  @Override
-  public List<SelectExpression> getSelectExpressions() {
-    return Collections.emptyList();
   }
 
   @Override

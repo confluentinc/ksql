@@ -105,7 +105,7 @@
       ]
     },
     {
-      "name": "non-windowed lookup on wrong type type",
+      "name": "non-windowed lookup on wrong type",
       "statements": [
         "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -113,7 +113,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "'10' can not be converted to the type of column ROWKEY: INTEGER",
+        "message": "'10' can not be converted to the type of the key column: ROWKEY INTEGER KEY",
         "status": 400
       }
     },
@@ -222,7 +222,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "'10' can not be converted to the type of column ROWKEY: INTEGER",
+        "message": "'10' can not be converted to the type of the key column: ROWKEY INTEGER KEY",
         "status": 400
       }
     },
@@ -901,7 +901,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Multiple bounds on ROWKEY",
+        "message": "Multiple bounds on key column",
         "status": 400
       }
     },
@@ -914,7 +914,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "ROWKEY bound must currently be '='.",
+        "message": "Bound on 'ROWKEY' must currently be '='.",
         "status": 400
       }
     },
@@ -927,7 +927,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "WHERE clause on unsupported field: COUNT",
+        "message": "WHERE clause on unsupported column: COUNT",
         "status": 400
       }
     },
@@ -1013,6 +1013,29 @@
         {"query": [
           {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY"}},
           {"row":{"columns":[12345, 10.1, 12000, 13000]}}
+        ]}
+      ]
+    },
+    {
+      "name": "should handled quoted key and value",
+      "statements": [
+        "CREATE STREAM INPUT (`Key` STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS `Value` FROM INPUT GROUP BY `Key`;",
+        "SELECT * FROM AGGREGATE WHERE `Key`='10';"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`Key` STRING KEY, `ROWTIME` BIGINT, `Value` BIGINT"}},
+          {"row":{"columns":["10", 12365, 1]}}
         ]}
       ]
     }

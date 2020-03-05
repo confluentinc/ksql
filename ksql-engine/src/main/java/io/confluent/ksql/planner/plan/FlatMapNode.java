@@ -48,10 +48,7 @@ import java.util.Optional;
 public class FlatMapNode extends PlanNode {
 
   private final PlanNode source;
-  private final LogicalSchema outputSchema;
-  private final ImmutableList<SelectExpression> finalSelectExpressions;
-  private final ImmutableAnalysis analysis;
-  private final FunctionRegistry functionRegistry;
+  private final ImmutableList<FunctionCall> tableFunctions;
 
   public FlatMapNode(
       final PlanNodeId id,
@@ -59,21 +56,14 @@ public class FlatMapNode extends PlanNode {
       final FunctionRegistry functionRegistry,
       final ImmutableAnalysis analysis
   ) {
-    super(id, source.getNodeOutputType());
-    this.source = Objects.requireNonNull(source, "source");
-    this.analysis = Objects.requireNonNull(analysis);
-    this.functionRegistry = functionRegistry;
-    this.finalSelectExpressions = buildFinalSelectExpressions();
-    outputSchema = StreamFlatMapBuilder.buildSchema(
-        source.getSchema(),
-        analysis.getTableFunctions(),
-        functionRegistry
+    super(
+        id,
+        source.getNodeOutputType(),
+        buildSchema(source, functionRegistry, analysis),
+        buildFinalSelectExpressions(functionRegistry, analysis)
     );
-  }
-
-  @Override
-  public LogicalSchema getSchema() {
-    return outputSchema;
+    this.source = Objects.requireNonNull(source, "source");
+    this.tableFunctions = ImmutableList.copyOf(analysis.getTableFunctions());
   }
 
   @Override
@@ -88,11 +78,6 @@ public class FlatMapNode extends PlanNode {
 
   public PlanNode getSource() {
     return source;
-  }
-
-  @Override
-  public List<SelectExpression> getSelectExpressions() {
-    return finalSelectExpressions;
   }
 
   @Override
@@ -111,14 +96,17 @@ public class FlatMapNode extends PlanNode {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
 
     return getSource().buildStream(builder).flatMap(
-        analysis.getTableFunctions(),
+        tableFunctions,
         contextStacker
     );
   }
 
-  private ImmutableList<SelectExpression> buildFinalSelectExpressions() {
+  private static ImmutableList<SelectExpression> buildFinalSelectExpressions(
+      final FunctionRegistry functionRegistry,
+      final ImmutableAnalysis analysis
+  ) {
     final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
-        new TableFunctionExpressionRewriter();
+        new TableFunctionExpressionRewriter(functionRegistry);
 
     final ImmutableList.Builder<SelectExpression> selectExpressions = ImmutableList.builder();
     for (final SelectExpression select : analysis.getSelectExpressions()) {
@@ -133,13 +121,17 @@ public class FlatMapNode extends PlanNode {
     return selectExpressions.build();
   }
 
-  private class TableFunctionExpressionRewriter
+  private static class TableFunctionExpressionRewriter
       extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
 
+    private final FunctionRegistry functionRegistry;
     private int variableIndex = 0;
 
-    TableFunctionExpressionRewriter() {
+    TableFunctionExpressionRewriter(
+        final FunctionRegistry functionRegistry
+    ) {
       super(Optional.empty());
+      this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     }
 
     @Override
@@ -162,5 +154,17 @@ public class FlatMapNode extends PlanNode {
         return Optional.of(new FunctionCall(node.getLocation(), node.getName(), arguments));
       }
     }
+  }
+
+  private static LogicalSchema buildSchema(
+      final PlanNode source,
+      final FunctionRegistry functionRegistry,
+      final ImmutableAnalysis analysis
+  ) {
+    return StreamFlatMapBuilder.buildSchema(
+        source.getSchema(),
+        analysis.getTableFunctions(),
+        functionRegistry
+    );
   }
 }

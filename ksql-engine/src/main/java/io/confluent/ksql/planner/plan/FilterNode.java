@@ -20,9 +20,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
@@ -33,27 +31,20 @@ public class FilterNode extends PlanNode {
 
   private final PlanNode source;
   private final Expression predicate;
-  private final ImmutableList<SelectExpression> selectExpressions;
 
   public FilterNode(
       final PlanNodeId id,
       final PlanNode source,
       final Expression predicate
   ) {
-    super(id, source.getNodeOutputType());
+    super(id, source.getNodeOutputType(), source.getSchema(), source.getSelectExpressions());
 
     this.source = Objects.requireNonNull(source, "source");
     this.predicate = Objects.requireNonNull(predicate, "predicate");
-    this.selectExpressions = ImmutableList.copyOf(source.getSelectExpressions());
   }
 
   public Expression getPredicate() {
     return predicate;
-  }
-
-  @Override
-  public LogicalSchema getSchema() {
-    return source.getSchema();
   }
 
   @Override
@@ -64,11 +55,6 @@ public class FilterNode extends PlanNode {
   @Override
   public List<PlanNode> getSources() {
     return ImmutableList.of(source);
-  }
-
-  @Override
-  public List<SelectExpression> getSelectExpressions() {
-    return selectExpressions;
   }
 
   public PlanNode getSource() {

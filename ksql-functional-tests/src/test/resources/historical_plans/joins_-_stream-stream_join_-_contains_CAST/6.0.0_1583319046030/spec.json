@@ -1,0 +1,43 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1583319046030,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<X BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<X INT> NOT NULL",
+    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<T_X BIGINT, T_ROWTIME BIGINT, T_ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<TT_X INT, TT_ROWTIME BIGINT, TT_ID INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<T_X BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "left_topic",
+    "key" : 1,
+    "value" : {
+      "x" : 2
+    },
+    "timestamp" : 10
+  }, {
+    "topic" : "right_topic",
+    "key" : 1,
+    "value" : {
+      "x" : 3
+    },
+    "timestamp" : 10
+  } ],
+  "outputs" : [ {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
+    "key" : 1,
+    "value" : {
+      "TT_X" : 3,
+      "TT_ROWTIME" : 10,
+      "TT_ID" : 1
+    },
+    "timestamp" : 10
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : {
+      "T_X" : 2
+    },
+    "timestamp" : 10
+  } ]
+}

@@ -38,6 +38,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -54,8 +55,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class GroupByParamsFactoryTest {
 
-  private static final KeyBuilder INT_KEY_BUILDER = StructKeyUtil.keyBuilder(SqlTypes.INTEGER);
-  private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil.keyBuilder(SqlTypes.STRING);
+  private static final KeyBuilder INT_KEY_BUILDER = StructKeyUtil
+      .keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER);
+  private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil
+      .keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("v0"), SqlTypes.DOUBLE)

@@ -20,7 +20,6 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.WindowInfo;
@@ -108,16 +107,16 @@ public abstract class CreateSourceCommand implements DdlCommand {
 
       if (!keyFieldType.equals(keyType)) {
         throw new KsqlException("The KEY field ("
-            + keyField.get().toString(FormatOptions.noEscape())
+            + keyField.get().text()
             + ") identified in the WITH clause is of a different type to the actual key column."
             + System.lineSeparator()
-            + "Either change the type of the KEY field to match ROWKEY, "
-            + "or explicitly set ROWKEY to the type of the KEY field by adding "
-            + "'ROWKEY " + keyFieldType + " KEY' in the schema."
+            + "Use of the KEY field is deprecated. Remove the KEY field from the WITH clause and "
+            + "specify the name of the key column by adding "
+            + "'" + keyField.get().text() + " " + keyFieldType + " KEY' to the schema."
             + System.lineSeparator()
             + "KEY field type: " + keyFieldType
             + System.lineSeparator()
-            + "ROWKEY type: " + keyType
+            + "key column type: " + keyType
         );
       }
     }

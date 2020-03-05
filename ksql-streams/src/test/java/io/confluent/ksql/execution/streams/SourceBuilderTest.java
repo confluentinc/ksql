@@ -58,7 +58,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -98,20 +97,22 @@ import org.mockito.junit.MockitoRule;
 
 public class SourceBuilderTest {
 
+  private static final ColumnName K0 = ColumnName.of("k0");
+
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+      .keyColumn(K0, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
       .build();
 
   private static final Schema KEY_SCHEMA = SchemaBuilder.struct()
-      .field(SchemaUtil.ROWKEY_NAME.text(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field(K0.text(), Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build();
 
   private static final double A_KEY = 10.11;
 
   private static final Struct KEY = new Struct(KEY_SCHEMA)
-      .put(SchemaUtil.ROWKEY_NAME.text(), A_KEY);
+      .put(K0.text(), A_KEY);
 
   private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
       .withMetaAndKeyColsInValue(false);

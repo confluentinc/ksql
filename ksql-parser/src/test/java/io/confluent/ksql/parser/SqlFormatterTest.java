@@ -67,7 +67,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -109,7 +108,7 @@ public class SqlFormatterTest {
       .build();
 
   private static final LogicalSchema ITEM_INFO_SCHEMA = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ITEMID"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("NAME"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("CATEGORY"), categorySchema)
@@ -122,7 +121,7 @@ public class SqlFormatterTest {
       .build();
 
   private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("K1"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
@@ -142,7 +141,7 @@ public class SqlFormatterTest {
   );
 
   private static final TableElements ELEMENTS_WITH_KEY = TableElements.of(
-      new TableElement(Namespace.KEY, ColumnName.of("ROWKEY"), new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.KEY, ColumnName.of("k3"), new Type(SqlTypes.STRING)),
       new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING))
   );
 
@@ -170,7 +169,7 @@ public class SqlFormatterTest {
         ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
-    final KsqlStream ksqlStreamOrders = new KsqlStream<>(
+    final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
@@ -228,7 +227,7 @@ public class SqlFormatterTest {
     final String sql = SqlFormatter.formatSql(createStream);
 
     // Then:
-    assertThat(sql, is("CREATE STREAM TEST (ROWKEY STRING KEY, `Foo` STRING) "
+    assertThat(sql, is("CREATE STREAM TEST (`k3` STRING KEY, `Foo` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 
@@ -269,7 +268,7 @@ public class SqlFormatterTest {
     final String sql = SqlFormatter.formatSql(createTable);
 
     // Then:
-    assertThat(sql, is("CREATE TABLE TEST (ROWKEY STRING KEY, `Foo` STRING) "
+    assertThat(sql, is("CREATE TABLE TEST (`k3` STRING KEY, `Foo` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', "
         + "TIMESTAMP='Foo', TIMESTAMP_FORMAT='%s', VALUE_FORMAT='JSON');"));
   }
@@ -287,7 +286,7 @@ public class SqlFormatterTest {
     final String sql = SqlFormatter.formatSql(createTable);
 
     // Then:
-    assertThat(sql, is("CREATE TABLE TEST (ROWKEY STRING KEY, `Foo` STRING) "
+    assertThat(sql, is("CREATE TABLE TEST (`k3` STRING KEY, `Foo` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 

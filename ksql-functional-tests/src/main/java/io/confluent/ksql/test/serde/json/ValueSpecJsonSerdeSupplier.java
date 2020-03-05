@@ -39,7 +39,9 @@ import org.apache.kafka.common.serialization.Serializer;
 public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
 
   private static final ObjectMapper MAPPER = new ObjectMapper()
-      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
+
   private final boolean useSchemas;
 
   public ValueSpecJsonSerdeSupplier(final boolean useSchemas) {
@@ -112,14 +114,17 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
 
   private static final class Converter<T> {
 
+    private static final JsonNodeFactory JSON_NODE_FACTORY = JsonNodeFactory
+        .withExactBigDecimals(true);
+
     private static final List<Converter<?>> CONVERTORS = ImmutableList.of(
-        Converter.converter(Boolean.class, JsonNodeFactory.instance::booleanNode),
-        Converter.converter(Integer.class, JsonNodeFactory.instance::numberNode),
-        Converter.converter(Long.class, JsonNodeFactory.instance::numberNode),
-        Converter.converter(Float.class, JsonNodeFactory.instance::numberNode),
-        Converter.converter(Double.class, JsonNodeFactory.instance::numberNode),
-        Converter.converter(BigDecimal.class, JsonNodeFactory.instance::numberNode),
-        Converter.converter(String.class, JsonNodeFactory.instance::textNode),
+        Converter.converter(Boolean.class, JSON_NODE_FACTORY::booleanNode),
+        Converter.converter(Integer.class, JSON_NODE_FACTORY::numberNode),
+        Converter.converter(Long.class, JSON_NODE_FACTORY::numberNode),
+        Converter.converter(Float.class, JSON_NODE_FACTORY::numberNode),
+        Converter.converter(Double.class, JSON_NODE_FACTORY::numberNode),
+        Converter.converter(BigDecimal.class, JSON_NODE_FACTORY::numberNode),
+        Converter.converter(String.class, JSON_NODE_FACTORY::textNode),
         Converter.converter(Collection.class, Converter::handleCollection),
         Converter.converter(Map.class, Converter::handleMap)
     );
@@ -129,7 +134,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
 
     static JsonNode toJsonNode(final Object obj) {
       if (obj == null) {
-        return JsonNodeFactory.instance.nullNode();
+        return JSON_NODE_FACTORY.nullNode();
       }
 
       final List<Converter<?>> candidates = CONVERTORS.stream()
@@ -172,7 +177,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
     }
 
     private static JsonNode handleCollection(final Collection<?> collection) {
-      final ArrayNode list = JsonNodeFactory.instance.arrayNode();
+      final ArrayNode list = JSON_NODE_FACTORY.arrayNode();
       for (final Object element : collection) {
         list.add(toJsonNode(element));
       }
@@ -180,7 +185,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
     }
 
     private static JsonNode handleMap(final Map<?, ?> map) {
-      final ObjectNode node = JsonNodeFactory.instance.objectNode();
+      final ObjectNode node = JSON_NODE_FACTORY.objectNode();
 
       if (map.isEmpty()) {
         return node;

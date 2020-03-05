@@ -207,8 +207,8 @@
       "outputs": [
         {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":2.0}},
         {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":6.0}},
-        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":922337203692.0}},
-        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":922337203694.0}}
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":922337203692}},
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":922337203694}}
       ]
     },
     {

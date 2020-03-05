@@ -20,6 +20,14 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class PlannedTestRewriterTest {
+
+  /**
+   * Re-write ALL existing test plans.
+   *
+   * <p>You almost certainly do NOT want to do this as historical plans should be IMMUTABLE.
+   * The only time this is really valid is if you have fixed a bug in the testing framework
+   * and now need to correct bad historic test data.
+   */
   @Test
   @Ignore
   public void rewritePlans() {

@@ -93,13 +93,8 @@ public class BasicAuthTest extends ApiTest {
   }
 
   @Test
-  public void shouldFailPullQueryWithBadCredentials() throws Exception {
-    shouldFailPullQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
-  }
-
-  @Test
-  public void shouldFailPushQueryWithBadCredentials() throws Exception {
-    shouldFailPushQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
+  public void shouldFailQueryWithBadCredentials() throws Exception {
+    shouldFailQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
   }
 
   @Test
@@ -113,13 +108,23 @@ public class BasicAuthTest extends ApiTest {
   }
 
   @Test
-  public void shouldFailPullQueryWithIncorrectRole() throws Exception {
-    shouldFailPullQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
+  public void shouldFailQueryWithNoCredentials() throws Exception {
+    shouldFailQuery(null, null);
   }
 
   @Test
-  public void shouldFailPushQueryWithIncorrectRole() throws Exception {
-    shouldFailPushQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
+  public void shouldFailCloseQueryWithNoCredentials() throws Exception {
+    shouldFailCloseQuery(null, null);
+  }
+
+  @Test
+  public void shouldFailInsertRequestWithNoCredentials() throws Exception {
+    shouldFailInsertRequest(null, null);
+  }
+
+  @Test
+  public void shouldFailQueryWithIncorrectRole() throws Exception {
+    shouldFailQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
   }
 
   @Test
@@ -132,26 +137,7 @@ public class BasicAuthTest extends ApiTest {
     shouldFailInsertRequest(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
   }
 
-  private void shouldFailPullQuery(final String username, final String password) throws Exception {
-    // Given
-    JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
-    JsonObject properties = new JsonObject().put("prop1", "val1").put("prop2", 23);
-    requestBody.put("properties", properties);
-
-    // When
-    HttpResponse<Buffer> response = sendRequestWithCreds(
-        "/query-stream",
-        requestBody.toBuffer(),
-        username,
-        password
-    );
-
-    // Then
-    assertThat(response.statusCode(), is(401));
-    assertThat(response.statusMessage(), is("Unauthorized"));
-  }
-
-  private void shouldFailPushQuery(final String username, final String password) throws Exception {
+  private void shouldFailQuery(final String username, final String password) throws Exception {
     // When
     HttpResponse<Buffer> response = sendRequestWithCreds(
         "/query-stream",
@@ -213,6 +199,7 @@ public class BasicAuthTest extends ApiTest {
     return sendRequestWithCreds(client, uri, requestBody, username, password);
   }
 
+  // auth header is omitted if username and password are null
   private static HttpResponse<Buffer> sendRequestWithCreds(
       final WebClient client,
       final String uri,
@@ -221,10 +208,11 @@ public class BasicAuthTest extends ApiTest {
       final String password
   ) throws Exception {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
-    client
-        .post(uri)
-        .basicAuthentication(username, password)
-        .sendBuffer(requestBody, requestFuture);
+    HttpRequest<Buffer> request = client.post(uri);
+    if (username != null || password != null) {
+      request = request.basicAuthentication(username, password);
+    }
+    request.sendBuffer(requestBody, requestFuture);
     return requestFuture.get();
   }
 }

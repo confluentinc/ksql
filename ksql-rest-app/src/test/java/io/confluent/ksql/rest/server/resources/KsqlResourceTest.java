@@ -255,6 +255,10 @@ public class KsqlResourceTest {
       .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
       .build();
 
+  private static final KsqlHostInfoEntity LOCAL_HOST = new KsqlHostInfoEntity("some host", 555);
+
+  private static final String APPLICATION_SERVER_CONFIG_STRING = "localhost:555";
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 

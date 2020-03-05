@@ -63,7 +63,7 @@ public final class ListQueriesExecutor {
         .stream()
         .map(q -> new RunningQuery(
             q.getStatementString(),
-            ImmutableSet.of(q.getSinkName().name()),
+            ImmutableSet.of(q.getSinkName().text()),
             ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
             q.getQueryId(),
             Optional.of(q.getState()),

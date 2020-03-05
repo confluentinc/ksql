@@ -130,6 +130,16 @@ public final class KsqlTarget {
     return get(STATUS_PATH + "/" + commandId, CommandStatus.class);
   }
 
+  public RestResponse<KsqlEntityList> postInternalKsqlRequest(
+      final String ksql
+  ) {
+    return post(
+        KSQL_PATH,
+        createKsqlRequest(ksql, Collections.emptyMap(), Optional.empty(), true),
+        r -> deserialize(r.getBody(), KsqlEntityList.class)
+    );
+  }
+
   public RestResponse<KsqlEntityList> postKsqlRequest(
       final String ksql,
       final Optional<Long> previousCommandSeqNum
@@ -168,17 +178,32 @@ public final class KsqlTarget {
     return executeQueryRequestWithStreamResponse(ksql, previousCommandSeqNum, Object::toString);
   }
 
+
+  private KsqlRequest createKsqlRequest(
+          final String ksql,
+          final Map<String, ?> serverProperties,
+          final Optional<Long> previousCommandSeqNum
+  ) {
+    return createKsqlRequest(
+            ksql,
+            serverProperties,
+            previousCommandSeqNum,
+            false
+    );
+  }
+
   private KsqlRequest createKsqlRequest(
       final String ksql,
       final Map<String, ?> serverProperties,
-      final Optional<Long> previousCommandSeqNum
+      final Optional<Long> previousCommandSeqNum,
+      final Boolean isInternalRequest
   ) {
     return new KsqlRequest(
         ksql,
         localProperties.toMap(),
         serverProperties,
         previousCommandSeqNum.orElse(null),
-        false
+        isInternalRequest
     );
   }
 

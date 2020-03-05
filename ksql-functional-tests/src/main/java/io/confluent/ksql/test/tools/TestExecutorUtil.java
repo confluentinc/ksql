@@ -333,7 +333,7 @@ public final class TestExecutorUtil {
           new SessionProperties(
               requireNonNull(overrides, "overrides"),
               new KsqlHostInfo("host", 50),
-              buildURL(),
+              TestExecutorUtil.buildUrl(),
               false);
       this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
       this.stubKafkaService = requireNonNull(stubKafkaService, "stubKafkaService");

@@ -230,7 +230,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest("query", Collections.emptyMap(), null, false)
+        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null, false)
     );
   }
 
@@ -250,7 +250,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest("query", Collections.emptyMap(), null, false)
+        new KsqlRequest("query",  Collections.emptyMap(), Collections.emptyMap(), null, false)
     );
   }
 
@@ -259,7 +259,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), null, false)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null, false)
     );
 
     // Then:
@@ -271,7 +271,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L, false)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L, false)
     );
 
     // Then:
@@ -296,7 +296,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L, false)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L, false)
     );
   }
 

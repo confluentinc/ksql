@@ -64,7 +64,7 @@ public class KsqlRequestTest {
       + "\"requestProperties\":{"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
-      + "\"commandSequenceNumber\":2}"
+      + "\"commandSequenceNumber\":2,"
       + "\"isInternalRequest\":null}";
   private static final String A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
@@ -76,7 +76,7 @@ public class KsqlRequestTest {
       + "\"requestProperties\":{"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
-      + "\"commandSequenceNumber\":null}"
+      + "\"commandSequenceNumber\":null,"
       + "\"isInternalRequest\":null}";
 
   private static final String A_JSON_REQUEST_WITH_NULL_INTERNAL_REQUEST= "{"
@@ -85,6 +85,9 @@ public class KsqlRequestTest {
       + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
       + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
       + TimestampExtractor.class.getCanonicalName() + "\""
+      + "},"
+      + "\"requestProperties\":{"
+      + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
       + "\"isInternalRequest\":null}";
 
@@ -107,11 +110,11 @@ public class KsqlRequestTest {
   private static final long SOME_COMMAND_NUMBER = 2L;
 
   private static final KsqlRequest A_REQUEST = new KsqlRequest(
-      "sql", SOME_PROPS, SOME_REQUEST_PROPS, null, false);
+      "sql", SOME_PROPS, SOME_REQUEST_PROPS, null, null);
   private static final KsqlRequest A_REQUEST_WITH_COMMAND_NUMBER =
-      new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER, false);
+      new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER, null);
   private static final KsqlRequest A_REQUEST_WITH_INTERNAL_REQUEST =
-      new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, null, true);
+      new KsqlRequest("sql", SOME_PROPS, Collections.emptyMap(), null, true);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -137,7 +140,7 @@ public class KsqlRequestTest {
 
   @Test
   public void shoudlHandleNullIsInternalRequest() {
-    assertThat(new KsqlRequest("sql", SOME_PROPS, null, null).getIsInternalRequest(), is(Optional.empty()));
+    assertThat(new KsqlRequest("sql", SOME_PROPS, null, null, null).getIsInternalRequest(), is(Optional.empty()));
   }
 
   @Test

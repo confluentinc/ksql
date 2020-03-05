@@ -49,7 +49,7 @@ public class KsqlRequest {
       @JsonProperty("requestProperties") final Map<String, ?> requestProperties,
       @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber,
       @JsonProperty("isInternalRequest") final Boolean isInternalRequest
-    ) {
+  ) {
     this.ksql = ksql == null ? "" : ksql;
     this.configOverrides = configOverrides == null
         ? ImmutableMap.of()
@@ -102,7 +102,8 @@ public class KsqlRequest {
 
   @Override
   public int hashCode() {
-    return Objects.hash(ksql, configOverrides, requestProperties, commandSequenceNumber, isInternalRequest);
+    return Objects.hash(
+        ksql, configOverrides, requestProperties, commandSequenceNumber, isInternalRequest);
   }
 
   @Override

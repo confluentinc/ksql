@@ -171,7 +171,7 @@ public class KsqlClientUtilTest {
     // Given:
     Map<String, Object> props = new HashMap<>();
     props.put("auto.offset.reset", "latest");
-    KsqlRequest request = new KsqlRequest("some ksql", props, Collections.emptyMap(), 21345L);
+    KsqlRequest request = new KsqlRequest("some ksql", props, Collections.emptyMap(), 21345L, null);
 
     // When:
     Buffer buff = KsqlClientUtil.serialize(request);
@@ -179,7 +179,7 @@ public class KsqlClientUtilTest {
     // Then:
     assertThat(buff, is(notNullValue()));
     String expectedJson = "{\"ksql\":\"some ksql\",\"streamsProperties\":{\"auto.offset.reset\":\""
-        + "latest\"},\"requestProperties\":{},\"commandSequenceNumber\":21345}";
+        + "latest\"},\"requestProperties\":{},\"commandSequenceNumber\":21345, \"isInternalRequest\":null}";
     assertThat(new JsonObject(buff), is(new JsonObject(expectedJson)));
 
     // When:

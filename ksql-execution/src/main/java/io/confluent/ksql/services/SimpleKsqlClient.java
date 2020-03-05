@@ -35,8 +35,8 @@ public interface SimpleKsqlClient {
   );
 
   RestResponse<KsqlEntityList> makeInternalKsqlRequest(
-    URI serverEndPoint,
-    String sql
+      URI serverEndPoint,
+      String sql
   );
 
   /**

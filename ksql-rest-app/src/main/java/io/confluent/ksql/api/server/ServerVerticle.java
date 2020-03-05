@@ -16,19 +16,14 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.util.Pair;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,44 +76,38 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
-    final List<Pair<Route, Handler<RoutingContext>>> routes = new ArrayList<>();
-    routes.add(Pair.of(
-        router.route(HttpMethod.POST, "/query-stream")
-            .produces("application/vnd.ksqlapi.delimited.v1")
-            .produces("application/json")
-            .handler(BodyHandler.create()),
-        new QueryStreamHandler(endpoints, connectionQueryManager, context, server)));
-    routes.add(Pair.of(
-        router.route(HttpMethod.POST, "/inserts-stream")
-            .produces("application/vnd.ksqlapi.delimited.v1")
-            .produces("application/json")
-            .handler(routingContext -> {
-              // prevent auth handler from reading request body
-              routingContext.request().pause();
-              routingContext.next();
-            }),
-        new InsertsStreamHandler(context, endpoints, server.getWorkerExecutor())));
-    routes.add(Pair.of(
-        router.route(HttpMethod.POST, "/close-query")
-            .handler(BodyHandler.create()),
-        new CloseQueryHandler(server)));
-    handleRoutes(routes);
+    server.getAuthHandler().ifPresent(authHandler -> {
+      router.route()
+          .handler(ServerVerticle::pauseHandler)
+          .handler(authHandler)
+          .handler(ServerVerticle::resumeHandler);
+    });
+
+    router.route(HttpMethod.POST, "/query-stream")
+        .produces("application/vnd.ksqlapi.delimited.v1")
+        .produces("application/json")
+        .handler(BodyHandler.create())
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server));
+    router.route(HttpMethod.POST, "/inserts-stream")
+        .produces("application/vnd.ksqlapi.delimited.v1")
+        .produces("application/json")
+        .handler(new InsertsStreamHandler(context, endpoints, server.getWorkerExecutor()));
+    router.route(HttpMethod.POST, "/close-query")
+        .handler(BodyHandler.create())
+        .handler(new CloseQueryHandler(server));
 
     return router;
   }
 
-  private void handleRoutes(final List<Pair<Route, Handler<RoutingContext>>> routes) {
-    authenticateRoutes(routes);
-    for (final Pair<Route, Handler<RoutingContext>> routeHandlerPair : routes) {
-      routeHandlerPair.getLeft().handler(routeHandlerPair.getRight());
-    }
+  private static void pauseHandler(final RoutingContext routingContext) {
+    // prevent auth handler from reading request body
+    routingContext.request().pause();
+    routingContext.next();
   }
 
-  private void authenticateRoutes(final List<Pair<Route, Handler<RoutingContext>>> routes) {
-    server.getAuthHandler().ifPresent(authHandler -> {
-      for (final Pair<Route, Handler<RoutingContext>> routeHandlerPair : routes) {
-        routeHandlerPair.getLeft().handler(authHandler);
-      }
-    });
+  private static void resumeHandler(final RoutingContext routingContext) {
+    // Un-pause body handling as async auth provider calls have completed by this point
+    routingContext.request().resume();
+    routingContext.next();
   }
 }

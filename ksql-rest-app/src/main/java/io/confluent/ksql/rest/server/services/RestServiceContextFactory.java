@@ -74,7 +74,6 @@ public final class RestServiceContextFactory {
         srClientFactory,
         () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
                                        authHeader),
-        // We should be re-using this not creating one each time!
         () -> new DefaultKsqlClient(authHeader)
     );
   }

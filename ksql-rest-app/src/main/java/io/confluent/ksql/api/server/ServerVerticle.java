@@ -68,7 +68,7 @@ public class ServerVerticle extends AbstractVerticle {
   public void start(final Promise<Void> startPromise) {
     this.proxyClient = proxyEnabled ? vertx
         .createHttpClient(
-            new HttpClientOptions().setMaxPoolSize(10).setMaxInitialLineLength(65536)) : null;
+            new HttpClientOptions().setMaxPoolSize(10)) : null;
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ServerUtils::unhandledExceptonHandler);

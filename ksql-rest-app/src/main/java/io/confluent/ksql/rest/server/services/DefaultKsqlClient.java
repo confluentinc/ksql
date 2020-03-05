@@ -137,7 +137,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   }
 
   private static HttpClientOptions createClientOptions() {
-    return new HttpClientOptions();
+    return new HttpClientOptions().setMaxPoolSize(100);
   }
 
 }

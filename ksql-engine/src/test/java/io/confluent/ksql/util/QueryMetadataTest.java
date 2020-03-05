@@ -16,13 +16,16 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.ColumnName;
@@ -30,12 +33,20 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.processor.internals.StreamsMetadataState;
+import org.apache.kafka.streams.state.StreamsMetadata;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,13 +61,16 @@ public class QueryMetadataTest {
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("f0"), SqlTypes.STRING)
       .build();
-  private static final Set<SourceName> SOME_SOURCES = ImmutableSet.of(SourceName.of("s1"), SourceName.of("s2"));
+  private static final Set<SourceName> SOME_SOURCES = ImmutableSet
+      .of(SourceName.of("s1"), SourceName.of("s2"));
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   @Mock
   private Topology topoplogy;
   @Mock
   private KafkaStreams kafkaStreams;
+  @Mock
+  private StreamsMetadataState streamsMetadataState;
   @Mock
   private QueryStateListener listener;
   @Mock
@@ -70,6 +84,7 @@ public class QueryMetadataTest {
     query = new QueryMetadata(
         "foo",
         kafkaStreams,
+        streamsMetadataState,
         SOME_SCHEMA,
         SOME_SOURCES,
         "bar",
@@ -203,5 +218,53 @@ public class QueryMetadataTest {
   @Test
   public void shouldReturnSchema() {
     assertThat(query.getLogicalSchema(), is(SOME_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetAllMetadataAsImmutableCopy() {
+    assertThat(query.getAllMetadata(), is(instanceOf(ImmutableList.class)));
+  }
+
+  /*
+  Until https://issues.apache.org/jira/browse/KAFKA-9668 is fixed the `allMetadata` returns a ref
+  to internal mutable state. This state is mutated by other threads, leading to ConcurrentMod
+  exceptions.  This test ensures ksqlDB has a workaround in place by ensuring any modification
+  on while
+   */
+  @Test
+  public void shouldGetAllMetadataThreadSafe() {
+    final StreamsMetadataState streamsMetadataState = this.streamsMetadataState;
+
+    final List<StreamsMetadata> allMetadata = new ArrayList<>();
+    when(kafkaStreams.allMetadata()).thenReturn(allMetadata);
+
+    final ExecutorService executor = Executors.newSingleThreadExecutor();
+    final AtomicBoolean running = new AtomicBoolean(true);
+
+    try {
+      executor.submit(() -> {
+        while (running.get()) {
+          synchronized (streamsMetadataState) {
+            if (allMetadata.size() < 100) {
+              allMetadata.add(mock(StreamsMetadata.class));
+            } else {
+              allMetadata.clear();
+            }
+          }
+        }
+      });
+
+      for (int i = 0; i != 10_000; ++i) {
+        query.getAllMetadata();
+      }
+    } finally {
+      running.set(false);
+      executor.shutdownNow();
+      try {
+        executor.awaitTermination(1, TimeUnit.MINUTES);
+      } catch (final InterruptedException e) {
+        // Meh.
+      }
+    }
   }
 }

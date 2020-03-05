@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.processor.internals.StreamsMetadataState;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,6 +44,8 @@ public class TransientQueryMetadataTest {
 
   @Mock
   private KafkaStreams kafkaStreams;
+  @Mock
+  private StreamsMetadataState streamsMetadataState;
   @Mock
   private LogicalSchema logicalSchema;
   @Mock
@@ -64,6 +67,7 @@ public class TransientQueryMetadataTest {
     query = new TransientQueryMetadata(
         SQL,
         kafkaStreams,
+        streamsMetadataState,
         logicalSchema,
         sourceNames,
         EXECUTION_PLAN,

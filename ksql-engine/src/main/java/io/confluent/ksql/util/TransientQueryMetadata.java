@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
@@ -26,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.processor.internals.StreamsMetadataState;
 
 /**
  * Metadata of a transient query, e.g. {@code SELECT * FROM FOO;}.
@@ -50,9 +52,45 @@ public class TransientQueryMetadata extends QueryMetadata {
       final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+    this(
+        statementString,
+        kafkaStreams,
+        getStreamsMetadataState(kafkaStreams),
+        logicalSchema,
+        sourceNames,
+        executionPlan,
+        rowQueue,
+        queryApplicationId,
+        topology,
+        streamsProperties,
+        overriddenProperties,
+        closeCallback,
+        closeTimeout
+    );
+  }
+
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  @VisibleForTesting
+  TransientQueryMetadata(
+      final String statementString,
+      final KafkaStreams kafkaStreams,
+      final StreamsMetadataState streamsMetadataState,
+      final LogicalSchema logicalSchema,
+      final Set<SourceName> sourceNames,
+      final String executionPlan,
+      final BlockingRowQueue rowQueue,
+      final String queryApplicationId,
+      final Topology topology,
+      final Map<String, Object> streamsProperties,
+      final Map<String, Object> overriddenProperties,
+      final Consumer<QueryMetadata> closeCallback,
+      final long closeTimeout
+  ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
         kafkaStreams,
+        streamsMetadataState,
         logicalSchema,
         sourceNames,
         executionPlan,

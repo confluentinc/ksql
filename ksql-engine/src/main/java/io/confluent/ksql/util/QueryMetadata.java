@@ -15,16 +15,19 @@
 
 package io.confluent.ksql.util;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -32,6 +35,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
+import org.apache.kafka.streams.processor.internals.StreamsMetadataState;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +43,8 @@ import org.slf4j.LoggerFactory;
 public abstract class QueryMetadata {
 
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadata.class);
+
+  private static final Field STREAMS_INTERNAL_FIELD = getStreamsInternalField();
 
   private final String statementString;
   private final KafkaStreams kafkaStreams;
@@ -51,6 +57,7 @@ public abstract class QueryMetadata {
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
   private final Long closeTimeout;
+  private final StreamsMetadataState streamsMetadataState;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
@@ -70,26 +77,61 @@ public abstract class QueryMetadata {
       final long closeTimeout
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    this.statementString = Objects.requireNonNull(statementString, "statementString");
-    this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
-    this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
-    this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
-    this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
+    this(
+        statementString,
+        kafkaStreams,
+        getStreamsMetadataState(kafkaStreams),
+        logicalSchema,
+        sourceNames,
+        executionPlan,
+        queryApplicationId,
+        topology,
+        streamsProperties,
+        overriddenProperties,
+        closeCallback,
+        closeTimeout
+    );
+  }
+
+  @VisibleForTesting
+    // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  QueryMetadata(
+      final String statementString,
+      final KafkaStreams kafkaStreams,
+      final StreamsMetadataState streamsMetadataState,
+      final LogicalSchema logicalSchema,
+      final Set<SourceName> sourceNames,
+      final String executionPlan,
+      final String queryApplicationId,
+      final Topology topology,
+      final Map<String, Object> streamsProperties,
+      final Map<String, Object> overriddenProperties,
+      final Consumer<QueryMetadata> closeCallback,
+      final long closeTimeout
+  ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+    this.statementString = requireNonNull(statementString, "statementString");
+    this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
+    this.streamsMetadataState = requireNonNull(streamsMetadataState, "streamsMetadataState");
+    this.executionPlan = requireNonNull(executionPlan, "executionPlan");
+    this.queryApplicationId = requireNonNull(queryApplicationId, "queryApplicationId");
+    this.topology = requireNonNull(topology, "kafkaTopicClient");
     this.streamsProperties =
         ImmutableMap.copyOf(
-            Objects.requireNonNull(streamsProperties, "streamsPropeties"));
+            requireNonNull(streamsProperties, "streamsPropeties"));
     this.overriddenProperties =
         ImmutableMap.copyOf(
-            Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
-    this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
-    this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
-    this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
+            requireNonNull(overriddenProperties, "overriddenProperties"));
+    this.closeCallback = requireNonNull(closeCallback, "closeCallback");
+    this.sourceNames = requireNonNull(sourceNames, "sourceNames");
+    this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
     this.closeTimeout = closeTimeout;
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
     this.statementString = other.statementString;
     this.kafkaStreams = other.kafkaStreams;
+    this.streamsMetadataState = other.streamsMetadataState;
     this.executionPlan = other.executionPlan;
     this.queryApplicationId = other.queryApplicationId;
     this.topology = other.topology;
@@ -97,7 +139,7 @@ public abstract class QueryMetadata {
     this.overriddenProperties = other.overriddenProperties;
     this.sourceNames = other.sourceNames;
     this.logicalSchema = other.logicalSchema;
-    this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
+    this.closeCallback = requireNonNull(closeCallback, "closeCallback");
     this.closeTimeout = other.closeTimeout;
   }
 
@@ -146,7 +188,10 @@ public abstract class QueryMetadata {
 
   public Collection<StreamsMetadata> getAllMetadata() {
     try {
-      return ImmutableList.copyOf(kafkaStreams.allMetadata());
+      // Synchronized block need until https://issues.apache.org/jira/browse/KAFKA-9668 fixed.
+      synchronized (streamsMetadataState) {
+        return ImmutableList.copyOf(kafkaStreams.allMetadata());
+      }
     } catch (IllegalStateException e) {
       LOG.error(e.getMessage());
     }
@@ -213,5 +258,30 @@ public abstract class QueryMetadata {
 
   public String getTopologyDescription() {
     return topology.describe().toString();
+  }
+
+  /*
+  Use reflection to get at StreamsMetadataState, which is needed to synchronize on if ksql is to
+  avoid the ConcurrentMod exception caused by this bug:
+  https://issues.apache.org/jira/browse/KAFKA-9668.
+
+  Yes, this is brittle. But it can be removed once the above bug is fixed.
+   */
+  static StreamsMetadataState getStreamsMetadataState(final KafkaStreams kafkaStreams) {
+    try {
+      return (StreamsMetadataState) STREAMS_INTERNAL_FIELD.get(kafkaStreams);
+    } catch (final IllegalAccessException e) {
+      throw new IllegalStateException("Failed to access KafkaStreams.streamsMetadataState", e);
+    }
+  }
+
+  private static Field getStreamsInternalField() {
+    try {
+      final Field field = KafkaStreams.class.getDeclaredField("streamsMetadataState");
+      field.setAccessible(true);
+      return field;
+    } catch (final NoSuchFieldException e) {
+      throw new IllegalStateException("Failed to get KafkaStreams.streamsMetadataState", e);
+    }
   }
 }

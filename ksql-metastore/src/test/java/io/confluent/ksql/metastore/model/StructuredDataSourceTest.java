@@ -36,7 +36,7 @@ public class StructuredDataSourceTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .build();
 
@@ -60,7 +60,7 @@ public class StructuredDataSourceTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
         .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
@@ -73,12 +73,11 @@ public class StructuredDataSourceTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfSchemaContainsRowKey() {
+  public void shouldThrowOnDuplicateColumnNames() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("dup"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("dup"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
 
@@ -94,7 +93,7 @@ public class StructuredDataSourceTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
         .valueColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
@@ -111,9 +110,25 @@ public class StructuredDataSourceTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
         .valueColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    new TestStructuredDataSource(
+        schema,
+        keyField
+    );
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfSchemaContainsValueColumnsWithSameNameAsKeyColumns() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("k0"), SqlTypes.BIGINT)
         .build();
 
     // When:

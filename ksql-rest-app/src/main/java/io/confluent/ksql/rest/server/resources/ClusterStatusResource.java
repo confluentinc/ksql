@@ -92,7 +92,6 @@ public class ClusterStatusResource {
     return new ClusterStatusResponse(response);
   }
 
-
   private HostStoreLags getHostStoreLags(final KsqlHostInfo ksqlHostInfo) {
     return lagReportingAgent
         .flatMap(agent -> agent.getLagPerHost(ksqlHostInfo))

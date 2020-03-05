@@ -65,14 +65,12 @@ public class AggregateNode extends PlanNode {
   private static final String PROJECT_OP_NAME = "Project";
 
   private final PlanNode source;
-  private final LogicalSchema schema;
   private final KeyField keyField;
   private final ImmutableList<Expression> groupByExpressions;
   private final Optional<WindowExpression> windowExpression;
   private final ImmutableList<Expression> aggregateFunctionArguments;
   private final ImmutableList<FunctionCall> functionList;
   private final ImmutableList<ColumnReferenceExp> requiredColumns;
-  private final ImmutableList<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -90,10 +88,14 @@ public class AggregateNode extends PlanNode {
       final Expression havingExpressions
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    super(id, DataSourceType.KTABLE);
+    super(
+        id,
+        DataSourceType.KTABLE,
+        schema,
+        buildSelectExpressions(schema, finalSelectExpressions)
+    );
 
     this.source = requireNonNull(source, "source");
-    this.schema = requireNonNull(schema, "schema");
     this.groupByExpressions = ImmutableList
         .copyOf(requireNonNull(groupByExpressions, "groupByExpressions"));
     this.windowExpression = requireNonNull(windowExpression, "windowExpression");
@@ -103,16 +105,9 @@ public class AggregateNode extends PlanNode {
         .copyOf(requireNonNull(functionList, "functionList"));
     this.requiredColumns = ImmutableList
         .copyOf(requireNonNull(requiredColumns, "requiredColumns"));
-    this.finalSelectExpressions = ImmutableList
-        .copyOf(requireNonNull(finalSelectExpressions, "finalSelectExpressions"));
     this.havingExpressions = havingExpressions;
     this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);
-  }
-
-  @Override
-  public LogicalSchema getSchema() {
-    return schema;
   }
 
   @Override
@@ -145,30 +140,6 @@ public class AggregateNode extends PlanNode {
     return requiredColumns;
   }
 
-  private List<SelectExpression> getFinalSelectExpressions() {
-    final List<SelectExpression> finalSelectExpressionList = new ArrayList<>();
-    if (finalSelectExpressions.size() != schema.value().size()) {
-      throw new RuntimeException(
-          "Incompatible aggregate schema, field count must match, "
-              + "selected field count:"
-              + finalSelectExpressions.size()
-              + " schema field count:"
-              + schema.value().size());
-    }
-    for (int i = 0; i < finalSelectExpressions.size(); i++) {
-      finalSelectExpressionList.add(SelectExpression.of(
-          schema.value().get(i).name(),
-          finalSelectExpressions.get(i)
-      ));
-    }
-    return finalSelectExpressionList;
-  }
-
-  @Override
-  public List<SelectExpression> getSelectExpressions() {
-    return Collections.emptyList();
-  }
-
   @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitAggregate(this, context);
@@ -182,6 +153,7 @@ public class AggregateNode extends PlanNode {
 
     // Pre aggregate computations
     final InternalSchema internalSchema = new InternalSchema(
+        getSchema(),
         requiredColumns,
         aggregateFunctionArguments
     );
@@ -245,7 +217,7 @@ public class AggregateNode extends PlanNode {
     }
 
     final List<SelectExpression> finalSelects = internalSchema
-        .updateFinalSelectExpressions(getFinalSelectExpressions());
+        .updateFinalSelectExpressions(getSelectExpressions());
 
     return aggregated.select(
         finalSelects,
@@ -258,14 +230,43 @@ public class AggregateNode extends PlanNode {
     return source.getPartitions(kafkaTopicClient);
   }
 
+  private static List<SelectExpression> buildSelectExpressions(
+      final LogicalSchema schema,
+      final List<Expression> finalSelectExpressions
+  ) {
+    final List<SelectExpression> finalSelectExpressionList = new ArrayList<>();
+    if (finalSelectExpressions.size() != schema.value().size()) {
+      throw new RuntimeException(
+          "Incompatible aggregate schema, field count must match, "
+              + "selected field count:"
+              + finalSelectExpressions.size()
+              + " schema field count:"
+              + schema.value().size());
+    }
+    for (int i = 0; i < finalSelectExpressions.size(); i++) {
+      finalSelectExpressionList.add(SelectExpression.of(
+          schema.value().get(i).name(),
+          finalSelectExpressions.get(i)
+      ));
+    }
+    return finalSelectExpressionList;
+  }
+
   private static class InternalSchema {
 
+    private final Optional<ColumnName> singleKeyColumn;
     private final List<SelectExpression> aggArgExpansions = new ArrayList<>();
     private final Map<String, ColumnName> expressionToInternalColumnName = new HashMap<>();
 
     InternalSchema(
+        final LogicalSchema schema,
         final List<ColumnReferenceExp> requiredColumns,
-        final List<Expression> aggregateFunctionArguments) {
+        final List<Expression> aggregateFunctionArguments
+    ) {
+      this.singleKeyColumn = schema.key().size() == 1
+          ? Optional.of(schema.key().get(0).name())
+          : Optional.empty();
+
       final Set<String> seen = new HashSet<>();
       collectAggregateArgExpressions(requiredColumns, seen);
       collectAggregateArgExpressions(aggregateFunctionArguments, seen);
@@ -297,19 +298,15 @@ public class AggregateNode extends PlanNode {
       final boolean specialRowTimeHandling = !(aggregateArgExpanded instanceof SchemaKTable);
 
       final Function<Expression, Expression> mapper = e -> {
-        final boolean rowKey = e instanceof UnqualifiedColumnReferenceExp
-            && ((UnqualifiedColumnReferenceExp) e).getColumnName().equals(
-                SchemaUtil.ROWKEY_NAME);
+        final boolean rowKey = singleKeyColumn.isPresent()
+            && e instanceof UnqualifiedColumnReferenceExp
+            && ((UnqualifiedColumnReferenceExp) e).getColumnName().equals(singleKeyColumn.get());
 
         if (!rowKey || !specialRowTimeHandling) {
           return resolveToInternal(e);
         }
 
-        final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) e;
-        return new UnqualifiedColumnReferenceExp(
-            nameRef.getLocation(),
-            nameRef.getColumnName()
-        );
+        return e;
       };
 
       return expressionList.stream()

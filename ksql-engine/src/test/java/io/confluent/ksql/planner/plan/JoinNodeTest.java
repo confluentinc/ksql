@@ -60,7 +60,6 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -89,14 +88,14 @@ public class JoinNodeTest {
 
   private static final LogicalSchema LEFT_SOURCE_SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("leftKey"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("C0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("L1"), SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema RIGHT_SOURCE_SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("rightKey"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("C0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("R1"), SqlTypes.BIGINT)
       .build();
@@ -647,15 +646,15 @@ public class JoinNodeTest {
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_" + "C0"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_" + "L1"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_" + "ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_" + "ROWKEY"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_" + "C0"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_" + "R1"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_" + "ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_" + "ROWKEY"), SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("leftKey"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_C0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_L1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_leftKey"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_C0"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_R1"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_rightKey"), SqlTypes.BIGINT)
         .build()
     ));
   }
@@ -698,7 +697,7 @@ public class JoinNodeTest {
     // Then:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("leftKey"), SqlTypes.BIGINT)
         .valueColumns(LEFT_NODE_SCHEMA.value())
         .valueColumns(RIGHT_NODE_SCHEMA.value())
         .build()));

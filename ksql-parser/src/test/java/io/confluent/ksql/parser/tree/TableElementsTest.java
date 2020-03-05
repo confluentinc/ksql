@@ -224,6 +224,26 @@ public class TableElementsTest {
   }
 
   @Test
+  public void shouldBuildLogicalSchemaWithImplicitsAndExplicitKey() {
+    // Given:
+    final TableElements tableElements = TableElements.of(
+        tableElement(VALUE, "v0", INT_TYPE),
+        tableElement(KEY, "k0", INT_TYPE)
+    );
+
+    // When:
+    final LogicalSchema schema = tableElements.toLogicalSchema(true);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .withRowTime()
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .build()
+    ));
+  }
+
+  @Test
   public void shouldBuildLogicalSchemaWithOutImplicits() {
     // Given:
     final TableElements tableElements = TableElements.of(

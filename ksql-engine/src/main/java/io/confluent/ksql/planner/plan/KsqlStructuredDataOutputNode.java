@@ -22,17 +22,21 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
@@ -73,6 +77,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.doCreateInto = doCreateInto;
     this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
+
+    validate();
   }
 
   public boolean isDoCreateInto() {
@@ -122,5 +128,20 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         contextStacker,
         getTimestampColumn()
     );
+  }
+
+  private void validate() {
+    final LogicalSchema schema = getSchema();
+
+    final String duplicates = getSelectExpressions().stream()
+        .map(SelectExpression::getAlias)
+        .filter(schema::isKeyColumn)
+        .map(ColumnName::toString)
+        .collect(Collectors.joining(", "));
+
+    if (!duplicates.isEmpty()) {
+      throw new KsqlException("Value column name(s) " + duplicates
+          + " clashes with key column name(s). Please remove or alias the column(s).");
+    }
   }
 }

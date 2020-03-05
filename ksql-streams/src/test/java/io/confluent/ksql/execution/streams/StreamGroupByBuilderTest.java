@@ -58,11 +58,11 @@ import org.mockito.junit.MockitoRule;
 
 public class StreamGroupByBuilderTest {
 
-  private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil.keyBuilder(SqlTypes.STRING);
-
+  private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil
+      .keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()

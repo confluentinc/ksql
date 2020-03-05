@@ -29,15 +29,12 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
 public class ProjectNode extends PlanNode {
 
   private final PlanNode source;
-  private final LogicalSchema schema;
-  private final ImmutableList<SelectExpression> projectExpressions;
   private final KeyField keyField;
 
   public ProjectNode(
@@ -47,20 +44,11 @@ public class ProjectNode extends PlanNode {
       final LogicalSchema schema,
       final Optional<ColumnName> keyFieldName
   ) {
-    super(id, source.getNodeOutputType());
+    super(id, source.getNodeOutputType(), schema, projectExpressions);
 
     this.source = requireNonNull(source, "source");
-    this.schema = requireNonNull(schema, "schema");
-    this.projectExpressions = ImmutableList.copyOf(
-        Objects.requireNonNull(projectExpressions, "projectExpressions")
-    );
     this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);
-
-    if (schema.value().size() != projectExpressions.size()) {
-      throw new KsqlException("Error in projection. Schema fields and expression list are not "
-          + "compatible.");
-    }
 
     validate();
   }
@@ -75,11 +63,6 @@ public class ProjectNode extends PlanNode {
   }
 
   @Override
-  public LogicalSchema getSchema() {
-    return schema;
-  }
-
-  @Override
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }
@@ -87,11 +70,6 @@ public class ProjectNode extends PlanNode {
   @Override
   public KeyField getKeyField() {
     return keyField;
-  }
-
-  @Override
-  public List<SelectExpression> getSelectExpressions() {
-    return projectExpressions;
   }
 
   @Override
@@ -110,9 +88,14 @@ public class ProjectNode extends PlanNode {
   }
 
   private void validate() {
-    for (int i = 0; i < projectExpressions.size(); i++) {
-      final Column column = schema.value().get(i);
-      final SelectExpression selectExpression = projectExpressions.get(i);
+    if (getSchema().value().size() != getSelectExpressions().size()) {
+      throw new KsqlException("Error in projection. Schema fields and expression list are not "
+          + "compatible.");
+    }
+
+    for (int i = 0; i < getSelectExpressions().size(); i++) {
+      final Column column = getSchema().value().get(i);
+      final SelectExpression selectExpression = getSelectExpressions().get(i);
 
       if (!column.name().equals(selectExpression.getAlias())) {
         throw new IllegalArgumentException("Mismatch between schema and selects");

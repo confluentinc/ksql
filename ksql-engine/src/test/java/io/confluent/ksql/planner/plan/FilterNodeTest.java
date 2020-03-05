@@ -25,6 +25,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.structured.SchemaKStream;
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,7 +35,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class FilterNodeTest {
-  private final PlanNodeId nodeId = new PlanNodeId("nodeid");
+
+  private static final PlanNodeId NODE_ID = new PlanNodeId("nodeid");
 
   @Mock
   private Expression predicate;
@@ -55,15 +57,16 @@ public class FilterNodeTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
+    when(sourceNode.getSchema()).thenReturn(LogicalSchema.builder().build());
     when(sourceNode.buildStream(any()))
         .thenReturn(schemaKStream);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(schemaKStream.filter(any(), any()))
         .thenReturn(schemaKStream);
 
-    when(ksqlStreamBuilder.buildNodeContext(nodeId.toString())).thenReturn(stacker);
+    when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
 
-    node = new FilterNode(nodeId, sourceNode, predicate);
+    node = new FilterNode(NODE_ID, sourceNode, predicate);
   }
 
   @Test

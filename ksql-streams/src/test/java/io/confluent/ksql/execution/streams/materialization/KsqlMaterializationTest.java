@@ -41,7 +41,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -61,12 +60,13 @@ public class KsqlMaterializationTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING).build("k");
+  private static final Struct A_KEY = StructKeyUtil
+      .keyBuilder(ColumnName.of("k0"), SqlTypes.STRING).build("k");
   private static final long A_ROWTIME = 12335L;
   private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
       Instant.now(),

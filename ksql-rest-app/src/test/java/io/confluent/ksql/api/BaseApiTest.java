@@ -69,24 +69,28 @@ public class BaseApiTest {
   protected TestEndpoints testEndpoints;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
 
     vertx = Vertx.vertx();
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     testEndpoints = new TestEndpoints();
     ApiServerConfig serverConfig = createServerConfig();
-    server = new Server(vertx, serverConfig, testEndpoints);
-    server.start();
+    createServer(serverConfig);
     this.client = createClient();
     setDefaultRowGenerator();
   }
 
   @After
   public void tearDown() {
-    if (client != null) {
-      client.close();
+    stopClient();
+    stopServer();
+    if (vertx != null) {
+      vertx.close();
     }
+  }
+
+  protected void stopServer() {
     if (server != null) {
       try {
         server.stop();
@@ -94,18 +98,27 @@ public class BaseApiTest {
         log.error("Failed to shutdown server", e);
       }
     }
-    if (vertx != null) {
-      vertx.close();
+  }
+
+  protected void stopClient() {
+    if (client != null) {
+      try {
+        client.close();
+      } catch (Exception e) {
+        log.error("Failed to close client", e);
+      }
     }
+  }
+
+  protected void createServer(ApiServerConfig serverConfig) {
+    server = new Server(vertx, serverConfig, testEndpoints, false);
+    server.start();
   }
 
   protected ApiServerConfig createServerConfig() {
     final Map<String, Object> config = new HashMap<>();
-    config.put("ksql.apiserver.listen.host", "localhost");
-    config.put("ksql.apiserver.listen.port", 0);
-    config.put("ksql.apiserver.tls.enabled", false);
-    config.put("ksql.apiserver.verticle.instances", 4);
-
+    config.put(ApiServerConfig.LISTENERS, "http://localhost:0");
+    config.put(ApiServerConfig.VERTICLE_INSTANCES, 4);
     return new ApiServerConfig(config);
   }
 
@@ -113,7 +126,7 @@ public class BaseApiTest {
     return new WebClientOptions()
         .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
         .setDefaultHost("localhost")
-        .setDefaultPort(server.getActualPort())
+        .setDefaultPort(server.getListeners().get(0).getPort())
         .setReusePort(true);
   }
 

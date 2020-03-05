@@ -40,10 +40,8 @@ public class DataSourceNode extends PlanNode {
 
   private final DataSource dataSource;
   private final SourceName alias;
-  private final LogicalSchema schema;
   private final KeyField keyField;
   private final SchemaKStreamFactory schemaKStreamFactory;
-  private final ImmutableList<SelectExpression> selectExpressions;
 
   public DataSourceNode(
       final PlanNodeId id,
@@ -61,27 +59,14 @@ public class DataSourceNode extends PlanNode {
       final List<SelectExpression> selectExpressions,
       final SchemaKStreamFactory schemaKStreamFactory
   ) {
-    super(id, dataSource.getDataSourceType());
+    super(id, dataSource.getDataSourceType(), buildSchema(dataSource), selectExpressions);
     this.dataSource = requireNonNull(dataSource, "dataSource");
     this.alias = requireNonNull(alias, "alias");
-    this.selectExpressions =
-        ImmutableList.copyOf(requireNonNull(selectExpressions, "selectExpressions"));
-
-    // DataSourceNode copies implicit and key fields into the value schema
-    // It users a KS valueMapper to add the key fields
-    // and a KS transformValues to add the implicit fields
-    this.schema = dataSource.getSchema()
-        .withMetaAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
 
     this.keyField = dataSource.getKeyField()
-        .validateKeyExistsIn(schema);
+        .validateKeyExistsIn(getSchema());
 
     this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");
-  }
-
-  @Override
-  public LogicalSchema getSchema() {
-    return schema;
   }
 
   @Override
@@ -116,11 +101,6 @@ public class DataSourceNode extends PlanNode {
   }
 
   @Override
-  public List<SelectExpression> getSelectExpressions() {
-    return selectExpressions;
-  }
-
-  @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitDataSourceNode(this, context);
   }
@@ -136,8 +116,17 @@ public class DataSourceNode extends PlanNode {
     );
   }
 
+  private static LogicalSchema buildSchema(final DataSource dataSource) {
+    // DataSourceNode copies implicit and key fields into the value schema
+    // It users a KS valueMapper to add the key fields
+    // and a KS transformValues to add the implicit fields
+    return dataSource.getSchema()
+        .withMetaAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
+  }
+
   @Immutable
   interface SchemaKStreamFactory {
+
     SchemaKStream<?> create(
         KsqlQueryBuilder builder,
         DataSource dataSource,

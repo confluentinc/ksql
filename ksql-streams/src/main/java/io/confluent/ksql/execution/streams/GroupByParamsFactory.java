@@ -75,18 +75,19 @@ final class GroupByParamsFactory {
 
   private static LogicalSchema singleExpressionSchema(
       final LogicalSchema sourceSchema,
-      final SqlType rowKeyType
+      final SqlType keyType
   ) {
-    return buildSchemaWithKeyType(sourceSchema, rowKeyType);
+    return buildSchemaWithKeyType(sourceSchema, keyType);
   }
 
   private static LogicalSchema buildSchemaWithKeyType(
       final LogicalSchema sourceSchema,
-      final SqlType rowKeyType
+      final SqlType keyType
   ) {
+
     return LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, rowKeyType)
+        .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();
   }
@@ -136,16 +137,17 @@ final class GroupByParamsFactory {
         final ExpressionMetadata expression,
         final ProcessingLogger logger) {
       this.expression = requireNonNull(expression, "expression");
-      this.keyBuilder = StructKeyUtil.keyBuilder(expression.getExpressionType());
+      this.keyBuilder = StructKeyUtil
+          .keyBuilder(SchemaUtil.ROWKEY_NAME, expression.getExpressionType());
       this.logger = Objects.requireNonNull(logger, "logger");
     }
 
     public Struct apply(final GenericRow row) {
-      final Object rowKey = processColumn(0, expression, row, logger);
-      if (rowKey == null) {
+      final Object key = processColumn(0, expression, row, logger);
+      if (key == null) {
         return null;
       }
-      return keyBuilder.build(rowKey);
+      return keyBuilder.build(key);
     }
   }
 
@@ -160,7 +162,7 @@ final class GroupByParamsFactory {
         final ProcessingLogger logger
     ) {
       this.expressions = ImmutableList.copyOf(requireNonNull(expressions, "expressions"));
-      this.keyBuilder = StructKeyUtil.keyBuilder(SqlTypes.STRING);
+      this.keyBuilder = StructKeyUtil.keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
       this.logger = Objects.requireNonNull(logger, "logger");
 
       if (expressions.isEmpty()) {
@@ -169,21 +171,21 @@ final class GroupByParamsFactory {
     }
 
     public Struct apply(final GenericRow row) {
-      final StringBuilder rowKey = new StringBuilder();
+      final StringBuilder key = new StringBuilder();
       for (int i = 0; i < expressions.size(); i++) {
         final Object result = processColumn(i, expressions.get(i), row, logger);
         if (result == null) {
           return null;
         }
 
-        if (rowKey.length() > 0) {
-          rowKey.append(GROUP_BY_VALUE_SEPARATOR);
+        if (key.length() > 0) {
+          key.append(GROUP_BY_VALUE_SEPARATOR);
         }
 
-        rowKey.append(result);
+        key.append(result);
       }
 
-      return keyBuilder.build(rowKey.toString());
+      return keyBuilder.build(key.toString());
     }
   }
 }

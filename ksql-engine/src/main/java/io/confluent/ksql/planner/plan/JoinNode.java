@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -49,10 +48,8 @@ public class JoinNode extends PlanNode {
   private final JoinType joinType;
   private final PlanNode left;
   private final PlanNode right;
-  private final LogicalSchema schema;
   private final KeyField keyField;
   private final Optional<WithinExpression> withinExpression;
-  private final ImmutableList<SelectExpression> selectExpressions;
 
   public JoinNode(
       final PlanNodeId id,
@@ -62,24 +59,15 @@ public class JoinNode extends PlanNode {
       final PlanNode right,
       final Optional<WithinExpression> withinExpression
   ) {
-    super(id, calculateSinkType(left, right));
+    super(id, calculateSinkType(left, right), buildJoinSchema(left, right), selectExpressions);
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
     this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
-    this.selectExpressions = ImmutableList
-        .copyOf(Objects.requireNonNull(selectExpressions, "selectExpressions"));
 
     this.keyField = joinType == JoinType.OUTER
         ? KeyField.none() // Both source key columns can be null, hence neither can be the keyField
         : left.getKeyField();
-
-    this.schema = buildJoinSchema(left, right);
-  }
-
-  @Override
-  public LogicalSchema getSchema() {
-    return schema;
   }
 
   @Override
@@ -95,11 +83,6 @@ public class JoinNode extends PlanNode {
   @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitJoin(this, context);
-  }
-
-  @Override
-  public List<SelectExpression> getSelectExpressions() {
-    return selectExpressions;
   }
 
   public PlanNode getLeft() {

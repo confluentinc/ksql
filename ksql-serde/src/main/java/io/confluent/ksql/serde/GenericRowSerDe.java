@@ -55,7 +55,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
    * <p>Count covers the following additional columns:
    * <ol>
    *   <li>{@link SchemaUtil#ROWTIME_NAME}</li>
-   *   <li>{@link SchemaUtil#ROWKEY_NAME}</li>
+   *   <li>A single key column. (Which is the most common case)</li>
    *   <li>{@link SchemaUtil#WINDOWSTART_NAME}</li>
    *   <li>{@link SchemaUtil#WINDOWEND_NAME}</li>
    * </ol>

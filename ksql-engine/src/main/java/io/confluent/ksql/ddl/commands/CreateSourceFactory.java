@@ -86,7 +86,7 @@ public final class CreateSourceFactory {
   ) {
     final SourceName sourceName = statement.getName();
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
-    final LogicalSchema schema = buildSchema(statement.getElements());
+    final LogicalSchema schema = buildSchema(statement.getElements(), ksqlConfig);
     final Optional<ColumnName> keyFieldName = buildKeyFieldName(statement, schema);
     final Optional<TimestampColumn> timestampColumn = buildTimestampColumn(
         ksqlConfig,
@@ -121,7 +121,7 @@ public final class CreateSourceFactory {
   ) {
     final SourceName sourceName = statement.getName();
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
-    final LogicalSchema schema = buildSchema(statement.getElements());
+    final LogicalSchema schema = buildSchema(statement.getElements(), ksqlConfig);
     final Optional<ColumnName> keyFieldName = buildKeyFieldName(statement, schema);
     final Optional<TimestampColumn> timestampColumn = buildTimestampColumn(
         ksqlConfig,
@@ -165,7 +165,10 @@ public final class CreateSourceFactory {
     }
   }
 
-  private static LogicalSchema buildSchema(final TableElements tableElements) {
+  private static LogicalSchema buildSchema(
+      final TableElements tableElements,
+      final KsqlConfig ksqlConfig
+  ) {
     if (Iterables.isEmpty(tableElements)) {
       throw new KsqlException("The statement does not define any columns.");
     }
@@ -177,14 +180,21 @@ public final class CreateSourceFactory {
         throw new KsqlException("'" + e.getName().text() + "' is a reserved column name.");
       }
 
-      if (e.getNamespace() == Namespace.KEY) {
-        if (!isRowKey) {
-          throw new KsqlException("'" + e.getName().text() + "' is an invalid KEY column name. "
-              + "KSQL currently only supports KEY columns named ROWKEY.");
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
+        if (isRowKey && e.getNamespace() != Namespace.KEY) {
+          throw new KsqlException("'" + e.getName().text() + "' is a reserved column name. "
+              + "It can only be used for KEY columns.");
         }
-      } else if (isRowKey) {
-        throw new KsqlException("'" + e.getName().text() + "' is a reserved column name. "
-            + "It can only be used for KEY columns.");
+      } else {
+        if (e.getNamespace() == Namespace.KEY) {
+          if (!isRowKey) {
+            throw new KsqlException("'" + e.getName().text() + "' is an invalid KEY column name. "
+                + "KSQL currently only supports KEY columns named ROWKEY.");
+          }
+        } else if (isRowKey) {
+          throw new KsqlException("'" + e.getName().text() + "' is a reserved column name. "
+              + "It can only be used for KEY columns.");
+        }
       }
     });
 

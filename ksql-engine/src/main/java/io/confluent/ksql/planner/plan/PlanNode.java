@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -32,29 +33,41 @@ public abstract class PlanNode {
 
   private final PlanNodeId id;
   private final DataSourceType nodeOutputType;
+  private final LogicalSchema schema;
+  private final ImmutableList<SelectExpression> selectExpressions;
 
-  protected PlanNode(final PlanNodeId id, final DataSourceType nodeOutputType) {
-    requireNonNull(id, "id is null");
-    requireNonNull(nodeOutputType, "nodeOutputType is null");
-    this.id = id;
-    this.nodeOutputType = nodeOutputType;
+  protected PlanNode(
+      final PlanNodeId id,
+      final DataSourceType nodeOutputType,
+      final LogicalSchema schema,
+      final List<SelectExpression> selectExpressions
+  ) {
+    this.id = requireNonNull(id, "id");
+    this.nodeOutputType = requireNonNull(nodeOutputType, "nodeOutputType");
+    this.schema = requireNonNull(schema, "schema");
+    this.selectExpressions = ImmutableList
+        .copyOf(requireNonNull(selectExpressions, "projectExpressions"));
   }
 
-  public PlanNodeId getId() {
+  public final PlanNodeId getId() {
     return id;
   }
 
-  public DataSourceType getNodeOutputType() {
+  public final DataSourceType getNodeOutputType() {
     return nodeOutputType;
   }
 
-  public abstract LogicalSchema getSchema();
+  public final LogicalSchema getSchema() {
+    return schema;
+  }
+
+  public final List<SelectExpression> getSelectExpressions() {
+    return selectExpressions;
+  }
 
   public abstract KeyField getKeyField();
 
   public abstract List<PlanNode> getSources();
-  
-  public abstract List<SelectExpression> getSelectExpressions();
 
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitPlan(this, context);

@@ -21,12 +21,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Immutable
 abstract class StructuredDataSource<K> implements DataSource {
@@ -65,6 +68,14 @@ abstract class StructuredDataSource<K> implements DataSource {
 
     if (schema.valueContainsAny(SchemaUtil.systemColumnNames())) {
       throw new IllegalArgumentException("Schema contains system columns in value schema");
+    }
+
+    final Set<ColumnName> keyNames = schema.key().stream()
+        .map(Column::name)
+        .collect(Collectors.toSet());
+
+    if (schema.valueContainsAny(keyNames)) {
+      throw new IllegalArgumentException("Schema contains duplicate column names");
     }
   }
 

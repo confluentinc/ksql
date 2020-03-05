@@ -15,11 +15,12 @@
 
 package io.confluent.ksql.execution.util;
 
+import com.google.common.collect.Iterables;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
@@ -40,16 +41,16 @@ public final class StructKeyUtil {
       throw new UnsupportedOperationException("Only single keys supported");
     }
 
-    final SqlType sqlType = keyCols.get(0).type();
-    return keyBuilder(sqlType);
+    final Column keyCol = keyCols.get(0);
+    return keyBuilder(keyCol.name(), keyCol.type());
   }
 
-  public static KeyBuilder keyBuilder(final SqlType sqlType) {
-    final Schema connectSchema = SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType);
+  public static KeyBuilder keyBuilder(final ColumnName name, final SqlType type) {
+    final Schema connectSchema = SchemaConverters.sqlToConnectConverter().toConnectSchema(type);
 
     return new KeyBuilder(SchemaBuilder
         .struct()
-        .field(SchemaUtil.ROWKEY_NAME.text(), connectSchema)
+        .field(name.text(), connectSchema)
         .build()
     );
   }
@@ -61,12 +62,12 @@ public final class StructKeyUtil {
 
     private KeyBuilder(final Schema keySchema) {
       this.keySchema = Objects.requireNonNull(keySchema, "keySchema");
-      this.keyField = keySchema.field(SchemaUtil.ROWKEY_NAME.text());
+      this.keyField = Iterables.getOnlyElement(keySchema.fields());
     }
 
-    public Struct build(final Object rowKey) {
+    public Struct build(final Object keyValue) {
       final Struct keyStruct = new Struct(keySchema);
-      keyStruct.put(keyField, rowKey);
+      keyStruct.put(keyField, keyValue);
       return keyStruct;
     }
   }

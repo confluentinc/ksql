@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.structured;
 
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -140,15 +141,17 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   @SuppressWarnings("unchecked")
   @Override
-  public SchemaKStream<Struct> selectKey(final Expression keyExpression,
-      final Stacker contextStacker) {
+  public SchemaKStream<Struct> selectKey(
+      final Expression keyExpression,
+      final Stacker contextStacker
+  ) {
     if (repartitionNotNeeded(keyExpression)) {
       return (SchemaKStream<Struct>) this;
     }
 
     throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
-        + "If this is a join, make sure that the criteria uses the TABLE key "
-        + this.keyField.ref().map(ColumnName::toString).orElse("ROWKEY") + " instead of "
+        + "If this is a join, make sure that the criteria uses the TABLE's key column "
+        + Iterables.getOnlyElement(schema.key()).name().text() + " instead of "
         + keyExpression);
   }
 

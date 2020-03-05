@@ -17,12 +17,10 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.CommandTopic;
-import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.Collections;
@@ -256,13 +254,11 @@ public class CommandStore implements CommandQueue, Closeable {
     } catch (final InterruptedException e) {
       final String errorMsg =
           "Interrupted while waiting for command topic consumer to process command topic";
-      throw new KsqlRestException(
-          Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
+      throw new KsqlServerException(errorMsg);
     } catch (final TimeoutException e) {
       final String errorMsg =
           "Timeout while waiting for command topic consumer to process command topic";
-      throw new KsqlRestException(
-          Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
+      throw new KsqlServerException(errorMsg);
     }
   }
 

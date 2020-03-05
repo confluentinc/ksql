@@ -87,7 +87,7 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"DEC": 10.0}},
-        {"topic": "test", "value": {"DEC": 1.0000}}
+        {"topic": "OUTPUT", "value": {"DEC": 1.0000}}
       ],
       "post": {
         "sources": [

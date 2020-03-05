@@ -306,7 +306,7 @@ public class ApiTest extends BaseApiTest {
 
     VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
     // Make the request to stream a query
-    streamRequest("/query-stream", (request) ->
+    sendRequest("/query-stream", (request) ->
         request
             .as(BodyCodec.pipe(writeStream))
             .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY, responseFuture)
@@ -451,7 +451,7 @@ public class ApiTest extends BaseApiTest {
     // When
 
     // Make an HTTP request but keep the request body and response streams open
-    streamRequest("/inserts-stream", (request) ->
+    sendRequest("/inserts-stream", (request) ->
         request
             .as(BodyCodec.pipe(writeStream))
             .sendStream(readStream, fut)

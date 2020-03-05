@@ -82,7 +82,7 @@ public class BasicAuthTest extends ApiTest {
   }
 
   @Override
-  protected void streamRequest(
+  protected void sendRequest(
       final WebClient client,
       final String uri,
       final Consumer<HttpRequest<Buffer>> requestSender) {

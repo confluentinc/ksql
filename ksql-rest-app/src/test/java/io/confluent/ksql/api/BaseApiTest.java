@@ -132,7 +132,7 @@ public class BaseApiTest {
 
     ReceiveStream writeStream = new ReceiveStream(vertx);
 
-    streamRequest(client, "/query-stream",
+    sendRequest(client, "/query-stream",
         (request) -> request
             .as(BodyCodec.pipe(writeStream))
             .sendJsonObject(requestBody, ar -> {
@@ -170,11 +170,11 @@ public class BaseApiTest {
     return requestFuture.get();
   }
 
-  protected void streamRequest(final String uri, final Consumer<HttpRequest<Buffer>> requestSender) {
-    streamRequest(client, uri, requestSender);
+  protected void sendRequest(final String uri, final Consumer<HttpRequest<Buffer>> requestSender) {
+    sendRequest(client, uri, requestSender);
   }
 
-  protected void streamRequest(
+  protected void sendRequest(
       final WebClient client,
       final String uri,
       final Consumer<HttpRequest<Buffer>> requestSender) {

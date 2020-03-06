@@ -94,7 +94,7 @@ public abstract class QueryMetadata {
   }
 
   @VisibleForTesting
-    // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   QueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,

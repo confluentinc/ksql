@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -455,7 +456,7 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCleanUpInternalTopicsOnClose() {
+  public void shouldCleanUpInternalTopicsOnEngineCloseForTransientQueries() {
     // Given:
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "select * from test1;",
@@ -468,6 +469,42 @@ public class KsqlEngineTest {
 
     // Then:
     verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+  }
+
+  @Test
+  public void shouldNotCleanUpInternalTopicsOnEngineCloseForPersistentQueries() {
+    // Given:
+    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        "create stream persistent as select * from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+    query.get(0).start();
+
+    // When:
+    ksqlEngine.close();
+
+    // Then (there are no transient queries, so no internal topics should be deleted):
+    verify(topicClient, never()).deleteInternalTopics(any());
+  }
+
+  @Test
+  public void shouldCleanUpInternalTopicsOnQueryCloseForPersistentQueries() {
+    // Given:
+    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        "create stream persistent as select * from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+    query.get(0).start();
+
+    // When:
+    query.get(0).close();
+
+    // Then (there are no transient queries, so no internal topics should be deleted):
+    verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId());
   }
 
   @Test

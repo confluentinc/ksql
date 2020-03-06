@@ -50,6 +50,7 @@ import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -311,6 +312,26 @@ public class KsqlClientTest {
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));
     assertThat(response.get(), is(expectedResponse));
+  }
+
+  @Test
+  public void shouldNotTrimTrailingZerosOnDecimalDeserialization() {
+    // Given:
+    server.setResponseBuffer(Buffer.buffer(""
+        + "["
+        + "{\"row\": {\"columns\": [1.000, 12.100]}}"
+        + "]"
+    ));
+
+    // When:
+    final KsqlTarget target = ksqlClient.target(serverUri);
+    RestResponse<List<StreamedRow>> response = target.postQueryRequest(
+        "some sql", Collections.emptyMap(), Optional.of(321L));
+
+    // Then:
+    assertThat(response.get(), is(ImmutableList.of(
+        StreamedRow.row(GenericRow.genericRow(new BigDecimal("1.000"), new BigDecimal("12.100")))
+    )));
   }
 
   @Test

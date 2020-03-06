@@ -209,7 +209,9 @@ public class TestExecutor implements Closeable {
         validateTopicData(
             kafkaTopic,
             expectedRecords,
-            actualByTopic.getOrDefault(kafkaTopic, ImmutableList.of()),
+            actualByTopic.getOrDefault(kafkaTopic, ImmutableList.of()).stream()
+                .filter(rec -> rec.getProducerRecord() != null)
+                .collect(Collectors.toList()),
             ranWithInsertStatements
         ));
   }

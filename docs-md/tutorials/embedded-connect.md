@@ -112,7 +112,7 @@ services:
       KSQL_CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
     volumes:
-      # - ./confluentinc-kafka-connect-jdbc-VERSION_YOU_DOWNLOADED:/usr/share/kafka/plugins/jdbc
+      # - /path/to/local/dir/confluentinc-kafka-connect-jdbc:/usr/share/kafka/plugins/jdbc
 
   ksqldb-cli:
     image: confluentinc/ksqldb-cli:0.7.0
@@ -136,15 +136,18 @@ services:
 2. Get the JDBC connector
 -------------------------
 
-[Download the JDBC connector](https://www.confluent.io/hub/confluentinc/kafka-connect-jdbc)
-to your local working directory. Next, unzip the downloaded archive:
+The easiest way to download connectors for use in ksqlDB with embedded {{ site.kconnect }}
+is via the [Confluent Hub Client](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html)
+included in the `ksqlDB-server` Docker image.
 
+To download the JDBC connector, use the following command:
 ```bash
-unzip confluentinc-kafka-connect-jdbc-*.zip
+docker run -v /path/to/local/dir:/share/confluent-hub-components confluentinc/ksqldb-server:0.7.0 confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:5.4.1
 ```
+where `/path/to/local/dir` should be replaced with the path where you'd like the Connector to be downloaded to.
 
-Make sure to update the `docker-compose.yml` to uncomment the line mounting the volume in 
-`ksqldb-server`.
+Once you have the Connector, make sure to update the `docker-compose.yml` to uncomment the line mounting the volume in
+`ksqldb-server`, and update the download path accordingly.
 
 
 3. Start ksqlDB and PostgreSQL

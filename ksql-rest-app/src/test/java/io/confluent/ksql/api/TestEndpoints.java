@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api;
 
-import io.confluent.ksql.api.server.ApiSecurityContext;
+import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -42,6 +42,7 @@ public class TestEndpoints implements Endpoints {
   private int acksBeforePublisherError = -1;
   private int rowsBeforePublisherError = -1;
   private RuntimeException createQueryPublisherException;
+  private ApiSecurityContext lastApiSecurityContext;
 
   @Override
   public synchronized QueryPublisher createQueryPublisher(final String sql,
@@ -53,6 +54,7 @@ public class TestEndpoints implements Endpoints {
     }
     this.lastSql = sql;
     this.lastProperties = properties;
+    this.lastApiSecurityContext = apiSecurityContext;
     boolean push = sql.toLowerCase().contains("emit changes");
     TestQueryPublisher queryPublisher = new TestQueryPublisher(context,
         rowGeneratorFactory.get(),
@@ -71,6 +73,7 @@ public class TestEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext) {
     this.lastTarget = target;
     this.lastProperties = properties;
+    this.lastApiSecurityContext = apiSecurityContext;
     BufferedPublisher<InsertResult> acksPublisher = new BufferedPublisher<>(Vertx.currentContext());
     acksPublisher.subscribe(acksSubscriber);
     this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), acksPublisher,
@@ -101,6 +104,10 @@ public class TestEndpoints implements Endpoints {
 
   public synchronized String getLastTarget() {
     return lastTarget;
+  }
+
+  public synchronized ApiSecurityContext getLastApiSecurityContext() {
+    return lastApiSecurityContext;
   }
 
   public synchronized void setAcksBeforePublisherError(final int acksBeforePublisherError) {

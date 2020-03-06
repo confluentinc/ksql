@@ -28,10 +28,10 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.endpoints.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -338,7 +338,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlSecurityContextProvider
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
-    apiServer = new Server(vertx, apiServerConfig, endpoints, true);
+    apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension);
     apiServer.start();
     log.info("KSQL New API Server started");
   }

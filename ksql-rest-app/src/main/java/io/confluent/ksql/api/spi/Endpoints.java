@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.spi;
 
-import io.confluent.ksql.api.server.ApiSecurityContext;
+import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.vertx.core.Context;

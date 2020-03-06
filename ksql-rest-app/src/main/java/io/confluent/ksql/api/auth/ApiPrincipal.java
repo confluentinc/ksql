@@ -13,28 +13,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.api.auth;
 
 import java.security.Principal;
-import java.util.Optional;
 
-public class DummyApiSecurityContext implements ApiSecurityContext {
+class ApiPrincipal implements Principal {
 
-  @Override
-  public Principal getPrincipal() {
-    return new DummyPrincipal();
+  private final String name;
+
+  ApiPrincipal(final String name) {
+    this.name = name;
   }
 
   @Override
-  public Optional<String> getAuthToken() {
-    return Optional.empty();
-  }
-
-  private static class DummyPrincipal implements Principal {
-
-    @Override
-    public String getName() {
-      return "no_principal";
-    }
+  public String getName() {
+    return name;
   }
 }
+

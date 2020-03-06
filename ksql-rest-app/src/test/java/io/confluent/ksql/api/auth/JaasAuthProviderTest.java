@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.api.auth.JaasAuthProvider.JaasUser;
 import io.confluent.ksql.api.auth.JaasAuthProvider.LoginContextSupplier;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;

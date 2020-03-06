@@ -16,8 +16,9 @@
 package io.confluent.ksql.api.server;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.api.auth.JaasAuthProvider;
+import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.DeploymentOptions;
@@ -28,9 +29,6 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
-import io.vertx.ext.auth.AuthProvider;
-import io.vertx.ext.web.handler.AuthHandler;
-import io.vertx.ext.web.handler.BasicAuthHandler;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -64,15 +62,17 @@ public class Server {
   private final int maxPushQueryCount;
   private final Set<String> deploymentIds = new HashSet<>();
   private final boolean proxyEnabled;
+  private final KsqlSecurityExtension securityExtension;
   private WorkerExecutor workerExecutor;
   private int jettyPort = -1;
   private List<URI> listeners = new ArrayList<>();
 
   public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints,
-      final boolean proxyEnabled) {
+      final boolean proxyEnabled, final KsqlSecurityExtension securityExtension) {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
+    this.securityExtension = Objects.requireNonNull(securityExtension);
     this.maxPushQueryCount = config.getInt(ApiServerConfig.MAX_PUSH_QUERIES);
     this.proxyEnabled = proxyEnabled;
   }
@@ -192,6 +192,18 @@ public class Server {
     return new HashSet<>(queries.keySet());
   }
 
+  Vertx getVertx() {
+    return vertx;
+  }
+
+  KsqlSecurityExtension getSecurityExtension() {
+    return securityExtension;
+  }
+
+  ApiServerConfig getConfig() {
+    return config;
+  }
+
   void registerQueryConnection(final HttpConnection connection) {
     this.connections.add(Objects.requireNonNull(connection));
   }
@@ -210,28 +222,6 @@ public class Server {
 
   public synchronized void setJettyPort(final int jettyPort) {
     this.jettyPort = jettyPort;
-  }
-
-  Optional<AuthHandler> getAuthHandler() {
-    final String authMethod = config.getString(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG);
-    switch (authMethod) {
-      case ApiServerConfig.AUTHENTICATION_METHOD_BASIC:
-        return Optional.of(basicAuthHandler());
-      case ApiServerConfig.AUTHENTICATION_METHOD_NONE:
-        return Optional.empty();
-      default:
-        throw new IllegalStateException(String.format(
-            "Unexpected value for %s: %s",
-            ApiServerConfig.AUTHENTICATION_METHOD_CONFIG,
-            authMethod
-        ));
-    }
-  }
-
-  private AuthHandler basicAuthHandler() {
-    final AuthProvider authProvider = new JaasAuthProvider(this, config);
-    final String realm = config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
-    return BasicAuthHandler.create(authProvider, realm);
   }
 
   private static HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig,

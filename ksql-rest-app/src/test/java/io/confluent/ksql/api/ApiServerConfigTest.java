@@ -19,7 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.vertx.core.http.ClientAuth;
 import java.util.Arrays;
 import java.util.HashMap;

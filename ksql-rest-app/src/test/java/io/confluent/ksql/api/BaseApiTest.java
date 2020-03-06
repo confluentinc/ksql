@@ -20,11 +20,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
+import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -111,7 +112,8 @@ public class BaseApiTest {
   }
 
   protected void createServer(ApiServerConfig serverConfig) {
-    server = new Server(vertx, serverConfig, testEndpoints, false);
+    server = new Server(vertx, serverConfig, testEndpoints, false,
+        new KsqlDefaultSecurityExtension());
     server.start();
   }
 

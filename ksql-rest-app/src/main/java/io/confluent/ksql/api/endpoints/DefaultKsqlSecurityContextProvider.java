@@ -16,7 +16,7 @@
 package io.confluent.ksql.api.endpoints;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.api.server.ApiSecurityContext;
+import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -50,24 +50,24 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
   @Override
   public KsqlSecurityContext provide(final ApiSecurityContext apiSecurityContext) {
 
-    final Principal principal = apiSecurityContext.getPrincipal();
+    final Optional<Principal> principal = apiSecurityContext.getPrincipal();
     final Optional<String> authHeader = apiSecurityContext.getAuthToken();
 
     if (securityExtension == null || !securityExtension.getUserContextProvider().isPresent()) {
       return new KsqlSecurityContext(
-          Optional.ofNullable(principal),
+          principal,
           defaultServiceContextFactory.create(ksqlConfig, authHeader, schemaRegistryClientFactory)
       );
     }
 
     return securityExtension.getUserContextProvider()
         .map(provider -> new KsqlSecurityContext(
-            Optional.ofNullable(principal),
+            principal,
             userServiceContextFactory.create(
                 ksqlConfig,
                 authHeader,
-                provider.getKafkaClientSupplier(principal),
-                provider.getSchemaRegistryClientFactory(principal))))
+                provider.getKafkaClientSupplier(principal.orElse(null)),
+                provider.getSchemaRegistryClientFactory(principal.orElse(null)))))
         .get();
   }
 

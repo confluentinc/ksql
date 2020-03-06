@@ -19,8 +19,8 @@ import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_NAMES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_TYPES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_ROW;
 
+import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.endpoints.BlockingQueryPublisher;
-import io.confluent.ksql.api.server.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.PushQueryHandle;

@@ -18,6 +18,8 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.api.server.QueryStreamHandler.DELIMITED_CONTENT_TYPE;
 import static io.confluent.ksql.api.server.ServerUtils.deserialiseObject;
 
+import io.confluent.ksql.api.auth.ApiSecurityContext;
+import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.server.protocol.InsertError;
 import io.confluent.ksql.api.server.protocol.InsertsStreamArgs;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -133,7 +135,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       recordParser.pause();
       createInsertsSubscriberAsync(insertsStreamArgs.get().target,
           insertsStreamArgs.get().properties,
-          acksSubscriber, ctx)
+          acksSubscriber, ctx, DefaultApiSecurityContext.create(routingContext))
           .thenAccept(insertsSubscriber -> {
             publisher = new BufferedPublisher<>(ctx);
 
@@ -217,12 +219,13 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
   private CompletableFuture<InsertsStreamSubscriber> createInsertsSubscriberAsync(
       final String target,
       final JsonObject properties, final Subscriber<InsertResult> acksSubscriber,
-      final Context context) {
+      final Context context,
+      final ApiSecurityContext apiSecurityContext) {
     final VertxCompletableFuture<InsertsStreamSubscriber> vcf = new VertxCompletableFuture<>();
     workerExecutor.executeBlocking(
         p -> p.complete(
             endpoints.createInsertsSubscriber(target, properties, acksSubscriber, context,
-                workerExecutor, new DummyApiSecurityContext())),
+                workerExecutor, apiSecurityContext)),
         false,
         vcf);
     return vcf;

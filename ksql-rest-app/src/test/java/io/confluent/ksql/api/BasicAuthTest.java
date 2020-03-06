@@ -17,8 +17,9 @@ package io.confluent.ksql.api;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
-import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
@@ -137,6 +138,24 @@ public class BasicAuthTest extends ApiTest {
     shouldFailInsertRequest(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
   }
 
+  @Test
+  public void shouldExecutePullQueryWithApiSecurityContext() throws Exception {
+    super.shouldExecutePullQuery();
+    assertAuthorisedSecurityContext(USER_WITH_ACCESS);
+  }
+
+  @Test
+  public void shouldStreamInsertsWithApiSecurityContext() throws Exception {
+    super.shouldStreamInserts();
+    assertAuthorisedSecurityContext(USER_WITH_ACCESS);
+  }
+
+  @Test
+  public void shouldCloseQueryWithApiSecurityContext() throws Exception {
+    super.shouldCloseQuery();
+    assertAuthorisedSecurityContext(USER_WITH_ACCESS);
+  }
+
   private void shouldFailQuery(final String username, final String password) throws Exception {
     // When
     HttpResponse<Buffer> response = sendRequestWithCreds(
@@ -215,4 +234,17 @@ public class BasicAuthTest extends ApiTest {
     request.sendBuffer(requestBody, requestFuture);
     return requestFuture.get();
   }
+
+  private void assertNotAuthorisedSecurityContext() {
+    assertThat(testEndpoints.getLastApiSecurityContext(), is(notNullValue()));
+    assertThat(testEndpoints.getLastApiSecurityContext().getPrincipal().isPresent(), is(false));
+  }
+
+  private void assertAuthorisedSecurityContext(String username) {
+    assertThat(testEndpoints.getLastApiSecurityContext(), is(notNullValue()));
+    assertThat(testEndpoints.getLastApiSecurityContext().getPrincipal().isPresent(), is(true));
+    assertThat(testEndpoints.getLastApiSecurityContext().getPrincipal().get().getName(),
+        is(username));
+  }
+
 }

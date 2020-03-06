@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.endpoints;
 
-import io.confluent.ksql.api.server.ApiSecurityContext;
+import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityContext;
 
 public interface KsqlSecurityContextProvider {

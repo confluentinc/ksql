@@ -46,7 +46,7 @@ public final class DescribeConnectorExecutor {
 
   private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
   @VisibleForTesting
-  protected static final String TOPICS_KEY = "topics";
+  static final String TOPICS_KEY = "topics";
 
   private final Function<ConnectorInfo, Optional<Connector>> connectorFactory;
 

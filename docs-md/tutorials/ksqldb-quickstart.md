@@ -6,10 +6,13 @@ description: Get up and running with ksqlDB and connect to data in minutes.
 keywords: ksqldb, get started, quickstart, kafka, docker, connect
 ---
 
-TODO: Stripped-down procedure that installs ksqlDB and Kafka locally by using
-Docker images.
+This quickstart shows how to get a minimal ksqlDB environment up and running.
 
-- get data in and out
-- complete a streaming app in four SQL statements
+- [ksqlDB Quickstart](https://ksqldb.io/quickstart.html)
 
-Page last revised on: {{ git_revision_date }}
+The easiest way to run ksqlDB is by using the official Docker image. This
+quickstart provides everything you need to set up a ksqlDB development
+environment so you can:
+
+- get data in and out, and
+- complete a streaming app in three SQL statements.

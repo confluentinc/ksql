@@ -466,5 +466,3 @@ There are numerous other stack files to explore in the
     [Confluent Platform](https://docs.confluent.io/current/installation/docker/installation/index.html)
     to run these applications. The {{ site.cp }} images are distinct from the
     images that are used in this topic.
-
-Page last revised on: {{ git_revision_date }}

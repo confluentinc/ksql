@@ -16,6 +16,8 @@ You can help to improve the ksqlDB documentation by contributing to this repo:
   the `documentation` label.
 - Submit a [pull request](https://github.com/confluentinc/ksql/pulls) with your
   proposed documentation changes.
+- Get started with
+  [writing and formatting on GitHub](https://help.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github).
 
 Build docs locally
 ==================
@@ -85,5 +87,3 @@ mkdocs serve
 Open a web browser to `http://127.0.0.1:8000` to view the docs. Keep the server
 running, and it will detect file changes as you edit and automatically rebuild
 when you save a file.
-
-Page last revised on: {{ git_revision_date }}

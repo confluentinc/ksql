@@ -170,9 +170,6 @@ Kafka topic and streams the result of the SELECT query as a changelog
 into the topic. ksqlDB creates a persistent query that runs continuously
 until you terminate it explicitly.
 
-To stream the result of a SELECT query into an *existing* table and its
-underlying topic, use the INSERT INTO statement.
-
 The following SQL statement creates a `users_female` table that
 contains results from a persistent query for users that have `gender`
 set to `FEMALE`:

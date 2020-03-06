@@ -112,7 +112,7 @@ services:
       KSQL_CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
     volumes:
-      # - /path/to/local/dir/confluentinc-kafka-connect-jdbc:/usr/share/kafka/plugins/jdbc
+      - ./confluent-hub-components/confluentinc-kafka-connect-jdbc:/usr/share/kafka/plugins/jdbc
 
   ksqldb-cli:
     image: confluentinc/ksqldb-cli:0.7.0
@@ -142,13 +142,9 @@ included in the `ksqlDB-server` Docker image.
 
 To download the JDBC connector, use the following command:
 ```bash
-docker run -v /path/to/local/dir:/share/confluent-hub-components confluentinc/ksqldb-server:0.7.0 confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:5.4.1
+docker run -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.7.0 confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:5.4.1
 ```
-where `/path/to/local/dir` should be replaced with the path where you'd like the Connector to be downloaded to.
-
-Once you have the Connector, make sure to update the `docker-compose.yml` to uncomment the line mounting the volume in
-`ksqldb-server`, and update the download path accordingly.
-
+This command downloads the JDBC connector into the directory `./confluent-hub-components`.
 
 3. Start ksqlDB and PostgreSQL
 ------------------------------

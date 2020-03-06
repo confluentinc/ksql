@@ -188,10 +188,10 @@ extra:
 
         # Build-related string tokens
         kafkaversion: 2.4
-        kafkarelease: 5.4.0-ccs
+        kafkarelease: 5.4.1-ccs
         ksqldbversion: 0.7.1
         release: 0.7.1
-        cprelease: 5.4.0
-        releasepostbranch: 5.4.0-post
+        cprelease: 5.4.1
+        releasepostbranch: 5.4.1-post
         scalaversion: 2.12
         version: 5.4

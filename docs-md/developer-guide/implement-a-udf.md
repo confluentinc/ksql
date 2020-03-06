@@ -347,7 +347,7 @@ Variations  :
 ```
 
 Use the MULTIPLY function in a query. If you follow the steps in
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Local)](../tutorials/basics-local.md),
+[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Docker)](../tutorials/basics-docker.md),
 you can multiply the two BIGINT fields in the `pageviews_original` stream:
 
 ```sql

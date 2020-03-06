@@ -65,7 +65,7 @@ public class KsqlRequestTest {
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
       + "\"commandSequenceNumber\":2,"
-      + "\"isInternalRequest\":null}";
+      + "\"internalRequest\":false}";
   private static final String A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"
@@ -77,7 +77,7 @@ public class KsqlRequestTest {
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
       + "\"commandSequenceNumber\":null,"
-      + "\"isInternalRequest\":null}";
+      + "\"internalRequest\":false}";
 
   private static final String A_JSON_REQUEST_WITH_NULL_INTERNAL_REQUEST= "{"
       + "\"ksql\":\"sql\","
@@ -89,7 +89,7 @@ public class KsqlRequestTest {
       + "\"requestProperties\":{"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
-      + "\"isInternalRequest\":null}";
+      + "\"internalRequest\":null}";
 
   private static final String A_JSON_REQUEST_WITH_INTERNAL_REQUEST= "{"
       + "\"ksql\":\"sql\","
@@ -98,7 +98,7 @@ public class KsqlRequestTest {
       + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
       + TimestampExtractor.class.getCanonicalName() + "\""
       + "},"
-      + "\"isInternalRequest\":true}";
+      + "\"internalRequest\":true}";
 
   private static final ImmutableMap<String, Object> SOME_PROPS = ImmutableMap.of(
       ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
@@ -140,7 +140,7 @@ public class KsqlRequestTest {
 
   @Test
   public void shoudlHandleNullIsInternalRequest() {
-    assertThat(new KsqlRequest("sql", SOME_PROPS, null, null, null).getIsInternalRequest(), is(Optional.empty()));
+    assertThat(new KsqlRequest("sql", SOME_PROPS, null, null, null).getInternalRequest(), is(false));
   }
 
   @Test

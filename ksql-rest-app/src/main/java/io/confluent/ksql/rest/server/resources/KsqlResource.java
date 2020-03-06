@@ -254,7 +254,7 @@ public class KsqlResource implements KsqlConfigurable {
               request.getConfigOverrides(),
               localHost, 
               localUrl,
-              request.getIsInternalRequest().orElse(false)
+              request.getInternalRequest()
           ),
           request.getKsql()
       );
@@ -266,7 +266,7 @@ public class KsqlResource implements KsqlConfigurable {
               request.getConfigOverrides(),
               localHost,
               localUrl,
-              request.getIsInternalRequest().orElse(false)
+              request.getInternalRequest()
           )
       );
       return Response.ok(entities).build();

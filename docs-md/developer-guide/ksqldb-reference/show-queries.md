@@ -21,9 +21,9 @@ Description
 
 List the running persistent queries.
 
-`SHOW QUERIES` lists queries running in the cluster
+`SHOW QUERIES` lists queries running in the cluster.
 
-`SHOW QUERIES EXTENDED` Lists queries running in the cluster in more detail
+`SHOW QUERIES EXTENDED` lists queries running in the cluster in more detail.
 
 Example
 -------

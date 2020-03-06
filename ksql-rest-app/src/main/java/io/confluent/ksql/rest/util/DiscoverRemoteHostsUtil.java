@@ -38,9 +38,7 @@ public final class DiscoverRemoteHostsUtil {
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
-        .filter(streamsMetadata -> {
-          return streamsMetadata != StreamsMetadata.NOT_AVAILABLE;
-        })
+        .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
         .map(StreamsMetadata::hostInfo)
         .filter(hostInfo -> !(hostInfo.host().equals(localHost.host())
             && hostInfo.port() == (localHost.port())))

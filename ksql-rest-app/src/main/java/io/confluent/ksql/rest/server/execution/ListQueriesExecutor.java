@@ -84,7 +84,7 @@ public final class ListQueriesExecutor {
                 hostInfo.host(),
                 hostInfo.port()
             ),
-            "show queries;"
+            statement.getStatementText()
         ).getResponse();
         response.forEach(queries -> {
           runningQueries.addAll(((Queries) queries).getQueries());
@@ -104,8 +104,8 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final List<QueryDescription> queryDescriptionList = new ArrayList<>();
-    queryDescriptionList.addAll(
+    final List<QueryDescription> queryDesrciptions = new ArrayList<>();
+    queryDesrciptions.addAll(
         executionContext.getPersistentQueries().stream()
         .map(query ->
             QueryDescriptionFactory.forQueryMetadata(
@@ -127,16 +127,16 @@ public final class ListQueriesExecutor {
                 hostInfo.host(),
                 hostInfo.port()
             ),
-            "show queries extended;"
+            statement.getStatementText()
         ).getResponse();
 
         response.forEach(queries -> {
-          queryDescriptionList.addAll(((QueryDescriptionList) queries).getQueryDescriptions());
+          queryDesrciptions.addAll(((QueryDescriptionList) queries).getQueryDescriptions());
         });
       });
     }
     return Optional.of(new QueryDescriptionList(
         statement.getStatementText(),
-        queryDescriptionList));
+        queryDesrciptions));
   }
 }

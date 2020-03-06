@@ -21,6 +21,8 @@ import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
 import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.util.KsqlConfig;
 import io.vertx.core.http.ClientAuth;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -38,23 +40,13 @@ public class ApiServerConfig extends AbstractConfig {
   public static final int DEFAULT_VERTICLE_INSTANCES =
       2 * Runtime.getRuntime().availableProcessors();
   public static final String VERTICLE_INSTANCES_DOC =
-      "The number of server verticle instances to start. Usually you want at least many instances"
-          + " as there are cores you want to use, as each instance is single threaded.";
+      "The number of server verticle instances to start per listener. Usually you want at least "
+          + "many instances as there are cores you want to use, as each instance is single "
+          + "threaded.";
 
-  public static final String LISTEN_HOST = propertyName("listen.host");
-  public static final String DEFAULT_LISTEN_HOST = "localhost";
-  public static final String LISTEN_HOST_DOC =
-      "The hostname to listen on";
-
-  public static final String LISTEN_PORT = propertyName("listen.port");
-  public static final int DEFAULT_LISTEN_PORT = 8088;
-  public static final String LISTEN_PORT_DOC =
-      "The port to listen on";
-
-  public static final String TLS_ENABLED = propertyName("tls.enabled");
-  public static final boolean DEFAULT_TLS_ENABLED = false;
-  public static final String TLS_ENABLED_DOC =
-      "Is TLS enabled?";
+  public static final String LISTENERS = propertyName("listeners");
+  public static final String DEFAULT_LISTENERS = "http://0.0.0.0:8088";
+  public static final String LISTENERS_DOC = "List of listeners to listen for connections on";
 
   public static final String TLS_KEY_STORE_PATH = propertyName("tls.keystore.path");
   public static final String TLS_KEY_STORE_PATH_DOC =
@@ -76,6 +68,30 @@ public class ApiServerConfig extends AbstractConfig {
   public static final String DEFAULT_TLS_CLIENT_AUTH_REQUIRED = "none";
   public static final String TLS_CLIENT_AUTH_REQUIRED_DOC =
       "Is client auth required? One of none, request or required";
+
+  public static final String AUTHENTICATION_METHOD_CONFIG = propertyName("authentication.method");
+  public static final String AUTHENTICATION_METHOD_NONE = "NONE";
+  public static final String AUTHENTICATION_METHOD_BASIC = "BASIC";
+  public static final String AUTHENTICATION_METHOD_DOC =
+      "Method of authentication. Acceptable values are BASIC or NONE. "
+          + "For BASIC authentication, you must supply a valid JAAS config file for the "
+          + "'java.security.auth.login.config' system property for the appropriate authentication "
+          + "provider.";
+  public static final ConfigDef.ValidString AUTHENTICATION_METHOD_VALIDATOR =
+      ConfigDef.ValidString.in(
+          AUTHENTICATION_METHOD_NONE,
+          AUTHENTICATION_METHOD_BASIC
+      );
+  public static final String AUTHENTICATION_REALM_CONFIG = propertyName("authentication.realm");
+  public static final String AUTHENTICATION_REALM_DOC =
+      "Security realm to be used in authentication.";
+  public static final String AUTHENTICATION_ROLES_CONFIG = propertyName("authentication.roles");
+  public static final String AUTHENTICATION_ROLES_DOC =
+      "Comma-delimited list of JAAS roles authorized to access this cluster. "
+          + "Defaults to an empty list meaning no roles will be allowed. "
+          + "Specify '*' to indicate all roles should be allowed.";
+  public static final List<String> AUTHENTICATION_ROLES_DEFAULT =
+      Collections.unmodifiableList(Collections.emptyList());
 
   public static final String WORKER_POOL_SIZE = propertyName("worker.pool.size");
   public static final String WORKER_POOL_DOC =
@@ -100,24 +116,11 @@ public class ApiServerConfig extends AbstractConfig {
           Importance.MEDIUM,
           VERTICLE_INSTANCES_DOC)
       .define(
-          LISTEN_HOST,
-          Type.STRING,
-          DEFAULT_LISTEN_HOST,
+          LISTENERS,
+          Type.LIST,
+          DEFAULT_LISTENERS,
           Importance.MEDIUM,
-          LISTEN_HOST_DOC)
-      .define(
-          LISTEN_PORT,
-          Type.INT,
-          DEFAULT_LISTEN_PORT,
-          zeroOrPositive(),
-          Importance.MEDIUM,
-          LISTEN_PORT_DOC)
-      .define(
-          TLS_ENABLED,
-          Type.BOOLEAN,
-          DEFAULT_TLS_ENABLED,
-          Importance.MEDIUM,
-          TLS_ENABLED_DOC)
+          LISTENERS_DOC)
       .define(
           TLS_KEY_STORE_PATH,
           Type.STRING,
@@ -150,6 +153,25 @@ public class ApiServerConfig extends AbstractConfig {
           Importance.MEDIUM,
           TLS_CLIENT_AUTH_REQUIRED_DOC)
       .define(
+          AUTHENTICATION_METHOD_CONFIG,
+          Type.STRING,
+          AUTHENTICATION_METHOD_NONE,
+          AUTHENTICATION_METHOD_VALIDATOR,
+          Importance.LOW,
+          AUTHENTICATION_METHOD_DOC)
+      .define(
+          AUTHENTICATION_REALM_CONFIG,
+          Type.STRING,
+          "",
+          Importance.LOW,
+          AUTHENTICATION_REALM_DOC)
+      .define(
+          AUTHENTICATION_ROLES_CONFIG,
+          Type.LIST,
+          AUTHENTICATION_ROLES_DEFAULT,
+          Importance.LOW,
+          AUTHENTICATION_ROLES_DOC)
+      .define(
           WORKER_POOL_SIZE,
           Type.INT,
           DEFAULT_WORKER_POOL_SIZE,
@@ -168,6 +190,9 @@ public class ApiServerConfig extends AbstractConfig {
     super(CONFIG_DEF, map);
   }
 
+  // Note that this expects config value that is not standard Confluent as defined in BaseConfig.
+  // For "request" client auth, confluent value is "REQUESTED" where value expected here is
+  // "REQUEST"
   public ClientAuth getClientAuth() {
     return ClientAuth.valueOf(getString(TLS_CLIENT_AUTH_REQUIRED).toUpperCase());
   }

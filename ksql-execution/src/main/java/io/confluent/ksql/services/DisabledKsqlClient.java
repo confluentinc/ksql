@@ -73,5 +73,9 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
   ) {
     throw new UnsupportedOperationException("KSQL client is disabled");
   }
+
+  @Override
+  public void close() {
+  }
 }
 

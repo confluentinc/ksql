@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.rest.server.KsqlRestApplication.convertToApiServerConfig;
+import static io.confluent.ksql.rest.server.KsqlRestApplication.convertToLocalListener;
 import static java.util.Objects.requireNonNull;
 import static org.easymock.EasyMock.niceMock;
 
@@ -24,6 +26,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
@@ -108,6 +111,10 @@ public class TestKsqlRestApp extends ExternalResource {
   private KsqlExecutionContext ksqlEngine;
   private KsqlRestApplication ksqlRestApplication;
 
+  static {
+    // Increase the default - it's low (100)
+    System.setProperty("sun.net.maxDatagramSockets", "1024");
+  }
 
   private TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
@@ -239,10 +246,6 @@ public class TestKsqlRestApp extends ExternalResource {
     return serviceContext.get();
   }
 
-  public int getActualVertxPort() {
-    return ksqlRestApplication.getActualVertxPort();
-  }
-
   @Override
   protected void before() {
     if (restServer != null) {
@@ -250,17 +253,19 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
+
     try {
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
-          config,
+          convertToApiServerConfig(config),
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
           serviceContextBinderFactory
       );
+
       restServer = new ExecutableServer<>(
-          new ApplicationServer<>(config),
+          new ApplicationServer<>(convertToLocalListener(config)),
           ImmutableList.of(ksqlRestApplication)
       );
     } catch (final Exception e) {
@@ -403,7 +408,8 @@ public class TestKsqlRestApp extends ExternalResource {
     final HashMap<String, Object> config = new HashMap<>(baseConfig);
 
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers.get());
-    config.putIfAbsent(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0,https://localhost:0");
+    config.putIfAbsent(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0");
+    config.put(ApiServerConfig.VERTICLE_INSTANCES, 4);
     return new KsqlRestConfig(config);
   }
 

@@ -125,6 +125,11 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     getTarget(target, authHeader).postAsyncLagReportingRequest(lagReportingMessage);
   }
 
+  @Override
+  public void close() {
+    sharedClient.close();
+  }
+
   private KsqlTarget getTarget(final KsqlTarget target, final Optional<String> authHeader) {
     return authHeader
         .map(target::authorizationHeader)

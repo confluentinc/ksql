@@ -30,10 +30,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.api.utils.InsertsResponse;
-import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.api.utils.SendStream;
@@ -54,9 +52,12 @@ import org.slf4j.LoggerFactory;
 
 public class ApiTest extends BaseApiTest {
 
-  private static final Logger log = LoggerFactory.getLogger(ApiTest.class);
+  protected static final Logger log = LoggerFactory.getLogger(ApiTest.class);
+
+  protected static final List<JsonObject> DEFAULT_INSERT_ROWS = generateInsertRows();
 
   @Test
+  @CoreApiTest
   public void shouldExecutePullQuery() throws Exception {
 
     // Given
@@ -82,6 +83,7 @@ public class ApiTest extends BaseApiTest {
   }
 
   @Test
+  @CoreApiTest
   public void shouldExecutePushQuery() throws Exception {
 
     // When
@@ -196,7 +198,7 @@ public class ApiTest extends BaseApiTest {
         assertThat(queryId, is(notNullValue()));
         assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(true));
         int queries = i * numQueries + j + 1;
-        assertThat(server.getQueryIDs(), hasSize(i * numQueries + j + 1));
+        assertThat(server.getQueryIDs(), hasSize(queries));
         assertThat(server.queryConnectionCount(), is(i + 1));
       }
     }
@@ -296,6 +298,7 @@ public class ApiTest extends BaseApiTest {
   }
 
   @Test
+  @CoreApiTest
   public void shouldCloseQuery() throws Exception {
 
     // Create a write stream to capture the incomplete response
@@ -303,9 +306,11 @@ public class ApiTest extends BaseApiTest {
 
     VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
     // Make the request to stream a query
-    client.post("/query-stream")
-        .as(BodyCodec.pipe(writeStream))
-        .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY, responseFuture);
+    sendRequest("/query-stream", (request) ->
+        request
+            .as(BodyCodec.pipe(writeStream))
+            .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY, responseFuture)
+    );
 
     // Wait for all rows in the response to arrive
     assertThatEventually(() -> {
@@ -330,7 +335,7 @@ public class ApiTest extends BaseApiTest {
 
     // Now send another request to close the query
     JsonObject closeQueryRequestBody = new JsonObject().put("queryId", queryId);
-    HttpResponse<Buffer> closeQueryResponse = sendRequest(client, "/close-query",
+    HttpResponse<Buffer> closeQueryResponse = sendRequest("/close-query",
         closeQueryRequestBody.toBuffer());
     assertThat(closeQueryResponse.statusCode(), is(200));
 
@@ -351,7 +356,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject closeQueryRequestBody = new JsonObject().put("foo", "bar");
 
     // When
-    HttpResponse<Buffer> response = sendRequest(client, "/close-query",
+    HttpResponse<Buffer> response = sendRequest("/close-query",
         closeQueryRequestBody.toBuffer());
 
     // Then
@@ -390,7 +395,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject closeQueryRequestBody = new JsonObject().put("queryId", "xyzfasgf");
 
     // When
-    HttpResponse<Buffer> response = sendRequest(client, "/close-query",
+    HttpResponse<Buffer> response = sendRequest("/close-query",
         closeQueryRequestBody.toBuffer());
 
     // Then
@@ -402,12 +407,13 @@ public class ApiTest extends BaseApiTest {
   }
 
   @Test
+  @CoreApiTest
   public void shouldInsertWithAcksStream() throws Exception {
 
     // Given
     JsonObject params = new JsonObject().put("target", "test-stream");
-    List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
+    final List<JsonObject> rows = DEFAULT_INSERT_ROWS;
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
     for (JsonObject row : rows) {
       requestBody.appendBuffer(row.toBuffer()).appendString("\n");
@@ -429,6 +435,7 @@ public class ApiTest extends BaseApiTest {
   }
 
   @Test
+  @CoreApiTest
   public void shouldStreamInserts() throws Exception {
 
     // Given
@@ -439,14 +446,16 @@ public class ApiTest extends BaseApiTest {
     // Stream for receiving the HTTP response body
     ReceiveStream writeStream = new ReceiveStream(vertx);
     VertxCompletableFuture<HttpResponse<Void>> fut = new VertxCompletableFuture<>();
-    List<JsonObject> rows = generateInsertRows();
+    List<JsonObject> rows = DEFAULT_INSERT_ROWS;
 
     // When
 
     // Make an HTTP request but keep the request body and response streams open
-    client.post("/inserts-stream")
-        .as(BodyCodec.pipe(writeStream))
-        .sendStream(readStream, fut);
+    sendRequest("/inserts-stream", (request) ->
+        request
+            .as(BodyCodec.pipe(writeStream))
+            .sendStream(readStream, fut)
+    );
 
     // Write the initial params Json object to the request body
     readStream.acceptBuffer(params.toBuffer().appendString("\n"));
@@ -531,7 +540,7 @@ public class ApiTest extends BaseApiTest {
 
     // Given
     JsonObject params = new JsonObject().put("target", "test-stream");
-    List<JsonObject> rows = generateInsertRows();
+    List<JsonObject> rows = DEFAULT_INSERT_ROWS;
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
     for (JsonObject row : rows) {
@@ -570,7 +579,7 @@ public class ApiTest extends BaseApiTest {
 
     // Given
     JsonObject params = new JsonObject().put("target", "test-stream");
-    List<JsonObject> rows = generateInsertRows();
+    List<JsonObject> rows = DEFAULT_INSERT_ROWS;
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
     for (int i = 0; i < rows.size() - 1; i++) {
@@ -690,7 +699,7 @@ public class ApiTest extends BaseApiTest {
   public void shouldUseDelimitedFormatWhenNoAcceptHeaderInserts() throws Exception {
     // When
     JsonObject params = new JsonObject().put("target", "test-stream");
-    List<JsonObject> rows = generateInsertRows();
+    List<JsonObject> rows = DEFAULT_INSERT_ROWS;
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
     for (JsonObject row : rows) {
@@ -716,7 +725,7 @@ public class ApiTest extends BaseApiTest {
   public void shouldUseDelimitedFormatWhenDelimitedHeaderInserts() throws Exception {
     // When
     JsonObject params = new JsonObject().put("target", "test-stream");
-    List<JsonObject> rows = generateInsertRows();
+    List<JsonObject> rows = DEFAULT_INSERT_ROWS;
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
     for (JsonObject row : rows) {
@@ -743,7 +752,7 @@ public class ApiTest extends BaseApiTest {
   public void shouldUseJsonFormatWhenJsonHeaderInserts() throws Exception {
     // When
     JsonObject params = new JsonObject().put("target", "test-stream");
-    List<JsonObject> rows = generateInsertRows();
+    List<JsonObject> rows = DEFAULT_INSERT_ROWS;
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
     for (JsonObject row : rows) {
@@ -835,29 +844,6 @@ public class ApiTest extends BaseApiTest {
     assertThat(error.getLong("seq"), is(sequence));
   }
 
-
-  @SuppressWarnings("unchecked")
-  private void setDefaultRowGenerator() {
-    List<GenericRow> rows = new ArrayList<>();
-    for (JsonArray ja : DEFAULT_ROWS) {
-      rows.add(GenericRow.fromList(ja.getList()));
-    }
-    testEndpoints.setRowGeneratorFactory(
-        () -> new ListRowGenerator(
-            DEFAULT_COLUMN_NAMES.getList(),
-            DEFAULT_COLUMN_TYPES.getList(),
-            rows));
-  }
-
-  private static List<JsonArray> generateRows() {
-    List<JsonArray> rows = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
-      JsonArray row = new JsonArray().add("foo" + i).add(i).add(i % 2 == 0);
-      rows.add(row);
-    }
-    return rows;
-  }
-
   private static List<JsonObject> generateInsertRows() {
     List<JsonObject> rows = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
@@ -869,5 +855,4 @@ public class ApiTest extends BaseApiTest {
     }
     return rows;
   }
-
 }

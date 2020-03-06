@@ -165,7 +165,7 @@ public abstract class BasePerfRunner {
   private void setUp() {
     vertx = Vertx.vertx();
     ApiServerConfig serverConfig = createServerConfig();
-    server = new Server(vertx, serverConfig, endpoints);
+    server = new Server(vertx, serverConfig, endpoints, false);
     server.start();
     client = createClient();
   }

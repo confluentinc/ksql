@@ -254,8 +254,6 @@ public class DescribeConnectorExecutorTest {
     // Given:
     connectorFactory = info -> Optional.empty();
     executor = new DescribeConnectorExecutor(connectorFactory);
-    when(connectClient.topics("connector")).thenReturn(ConnectResponse.success(EMPTY_ACTIVE_TOPICS,
-        HttpStatus.SC_OK));
 
     // When:
     final Optional<KsqlEntity> entity = executor
@@ -264,7 +262,6 @@ public class DescribeConnectorExecutorTest {
     // Then:
     verify(connectClient).status("connector");
     verify(connectClient).describe("connector");
-    verify(connectClient).topics("connector");
     assertThat("Expected a response", entity.isPresent());
     assertThat(entity.get(), instanceOf(ConnectorDescription.class));
 

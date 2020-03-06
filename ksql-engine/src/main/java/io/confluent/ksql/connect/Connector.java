@@ -17,11 +17,8 @@ package io.confluent.ksql.connect;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 /**
  * A model for a connector, which contains various information that

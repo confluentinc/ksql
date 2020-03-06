@@ -44,8 +44,6 @@ public final class JdbcSource implements SupportedConnector {
 
     return Optional.of(new Connector(
         name,
-        topic -> topic.startsWith(prefix),
-        topic -> clean(name + "_" + topic.substring(prefix.length())),
         DataSourceType.KTABLE,
         extractKeyNameFromSmt(properties).orElse(null)
     ));

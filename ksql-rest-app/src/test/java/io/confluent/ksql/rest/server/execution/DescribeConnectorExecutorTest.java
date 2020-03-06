@@ -145,9 +145,6 @@ public class DescribeConnectorExecutorTest {
     when(connectClient.status(CONNECTOR_NAME)).thenReturn(ConnectResponse.success(STATUS, HttpStatus.SC_OK));
     when(connectClient.describe("connector")).thenReturn(ConnectResponse.success(INFO, HttpStatus.SC_OK));
 
-    when(connector.matches(any())).thenReturn(false);
-    when(connector.matches(TOPIC)).thenReturn(true);
-
     connectorFactory = info -> Optional.of(connector);
     executor = new DescribeConnectorExecutor(connectorFactory);
 

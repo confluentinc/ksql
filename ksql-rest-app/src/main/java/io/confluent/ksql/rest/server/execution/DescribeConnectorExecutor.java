@@ -95,7 +95,33 @@ public final class DescribeConnectorExecutor {
     final ConnectorStateInfo status = statusResponse.datum().get();
     final ConnectorInfo info = infoResponse.datum().get();
 
+
     final Optional<Connector> connector = connectorFactory.apply(info);
+    final List<KsqlWarning> warnings;
+    final List<String> topics;
+    if (connector.isPresent()) {
+      // Small optimization. If a connector's info is not found in the response, don't query for
+      // active topics with the given connectorName
+      final ConnectResponse<Map<String, Map<String, List<String>>>> topicsResponse = serviceContext
+          .getConnectClient()
+          .topics(connectorName);
+      if (topicsResponse.error().isPresent()) {
+        topics = ImmutableList.of();
+        warnings = ImmutableList.of(
+            new KsqlWarning("Could not list related topics due to error: "
+                + topicsResponse.error().get()));
+      } else {
+        topics = topicsResponse.datum()
+            .get()
+            .get(connectorName)
+            .getOrDefault(TOPICS_KEY, ImmutableList.of());
+        warnings = ImmutableList.of();
+      }
+    } else {
+      topics = ImmutableList.of();
+      warnings = ImmutableList.of();
+    }
+
     final List<SourceDescription> sources;
     if (connector.isPresent()) {
       sources = ksqlExecutionContext
@@ -103,7 +129,7 @@ public final class DescribeConnectorExecutor {
           .getAllDataSources()
           .values()
           .stream()
-          .filter(source -> connector.get().matches(source.getKafkaTopicName()))
+          .filter(source -> topics.contains(source.getKafkaTopicName()))
           .map(source -> SourceDescriptionFactory.create(
               source,
               false,
@@ -115,24 +141,6 @@ public final class DescribeConnectorExecutor {
       sources = ImmutableList.of();
     }
 
-    final ConnectResponse<Map<String, Map<String, List<String>>>> topicsResponse = serviceContext
-        .getConnectClient()
-        .topics(connectorName);
-
-    final List<KsqlWarning> warnings;
-    final List<String> topics;
-    if (topicsResponse.error().isPresent()) {
-      topics = ImmutableList.of();
-      warnings = ImmutableList.of(
-          new KsqlWarning("Could not list related topics due to error: "
-              + topicsResponse.error().get()));
-    } else {
-      topics = topicsResponse.datum()
-          .get()
-          .get(connectorName)
-          .getOrDefault(TOPICS_KEY, ImmutableList.of());
-      warnings = ImmutableList.of();
-    }
 
     final ConnectorDescription description = new ConnectorDescription(
         configuredStatement.getStatementText(),

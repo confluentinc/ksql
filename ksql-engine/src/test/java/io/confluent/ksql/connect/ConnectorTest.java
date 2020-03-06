@@ -25,15 +25,15 @@ public class ConnectorTest {
   public void shouldImplementHashAndEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new Connector("foo", foo -> true, foo -> foo, DataSourceType.KTABLE, "key"),
-            new Connector("foo", foo -> false, foo -> foo, DataSourceType.KTABLE, "key"),
-            new Connector("foo", foo -> false, foo -> foo, DataSourceType.KTABLE, "key")
+            new Connector("foo", DataSourceType.KTABLE, "key"),
+            new Connector("foo", DataSourceType.KTABLE, "key"),
+            new Connector("foo", DataSourceType.KTABLE, "key")
         ).addEqualityGroup(
-            new Connector("bar", foo -> true, foo -> foo, DataSourceType.KTABLE, "key")
+            new Connector("bar", DataSourceType.KTABLE, "key")
         ).addEqualityGroup(
-            new Connector("foo", foo -> true, foo -> foo, DataSourceType.KTABLE, "key2")
+            new Connector("foo", DataSourceType.KTABLE, "key2")
         ).addEqualityGroup(
-            new Connector("foo", foo -> true, foo -> foo, DataSourceType.KSTREAM, "key")
+            new Connector("foo", DataSourceType.KSTREAM, "key")
         )
         .testEquals();
   }

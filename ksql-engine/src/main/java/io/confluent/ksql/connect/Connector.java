@@ -31,36 +31,20 @@ import java.util.function.Predicate;
 public class Connector {
 
   private final String name;
-  @EffectivelyImmutable
-  private final Predicate<String> isTopicMatch;
-  @EffectivelyImmutable
-  private final Function<String, String> getSourceName;
   private final DataSourceType sourceType;
   private final Optional<String> keyField;
 
   public Connector(
       final String name,
-      final Predicate<String> isTopicMatch,
-      final Function<String, String> getSourceName,
       final DataSourceType sourceType,
       final String keyField) {
     this.name = Objects.requireNonNull(name, "name");
-    this.isTopicMatch = Objects.requireNonNull(isTopicMatch, "isTopicMatch");
-    this.getSourceName = Objects.requireNonNull(getSourceName, "getSourceName");
     this.sourceType = Objects.requireNonNull(sourceType, "sourceType");
     this.keyField = Optional.ofNullable(keyField);
   }
 
   public String getName() {
     return name;
-  }
-
-  public boolean matches(final String topic) {
-    return isTopicMatch.test(topic);
-  }
-
-  public String mapToSource(final String topic) {
-    return getSourceName.apply(topic);
   }
 
   public DataSourceType getSourceType() {

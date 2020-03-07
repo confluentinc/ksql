@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.Mockito.verify;
-
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.KsqlRequestExecutor;
 import io.confluent.ksql.util.KsqlException;
@@ -129,7 +128,7 @@ public class RunScriptTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Failed to read file: " + dir.toString());
-    expectedException.expectCause(hasMessage(containsString("Is a directory")));
+    expectedException.expectCause(hasMessage(containsString(dir.toString())));
 
     // When:
     cmd.execute(ImmutableList.of(dir.toString()), terminal);

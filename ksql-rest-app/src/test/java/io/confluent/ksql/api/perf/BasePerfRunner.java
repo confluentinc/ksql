@@ -15,9 +15,10 @@
 
 package io.confluent.ksql.api.perf;
 
-import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.client.WebClient;
@@ -165,7 +166,7 @@ public abstract class BasePerfRunner {
   private void setUp() {
     vertx = Vertx.vertx();
     ApiServerConfig serverConfig = createServerConfig();
-    server = new Server(vertx, serverConfig, endpoints, false);
+    server = new Server(vertx, serverConfig, endpoints, false, new KsqlDefaultSecurityExtension());
     server.start();
     client = createClient();
   }

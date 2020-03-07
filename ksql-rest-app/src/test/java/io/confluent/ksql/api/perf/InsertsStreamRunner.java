@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.perf;
 
+import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -149,7 +150,8 @@ public class InsertsStreamRunner extends BasePerfRunner {
     @Override
     public QueryPublisher createQueryPublisher(final String sql, final JsonObject properties,
         final Context context,
-        final WorkerExecutor workerExecutor) {
+        final WorkerExecutor workerExecutor,
+        final ApiSecurityContext apiSecurityContext) {
       return null;
     }
 
@@ -157,7 +159,8 @@ public class InsertsStreamRunner extends BasePerfRunner {
     public InsertsStreamSubscriber createInsertsSubscriber(final String target,
         final JsonObject properties,
         final Subscriber<InsertResult> acksSubscriber, final Context context,
-        final WorkerExecutor workerExecutor) {
+        final WorkerExecutor workerExecutor,
+        final ApiSecurityContext apiSecurityContext) {
       return new InsertsSubscriber(context, acksSubscriber);
     }
   }

@@ -26,7 +26,8 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
@@ -105,6 +106,7 @@ public class TestKsqlRestApp extends ExternalResource {
   private final Supplier<String> bootstrapServers;
   private final Supplier<ServiceContext> serviceContext;
   private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
+  private final KsqlSecurityContextProvider securityContextProvider;
   private final List<URL> listeners = new ArrayList<>();
   private final Optional<BasicCredentials> credentials;
   private ExecutableServer<KsqlRestConfig> restServer;
@@ -121,6 +123,7 @@ public class TestKsqlRestApp extends ExternalResource {
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
       final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
+      final KsqlSecurityContextProvider securityContextProvider,
       final Optional<BasicCredentials> credentials
   ) {
     this.baseConfig = buildBaseConfig(additionalProps);
@@ -128,6 +131,8 @@ public class TestKsqlRestApp extends ExternalResource {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.serviceContextBinderFactory =
         requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
+    this.securityContextProvider = requireNonNull(securityContextProvider,
+        "securityContextProvider");
     this.credentials = requireNonNull(credentials, "credentials");
   }
 
@@ -261,8 +266,8 @@ public class TestKsqlRestApp extends ExternalResource {
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
-          serviceContextBinderFactory
-      );
+          serviceContextBinderFactory,
+          ksqlSecurityExtension -> securityContextProvider);
 
       restServer = new ExecutableServer<>(
           new ApplicationServer<>(convertToLocalListener(config)),
@@ -445,6 +450,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
     private Supplier<ServiceContext> serviceContext;
     private BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> securityContextBinder;
+    private KsqlSecurityContextProvider securityContextProvider;
 
     private Optional<BasicCredentials> credentials = Optional.empty();
 
@@ -454,8 +460,10 @@ public class TestKsqlRestApp extends ExternalResource {
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
               DisabledKsqlClient::instance);
       this.securityContextBinder = (config, securityExtension) ->
-        new KsqlSecurityContextBinder(config, securityExtension,
-            new KsqlSchemaRegistryClientFactory(config, Collections.emptyMap())::get);
+          new KsqlSecurityContextBinder(config, securityExtension,
+              new KsqlSchemaRegistryClientFactory(config, Collections.emptyMap())::get);
+      this.securityContextProvider = apiSecurityContext -> new KsqlSecurityContext(Optional.empty(),
+          serviceContext.get());
     }
 
     @SuppressWarnings("unused") // Part of public API
@@ -527,6 +535,7 @@ public class TestKsqlRestApp extends ExternalResource {
           additionalProps,
           serviceContext,
           securityContextBinder,
+          securityContextProvider,
           credentials
       );
     }

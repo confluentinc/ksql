@@ -17,16 +17,26 @@ package io.confluent.ksql.api;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
-import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.security.KsqlAuthorizationProvider;
+import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.security.KsqlUserContextProvider;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import java.security.Principal;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -35,9 +45,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RunWith(CoreApiTestRunner.class)
-public class BasicAuthTest extends ApiTest {
+public class AuthTest extends ApiTest {
 
-  protected static final Logger log = LoggerFactory.getLogger(BasicAuthTest.class);
+  protected static final Logger log = LoggerFactory.getLogger(AuthTest.class);
 
   private static final String PROPS_JAAS_REALM = "KsqlServer-Props";
   private static final String KSQL_RESOURCE = "ksql-user";
@@ -56,6 +66,8 @@ public class BasicAuthTest extends ApiTest {
       .addUser(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, OTHER_RESOURCE)
       .build();
 
+  private volatile KsqlAuthorizationProvider authorizationProvider;
+
   @Override
   protected ApiServerConfig createServerConfig() {
     ApiServerConfig config = super.createServerConfig();
@@ -73,6 +85,32 @@ public class BasicAuthTest extends ApiTest {
     );
     return new ApiServerConfig(origs);
   }
+
+  @Override
+  protected void createServer(ApiServerConfig serverConfig) {
+    server = new Server(vertx, serverConfig, testEndpoints, false,
+        new KsqlSecurityExtension() {
+          @Override
+          public void initialize(final KsqlConfig ksqlConfig) {
+          }
+
+          @Override
+          public Optional<KsqlAuthorizationProvider> getAuthorizationProvider() {
+            return Optional.ofNullable(authorizationProvider);
+          }
+
+          @Override
+          public Optional<KsqlUserContextProvider> getUserContextProvider() {
+            return Optional.empty();
+          }
+
+          @Override
+          public void close() {
+          }
+        });
+    server.start();
+  }
+
 
   @Override
   protected HttpResponse<Buffer> sendRequest(final WebClient client, final String uri,
@@ -135,6 +173,60 @@ public class BasicAuthTest extends ApiTest {
   @Test
   public void shouldFailInsertRequestWithIncorrectRole() throws Exception {
     shouldFailInsertRequest(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
+  }
+
+  @Test
+  public void shouldExecutePullQueryWithApiSecurityContext() throws Exception {
+    super.shouldExecutePullQuery();
+    assertAuthorisedSecurityContext(USER_WITH_ACCESS);
+  }
+
+  @Test
+  public void shouldStreamInsertsWithApiSecurityContext() throws Exception {
+    super.shouldStreamInserts();
+    assertAuthorisedSecurityContext(USER_WITH_ACCESS);
+  }
+
+  @Test
+  public void shouldCloseQueryWithApiSecurityContext() throws Exception {
+    super.shouldCloseQuery();
+    assertAuthorisedSecurityContext(USER_WITH_ACCESS);
+  }
+
+  @Test
+  public void shouldAllowQueryWithPermissionCheck() throws Exception {
+    shouldAllowAccessWithPermissionCheck(USER_WITH_ACCESS, "POST",
+        "/query-stream", super::shouldExecutePullQuery);
+  }
+
+  @Test
+  public void shouldAllowInsertsWithPermissionCheck() throws Exception {
+    shouldAllowAccessWithPermissionCheck(USER_WITH_ACCESS, "POST",
+        "/inserts-stream", super::shouldInsertWithAcksStream);
+  }
+
+  @Test
+  public void shouldAllowCloseQueryWithPermissionCheck() throws Exception {
+    shouldAllowAccessWithPermissionCheck(USER_WITH_ACCESS, "POST",
+        "/close-query", super::shouldCloseQuery);
+  }
+
+  @Test
+  public void shouldNotAllowQueryIfPermissionCheckThrowsException() throws Exception {
+    shouldNotAllowAccessIfPermissionCheckThrowsException(
+        () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+  }
+
+  @Test
+  public void shouldNotAllowInsertsIfPermissionCheckThrowsException() throws Exception {
+    shouldNotAllowAccessIfPermissionCheckThrowsException(
+        () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+  }
+
+  @Test
+  public void shouldNotAllowCloseQueryIfPermissionCheckThrowsException() throws Exception {
+    shouldNotAllowAccessIfPermissionCheckThrowsException(
+        () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
   }
 
   private void shouldFailQuery(final String username, final String password) throws Exception {
@@ -215,4 +307,50 @@ public class BasicAuthTest extends ApiTest {
     request.sendBuffer(requestBody, requestFuture);
     return requestFuture.get();
   }
+
+  private void assertAuthorisedSecurityContext(String username) {
+    assertThat(testEndpoints.getLastApiSecurityContext(), is(notNullValue()));
+    assertThat(testEndpoints.getLastApiSecurityContext().getPrincipal().isPresent(), is(true));
+    assertThat(testEndpoints.getLastApiSecurityContext().getPrincipal().get().getName(),
+        is(username));
+  }
+
+  private void shouldAllowAccessWithPermissionCheck(final String expectedUser,
+      final String expectedMethod, final String expectedPath,
+      final ExceptionThrowingRunnable action) throws Exception {
+    stopServer();
+    stopClient();
+    AtomicReference<Principal> principalAtomicReference = new AtomicReference<>();
+    AtomicReference<String> methodAtomicReference = new AtomicReference<>();
+    AtomicReference<String> pathAtomicReference = new AtomicReference<>();
+    this.authorizationProvider = (user, method, path) -> {
+      principalAtomicReference.set(user);
+      methodAtomicReference.set(method);
+      pathAtomicReference.set(path);
+    };
+    createServer(createServerConfig());
+    client = createClient();
+    action.run();
+    assertThat(principalAtomicReference.get().getName(), is(expectedUser));
+    assertThat(methodAtomicReference.get(), is(expectedMethod));
+    assertThat(pathAtomicReference.get(), is(expectedPath));
+  }
+
+  private void shouldNotAllowAccessIfPermissionCheckThrowsException(
+      ExceptionThrowingRunnable runnable) throws Exception {
+    stopServer();
+    stopClient();
+    this.authorizationProvider = (user, method, path) -> {
+      throw new KsqlException("Not authorized");
+    };
+    createServer(createServerConfig());
+    client = createClient();
+    runnable.run();
+  }
+
+  private interface ExceptionThrowingRunnable {
+
+    void run() throws Exception;
+  }
+
 }

@@ -28,8 +28,10 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.endpoints.DefaultKsqlSecurityContextProvider;
+import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -163,6 +165,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
   private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
+  private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
   private final KsqlSecurityExtension securityExtension;
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
@@ -236,6 +239,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlResource ksqlResource,
       final VersionCheckerAgent versionCheckerAgent,
       final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
+      final KsqlSecurityContextProvider ksqlSecurityContextProvider,
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
@@ -263,6 +267,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.versionCheckerAgent = requireNonNull(versionCheckerAgent, "versionCheckerAgent");
     this.serviceContextBinderFactory =
         requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
+    this.ksqlSecurityContextProvider = requireNonNull(ksqlSecurityContextProvider,
+        "ksqlSecurityContextProvider");
     this.securityExtension = requireNonNull(securityExtension, "securityExtension");
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
@@ -324,15 +330,15 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   void startApiServer(final KsqlConfig ksqlConfigWithPort) {
     vertx = Vertx.vertx();
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
+
     final Endpoints endpoints = new KsqlServerEndpoints(
         ksqlEngine,
         ksqlConfigWithPort,
-        securityExtension,
-        RestServiceContextFactory::create,
-        pullQueryExecutor
+        pullQueryExecutor,
+        ksqlSecurityContextProvider
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
-    apiServer = new Server(vertx, apiServerConfig, endpoints, true);
+    apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension);
     apiServer.start();
     log.info("KSQL New API Server started");
   }
@@ -593,7 +599,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         Integer.MAX_VALUE,
         serviceContext,
         (config, securityExtension) ->
-            new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory));
+            new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory),
+        ksqlSecurityExtension -> new DefaultKsqlSecurityContextProvider(ksqlSecurityExtension,
+            RestServiceContextFactory::create,
+            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory)
+    );
   }
 
   static KsqlRestApplication buildApplication(
@@ -602,7 +612,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
       final ServiceContext serviceContext,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory) {
+      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
+      final Function<KsqlSecurityExtension, KsqlSecurityContextProvider>
+          securityContextProviderFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -740,6 +752,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlResource,
         versionChecker,
         serviceContextBinderFactory,
+        securityContextProviderFactory.apply(securityExtension),
         securityExtension,
         serverState,
         processingLogContext,

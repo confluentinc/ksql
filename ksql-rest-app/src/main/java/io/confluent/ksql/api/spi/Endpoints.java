@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.spi;
 
+import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.vertx.core.Context;
@@ -40,7 +41,7 @@ public interface Endpoints {
    * @return The publisher
    */
   QueryPublisher createQueryPublisher(String sql, JsonObject properties,
-      Context context, WorkerExecutor workerExecutor);
+      Context context, WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
   /**
    * Create a subscriber which will receive a stream of inserts from the API server and process
@@ -54,6 +55,7 @@ public interface Endpoints {
    * @return The inserts subscriber
    */
   InsertsStreamSubscriber createInsertsSubscriber(String target, JsonObject properties,
-      Subscriber<InsertResult> acksSubscriber, Context context, WorkerExecutor workerExecutor);
+      Subscriber<InsertResult> acksSubscriber, Context context, WorkerExecutor workerExecutor,
+      ApiSecurityContext apiSecurityContext);
 
 }

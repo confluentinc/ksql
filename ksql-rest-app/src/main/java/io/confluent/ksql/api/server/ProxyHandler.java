@@ -15,23 +15,35 @@
 
 package io.confluent.ksql.api.server;
 
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.ServerWebSocket;
+import io.vertx.core.http.UpgradeRejectedException;
+import io.vertx.core.http.WebSocket;
+import io.vertx.core.http.WebSocketBase;
+import io.vertx.core.http.WebSocketConnectOptions;
+import io.vertx.core.http.WebSocketFrame;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
+import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-public class ProxyHandler implements Handler<RoutingContext> {
+/**
+ * Used to proxy HTTP and websocket traffic from Vert.x to an internal Jetty server. This proxy is
+ * used to make the migration from Jetty to Vert.x simpler. Once we have migrated all endpoints to
+ * Vert.x, we will remove Jetty and remove this proxy
+ */
+class ProxyHandler {
 
   private static final Logger log = LoggerFactory.getLogger(ProxyHandler.class);
 
@@ -39,21 +51,27 @@ public class ProxyHandler implements Handler<RoutingContext> {
   private final Server server;
   private SocketAddress proxyTarget;
 
-  public ProxyHandler(final SocketAddress proxyTarget, final HttpClient proxyClient,
-      final Server server) {
-    this.proxyTarget = proxyTarget;
-    this.proxyClient = proxyClient;
+  ProxyHandler(final Server server) {
+    this.proxyClient = server.getVertx()
+        .createHttpClient(
+            new HttpClientOptions().setMaxPoolSize(10));
     this.server = server;
   }
 
-  @Override
-  public void handle(final RoutingContext routingContext) {
-    if (proxyTarget == null) {
-      proxyTarget = server.getProxyTarget();
-    }
+  void close() {
+    proxyClient.close();
+  }
+
+  void setupRoutes(final Router router) {
+    router.route(HttpMethod.GET, "/ws/*").handler(this::websocketProxyHandler);
+    router.route().handler(this::httpProxyHandler);
+  }
+
+  void httpProxyHandler(final RoutingContext routingContext) {
+
     final HttpServerRequest serverRequest = routingContext.request();
     final HttpClientRequest clientRequest = proxyClient.request(serverRequest.method(),
-        proxyTarget, proxyTarget.port(), proxyTarget.host(),
+        proxyTarget(), proxyTarget.port(), proxyTarget.host(),
         serverRequest.path(),
         resp -> responseHandler(resp, serverRequest))
         .exceptionHandler(ProxyHandler::exceptionHandler);
@@ -65,6 +83,41 @@ public class ProxyHandler implements Handler<RoutingContext> {
     } else {
       Pipe.pipe(serverRequest, clientRequest);
     }
+  }
+
+  void websocketProxyHandler(final RoutingContext routingContext) {
+    final HttpServerRequest request = routingContext.request();
+    final WebSocketConnectOptions options = new WebSocketConnectOptions()
+        .setHost(proxyTarget().host())
+        .setPort(proxyTarget().port())
+        .setHeaders(request.headers())
+        .setURI(request.uri());
+    request.pause();
+    proxyClient.webSocket(options, ar -> {
+      request.resume();
+      if (ar.succeeded()) {
+        final WebSocket webSocket = ar.result();
+        final ServerWebSocket serverWebSocket = request.upgrade();
+        WebsocketPipe.pipe(serverWebSocket, webSocket);
+        WebsocketPipe.pipe(webSocket, serverWebSocket);
+      } else {
+        if (ar.cause() instanceof UpgradeRejectedException) {
+          final UpgradeRejectedException uge = (UpgradeRejectedException) ar.cause();
+          request.response().setStatusCode(uge.getStatus()).setStatusMessage(uge.getMessage())
+              .end();
+        } else {
+          log.error("Failed to proxy websocket", ar.cause());
+          request.response().setStatusCode(500).end();
+        }
+      }
+    });
+  }
+
+  private SocketAddress proxyTarget() {
+    if (proxyTarget == null) {
+      proxyTarget = server.getProxyTarget();
+    }
+    return proxyTarget;
   }
 
   private static void responseHandler(final HttpClientResponse clientResponse,
@@ -140,6 +193,60 @@ public class ProxyHandler implements Handler<RoutingContext> {
       log.error("Exception in proxying", t);
     }
 
+  }
+
+
+  private static final class WebsocketPipe {
+
+    private final WebSocketBase from;
+    private final WebSocketBase to;
+    private boolean drainHandlerSet;
+
+    public static void pipe(final WebSocketBase from, final WebSocketBase to) {
+      new WebsocketPipe(from, to);
+    }
+
+    private WebsocketPipe(final WebSocketBase from, final WebSocketBase to) {
+      this.from = from;
+      this.to = to;
+
+      from.frameHandler(this::frameHandler);
+      from.exceptionHandler(this::exceptionHandler);
+      // Don't need to close the from websocket on end of to websocket as we proxy
+      // close frames too
+    }
+
+    private void frameHandler(final WebSocketFrame wsf) {
+      if (to.isClosed()) {
+        return;
+      }
+      to.writeFrame(wsf);
+      if (!drainHandlerSet && to.writeQueueFull()) {
+        drainHandlerSet = true;
+        from.pause();
+        to.drainHandler(this::drainHandler);
+      }
+    }
+
+    private void drainHandler(final Void v) {
+      drainHandlerSet = false;
+      from.resume();
+    }
+
+    private void exceptionHandler(final Throwable t) {
+      log.error("Exception in proxying websocket", t);
+      try {
+        to.close();
+      } catch (Exception ignore) {
+        // Ignore
+      }
+      try {
+        from.close();
+      } catch (Exception ignore) {
+        // Ignore
+      }
+
+    }
   }
 
 }

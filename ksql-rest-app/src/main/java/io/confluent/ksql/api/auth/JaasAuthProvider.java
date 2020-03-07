@@ -16,7 +16,6 @@
 package io.confluent.ksql.api.auth;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;

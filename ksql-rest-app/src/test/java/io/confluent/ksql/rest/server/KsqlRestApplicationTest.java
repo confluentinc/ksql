@@ -430,6 +430,7 @@ public class KsqlRestApplicationTest {
         versionCheckerAgent,
         (config, securityExtension) ->
             new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory),
+        apiSecurityContext -> new KsqlSecurityContext(Optional.empty(), serviceContext),
         securityExtension,
         serverState,
         processingLogContext,
@@ -440,4 +441,5 @@ public class KsqlRestApplicationTest {
         Optional.of(lagReportingAgent)
     );
   }
+
 }

@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_NAMES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_TYPES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_ROW;
 
+import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.endpoints.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
@@ -83,7 +84,8 @@ public class QueryStreamRunner extends BasePerfRunner {
     public synchronized QueryPublisher createQueryPublisher(final String sql,
         final JsonObject properties,
         final Context context,
-        final WorkerExecutor workerExecutor) {
+        final WorkerExecutor workerExecutor,
+        final ApiSecurityContext apiSecurityContext) {
       QueryStreamPublisher publisher = new QueryStreamPublisher(context,
           server.getWorkerExecutor());
       publisher.setQueryHandle(new TestQueryHandle());
@@ -96,7 +98,8 @@ public class QueryStreamRunner extends BasePerfRunner {
     public InsertsStreamSubscriber createInsertsSubscriber(final String target,
         final JsonObject properties,
         final Subscriber<InsertResult> acksSubscriber, final Context context,
-        final WorkerExecutor workerExecutor) {
+        final WorkerExecutor workerExecutor,
+        final ApiSecurityContext apiSecurityContext) {
       return null;
     }
 

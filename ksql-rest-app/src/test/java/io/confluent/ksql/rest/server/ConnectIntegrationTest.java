@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -126,12 +127,12 @@ public class ConnectIntegrationTest {
     assertThat("expected successful response", response.isSuccessful());
     assertThat(response.getResponse(), hasSize(1));
     assertThat(response.getResponse().get(0), instanceOf(ConnectorList.class));
-    assertThat(((ConnectorList) response.getResponse().get(0)).getConnectors().size(),is(1));
+    assertThat(((ConnectorList) response.getResponse().get(0)).getConnectors().size(), is(1));
     assertThat(
         ((ConnectorList) response.getResponse().get(0)).getConnectors().get(0).getName(),
         is("mock-connector"));
-    assertThat(
-        ((ConnectorList) response.getResponse().get(0)).getConnectors().get(0).getState(),
+    assertThatEventually(
+        () -> ((ConnectorList) response.getResponse().get(0)).getConnectors().get(0).getState(),
         is("RUNNING (1/1 tasks RUNNING)"));
   }
 

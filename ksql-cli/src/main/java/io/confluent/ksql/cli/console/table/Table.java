@@ -16,7 +16,6 @@
 package io.confluent.ksql.cli.console.table;
 
 import static java.util.Objects.requireNonNull;
-
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.cli.console.Console;
 import java.util.Arrays;
@@ -108,7 +107,7 @@ public final class Table {
   }
 
   private int getMultiLineStringLength(final String multiLineString) {
-    final String[] split = multiLineString.split("\n");
+    final String[] split = multiLineString.split(System.lineSeparator());
     return Arrays.stream(split)
         .mapToInt(String::length)
         .max()

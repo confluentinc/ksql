@@ -213,19 +213,19 @@ public class AuthTest extends ApiTest {
 
   @Test
   public void shouldNotAllowQueryIfPermissionCheckThrowsException() throws Exception {
-    shouldNotAllowAccessifPermissionCheckThrowsException(
+    shouldNotAllowAccessIfPermissionCheckThrowsException(
         () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
   }
 
   @Test
   public void shouldNotAllowInsertsIfPermissionCheckThrowsException() throws Exception {
-    shouldNotAllowAccessifPermissionCheckThrowsException(
+    shouldNotAllowAccessIfPermissionCheckThrowsException(
         () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
   }
 
   @Test
   public void shouldNotAllowCloseQueryIfPermissionCheckThrowsException() throws Exception {
-    shouldNotAllowAccessifPermissionCheckThrowsException(
+    shouldNotAllowAccessIfPermissionCheckThrowsException(
         () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
   }
 
@@ -336,7 +336,7 @@ public class AuthTest extends ApiTest {
     assertThat(pathAtomicReference.get(), is(expectedPath));
   }
 
-  private void shouldNotAllowAccessifPermissionCheckThrowsException(
+  private void shouldNotAllowAccessIfPermissionCheckThrowsException(
       ExceptionThrowingRunnable runnable) throws Exception {
     stopServer();
     stopClient();

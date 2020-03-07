@@ -142,7 +142,7 @@ included in the `ksqlDB-server` Docker image.
 
 To download the JDBC connector, use the following command:
 ```bash
-docker run -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.7.0 confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:5.4.1
+docker run -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.7.0 confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:{{ site.cprelease }}
 ```
 This command downloads the JDBC connector into the directory `./confluent-hub-components`.
 

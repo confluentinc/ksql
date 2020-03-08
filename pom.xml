@@ -22,14 +22,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>rest-utils-parent</artifactId>
-        <version>6.0.0-SNAPSHOT</version>
+        <version>6.0.0-beta200308175402</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksql-parent</name>
-    <version>6.0.0-SNAPSHOT</version>
+    <version>6.0.0-beta200308175402</version>
     <licenses>
         <license>
             <name>Confluent Community License</name>
@@ -124,9 +124,9 @@
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
-        <kafka.version>5.5.0-ccs-SNAPSHOT</kafka.version>
-        <ce.kafka.version>5.5.0-ce-SNAPSHOT</ce.kafka.version>
-        <confluent.version>5.5.0-SNAPSHOT</confluent.version>
+        <kafka.version>6.0.0-ccs-beta200308175402</kafka.version>
+        <ce.kafka.version>6.0.0-ce-beta200308175402</ce.kafka.version>
+        <confluent.version>6.0.0-beta200308175402</confluent.version>
     </properties>
 
     <dependencyManagement>

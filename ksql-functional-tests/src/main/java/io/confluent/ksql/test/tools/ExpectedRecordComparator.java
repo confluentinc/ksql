@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -107,33 +106,47 @@ public final class ExpectedRecordComparator {
 
   private static boolean compareNumber(final Object actualValue, final JsonNode expectedValue) {
     final NumericNode expected = (NumericNode) expectedValue;
+
     if (actualValue instanceof Integer) {
       return expected.intValue() == (Integer) actualValue;
     }
+
     if (actualValue instanceof Long) {
       return expected.longValue() == (Long) actualValue;
     }
+
     if (actualValue instanceof Double) {
       return expected.doubleValue() == (Double) actualValue;
     }
+
     if (actualValue instanceof BigDecimal) {
-      if (!expected.isBigDecimal()) {
-        // we don't want to risk comparing a BigDecimal with something of
-        // lower precision
+      return compareDecimal((BigDecimal) actualValue, expected);
+    }
+    return false;
+  }
+
+  private static boolean compareDecimal(final BigDecimal actualValue, final NumericNode expected) {
+    if (expected.isInt() || expected.isLong()) {
+      // Only match if actual has no decimal places:
+      if (actualValue.scale() > 0) {
         return false;
       }
 
-      try {
-        return expected.decimalValue()
-            .setScale(((BigDecimal) actualValue).scale(), RoundingMode.UNNECESSARY)
-            .equals(actualValue);
-      } catch (final ArithmeticException e) {
-        // the scale of the expected value cannot match the scale of the actual value
-        // without rounding
-        return false;
-      }
+      return expected.longValue() == actualValue.longValueExact();
     }
-    return false;
+
+    if (!expected.isBigDecimal()) {
+      // we don't want to risk comparing a BigDecimal with something of lower precision
+      return false;
+    }
+
+    try {
+      return expected.decimalValue().equals(actualValue);
+    } catch (final ArithmeticException e) {
+      // the scale of the expected value cannot match the scale of the actual value
+      // without rounding
+      return false;
+    }
   }
 
   private static boolean compareText(final Object actualValue, final JsonNode expectedValue) {

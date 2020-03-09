@@ -35,7 +35,8 @@ public final class JsonSerdeUtils {
 
   // the JsonSchemaConverter adds a magic NULL byte and 4 bytes for the
   // schema ID at the start of the message
-  private static final int SIZE_OF_SR_PREFIX = Byte.BYTES + Integer.BYTES;
+  public static final int SIZE_OF_SR_PREFIX = Byte.BYTES + Integer.BYTES;
+  public static final int MAGIC_BYTE = 0x00;
 
   private JsonSerdeUtils() {
   }
@@ -79,7 +80,7 @@ public final class JsonSerdeUtils {
     // (https://tools.ietf.org/html/rfc7159#section-2) valid JSON should not
     // start with 0x00 - the only "insignificant" characters allowed are
     // 0x20, 0x09, 0x0A and 0x0D
-    return json.length > 0 && json[0] == 0x00;
+    return json.length > 0 && json[0] == MAGIC_BYTE;
   }
 
   static PersistenceSchema validateSchema(final PersistenceSchema schema) {

@@ -15,12 +15,16 @@
 
 package io.confluent.ksql.json;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.DecimalNode;
+import java.math.BigDecimal;
 import org.junit.Test;
 
 public class JsonMapperTest {
@@ -34,6 +38,35 @@ public class JsonMapperTest {
 
   @Test
   public void shouldIgnoreUnknownProperties() {
-    assertThat(OBJECT_MAPPER.isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES), is(false));
+    assertThat(OBJECT_MAPPER.isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES),
+        is(false));
+  }
+
+  @Test
+  public void shouldSerializeScientificDecimal() throws Exception {
+    // When:
+    final String json = OBJECT_MAPPER.writeValueAsString(new BigDecimal("1E+1"));
+
+    // Then:
+    assertThat(json, is("1E+1"));
+  }
+
+  @Test
+  public void shouldSerializeDecimalsWithoutLossOfTrailingZeros() throws Exception {
+    // When:
+    final String json = OBJECT_MAPPER.writeValueAsString(new BigDecimal("10.0"));
+
+    // Then:
+    assertThat(json, is("10.0"));
+  }
+
+  @Test
+  public void shouldDeserializeDecimalsWithoutLossOfTrailingZeros() throws Exception {
+    // When:
+    final JsonNode node = OBJECT_MAPPER.readTree("10.0");
+
+    // Then:
+    assertThat(node, is(instanceOf(DecimalNode.class)));
+    assertThat(node.decimalValue(), is(new BigDecimal("10.0")));
   }
 }

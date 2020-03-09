@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -56,7 +57,8 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(word -> false);
   private static final ObjectMapper MAPPER = new ObjectMapper()
-      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
   private static final Schema STRING_ARRAY = SchemaBuilder
       .array(Schema.OPTIONAL_STRING_SCHEMA).build();

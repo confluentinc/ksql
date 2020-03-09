@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.json;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -26,9 +27,11 @@ import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -97,17 +100,22 @@ public class KsqlJsonDeserializerTest {
       .put("caseField", 1L)
       .build();
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  @Parameters
+  @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][]{{false}, {true}});
+    return Arrays.asList(new Object[][]{{"Plain JSON", false}, {"Magic byte prefixed", true}});
   }
 
   @Parameter
+  public String suiteName;
+
+  @Parameter(1)
   public boolean useSchemas;
 
   private Struct expectedOrder;
@@ -457,7 +465,7 @@ public class KsqlJsonDeserializerTest {
     final Map<String, String> validCoercions = ImmutableMap.<String, String>builder()
         .put("true", "true")
         .put("42", "42")
-        .put("42.000", "42")
+        .put("42.000", "42.000")
         .put("42.001", "42.001")
         .put("\"just a string\"", "just a string")
         .put("{\"json\": \"object\"}", "{\"json\":\"object\"}")
@@ -496,6 +504,34 @@ public class KsqlJsonDeserializerTest {
       // Then:
       assertThat(result, is(new BigDecimal("1.1234512345123451234")));
     });
+  }
+
+  @Test
+  public void shouldDeserializeDecimalsWithoutStrippingTrailingZeros() {
+    // Given:
+    givenDeserializerForSchema(DecimalUtil.builder(3,1).build());
+
+    final byte[] bytes = addMagic("10.0".getBytes(UTF_8));
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(new BigDecimal("10.0")));
+  }
+
+  @Test
+  public void shouldDeserializeScientificNotation() {
+    // Given:
+    givenDeserializerForSchema(DecimalUtil.builder(3,1).build());
+
+    final byte[] bytes = addMagic("1E+1".getBytes(UTF_8));
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(new BigDecimal("1e+1")));
   }
 
   @Test

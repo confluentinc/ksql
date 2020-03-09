@@ -20,8 +20,8 @@
         "CREATE STREAM OUTPUT AS SELECT x AS rowkey FROM INPUT;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "ROWKEY is a reserved system column name. You cannot use it as an alias for a column."
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Value column name(s) `ROWKEY` clashes with key column name(s)."
       }
     },
     {

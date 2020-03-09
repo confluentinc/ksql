@@ -603,7 +603,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Reserved column name in select: `ROWKEY`. Please remove or alias the column."
+        "message": "Value column name(s) `ROWKEY` clashes with key column name(s)."
       }
     },
     {
@@ -678,7 +678,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Reserved column name in select: `ROWKEY`. Please remove or alias the column."
+        "message": "Value column name(s) `ROWKEY` clashes with key column name(s)."
       }
     },
     {
@@ -747,7 +747,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Reserved column name in select: `ROWKEY`. Please remove or alias the column."
+        "message": "Value column name(s) `ROWKEY` clashes with key column name(s)."
       }
     },
     {
@@ -877,6 +877,33 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Column 'F0' is ambiguous."
+      }
+    },
+    {
+      "name": "should allow ROWKEY as value column",
+      "statements": [
+        "CREATE STREAM INPUT (id int key, rowkey string) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [{"topic": "input", "key": 42, "value": {"rowkey": "a"}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"ROWKEY": "a"}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, ROWKEY STRING"}
+        ]
+      }
+    },
+    {
+      "name": "should not allow ROWKEY as value column - legacy",
+      "statements": [
+        "CREATE STREAM INPUT (rowkey int) WITH (kafka_topic='input', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "'ROWKEY' is a reserved column name. It can only be used for KEY columns."
       }
     }
   ]

@@ -318,8 +318,7 @@ public final class PullQueryExecutor {
     );
   }
 
-  @VisibleForTesting
-  TableRowsEntity forwardTo(
+  private static TableRowsEntity forwardTo(
       final KsqlNode owner,
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext
@@ -775,9 +774,12 @@ public final class PullQueryExecutor {
     final boolean noSystemColumns = analysis.getSelectColumnRefs().stream()
         .noneMatch(SchemaUtil::isSystemColumn);
 
+    final boolean noKeyColumns = analysis.getSelectColumnRefs().stream()
+        .noneMatch(input.schema::isKeyColumn);
+
     final LogicalSchema intermediateSchema;
     final Function<TableRow, GenericRow> preSelectTransform;
-    if (noSystemColumns) {
+    if (noSystemColumns && noKeyColumns) {
       intermediateSchema = input.schema;
       preSelectTransform = TableRow::value;
     } else {

@@ -31,9 +31,16 @@ import org.slf4j.LoggerFactory;
  * interactive KSQL, and the config topic used by headless KSQL.
  */
 public final class KsqlInternalTopicUtils {
+
   private static final Logger log = LoggerFactory.getLogger(KsqlInternalTopicUtils.class);
 
-  private static final int NPARTITIONS = 1;
+  private static final int INTERNAL_TOPIC_PARTITION_COUNT = 1;
+  private static final long INTERNAL_TOPIC_RETENTION_MS = Long.MAX_VALUE;
+
+  private static final ImmutableMap<String, ?> INTERNAL_TOPIC_CONFIG = ImmutableMap.of(
+      TopicConfig.RETENTION_MS_CONFIG, INTERNAL_TOPIC_RETENTION_MS,
+      TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE
+  );
 
   private KsqlInternalTopicUtils() {
   }
@@ -48,58 +55,75 @@ public final class KsqlInternalTopicUtils {
    *                   to topic configs.
    * @param topicClient A topic client used to query topic configs and create the topic.
    */
-  public static void ensureTopic(final String name,
-                                 final KsqlConfig ksqlConfig,
-                                 final KafkaTopicClient topicClient) {
-    final short replicationFactor = 
-        ksqlConfig.getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY);
+  public static void ensureTopic(
+      final String name,
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient topicClient
+  ) {
+    if (topicClient.isTopicExists(name)) {
+      validateTopicConfig(name, ksqlConfig, topicClient);
+      return;
+    }
+
+    final short replicationFactor = ksqlConfig
+        .getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY);
+
     if (replicationFactor < 2) {
       log.warn("Creating topic {} with replication factor of {} which is less than 2. "
               + "This is not advisable in a production environment. ",
           name, replicationFactor);
     }
-    
-    final short minInsyncReplica = 
-        ksqlConfig.getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY);
-    final long requiredTopicRetention = Long.MAX_VALUE;
 
-    if (topicClient.isTopicExists(name)) {
-      final TopicDescription description = topicClient.describeTopic(name);
-      if (description.partitions().size() != NPARTITIONS) {
-        throw new IllegalStateException(
-            String.format(
-                "Invalid partition count on topic %s: %d", name, description.partitions().size()));
-      }
-      final int nReplicas = description.partitions().get(0).replicas().size();
-      if (nReplicas < replicationFactor) {
-        throw new IllegalStateException(
-            String.format(
-                "Invalid replcation factor on topic %s: %d", name, nReplicas));
-      }
-
-      final ImmutableMap<String, Object> requiredConfig =
-          ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention);
-
-      if (topicClient.addTopicConfig(name, requiredConfig)) {
-        log.info(
-            "Corrected retention.ms on ksql internal topic. topic:{}, retention.ms:{}",
-            name,
-            requiredTopicRetention);
-      }
-
-      return;
-    }
+    final short minInSyncReplicas = ksqlConfig
+        .getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY);
 
     topicClient.createTopic(
         name,
-        NPARTITIONS,
+        INTERNAL_TOPIC_PARTITION_COUNT,
         replicationFactor,
-        ImmutableMap.of(
-            TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention,
-            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE,
-            TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, minInsyncReplica,
-            TopicConfig.UNCLEAN_LEADER_ELECTION_ENABLE_CONFIG, false
-        )
+        ImmutableMap.<String, Object>builder()
+            .putAll(INTERNAL_TOPIC_CONFIG)
+            .put(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, minInSyncReplicas)
+            .put(TopicConfig.UNCLEAN_LEADER_ELECTION_ENABLE_CONFIG, false)
+            .build()
     );
+  }
+
+  private static void validateTopicConfig(
+      final String name,
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient topicClient
+  ) {
+    final TopicDescription description = topicClient.describeTopic(name);
+
+    final int actualPartitionCount = description.partitions().size();
+    if (actualPartitionCount != INTERNAL_TOPIC_PARTITION_COUNT) {
+      throw new IllegalStateException("Invalid partition count on topic "
+          + "'" + name + "'. "
+          + "Expected: " + INTERNAL_TOPIC_PARTITION_COUNT + ", but was: " + actualPartitionCount);
+    }
+
+    final short replicationFactor = ksqlConfig
+        .getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY);
+
+    final int actualRf = description.partitions().get(0).replicas().size();
+    if (actualRf < replicationFactor) {
+      throw new IllegalStateException("Invalid replication factor on topic "
+          + "'" + name + "'. "
+          + "Expected: " + replicationFactor + ", but was: " + actualRf);
+    }
+
+    if (replicationFactor < 2) {
+      log.warn("Topic {} has replication factor of {} which is less than 2. "
+              + "This is not advisable in a production environment. ",
+          name, replicationFactor);
+    }
+
+    if (topicClient.addTopicConfig(name, INTERNAL_TOPIC_CONFIG)) {
+      log.info(
+          "Corrected retention.ms on ksql internal topic. topic:{}, retention.ms:{}",
+          name,
+          INTERNAL_TOPIC_RETENTION_MS);
+    }
   }
 }

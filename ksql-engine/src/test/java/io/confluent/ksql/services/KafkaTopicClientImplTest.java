@@ -15,48 +15,47 @@
 
 package io.confluent.ksql.services;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.niceMock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
-import io.confluent.ksql.util.ReservedInternalTopics;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
-import org.apache.kafka.clients.admin.AlterConfigOp.OpType;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
-import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.clients.admin.ListTopicsResult;
@@ -71,783 +70,818 @@ import org.apache.kafka.common.errors.DisconnectException;
 import org.apache.kafka.common.errors.NotControllerException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.errors.TopicDeletionDisabledException;
-import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
-import org.apache.kafka.common.utils.Utils;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.IArgumentMatcher;
-import org.easymock.Mock;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class KafkaTopicClientImplTest {
+
+  private static final Node A_NODE = new Node(1, "host", 9092);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private static final String topicName1 = "topic1";
-  private static final String topicName2 = "topic2";
-  private static final String topicName3 = "topic3";
-  private static final String internalTopic1 = String.format("%s%s_%s",
-      ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
-      "default",
-      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
-          + "-STATE-STORE-0000000006-repartition");
-  private static final String internalTopic2 = String.format("%s%s_%s",
-      ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
-      "default",
-      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
-          + "-STATE-STORE-0000000006-changelog");
-  private static final String internalTopic = String.format("%s_internal",
-      ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX);
-  private Node node;
   @Mock
   private AdminClient adminClient;
 
+  private final Map<String, List<TopicPartitionInfo>> topicPartitionInfo = new HashMap<>();
+  private final Map<ConfigResource, Config> topicConfigs = new HashMap<>();
+
+  private KafkaTopicClient kafkaTopicClient;
+
+  @SuppressWarnings("deprecation")
   @Before
-  public void init() {
-    node = new Node(1, "host", 9092);
+  public void setUp() {
+    topicPartitionInfo.clear();
+    topicConfigs.clear();
+
+    when(adminClient.listTopics()).thenAnswer(listTopicResult());
+    when(adminClient.describeTopics(any(), any())).thenAnswer(describeTopicsResult());
+    when(adminClient.createTopics(any(), any())).thenAnswer(createTopicsResult());
+    when(adminClient.deleteTopics(any())).thenAnswer(deleteTopicsResult());
+    when(adminClient.describeConfigs(any())).thenAnswer(describeConfigsResult());
+    when(adminClient.incrementalAlterConfigs(any())).thenAnswer(alterConfigsResult());
+    when(adminClient.alterConfigs(any())).thenAnswer(alterConfigsResult());
+
+    kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
   }
 
   @Test
   public void shouldCreateTopic() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.createTopics(anyObject(), shouldValidateCreate(false)))
-        .andReturn(getCreateTopicsResult());
-    replay(adminClient);
+    // When:
+    kafkaTopicClient.createTopic("someTopic", 1, (short) 2);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic("test", 1, (short) 1);
-    verify(adminClient);
+    // Then:
+    verify(adminClient).createTopics(
+        eq(ImmutableSet.of(newTopic("someTopic", 1, 2))),
+        argThat(createOptions -> !createOptions.shouldValidateOnly())
+    );
+  }
+
+  @Test
+  public void shouldNotCreateTopicIfItAlreadyExistsWithMatchingDetails() {
+    // Given:
+    givenTopicExists("someTopic", 3, 2);
+
+    // When:
+    kafkaTopicClient.createTopic("someTopic", 3, (short) 2);
+
+    // Then:
+    verify(adminClient, never()).createTopics(any(), any());
+  }
+
+  @Test
+  public void shouldNotCreateTopicIfItAlreadyExistsWithDefaultRf() {
+    // Given:
+    givenTopicExists("someTopic", 1, 2);
+
+    // When:
+    kafkaTopicClient.createTopic("someTopic", 1, (short) -1);
+
+    // Then:
+    verify(adminClient, never()).createTopics(any(), any());
+  }
+
+  @Test
+  public void shouldThrowFromCreateTopicIfExistingHasDifferentReplicationFactor() {
+    // Given:
+    givenTopicExists("someTopic", 1, 1);
+
+    // Expect:
+    expectedException.expect(KafkaTopicExistsException.class);
+    expectedException.expectMessage("and 2 replication factor (topic has 1)");
+
+    // When:
+    kafkaTopicClient.createTopic("someTopic", 1, (short) 2);
+  }
+
+  @Test
+  public void shouldThrowFromCreateTopicIfNoAclsSet() {
+    // Given:
+    when(adminClient.createTopics(any(), any()))
+        .thenAnswer(createTopicsResult(new TopicAuthorizationException("error")));
+
+    // Expect:
+    expectedException.expect(KsqlTopicAuthorizationException.class);
+    expectedException.expectMessage("Authorization denied to Create on topic(s): [someTopic]");
+
+    // When:
+    kafkaTopicClient.createTopic("someTopic", 1, (short) 2);
+  }
+
+  @Test
+  public void shouldRetryDescribeTopicDuringCreateTopicOnRetryableException() {
+    // Given:
+    givenTopicExists("topicName", 1, 2);
+
+    when(adminClient.describeTopics(any(), any()))
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
+        .thenAnswer(describeTopicsResult()); // The second time, return the right response.
+
+    // When:
+    kafkaTopicClient.createTopic("topicName", 1, (short) 2);
+
+    // Then:
+    verify(adminClient, times(2)).describeTopics(any(), any());
   }
 
   @Test
   public void shouldValidateCreateTopic() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.createTopics(anyObject(), shouldValidateCreate(true)))
-        .andReturn(getCreateTopicsResult());
-    replay(adminClient);
+    // When:
+    kafkaTopicClient.validateCreateTopic("topicA", 2, (short) 1);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.validateCreateTopic("test", 1, (short) 1);
-    verify(adminClient);
+    // Then:
+    verify(adminClient).createTopics(
+        eq(ImmutableSet.of(newTopic("topicA", 2, 1))),
+        argThat(CreateTopicsOptions::shouldValidateOnly)
+    );
   }
 
   @Test
-  public void shouldUseExistingTopicWithTheSameSpecsInsteadOfCreate() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.describeTopics(anyObject(), anyObject()))
-        .andReturn(getDescribeTopicsResult());
-    replay(adminClient);
+  public void shouldNotValidateCreateTopicIfItAlreadyExistsWithMatchingDetails() {
+    // Given:
+    givenTopicExists("someTopic", 1, 2);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
-    verify(adminClient);
+    // When:
+    kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2);
+
+    // Then:
+    verify(adminClient, never()).createTopics(any(), any());
   }
 
   @Test
-  public void shouldFailCreateExistingTopic() {
+  public void shouldThrowFromValidateCreateTopicIfExistingHasDifferentReplicationFactor() {
+    // Given:
+    givenTopicExists("someTopic", 1, 1);
+
+    // Expect:
     expectedException.expect(KafkaTopicExistsException.class);
     expectedException.expectMessage("and 2 replication factor (topic has 1)");
 
-    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
-    expect(adminClient.describeConfigs(describeBrokerRequest()))
-        .andReturn(describeBrokerResult(Collections.emptyList()));
-    expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.describeTopics(anyObject(), anyObject()))
-        .andReturn(getDescribeTopicsResult());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
-    verify(adminClient);
+    // When:
+    kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2);
   }
 
   @Test
-  public void shouldFailCreateTopicWhenNoAclsSet() {
+  public void shouldThrowFromValidateCreateTopicIfNoAclsSet() {
     // Given:
-    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.createTopics(anyObject(), anyObject()))
-        .andReturn(createTopicAuthorizationException());
-
-    replay(adminClient);
+    when(adminClient.createTopics(any(), any()))
+        .thenAnswer(createTopicsResult(new TopicAuthorizationException("error")));
 
     // Expect:
     expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(
-        String.format("Authorization denied to Create on topic(s): [%s]", topicName1));
+    expectedException.expectMessage("Authorization denied to Create on topic(s): [someTopic]");
 
     // When:
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
-    verify(adminClient);
+    kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2);
   }
 
   @Test
-  public void shouldNotFailIfTopicAlreadyExistsButCreateUsesDefaultReplicas() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.describeTopics(anyObject(), anyObject()))
-        .andReturn(getDescribeTopicsResult());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) -1);
-    verify(adminClient);
-  }
-
-  @Test
-  public void shouldNotFailIfTopicAlreadyExistsWhenCreating() {
-    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.createTopics(anyObject(), anyObject()))
-        .andReturn(createTopicReturningTopicExistsException());
-    expect(adminClient.describeTopics(anyObject(), anyObject()))
-        .andReturn(getDescribeTopicsResult());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
-    verify(adminClient);
-  }
-
-  @Test
-  public void shouldRetryDescribeTopicOnRetriableException() {
-    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.createTopics(anyObject(), anyObject()))
-        .andReturn(createTopicReturningTopicExistsException());
-    expect(adminClient.describeTopics(anyObject(), anyObject()))
-        .andReturn(describeTopicReturningUnknownPartitionException()).once();
-    // The second time, return the right response.
-    expect(adminClient.describeTopics(anyObject(), anyObject()))
-        .andReturn(getDescribeTopicsResult()).once();
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
-    verify(adminClient);
-  }
-
-  @Test(expected = KafkaResponseGetFailedException.class)
-  public void shouldFailToDescribeTopicsWhenRetriesExpire() {
-    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.describeTopics(anyObject(), anyObject()))
-        .andReturn(describeTopicReturningUnknownPartitionException())
-        .andReturn(describeTopicReturningUnknownPartitionException())
-        .andReturn(describeTopicReturningUnknownPartitionException())
-        .andReturn(describeTopicReturningUnknownPartitionException())
-        .andReturn(describeTopicReturningUnknownPartitionException());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.describeTopics(Collections.singleton(topicName1));
-    verify(adminClient);
-  }
-
-  @Test
-  public void shouldFailToDescribeOnTopicAuthorizationException() {
+  public void shouldNotValidateCreateTopicIfItAlreadyExistsWithDefaultRf() {
     // Given:
-    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.describeTopics(anyObject(), anyObject()))
-        .andReturn(describeTopicAuthorizationException());
+    givenTopicExists("someTopic", 1, 2);
 
-    replay(adminClient);
+    // When:
+    kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) -1);
+
+    // Then:
+    verify(adminClient, never()).createTopics(any(), any());
+  }
+
+  @Test
+  public void shouldRetryDescribeTopicDuringValidateCreateTopicOnRetryableException() {
+    // Given:
+    givenTopicExists("topicName", 1, 2);
+
+    when(adminClient.describeTopics(any(), any()))
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
+        .thenAnswer(describeTopicsResult()); // The second time, return the right response.
+
+    // When:
+    kafkaTopicClient.validateCreateTopic("topicName", 1, (short) 2);
+
+    // Then:
+    verify(adminClient, times(2)).describeTopics(any(), any());
+  }
+
+  @Test
+  public void shouldThrowOnDescribeTopicsWhenRetriesExpire() {
+    // Given:
+    when(adminClient.describeTopics(any(), any()))
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")));
+
+    // Then:
+    expectedException.expect(KafkaResponseGetFailedException.class);
+
+    // When:
+    kafkaTopicClient.describeTopics(Collections.singleton("aTopic"));
+  }
+
+  @Test
+  public void shouldThrowOnDescribeOnTopicAuthorizationException() {
+    // Given:
+    when(adminClient.describeTopics(any(), any()))
+        .thenAnswer(describeTopicsResult(new TopicAuthorizationException("meh")));
 
     // Expect:
     expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(
-        String.format("Authorization denied to Describe on topic(s): [%s]", topicName1));
+    expectedException.expectMessage("Authorization denied to Describe on topic(s): [topic1]");
 
     // When:
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.describeTopics(Collections.singleton(topicName1));
-    verify(adminClient);
-  }
-
-  @Test
-  public void shouldRetryListTopics() {
-    expect(adminClient.listTopics()).andReturn(listTopicResultWithNotControllerException()).once();
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    final Set<String> names = kafkaTopicClient.listTopicNames();
-    assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
-    verify(adminClient);
+    kafkaTopicClient.describeTopics(ImmutableList.of("topic1"));
   }
 
   @Test
   public void shouldListTopicNames() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
+    // When:
+    givenTopicExists("topicA", 1, 1);
+    givenTopicExists("topicB", 1, 2);
+
+    when(adminClient.listTopics())
+        .thenAnswer(listTopicResult());
+
+    // When:
     final Set<String> names = kafkaTopicClient.listTopicNames();
-    assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
-    verify(adminClient);
+
+    // Then:
+    assertThat(names, is(ImmutableSet.of("topicA", "topicB")));
+  }
+
+  @Test
+  public void shouldRetryListTopics() {
+    // When:
+    givenTopicExists("topic1", 1, 1);
+    givenTopicExists("topic2", 1, 2);
+
+    when(adminClient.listTopics())
+        .thenAnswer(listTopicResult(new NotControllerException("Not Controller")))
+        .thenAnswer(listTopicResult());
+
+    // When:
+    kafkaTopicClient.listTopicNames();
+
+    // Then:
+    verify(adminClient, times(2)).listTopics();
   }
 
   @Test
   public void shouldDeleteTopics() {
-    expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    final List<String> topics = Collections.singletonList(topicName2);
-    kafkaTopicClient.deleteTopics(topics);
-    verify(adminClient);
+    // When:
+    kafkaTopicClient.deleteTopics(ImmutableSet.of("the-topic"));
+
+    // Then:
+    verify(adminClient).deleteTopics(ImmutableSet.of("the-topic"));
   }
 
   @Test
-  public void shouldReturnIfDeleteTopicsIsEmpty() {
-    // Given:
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-
+  public void shouldToCallOutToKafkaIfDeleteListIsEmpty() {
     // When:
-    kafkaTopicClient.deleteTopics(Collections.emptyList());
+    kafkaTopicClient.deleteTopics(ImmutableList.of());
 
-    verify(adminClient);
+    // Then:
+    verify(adminClient, never()).deleteTopics(any());
   }
 
   @Test
   public void shouldDeleteInternalTopics() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());
-    expect(adminClient.deleteTopics(Arrays.asList(internalTopic2, internalTopic1)))
-        .andReturn(getDeleteInternalTopicsResult());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    final String applicationId = String.format("%s%s",
-        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
-        "default_query_CTAS_USERS_BY_CITY");
-    kafkaTopicClient.deleteInternalTopics(applicationId);
-    verify(adminClient);
-  }
-
-  @Test(expected = TopicDeletionDisabledException.class)
-  public void shouldFailToDeleteOnTopicDeletionDisabledException()
-          throws InterruptedException, ExecutionException, TimeoutException {
     // Given:
-    expect(adminClient.deleteTopics(anyObject())).andReturn(
-        deleteTopicException(new TopicDeletionDisabledException("error")));
-    replay(adminClient);
+    final String applicationId = "whatEva";
+    final String internalTopic1 = applicationId + "-something-repartition";
+    final String internalTopic2 = applicationId + "-someting-changelog";
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
+    givenTopicExists("topic1", 1, 1);
+    givenTopicExists(internalTopic1, 1, 1);
+    givenTopicExists(internalTopic2, 1, 1);
+    givenTopicExists("topic2", 1, 1);
 
     // When:
-    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
+    kafkaTopicClient.deleteInternalTopics(applicationId);
+
+    // Then:
+    verify(adminClient).deleteTopics(ImmutableList.of(
+        internalTopic1, internalTopic2
+    ));
   }
 
   @Test
-  public void shouldFailToDeleteOnTopicAuthorizationException()
-          throws InterruptedException, ExecutionException, TimeoutException {
+  public void shouldFailToDeleteOnTopicDeletionDisabledException() {
     // Given:
-    expect(adminClient.deleteTopics(anyObject())).andReturn(
-        (deleteTopicException(new TopicAuthorizationException("error"))));
-    replay(adminClient);
+    when(adminClient.deleteTopics(any()))
+        .thenAnswer(deleteTopicsResult(new TopicDeletionDisabledException("error")));
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
+    // Expect:
+    expectedException.expect(TopicDeletionDisabledException.class);
+
+    // When:
+    kafkaTopicClient.deleteTopics(ImmutableList.of("some-topic"));
+  }
+
+  @Test
+  public void shouldFailToDeleteOnTopicAuthorizationException() {
+    // Given:
+    when(adminClient.deleteTopics(any()))
+        .thenAnswer(deleteTopicsResult(new TopicAuthorizationException("error")));
 
     // Expect:
     expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(
-        String.format("Authorization denied to Delete on topic(s): [%s]", topicName1));
+    expectedException.expectMessage("Authorization denied to Delete on topic(s): [theTopic]");
 
     // When:
-    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
-  }
-
-  @Test(expected = KafkaDeleteTopicsException.class)
-  public void shouldFailToDeleteOnKafkaDeleteTopicsException()
-          throws InterruptedException, ExecutionException, TimeoutException {
-    // Given:
-    expect(adminClient.deleteTopics(anyObject())).andReturn(
-        (deleteTopicException(new Exception("error"))));
-    replay(adminClient);
-
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-
-    // When:
-    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
+    kafkaTopicClient.deleteTopics(ImmutableList.of("theTopic"));
   }
 
   @Test
-  public void shouldNotThrowKafkaDeleteTopicsExceptionWhenMissingTopic()
-          throws InterruptedException, ExecutionException, TimeoutException {
+  public void shouldFailToDeleteOnKafkaDeleteTopicsException() {
     // Given:
-    expect(adminClient.deleteTopics(anyObject())).andReturn(
-        (deleteTopicException(new UnknownTopicOrPartitionException("error"))));
-    replay(adminClient);
+    when(adminClient.deleteTopics(any()))
+        .thenAnswer(deleteTopicsResult(new Exception("error")));
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
+    // Expect:
+    expectedException.expect(KafkaDeleteTopicsException.class);
 
     // When:
-    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
+    kafkaTopicClient.deleteTopics(ImmutableList.of("aTopic"));
+  }
+
+  @Test
+  public void shouldNotThrowKafkaDeleteTopicsExceptionWhenMissingTopic() {
+    // Given:
+    when(adminClient.deleteTopics(any()))
+        .thenAnswer(deleteTopicsResult(new UnknownTopicOrPartitionException("error")));
+
+    // When:
+    kafkaTopicClient.deleteTopics(ImmutableList.of("aTopic"));
+
+    // Then: did NOT throw.
   }
 
   @Test
   public void shouldGetTopicConfig() {
-    expect(adminClient.describeConfigs(topicConfigsRequest("fred")))
-        .andReturn(topicConfigResponse(
-            "fred",
-            overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
-            defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
-        ));
-    replay(adminClient);
+    // Given:
+    givenTopicConfigs(
+        "fred",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
+        defaultConfigEntry(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, "1")
+    );
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
+    // When:
     final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
 
+    // Then:
     assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
-    assertThat(config.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("snappy"));
-  }
-
-  @Test(expected = KafkaResponseGetFailedException.class)
-  public void shouldThrowOnNoneRetriableGetTopicConfigError() {
-    expect(adminClient.describeConfigs(anyObject()))
-        .andReturn(topicConfigResponse(new RuntimeException()));
-    replay(adminClient);
-
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
-
-    assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
-    assertThat(config.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("snappy"));
+    assertThat(config.get(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG), is("1"));
   }
 
   @Test
-  public void shouldHandleRetriableGetTopicConfigError() {
-    expect(adminClient.describeConfigs(anyObject()))
-        .andReturn(topicConfigResponse(new DisconnectException()))
-        .andReturn(topicConfigResponse(
-            "fred",
-            overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
-            defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "producer")
-        ));
-    replay(adminClient);
+  public void shouldThrowOnNoneRetryableGetTopicConfigError() {
+    // Given:
+    when(adminClient.describeConfigs(any()))
+        .thenAnswer(describeConfigsResult(new RuntimeException()));
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
+    // Expect:
+    expectedException.expect(KafkaResponseGetFailedException.class);
 
-    assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
-    assertThat(config.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("producer"));
+    // Then:
+    kafkaTopicClient.getTopicConfig("fred");
+  }
+
+  @Test
+  public void shouldHandleRetryableGetTopicConfigError() {
+    // Given:
+    givenTopicConfigs(
+        "fred",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
+        defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "producer")
+    );
+
+    when(adminClient.describeConfigs(any()))
+        .thenAnswer(describeConfigsResult(new DisconnectException()))
+        .thenAnswer(describeConfigsResult());
+
+    // When:
+    kafkaTopicClient.getTopicConfig("fred");
+
+    // Then:
+    verify(adminClient, times(2)).describeConfigs(any());
   }
 
   @Test
   public void shouldSetTopicCleanupPolicyToCompact() {
-    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
+    // Given:
+    final Map<String, String> configs = ImmutableMap.of("cleanup.policy", "compact");
 
-    // Verify that the new topic configuration being passed to the admin client is what we expect.
-    final NewTopic newTopic = new NewTopic(topicName1, 1, (short) 1);
-    newTopic.configs(Collections.singletonMap("cleanup.policy", "compact"));
-    expect(adminClient.createTopics(singleNewTopic(newTopic), anyObject()))
-        .andReturn(getCreateTopicsResult());
-    replay(adminClient);
+    // When:
+    kafkaTopicClient.createTopic("topic-name", 1, (short) 2, configs);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1,
-        1,
-        (short) 1,
-        Collections.singletonMap("cleanup.policy", "compact"));
-    verify(adminClient);
+    // Then:
+    verify(adminClient).createTopics(
+        eq(ImmutableSet.of(newTopic("topic-name", 1, 2, configs))),
+        any()
+    );
   }
 
   @Test
-  public void shouldSetTopicConfig() {
-    final Map<String, ?> overrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
+  public void shouldSetStringTopicConfig() {
+    // Given:
+    givenTopicConfigs(
+        "peter",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
+        defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
     );
 
-    expect(adminClient.describeConfigs(topicConfigsRequest("peter")))
-        .andReturn(topicConfigResponse(
-            "peter",
-            overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
-            defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
-        ));
+    final Map<String, ?> configOverrides = ImmutableMap.of(
+        TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
+    );
 
-    expect(adminClient.incrementalAlterConfigs(
-        ImmutableMap.of(
-            new ConfigResource(ConfigResource.Type.TOPIC, "peter"),
-            ImmutableSet.of(
-              new AlterConfigOp(new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT), OpType.SET)
-        ))))
-        .andReturn(alterTopicConfigResponse());
-    replay(adminClient);
+    // When:
+    final boolean changed = kafkaTopicClient.addTopicConfig("peter", configOverrides);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.addTopicConfig("peter", overrides);
+    // Then:
+    assertThat("should return true", changed);
+    verify(adminClient).incrementalAlterConfigs(ImmutableMap.of(
+        topicResource("peter"),
+        ImmutableSet.of(
+            setConfig(TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT)
+        )
+    ));
+  }
 
-    verify(adminClient);
+  @Test
+  public void shouldSetNonStringTopicConfig() {
+    // Given:
+    givenTopicConfigs(
+        "peter",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
+        defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
+    );
+
+    final Map<String, ?> configOverrides = ImmutableMap.of(
+        TopicConfig.RETENTION_MS_CONFIG, 54321L
+    );
+
+    // When:
+    final boolean changed = kafkaTopicClient.addTopicConfig("peter", configOverrides);
+
+    // Then:
+    assertThat("should return true", changed);
+    verify(adminClient).incrementalAlterConfigs(ImmutableMap.of(
+        topicResource("peter"),
+        ImmutableSet.of(
+            setConfig(TopicConfig.RETENTION_MS_CONFIG, "54321")
+        )
+    ));
   }
 
   @SuppressWarnings("deprecation")
   @Test
   public void shouldFallBackToAddTopicConfigForOlderBrokers() {
-    final Map<String, ?> overrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
+    // Given:
+    givenTopicConfigs(
+        "peter",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "1234"),
+        defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
     );
 
-    expect(adminClient.describeConfigs(topicConfigsRequest("peter")))
-        .andReturn(topicConfigResponse(
-            "peter",
-            overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
-            defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
-        ))
-        .anyTimes();
+    final Map<String, ?> overrides = ImmutableMap.of(
+        TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
+    );
 
-    expect(adminClient.incrementalAlterConfigs(anyObject()))
-        .andThrow(new UnsupportedVersionException(""));
+    when(adminClient.incrementalAlterConfigs(any()))
+        .thenAnswer(alterConfigsResult(new UnsupportedVersionException("")));
 
-    expect(adminClient.alterConfigs(
-        withResourceConfig(
-            new ConfigResource(ConfigResource.Type.TOPIC, "peter"),
-            new ConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
-            new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
-        )))
-        .andReturn(alterTopicConfigResponse());
-    replay(adminClient);
-
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
+    // When:
     kafkaTopicClient.addTopicConfig("peter", overrides);
 
-    verify(adminClient);
+    // Then:
+    verify(adminClient).alterConfigs(ImmutableMap.of(
+        topicResource("peter"),
+        new Config(ImmutableSet.of(
+            new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
+            new ConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "1234")
+        ))
+    ));
   }
 
   @Test
-  public void shouldNotAlterConfigIfConfigNotChanged() {
-    final Map<String, ?> overrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
+  public void shouldNotAlterStringConfigIfMatchingConfigOverrideExists() {
+    // Given:
+    givenTopicConfigs(
+        "peter",
+        overriddenConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
+        defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
     );
 
-    expect(adminClient.describeConfigs(topicConfigsRequest("peter")))
-        .andReturn(topicConfigResponse(
-            "peter",
-            overriddenConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG,
-                TopicConfig.CLEANUP_POLICY_COMPACT)
-        ));
+    final Map<String, ?> overrides = ImmutableMap.of(
+        TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
+    );
 
-    replay(adminClient);
+    // When:
+    final boolean result = kafkaTopicClient.addTopicConfig("peter", overrides);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.addTopicConfig("peter", overrides);
+    // Then:
+    assertThat("should return false", !result);
+    verify(adminClient, never()).incrementalAlterConfigs(any());
+  }
 
-    verify(adminClient);
+  @Test
+  public void shouldNotAlterNonStringConfigIfMatchingConfigOverrideExists() {
+    // Given:
+    givenTopicConfigs(
+        "peter",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
+        defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
+    );
+
+    final Map<String, ?> overrides = ImmutableMap.of(
+        TopicConfig.RETENTION_MS_CONFIG, 12345L
+    );
+
+    // When:
+    final boolean result = kafkaTopicClient.addTopicConfig("peter", overrides);
+
+    // Then:
+    assertThat("should return false", !result);
+    verify(adminClient, never()).incrementalAlterConfigs(any());
   }
 
   @Test
   public void shouldRetryAddingTopicConfig() {
+    // Given:
+    givenTopicConfigs(
+        "peter",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
+        defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
+    );
+
     final Map<String, ?> overrides = ImmutableMap.of(
         TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
     );
 
-    expect(adminClient.describeConfigs(anyObject()))
-        .andReturn(topicConfigResponse(
-            "peter",
-            overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
-            defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
-        ));
+    when(adminClient.incrementalAlterConfigs(any()))
+        .thenAnswer(alterConfigsResult(new DisconnectException()))
+        .thenAnswer(alterConfigsResult());
 
-    expect(adminClient.incrementalAlterConfigs(anyObject()))
-        .andReturn(alterTopicConfigResponse(new DisconnectException()))
-        .andReturn(alterTopicConfigResponse());
-    replay(adminClient);
-
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
+    // When:
     kafkaTopicClient.addTopicConfig("peter", overrides);
 
-    verify(adminClient);
-  }
-
-  private static DescribeTopicsResult describeTopicReturningUnknownPartitionException() {
-    final DescribeTopicsResult describeTopicsResult = niceMock(DescribeTopicsResult.class);
-    expect(describeTopicsResult.all())
-        .andReturn(failedFuture(new UnknownTopicOrPartitionException("Topic doesn't exist")));
-    replay(describeTopicsResult);
-    return describeTopicsResult;
-  }
-
-  private static DescribeTopicsResult describeTopicAuthorizationException() {
-    final DescribeTopicsResult describeTopicsResult = niceMock(DescribeTopicsResult.class);
-    expect(describeTopicsResult.all())
-        .andReturn(failedFuture(new TopicAuthorizationException("error")));
-    replay(describeTopicsResult);
-    return describeTopicsResult;
-  }
-
-  private DescribeTopicsResult getDescribeTopicsResult() {
-    final TopicPartitionInfo topicPartitionInfo = new TopicPartitionInfo(0, node, Collections
-        .singletonList(node), Collections.singletonList(node));
-    final TopicDescription topicDescription = new TopicDescription(
-        topicName1, false, Collections.singletonList(topicPartitionInfo));
-    final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
-    expect(describeTopicsResult.all()).andReturn(
-        KafkaFuture.completedFuture(Collections.singletonMap(topicName1, topicDescription)));
-    replay(describeTopicsResult);
-    return describeTopicsResult;
-  }
-
-  private static CreateTopicsResult createTopicReturningTopicExistsException() {
-    final CreateTopicsResult createTopicsResult = niceMock(CreateTopicsResult.class);
-    expect(createTopicsResult.all())
-        .andReturn(failedFuture(new TopicExistsException("Topic already exists")));
-    replay(createTopicsResult);
-    return createTopicsResult;
-  }
-
-  private static CreateTopicsResult createTopicAuthorizationException() {
-    final CreateTopicsResult createTopicsResult = niceMock(CreateTopicsResult.class);
-    expect(createTopicsResult.all()).andReturn(failedFuture(
-        new TopicAuthorizationException("error")));
-    replay(createTopicsResult);
-    return createTopicsResult;
-  }
-
-  private static CreateTopicsResult getCreateTopicsResult() {
-    final CreateTopicsResult createTopicsResult = mock(CreateTopicsResult.class);
-    expect(createTopicsResult.all()).andReturn(KafkaFuture.allOf());
-    replay(createTopicsResult);
-    return createTopicsResult;
-  }
-
-  private static DeleteTopicsResult getDeleteInternalTopicsResult() {
-    final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
-    final Map<String, KafkaFuture<Void>> deletedTopics = new HashMap<>();
-    deletedTopics.put(internalTopic1, KafkaFuture.allOf());
-    deletedTopics.put(internalTopic2, KafkaFuture.allOf());
-    expect(deleteTopicsResult.values()).andReturn(deletedTopics);
-    replay(deleteTopicsResult);
-    return deleteTopicsResult;
-  }
-
-  private static DeleteTopicsResult getDeleteTopicsResult() {
-    final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
-    expect(deleteTopicsResult.values()).andReturn(Collections.singletonMap(topicName1, KafkaFuture
-        .allOf()));
-    replay(deleteTopicsResult);
-    return deleteTopicsResult;
-  }
-
-  private static ListTopicsResult getEmptyListTopicResult() {
-    final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
-    final List<String> topicNamesList = Collections.emptyList();
-    expect(listTopicsResult.names())
-        .andReturn(KafkaFuture.completedFuture(new HashSet<>(topicNamesList)));
-    replay(listTopicsResult);
-    return listTopicsResult;
-  }
-
-  private static ListTopicsResult listTopicResultWithNotControllerException() {
-    final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
-    expect(listTopicsResult.names())
-        .andReturn(failedFuture(new NotControllerException("Not Controller")));
-    replay(listTopicsResult);
-    return listTopicsResult;
-  }
-
-  private static ListTopicsResult getListTopicsResultWithInternalTopics() {
-    final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
-    final List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3,
-        internalTopic1, internalTopic2,
-        internalTopic);
-    expect(listTopicsResult.names())
-        .andReturn(KafkaFuture.completedFuture(new HashSet<>(topicNamesList)));
-    replay(listTopicsResult);
-    return listTopicsResult;
-  }
-
-  private static ListTopicsResult getListTopicsResult() {
-    final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
-    final List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3);
-    expect(listTopicsResult.names())
-        .andReturn(KafkaFuture.completedFuture(new HashSet<>(topicNamesList)));
-    replay(listTopicsResult);
-    return listTopicsResult;
-  }
-
-  private DescribeClusterResult describeClusterResult() {
-    final Collection<Node> nodes = Collections.singletonList(node);
-    final DescribeClusterResult describeClusterResult = mock(DescribeClusterResult.class);
-    expect(describeClusterResult.nodes()).andReturn(KafkaFuture.completedFuture(nodes));
-    replay(describeClusterResult);
-    return describeClusterResult;
-  }
-
-  private Collection<ConfigResource> describeBrokerRequest() {
-    return Collections.singleton(new ConfigResource(ConfigResource.Type.BROKER, node.idString()));
-  }
-
-  private static DeleteTopicsResult deleteTopicException(final Exception e)
-          throws InterruptedException, ExecutionException, TimeoutException {
-    final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
-    final KafkaFuture<Void> kafkaFuture = mock(KafkaFuture.class);
-
-    expect(kafkaFuture.get(30, TimeUnit.SECONDS)).andThrow(
-        new ExecutionException(e)
-    );
-    replay(kafkaFuture);
-
-    expect(deleteTopicsResult.values())
-        .andReturn(Collections.singletonMap(topicName1, kafkaFuture));
-
-    replay(deleteTopicsResult);
-    return deleteTopicsResult;
-  }
-
-  private DescribeConfigsResult describeBrokerResult(final List<ConfigEntry> brokerConfigs) {
-    final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
-    final Map<ConfigResource, Config> config = ImmutableMap.of(
-        new ConfigResource(ConfigResource.Type.BROKER, node.idString()), new Config(brokerConfigs));
-    expect(describeConfigsResult.all()).andReturn(KafkaFuture.completedFuture(config)).anyTimes();
-    replay(describeConfigsResult);
-    return describeConfigsResult;
+    // Then:
+    verify(adminClient, times(2)).incrementalAlterConfigs(any());
   }
 
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {
-    final ConfigEntry config = niceMock(ConfigEntry.class);
-    expect(config.name()).andReturn(key).anyTimes();
-    expect(config.value()).andReturn(value).anyTimes();
-    expect(config.source()).andReturn(ConfigEntry.ConfigSource.DEFAULT_CONFIG).anyTimes();
-    replay(config);
+    final ConfigEntry config = mock(ConfigEntry.class);
+    when(config.name()).thenReturn(key);
+    when(config.value()).thenReturn(value);
+    when(config.isDefault()).thenReturn(true);
     return config;
   }
 
   private static ConfigEntry overriddenConfigEntry(final String key, final String value) {
-    final ConfigEntry config = niceMock(ConfigEntry.class);
-    expect(config.name()).andReturn(key).anyTimes();
-    expect(config.value()).andReturn(value).anyTimes();
-    expect(config.source()).andReturn(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG).anyTimes();
-    replay(config);
+    final ConfigEntry config = mock(ConfigEntry.class);
+    when(config.name()).thenReturn(key);
+    when(config.value()).thenReturn(value);
+    when(config.isDefault()).thenReturn(false);
     return config;
   }
 
-  private static Collection<ConfigResource> topicConfigsRequest(final String topicName) {
-    return ImmutableList.of(
-        new ConfigResource(ConfigResource.Type.TOPIC, topicName)
-    );
+  private void givenTopicExists(final String name, final int partitions, final int rf) {
+
+    final List<Node> replicas = ImmutableList.copyOf(IntStream.range(0, rf)
+        .mapToObj(idx -> A_NODE)
+        .collect(Collectors.toList()));
+
+    final List<TopicPartitionInfo> partitionInfo = ImmutableList
+        .copyOf(IntStream.range(0, partitions)
+            .mapToObj(idx -> new TopicPartitionInfo(idx, A_NODE, replicas, replicas))
+            .collect(Collectors.toList()));
+
+    topicPartitionInfo.put(name, partitionInfo);
   }
 
-  private static DescribeConfigsResult topicConfigResponse(final String topicName,
-      final ConfigEntry... entries) {
-
-    final Map<ConfigResource, Config> config = ImmutableMap.of(
-        new ConfigResource(ConfigResource.Type.TOPIC, topicName),
-        new Config(Arrays.asList(entries)));
-
-    final DescribeConfigsResult response = mock(DescribeConfigsResult.class);
-    expect(response.all()).andReturn(KafkaFuture.completedFuture(config)).anyTimes();
-    replay(response);
-    return response;
+  private void givenTopicConfigs(
+      final String name,
+      final ConfigEntry... configs
+  ) {
+    topicConfigs.put(topicResource(name), new Config(ImmutableList.copyOf(configs)));
   }
 
+  private Answer<ListTopicsResult> listTopicResult() {
+    return inv -> {
+      final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
 
-  private static DescribeConfigsResult topicConfigResponse(final Exception cause) {
-    final DescribeConfigsResult response = mock(DescribeConfigsResult.class);
-    expect(response.all()).andReturn(failedFuture(cause)).anyTimes();
-    replay(response);
-    return response;
+      when(listTopicsResult.names())
+          .thenReturn(
+              KafkaFuture.completedFuture(ImmutableSet.copyOf(topicPartitionInfo.keySet())));
+
+      return listTopicsResult;
+    };
   }
 
-  private static AlterConfigsResult alterTopicConfigResponse() {
-    final AlterConfigsResult response = mock(AlterConfigsResult.class);
-    expect(response.all()).andReturn(KafkaFuture.completedFuture(null));
-    replay(response);
-    return response;
+  private static Answer<ListTopicsResult> listTopicResult(final Exception e) {
+    return inv -> {
+      final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+      final KafkaFuture<Set<String>> f = failedFuture(e);
+      when(listTopicsResult.names()).thenReturn(f);
+      return listTopicsResult;
+    };
   }
 
-  private static AlterConfigsResult alterTopicConfigResponse(final Exception cause) {
-    final AlterConfigsResult response = mock(AlterConfigsResult.class);
-    expect(response.all()).andReturn(failedFuture(cause));
-    replay(response);
-    return response;
+  private Answer<DescribeTopicsResult> describeTopicsResult() {
+    return inv -> {
+      final Collection<String> topicNames = inv.getArgument(0);
+      if (topicNames == null) {
+        // Called from mock
+        return null;
+      }
+
+      final Map<String, TopicDescription> result = topicNames.stream()
+          .filter(topicPartitionInfo::containsKey)
+          .map(name -> new TopicDescription(name, false, topicPartitionInfo.get(name)))
+          .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
+
+      final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+      when(describeTopicsResult.all()).thenReturn(KafkaFuture.completedFuture(result));
+      return describeTopicsResult;
+    };
   }
 
+  private static Answer<DescribeTopicsResult> describeTopicsResult(final Exception e) {
+    return inv -> {
+      final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+      final KafkaFuture<Map<String, TopicDescription>> f = failedFuture(e);
+      when(describeTopicsResult.all()).thenReturn(f);
+      return describeTopicsResult;
+    };
+  }
+
+  private static Answer<CreateTopicsResult> createTopicsResult() {
+    return inv -> {
+      final CreateTopicsResult createTopicsResult = mock(CreateTopicsResult.class);
+      when(createTopicsResult.all()).thenReturn(KafkaFuture.allOf());
+      return createTopicsResult;
+    };
+  }
+
+  private static Answer<CreateTopicsResult> createTopicsResult(final Exception e) {
+    return inv -> {
+      final CreateTopicsResult createTopicsResult = mock(CreateTopicsResult.class);
+      final KafkaFuture<Void> f = failedFuture(e);
+      when(createTopicsResult.all()).thenReturn(f);
+      return createTopicsResult;
+    };
+  }
+
+  private Answer<DeleteTopicsResult> deleteTopicsResult() {
+    return inv -> {
+      final Collection<String> topicNames = inv.getArgument(0);
+      if (topicNames == null) {
+        // Called from mock
+        return null;
+      }
+
+      final Map<String, KafkaFuture<Void>> result = topicNames.stream()
+          .collect(Collectors.toMap(
+              Function.identity(),
+              name -> topicPartitionInfo.containsKey(name)
+                  ? KafkaFuture.allOf()
+                  : failedFuture(new UnknownTopicOrPartitionException())
+          ));
+
+      final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
+      when(deleteTopicsResult.values()).thenReturn(result);
+      return deleteTopicsResult;
+    };
+  }
+
+  private static Answer<DeleteTopicsResult> deleteTopicsResult(final Exception e) {
+    return inv -> {
+      final Collection<String> topicNames = inv.getArgument(0);
+      if (topicNames == null) {
+        // Called from mock
+        return null;
+      }
+
+      final Map<String, KafkaFuture<Void>> result = topicNames.stream()
+          .collect(Collectors.toMap(
+              Function.identity(),
+              name -> failedFuture(e))
+          );
+
+      final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
+      when(deleteTopicsResult.values()).thenReturn(result);
+      return deleteTopicsResult;
+    };
+  }
+
+  private Answer<DescribeConfigsResult> describeConfigsResult() {
+    return inv -> {
+      final Collection<ConfigResource> resources = inv.getArgument(0);
+      if (resources == null) {
+        // Called from mock
+        System.err.println("frm mock: success");
+        return null;
+      }
+
+      System.err.println("success");
+      final Map<ConfigResource, Config> result = resources.stream()
+          .filter(topicConfigs::containsKey)
+          .collect(Collectors.toMap(
+              Function.identity(),
+              topicConfigs::get)
+          );
+
+      final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
+      when(describeConfigsResult.all()).thenReturn(KafkaFuture.completedFuture(result));
+      return describeConfigsResult;
+    };
+  }
+
+  private static Answer<DescribeConfigsResult> describeConfigsResult(final Exception e) {
+    return inv -> {
+      final Collection<ConfigResource> resources = inv.getArgument(0);
+      if (resources == null) {
+        // Called from mock
+        System.err.println("frm mock: failed");
+        return null;
+      }
+
+      System.err.println("failed");
+      final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
+      final KafkaFuture<Map<ConfigResource, Config>> f = failedFuture(e);
+      when(describeConfigsResult.all()).thenReturn(f);
+      return describeConfigsResult;
+    };
+  }
+
+  private static Answer<AlterConfigsResult> alterConfigsResult() {
+    return inv -> {
+      final AlterConfigsResult response = mock(AlterConfigsResult.class);
+      when(response.all()).thenReturn(KafkaFuture.completedFuture(null));
+      return response;
+    };
+  }
+
+  private static Answer<AlterConfigsResult> alterConfigsResult(final Exception e) {
+    return inv -> {
+      final AlterConfigsResult response = mock(AlterConfigsResult.class);
+      final KafkaFuture<Void> f = failedFuture(e);
+      when(response.all()).thenReturn(f);
+      return response;
+    };
+  }
+
+  @SuppressFBWarnings(
+      value = "REC_CATCH_EXCEPTION",
+      justification = "code won't compile without it"
+  )
+  @SuppressWarnings("unchecked")
   private static <T> KafkaFuture<T> failedFuture(final Exception cause) {
     try {
       final KafkaFuture<T> future = mock(KafkaFuture.class);
-      future.get();
-      expectLastCall().andThrow(new ExecutionException(cause));
-      replay(future);
+      doThrow(new ExecutionException(cause)).when(future).get();
+      doThrow(new ExecutionException(cause)).when(future).get(anyLong(), any());
       return future;
     } catch (final Exception e) {
-      throw new RuntimeException(e);
+      throw new AssertionError("invalid test");
     }
   }
 
-  /*
-   * Config has broken hashCode & equals method:
-   * https://issues.apache.org/jira/browse/KAFKA-6727
-   */
-  private static Map<ConfigResource, Config> withResourceConfig(final ConfigResource resource,
-      final ConfigEntry... entries) {
-    final Set<ConfigEntry> expected = Arrays.stream(entries)
-        .collect(Collectors.toSet());
-
-    class ConfigMatcher implements IArgumentMatcher {
-      @SuppressWarnings("unchecked")
-      @Override
-      public boolean matches(final Object argument) {
-        final Map<ConfigResource, Config> request = (Map<ConfigResource, Config>)argument;
-        if (request.size() != 1) {
-          return false;
-        }
-
-        final Config config = request.get(resource);
-        if (config == null) {
-          return false;
-        }
-
-        final Set<ConfigEntry> actual = new HashSet<>(config.entries());
-        return actual.equals(expected);
-      }
-
-      @Override
-      public void appendTo(final StringBuffer buffer) {
-        buffer.append(resource).append("->")
-            .append("Config{").append(expected).append("}");
-      }
-    }
-    EasyMock.reportMatcher(new ConfigMatcher());
-    return null;
+  private static NewTopic newTopic(final String name, final int partitions, final int rf) {
+    return newTopic(name, partitions, rf, ImmutableMap.of());
+  }
+  private static NewTopic newTopic(
+      final String name,
+      final int partitions,
+      final int rf,
+      final Map<String, ?> configs
+  ) {
+    final NewTopic newTopic = new NewTopic(name, partitions, (short) rf);
+    newTopic.configs(toStringConfigs(configs));
+    return newTopic;
   }
 
-  private static Collection<NewTopic> singleNewTopic(final NewTopic expected) {
-    class NewTopicsMatcher implements IArgumentMatcher {
-      @SuppressWarnings("unchecked")
-      @Override
-      public boolean matches(final Object argument) {
-        final Collection<NewTopic> newTopics = (Collection<NewTopic>) argument;
-        if (newTopics.size() != 1) {
-          return false;
-        }
-
-        final NewTopic actual = newTopics.iterator().next();
-        return Objects.equals(actual.name(), expected.name())
-            && Objects.equals(actual.replicationFactor(), expected.replicationFactor())
-            && Objects.equals(actual.numPartitions(), expected.numPartitions())
-            && Objects.equals(actual.configs(), expected.configs());
-      }
-
-      @Override
-      public void appendTo(final StringBuffer buffer) {
-        buffer.append("{NewTopic").append(expected).append("}");
-      }
-    }
-
-    EasyMock.reportMatcher(new NewTopicsMatcher());
-    return null;
+  private static ConfigResource topicResource(final String topicName) {
+    return new ConfigResource(ConfigResource.Type.TOPIC, topicName);
   }
 
-  private CreateTopicsOptions shouldValidateCreate(final boolean validateOnly) {
-    EasyMock.reportMatcher(new IArgumentMatcher() {
-      @Override
-      public boolean matches(final Object argument) {
-        return argument instanceof CreateTopicsOptions
-            && ((CreateTopicsOptions) argument).shouldValidateOnly() == validateOnly;
-      }
+  private static AlterConfigOp setConfig(final String name, final String value) {
+    return new AlterConfigOp(new ConfigEntry(name, value), AlterConfigOp.OpType.SET);
+  }
 
-      @Override
-      public void appendTo(final StringBuffer buffer) {
-        buffer.append("validateOnly(\"" + validateOnly + "\")");
-      }
-    });
-
-    return null;
+  private static Map<String, String> toStringConfigs(final Map<String, ?> configs) {
+    return configs.entrySet().stream()
+        .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().toString()));
   }
 }

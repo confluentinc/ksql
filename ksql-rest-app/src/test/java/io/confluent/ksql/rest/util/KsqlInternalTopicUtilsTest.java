@@ -114,21 +114,20 @@ public class KsqlInternalTopicUtilsTest {
 
   @Test
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
-  public void shouldEnsureInternalTopicHasInfiniteRetention() {
+  public void shouldEnsureInternalTopicHasInfiniteRetentionAndDeleteCleanUpPolicy() {
     // Given:
-    final Map<String, Object> retentionConfig = ImmutableMap.of(
-        TopicConfig.RETENTION_MS_CONFIG, Long.MAX_VALUE
-    );
     whenTopicExistsWith(1, NREPLICAS);
 
     // When:
     KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);
 
     // Then:
-    verify(topicClient).addTopicConfig(TOPIC_NAME, retentionConfig);
+    verify(topicClient).addTopicConfig(TOPIC_NAME, ImmutableMap.of(
+        TopicConfig.RETENTION_MS_CONFIG, Long.MAX_VALUE,
+        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE
+    ));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldCreateInternalTopicWithNumReplicasFromConfig() {
     // Given:

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.services;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,8 +25,6 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.topic.TopicProperties;
 import java.util.Collections;

@@ -94,11 +94,6 @@ public class DescribeConnectorExecutorTest {
       ImmutableList.of(),
       ConnectorType.SOURCE);
 
-  private static Map<String, Map<String, List<String>>> EMPTY_ACTIVE_TOPICS = Collections.singletonMap(
-      CONNECTOR_NAME, Collections.singletonMap(
-          DescribeConnectorExecutor.TOPICS_KEY,
-          Collections.emptyList()));
-
   private static Map<String, Map<String, List<String>>> ACTIVE_TOPICS = Collections.singletonMap(
       CONNECTOR_NAME, Collections.singletonMap(
           DescribeConnectorExecutor.TOPICS_KEY,

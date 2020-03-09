@@ -99,7 +99,7 @@ public class ConnectIntegrationTest {
   private Set<String> connectNames;
 
   @Before
-  public void setupRun() throws Exception {
+  public void setupRun() {
     ksqlRestClient = REST_APP.buildKsqlClient(Optional.empty());
     connectNames = new HashSet<>();
   }
@@ -136,7 +136,7 @@ public class ConnectIntegrationTest {
   }
 
   @Test
-  public void shouldDescribeConnector() throws InterruptedException {
+  public void shouldDescribeConnector() {
     // Given:
     create("mock-connector", ImmutableMap.of(
         "connector.class", "org.apache.kafka.connect.tools.MockSourceConnector"

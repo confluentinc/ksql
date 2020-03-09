@@ -94,8 +94,6 @@ public final class DescribeConnectorExecutor {
 
     final ConnectorStateInfo status = statusResponse.datum().get();
     final ConnectorInfo info = infoResponse.datum().get();
-
-
     final Optional<Connector> connector = connectorFactory.apply(info);
     final List<KsqlWarning> warnings;
     final List<String> topics;
@@ -140,7 +138,6 @@ public final class DescribeConnectorExecutor {
     } else {
       sources = ImmutableList.of();
     }
-
 
     final ConnectorDescription description = new ConnectorDescription(
         configuredStatement.getStatementText(),

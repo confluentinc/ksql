@@ -506,6 +506,8 @@ public class RestTestExecutor implements Closeable {
         new TypeReference<Map<String, Object>>() {
         };
 
+    private static final String INDENT = System.lineSeparator() + "\t";
+
     private final List<StreamedRow> rows;
 
     RqttQueryResponse(final List<StreamedRow> rows) {
@@ -525,7 +527,22 @@ public class RestTestExecutor implements Closeable {
 
       final List<?> expectedRows = (List<?>) expectedPayload;
 
-      assertThat("row count mismatch", rows.size(), is(expectedRows.size()));
+      assertThat(
+          "row count mismatch."
+              + System.lineSeparator()
+              + "Expected: "
+              + expectedRows.stream()
+              .map(Object::toString)
+              .collect(Collectors.joining(INDENT, INDENT, ""))
+              + System.lineSeparator()
+              + "Got: "
+              + rows.stream()
+              .map(Object::toString)
+              .collect(Collectors.joining(INDENT, INDENT, ""))
+              + System.lineSeparator(),
+          rows,
+          hasSize(expectedRows.size())
+      );
 
       for (int i = 0; i != rows.size(); ++i) {
         assertThat("Each row should JSON object", expectedRows.get(i), is(instanceOf(Map.class)));

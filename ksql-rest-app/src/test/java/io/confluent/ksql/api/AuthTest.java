@@ -21,6 +21,8 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.api.utils.InsertsResponse;
+import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.security.KsqlUserContextProvider;
@@ -241,6 +243,9 @@ public class AuthTest extends ApiTest {
     // Then
     assertThat(response.statusCode(), is(401));
     assertThat(response.statusMessage(), is("Unauthorized"));
+
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    validateError(401, "Unauthorized", queryResponse.responseObject);
   }
 
   private void shouldFailCloseQuery(final String username, final String password) throws Exception {
@@ -258,6 +263,9 @@ public class AuthTest extends ApiTest {
     // Then
     assertThat(response.statusCode(), is(401));
     assertThat(response.statusMessage(), is("Unauthorized"));
+
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    validateError(401, "Unauthorized", queryResponse.responseObject);
   }
 
   private void shouldFailInsertRequest(final String username, final String password) throws Exception {
@@ -280,6 +288,9 @@ public class AuthTest extends ApiTest {
     // Then
     assertThat(response.statusCode(), is(401));
     assertThat(response.statusMessage(), is("Unauthorized"));
+
+    InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
+    validateError(401, "Unauthorized", insertsResponse.error);
   }
 
   private HttpResponse<Buffer> sendRequestWithCreds(
@@ -341,7 +352,7 @@ public class AuthTest extends ApiTest {
     stopServer();
     stopClient();
     this.authorizationProvider = (user, method, path) -> {
-      throw new KsqlException("Not authorized");
+      throw new KsqlException("Unauthorized");
     };
     createServer(createServerConfig());
     client = createClient();

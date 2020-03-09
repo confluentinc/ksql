@@ -135,8 +135,15 @@ public class ServerVerticle extends AbstractVerticle {
       log.error(String.format("Failed to handle request %d %s", routingContext.statusCode(),
           routingContext.request().path()),
           routingContext.failure());
+      ServerUtils.handleError(
+          routingContext.response(),
+          routingContext.statusCode(),
+          routingContext.statusCode(),
+          routingContext.failure().getMessage()
+      );
+    } else {
+      routingContext.response().setStatusCode(routingContext.statusCode()).end();
     }
-    routingContext.response().setStatusCode(routingContext.statusCode()).end();
   }
 
   private static Optional<AuthHandler> getAuthHandler(final Server server) {

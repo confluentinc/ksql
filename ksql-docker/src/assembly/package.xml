@@ -28,7 +28,7 @@
     <fileSets>
         <fileSet>
             <directory>${project.parent.basedir}</directory>
-            <outputDirectory>share/doc/ksql-rest-app/</outputDirectory>
+            <outputDirectory>share/doc/ksql-docker/</outputDirectory>
             <includes>
                 <include>version.txt</include>
                 <include>COPYRIGHT*</include>
@@ -43,7 +43,7 @@
         </fileSet>
         <fileSet>
             <directory>${project.parent.basedir}/config</directory>
-            <outputDirectory>etc/ksql-rest-app</outputDirectory>
+            <outputDirectory>etc/ksql-docker</outputDirectory>
             <includes>
                 <include>*</include>
             </includes>

@@ -52,7 +52,6 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -328,7 +327,6 @@ public class KsqlJsonSerializerTest {
     assertThat(asJsonString(bytes), is("1.234567890123456789"));
   }
 
-  @Ignore // Until https://github.com/confluentinc/ksql/issues/4710 is done.
   @Test
   public void shouldSerializeDecimalsWithoutStrippingTrailingZeros() {
     // Given:
@@ -339,23 +337,6 @@ public class KsqlJsonSerializerTest {
 
     // Then:
     assertThat(asJsonString(bytes), is("12.0"));
-  }
-
-  /*
-  When this test starts failing it's because https://issues.apache.org/jira/browse/KAFKA-9667
-  has been fixed. This test should be removed. The above test, and the matching test in decimal.json
-  should also be enabled. (Search for https://github.com/confluentinc/ksql/issues/4710 in the code).
-   */
-  @Test
-  public void currentlyDoesStripTrailingZerosButShouldNot() {
-    // Given:
-    givenSerializerForSchema(DecimalUtil.builder(3,1).build());
-
-    // When:
-    final byte[] bytes = serializer.serialize(SOME_TOPIC, new BigDecimal("12.0"));
-
-    // Then:
-    assertThat(asJsonString(bytes), is("12"));
   }
 
   @Test

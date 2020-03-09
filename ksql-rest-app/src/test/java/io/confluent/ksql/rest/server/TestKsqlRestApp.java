@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
-import io.confluent.ksql.api.server.ServerVerticle;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
@@ -117,9 +116,6 @@ public class TestKsqlRestApp extends ExternalResource {
   static {
     // Increase the default - it's low (100)
     System.setProperty("sun.net.maxDatagramSockets", "1024");
-    // Turn it on Vert.x hosting of old endpoints just for the tests
-    // Once we have completed security integration it will always be on
-    ServerVerticle.HOST_OLD_ENDPOINTS = true;
   }
 
   private TestKsqlRestApp(

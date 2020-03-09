@@ -18,7 +18,6 @@ package io.confluent.ksql.cli.console;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
-
 import org.junit.Test;
 
 public class CommentStripperTest {
@@ -134,6 +133,7 @@ public class CommentStripperTest {
         + "statement";
 
     // Then:
-    assertThat(CommentStripper.strip(line), is("some multi-line\nstatement"));
+    assertThat(CommentStripper.strip(line),
+        is("some multi-line\nstatement"));
   }
 }

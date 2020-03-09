@@ -25,7 +25,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -98,6 +97,7 @@ public class ConsoleTest {
 
   private static final String CLI_CMD_NAME = "some command";
   private static final String WHITE_SPACE = " \t ";
+  private static final String NEWLINE = System.lineSeparator();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
@@ -188,13 +188,13 @@ public class ConsoleTest {
 
     console.printStreamedRow(StreamedRow.error(exception, Errors.ERROR_CODE_SERVER_ERROR));
 
-    assertThat(terminal.getOutputString(), is(exception.getMessage() + "\n"));
+    assertThat(terminal.getOutputString(), is(exception.getMessage() + NEWLINE));
   }
 
   @Test
   public void testPrintFinalMessageStreamedRow() {
     console.printStreamedRow(StreamedRow.finalMessage("Some message"));
-    assertThat(terminal.getOutputString(), is("Some message\n"));
+    assertThat(terminal.getOutputString(), is("Some message" + NEWLINE));
   }
 
   @Test
@@ -214,23 +214,23 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"currentStatus\",\n"
-          + "  \"statementText\" : \"e\",\n"
-          + "  \"commandId\" : \"topic/1/create\",\n"
-          + "  \"commandStatus\" : {\n"
-          + "    \"status\" : \"SUCCESS\",\n"
-          + "    \"message\" : \"Success Message\"\n"
-          + "  },\n"
-          + "  \"commandSequenceNumber\" : 0,\n"
-          + "  \"warnings\" : [ ]\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"currentStatus\"," + NEWLINE
+          + "  \"statementText\" : \"e\"," + NEWLINE
+          + "  \"commandId\" : \"topic/1/create\"," + NEWLINE
+          + "  \"commandStatus\" : {" + NEWLINE
+          + "    \"status\" : \"SUCCESS\"," + NEWLINE
+          + "    \"message\" : \"Success Message\"" + NEWLINE
+          + "  }," + NEWLINE
+          + "  \"commandSequenceNumber\" : 0," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + " Message         \n"
-          + "-----------------\n"
-          + " Success Message \n"
-          + "-----------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Message         " + NEWLINE
+          + "-----------------" + NEWLINE
+          + " Success Message " + NEWLINE
+          + "-----------------" + NEWLINE));
     }
   }
 
@@ -252,34 +252,34 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"properties\",\n"
-          + "  \"statementText\" : \"e\",\n"
-          + "  \"properties\" : [ {\n"
-          + "    \"name\" : \"k1\",\n"
-          + "    \"scope\" : \"KSQL\",\n"
-          + "    \"value\" : \"1\"\n"
-          + "  }, {\n"
-          + "    \"name\" : \"k2\",\n"
-          + "    \"scope\" : \"KSQL\",\n"
-          + "    \"value\" : \"v2\"\n"
-          + "  }, {\n"
-          + "    \"name\" : \"k3\",\n"
-          + "    \"scope\" : \"KSQL\",\n"
-          + "    \"value\" : \"true\"\n"
-          + "  } ],\n"
-          + "  \"overwrittenProperties\" : [ ],\n"
-          + "  \"defaultProperties\" : [ ],\n"
-          + "  \"warnings\" : [ ]\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"properties\"," + NEWLINE
+          + "  \"statementText\" : \"e\"," + NEWLINE
+          + "  \"properties\" : [ {" + NEWLINE
+          + "    \"name\" : \"k1\"," + NEWLINE
+          + "    \"scope\" : \"KSQL\"," + NEWLINE
+          + "    \"value\" : \"1\"" + NEWLINE
+          + "  }, {" + NEWLINE
+          + "    \"name\" : \"k2\"," + NEWLINE
+          + "    \"scope\" : \"KSQL\"," + NEWLINE
+          + "    \"value\" : \"v2\"" + NEWLINE
+          + "  }, {" + NEWLINE
+          + "    \"name\" : \"k3\"," + NEWLINE
+          + "    \"scope\" : \"KSQL\"," + NEWLINE
+          + "    \"value\" : \"true\"" + NEWLINE
+          + "  } ]," + NEWLINE
+          + "  \"overwrittenProperties\" : [ ]," + NEWLINE
+          + "  \"defaultProperties\" : [ ]," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + " Property | Scope | Default override | Effective Value \n"
-          + "-------------------------------------------------------\n"
-          + " k1       | KSQL  | SERVER           | 1               \n"
-          + " k2       | KSQL  | SERVER           | v2              \n"
-          + " k3       | KSQL  | SERVER           | true            \n"
-          + "-------------------------------------------------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Property | Scope | Default override | Effective Value " + NEWLINE
+          + "-------------------------------------------------------" + NEWLINE
+          + " k1       | KSQL  | SERVER           | 1               " + NEWLINE
+          + " k2       | KSQL  | SERVER           | v2              " + NEWLINE
+          + " k3       | KSQL  | SERVER           | true            " + NEWLINE
+          + "-------------------------------------------------------" + NEWLINE));
     }
   }
   @Test
@@ -300,25 +300,25 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"queries\",\n"
-          + "  \"statementText\" : \"e\",\n"
-          + "  \"queries\" : [ {\n"
-          + "    \"queryString\" : \"select * from t1\",\n"
-          + "    \"sinks\" : [ \"Test\" ],\n"
-          + "    \"sinkKafkaTopics\" : [ \"Test topic\" ],\n"
-          + "    \"id\" : \"0\",\n"
-          + "    \"state\" : \"Foobar\"\n"
-          + "  } ],\n"
-          + "  \"warnings\" : [ ]\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"queries\"," + NEWLINE
+          + "  \"statementText\" : \"e\"," + NEWLINE
+          + "  \"queries\" : [ {" + NEWLINE
+          + "    \"queryString\" : \"select * from t1\"," + NEWLINE
+          + "    \"sinks\" : [ \"Test\" ]," + NEWLINE
+          + "    \"sinkKafkaTopics\" : [ \"Test topic\" ]," + NEWLINE
+          + "    \"id\" : \"0\"," + NEWLINE
+          + "    \"state\" : \"Foobar\"" + NEWLINE
+          + "  } ]," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + " Query ID | Status | Sink Name | Sink Kafka Topic | Query String     \n"
-          + "---------------------------------------------------------------------\n"
-          + " 0        | Foobar | Test      | Test topic       | select * from t1 \n"
-          + "---------------------------------------------------------------------\n"
-          + "For detailed information on a Query run: EXPLAIN <Query ID>;\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Query ID | Status | Sink Name | Sink Kafka Topic | Query String     " + NEWLINE
+          + "---------------------------------------------------------------------" + NEWLINE
+          + " 0        | Foobar | Test      | Test topic       | select * from t1 " + NEWLINE
+          + "---------------------------------------------------------------------" + NEWLINE
+          + "For detailed information on a Query run: EXPLAIN <Query ID>;" + NEWLINE));
     }
   }
 
@@ -377,144 +377,145 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"sourceDescription\",\n"
-          + "  \"statementText\" : \"some sql\",\n"
-          + "  \"sourceDescription\" : {\n"
-          + "    \"name\" : \"TestSource\",\n"
-          + "    \"windowType\" : null,\n"
-          + "    \"readQueries\" : [ {\n"
-          + "      \"queryString\" : \"read query\",\n"
-          + "      \"sinks\" : [ \"sink1\" ],\n"
-          + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ],\n"
-          + "      \"id\" : \"readId\",\n"
-          + "      \"state\" : \"Running\"\n"
-          + "    } ],\n"
-          + "    \"writeQueries\" : [ {\n"
-          + "      \"queryString\" : \"write query\",\n"
-          + "      \"sinks\" : [ \"sink2\" ],\n"
-          + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ],\n"
-          + "      \"id\" : \"writeId\",\n"
-          + "      \"state\" : \"Running\"\n"
-          + "    } ],\n"
-          + "    \"fields\" : [ {\n"
-          + "      \"name\" : \"ROWTIME\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"BIGINT\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"ROWKEY\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"STRING\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_0\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"BOOLEAN\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_1\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"INTEGER\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_2\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"BIGINT\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_3\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"DOUBLE\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_4\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"STRING\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_5\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"ARRAY\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : {\n"
-          + "          \"type\" : \"STRING\",\n"
-          + "          \"fields\" : null,\n"
-          + "          \"memberSchema\" : null\n"
-          + "        }\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_6\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"MAP\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : {\n"
-          + "          \"type\" : \"BIGINT\",\n"
-          + "          \"fields\" : null,\n"
-          + "          \"memberSchema\" : null\n"
-          + "        }\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_7\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"STRUCT\",\n"
-          + "        \"fields\" : [ {\n"
-          + "          \"name\" : \"a\",\n"
-          + "          \"schema\" : {\n"
-          + "            \"type\" : \"DOUBLE\",\n"
-          + "            \"fields\" : null,\n"
-          + "            \"memberSchema\" : null\n"
-          + "          }\n"
-          + "        } ],\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    } ],\n"
-          + "    \"type\" : \"TABLE\",\n"
-          + "    \"key\" : \"key\",\n"
-          + "    \"timestamp\" : \"2000-01-01\",\n"
-          + "    \"statistics\" : \"stats\",\n"
-          + "    \"errorStats\" : \"errors\",\n"
-          + "    \"extended\" : false,\n"
-          + "    \"keyFormat\" : \"kafka\",\n"
-          + "    \"valueFormat\" : \"avro\",\n"
-          + "    \"topic\" : \"kadka-topic\",\n"
-          + "    \"partitions\" : 1,\n"
-          + "    \"replication\" : 1,\n"
-          + "    \"statement\" : \"sql statement\"\n"
-          + "  },\n"
-          + "  \"warnings\" : [ ]\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"sourceDescription\"," + NEWLINE
+          + "  \"statementText\" : \"some sql\"," + NEWLINE
+          + "  \"sourceDescription\" : {" + NEWLINE
+          + "    \"name\" : \"TestSource\"," + NEWLINE
+          + "    \"windowType\" : null," + NEWLINE
+          + "    \"readQueries\" : [ {" + NEWLINE
+          + "      \"queryString\" : \"read query\"," + NEWLINE
+          + "      \"sinks\" : [ \"sink1\" ]," + NEWLINE
+          + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ]," + NEWLINE
+          + "      \"id\" : \"readId\"," + NEWLINE
+          + "      \"state\" : \"Running\"" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"writeQueries\" : [ {" + NEWLINE
+          + "      \"queryString\" : \"write query\"," + NEWLINE
+          + "      \"sinks\" : [ \"sink2\" ]," + NEWLINE
+          + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ]," + NEWLINE
+          + "      \"id\" : \"writeId\"," + NEWLINE
+          + "      \"state\" : \"Running\"" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"fields\" : [ {" + NEWLINE
+          + "      \"name\" : \"ROWTIME\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"BIGINT\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"ROWKEY\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"STRING\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_0\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"BOOLEAN\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_1\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"INTEGER\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_2\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"BIGINT\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_3\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"DOUBLE\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_4\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"STRING\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_5\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"ARRAY\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : {" + NEWLINE
+          + "          \"type\" : \"STRING\"," + NEWLINE
+          + "          \"fields\" : null," + NEWLINE
+          + "          \"memberSchema\" : null" + NEWLINE
+          + "        }" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_6\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"MAP\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : {" + NEWLINE
+          + "          \"type\" : \"BIGINT\"," + NEWLINE
+          + "          \"fields\" : null," + NEWLINE
+          + "          \"memberSchema\" : null" + NEWLINE
+          + "        }" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_7\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"STRUCT\"," + NEWLINE
+          + "        \"fields\" : [ {" + NEWLINE
+          + "          \"name\" : \"a\"," + NEWLINE
+          + "          \"schema\" : {" + NEWLINE
+          + "            \"type\" : \"DOUBLE\"," + NEWLINE
+          + "            \"fields\" : null," + NEWLINE
+          + "            \"memberSchema\" : null" + NEWLINE
+          + "          }" + NEWLINE
+          + "        } ]," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"type\" : \"TABLE\"," + NEWLINE
+          + "    \"key\" : \"key\"," + NEWLINE
+          + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
+          + "    \"statistics\" : \"stats\"," + NEWLINE
+          + "    \"errorStats\" : \"errors\"," + NEWLINE
+          + "    \"extended\" : false," + NEWLINE
+          + "    \"keyFormat\" : \"kafka\"," + NEWLINE
+          + "    \"valueFormat\" : \"avro\"," + NEWLINE
+          + "    \"topic\" : \"kadka-topic\"," + NEWLINE
+          + "    \"partitions\" : 1," + NEWLINE
+          + "    \"replication\" : 1," + NEWLINE
+          + "    \"statement\" : \"sql statement\"" + NEWLINE
+          + "  }," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + "Name                 : TestSource\n"
-          + " Field   | Type                      \n"
-          + "-------------------------------------\n"
-          + " ROWTIME | BIGINT           (system) \n"
-          + " ROWKEY  | VARCHAR(STRING)  (system) \n"
-          + " f_0     | BOOLEAN                   \n"
-          + " f_1     | INTEGER                   \n"
-          + " f_2     | BIGINT                    \n"
-          + " f_3     | DOUBLE                    \n"
-          + " f_4     | VARCHAR(STRING)           \n"
-          + " f_5     | ARRAY<VARCHAR(STRING)>    \n"
-          + " f_6     | MAP<STRING, BIGINT>       \n"
-          + " f_7     | STRUCT<a DOUBLE>          \n"
-          + "-------------------------------------\n"
-          + "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;\n"));
+      assertThat(output, is("" + NEWLINE
+          + "Name                 : TestSource" + NEWLINE
+          + " Field   | Type                      " + NEWLINE
+          + "-------------------------------------" + NEWLINE
+          + " ROWTIME | BIGINT           (system) " + NEWLINE
+          + " ROWKEY  | VARCHAR(STRING)  (system) " + NEWLINE
+          + " f_0     | BOOLEAN                   " + NEWLINE
+          + " f_1     | INTEGER                   " + NEWLINE
+          + " f_2     | BIGINT                    " + NEWLINE
+          + " f_3     | DOUBLE                    " + NEWLINE
+          + " f_4     | VARCHAR(STRING)           " + NEWLINE
+          + " f_5     | ARRAY<VARCHAR(STRING)>    " + NEWLINE
+          + " f_6     | MAP<STRING, BIGINT>       " + NEWLINE
+          + " f_7     | STRUCT<a DOUBLE>          " + NEWLINE
+          + "-------------------------------------" + NEWLINE
+          + "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;"
+          + NEWLINE));
     }
   }
 
@@ -531,21 +532,21 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"topicDescription\",\n"
-          + "  \"statementText\" : \"e\",\n"
-          + "  \"name\" : \"TestTopic\",\n"
-          + "  \"format\" : \"AVRO\",\n"
-          + "  \"schemaString\" : \"schemaString\",\n"
-          + "  \"warnings\" : [ ],\n"
-          + "  \"kafkaTopic\" : \"TestKafkaTopic\"\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"topicDescription\"," + NEWLINE
+          + "  \"statementText\" : \"e\"," + NEWLINE
+          + "  \"name\" : \"TestTopic\"," + NEWLINE
+          + "  \"format\" : \"AVRO\"," + NEWLINE
+          + "  \"schemaString\" : \"schemaString\"," + NEWLINE
+          + "  \"warnings\" : [ ]," + NEWLINE
+          + "  \"kafkaTopic\" : \"TestKafkaTopic\"" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + " Table Name | Kafka Topic    | Type | Schema       \n"
-          + "---------------------------------------------------\n"
-          + " TestTopic  | TestKafkaTopic | AVRO | schemaString \n"
-          + "---------------------------------------------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Table Name | Kafka Topic    | Type | Schema       " + NEWLINE
+          + "---------------------------------------------------" + NEWLINE
+          + " TestTopic  | TestKafkaTopic | AVRO | schemaString " + NEWLINE
+          + "---------------------------------------------------" + NEWLINE));
     }
   }
 
@@ -575,98 +576,98 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"connector_description\",\n"
-          + "  \"statementText\" : \"STATEMENT\",\n"
-          + "  \"connectorClass\" : \"io.confluent.Connector\",\n"
-          + "  \"status\" : {\n"
-          + "    \"name\" : \"name\",\n"
-          + "    \"connector\" : {\n"
-          + "      \"state\" : \"state\",\n"
-          + "      \"worker_id\" : \"worker\",\n"
-          + "      \"trace\" : \"msg\"\n"
-          + "    },\n"
-          + "    \"tasks\" : [ {\n"
-          + "      \"id\" : 0,\n"
-          + "      \"state\" : \"task\",\n"
-          + "      \"worker_id\" : \"worker\",\n"
-          + "      \"trace\" : \"task_msg\"\n"
-          + "    } ],\n"
-          + "    \"type\" : \"source\"\n"
-          + "  },\n"
-          + "  \"sources\" : [ {\n"
-          + "    \"name\" : \"TestSource\",\n"
-          + "    \"windowType\" : null,\n"
-          + "    \"readQueries\" : [ ],\n"
-          + "    \"writeQueries\" : [ ],\n"
-          + "    \"fields\" : [ {\n"
-          + "      \"name\" : \"ROWTIME\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"BIGINT\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"ROWKEY\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"STRING\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_0\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"INTEGER\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_1\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"STRING\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    } ],\n"
-          + "    \"type\" : \"TABLE\",\n"
-          + "    \"key\" : \"key\",\n"
-          + "    \"timestamp\" : \"2000-01-01\",\n"
-          + "    \"statistics\" : \"stats\",\n"
-          + "    \"errorStats\" : \"errors\",\n"
-          + "    \"extended\" : true,\n"
-          + "    \"keyFormat\" : \"kafka\",\n"
-          + "    \"valueFormat\" : \"avro\",\n"
-          + "    \"topic\" : \"kadka-topic\",\n"
-          + "    \"partitions\" : 2,\n"
-          + "    \"replication\" : 1,\n"
-          + "    \"statement\" : \"statement\"\n"
-          + "  } ],\n"
-          + "  \"topics\" : [ \"a-jdbc-topic\" ],\n"
-          + "  \"warnings\" : [ ]\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"connector_description\"," + NEWLINE
+          + "  \"statementText\" : \"STATEMENT\"," + NEWLINE
+          + "  \"connectorClass\" : \"io.confluent.Connector\"," + NEWLINE
+          + "  \"status\" : {" + NEWLINE
+          + "    \"name\" : \"name\"," + NEWLINE
+          + "    \"connector\" : {" + NEWLINE
+          + "      \"state\" : \"state\"," + NEWLINE
+          + "      \"worker_id\" : \"worker\"," + NEWLINE
+          + "      \"trace\" : \"msg\"" + NEWLINE
+          + "    }," + NEWLINE
+          + "    \"tasks\" : [ {" + NEWLINE
+          + "      \"id\" : 0," + NEWLINE
+          + "      \"state\" : \"task\"," + NEWLINE
+          + "      \"worker_id\" : \"worker\"," + NEWLINE
+          + "      \"trace\" : \"task_msg\"" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"type\" : \"source\"" + NEWLINE
+          + "  }," + NEWLINE
+          + "  \"sources\" : [ {" + NEWLINE
+          + "    \"name\" : \"TestSource\"," + NEWLINE
+          + "    \"windowType\" : null," + NEWLINE
+          + "    \"readQueries\" : [ ]," + NEWLINE
+          + "    \"writeQueries\" : [ ]," + NEWLINE
+          + "    \"fields\" : [ {" + NEWLINE
+          + "      \"name\" : \"ROWTIME\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"BIGINT\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"ROWKEY\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"STRING\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_0\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"INTEGER\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_1\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"STRING\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"type\" : \"TABLE\"," + NEWLINE
+          + "    \"key\" : \"key\"," + NEWLINE
+          + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
+          + "    \"statistics\" : \"stats\"," + NEWLINE
+          + "    \"errorStats\" : \"errors\"," + NEWLINE
+          + "    \"extended\" : true," + NEWLINE
+          + "    \"keyFormat\" : \"kafka\"," + NEWLINE
+          + "    \"valueFormat\" : \"avro\"," + NEWLINE
+          + "    \"topic\" : \"kadka-topic\"," + NEWLINE
+          + "    \"partitions\" : 2," + NEWLINE
+          + "    \"replication\" : 1," + NEWLINE
+          + "    \"statement\" : \"statement\"" + NEWLINE
+          + "  } ]," + NEWLINE
+          + "  \"topics\" : [ \"a-jdbc-topic\" ]," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + "Name                 : name\n"
-          + "Class                : io.confluent.Connector\n"
-          + "Type                 : source\n"
-          + "State                : state\n"
-          + "WorkerId             : worker\n"
-          + "Trace                : msg\n"
-          + "\n"
-          + " Task ID | State | Error Trace \n"
-          + "-------------------------------\n"
-          + " 0       | task  | task_msg    \n"
-          + "-------------------------------\n"
-          + "\n"
-          + " KSQL Source Name | Kafka Topic | Type  \n"
-          + "----------------------------------------\n"
-          + " TestSource       | kadka-topic | TABLE \n"
-          + "----------------------------------------\n"
-          + "\n"
-          + " Related Topics \n"
-          + "----------------\n"
-          + " a-jdbc-topic   \n"
-          + "----------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + "Name                 : name" + NEWLINE
+          + "Class                : io.confluent.Connector" + NEWLINE
+          + "Type                 : source" + NEWLINE
+          + "State                : state" + NEWLINE
+          + "WorkerId             : worker" + NEWLINE
+          + "Trace                : msg" + NEWLINE
+          + "" + NEWLINE
+          + " Task ID | State | Error Trace " + NEWLINE
+          + "-------------------------------" + NEWLINE
+          + " 0       | task  | task_msg    " + NEWLINE
+          + "-------------------------------" + NEWLINE
+          + "" + NEWLINE
+          + " KSQL Source Name | Kafka Topic | Type  " + NEWLINE
+          + "----------------------------------------" + NEWLINE
+          + " TestSource       | kadka-topic | TABLE " + NEWLINE
+          + "----------------------------------------" + NEWLINE
+          + "" + NEWLINE
+          + " Related Topics " + NEWLINE
+          + "----------------" + NEWLINE
+          + " a-jdbc-topic   " + NEWLINE
+          + "----------------" + NEWLINE));
     }
   }
 
@@ -684,23 +685,23 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"streams\",\n"
-          + "  \"statementText\" : \"e\",\n"
-          + "  \"streams\" : [ {\n"
-          + "    \"type\" : \"STREAM\",\n"
-          + "    \"name\" : \"TestStream\",\n"
-          + "    \"topic\" : \"TestTopic\",\n"
-          + "    \"format\" : \"AVRO\"\n"
-          + "  } ],\n"
-          + "  \"warnings\" : [ ]\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"streams\"," + NEWLINE
+          + "  \"statementText\" : \"e\"," + NEWLINE
+          + "  \"streams\" : [ {" + NEWLINE
+          + "    \"type\" : \"STREAM\"," + NEWLINE
+          + "    \"name\" : \"TestStream\"," + NEWLINE
+          + "    \"topic\" : \"TestTopic\"," + NEWLINE
+          + "    \"format\" : \"AVRO\"" + NEWLINE
+          + "  } ]," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + " Stream Name | Kafka Topic | Format \n"
-          + "------------------------------------\n"
-          + " TestStream  | TestTopic   | AVRO   \n"
-          + "------------------------------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Stream Name | Kafka Topic | Format " + NEWLINE
+          + "------------------------------------" + NEWLINE
+          + " TestStream  | TestTopic   | AVRO   " + NEWLINE
+          + "------------------------------------" + NEWLINE));
     }
   }
 
@@ -723,41 +724,41 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-               + "  \"@type\" : \"streams\",\n"
-               + "  \"statementText\" : \"e\",\n"
-               + "  \"streams\" : [ {\n"
-               + "    \"type\" : \"STREAM\",\n"
-               + "    \"name\" : \"B\",\n"
-               + "    \"topic\" : \"TestTopic\",\n"
-               + "    \"format\" : \"AVRO\"\n"
-               + "  }, {\n"
-               + "    \"type\" : \"STREAM\",\n"
-               + "    \"name\" : \"A\",\n"
-               + "    \"topic\" : \"TestTopic\",\n"
-               + "    \"format\" : \"AVRO\"\n"
-               + "  }, {\n"
-               + "    \"type\" : \"STREAM\",\n"
-               + "    \"name\" : \"Z\",\n"
-               + "    \"topic\" : \"TestTopic\",\n"
-               + "    \"format\" : \"AVRO\"\n"
-               + "  }, {\n"
-               + "    \"type\" : \"STREAM\",\n"
-               + "    \"name\" : \"C\",\n"
-               + "    \"topic\" : \"TestTopic\",\n"
-               + "    \"format\" : \"AVRO\"\n"
-               + "  } ],\n"
-               + "  \"warnings\" : [ ]\n"
-               +"} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"streams\"," + NEWLINE
+          + "  \"statementText\" : \"e\"," + NEWLINE
+          + "  \"streams\" : [ {" + NEWLINE
+          + "    \"type\" : \"STREAM\"," + NEWLINE
+          + "    \"name\" : \"B\"," + NEWLINE
+          + "    \"topic\" : \"TestTopic\"," + NEWLINE
+          + "    \"format\" : \"AVRO\"" + NEWLINE
+          + "  }, {" + NEWLINE
+          + "    \"type\" : \"STREAM\"," + NEWLINE
+          + "    \"name\" : \"A\"," + NEWLINE
+          + "    \"topic\" : \"TestTopic\"," + NEWLINE
+          + "    \"format\" : \"AVRO\"" + NEWLINE
+          + "  }, {" + NEWLINE
+          + "    \"type\" : \"STREAM\"," + NEWLINE
+          + "    \"name\" : \"Z\"," + NEWLINE
+          + "    \"topic\" : \"TestTopic\"," + NEWLINE
+          + "    \"format\" : \"AVRO\"" + NEWLINE
+          + "  }, {" + NEWLINE
+          + "    \"type\" : \"STREAM\"," + NEWLINE
+          + "    \"name\" : \"C\"," + NEWLINE
+          + "    \"topic\" : \"TestTopic\"," + NEWLINE
+          + "    \"format\" : \"AVRO\"" + NEWLINE
+          + "  } ]," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-              + " Stream Name | Kafka Topic | Format \n"
-              + "------------------------------------\n"
-              + " A           | TestTopic   | AVRO   \n"
-              + " B           | TestTopic   | AVRO   \n"
-              + " C           | TestTopic   | AVRO   \n"
-              + " Z           | TestTopic   | AVRO   \n"
-              + "------------------------------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Stream Name | Kafka Topic | Format " + NEWLINE
+          + "------------------------------------" + NEWLINE
+          + " A           | TestTopic   | AVRO   " + NEWLINE
+          + " B           | TestTopic   | AVRO   " + NEWLINE
+          + " C           | TestTopic   | AVRO   " + NEWLINE
+          + " Z           | TestTopic   | AVRO   " + NEWLINE
+          + "------------------------------------" + NEWLINE));
     }
   }
 
@@ -775,24 +776,24 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"tables\",\n"
-          + "  \"statementText\" : \"e\",\n"
-          + "  \"tables\" : [ {\n"
-          + "    \"type\" : \"TABLE\",\n"
-          + "    \"name\" : \"TestTable\",\n"
-          + "    \"topic\" : \"TestTopic\",\n"
-          + "    \"format\" : \"JSON\",\n"
-          + "    \"isWindowed\" : false\n"
-          + "  } ],\n"
-          + "  \"warnings\" : [ ]\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"tables\"," + NEWLINE
+          + "  \"statementText\" : \"e\"," + NEWLINE
+          + "  \"tables\" : [ {" + NEWLINE
+          + "    \"type\" : \"TABLE\"," + NEWLINE
+          + "    \"name\" : \"TestTable\"," + NEWLINE
+          + "    \"topic\" : \"TestTopic\"," + NEWLINE
+          + "    \"format\" : \"JSON\"," + NEWLINE
+          + "    \"isWindowed\" : false" + NEWLINE
+          + "  } ]," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + " Table Name | Kafka Topic | Format | Windowed \n"
-          + "----------------------------------------------\n"
-          + " TestTable  | TestTopic   | JSON   | false    \n"
-          + "----------------------------------------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Table Name | Kafka Topic | Format | Windowed " + NEWLINE
+          + "----------------------------------------------" + NEWLINE
+          + " TestTable  | TestTopic   | JSON   | false    " + NEWLINE
+          + "----------------------------------------------" + NEWLINE));
     }
   }
 
@@ -816,45 +817,45 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-              + "  \"@type\" : \"tables\",\n"
-              + "  \"statementText\" : \"e\",\n"
-              + "  \"tables\" : [ {\n"
-              + "    \"type\" : \"TABLE\",\n"
-              + "    \"name\" : \"B\",\n"
-              + "    \"topic\" : \"TestTopic\",\n"
-              + "    \"format\" : \"JSON\",\n"
-              + "    \"isWindowed\" : false\n"
-              + "  }, {\n"
-              + "    \"type\" : \"TABLE\",\n"
-              + "    \"name\" : \"A\",\n"
-              + "    \"topic\" : \"TestTopic\",\n"
-              + "    \"format\" : \"JSON\",\n"
-              + "    \"isWindowed\" : false\n"
-              + "  }, {\n"
-              + "    \"type\" : \"TABLE\",\n"
-              + "    \"name\" : \"Z\",\n"
-              + "    \"topic\" : \"TestTopic\",\n"
-              + "    \"format\" : \"JSON\",\n"
-              + "    \"isWindowed\" : false\n"
-              + "  }, {\n"
-              + "    \"type\" : \"TABLE\",\n"
-              + "    \"name\" : \"C\",\n"
-              + "    \"topic\" : \"TestTopic\",\n"
-              + "    \"format\" : \"JSON\",\n"
-              + "    \"isWindowed\" : false\n"
-              + "  } ],\n"
-              + "  \"warnings\" : [ ]\n"
-              + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"tables\"," + NEWLINE
+          + "  \"statementText\" : \"e\"," + NEWLINE
+          + "  \"tables\" : [ {" + NEWLINE
+          + "    \"type\" : \"TABLE\"," + NEWLINE
+          + "    \"name\" : \"B\"," + NEWLINE
+          + "    \"topic\" : \"TestTopic\"," + NEWLINE
+          + "    \"format\" : \"JSON\"," + NEWLINE
+          + "    \"isWindowed\" : false" + NEWLINE
+          + "  }, {" + NEWLINE
+          + "    \"type\" : \"TABLE\"," + NEWLINE
+          + "    \"name\" : \"A\"," + NEWLINE
+          + "    \"topic\" : \"TestTopic\"," + NEWLINE
+          + "    \"format\" : \"JSON\"," + NEWLINE
+          + "    \"isWindowed\" : false" + NEWLINE
+          + "  }, {" + NEWLINE
+          + "    \"type\" : \"TABLE\"," + NEWLINE
+          + "    \"name\" : \"Z\"," + NEWLINE
+          + "    \"topic\" : \"TestTopic\"," + NEWLINE
+          + "    \"format\" : \"JSON\"," + NEWLINE
+          + "    \"isWindowed\" : false" + NEWLINE
+          + "  }, {" + NEWLINE
+          + "    \"type\" : \"TABLE\"," + NEWLINE
+          + "    \"name\" : \"C\"," + NEWLINE
+          + "    \"topic\" : \"TestTopic\"," + NEWLINE
+          + "    \"format\" : \"JSON\"," + NEWLINE
+          + "    \"isWindowed\" : false" + NEWLINE
+          + "  } ]," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-              + " Table Name | Kafka Topic | Format | Windowed \n"
-              + "----------------------------------------------\n"
-              + " A          | TestTopic   | JSON   | false    \n"
-              + " B          | TestTopic   | JSON   | false    \n"
-              + " C          | TestTopic   | JSON   | false    \n"
-              + " Z          | TestTopic   | JSON   | false    \n"
-              + "----------------------------------------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Table Name | Kafka Topic | Format | Windowed " + NEWLINE
+          + "----------------------------------------------" + NEWLINE
+          + " A          | TestTopic   | JSON   | false    " + NEWLINE
+          + " B          | TestTopic   | JSON   | false    " + NEWLINE
+          + " C          | TestTopic   | JSON   | false    " + NEWLINE
+          + " Z          | TestTopic   | JSON   | false    " + NEWLINE
+          + "----------------------------------------------" + NEWLINE));
     }
   }
 
@@ -878,26 +879,26 @@ public class ConsoleTest {
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
       assertThat(output, is(""
-          + "[ {\n"
-          + "  \"@type\" : \"connector_list\",\n"
-          + "  \"statementText\" : \"statement\",\n"
-          + "  \"warnings\" : [ ],\n"
-          + "  \"connectors\" : [ {\n"
-          + "    \"name\" : \"foo\",\n"
-          + "    \"type\" : \"source\",\n"
-          + "    \"className\" : \"clazz\",\n"
-          + "    \"state\" : \"STATUS\"\n"
-          + "  }, {\n"
-          + "    \"name\" : \"bar\"\n"
-          + "  } ]\n"
-          + "} ]\n"));
+          + "[ {" + NEWLINE
+          + "  \"@type\" : \"connector_list\"," + NEWLINE
+          + "  \"statementText\" : \"statement\"," + NEWLINE
+          + "  \"warnings\" : [ ]," + NEWLINE
+          + "  \"connectors\" : [ {" + NEWLINE
+          + "    \"name\" : \"foo\"," + NEWLINE
+          + "    \"type\" : \"source\"," + NEWLINE
+          + "    \"className\" : \"clazz\"," + NEWLINE
+          + "    \"state\" : \"STATUS\"" + NEWLINE
+          + "  }, {" + NEWLINE
+          + "    \"name\" : \"bar\"" + NEWLINE
+          + "  } ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + " Connector Name | Type    | Class | Status \n"
-          + "-------------------------------------------\n"
-          + " foo            | SOURCE  | clazz | STATUS \n"
-          + " bar            | UNKNOWN |       |        \n"
-          + "-------------------------------------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Connector Name | Type    | Class | Status " + NEWLINE
+          + "-------------------------------------------" + NEWLINE
+          + " foo            | SOURCE  | clazz | STATUS " + NEWLINE
+          + " bar            | UNKNOWN |       |        " + NEWLINE
+          + "-------------------------------------------" + NEWLINE));
     }
   }
 
@@ -924,41 +925,41 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"type_list\",\n"
-          + "  \"statementText\" : \"statement\",\n"
-          + "  \"types\" : {\n"
-          + "    \"typeB\" : {\n"
-          + "      \"type\" : \"ARRAY\",\n"
-          + "      \"fields\" : null,\n"
-          + "      \"memberSchema\" : {\n"
-          + "        \"type\" : \"STRING\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    },\n"
-          + "    \"typeA\" : {\n"
-          + "      \"type\" : \"STRUCT\",\n"
-          + "      \"fields\" : [ {\n"
-          + "        \"name\" : \"f1\",\n"
-          + "        \"schema\" : {\n"
-          + "          \"type\" : \"STRING\",\n"
-          + "          \"fields\" : null,\n"
-          + "          \"memberSchema\" : null\n"
-          + "        }\n"
-          + "      } ],\n"
-          + "      \"memberSchema\" : null\n"
-          + "    }\n"
-          + "  },\n"
-          + "  \"warnings\" : [ ]\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"type_list\"," + NEWLINE
+          + "  \"statementText\" : \"statement\"," + NEWLINE
+          + "  \"types\" : {" + NEWLINE
+          + "    \"typeB\" : {" + NEWLINE
+          + "      \"type\" : \"ARRAY\"," + NEWLINE
+          + "      \"fields\" : null," + NEWLINE
+          + "      \"memberSchema\" : {" + NEWLINE
+          + "        \"type\" : \"STRING\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }," + NEWLINE
+          + "    \"typeA\" : {" + NEWLINE
+          + "      \"type\" : \"STRUCT\"," + NEWLINE
+          + "      \"fields\" : [ {" + NEWLINE
+          + "        \"name\" : \"f1\"," + NEWLINE
+          + "        \"schema\" : {" + NEWLINE
+          + "          \"type\" : \"STRING\"," + NEWLINE
+          + "          \"fields\" : null," + NEWLINE
+          + "          \"memberSchema\" : null" + NEWLINE
+          + "        }" + NEWLINE
+          + "      } ]," + NEWLINE
+          + "      \"memberSchema\" : null" + NEWLINE
+          + "    }" + NEWLINE
+          + "  }," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + " Type Name | Schema                     \n"
-          + "----------------------------------------\n"
-          + " typeA     | STRUCT<f1 VARCHAR(STRING)> \n"
-          + " typeB     | ARRAY<VARCHAR(STRING)>     \n"
-          + "----------------------------------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Type Name | Schema                     " + NEWLINE
+          + "----------------------------------------" + NEWLINE
+          + " typeA     | STRUCT<f1 VARCHAR(STRING)> " + NEWLINE
+          + " typeB     | ARRAY<VARCHAR(STRING)>     " + NEWLINE
+          + "----------------------------------------" + NEWLINE));
     }
   }
 
@@ -975,18 +976,18 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"executionPlan\",\n"
-          + "  \"statementText\" : \"Test Execution Plan\",\n"
-          + "  \"warnings\" : [ ],\n"
-          + "  \"executionPlan\" : \"Test Execution Plan\"\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"executionPlan\"," + NEWLINE
+          + "  \"statementText\" : \"Test Execution Plan\"," + NEWLINE
+          + "  \"warnings\" : [ ]," + NEWLINE
+          + "  \"executionPlan\" : \"Test Execution Plan\"" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + " Execution Plan      \n"
-          + "---------------------\n"
-          + " Test Execution Plan \n"
-          + "---------------------\n"));
+      assertThat(output, is("" + NEWLINE
+          + " Execution Plan      " + NEWLINE
+          + "---------------------" + NEWLINE
+          + " Test Execution Plan " + NEWLINE
+          + "---------------------" + NEWLINE));
     }
   }
 
@@ -1031,98 +1032,99 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"sourceDescription\",\n"
-          + "  \"statementText\" : \"e\",\n"
-          + "  \"sourceDescription\" : {\n"
-          + "    \"name\" : \"TestSource\",\n"
-          + "    \"windowType\" : null,\n"
-          + "    \"readQueries\" : [ {\n"
-          + "      \"queryString\" : \"read query\",\n"
-          + "      \"sinks\" : [ \"sink1\" ],\n"
-          + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ],\n"
-          + "      \"id\" : \"readId\",\n"
-          + "      \"state\" : \"Running\"\n"
-          + "    } ],\n"
-          + "    \"writeQueries\" : [ {\n"
-          + "      \"queryString\" : \"write query\",\n"
-          + "      \"sinks\" : [ \"sink2\" ],\n"
-          + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ],\n"
-          + "      \"id\" : \"writeId\",\n"
-          + "      \"state\" : \"Running\"\n"
-          + "    } ],\n"
-          + "    \"fields\" : [ {\n"
-          + "      \"name\" : \"ROWTIME\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"BIGINT\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"ROWKEY\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"STRING\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    }, {\n"
-          + "      \"name\" : \"f_0\",\n"
-          + "      \"schema\" : {\n"
-          + "        \"type\" : \"STRING\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
-          + "    } ],\n"
-          + "    \"type\" : \"TABLE\",\n"
-          + "    \"key\" : \"key\",\n"
-          + "    \"timestamp\" : \"2000-01-01\",\n"
-          + "    \"statistics\" : \"stats\",\n"
-          + "    \"errorStats\" : \"errors\",\n"
-          + "    \"extended\" : true,\n"
-          + "    \"keyFormat\" : \"kafka\",\n"
-          + "    \"valueFormat\" : \"avro\",\n"
-          + "    \"topic\" : \"kadka-topic\",\n"
-          + "    \"partitions\" : 2,\n"
-          + "    \"replication\" : 1,\n"
-          + "    \"statement\" : \"sql statement text\"\n"
-          + "  },\n"
-          + "  \"warnings\" : [ ]\n"
-          + "} ]\n"));
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"sourceDescription\"," + NEWLINE
+          + "  \"statementText\" : \"e\"," + NEWLINE
+          + "  \"sourceDescription\" : {" + NEWLINE
+          + "    \"name\" : \"TestSource\"," + NEWLINE
+          + "    \"windowType\" : null," + NEWLINE
+          + "    \"readQueries\" : [ {" + NEWLINE
+          + "      \"queryString\" : \"read query\"," + NEWLINE
+          + "      \"sinks\" : [ \"sink1\" ]," + NEWLINE
+          + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ]," + NEWLINE
+          + "      \"id\" : \"readId\"," + NEWLINE
+          + "      \"state\" : \"Running\"" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"writeQueries\" : [ {" + NEWLINE
+          + "      \"queryString\" : \"write query\"," + NEWLINE
+          + "      \"sinks\" : [ \"sink2\" ]," + NEWLINE
+          + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ]," + NEWLINE
+          + "      \"id\" : \"writeId\"," + NEWLINE
+          + "      \"state\" : \"Running\"" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"fields\" : [ {" + NEWLINE
+          + "      \"name\" : \"ROWTIME\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"BIGINT\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"ROWKEY\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"STRING\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_0\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"STRING\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"type\" : \"TABLE\"," + NEWLINE
+          + "    \"key\" : \"key\"," + NEWLINE
+          + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
+          + "    \"statistics\" : \"stats\"," + NEWLINE
+          + "    \"errorStats\" : \"errors\"," + NEWLINE
+          + "    \"extended\" : true," + NEWLINE
+          + "    \"keyFormat\" : \"kafka\"," + NEWLINE
+          + "    \"valueFormat\" : \"avro\"," + NEWLINE
+          + "    \"topic\" : \"kadka-topic\"," + NEWLINE
+          + "    \"partitions\" : 2," + NEWLINE
+          + "    \"replication\" : 1," + NEWLINE
+          + "    \"statement\" : \"sql statement text\"" + NEWLINE
+          + "  }," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
     } else {
-      assertThat(output, is("\n"
-          + "Name                 : TestSource\n"
-          + "Type                 : TABLE\n"
-          + "Key field            : key\n"
-          + "Timestamp field      : 2000-01-01\n"
-          + "Key format           : kafka\n"
-          + "Value format         : avro\n"
-          + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)\n"
-          + "Statement            : sql statement text\n"
+      assertThat(output, is("" + NEWLINE
+          + "Name                 : TestSource" + NEWLINE
+          + "Type                 : TABLE" + NEWLINE
+          + "Key field            : key" + NEWLINE
+          + "Timestamp field      : 2000-01-01" + NEWLINE
+          + "Key format           : kafka" + NEWLINE
+          + "Value format         : avro" + NEWLINE
+          + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)" + NEWLINE
+          + "Statement            : sql statement text" + NEWLINE
+          + "" + NEWLINE
+          + " Field   | Type                      " + NEWLINE
+          + "-------------------------------------" + NEWLINE
+          + " ROWTIME | BIGINT           (system) " + NEWLINE
+          + " ROWKEY  | VARCHAR(STRING)  (system) " + NEWLINE
+          + " f_0     | VARCHAR(STRING)           " + NEWLINE
+          + "-------------------------------------" + NEWLINE
+          + "" + NEWLINE
+          + "Queries that read from this TABLE" + NEWLINE
+          + "-----------------------------------" + NEWLINE
+          + "readId (Running) : read query" + NEWLINE
           + "\n"
-          + " Field   | Type                      \n"
-          + "-------------------------------------\n"
-          + " ROWTIME | BIGINT           (system) \n"
-          + " ROWKEY  | VARCHAR(STRING)  (system) \n"
-          + " f_0     | VARCHAR(STRING)           \n"
-          + "-------------------------------------\n"
+          + "For query topology and execution plan please run: EXPLAIN <QueryId>" + NEWLINE
+          + "" + NEWLINE
+          + "Queries that write from this TABLE" + NEWLINE
+          + "-----------------------------------" + NEWLINE
+          + "writeId (Running) : write query" + NEWLINE
           + "\n"
-          + "Queries that read from this TABLE\n"
-          + "-----------------------------------\n"
-          + "readId (Running) : read query\n"
-          + "\n"
-          + "For query topology and execution plan please run: EXPLAIN <QueryId>\n"
-          + "\n"
-          + "Queries that write from this TABLE\n"
-          + "-----------------------------------\n"
-          + "writeId (Running) : write query\n"
-          + "\n"
-          + "For query topology and execution plan please run: EXPLAIN <QueryId>\n"
-          + "\n"
-          + "Local runtime statistics\n"
-          + "------------------------\n"
-          + "stats\n"
-          + "errors\n"
-          + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)\n"));
+          + "For query topology and execution plan please run: EXPLAIN <QueryId>" + NEWLINE
+          + "" + NEWLINE
+          + "Local runtime statistics" + NEWLINE
+          + "------------------------" + NEWLINE
+          + "stats" + NEWLINE
+          + "errors" + NEWLINE
+          + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)"
+          + NEWLINE));
     }
   }
 
@@ -1143,7 +1145,7 @@ public class ConsoleTest {
     if (console.getOutputFormat() == OutputFormat.TABULAR) {
       assertThat(
           output,
-          containsString("WARNING: oops\nWARNING: doh")
+          containsString("WARNING: oops" + NEWLINE + "WARNING: doh")
       );
     } else {
       assertThat(output, containsString("\"message\" : \"oops\""));
@@ -1164,20 +1166,20 @@ public class ConsoleTest {
     if (console.getOutputFormat() == OutputFormat.TABULAR) {
       assertThat(
           output,
-          is("\n"
-              + " Message                           \n"
-              + "-----------------------------------\n"
-              + " Dropped connector \"connectorName\" \n"
-              + "-----------------------------------\n")
+          is("" + NEWLINE
+              + " Message                           " + NEWLINE
+              + "-----------------------------------" + NEWLINE
+              + " Dropped connector \"connectorName\" " + NEWLINE
+              + "-----------------------------------" + NEWLINE)
       );
     } else {
       assertThat(
           output,
-          is("[ {\n"
-              + "  \"statementText\" : \"statementText\",\n"
-              + "  \"connectorName\" : \"connectorName\",\n"
-              + "  \"warnings\" : [ ]\n"
-              + "} ]\n")
+          is("[ {" + NEWLINE
+              + "  \"statementText\" : \"statementText\"," + NEWLINE
+              + "  \"connectorName\" : \"connectorName\"," + NEWLINE
+              + "  \"warnings\" : [ ]" + NEWLINE
+              + "} ]" + NEWLINE)
       );
     }
   }
@@ -1197,13 +1199,13 @@ public class ConsoleTest {
     if (console.getOutputFormat() == OutputFormat.TABULAR) {
       assertThat(
           output,
-          is("\n"
-              + " Error                                                        \n"
-              + "--------------------------------------------------------------\n"
-              + " Not a JSON value! Not a JSON value! Not a JSON value! Not a \n"
-              + "JSON value! Not a JSON value! Not a JSON value! Not a JSON v\n"
-              + "alue! Not a JSON value! Not a JSON value! Not a JSON value!  \n"
-              + "--------------------------------------------------------------\n")
+          is("" + NEWLINE
+              + " Error                                                        " + NEWLINE
+              + "--------------------------------------------------------------" + NEWLINE
+              + " Not a JSON value! Not a JSON value! Not a JSON value! Not a " + NEWLINE
+              + "JSON value! Not a JSON value! Not a JSON value! Not a JSON v" + NEWLINE
+              + "alue! Not a JSON value! Not a JSON value! Not a JSON value!  " + NEWLINE
+              + "--------------------------------------------------------------" + NEWLINE)
       );
     }
   }
@@ -1227,11 +1229,13 @@ public class ConsoleTest {
       assertThat(
           output,
           containsString(""
-              + "----------------------------------------------------------------------------------------------------\n"
-              + " {\n"
-              + "  \"foo\" : \"bar\",\n"
-              + "  \"message\" : \"a really really really really really really really really really really really really really really really really really really really really  long message\"\n"
-              + "} \n"
+              + "----------------------------------------------------------------------------------------------------"
+              + NEWLINE
+              + " {" + NEWLINE
+              + "  \"foo\" : \"bar\"," + NEWLINE
+              + "  \"message\" : \"a really really really really really really really really really really really really really really really really really really really really  long message\""
+              + NEWLINE
+              + "} " + NEWLINE
               + "----------------------------------------------------------------------------------------------------")
       );
     }
@@ -1278,31 +1282,37 @@ public class ConsoleTest {
     if (console.getOutputFormat() == OutputFormat.JSON) {
       assertThat(output, containsString("\"name\" : \"FOO\""));
     } else {
-      final String expected = ""
-          + "Name        : FOO\n"
-          + "Author      : Andy\n"
-          + "Version     : v1.1.0\n"
-          + "Overview    : Description that is very, very, very, very, very, very, very, very, very, very, very, \n"
-          + "              very, very, very, very, very, very, very, very, very, very long\n"
-          + "              and containing new lines\n"
-          + "              \tAND TABS\n"
-          + "              too!\n"
-          + "Type        : SCALAR\n"
-          + "Jar         : some.jar\n"
-          + "Variations  : \n"
-          + "\n"
-          + "\tVariation   : FOO(arg1 INT[])\n"
-          + "\tReturns     : LONG\n"
-          + "\tDescription : The function description, which too can be really, really, really, really, really, \n"
-          + "                really, really, really, really, really, really, really, really, really, really, \n"
-          + "                really, really, really, really, really, long\n"
-          + "                and contains\n"
-          + "                \ttabs and stuff\n"
-          + "\targ1        : Another really, really, really, really, really, really, really,really, really, \n"
-          + "                really, really, really, really, really, really  really, really, really, really, \n"
-          + "                really, really, really, long\n"
-          + "                description\n"
-          + "                \tContaining Tabs\n"
+      final String expected = "" + NEWLINE
+          + "Name        : FOO" + NEWLINE
+          + "Author      : Andy" + NEWLINE
+          + "Version     : v1.1.0" + NEWLINE
+          + "Overview    : Description that is very, very, very, very, very, very, very, very, very, very, very, "
+          + NEWLINE
+          + "              very, very, very, very, very, very, very, very, very, very long"
+          + NEWLINE
+          + "              and containing new lines" + NEWLINE
+          + "              \tAND TABS" + NEWLINE
+          + "              too!" + NEWLINE
+          + "Type        : SCALAR" + NEWLINE
+          + "Jar         : some.jar" + NEWLINE
+          + "Variations  : " + NEWLINE
+          + "" + NEWLINE
+          + "\tVariation   : FOO(arg1 INT[])" + NEWLINE
+          + "\tReturns     : LONG" + NEWLINE
+          + "\tDescription : The function description, which too can be really, really, really, really, really, "
+          + NEWLINE
+          + "                really, really, really, really, really, really, really, really, really, really, "
+          + NEWLINE
+          + "                really, really, really, really, really, long" + NEWLINE
+          + "                and contains" + NEWLINE
+          + "                \ttabs and stuff" + NEWLINE
+          + "\targ1        : Another really, really, really, really, really, really, really,really, really, "
+          + NEWLINE
+          + "                really, really, really, really, really, really  really, really, really, really, "
+          + NEWLINE
+          + "                really, really, really, long" + NEWLINE
+          + "                description" + NEWLINE
+          + "                \tContaining Tabs" + NEWLINE
           + "                and stuff";
 
       assertThat(output, containsString(expected));
@@ -1383,7 +1393,7 @@ public class ConsoleTest {
   public void shouldSupportCmdBeingTerminatedWithSemiColonAndWhitespace() {
     // Given:
     when(lineSupplier.get())
-        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "Arg0; \n")
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE + "Arg0; " + NEWLINE)
         .thenReturn("not a CLI command;");
 
     // When:

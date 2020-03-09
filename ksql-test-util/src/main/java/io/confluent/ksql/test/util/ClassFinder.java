@@ -47,8 +47,9 @@ public final class ClassFinder {
       final List<Path> dirs = new ArrayList<>();
       while (resources.hasMoreElements()) {
         final URL resource = resources.nextElement();
-        if (!resource.toString().contains("/test-classes/")) {
-          dirs.add(Paths.get(resource.getFile()));
+        if (!resource.toString().contains("/test-classes/")
+            && !resource.getProtocol().equals("jar")) {
+          dirs.add(Paths.get(resource.toURI()));
         }
       }
 

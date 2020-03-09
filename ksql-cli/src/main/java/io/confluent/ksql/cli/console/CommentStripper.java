@@ -98,7 +98,7 @@ final class CommentStripper {
     private String trimComment(final int partStart) {
       final String part = line.substring(partStart, pos - 1).trim();
 
-      final int newLine = line.indexOf(System.lineSeparator(), pos + 1);
+      final int newLine = line.indexOf("\n", pos + 1);
       if (newLine == -1) {
         pos = line.length();
       } else {

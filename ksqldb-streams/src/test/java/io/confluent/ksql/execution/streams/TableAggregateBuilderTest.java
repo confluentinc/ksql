@@ -162,7 +162,7 @@ public class TableAggregateBuilderTest {
     when(aggregateParams.getAggregateSchema()).thenReturn(AGGREGATE_SCHEMA);
     when(aggregateParams.getSchema()).thenReturn(AGGREGATE_SCHEMA);
     when(aggregator.getResultMapper()).thenReturn(resultMapper);
-    when(materializedFactory.<Struct, KeyValueStore<Bytes, byte[]>>create(any(), any(), any(), any()))
+    when(materializedFactory.<Struct, KeyValueStore<Bytes, byte[]>>create(any(), any(), any()))
         .thenReturn(materialized);
     when(groupedTable.aggregate(any(), any(), any(), any(Materialized.class))).thenReturn(
         aggregated);
@@ -218,7 +218,7 @@ public class TableAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(materializedFactory).create(same(keySerde), same(valueSerde), any(), any());
+    verify(materializedFactory).create(same(keySerde), same(valueSerde), any());
   }
 
   @Test
@@ -227,7 +227,7 @@ public class TableAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"), any());
+    verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"));
   }
 
   @Test

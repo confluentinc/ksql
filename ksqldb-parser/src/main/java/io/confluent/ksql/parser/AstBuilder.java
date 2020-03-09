@@ -487,7 +487,6 @@ public class AstBuilder {
 
       final String sizeUnit = windowUnits.get(0).getText();
       final String advanceByUnit = windowUnits.get(1).getText();
-
       return new HoppingWindowExpression(
           getLocation(ctx),
           Long.parseLong(sizeStr),

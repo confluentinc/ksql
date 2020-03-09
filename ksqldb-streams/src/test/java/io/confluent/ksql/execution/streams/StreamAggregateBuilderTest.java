@@ -222,7 +222,7 @@ public class StreamAggregateBuilderTest {
 
   @SuppressWarnings("unchecked")
   private void givenUnwindowedAggregate() {
-    when(materializedFactory.<Struct, KeyValueStore<Bytes, byte[]>>create(any(), any(), any(), any()))
+    when(materializedFactory.<Struct, KeyValueStore<Bytes, byte[]>>create(any(), any(), any()))
         .thenReturn(materialized);
     when(groupedStream.aggregate(any(), any(), any(Materialized.class))).thenReturn(aggregated);
     when(aggregated.transformValues(any(), any(Named.class)))
@@ -361,7 +361,7 @@ public class StreamAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"), any());
+    verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"));
   }
 
   @Test

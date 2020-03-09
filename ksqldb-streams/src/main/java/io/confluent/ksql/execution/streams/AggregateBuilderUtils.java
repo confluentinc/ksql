@@ -26,7 +26,6 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -81,7 +80,7 @@ final class AggregateBuilderUtils {
         buildValueSerde(formats, queryBuilder, physicalAggregationSchema, queryContext);
 
     return materializedFactory
-        .create(keySerde, valueSerde, StreamsUtil.buildOpName(queryContext), Optional.empty());
+        .create(keySerde, valueSerde, StreamsUtil.buildOpName(queryContext));
   }
 
   static MaterializationInfo.Builder materializationInfoBuilder(

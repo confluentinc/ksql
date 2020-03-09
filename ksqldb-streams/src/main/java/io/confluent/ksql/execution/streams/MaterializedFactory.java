@@ -23,10 +23,18 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
 
 public interface MaterializedFactory {
-  <K, S extends StateStore> Materialized<K, GenericRow, S> create(Serde<K> keySerde,
-                                                                  Serde<GenericRow> valSerde,
-                                                                  String name,
-                                                                  Optional<Duration> retention);
+  <K, S extends StateStore> Materialized<K, GenericRow, S> create(
+      Serde<K> keySerde,
+      Serde<GenericRow> valSerde,
+      String name,
+      Optional<Duration> retention
+  );
+
+  <K, S extends StateStore> Materialized<K, GenericRow, S> create(
+      Serde<K> keySerde,
+      Serde<GenericRow> valSerde,
+      String name
+  );
 
   static MaterializedFactory create() {
     return create(
@@ -58,6 +66,14 @@ public interface MaterializedFactory {
         return materializer.<K, GenericRow, S>materializedAs(name, retention)
             .withKeySerde(keySerde)
             .withValueSerde(valSerde);
+      }
+
+      @Override
+      public <K, S extends StateStore> Materialized<K, GenericRow, S> create(
+          final Serde<K> keySerde,
+          final Serde<GenericRow> valSerde,
+          final String name) {
+        return create(keySerde, valSerde, name, Optional.empty());
       }
     };
   }

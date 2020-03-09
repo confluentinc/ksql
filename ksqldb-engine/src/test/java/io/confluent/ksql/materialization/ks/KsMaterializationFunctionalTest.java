@@ -88,8 +88,8 @@ public class KsMaterializationFunctionalTest {
   private static final String USER_TABLE = "users_table";
   private static final String USER_STREAM = "users_stream";
 
-  private static final String PAGEVIEWS_TOPIC = "pageviews_topic";
-  private static final String PAGEVIEWS_STREAM = "pageviews_stream";
+  private static final String PAGE_VIEWS_TOPIC = "page_views_topic";
+  private static final String PAGE_VIEWS_STREAM = "page_views_stream";
 
   private static final Format VALUE_FORMAT = JSON;
   private static final UserDataProvider USER_DATA_PROVIDER = new UserDataProvider();
@@ -136,7 +136,7 @@ public class KsMaterializationFunctionalTest {
 
   @BeforeClass
   public static void classSetUp() {
-    TEST_HARNESS.ensureTopics(USERS_TOPIC, PAGEVIEWS_TOPIC);
+    TEST_HARNESS.ensureTopics(USERS_TOPIC, PAGE_VIEWS_TOPIC);
 
     TEST_HARNESS.produceRows(
         USERS_TOPIC,
@@ -146,7 +146,7 @@ public class KsMaterializationFunctionalTest {
 
     for (final Instant windowTime : WINDOW_START_INSTANTS) {
       TEST_HARNESS.produceRows(
-          PAGEVIEWS_TOPIC,
+          PAGE_VIEWS_TOPIC,
           PAGE_VIEW_DATA_PROVIDER,
           VALUE_FORMAT,
           windowTime::toEpochMilli
@@ -425,7 +425,7 @@ public class KsMaterializationFunctionalTest {
   public void shouldFailQueryWithRetentionSmallerThanGracePeriod() {
     // Given:
     executeQuery("CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + PAGEVIEWS_STREAM
+            + " SELECT COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW TUMBLING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
             + " RETENTION " + (WINDOW_SEGMENT_DURATION.getSeconds() * 2) + " SECONDS)"
             + " GROUP BY PAGEID;"
@@ -437,7 +437,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + PAGEVIEWS_STREAM
+            + " SELECT COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW TUMBLING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
             + " RETENTION " + (WINDOW_SEGMENT_DURATION.getSeconds() * 2) + " SECONDS,"
             + " GRACE PERIOD 0 SECONDS)"
@@ -466,7 +466,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + PAGEVIEWS_STREAM
+            + " SELECT COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW HOPPING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
             + " ADVANCE BY " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS, "
             + " RETENTION " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
@@ -495,7 +495,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + PAGEVIEWS_STREAM
+            + " SELECT COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW SESSION (" + WINDOW_SEGMENT_DURATION.getSeconds()/2 + " SECONDS,"
             + " RETENTION " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
             + " GRACE PERIOD 0 SECONDS"
@@ -754,10 +754,10 @@ public class KsMaterializationFunctionalTest {
         + ");"
     );
 
-    ksqlContext.sql("CREATE STREAM " + PAGEVIEWS_STREAM + " "
+    ksqlContext.sql("CREATE STREAM " + PAGE_VIEWS_STREAM + " "
         + " (" + PAGE_VIEW_DATA_PROVIDER.ksqlSchemaString() + ")"
         + " WITH ("
-        + "    kafka_topic='" + PAGEVIEWS_TOPIC + "', "
+        + "    kafka_topic='" + PAGE_VIEWS_TOPIC + "', "
         + "    value_format='" + VALUE_FORMAT.name() + "', "
         + "    key = '" + PAGE_VIEW_DATA_PROVIDER.key() + "'"
         + ");"

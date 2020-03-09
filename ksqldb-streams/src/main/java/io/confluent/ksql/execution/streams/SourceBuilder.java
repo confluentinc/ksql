@@ -180,8 +180,7 @@ public final class SourceBuilder {
         materializedFactory.create(
             keySerde,
             valueSerde,
-            tableChangeLogOpName(source.getProperties()),
-            Optional.empty()
+            tableChangeLogOpName(source.getProperties())
         );
 
     final KTable<Struct, GenericRow> ktable = buildKTable(
@@ -230,8 +229,7 @@ public final class SourceBuilder {
         materializedFactory.create(
             keySerde,
             valueSerde,
-            tableChangeLogOpName(source.getProperties()),
-            Optional.empty()
+            tableChangeLogOpName(source.getProperties())
         );
 
     final KTable<Windowed<Struct>, GenericRow> ktable = buildKTable(

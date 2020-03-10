@@ -69,7 +69,7 @@ public class PlannedTestsUpToDateTest {
     assertThat(
         String.format(
             "Current query plan differs from latest for: %s. Please re-generate QTT plans."
-                + " See `ksql-functional-tests/README.md` for more info.",
+                + " See `ksqldb-functional-tests/README.md` for more info.",
             testCase.getName()
         ),
         current, isLatestPlan(latest)

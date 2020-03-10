@@ -62,11 +62,11 @@ public final class PlannedTestPath {
   }
 
   private static Path findBaseDir() {
-    Path path = Paths.get("./ksql-functional-tests");
+    Path path = Paths.get("./ksqldb-functional-tests");
     if (Files.exists(path)) {
       return path.resolve(BASE_DIRECTORY);
     }
-    path = Paths.get("../ksql-functional-tests");
+    path = Paths.get("../ksqldb-functional-tests");
     if (Files.exists(path)) {
       return path.resolve(BASE_DIRECTORY);
     }

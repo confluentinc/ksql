@@ -21,6 +21,7 @@ import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationFilter;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
@@ -98,19 +99,23 @@ public class ServerVerticle extends AbstractVerticle {
     return httpServer.actualPort();
   }
 
+  private static final Set<String> NEW_API_ENDPOINTS = ImmutableSet
+      .of("/query-stream", "/inserts-stream", "/close-query");
+
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
-    router.route().failureHandler(ServerVerticle::handleFailure);
-
+    // We only want to apply failure handler and auth handlers to routes that are not proxied
+    // as Jetty will do it's own auth and failure handler
+    routeFailureToNewApi(router, ServerVerticle::handleFailure);
     getAuthHandler(server).ifPresent(authHandler -> {
-      router.route().handler(ServerVerticle::pauseHandler);
-      router.route().handler(authHandler);
+      routeToNewApi(router, ServerVerticle::pauseHandler);
+      routeToNewApi(router, authHandler);
       server
           .getSecurityExtension()
           .getAuthorizationProvider()
-          .ifPresent(ksqlAuthorizationProvider -> router.route()
-              .handler(new KsqlAuthorizationFilter(server.getWorkerExecutor(),
+          .ifPresent(ksqlAuthorizationProvider -> routeToNewApi(router,
+              new KsqlAuthorizationFilter(server.getWorkerExecutor(),
                   ksqlAuthorizationProvider)));
       router.route().handler(ServerVerticle::resumeHandler);
     });
@@ -186,5 +191,18 @@ public class ServerVerticle extends AbstractVerticle {
     routingContext.request().resume();
     routingContext.next();
   }
+
+  private void routeToNewApi(final Router router, final Handler<RoutingContext> handler) {
+    for (String path : NEW_API_ENDPOINTS) {
+      router.route(path).handler(handler);
+    }
+  }
+
+  private void routeFailureToNewApi(final Router router, final Handler<RoutingContext> handler) {
+    for (String path : NEW_API_ENDPOINTS) {
+      router.route(path).failureHandler(handler);
+    }
+  }
+
 
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.cli.console.table;
 
 import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.cli.console.Console;
 import java.util.Arrays;

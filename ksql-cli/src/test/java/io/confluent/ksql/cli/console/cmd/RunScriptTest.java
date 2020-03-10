@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.Mockito.verify;
+
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.KsqlRequestExecutor;
 import io.confluent.ksql.util.KsqlException;

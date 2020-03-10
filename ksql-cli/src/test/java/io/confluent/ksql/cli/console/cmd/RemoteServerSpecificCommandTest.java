@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.rest.client.KsqlRestClient;

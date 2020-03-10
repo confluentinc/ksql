@@ -67,7 +67,7 @@ public abstract class ConnectFormat implements Format {
   }
 
   public ParsedSchema toParsedSchema(
-      final List<SimpleColumn> columns,
+      final List<? extends SimpleColumn> columns,
       final FormatInfo formatInfo
   ) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();

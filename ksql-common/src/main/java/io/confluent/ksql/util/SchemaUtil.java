@@ -57,7 +57,6 @@ public final class SchemaUtil {
   );
 
   private static final Set<ColumnName> SYSTEM_COLUMN_NAMES = ImmutableSet.<ColumnName>builder()
-      .add(ROWKEY_NAME)
       .add(ROWTIME_NAME)
       .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
       .build();

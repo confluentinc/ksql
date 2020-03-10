@@ -443,15 +443,6 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testReservedRowKeyAlias() {
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage(containsString(
-        "ROWKEY is a reserved system column name. You cannot use it as an alias for a column."));
-
-    KsqlParserTestUtil.buildSingleAst("SELECT C2 as ROWKEY FROM test1 t1;", metaStore);
-  }
-
-  @Test
   public void shouldThrowOnNonAlphanumericSourceName() {
     // Expect:
     expectedException.expect(ParseFailedException.class);

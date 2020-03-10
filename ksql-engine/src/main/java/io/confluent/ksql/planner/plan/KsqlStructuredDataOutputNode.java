@@ -140,8 +140,9 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         .collect(Collectors.joining(", "));
 
     if (!duplicates.isEmpty()) {
-      throw new KsqlException("Value column name(s) " + duplicates
-          + " clashes with key column name(s). Please remove or alias the column(s).");
+      throw new KsqlException("Value column name(s) " + duplicates + " clashes with key column "
+          + "name(s). Key column(s) are always copied to the output schema, unless there is a "
+          + "GROUP BY or PARTITION BY clause. Please remove or alias the duplicate column(s).");
     }
   }
 }

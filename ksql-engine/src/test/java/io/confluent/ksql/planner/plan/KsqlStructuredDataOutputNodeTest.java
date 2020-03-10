@@ -136,7 +136,7 @@ public class KsqlStructuredDataOutputNodeTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Value column name(s) `k0` "
-        + "clashes with key column name(s). Please remove or alias the column(s).");
+        + "clashes with key column name(s).");
 
     // When:
     buildNode();

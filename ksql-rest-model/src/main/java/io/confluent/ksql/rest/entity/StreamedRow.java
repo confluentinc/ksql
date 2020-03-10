@@ -134,6 +134,14 @@ public final class StreamedRow {
     return Objects.hash(header, row, errorMessage, finalMessage);
   }
 
+  @Override
+  public String toString() {
+    return header.map(Objects::toString)
+        .orElseGet(() -> row.map(Objects::toString)
+            .orElseGet(() -> errorMessage.map(Objects::toString)
+                .orElseGet(() -> finalMessage.map(Objects::toString).orElse(""))));
+  }
+
   private static void checkUnion(final Optional<?>... fs) {
     final long count = Arrays.stream(fs)
         .filter(Optional::isPresent)
@@ -188,6 +196,14 @@ public final class StreamedRow {
     @Override
     public int hashCode() {
       return Objects.hash(queryId, schema);
+    }
+
+    @Override
+    public String toString() {
+      return "Header{"
+          + "queryId=" + queryId
+          + ", schema=" + schema
+          + '}';
     }
   }
 }

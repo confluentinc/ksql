@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import org.junit.Test;
 
 public class JsonMapperTest {
@@ -35,5 +36,14 @@ public class JsonMapperTest {
   @Test
   public void shouldIgnoreUnknownProperties() {
     assertThat(OBJECT_MAPPER.isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES), is(false));
+  }
+
+  @Test
+  public void shouldNotUseScientificNotationWhenSerializingDecimals() throws Exception {
+    // When:
+    final String result = OBJECT_MAPPER.writeValueAsString(new BigDecimal("1e+1"));
+
+    // Then:
+    assertThat(result, is("10"));
   }
 }

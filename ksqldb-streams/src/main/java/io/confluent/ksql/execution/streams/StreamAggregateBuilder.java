@@ -33,11 +33,11 @@ import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.execution.windows.WindowVisitor;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
@@ -258,11 +258,10 @@ public final class StreamAggregateBuilder {
         final HoppingWindowExpression window,
         final Void ctx) {
       TimeWindows windows = TimeWindows
-          .of(Duration.ofMillis(window.getSizeUnit().toMillis(window.getSize())))
-          .advanceBy(Duration.ofMillis(window.getAdvanceByUnit().toMillis(window.getAdvanceBy())));
-      windows = window.getGracePeriod().isPresent()
-          ? windows.grace(window.getGracePeriod().get())
-          : windows;
+          .of(window.getSize().toDuration())
+          .advanceBy(window.getAdvanceBy().toDuration());
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration).map(windows::grace)
+          .orElse(windows);
 
       return groupedStream
           .windowedBy(windows)
@@ -272,7 +271,7 @@ public final class StreamAggregateBuilder {
               materializedFactory.create(keySerde,
                   valueSerde,
                   StreamsUtil.buildOpName(queryContext),
-                  window.getRetention())
+                  window.getRetention().map(WindowTimeClause::toDuration))
           );
     }
 
@@ -280,12 +279,10 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<Struct>, GenericRow>  visitSessionWindowExpression(
         final SessionWindowExpression window,
         final Void ctx) {
-      SessionWindows windows = SessionWindows.with(
-          Duration.ofMillis(window.getSizeUnit().toMillis(window.getGap()))
-      );
-      windows = window.getGracePeriod().isPresent()
-          ? windows.grace(window.getGracePeriod().get())
-          : windows;
+      SessionWindows windows = SessionWindows.with(window.getGap().toDuration());
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration).map(windows::grace)
+          .orElse(windows);
+
       return groupedStream
           .windowedBy(windows)
           .aggregate(
@@ -295,7 +292,7 @@ public final class StreamAggregateBuilder {
               materializedFactory.create(keySerde,
                   valueSerde,
                   StreamsUtil.buildOpName(queryContext),
-                  window.getRetention())
+                  window.getRetention().map(WindowTimeClause::toDuration))
           );
     }
 
@@ -303,11 +300,9 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<Struct>, GenericRow> visitTumblingWindowExpression(
         final TumblingWindowExpression window,
         final Void ctx) {
-      TimeWindows windows = TimeWindows.of(
-          Duration.ofMillis(window.getSizeUnit().toMillis(window.getSize())));
-      windows = window.getGracePeriod().isPresent()
-          ? windows.grace(window.getGracePeriod().get())
-          : windows;
+      TimeWindows windows = TimeWindows.of(window.getSize().toDuration());
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration).map(windows::grace)
+          .orElse(windows);
 
       return groupedStream
           .windowedBy(windows)
@@ -317,7 +312,7 @@ public final class StreamAggregateBuilder {
               materializedFactory.create(keySerde,
                   valueSerde,
                   StreamsUtil.buildOpName(queryContext),
-                  window.getRetention())
+                  window.getRetention().map(WindowTimeClause::toDuration))
           );
     }
   }

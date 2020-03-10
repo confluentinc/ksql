@@ -52,6 +52,7 @@ import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
@@ -257,7 +258,7 @@ public class StreamAggregateBuilderTest {
         io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         NON_AGG_COLUMNS,
         FUNCTIONS,
-        new TumblingWindowExpression(WINDOW.getSeconds(), TimeUnit.SECONDS)
+        new TumblingWindowExpression(new WindowTimeClause(WINDOW.getSeconds(), TimeUnit.SECONDS))
     );
   }
 
@@ -270,10 +271,8 @@ public class StreamAggregateBuilderTest {
         NON_AGG_COLUMNS,
         FUNCTIONS,
         new HoppingWindowExpression(
-            WINDOW.getSeconds(),
-            TimeUnit.SECONDS,
-            HOP.getSeconds(),
-            TimeUnit.SECONDS
+            new WindowTimeClause(WINDOW.getSeconds(), TimeUnit.SECONDS),
+            new WindowTimeClause(HOP.getSeconds(), TimeUnit.SECONDS)
         )
     );
   }
@@ -296,7 +295,7 @@ public class StreamAggregateBuilderTest {
         io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         NON_AGG_COLUMNS,
         FUNCTIONS,
-        new SessionWindowExpression(WINDOW.getSeconds(), TimeUnit.SECONDS)
+        new SessionWindowExpression(new WindowTimeClause(WINDOW.getSeconds(), TimeUnit.SECONDS))
     );
   }
 
@@ -349,7 +348,7 @@ public class StreamAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(materializedFactory).create(same(keySerde), same(valueSerde), any(), any());
+    verify(materializedFactory).create(same(keySerde), same(valueSerde), any());
   }
 
   @Test

@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -78,7 +79,7 @@ public class SchemaKGroupedStreamTest {
   );
 
   private static final KsqlWindowExpression KSQL_WINDOW_EXP = new SessionWindowExpression(
-      100, TimeUnit.SECONDS
+      new WindowTimeClause(100, TimeUnit.SECONDS)
   );
 
   private static final List<ColumnName> NON_AGGREGATE_COLUMNS = ImmutableList.of(

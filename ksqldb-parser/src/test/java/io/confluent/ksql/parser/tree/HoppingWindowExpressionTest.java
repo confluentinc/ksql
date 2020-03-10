@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
@@ -44,29 +45,54 @@ public class HoppingWindowExpressionTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new HoppingWindowExpression(10, SECONDS, 20, MINUTES),
-            new HoppingWindowExpression(10, SECONDS, 20, MINUTES),
-            new HoppingWindowExpression(Optional.of(SOME_LOCATION), 10, SECONDS, 20, MINUTES, Optional.empty(), Optional.empty()),
-            new HoppingWindowExpression(Optional.of(OTHER_LOCATION), 10, SECONDS, 20, MINUTES, Optional.empty(), Optional.empty())
+            new HoppingWindowExpression(
+                new WindowTimeClause(10, SECONDS),
+                new WindowTimeClause(20, MINUTES)),
+            new HoppingWindowExpression(
+                new WindowTimeClause(10, SECONDS),
+                new WindowTimeClause( 20, MINUTES)),
+            new HoppingWindowExpression(
+                Optional.of(SOME_LOCATION),
+                new WindowTimeClause(10, SECONDS),
+                new WindowTimeClause(20, MINUTES),
+                Optional.empty(),
+                Optional.empty()),
+            new HoppingWindowExpression(
+                Optional.of(OTHER_LOCATION),
+                new WindowTimeClause(10, SECONDS),
+                new WindowTimeClause(20, MINUTES),
+                Optional.empty(),
+                Optional.empty())
         )
         .addEqualityGroup(
-            new HoppingWindowExpression(30, SECONDS, 20, MINUTES)
+            new HoppingWindowExpression(
+                new WindowTimeClause(30, SECONDS),
+                new WindowTimeClause(20, MINUTES))
         )
         .addEqualityGroup(
-            new HoppingWindowExpression(10, HOURS, 20, MINUTES)
+            new HoppingWindowExpression(
+                new WindowTimeClause(10, HOURS),
+                new WindowTimeClause(20, MINUTES))
         )
         .addEqualityGroup(
-            new HoppingWindowExpression(10, SECONDS, 1, MINUTES)
+            new HoppingWindowExpression(
+                new WindowTimeClause(10, SECONDS),
+                new WindowTimeClause(1, MINUTES))
         )
         .addEqualityGroup(
-            new HoppingWindowExpression(10, SECONDS, 20, MILLISECONDS)
+            new HoppingWindowExpression(
+                new WindowTimeClause(10, SECONDS),
+                new WindowTimeClause(20, MILLISECONDS))
         )
         .testEquals();
   }
 
   @Test
   public void shouldReturnWindowInfo() {
-    assertThat(new HoppingWindowExpression(10, SECONDS, 20, MINUTES).getWindowInfo(),
+    assertThat(new HoppingWindowExpression(
+            new WindowTimeClause(10, SECONDS),
+            new WindowTimeClause(20, MINUTES)
+        ).getWindowInfo(),
         is(WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)))));
   }
 }

@@ -53,6 +53,7 @@ import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
@@ -153,7 +154,7 @@ public class StepSchemaResolverTest {
         formats,
         ImmutableList.of(ColumnName.of("ORANGE")),
         ImmutableList.of(functionCall("COUNT", "APPLE")),
-        new TumblingWindowExpression(10, TimeUnit.SECONDS)
+        new TumblingWindowExpression(new WindowTimeClause(10, TimeUnit.SECONDS))
     );
 
     // When:

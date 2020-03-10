@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
@@ -32,7 +33,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TumblingWindowExpressionTest {
   @Test
   public void shouldReturnWindowInfo() {
-    assertThat(new TumblingWindowExpression(11, SECONDS).getWindowInfo(),
+    assertThat(new TumblingWindowExpression(new WindowTimeClause(11, SECONDS)).getWindowInfo(),
         is(WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(11)))));
   }
 }

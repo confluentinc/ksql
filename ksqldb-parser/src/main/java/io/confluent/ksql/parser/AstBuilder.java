@@ -58,6 +58,7 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
@@ -143,7 +144,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -455,24 +455,26 @@ public class AstBuilder {
       throw new KsqlException("Window description is not correct.");
     }
 
-    private static Duration getDuration(final NumberContext number,
-                                        final WindowUnitContext unitCtx) {
-      final TimeUnit retainUnit = WindowExpression.getWindowUnit(unitCtx.getText().toUpperCase());
-      if (retainUnit == null) {
-        throw new KsqlException("Units is not correct");
-      }
-      return Duration.ofMillis(retainUnit.toMillis(Long.parseLong(number.getText())));
+    private static WindowTimeClause getTimeClause(
+        final NumberContext number,
+        final WindowUnitContext unitCtx) {
+      return new WindowTimeClause(
+          Long.parseLong(number.getText()),
+          WindowExpression.getWindowUnit(unitCtx.getText().toUpperCase())
+      );
     }
 
-    private static Optional<Duration> gracePeriodDuration(final GracePeriodClauseContext graceCtx) {
+    private static Optional<WindowTimeClause> gracePeriodClause(
+        final GracePeriodClauseContext graceCtx) {
       return graceCtx != null
-          ? Optional.of(getDuration(graceCtx.number(), graceCtx.windowUnit()))
+          ? Optional.of(getTimeClause(graceCtx.number(), graceCtx.windowUnit()))
           : Optional.empty();
     }
 
-    private static Optional<Duration> retentionDuration(final RetentionClauseContext retentionCtx) {
+    private static Optional<WindowTimeClause> retentionClause(
+        final RetentionClauseContext retentionCtx) {
       return retentionCtx != null
-          ? Optional.of(getDuration(retentionCtx.number(), retentionCtx.windowUnit()))
+          ? Optional.of(getTimeClause(retentionCtx.number(), retentionCtx.windowUnit()))
           : Optional.empty();
     }
 
@@ -482,19 +484,12 @@ public class AstBuilder {
 
       final List<SqlBaseParser.NumberContext> numberList = ctx.number();
       final List<SqlBaseParser.WindowUnitContext> windowUnits = ctx.windowUnit();
-      final String sizeStr = numberList.get(0).getText();
-      final String advanceByStr = numberList.get(1).getText();
-
-      final String sizeUnit = windowUnits.get(0).getText();
-      final String advanceByUnit = windowUnits.get(1).getText();
       return new HoppingWindowExpression(
           getLocation(ctx),
-          Long.parseLong(sizeStr),
-          WindowExpression.getWindowUnit(sizeUnit.toUpperCase()),
-          Long.parseLong(advanceByStr),
-          WindowExpression.getWindowUnit(advanceByUnit.toUpperCase()),
-          retentionDuration(ctx.retentionClause()),
-          gracePeriodDuration(ctx.gracePeriodClause())
+          getTimeClause(numberList.get(0), windowUnits.get(0)),
+          getTimeClause(numberList.get(1), windowUnits.get(1)),
+          retentionClause(ctx.retentionClause()),
+          gracePeriodClause(ctx.gracePeriodClause())
       );
     }
 
@@ -502,14 +497,11 @@ public class AstBuilder {
     public Node visitTumblingWindowExpression(
         final SqlBaseParser.TumblingWindowExpressionContext ctx
     ) {
-      final String sizeStr = ctx.number().getText();
-      final String sizeUnit = ctx.windowUnit().getText();
       return new TumblingWindowExpression(
           getLocation(ctx),
-          Long.parseLong(sizeStr),
-          WindowExpression.getWindowUnit(sizeUnit.toUpperCase()),
-          retentionDuration(ctx.retentionClause()),
-          gracePeriodDuration(ctx.gracePeriodClause())
+          getTimeClause(ctx.number(), ctx.windowUnit()),
+          retentionClause(ctx.retentionClause()),
+          gracePeriodClause(ctx.gracePeriodClause())
       );
     }
 
@@ -517,14 +509,11 @@ public class AstBuilder {
     public Node visitSessionWindowExpression(
         final SqlBaseParser.SessionWindowExpressionContext ctx
     ) {
-      final String sizeStr = ctx.number().getText();
-      final String sizeUnit = ctx.windowUnit().getText();
       return new SessionWindowExpression(
           getLocation(ctx),
-          Long.parseLong(sizeStr),
-          WindowExpression.getWindowUnit(sizeUnit.toUpperCase()),
-          retentionDuration(ctx.retentionClause()),
-          gracePeriodDuration(ctx.gracePeriodClause())
+          getTimeClause(ctx.number(), ctx.windowUnit()),
+          retentionClause(ctx.retentionClause()),
+          gracePeriodClause(ctx.gracePeriodClause())
       );
     }
 

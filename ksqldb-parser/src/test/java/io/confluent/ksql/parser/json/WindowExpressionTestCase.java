@@ -17,12 +17,13 @@ package io.confluent.ksql.parser.json;
 
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import java.util.concurrent.TimeUnit;
 
 public class WindowExpressionTestCase {
   static final KsqlWindowExpression WINDOW_EXPRESSION =
       new TumblingWindowExpression(
-          123, TimeUnit.DAYS
+          new WindowTimeClause(123, TimeUnit.DAYS)
       );
   static final String WINDOW_EXPRESSION_TXT =
       "\" TUMBLING ( SIZE 123 DAYS ) \"";

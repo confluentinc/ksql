@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
@@ -35,7 +36,7 @@ public class SessionWindowExpressionTest {
 
   @Before
   public void setUp() {
-    windowExpression = new SessionWindowExpression(5, TimeUnit.SECONDS);
+    windowExpression = new SessionWindowExpression(new WindowTimeClause(5, TimeUnit.SECONDS));
   }
 
   @Test

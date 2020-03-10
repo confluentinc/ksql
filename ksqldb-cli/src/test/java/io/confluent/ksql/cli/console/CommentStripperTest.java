@@ -18,6 +18,7 @@ package io.confluent.ksql.cli.console;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+
 import org.junit.Test;
 
 public class CommentStripperTest {

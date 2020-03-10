@@ -43,15 +43,6 @@ public class JsonMapperTest {
   }
 
   @Test
-  public void shouldSerializeScientificDecimal() throws Exception {
-    // When:
-    final String json = OBJECT_MAPPER.writeValueAsString(new BigDecimal("1E+1"));
-
-    // Then:
-    assertThat(json, is("1E+1"));
-  }
-
-  @Test
   public void shouldSerializeDecimalsWithoutLossOfTrailingZeros() throws Exception {
     // When:
     final String json = OBJECT_MAPPER.writeValueAsString(new BigDecimal("10.0"));

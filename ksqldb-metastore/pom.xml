@@ -21,27 +21,27 @@
 
     <parent>
         <groupId>io.confluent.ksql</groupId>
-        <artifactId>ksql-parent</artifactId>
+        <artifactId>ksqldb-parent</artifactId>
         <version>5.5.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ksql-metastore</artifactId>
+    <artifactId>ksqldb-metastore</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-common</artifactId>
+            <artifactId>ksqldb-common</artifactId>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-execution</artifactId>
+            <artifactId>ksqldb-execution</artifactId>
         </dependency>
 
         <!-- Required for running tests -->
         <dependency>
             <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-common</artifactId>
+            <artifactId>ksqldb-common</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
@@ -49,7 +49,7 @@
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-test-util</artifactId>
+            <artifactId>ksqldb-test-util</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

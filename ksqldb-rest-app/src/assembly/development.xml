@@ -27,7 +27,7 @@
     <fileSets>
         <fileSet>
             <directory>${project.parent.basedir}</directory>
-            <outputDirectory>share/doc/ksql-rest-app/</outputDirectory>
+            <outputDirectory>share/doc/ksqldb-rest-app/</outputDirectory>
             <includes>
                 <include>README*</include>
                 <include>COPYRIGHT*</include>
@@ -42,7 +42,7 @@
         </fileSet>
         <fileSet>
             <directory>${project.parent.basedir}/config</directory>
-            <outputDirectory>etc/ksql-rest-app</outputDirectory>
+            <outputDirectory>etc/ksqldb-rest-app</outputDirectory>
             <includes>
                 <include>*</include>
             </includes>
@@ -50,7 +50,7 @@
     </fileSets>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>share/java/ksql-rest-app/</outputDirectory>
+            <outputDirectory>share/java/ksqldb-rest-app/</outputDirectory>
         </dependencySet>
     </dependencySets>
 </assembly>

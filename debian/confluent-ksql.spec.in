@@ -1,10 +1,10 @@
 Summary: Streaming SQL engine for Kafka
-Name: confluent-ksql
+Name: confluent-ksqldb
 Version: ##RPMVERSION##
 Release: ##RPMRELEASE##
 Group: Applications/Internet
 License: Confluent Community License
-Source0: confluent-ksql-%{version}.tar.gz
+Source0: confluent-ksqldb-%{version}.tar.gz
 URL: http://confluent.io
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Vendor: Confluent, Inc.
@@ -76,7 +76,7 @@ fi
 %{__mkdir_p} %{buildroot}
 %{__cp} -R * %{buildroot}
 # The spec file gets included, get rid of it
-%{__rm} %{buildroot}/confluent-ksql.spec
+%{__rm} %{buildroot}/confluent-ksqldb.spec
 
 %{__mkdir_p} %{buildroot}/var/log/confluent
 
@@ -84,13 +84,13 @@ fi
 %files
 %defattr(-,root,root)
 /usr/bin/*
-/usr/share/java/ksql
+/usr/share/java/ksqldb
 /lib/systemd/system/
 
 %doc
-/usr/share/doc/ksql
+/usr/share/doc/ksqldb
 
-%config(noreplace) /etc/ksql/*
+%config(noreplace) /etc/ksqldb/*
 
 %clean
 #used to cleanup things outside the build area and possibly inside.

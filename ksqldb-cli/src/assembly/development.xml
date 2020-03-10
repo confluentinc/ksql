@@ -27,7 +27,7 @@
     <fileSets>
         <fileSet>
             <directory>${project.parent.basedir}</directory>
-            <outputDirectory>share/doc/ksql-cli/</outputDirectory>
+            <outputDirectory>share/doc/ksqldb-cli/</outputDirectory>
             <includes>
                 <include>README*</include>
                 <include>COPYRIGHT*</include>
@@ -42,7 +42,7 @@
         </fileSet>
         <fileSet>
             <directory>${project.parent.basedir}/config</directory>
-            <outputDirectory>etc/ksql-cli</outputDirectory>
+            <outputDirectory>etc/ksqldb-cli</outputDirectory>
             <includes>
                 <include>*</include>
             </includes>
@@ -50,7 +50,7 @@
     </fileSets>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>share/java/ksql-cli</outputDirectory>
+            <outputDirectory>share/java/ksqldb-cli</outputDirectory>
             <useProjectArtifact>true</useProjectArtifact>
             <!-- Warning: Enabling useTransitiveFiltering is potentially unsafe,
                  cf. https://github.com/miguno/maven-assembly-transitive-deps-woes

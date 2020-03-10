@@ -1,13 +1,13 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: ksql
+Upstream-Name: ksqldb
 Source: https://github.com/confluentinc/ksql
 
 Files: *
-Copyright: 2018 Confluent, Inc.
+Copyright: 2020 Confluent, Inc.
 License: Confluent Community License
 
 Files: debian/*
-Copyright: 2018 Confluent, Inc.
+Copyright: 2020 Confluent, Inc.
 License: Confluent Community License
 
 License: Confluent Community License

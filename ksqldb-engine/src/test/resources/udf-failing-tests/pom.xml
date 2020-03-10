@@ -33,13 +33,13 @@
     <!-- KSQL dependencies -->
     <dependency>
       <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-udf</artifactId>
+      <artifactId>ksqldb-udf</artifactId>
       <version>${ksql.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-common</artifactId>
+      <artifactId>ksqldb-common</artifactId>
       <version>${ksql.version}</version>
     </dependency>
 

@@ -17,7 +17,7 @@
 
 
 echo "===> Configuring ksqlDB..."
-dub template "/etc/ksql/connect.properties.template" "/etc/ksql/connect.properties"
+dub template "/etc/ksqldb/connect.properties.template" "/etc/ksqldb/connect.properties"
 
 # KSQL_CONNECT_GROUP_ID is a required configuration for running embedded connect,
 # so we can proxy it to check whether or not to start an embedded connect worker
@@ -26,10 +26,10 @@ if ! [[ -z "${KSQL_CONNECT_GROUP_ID}" ]]; then
   /usr/bin/docker/configure
 
   echo "===> Enabling Embedded Connect"
-  export KSQL_KSQL_CONNECT_WORKER_CONFIG="/etc/ksql/connect.properties"
+  export KSQL_KSQL_CONNECT_WORKER_CONFIG="/etc/ksqldb/connect.properties"
 fi
 
-dub template "/etc/ksql/ksqldb-server.properties.template" "/etc/ksql/ksqldb-server.properties"
+dub template "/etc/ksqldb/ksqldb-server.properties.template" "/etc/ksqldb/ksqldb-server.properties"
 
 echo "===> Launching ksqlDB Server..."
-/usr/bin/ksql-server-start /etc/ksql/ksqldb-server.properties
+/usr/bin/ksql-server-start /etc/ksqldb/ksqldb-server.properties

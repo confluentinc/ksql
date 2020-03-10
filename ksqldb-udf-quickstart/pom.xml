@@ -21,14 +21,14 @@
 
     <parent>
         <groupId>io.confluent.ksql</groupId>
-        <artifactId>ksql-parent</artifactId>
+        <artifactId>ksqldb-parent</artifactId>
         <version>5.5.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ksql-udf-quickstart</artifactId>
+    <artifactId>ksqldb-udf-quickstart</artifactId>
     <packaging>maven-archetype</packaging>
     <name>KSQL UDF / UDAF :: Quickstart</name>
-    <url>https://github.com/confluentinc/ksql/blob/master/ksql-udf-quickstart</url>
+    <url>https://github.com/confluentinc/ksql/blob/master/ksqldb-udf-quickstart</url>
     <description>
         An archetype for building KSQL UDFs and UDAFs
     </description>

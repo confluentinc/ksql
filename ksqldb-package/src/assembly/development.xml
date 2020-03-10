@@ -26,7 +26,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>share/java/ksql/</outputDirectory>
+            <outputDirectory>share/java/ksqldb/</outputDirectory>
             <scope>runtime</scope>
         </dependencySet>
     </dependencySets>

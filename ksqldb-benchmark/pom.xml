@@ -46,11 +46,11 @@ questions.
 
   <parent>
     <groupId>io.confluent.ksql</groupId>
-    <artifactId>ksql-parent</artifactId>
+    <artifactId>ksqldb-parent</artifactId>
     <version>5.5.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>ksql-benchmark</artifactId>
+  <artifactId>ksqldb-benchmark</artifactId>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -77,20 +77,20 @@ questions.
     <!-- cross-module dependencies -->
     <dependency>
       <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-serde</artifactId>
+      <artifactId>ksqldb-serde</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-examples</artifactId>
+      <artifactId>ksqldb-examples</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <!-- for running tests -->
     <dependency>
       <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-test-util</artifactId>
+      <artifactId>ksqldb-test-util</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

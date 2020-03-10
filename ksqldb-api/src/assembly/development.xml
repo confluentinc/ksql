@@ -27,7 +27,7 @@
   <fileSets>
     <fileSet>
       <directory>${project.parent.basedir}</directory>
-      <outputDirectory>share/doc/ksql-api/</outputDirectory>
+      <outputDirectory>share/doc/ksqldb-api/</outputDirectory>
       <includes>
         <include>README*</include>
         <include>COPYRIGHT*</include>
@@ -42,7 +42,7 @@
     </fileSet>
     <fileSet>
       <directory>${project.parent.basedir}/config</directory>
-      <outputDirectory>etc/ksql-api</outputDirectory>
+      <outputDirectory>etc/ksqldb-api</outputDirectory>
       <includes>
         <include>*</include>
       </includes>
@@ -50,7 +50,7 @@
   </fileSets>
   <dependencySets>
     <dependencySet>
-      <outputDirectory>share/java/ksql-api/</outputDirectory>
+      <outputDirectory>share/java/ksqldb-api/</outputDirectory>
     </dependencySet>
   </dependencySets>
 </assembly>

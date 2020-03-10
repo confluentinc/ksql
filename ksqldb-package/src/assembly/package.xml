@@ -29,7 +29,7 @@
     <fileSets>
         <fileSet>
             <directory>${project.parent.basedir}</directory>
-            <outputDirectory>share/doc/ksql/</outputDirectory>
+            <outputDirectory>share/doc/ksqldb/</outputDirectory>
             <includes>
                 <include>version.txt</include>
                 <include>README*</include>
@@ -48,7 +48,7 @@
         </fileSet>
         <fileSet>
             <directory>${project.parent.basedir}/config</directory>
-            <outputDirectory>etc/ksql/</outputDirectory>
+            <outputDirectory>etc/ksqldb/</outputDirectory>
             <includes>
                 <include>*</include>
             </includes>
@@ -61,7 +61,7 @@
             </includes>
         </fileSet>
         <fileSet>
-            <directory>${project.parent.basedir}/ksql-examples/src/main/resources</directory>
+            <directory>${project.parent.basedir}/ksqldb-examples/src/main/resources</directory>
             <outputDirectory>resources/example-schemas</outputDirectory>
             <includes>
                 <include>*.avro</include>
@@ -71,7 +71,7 @@
     </fileSets>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>share/java/ksql</outputDirectory>
+            <outputDirectory>share/java/ksqldb</outputDirectory>
             <useProjectArtifact>true</useProjectArtifact>
             <scope>runtime</scope>
             <!-- Warning: Enabling useTransitiveFiltering is potentially unsafe,

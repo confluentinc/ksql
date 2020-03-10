@@ -21,12 +21,12 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
 
     <parent>
         <groupId>io.confluent.ksql</groupId>
-        <artifactId>ksql-parent</artifactId>
+        <artifactId>ksqldb-parent</artifactId>
         <version>5.5.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
-    <artifactId>ksql-console-scripts</artifactId>
+    <artifactId>ksqldb-console-scripts</artifactId>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
 

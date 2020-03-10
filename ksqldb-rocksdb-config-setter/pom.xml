@@ -21,11 +21,11 @@
 
     <parent>
         <groupId>io.confluent.ksql</groupId>
-        <artifactId>ksql-parent</artifactId>
+        <artifactId>ksqldb-parent</artifactId>
         <version>5.5.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ksql-rocksdb-config-setter</artifactId>
+    <artifactId>ksqldb-rocksdb-config-setter</artifactId>
     <name>KSQL RocksDB Config Setter</name>
     <packaging>jar</packaging>
 

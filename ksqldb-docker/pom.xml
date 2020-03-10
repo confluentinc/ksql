@@ -20,12 +20,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>ksql-parent</artifactId>
+    <artifactId>ksqldb-parent</artifactId>
     <groupId>io.confluent.ksql</groupId>
     <version>5.5.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>ksql-docker</artifactId>
+  <artifactId>ksqldb-docker</artifactId>
 
   <properties>
     <air.main.basedir>${project.parent.basedir}</air.main.basedir>
@@ -36,17 +36,17 @@
   <dependencies>
     <dependency>
       <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-rest-app</artifactId>
+      <artifactId>ksqldb-rest-app</artifactId>
     </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-cli</artifactId>
+      <artifactId>ksqldb-cli</artifactId>
     </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-functional-tests</artifactId>
+      <artifactId>ksqldb-functional-tests</artifactId>
     </dependency>
 
     <!-- Need to explicitly add dependencies with classifier as they are not automatically pulled

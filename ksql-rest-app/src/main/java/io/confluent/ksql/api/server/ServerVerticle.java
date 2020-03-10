@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.auth.BasicAuthHandler;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationFilter;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -28,7 +29,6 @@ import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.AuthHandler;
-import io.vertx.ext.web.handler.BasicAuthHandler;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.util.Objects;
 import java.util.Optional;
@@ -131,18 +131,20 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private static void handleFailure(final RoutingContext routingContext) {
+    // Avoid calling HttpServerResponse#setStatusCode() with a negative status code as that throws
+    final int statusCode = routingContext.statusCode() < 0 ? 500 : routingContext.statusCode();
     if (routingContext.failure() != null) {
       log.error(String.format("Failed to handle request %d %s", routingContext.statusCode(),
           routingContext.request().path()),
           routingContext.failure());
       ServerUtils.handleError(
           routingContext.response(),
-          routingContext.statusCode(),
-          routingContext.statusCode(),
+          statusCode,
+          statusCode,
           routingContext.failure().getMessage()
       );
     } else {
-      routingContext.response().setStatusCode(routingContext.statusCode()).end();
+      routingContext.response().setStatusCode(statusCode).end();
     }
   }
 
@@ -166,7 +168,7 @@ public class ServerVerticle extends AbstractVerticle {
   private static AuthHandler basicAuthHandler(final Server server) {
     final AuthProvider authProvider = new JaasAuthProvider(server, server.getConfig());
     final String realm = server.getConfig().getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
-    return BasicAuthHandler.create(authProvider, realm);
+    return new BasicAuthHandler(authProvider, realm);
   }
 
   private static void pauseHandler(final RoutingContext routingContext) {

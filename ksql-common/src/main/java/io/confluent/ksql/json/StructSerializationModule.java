@@ -20,10 +20,12 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
-import java.util.Collections;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.json.DecimalFormat;
 import org.apache.kafka.connect.json.JsonConverter;
+import org.apache.kafka.connect.json.JsonConverterConfig;
 
 public class StructSerializationModule extends SimpleModule {
 
@@ -32,7 +34,10 @@ public class StructSerializationModule extends SimpleModule {
 
   public StructSerializationModule() {
     super();
-    jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
+    jsonConverter.configure(ImmutableMap.of(
+        JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false,
+        JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name()
+    ), false);
     addSerializer(Struct.class, new StructSerializationModule.Serializer());
   }
 

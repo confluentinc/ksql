@@ -22,11 +22,11 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -56,20 +56,19 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import org.apache.http.HttpStatus;
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.ListTopicsResult;
-import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.internals.KafkaFutureImpl;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -98,6 +97,11 @@ public class DescribeConnectorExecutorTest {
       ImmutableList.of(),
       ConnectorType.SOURCE);
 
+  private static Map<String, Map<String, List<String>>> ACTIVE_TOPICS = Collections.singletonMap(
+      CONNECTOR_NAME, Collections.singletonMap(
+          DescribeConnectorExecutor.TOPICS_KEY,
+          Collections.singletonList(TOPIC)));
+
   @Mock
   private KsqlExecutionContext engine;
   @Mock
@@ -111,11 +115,6 @@ public class DescribeConnectorExecutorTest {
   @Mock
   private Connector connector;
 
-  @Mock
-  private Admin adminClient;
-  @Mock
-  private ListTopicsResult topics;
-
   private Function<ConnectorInfo, Optional<Connector>> connectorFactory;
   private DescribeConnectorExecutor executor;
   private ConfiguredStatement<DescribeConnector> describeStatement;
@@ -124,7 +123,6 @@ public class DescribeConnectorExecutorTest {
   public void setUp() {
     when(engine.getMetaStore()).thenReturn(metaStore);
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
-    when(serviceContext.getAdminClient()).thenReturn(adminClient);
     when(metaStore.getAllDataSources()).thenReturn(ImmutableMap.of(SourceName.of("source"), source));
     when(source.getKafkaTopicName()).thenReturn(TOPIC);
     when(source.getSqlExpression()).thenReturn(STATEMENT);
@@ -147,12 +145,6 @@ public class DescribeConnectorExecutorTest {
     when(connectClient.status(CONNECTOR_NAME)).thenReturn(ConnectResponse.success(STATUS, HttpStatus.SC_OK));
     when(connectClient.describe("connector")).thenReturn(ConnectResponse.success(INFO, HttpStatus.SC_OK));
 
-    when(connector.matches(any())).thenReturn(false);
-    when(connector.matches(TOPIC)).thenReturn(true);
-
-    when(topics.names()).thenReturn(KafkaFuture.completedFuture(ImmutableSet.of(TOPIC, "other-topic")));
-    when(adminClient.listTopics()).thenReturn(topics);
-
     connectorFactory = info -> Optional.of(connector);
     executor = new DescribeConnectorExecutor(connectorFactory);
 
@@ -163,14 +155,29 @@ public class DescribeConnectorExecutorTest {
         new KsqlConfig(ImmutableMap.of()));
   }
 
+  @After
+  public void teardown() {
+    verifyNoMoreInteractions(
+        engine, metaStore, connectClient);
+  }
+
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   @Test
   public void shouldDescribeKnownConnector() {
+    // Given:
+    when(connectClient.topics("connector")).thenReturn(ConnectResponse.success(ACTIVE_TOPICS,
+        HttpStatus.SC_OK));
+
     // When:
     final Optional<KsqlEntity> entity = executor
         .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
+    verify(engine).getMetaStore();
+    verify(metaStore).getAllDataSources();
+    verify(connectClient).status("connector");
+    verify(connectClient).describe("connector");
+    verify(connectClient).topics("connector");
     assertThat("Expected a response", entity.isPresent());
     assertThat(entity.get(), instanceOf(ConnectorDescription.class));
 
@@ -187,15 +194,19 @@ public class DescribeConnectorExecutorTest {
   @Test
   public void shouldDescribeKnownConnectorIfTopicListFails() {
     // Given:
-    final KafkaFuture<Set<String>> fut = new KafkaFutureImpl<>();
-    fut.cancel(true);
-    when(topics.names()).thenReturn(fut);
+    when(connectClient.topics("connector")).thenReturn(ConnectResponse.failure(
+        "Topic tracking is disabled.", HttpStatus.SC_FORBIDDEN));
 
     // When:
     final Optional<KsqlEntity> entity = executor
         .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
+    verify(engine).getMetaStore();
+    verify(metaStore).getAllDataSources();
+    verify(connectClient).status("connector");
+    verify(connectClient).describe("connector");
+    verify(connectClient).topics("connector");
     assertThat("Expected a response", entity.isPresent());
     assertThat(entity.get(), instanceOf(ConnectorDescription.class));
 
@@ -208,7 +219,7 @@ public class DescribeConnectorExecutorTest {
   @Test
   public void shouldErrorIfConnectClientFailsStatus() {
     // Given:
-    when(connectClient.describe(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
+    when(connectClient.status(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
     final Optional<KsqlEntity> entity = executor
@@ -249,6 +260,8 @@ public class DescribeConnectorExecutorTest {
         .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
+    verify(connectClient).status("connector");
+    verify(connectClient).describe("connector");
     assertThat("Expected a response", entity.isPresent());
     assertThat(entity.get(), instanceOf(ConnectorDescription.class));
 

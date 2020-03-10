@@ -40,12 +40,8 @@ public final class JdbcSource implements SupportedConnector {
   @VisibleForTesting
   Optional<Connector> fromConfigs(final Map<String, String> properties) {
     final String name = properties.get("name");
-    final String prefix = properties.get("topic.prefix");
-
     return Optional.of(new Connector(
         name,
-        topic -> topic.startsWith(prefix),
-        topic -> clean(name + "_" + topic.substring(prefix.length())),
         DataSourceType.KTABLE,
         extractKeyNameFromSmt(properties).orElse(null)
     ));
@@ -98,10 +94,6 @@ public final class JdbcSource implements SupportedConnector {
     }
 
     return Optional.empty();
-  }
-
-  private static String clean(final String name) {
-    return name.replace('-', '_').replace('.', '_');
   }
 
 }

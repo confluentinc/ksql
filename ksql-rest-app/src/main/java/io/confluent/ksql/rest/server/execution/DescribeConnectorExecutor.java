@@ -31,12 +31,11 @@ import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -46,6 +45,8 @@ import org.slf4j.LoggerFactory;
 public final class DescribeConnectorExecutor {
 
   private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
+  @VisibleForTesting
+  static final String TOPICS_KEY = "topics";
 
   private final Function<ConnectorInfo, Optional<Connector>> connectorFactory;
 
@@ -93,8 +94,32 @@ public final class DescribeConnectorExecutor {
 
     final ConnectorStateInfo status = statusResponse.datum().get();
     final ConnectorInfo info = infoResponse.datum().get();
-
     final Optional<Connector> connector = connectorFactory.apply(info);
+    final List<KsqlWarning> warnings;
+    final List<String> topics;
+    if (connector.isPresent()) {
+      // Small optimization. If a connector's info is not found in the response, don't query for
+      // active topics with the given connectorName
+      final ConnectResponse<Map<String, Map<String, List<String>>>> topicsResponse = serviceContext
+          .getConnectClient()
+          .topics(connectorName);
+      if (topicsResponse.error().isPresent()) {
+        topics = ImmutableList.of();
+        warnings = ImmutableList.of(
+            new KsqlWarning("Could not list related topics due to error: "
+                + topicsResponse.error().get()));
+      } else {
+        topics = topicsResponse.datum()
+            .get()
+            .get(connectorName)
+            .getOrDefault(TOPICS_KEY, ImmutableList.of());
+        warnings = ImmutableList.of();
+      }
+    } else {
+      topics = ImmutableList.of();
+      warnings = ImmutableList.of();
+    }
+
     final List<SourceDescription> sources;
     if (connector.isPresent()) {
       sources = ksqlExecutionContext
@@ -102,7 +127,7 @@ public final class DescribeConnectorExecutor {
           .getAllDataSources()
           .values()
           .stream()
-          .filter(source -> connector.get().matches(source.getKafkaTopicName()))
+          .filter(source -> topics.contains(source.getKafkaTopicName()))
           .map(source -> SourceDescriptionFactory.create(
               source,
               false,
@@ -112,18 +137,6 @@ public final class DescribeConnectorExecutor {
           .collect(Collectors.toList());
     } else {
       sources = ImmutableList.of();
-    }
-
-    List<KsqlWarning> warnings;
-    List<String> topics;
-    try {
-      topics = getTopics(serviceContext.getAdminClient(), connector);
-      warnings = ImmutableList.of();
-    } catch (final Exception e) {
-      topics = ImmutableList.of();
-      warnings = ImmutableList.of(
-          new KsqlWarning("Could not list related topics due to " + e.getMessage())
-      );
     }
 
     final ConnectorDescription description = new ConnectorDescription(
@@ -136,17 +149,5 @@ public final class DescribeConnectorExecutor {
     );
 
     return Optional.of(description);
-  }
-
-  private List<String> getTopics(final Admin admin, final Optional<Connector> connector)
-      throws Exception {
-    if (!connector.isPresent()) {
-      return ImmutableList.of();
-    }
-
-    return admin.listTopics().names().get(5, TimeUnit.SECONDS)
-        .stream()
-        .filter(connector.get()::matches)
-        .collect(Collectors.toList());
   }
 }

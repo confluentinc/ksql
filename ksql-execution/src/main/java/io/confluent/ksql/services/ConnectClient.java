@@ -66,6 +66,14 @@ public interface ConnectClient {
   ConnectResponse<String> delete(String connector);
 
   /**
+   * Get the topics the {@code connector} is using.
+   *
+   * @param connector the connector name
+   * @return the topics
+   */
+  ConnectResponse<Map<String, Map<String, List<String>>>> topics(String connector);
+
+  /**
    * An optionally successful response. Either contains a value of type {@code <T>} or an error,
    * which is the string representation of the response entity.
    */

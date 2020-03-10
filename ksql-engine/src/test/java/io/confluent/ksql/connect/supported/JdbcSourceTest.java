@@ -44,47 +44,9 @@ public class JdbcSourceTest {
     // Then:
     final Connector expected = new Connector(
         "foo",
-        foo -> true,
-        foo -> foo,
         DataSourceType.KTABLE,
         null);
     assertThat(maybeConnector, OptionalMatchers.of(is(expected)));
-  }
-
-  @Test
-  public void shouldCreateJdbcConnectorWithValidPrefixTest() {
-    // Given:
-    final Map<String, String> config = ImmutableMap.of(
-        Connectors.CONNECTOR_CLASS, JdbcSource.JDBC_SOURCE_CLASS,
-        "name", "foo",
-        "topic.prefix", "foo-"
-    );
-
-    // When:
-    final Optional<Connector> maybeConnector = jdbcSource.fromConfigs(config);
-
-    // Then:
-    assertThat(
-        "expected match",
-        maybeConnector.map(connector -> connector.matches("foo-bar")).orElse(false));
-  }
-
-  @Test
-  public void shouldCreateJdbcConnectorWithValidMapToSource() {
-    // Given:
-    final Map<String, String> config = ImmutableMap.of(
-        Connectors.CONNECTOR_CLASS, JdbcSource.JDBC_SOURCE_CLASS,
-        "name", "name",
-        "topic.prefix", "foo-"
-    );
-
-    // When:
-    final Optional<Connector> maybeConnector = jdbcSource.fromConfigs(config);
-
-    // Then:
-    assertThat(
-        maybeConnector.map(connector -> connector.mapToSource("foo-bar")).orElse(null),
-        is("name_bar"));
   }
 
   @Test
@@ -104,8 +66,6 @@ public class JdbcSourceTest {
     // Then:
     final Connector expected = new Connector(
         "foo",
-        foo -> true,
-        foo -> foo,
         DataSourceType.KTABLE,
         "key");
     assertThat(maybeConnector, OptionalMatchers.of(is(expected)));

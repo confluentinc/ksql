@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.RetryerBuilder;
@@ -59,6 +60,7 @@ public class DefaultConnectClient implements ConnectClient {
 
   private static final String CONNECTORS = "/connectors";
   private static final String STATUS = "/status";
+  private static final String TOPICS = "/topics";
   private static final int DEFAULT_TIMEOUT_MS = 5_000;
   private static final int MAX_ATTEMPTS = 3;
 
@@ -105,7 +107,8 @@ public class DefaultConnectClient implements ConnectClient {
           )
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_CREATED, ConnectorInfo.class, Function.identity())));
+              createHandler(HttpStatus.SC_CREATED, new TypeReference<ConnectorInfo>() {},
+                  Function.identity())));
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Did not CREATE connector {}: {}", connector, error));
@@ -129,7 +132,9 @@ public class DefaultConnectClient implements ConnectClient {
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, List.class, foo -> (List<String>) foo)));
+              createHandler(HttpStatus.SC_OK, new TypeReference<List<String>>() {},
+                  Function.identity())));
+
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not list connectors: {}.", error));
@@ -154,7 +159,8 @@ public class DefaultConnectClient implements ConnectClient {
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, ConnectorStateInfo.class, Function.identity())));
+              createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorStateInfo>() {},
+                  Function.identity())));
 
       connectResponse.error()
           .ifPresent(error ->
@@ -179,7 +185,9 @@ public class DefaultConnectClient implements ConnectClient {
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, ConnectorInfo.class, Function.identity())));
+              createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorInfo>() {},
+                  Function.identity())));
+
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not list connectors: {}.", error));
@@ -203,10 +211,39 @@ public class DefaultConnectClient implements ConnectClient {
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_NO_CONTENT, Object.class, foo -> connector)));
+              createHandler(HttpStatus.SC_NO_CONTENT, new TypeReference<Object>() {},
+                  foo -> connector)));
+
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not delete connector: {}.", error));
+
+      return connectResponse;
+    } catch (final Exception e) {
+      throw new KsqlServerException(e);
+    }
+  }
+
+  @Override
+  public ConnectResponse<Map<String, Map<String, List<String>>>> topics(final String connector) {
+    try {
+      LOG.debug("Issuing request to Kafka Connect at URI {} to get active topics for {}",
+          connectUri, connector);
+
+      final ConnectResponse<Map<String, Map<String, List<String>>>> connectResponse = withRetries(
+          () -> Request.Get(connectUri.resolve(CONNECTORS + "/" + connector + TOPICS))
+              .setHeaders(headers())
+              .socketTimeout(DEFAULT_TIMEOUT_MS)
+              .connectTimeout(DEFAULT_TIMEOUT_MS)
+              .execute()
+              .handleResponse(
+                  createHandler(HttpStatus.SC_OK,
+                      new TypeReference<Map<String, Map<String, List<String>>>>() {},
+                      Function.identity())));
+
+      connectResponse.error()
+          .ifPresent(
+              error -> LOG.warn("Could not query topics of connector {}: {}", connector, error));
 
       return connectResponse;
     } catch (final Exception e) {
@@ -250,7 +287,7 @@ public class DefaultConnectClient implements ConnectClient {
 
   private static <T, C> ResponseHandler<ConnectResponse<T>> createHandler(
       final int expectedStatus,
-      final Class<C> entityClass,
+      final TypeReference<C> entityTypeRef,
       final Function<C, T> cast
   ) {
     return httpResponse -> {
@@ -264,7 +301,7 @@ public class DefaultConnectClient implements ConnectClient {
       final T data = cast.apply(
           entity == null
               ? null
-              : MAPPER.readValue(entity.getContent(), entityClass)
+              : MAPPER.readValue(entity.getContent(), entityTypeRef)
       );
 
       return ConnectResponse.success(data, code);

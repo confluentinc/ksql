@@ -33,6 +33,7 @@ public enum JsonMapper {
     mapper.registerModule(new KsqlTypesSerializationModule());
     mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+    mapper.enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN);
     mapper.setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
   }
 }

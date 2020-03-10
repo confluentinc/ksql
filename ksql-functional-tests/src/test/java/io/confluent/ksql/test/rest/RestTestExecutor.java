@@ -469,7 +469,7 @@ public class RestTestExecutor implements Closeable {
   ) {
     // Special handling for pull queries is required, as they depend on materialized state stores
     // being warmed up.  Initial requests may return no rows.
-    
+
     if (querySql.contains("EMIT CHANGES")) {
       // Push, not pull query:
       return;
@@ -607,6 +607,8 @@ public class RestTestExecutor implements Closeable {
         new TypeReference<Map<String, Object>>() {
         };
 
+    private static final String INDENT = System.lineSeparator() + "\t";
+
     private final List<StreamedRow> rows;
 
     RqttQueryResponse(final List<StreamedRow> rows) {
@@ -627,9 +629,20 @@ public class RestTestExecutor implements Closeable {
       final List<?> expectedRows = (List<?>) expectedPayload;
 
       assertThat(
-          "row count mismatch. Got:" + System.lineSeparator() + rows,
-          rows.size(),
-          is(expectedRows.size())
+          "row count mismatch."
+              + System.lineSeparator()
+              + "Expected: "
+              + expectedRows.stream()
+              .map(Object::toString)
+              .collect(Collectors.joining(INDENT, INDENT, ""))
+              + System.lineSeparator()
+              + "Got: "
+              + rows.stream()
+              .map(Object::toString)
+              .collect(Collectors.joining(INDENT, INDENT, ""))
+              + System.lineSeparator(),
+          rows,
+          hasSize(expectedRows.size())
       );
 
       for (int i = 0; i != rows.size(); ++i) {

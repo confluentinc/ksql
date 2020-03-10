@@ -69,4 +69,13 @@ public class JsonMapperTest {
     assertThat(node, is(instanceOf(DecimalNode.class)));
     assertThat(node.decimalValue(), is(new BigDecimal("10.0")));
   }
+
+  @Test
+  public void shouldNotUseScientificNotationWhenSerializingDecimals() throws Exception {
+    // When:
+    final String result = OBJECT_MAPPER.writeValueAsString(new BigDecimal("1e+1"));
+
+    // Then:
+    assertThat(result, is("10"));
+  }
 }

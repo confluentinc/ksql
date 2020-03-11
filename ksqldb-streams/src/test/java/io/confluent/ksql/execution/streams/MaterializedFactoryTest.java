@@ -76,11 +76,9 @@ public class MaterializedFactoryTest {
     when(retention.get()).thenReturn(Duration.ofSeconds(10));
 
     // When:
-    final Materialized<String, GenericRow, StateStore> returned
-        = MaterializedFactory.create().create(keySerde, rowSerde, OP_NAME, retention);
+    MaterializedFactory.create().create(keySerde, rowSerde, OP_NAME, retention);
 
     // Then:
-    verify(retention).isPresent();
     verify(retention).get();
   }
 }

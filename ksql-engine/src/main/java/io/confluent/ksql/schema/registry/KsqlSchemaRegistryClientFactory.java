@@ -117,13 +117,13 @@ public class KsqlSchemaRegistryClientFactory {
       restService.setSslSocketFactory(sslContext.getSocketFactory());
     }
 
-    return schemaRegistryClientFactory.create(
+    return KsqlSchemaRegistryClient.createProxy(schemaRegistryClientFactory.create(
         restService,
         1000,
         ImmutableList.of(
             new AvroSchemaProvider(), new ProtobufSchemaProvider(), new JsonSchemaProvider()),
         schemaRegistryClientConfigs,
         httpHeaders
-    );
+    ));
   }
 }

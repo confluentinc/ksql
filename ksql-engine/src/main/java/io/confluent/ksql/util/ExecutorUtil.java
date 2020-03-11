@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import java.time.Duration;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
@@ -28,6 +31,9 @@ public final class ExecutorUtil {
   private static final int NUM_RETRIES = 5;
   private static final Duration RETRY_BACKOFF_MS = Duration.ofMillis(500);
   private static final Logger log = LoggerFactory.getLogger(ExecutorUtil.class);
+  private static final Set<Class<? extends Throwable>> NO_RETRYABLE_EXCEPTIONS = ImmutableSet.of(
+      KsqlSchemaAuthorizationException.class
+  );
 
   private ExecutorUtil() {
   }
@@ -73,8 +79,7 @@ public final class ExecutorUtil {
         return executable.call();
       } catch (final Exception e) {
         final Throwable cause = e instanceof ExecutionException ? e.getCause() : e;
-        if (cause instanceof RetriableException
-            || (cause instanceof Exception && retryBehaviour == RetryBehaviour.ALWAYS)) {
+        if (isRetryable(cause, retryBehaviour)) {
           log.info("Retrying request. Retry no: " + retries, e);
           lastException = e;
         } else if (cause instanceof Exception) {
@@ -85,5 +90,11 @@ public final class ExecutorUtil {
       }
     }
     throw lastException;
+  }
+
+  private static boolean isRetryable(final Throwable cause, final RetryBehaviour retryBehaviour) {
+    return !NO_RETRYABLE_EXCEPTIONS.contains(cause.getClass())
+        && (cause instanceof RetriableException
+        ||  (cause instanceof Exception && retryBehaviour == RetryBehaviour.ALWAYS));
   }
 }

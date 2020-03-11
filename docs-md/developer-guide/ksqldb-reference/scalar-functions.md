@@ -191,12 +191,19 @@ ARRAYCONTAINS
 
 Given JSON or AVRO array checks if a search value contains in it.
 
-AS_ARRAY
+ARRAY
 --------
 
-`AS_ARRAY(col1, col2)`
+`ARRAY[col1, col2, ...]`
 
 Construct an array from a variable number of inputs.
+
+MAP
+---
+
+`MAP(key VARCHAR := value, ...)`
+
+Construct a map from specific key-value tuples.
 
 AS_MAP
 ------

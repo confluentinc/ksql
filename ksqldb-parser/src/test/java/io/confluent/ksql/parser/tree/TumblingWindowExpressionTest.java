@@ -19,12 +19,15 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -35,5 +38,37 @@ public class TumblingWindowExpressionTest {
   public void shouldReturnWindowInfo() {
     assertThat(new TumblingWindowExpression(new WindowTimeClause(11, SECONDS)).getWindowInfo(),
         is(WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(11)))));
+    assertThat(new TumblingWindowExpression(
+            Optional.empty(),
+            new WindowTimeClause(20, SECONDS),
+            Optional.of(new WindowTimeClause(20, SECONDS)),
+            Optional.of(new WindowTimeClause(10, SECONDS))
+        ).getWindowInfo(),
+        is(WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(20)))));
+  }
+
+  @Test
+  public void shouldImplementHashCodeAndEqualsProperty() {
+    new EqualsTester()
+        .addEqualityGroup(
+            new TumblingWindowExpression(
+                new WindowTimeClause(50, TimeUnit.SECONDS)
+            )
+        )
+        .addEqualityGroup(
+            new TumblingWindowExpression(
+                Optional.empty(),
+                new WindowTimeClause(40, TimeUnit.SECONDS),
+                Optional.of(new WindowTimeClause(80, TimeUnit.SECONDS)),
+                Optional.of(new WindowTimeClause(40, TimeUnit.SECONDS))
+            ),
+            new TumblingWindowExpression(
+                Optional.of(new NodeLocation(0,0)),
+                new WindowTimeClause(40, TimeUnit.SECONDS),
+                Optional.of(new WindowTimeClause(80, TimeUnit.SECONDS)),
+                Optional.of(new WindowTimeClause(40, TimeUnit.SECONDS))
+            )
+        )
+        .testEquals();
   }
 }

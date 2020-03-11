@@ -260,7 +260,8 @@ public final class StreamAggregateBuilder {
       TimeWindows windows = TimeWindows
           .of(window.getSize().toDuration())
           .advanceBy(window.getAdvanceBy().toDuration());
-      windows = window.getGracePeriod().map(WindowTimeClause::toDuration).map(windows::grace)
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
+          .map(windows::grace)
           .orElse(windows);
 
       return groupedStream
@@ -280,7 +281,8 @@ public final class StreamAggregateBuilder {
         final SessionWindowExpression window,
         final Void ctx) {
       SessionWindows windows = SessionWindows.with(window.getGap().toDuration());
-      windows = window.getGracePeriod().map(WindowTimeClause::toDuration).map(windows::grace)
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
+          .map(windows::grace)
           .orElse(windows);
 
       return groupedStream
@@ -301,7 +303,8 @@ public final class StreamAggregateBuilder {
         final TumblingWindowExpression window,
         final Void ctx) {
       TimeWindows windows = TimeWindows.of(window.getSize().toDuration());
-      windows = window.getGracePeriod().map(WindowTimeClause::toDuration).map(windows::grace)
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
+          .map(windows::grace)
           .orElse(windows);
 
       return groupedStream

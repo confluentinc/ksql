@@ -83,6 +83,19 @@ public class HoppingWindowExpressionTest {
             new HoppingWindowExpression(
                 new WindowTimeClause(10, SECONDS),
                 new WindowTimeClause(20, MILLISECONDS))
+        ).addEqualityGroup(
+            new HoppingWindowExpression(
+                Optional.of(SOME_LOCATION),
+                new WindowTimeClause(10, SECONDS),
+                new WindowTimeClause(20, MILLISECONDS),
+                Optional.of(new WindowTimeClause(40, MINUTES)),
+                Optional.of(new WindowTimeClause(0, MINUTES))),
+            new HoppingWindowExpression(
+                Optional.of(OTHER_LOCATION),
+                new WindowTimeClause(10, SECONDS),
+                new WindowTimeClause(20, MILLISECONDS),
+                Optional.of(new WindowTimeClause(40, MINUTES)),
+                Optional.of(new WindowTimeClause(0, MINUTES)))
         )
         .testEquals();
   }

@@ -64,6 +64,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
@@ -88,6 +89,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
@@ -186,6 +188,10 @@ public class StreamAggregateBuilderTest {
   private ExecutionStep<KGroupedStreamHolder> sourceStep;
   @Mock
   private KsqlProcessingContext ctx;
+  @Spy
+  private WindowTimeClause retentionClause = new WindowTimeClause(10, TimeUnit.SECONDS);
+  @Spy
+  private WindowTimeClause gracePeriodClause = new WindowTimeClause(0, TimeUnit.SECONDS);
 
   private PlanBuilder planBuilder;
   private StreamAggregate aggregate;
@@ -258,7 +264,12 @@ public class StreamAggregateBuilderTest {
         io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         NON_AGG_COLUMNS,
         FUNCTIONS,
-        new TumblingWindowExpression(new WindowTimeClause(WINDOW.getSeconds(), TimeUnit.SECONDS))
+        new TumblingWindowExpression(
+            Optional.empty(),
+            new WindowTimeClause(WINDOW.getSeconds(), TimeUnit.SECONDS),
+            Optional.of(retentionClause),
+            Optional.of(gracePeriodClause)
+        )
     );
   }
 
@@ -271,8 +282,11 @@ public class StreamAggregateBuilderTest {
         NON_AGG_COLUMNS,
         FUNCTIONS,
         new HoppingWindowExpression(
+            Optional.empty(),
             new WindowTimeClause(WINDOW.getSeconds(), TimeUnit.SECONDS),
-            new WindowTimeClause(HOP.getSeconds(), TimeUnit.SECONDS)
+            new WindowTimeClause(HOP.getSeconds(), TimeUnit.SECONDS),
+            Optional.of(retentionClause),
+            Optional.of(gracePeriodClause)
         )
     );
   }
@@ -295,7 +309,12 @@ public class StreamAggregateBuilderTest {
         io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         NON_AGG_COLUMNS,
         FUNCTIONS,
-        new SessionWindowExpression(new WindowTimeClause(WINDOW.getSeconds(), TimeUnit.SECONDS))
+        new SessionWindowExpression(
+            Optional.empty(),
+            new WindowTimeClause(WINDOW.getSeconds(), TimeUnit.SECONDS),
+            Optional.of(retentionClause),
+            Optional.of(gracePeriodClause)
+        )
     );
   }
 
@@ -419,6 +438,9 @@ public class StreamAggregateBuilderTest {
 
     // Then:
     assertThat(result.getTable(), is(windowedWithWindowBounds));
+    verify(gracePeriodClause).toDuration();
+    verify(retentionClause).toDuration();
+
     final InOrder inOrder = Mockito.inOrder(
         groupedStream,
         timeWindowedStream,
@@ -426,7 +448,7 @@ public class StreamAggregateBuilderTest {
         windowedWithResults,
         windowedWithWindowBounds
     );
-    inOrder.verify(groupedStream).windowedBy(TimeWindows.of(WINDOW));
+    inOrder.verify(groupedStream).windowedBy(TimeWindows.of(WINDOW).grace(gracePeriodClause.toDuration()));
     inOrder.verify(timeWindowedStream).aggregate(initializer, aggregator, timeWindowMaterialized);
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
     inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
@@ -445,6 +467,8 @@ public class StreamAggregateBuilderTest {
 
     // Then:
     assertThat(result.getTable(), is(windowedWithWindowBounds));
+    verify(gracePeriodClause).toDuration();
+    verify(retentionClause).toDuration();
     final InOrder inOrder = Mockito.inOrder(
         groupedStream,
         timeWindowedStream,
@@ -452,7 +476,9 @@ public class StreamAggregateBuilderTest {
         windowedWithResults,
         windowedWithWindowBounds
     );
-    inOrder.verify(groupedStream).windowedBy(TimeWindows.of(WINDOW).advanceBy(HOP));
+
+    inOrder.verify(groupedStream).windowedBy(TimeWindows.of(WINDOW).advanceBy(HOP)
+        .grace(gracePeriodClause.toDuration()));
     inOrder.verify(timeWindowedStream).aggregate(initializer, aggregator, timeWindowMaterialized);
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
     inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
@@ -471,6 +497,8 @@ public class StreamAggregateBuilderTest {
 
     // Then:
     assertThat(result.getTable(), is(windowedWithWindowBounds));
+    verify(gracePeriodClause).toDuration();
+    verify(retentionClause).toDuration();
     final InOrder inOrder = Mockito.inOrder(
         groupedStream,
         sessionWindowedStream,
@@ -478,7 +506,9 @@ public class StreamAggregateBuilderTest {
         windowedWithResults,
         windowedWithWindowBounds
     );
-    inOrder.verify(groupedStream).windowedBy(SessionWindows.with(WINDOW));
+    inOrder.verify(groupedStream).windowedBy(SessionWindows.with(WINDOW)
+        .grace(gracePeriodClause.toDuration())
+    );
     inOrder.verify(sessionWindowedStream).aggregate(
         initializer,
         aggregator,

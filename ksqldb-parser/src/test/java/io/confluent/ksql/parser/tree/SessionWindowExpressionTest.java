@@ -18,9 +18,11 @@ package io.confluent.ksql.parser.tree;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -43,5 +45,30 @@ public class SessionWindowExpressionTest {
   public void shouldReturnWindowInfo() {
     assertThat(windowExpression.getWindowInfo(),
         is(WindowInfo.of(WindowType.SESSION, Optional.empty())));
+  }
+
+  @Test
+  public void shouldImplementHashCodeAndEqualsProperty() {
+    new EqualsTester()
+        .addEqualityGroup(
+            new SessionWindowExpression(
+                new WindowTimeClause(10, TimeUnit.SECONDS)
+            )
+        )
+        .addEqualityGroup(
+            new SessionWindowExpression(
+                Optional.empty(),
+                new WindowTimeClause(10, TimeUnit.SECONDS),
+                Optional.of(new WindowTimeClause(20, TimeUnit.SECONDS)),
+                Optional.of(new WindowTimeClause(0, TimeUnit.SECONDS))
+            ),
+            new SessionWindowExpression(
+                Optional.of(new NodeLocation(0, 0)),
+                new WindowTimeClause(10, TimeUnit.SECONDS),
+                Optional.of(new WindowTimeClause(20, TimeUnit.SECONDS)),
+                Optional.of(new WindowTimeClause(0, TimeUnit.SECONDS))
+            )
+        )
+        .testEquals();
   }
 }

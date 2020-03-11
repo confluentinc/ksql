@@ -109,4 +109,23 @@ public class ExpressionParserTest {
             Optional.empty()))
     );
   }
+
+  @Test
+  public void shouldParseWindowExpressionWithRetention() {
+    // When:
+    final KsqlWindowExpression parsed = ExpressionParser.parseWindowExpression(
+        "TUMBLING (SIZE 1 DAYS, RETENTION 2 DAYS, GRACE PERIOD 2 DAYS)"
+    );
+
+    // Then:
+    assertThat(
+        parsed,
+        equalTo(new TumblingWindowExpression(
+            parsed.getLocation(),
+            new WindowTimeClause(1, TimeUnit.DAYS),
+            Optional.of(new WindowTimeClause(2, TimeUnit.DAYS)),
+            Optional.of(new WindowTimeClause(2, TimeUnit.DAYS)))
+        )
+    );
+  }
 }

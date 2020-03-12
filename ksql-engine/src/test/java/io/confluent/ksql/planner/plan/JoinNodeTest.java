@@ -222,7 +222,7 @@ public class JoinNodeTest {
     try {
       buildJoin("SELECT t1.col0, t2.col0, t2.col1 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;");
     } catch (final KsqlException e) {
-      Assert.assertThat(e.getMessage(), equalTo(
+      assertThat(e.getMessage(), equalTo(
           "Can't join TEST1 with TEST2 since the number of partitions don't match. TEST1 "
           + "partitions = 1; TEST2 partitions = 2. Please repartition either one so that the "
           + "number of partitions match."

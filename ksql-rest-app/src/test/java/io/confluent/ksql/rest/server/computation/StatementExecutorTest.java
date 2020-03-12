@@ -80,15 +80,10 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("ConstantConditions")
 public class StatementExecutorTest extends EasyMockSupport {
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
-
   private static final Map<String, String> PRE_VERSION_5_NULL_ORIGNAL_PROPS = null;
 
   private KsqlEngine ksqlEngine;

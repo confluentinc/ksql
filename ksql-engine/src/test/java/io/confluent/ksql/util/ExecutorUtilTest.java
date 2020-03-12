@@ -16,29 +16,25 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.common.errors.RetriableException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ExecutorUtilTest {
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void shouldRetryAndEventuallyThrowIfNeverSucceeds() throws Exception {
-    expectedException.expect(ExecutionException.class);
-    expectedException.expectMessage("I will never succeed");
-    ExecutorUtil.executeWithRetries(() -> {
+    Exception e = assertThrows(ExecutionException.class, () -> ExecutorUtil.executeWithRetries(() -> {
           throw new ExecutionException(new TestRetriableException("I will never succeed"));
-          },
-        ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+        },
+        ExecutorUtil.RetryBehaviour.ON_RETRYABLE));
+    assertEquals("I will never succeed", e.getMessage());
   }
 
   @Test
@@ -64,31 +60,29 @@ public class ExecutorUtilTest {
 
   @Test
   public void shouldNotRetryOnNonRetryableException() throws Exception {
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("First non-retry exception");
     final AtomicBoolean firstCall = new AtomicBoolean(true);
-    ExecutorUtil.executeWithRetries(() -> {
+    Exception e = assertThrows(RuntimeException.class, () -> ExecutorUtil.executeWithRetries(() -> {
       if (firstCall.get()) {
         firstCall.set(false);
         throw new RuntimeException("First non-retry exception");
       } else {
         throw new RuntimeException("Test should not retry");
       }
-    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE));
+    assertEquals("First non-retry exception", e.getMessage());
   }
 
   @Test
   public void shouldNotRetryIfSupplierThrowsNonRetryableException() throws Exception {
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("First non-retry exception");
     final AtomicBoolean firstCall = new AtomicBoolean(true);
-    ExecutorUtil.executeWithRetries(() -> {
+    Exception e = assertThrows(RuntimeException.class, () -> ExecutorUtil.executeWithRetries(() -> {
       if (firstCall.get()) {
         firstCall.set(false);
         throw new RuntimeException("First non-retry exception");
       }
       throw new RuntimeException("Test should not retry");
-    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE));
+    assertEquals("First non-retry exception", e.getMessage());
   }
 
   @Test

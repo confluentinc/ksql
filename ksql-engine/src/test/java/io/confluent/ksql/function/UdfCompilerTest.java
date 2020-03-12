@@ -20,6 +20,8 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.udaf.TestUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
@@ -32,14 +34,10 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class UdfCompilerTest {
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
   private final ClassLoader classLoader = UdfCompilerTest.class.getClassLoader();
   private final UdfCompiler udfCompiler = new UdfCompiler(Optional.empty());
 
@@ -194,25 +192,25 @@ public class UdfCompilerTest {
   @Test
   public void shouldThrowKsqlFunctionExceptionIfNullPassedWhenExpectingPrimitiveType()
       throws NoSuchMethodException {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Can't coerce argument at index 0 from null to a primitive type");
     final UdfInvoker udf =
         udfCompiler.compile(getClass().getMethod("udfPrimitive", double.class), classLoader);
-    udf.eval(this, new Object[]{null});
+    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.eval(this, new Object[]{null}));
+    assertEquals("Can't coerce argument at index 0 from null to a primitive type", e.getMessage());
   }
 
 
   @Test
   public void shouldThrowWhenUdafReturnTypeIsntAUdaf() throws NoSuchMethodException {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UDAFs must implement io.confluent.ksql.function.udaf.Udaf "
+    String expectedMessage = "UDAFs must implement io.confluent.ksql.function.udaf.Udaf "
         + "or io.confluent.ksql.function.udaf.TableUdaf .method='createBlah', functionName='test'"
-        + " UDFClass='class io.confluent.ksql.function.UdfCompilerTest");
-    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBlah"),
+        + " UDFClass='class io.confluent.ksql.function.UdfCompilerTest";
+    Exception e = assertThrows(KsqlException.class, () -> udfCompiler.compileAggregate(
+        UdfCompilerTest.class.getMethod("createBlah"),
         classLoader,
         "test",
         "desc"
-    );
+    ));
+    assertEquals(expectedMessage, e.getMessage());
   }
 
   @Test

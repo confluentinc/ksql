@@ -298,13 +298,13 @@ public class CliTest {
 
   private static void runStatement(final String statement, final KsqlRestClient restClient) {
     final RestResponse response = restClient.makeKsqlRequest(statement);
-    Assert.assertThat(response.isSuccessful(), is(true));
+    assertThat(response.isSuccessful(), is(true));
     final KsqlEntityList entityList = ((KsqlEntityList) response.get());
-    Assert.assertThat(entityList.size(), equalTo(1));
-    Assert.assertThat(entityList.get(0), instanceOf(CommandStatusEntity.class));
+    assertThat(entityList.size(), equalTo(1));
+    assertThat(entityList.get(0), instanceOf(CommandStatusEntity.class));
     final CommandStatusEntity entity = (CommandStatusEntity) entityList.get(0);
     final CommandStatus status = entity.getCommandStatus();
-    Assert.assertThat(status, not(CommandStatus.Status.ERROR));
+    assertThat(status, not(CommandStatus.Status.ERROR));
 
     if (status.getStatus() != Status.SUCCESS) {
       assertThatEventually(
@@ -312,8 +312,8 @@ public class CliTest {
           () -> {
             final RestResponse statusResponse = restClient
                 .makeStatusRequest(entity.getCommandId().toString());
-            Assert.assertThat(statusResponse.isSuccessful(), is(true));
-            Assert.assertThat(statusResponse.get(), instanceOf(CommandStatus.class));
+            assertThat(statusResponse.isSuccessful(), is(true));
+            assertThat(statusResponse.get(), instanceOf(CommandStatus.class));
             return ((CommandStatus) statusResponse.get()).getStatus();
           },
           anyOf(
@@ -673,10 +673,10 @@ public class CliTest {
     new Cli(1L, 1L, mockRestClient, terminal)
         .runInteractively();
 
-    Assert.assertThat(
+    assertThat(
         terminal.getOutputString(),
         containsString("This CLI version no longer supported"));
-    Assert.assertThat(
+    assertThat(
         terminal.getOutputString(),
         containsString("Minimum supported client version: 1.0"));
   }

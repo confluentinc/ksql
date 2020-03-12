@@ -18,6 +18,8 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -27,18 +29,13 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ExpressionTypeManagerTest {
 
   private MetaStore metaStore;
   private Schema schema;
   private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() {
@@ -177,14 +174,14 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldFailIfThereIsInvalidFieldNameInStructCall() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not find field ZIP in ORDERS.ADDRESS.");
     final Analysis analysis = analyzeQuery(
         "SELECT itemid, address->zip, address->state from orders;", metaStore);
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         metaStore.getSource("ORDERS").getSchema(),
         functionRegistry);
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+    Exception e = assertThrows(KsqlException.class,
+        () -> expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1)));
+    assertEquals("Could not find field ZIP in ORDERS.ADDRESS.", e.getMessage());
   }
 
   @Test

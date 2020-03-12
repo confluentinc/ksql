@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.function;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -30,9 +32,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class InternalFunctionRegistryTest {
 
@@ -55,9 +55,6 @@ public class InternalFunctionRegistryTest {
       Collections.emptyList(),
       "func",
       Func1.class);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldAddFunction() {
@@ -196,8 +193,7 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldThrowExceptionIfNoFunctionsWithNameExist() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'foo_bar'");
-    functionRegistry.getUdfFactory("foo_bar");
+    Exception e = assertThrows(KsqlException.class, () -> functionRegistry.getUdfFactory("foo_bar"));
+    assertThat(e.getMessage(), containsString("'foo_bar'"));
   }
 }

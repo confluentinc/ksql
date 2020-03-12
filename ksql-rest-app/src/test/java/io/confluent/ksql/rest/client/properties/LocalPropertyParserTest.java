@@ -19,6 +19,7 @@ import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.PropertyValidator;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
@@ -28,19 +29,18 @@ import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 @RunWith(EasyMockRunner.class)
 public class LocalPropertyParserTest {
 
   private static final Object PARSED_VALUE = new Object();
   private static final String PARSED_PROP_NAME = "PARSED";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock(MockType.NICE)
   private PropertyValidator validator;
@@ -142,9 +142,6 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldThrowIfResolverFailsToResolve() {
     // Given:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage(
-        "Not recognizable as ksql, streams, consumer, or producer property: 'Unknown'");
 
     EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
         .andReturn(Optional.empty())
@@ -153,7 +150,8 @@ public class LocalPropertyParserTest {
     EasyMock.replay(resolver);
 
     // When:
-    parser.parse("Unknown", "100");
+    Exception e = assertThrows(IllegalArgumentException.class, () -> parser.parse("Unknown", "100"));
+    assertThat(e.getMessage(), containsString("Not recognizable as ksql, streams, consumer, or producer property: 'Unknown'"));
 
     // Then:
     EasyMock.verify(resolver);

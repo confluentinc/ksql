@@ -20,10 +20,11 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -72,19 +73,13 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 
 public class KsqlParserTest {
 
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private MetaStore metaStore;
 
@@ -729,7 +724,7 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof ListStreams);
     final ListStreams listStreams = (ListStreams) statement;
     Assert.assertTrue(listStreams.toString().equalsIgnoreCase("ListStreams{}"));
-    Assert.assertThat(listStreams.getShowExtended(), is(false));
+    assertThat(listStreams.getShowExtended(), is(false));
   }
 
   @Test
@@ -739,7 +734,7 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof ListTables);
     final ListTables listTables = (ListTables) statement;
     Assert.assertTrue(listTables.toString().equalsIgnoreCase("ListTables{}"));
-    Assert.assertThat(listTables.getShowExtended(), is(false));
+    assertThat(listTables.getShowExtended(), is(false));
   }
 
   @Test
@@ -747,9 +742,9 @@ public class KsqlParserTest {
     final String statementString = "SHOW QUERIES;";
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
         .getStatement();
-    Assert.assertThat(statement, instanceOf(ListQueries.class));
+    assertThat(statement, instanceOf(ListQueries.class));
     final ListQueries listQueries = (ListQueries)statement;
-    Assert.assertThat(listQueries.getShowExtended(), is(false));
+    assertThat(listQueries.getShowExtended(), is(false));
   }
 
   @Test
@@ -856,9 +851,9 @@ public class KsqlParserTest {
     final String statementString = "SHOW STREAMS EXTENDED;";
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
         .getStatement();
-    Assert.assertThat(statement, instanceOf(ListStreams.class));
+    assertThat(statement, instanceOf(ListStreams.class));
     final ListStreams listStreams = (ListStreams)statement;
-    Assert.assertThat(listStreams.getShowExtended(), is(true));
+    assertThat(listStreams.getShowExtended(), is(true));
   }
 
   @Test
@@ -866,9 +861,9 @@ public class KsqlParserTest {
     final String statementString = "SHOW TABLES EXTENDED;";
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
         .getStatement();
-    Assert.assertThat(statement, instanceOf(ListTables.class));
+    assertThat(statement, instanceOf(ListTables.class));
     final ListTables listTables = (ListTables)statement;
-    Assert.assertThat(listTables.getShowExtended(), is(true));
+    assertThat(listTables.getShowExtended(), is(true));
   }
 
   @Test
@@ -876,9 +871,9 @@ public class KsqlParserTest {
     final String statementString = "SHOW QUERIES EXTENDED;";
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
         .getStatement();
-    Assert.assertThat(statement, instanceOf(ListQueries.class));
+    assertThat(statement, instanceOf(ListQueries.class));
     final ListQueries listQueries = (ListQueries)statement;
-    Assert.assertThat(listQueries.getShowExtended(), is(true));
+    assertThat(listQueries.getShowExtended(), is(true));
   }
   
   private void assertQuerySucceeds(final String sql) {
@@ -1161,28 +1156,22 @@ public class KsqlParserTest {
 
   @Test
   public void testSelectWithOnlyColumns() {
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage("line 1:21: extraneous input ';' expecting {',', 'FROM', 'INTO'}");
-
     final String simpleQuery = "SELECT ONLY, COLUMNS;";
-    KSQL_PARSER.buildAst(simpleQuery, metaStore);
+    Exception e = assertThrows(ParseFailedException.class, () -> KSQL_PARSER.buildAst(simpleQuery, metaStore));
+    assertThat(e.getMessage(), containsString("line 1:21: extraneous input ';' expecting {',', 'FROM', 'INTO'}"));
   }
 
   @Test
   public void testSelectWithMissingComma() {
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage(containsString("line 1:12: extraneous input 'C' expecting"));
-
     final String simpleQuery = "SELECT A B C FROM address;";
-    KSQL_PARSER.buildAst(simpleQuery, metaStore);
+    Exception e = assertThrows(ParseFailedException.class, () -> KSQL_PARSER.buildAst(simpleQuery, metaStore));
+    assertThat(e.getMessage(), containsString("line 1:12: extraneous input 'C' expecting"));
   }
 
   @Test
   public void testSelectWithMultipleFroms() {
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage(containsString("line 1:22: mismatched input ',' expecting"));
-
     final String simpleQuery = "SELECT * FROM address, itemid;";
-    KSQL_PARSER.buildAst(simpleQuery, metaStore);
+    Exception e = assertThrows(ParseFailedException.class, () -> KSQL_PARSER.buildAst(simpleQuery, metaStore));
+    assertThat(e.getMessage(), containsString("line 1:22: mismatched input ',' expecting"));
   }
 }

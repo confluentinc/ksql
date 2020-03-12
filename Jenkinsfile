@@ -11,25 +11,29 @@ def config = {
     dockerScan = true
     cron = '@daily'
     maven_packages_url = "https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com"
-    dockerPullDeps = ['confluentinc/cp-base-new']
+    dockerPullDeps = ['confluentinc/cp-base-new', 'confluentinc/cc-base']
+
+    ccloudDockerRepo = 'confluentinc/cc-ksql'
+    ccloudDockerUpstreamTag = 'v3.2.0'
+    ccloudDockerPullDeps = ['confluentinc/cc-base']
 }
 
 def defaultParams = [
     booleanParam(name: 'RELEASE_BUILD',
-        description: 'Is this a release build.',
+        description: 'Is this a release build. If so, GIT_REVISION must be specified, and only on-prem images will be built.',
         defaultValue: false),
     string(name: 'GIT_REVISION',
         description: 'The git SHA to create the release build from.',
         defaultValue: ''),
     booleanParam(name: 'PROMOTE_TO_PRODUCTION',
         defaultValue: false,
-        description: 'Promote images to production (DockerHub) for release build images only.'),
+        description: 'Promote images to production (DockerHub) for on-prem release build images only.'),
     string(name: 'KSQLDB_VERSION',
         defaultValue: '',
         description: 'KSQLDB version to promote to production.'),
     booleanParam(name: 'UPDATE_LATEST_TAG',
         defaultValue: false,
-        description: 'Should the latest tag on docker hub be updated to point at this new image version.')
+        description: 'Should the latest tag on docker hub be updated to point at this new image version. Only relevant if PROMOTE_TO_PRODUCTION is true.')
 ]
 
 def updateConfig = { c ->
@@ -76,13 +80,15 @@ def job = {
         config.ksql_db_version = config.ksql_db_version.tokenize("-")[0]
         config.docker_tag = config.ksql_db_version
     } else {
-        config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-' + env.BUILD_NUMBER
+        config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-beta' + env.BUILD_NUMBER
+        config.ccloud_docker_tag = config.docker_tag
     }
     
     // Use revision param if provided, otherwise default to master
     config.revision = params.GIT_REVISION ?: 'refs/heads/master'
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
+    // TODO: add credentials for pulling from s3 as well
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"
     def maven_packages_url = "${config.maven_packages_url}/${config.cp_version}/${config.packaging_build_number}/maven"
     def settings = readFile('maven-settings-template.xml').replace('PACKAGES_MAVEN_URL', maven_packages_url)
@@ -92,6 +98,7 @@ def job = {
         openTasksPublisher(disabled: true)
     ]
 
+    // TODO: add analogous section for ccloud promotion? maybe not necessary since requires manual spec update anyway
     if (params.PROMOTE_TO_PRODUCTION) {
         stage("Pulling Docker Images") {
             withCredentials([usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME')]) {
@@ -145,6 +152,8 @@ def job = {
 
         return null
     }
+
+    // Build on-prem ksqlDB image
 
     stage('Checkout KSQL') {
         checkout changelog: false,
@@ -203,7 +212,7 @@ def job = {
                             // Set the version of the parent project to use.
                             sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
 
-                            if (config.release) {
+                            if (!config.isPrJob) {
                                 def git_tag = "v${config.ksql_db_version}-ksqldb"
                                 sh "git add ."
                                 sh "git commit -m \"build: Setting project version ${config.ksql_db_version} and parent version ${config. cp_version}.\""
@@ -232,7 +241,7 @@ def job = {
         }
     }
 
-    if (!config.isPrJob && config.release) {
+    if (!config.isPrJob) {
         stage('Publish Maven Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
@@ -258,15 +267,15 @@ def job = {
     }
 
     if (!config.isPrJob) {
-            stage('Rename Maven Docker Images') {
-                withDockerServer([uri: dockerHost()]) {
-                    config.dockerRepos.eachWithIndex { dockerRepo, index ->
-                        dockerArtifact = config.dockerArtifacts[index]
-                        sh "docker tag ${config.dockerRegistry}${dockerArtifact}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}"
-                    }
+        stage('Rename Maven Docker Images') {
+            withDockerServer([uri: dockerHost()]) {
+                config.dockerRepos.eachWithIndex { dockerRepo, index ->
+                    dockerArtifact = config.dockerArtifacts[index]
+                    sh "docker tag ${config.dockerRegistry}${dockerArtifact}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}"
                 }
             }
         }
+    }
 
     if(config.dockerScan){
         stage('Twistloc scan') {
@@ -319,9 +328,160 @@ def job = {
                     sh "docker push ${config.dockerRegistry}${dockerRepo}:master-latest"
 
                     if (config.release) {
-                        sh "docker tag ${config.dockerRegistry}${dockerRepo}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-${env.BUILD_NUMBER}"
-                        sh "docker push ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-${env.BUILD_NUMBER}"
+                        // docker_tag for release builds does not include the build number
+                        // here we add it back so an image version with the build number always exists
+                        sh "docker tag ${config.dockerRegistry}${dockerRepo}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-beta${env.BUILD_NUMBER}"
+                        sh "docker push ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-beta${env.BUILD_NUMBER}"
                     }
+                }
+            }
+        }
+    }
+
+    // Build CCloud ksqlDB image
+
+    if (config.release) {
+        // Do not build CCloud image in release mode
+        return null
+    }
+
+    stage('Checkout CCloud ksqlDB Docker repo') {
+        checkout changelog: false,
+            poll: false,
+            scm: [$class: 'GitSCM',
+                branches: [[name: config.revision]],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'ksqldb-ccloud-docker']],
+                submoduleCfg: [],
+                userRemoteConfigs: [[credentialsId: 'ConfluentJenkins Github SSH Key',
+                    url: 'git@github.com:confluentinc/cc-docker-ksql.git']]
+            ]
+    }
+
+    stage('Build CCloud KSQL Docker image') {
+        dir('ksqldb-ccloud-docker') {
+            archiveArtifacts artifacts: 'pom.xml'
+            withCredentials([
+                usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME'),
+                usernameColonPassword(credentialsId: 'Jenkins GitHub Account', variable: 'GIT_CREDENTIAL')]) {
+                    withDockerServer([uri: dockerHost()]) {
+                        withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
+                            writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                            sh '''
+                                bash extract-iam-credential.sh
+
+                                # Hide login credential from below
+                                set +x
+
+                                LOGIN_CMD=$(aws ecr get-login --no-include-email --region us-west-2)
+
+                                $LOGIN_CMD
+                            '''
+                            sh '''
+                                echo $ARTIFACTORY_PASSWORD | docker login confluent-docker.jfrog.io -u $ARTIFACTORY_USERNAME --password-stdin
+                            '''
+                            writeFile file:'create-pip-conf-with-jfrog.sh', text:libraryResource('scripts/create-pip-conf-with-jfrog.sh')
+                            writeFile file:'create-pypirc-with-jfrog.sh', text:libraryResource('scripts/create-pypirc-with-jfrog.sh')
+                            writeFile file:'setup-credential-store.sh', text:libraryResource('scripts/setup-credential-store.sh')
+                            writeFile file:'set-global-user.sh', text:libraryResource('scripts/set-global-user.sh')
+                            sh '''
+                                bash create-pip-conf-with-jfrog.sh
+                                bash create-pypirc-with-jfrog.sh
+                                bash setup-credential-store.sh
+                                bash set-global-user.sh
+                            '''
+
+                            config.ccloudDockerPullDeps.each { dockerRepo ->
+                                sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.ccloudDockerUpstreamTag}"
+                            }
+
+                            // Set the project versions in the pom files
+                            sh "set -x"
+                            sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_version} -DgenerateBackupPoms=false"
+
+                            // Set the version of the parent project to use.
+                            sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.ksql_db_version}]\" -DgenerateBackupPoms=false"
+
+                            if (!config.isPrJob) {
+                                def git_tag = "v${config.ksql_db_version}-ksqldb"
+                                sh "git add ."
+                                sh "git commit -m \"build: Setting project version ${config.ksql_db_version} and parent version ${config.ksql_db_version}.\""
+                                sh "git tag ${git_tag}"
+                                sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
+                                    sh "git push origin ${git_tag}"
+                                }
+                            }
+
+                            cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
+                            cmd += "-DskipTests "
+                            cmd += "-Dspotbugs.skip "
+                            cmd += "-Dcheckstyle.skip "
+                            cmd += "-Ddocker.tag=${config.ccloud_docker_tag} "
+                            cmd += "-Ddocker.registry=${config.dockerRegistry} "
+                            cmd += "-Ddocker.upstream-tag=${config.ccloudDockerUpstreamTag} "
+                            cmd += "-Dskip.docker.build=false "
+
+                            withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
+                                sh cmd
+                            }
+                            step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
+                        }
+                    }
+                }
+        }
+    }
+
+    // TODO: de-dup between on-prem and ccloud sections
+    if(config.dockerScan){
+        stage('Twistloc scan') {
+            withDockerServer([uri: dockerHost()]) {
+                dockerName = config.dockerRegistry+config.ccloudDockerRepo+":${config.ccloud_docker_tag}"
+                echo "Twistloc Scan ${dockerName}"
+                twistlockScan   ca: '',
+                                cert: '',
+                                compliancePolicy: 'critical',
+                                dockerAddress: dockerHost(),
+                                gracePeriodDays: 0,
+                                ignoreImageBuildTime: true,
+                                image: dockerName,
+                                key: '',
+                                logLevel: 'true',
+                                policy: 'warn',
+                                requirePackageUpdate: false,
+                                timeout: 10
+            }
+        }
+    }
+
+    if(config.dockerScan){
+        stage('Twistloc publish') {
+            withDockerServer([uri: dockerHost()]) {
+                dockerName = config.dockerRegistry+config.ccloudDockerRepo+":${config.ccloud_docker_tag}"
+                echo "Twistloc Publish ${dockerName}"
+                twistlockPublish    ca: '',
+                                    cert: '',
+                                    dockerAddress: dockerHost(),
+                                    ignoreImageBuildTime: true,
+                                    image: dockerName,
+                                    key: '',
+                                    logLevel: 'true',
+                                    timeout: 10
+            }
+        }
+    }
+
+    if (!config.isPrJob) {
+        stage('Publish CCloud ksqlDB Docker Images') {
+            withDockerServer([uri: dockerHost()]) {
+                sh "docker tag ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag} ${config.dockerRegistry}${config.ccloudDockerRepo}:master-latest"
+                sh "docker push ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag}"
+                sh "docker push ${config.dockerRegistry}${config.ccloudDockerRepo}:master-latest"
+
+                if (config.release) {
+                    // docker_tag for release builds does not include the build number
+                    // here we add it back so an image version with the build number always exists
+                    sh "docker tag ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag} ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.docker_tag}-beta${env.BUILD_NUMBER}"
+                    sh "docker push ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag}-beta${env.BUILD_NUMBER}"
                 }
             }
         }

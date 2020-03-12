@@ -263,7 +263,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_METRICS_ENABLED =
       "ksql.query.pull.metrics.enabled";
   public static final String KSQL_QUERY_PULL_METRICS_ENABLED_DOC =
-      "Whether collecting JMX metrics for pull queries is enabled or not.";
+      "Config to enable/disable collecting JMX metrics for pull queries.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -625,6 +625,13 @@ public class KsqlConfig extends AbstractConfig {
             false,
             Importance.LOW,
             "Feature flag for removing restriction on key names - WIP, do not enable."
+        )
+        .define(
+            KSQL_QUERY_PULL_METRICS_ENABLED,
+            Type.BOOLEAN,
+            false,
+            Importance.LOW,
+            KSQL_QUERY_PULL_METRICS_ENABLED_DOC
         )
         .withClientSslSupport();
 

@@ -206,7 +206,6 @@ public final class PullQueryExecutor {
       );
     } catch (final Exception e) {
       pullQueryExecutorMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
-
       throw new KsqlStatementException(
           e.getMessage() == null ? "Server Error" : e.getMessage(),
           statement.getStatementText(),

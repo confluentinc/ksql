@@ -134,6 +134,15 @@ public class PullQueryExecutorMetrics implements Closeable {
         ),
         new Rate()
     );
+    sensor.add(
+        metrics.metricName(
+            PULL_REQUESTS + "-error-total",
+            PULL_QUERY_METRIC_GROUP,
+            "Total number of erroneous pull query requests"
+        ),
+        new WindowedCount()
+    );
+
     sensors.add(sensor);
     return sensor;
   }

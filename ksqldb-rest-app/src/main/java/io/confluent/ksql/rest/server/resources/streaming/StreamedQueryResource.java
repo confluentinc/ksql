@@ -224,8 +224,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
           );
           if (pullQueryExecutorMetrics.isPresent()) {
             //Record latency at microsecond scale
-            final double latency = (time.nanoseconds() - startTime) / 1000;
-            System.out.println("--------> Record latency " + latency);
+            final double latency = (time.nanoseconds() - startTime) / 1000f ;
             pullQueryExecutorMetrics.get().recordLatency(latency);
             pullQueryExecutorMetrics.get().recordRate(1);
           }

@@ -1,6 +1,6 @@
 def config = {
     owner = 'ksql'
-    slackChannel = '#ksql-alerts'
+    slackChannel = ''
     ksql_db_version = "0.8.0-SNAPSHOT"
     cp_version = "6.0.0-beta200310175819"
     packaging_build_number = "1"

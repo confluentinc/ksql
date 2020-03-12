@@ -114,6 +114,7 @@
                         <configuration>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options,-path,-unchecked,-serial,-rawtypes</arg>
+                                <arg>-parameters</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>

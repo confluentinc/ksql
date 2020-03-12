@@ -400,6 +400,7 @@
                         <configuration>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options,-path</arg>
+                                <arg>-parameters</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>

@@ -86,6 +86,22 @@ deployment.
 For more information, see
 [ksqlDB Configuration Parameter Reference](../operate-and-deploy/installation/server-config/config-reference.md).
 
+If your ksqlDB Server is deployed in a Docker container, you can enable 
+exactly-once by passing in the corresponding environment variable, for example:
+
+```bash
+docker run -d \
+  … 
+  -e KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE=exactly_once \
+  -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
+  … 
+  confluentinc/ksqldb-server:{{ site.release }}
+```
+
+For more information, see
+[Configure ksqlDB with Docker](../operate-and-deploy/installation/install-ksqldb-with-docker.md).
+
+
 !!! tip
 
     If you use the SET command at the start of a SQL script, the setting is

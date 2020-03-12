@@ -1,11 +1,11 @@
 def config = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
-    ksql_db_version = "0.7.1-SNAPSHOT"
-    cp_version = "5.5.0-beta200204173843"
+    ksql_db_version = "0.8.0-SNAPSHOT"
+    cp_version = "6.0.0-beta200310175819"
     packaging_build_number = "1"
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
-    dockerArtifacts = ['confluentinc/ksql-docker', 'confluentinc/ksql-docker']
+    dockerArtifacts = ['confluentinc/ksqldb-docker', 'confluentinc/ksqldb-docker']
     dockerRepos = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
     nodeLabel = 'docker-oraclejdk8-compose-swarm'
     dockerScan = true

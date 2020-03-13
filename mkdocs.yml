@@ -37,7 +37,6 @@ nav:
       - Queries Overview: concepts/queries/index.md
       - Push Queries: concepts/queries/push.md
       - Pull Queries: concepts/queries/pull.md
-    # - Processing Guarantees: concepts/ksqldb-processing-guarantees.md # future
     - Schemas: concepts/schemas.md
     - Connectors: concepts/connectors.md
     - Functions: concepts/functions.md
@@ -48,6 +47,7 @@ nav:
     - Architecture: concepts/ksqldb-architecture.md
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - Serialization: developer-guide/serialization.md
+    - Processing Guarantees: concepts/processing-guarantees.md
     - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
   - Developer Guide:
     - Develop ksqlDB Applications: developer-guide/index.md

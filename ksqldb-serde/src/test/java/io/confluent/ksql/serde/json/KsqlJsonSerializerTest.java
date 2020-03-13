@@ -328,9 +328,13 @@ public class KsqlJsonSerializerTest {
     assertThat(asJsonString(bytes), is("1.234567890123456789"));
   }
 
-  @Ignore // Until https://github.com/confluentinc/ksql/issues/4710 is done.
   @Test
   public void shouldSerializeDecimalsWithoutStrippingTrailingZeros() {
+    // Get rid of this once currentlyDoesStripTrailingZerosButShouldNot is removed
+    if (!useSchemas) {
+      return;
+    }
+
     // Given:
     givenSerializerForSchema(DecimalUtil.builder(3,1).build());
 
@@ -348,6 +352,10 @@ public class KsqlJsonSerializerTest {
    */
   @Test
   public void currentlyDoesStripTrailingZerosButShouldNot() {
+    if (useSchemas) {
+      return;
+    }
+
     // Given:
     givenSerializerForSchema(DecimalUtil.builder(3,1).build());
 

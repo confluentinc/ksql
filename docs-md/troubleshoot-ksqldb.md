@@ -324,7 +324,7 @@ your query. See
 for typical sources of processing failures.
 
 Check the ksqlDB Server logs
---------------------------
+----------------------------
 
 Check the ksqlDB Server logs for errors using the command:
 
@@ -350,4 +350,8 @@ docker logs <container-id>
 docker-compose logs ksql-server
 ```
 
-Page last revised on: {{ git_revision_date }}
+Suggested Reading
+-----------------
+
+- Blog post: [Troubleshooting KSQL – Part 1: Why Isn’t My KSQL Query Returning Data?](https://www.confluent.io/blog/troubleshooting-ksql-part-1)
+- Blog post: [Troubleshooting KSQL – Part 2: What’s Happening Under the Covers?](https://www.confluent.io/blog/troubleshooting-ksql-part-2)

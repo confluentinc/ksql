@@ -24,5 +24,4 @@ More in the **Concepts** section:
 - [Architecture](ksqldb-architecture.md)
 - [Kafka Streams and kslDB](ksqldb-and-kafka-streams.md)
 - [Time and Windows](time-and-windows-in-ksqldb-queries.md)
-
-Page last revised on: {{ git_revision_date }}
+- [Processing Guarantees](processing-guarantees.md)

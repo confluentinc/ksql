@@ -544,7 +544,7 @@ public class ConsoleTest {
           + "} ]" + NEWLINE));
     } else {
       assertThat(output, is("" + NEWLINE
-          + " Table Name | Kafka Topic    | Type | Schema       \n"
+          + " Table Name | Kafka Topic    | Type | Schema       " + NEWLINE
           + "---------------------------------------------------" + NEWLINE
           + " TestTopic  | TestKafkaTopic | AVRO | schemaString " + NEWLINE
           + "---------------------------------------------------" + NEWLINE));

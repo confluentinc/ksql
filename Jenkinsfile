@@ -247,7 +247,7 @@ def job = {
         }
     }
 
-    if (!config.isPrJob || true) {
+    if (!config.isPrJob) {
         stage('Publish Maven Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {

@@ -90,7 +90,7 @@ def job = {
     
     // Use revision param if provided, otherwise default to master
     config.revision = params.GIT_REVISION ?: 'refs/heads/master'
-    config.ccloud_revision = params.CCLOUD_GIT_REVISION ?: 'refs/heads/master'
+    config.ccloud_revision = params.CCLOUD_GIT_REVISION ?: 'refs/heads/vxia-update-common-version'
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"

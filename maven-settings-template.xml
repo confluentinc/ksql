@@ -15,7 +15,7 @@
           <url>PACKAGES_MAVEN_URL</url>
         </repository>
         <repository>
-          <id>confluent</id>
+          <id>ksqldb-staging</id>
           <name>Confluent</name>
           <url>STAGING_MAVEN_URL</url>
         </repository>

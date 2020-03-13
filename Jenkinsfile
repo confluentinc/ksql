@@ -402,6 +402,10 @@ def job = {
                                 sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.ccloudDockerUpstreamTag}"
                             }
 
+                            // Set the ksqlDB dependency to be the artifacts built earlier
+                            sh "set -x"
+                            sh "mvn --batch-mode versions:set-property -Dproperty=ksql.version -DnewVersion=${config.ksql_db_version}"
+
                             // Set the version of the parent project to use. TODO: not strictly necessary?
                             sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
 
@@ -423,7 +427,6 @@ def job = {
                             cmd += "-Ddocker.registry=${config.dockerRegistry} "
                             cmd += "-Ddocker.upstream-tag=${config.ccloudDockerUpstreamTag} "
                             cmd += "-Dskip.docker.build=false "
-                            cmd += "-Dksql.version=${config.ksql_db_version} "
 
                             withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
                                 sh cmd

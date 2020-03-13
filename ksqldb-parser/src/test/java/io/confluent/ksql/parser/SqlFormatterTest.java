@@ -733,6 +733,23 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatTumblingWindowWithRetention() {
+    // Given:
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW TUMBLING (SIZE 7 DAYS, RETENTION 14 DAYS) GROUP BY ITEMID;";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("CREATE STREAM S AS SELECT\n"
+        + "  ITEMID,\n"
+        + "  COUNT(*)\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WINDOW TUMBLING ( SIZE 7 DAYS , RETENTION 14 DAYS ) \n"
+        + "GROUP BY ITEMID\n"
+        + "EMIT CHANGES"));
+  }
+
+  @Test
   public void shouldFormatHoppingWindow() {
     // Given:
     final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW HOPPING (SIZE 20 SECONDS, ADVANCE BY 5 SECONDS) GROUP BY ITEMID;";
@@ -750,6 +767,23 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatHoppingWindowWithGracePeriod() {
+    // Given:
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW HOPPING (SIZE 20 SECONDS, ADVANCE BY 5 SECONDS, GRACE PERIOD 2 HOURS) GROUP BY ITEMID;";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("CREATE STREAM S AS SELECT\n"
+        + "  ITEMID,\n"
+        + "  COUNT(*)\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WINDOW HOPPING ( SIZE 20 SECONDS , ADVANCE BY 5 SECONDS , GRACE PERIOD 2 HOURS ) \n"
+        + "GROUP BY ITEMID\n"
+        + "EMIT CHANGES"));
+  }
+
+  @Test
   public void shouldFormatSessionWindow() {
     // Given:
     final Statement statement = parseSingle(
@@ -762,6 +796,23 @@ public class SqlFormatterTest {
         + "  COUNT(*)\n"
         + "FROM ORDERS ORDERS\n"
         + "WINDOW SESSION ( 15 MINUTES ) \n"
+        + "GROUP BY ITEMID\n"
+        + "EMIT CHANGES"));
+  }
+
+  @Test
+  public void shouldFormatSessionWindowWithRetentionAndGracePeriod() {
+    // Given:
+    final Statement statement = parseSingle(
+        "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW SESSION (15 MINUTES, RETENTION 2 DAYS, GRACE PERIOD 1 HOUR) GROUP BY ITEMID;");
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("CREATE STREAM S AS SELECT\n"
+        + "  ITEMID,\n"
+        + "  COUNT(*)\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WINDOW SESSION ( 15 MINUTES , RETENTION 2 DAYS , GRACE PERIOD 1 HOURS ) \n"
         + "GROUP BY ITEMID\n"
         + "EMIT CHANGES"));
   }

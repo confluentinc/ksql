@@ -115,6 +115,7 @@ public class CommandRunner implements Closeable {
       Thread.currentThread().interrupt();
     }
     commandStore.close();
+    log.info("Command runner closed");
   }
 
   /**
@@ -215,9 +216,14 @@ public class CommandRunner implements Closeable {
         }
       } catch (final WakeupException wue) {
         if (!closed) {
+          log.error("Command runner received unexpected wakeup", wue);
           throw wue;
         }
+      } catch (final Throwable t) {
+        log.error("Command runner received unexpected exception", t);
+        throw t;
       }
+      log.info("Command runner is exiting cleanly");
     }
   }
 }

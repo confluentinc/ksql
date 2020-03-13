@@ -11,7 +11,7 @@ def config = {
     dockerScan = true
     cron = '@daily'
     maven_packages_url = "https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com"
-    dockerPullDeps = ['confluentinc/cp-base-new', 'confluentinc/cc-base']
+    dockerPullDeps = ['confluentinc/cp-base-new']
 
     ccloudDockerRepo = 'confluentinc/cc-ksql'
     ccloudDockerUpstreamTag = 'v3.2.0'
@@ -24,7 +24,10 @@ def defaultParams = [
         description: 'Is this a release build. If so, GIT_REVISION must be specified, and only on-prem images will be built.',
         defaultValue: false),
     string(name: 'GIT_REVISION',
-        description: 'The git SHA to create the release build from.',
+        description: 'The git SHA to build ksqlDB from.',
+        defaultValue: ''),
+    string(name: 'CCLOUD_GIT_REVISION',
+        description: 'The cc-docker-ksql git SHA to build the CCloud ksqlDB image from.',
         defaultValue: ''),
     booleanParam(name: 'PROMOTE_TO_PRODUCTION',
         defaultValue: false,
@@ -82,11 +85,12 @@ def job = {
         config.docker_tag = config.ksql_db_version
     } else {
         config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-beta' + env.BUILD_NUMBER
-        config.ccloud_docker_tag = config.docker_tag
+        config.ccloud_docker_tag = 'v' + config.docker_tag
     }
     
     // Use revision param if provided, otherwise default to master
     config.revision = params.GIT_REVISION ?: 'refs/heads/master'
+    config.ccloud_revision = params.CCLOUD_GIT_REVISION ?: 'refs/heads/master'
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"
@@ -214,7 +218,7 @@ def job = {
                             sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
 
                             if (!config.isPrJob) {
-                                def git_tag = "v${config.ksql_db_version}-ksqldb"
+                                def git_tag = "v${config.docker_tag}-ksqldb"
                                 sh "git add ."
                                 sh "git commit -m \"build: Setting project version ${config.ksql_db_version} and parent version ${config. cp_version}.\""
                                 sh "git tag ${git_tag}"
@@ -350,7 +354,7 @@ def job = {
         checkout changelog: false,
             poll: false,
             scm: [$class: 'GitSCM',
-                branches: [[name: config.revision]],
+                branches: [[name: config.ccloud_revision]],
                 doGenerateSubmoduleConfigurations: false,
                 extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'ksqldb-ccloud-docker']],
                 submoduleCfg: [],
@@ -396,15 +400,11 @@ def job = {
                                 sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.ccloudDockerUpstreamTag}"
                             }
 
-                            // Set the project versions in the pom files
-                            sh "set -x"
-                            sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_version} -DgenerateBackupPoms=false"
-
-                            // Set the version of the parent project to use.
-                            sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.ksql_db_version}]\" -DgenerateBackupPoms=false"
+                            // Set the version of the parent project to use. TODO: not strictly necessary?
+                            sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
 
                             if (!config.isPrJob) {
-                                def git_tag = "v${config.ksql_db_version}-ksqldb"
+                                def git_tag = "v${config.docker_tag}-ksqldb"
                                 sh "git add ."
                                 sh "git commit -m \"build: Setting project version ${config.ksql_db_version} and parent version ${config.ksql_db_version}.\""
                                 sh "git tag ${git_tag}"
@@ -421,6 +421,7 @@ def job = {
                             cmd += "-Ddocker.registry=${config.dockerRegistry} "
                             cmd += "-Ddocker.upstream-tag=${config.ccloudDockerUpstreamTag} "
                             cmd += "-Dskip.docker.build=false "
+                            cmd += "-Dksql.version=${config.ksql_db_version} "
 
                             withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
                                 sh cmd

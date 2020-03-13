@@ -20,8 +20,8 @@ is enabled by default in your ksqlDB configuration, with
 Exactly-once semantics
 ----------------------
 
-Records are processed once. Even if a producer sends a duplicate record, it's
-written to the broker exactly once.
+Records are processed once. If a producer within a ksqlDB application
+sends a duplicate record, it's written to the broker exactly once.
 
 Exactly-once stream processing is the ability to execute a read-process-write
 operation exactly one time. All of the processing happens exactly once,
@@ -30,6 +30,12 @@ job that is written back to {{ site.ak }}.
 
 To enable exactly-once semantics, set `processing.guarantee="exactly_once"` in
 your ksqlDB configuration.
+
+!!! important
+
+    Use the `exactly_once` setting with care. To achieve a true exactly-once
+    system, end consumers and producers must also implement exactly-once
+    semantics.
 
 For more information, see
 [Processing Guarantees](https://docs.confluent.io/current/streams/concepts.html#processing-guarantees).
@@ -41,7 +47,7 @@ query-by-query basis by passing the `processing.guarantee` configuration setting
 to ksqlDB.
 
 How you pass the configuration setting to ksqlDB depends on how you
-run ksqlDB Server and on how you send requests to start queries.
+run ksqlDB Server and how you send requests to start queries.
 
 #### ksqlDB CLI
 

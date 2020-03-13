@@ -23,14 +23,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @UdfDescription(
-        name = "regexp_extract",
-        author = KsqlConstants.CONFLUENT_AUTHOR,
-        description = "extract the first subtring matched by a regex pattern")
+    name = "regexp_extract",
+    author = KsqlConstants.CONFLUENT_AUTHOR,
+    description = "extract the first subtring matched by a regex pattern")
 public class RegexpExtract {
   @Udf(description = "Returns first substring of the input that matches the given regex pattern")
   public String regexpExtract(
-          @UdfParameter(description = "The regex pattern") final String pattern,
-          @UdfParameter(description = "The input string to apply regex on") final String input
+      @UdfParameter(description = "The regex pattern") final String pattern,
+      @UdfParameter(description = "The input string to apply regex on") final String input
   ) {
     return regexpExtract(pattern, input, 0);
   }
@@ -38,9 +38,9 @@ public class RegexpExtract {
   @Udf(description = "Returns the first substring of the "
           + "input that matches the regex pattern and the capturing group number specified")
   public String regexpExtract(
-          @UdfParameter(description = "The regex pattern") final String pattern,
-          @UdfParameter(description = "The input string to apply regex on") final String input,
-          @UdfParameter(description = "The capturing group number") final Integer group
+      @UdfParameter(description = "The regex pattern") final String pattern,
+      @UdfParameter(description = "The input string to apply regex on") final String input,
+      @UdfParameter(description = "The capturing group number") final Integer group
   ) {
 
     if (pattern == null || input == null || group == null) {

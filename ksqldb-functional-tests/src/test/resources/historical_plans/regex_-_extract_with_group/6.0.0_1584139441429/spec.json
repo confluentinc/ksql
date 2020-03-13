@@ -1,0 +1,82 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584139441429,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<INPUT_STRING VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<EXTRACTED VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "input_string" : "steven zhang"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "input_string" : "andy coates"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "input_string" : "victoria xia"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "input_string" : "apurva mehta"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "input_string" : "agavra"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "input_string" : null
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "EXTRACTED" : "zhang"
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "EXTRACTED" : "coates"
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "EXTRACTED" : "xia"
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "EXTRACTED" : "mehta"
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "EXTRACTED" : null
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "EXTRACTED" : null
+    }
+  } ]
+}

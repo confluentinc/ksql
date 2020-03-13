@@ -160,6 +160,7 @@ def job = {
 
     // Build on-prem ksqlDB image
 
+    if (false) {
     stage('Checkout KSQL') {
         checkout changelog: false,
             poll: false,
@@ -341,6 +342,7 @@ def job = {
                 }
             }
         }
+    }
     }
 
     // Build CCloud ksqlDB image

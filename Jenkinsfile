@@ -273,7 +273,7 @@ def job = {
     }
 
     if (!config.isPrJob) {
-        stage('Rename Maven Docker Images') {
+        stage('Rename ksqlDB Docker Images') {
             withDockerServer([uri: dockerHost()]) {
                 config.dockerRepos.eachWithIndex { dockerRepo, index ->
                     dockerArtifact = config.dockerArtifacts[index]

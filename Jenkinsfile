@@ -406,13 +406,10 @@ def job = {
                             sh "set -x"
                             sh "mvn --batch-mode versions:set-property -Dproperty=ksql.version -DnewVersion=${config.ksql_db_version}"
 
-                            // Set the version of the parent project to use. TODO: not strictly necessary?
-                            sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
-
                             if (!config.isPrJob) {
                                 def git_tag = "v${config.docker_tag}-ksqldb"
                                 sh "git add ."
-                                sh "git commit -m \"build: Setting project version ${config.ksql_db_version} and parent version ${config.ksql_db_version}.\""
+                                sh "git commit -m \"build: Setting ksqlDB dependency version ${config.ksql_db_version}.\""
                                 sh "git tag ${git_tag}"
                                 sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
                                     sh "git push origin ${git_tag}"

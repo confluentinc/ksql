@@ -134,7 +134,18 @@ class ProxyHandler {
     Pipe.pipe(clientResponse, serverResponse, () -> {
       final MultiMap trailers = clientResponse.trailers();
       serverResponse.trailers().setAll(trailers);
-    });
+    }, () -> checkFirstWrite(clientResponse, serverResponse));
+  }
+
+  // Vert.x requires that content-length is set if not chunked but Jetty sometimes sends
+  // response with no content-length and not chunked, so we workaround this by adding a
+  // tranfer encoding response header with chunked in this case
+  private static void checkFirstWrite(final HttpClientResponse clientResponse,
+      final HttpServerResponse serverResponse) {
+    if (clientResponse.getHeader("content-length") == null
+        && clientResponse.getHeader("transfer-encoding") == null) {
+      serverResponse.putHeader("transfer-encoding", "chunked");
+    }
   }
 
   private static void exceptionHandler(final Throwable t) {
@@ -147,21 +158,24 @@ class ProxyHandler {
     private final WriteStream<Buffer> to;
     private boolean drainHandlerSet;
     private final Runnable beforeEndHook;
+    private Runnable beforeFirstWriteHook;
+
 
     private static void pipe(final ReadStream<Buffer> from, final WriteStream<Buffer> to) {
-      new Pipe(from, to, null);
+      new Pipe(from, to, null, null);
     }
 
     private static void pipe(final ReadStream<Buffer> from, final WriteStream<Buffer> to,
-        final Runnable beforeEndHook) {
-      new Pipe(from, to, beforeEndHook);
+        final Runnable beforeEndHook, final Runnable beforeWriteHook) {
+      new Pipe(from, to, beforeEndHook, beforeWriteHook);
     }
 
     private Pipe(final ReadStream<Buffer> from, final WriteStream<Buffer> to,
-        final Runnable beforeEndHook) {
+        final Runnable beforeEndHook, final Runnable beforeFirstWriteHook) {
       this.from = from;
       this.to = to;
       this.beforeEndHook = beforeEndHook;
+      this.beforeFirstWriteHook = beforeFirstWriteHook;
       from.endHandler(this::requestEnded);
       from.handler(this::handler);
       from.exceptionHandler(this::exceptionHandler);
@@ -169,6 +183,10 @@ class ProxyHandler {
     }
 
     private void handler(final Buffer buffer) {
+      if (beforeFirstWriteHook != null) {
+        beforeFirstWriteHook.run();
+        beforeFirstWriteHook = null;
+      }
       to.write(buffer);
       if (!drainHandlerSet && to.writeQueueFull()) {
         drainHandlerSet = true;

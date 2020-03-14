@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -70,7 +71,8 @@ public class ParserModelTest {
       .<Class<?>, Object>builder()
       .put(ColumnName.class, ColumnName.of("bob"))
       .put(Expression.class, DEFAULT_TYPE)
-      .put(KsqlWindowExpression.class, new TumblingWindowExpression(1, TimeUnit.SECONDS))
+      .put(KsqlWindowExpression.class, new TumblingWindowExpression(
+          new WindowTimeClause(1, TimeUnit.SECONDS)))
       .put(Relation.class, DEFAULT_RELATION)
       .put(JoinCriteria.class, new JoinOn(DEFAULT_TYPE))
       .put(Select.class, DEFAULT_SELECT)

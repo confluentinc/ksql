@@ -33,11 +33,11 @@ import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.execution.windows.WindowVisitor;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
@@ -257,19 +257,22 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<Struct>, GenericRow>  visitHoppingWindowExpression(
         final HoppingWindowExpression window,
         final Void ctx) {
-      final TimeWindows windows = TimeWindows
-          .of(Duration.ofMillis(window.getSizeUnit().toMillis(window.getSize())))
-          .advanceBy(
-              Duration.ofMillis(window.getAdvanceByUnit().toMillis(window.getAdvanceBy()))
-          );
+      TimeWindows windows = TimeWindows
+          .of(window.getSize().toDuration())
+          .advanceBy(window.getAdvanceBy().toDuration());
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
+          .map(windows::grace)
+          .orElse(windows);
 
       return groupedStream
           .windowedBy(windows)
           .aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
-              materializedFactory.create(
-                  keySerde, valueSerde, StreamsUtil.buildOpName(queryContext))
+              materializedFactory.create(keySerde,
+                  valueSerde,
+                  StreamsUtil.buildOpName(queryContext),
+                  window.getRetention().map(WindowTimeClause::toDuration))
           );
     }
 
@@ -277,17 +280,21 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<Struct>, GenericRow>  visitSessionWindowExpression(
         final SessionWindowExpression window,
         final Void ctx) {
-      final SessionWindows windows = SessionWindows.with(
-          Duration.ofMillis(window.getSizeUnit().toMillis(window.getGap()))
-      );
+      SessionWindows windows = SessionWindows.with(window.getGap().toDuration());
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
+          .map(windows::grace)
+          .orElse(windows);
+
       return groupedStream
           .windowedBy(windows)
           .aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
               aggregateParams.getAggregator().getMerger(),
-              materializedFactory.create(
-                  keySerde, valueSerde, StreamsUtil.buildOpName(queryContext))
+              materializedFactory.create(keySerde,
+                  valueSerde,
+                  StreamsUtil.buildOpName(queryContext),
+                  window.getRetention().map(WindowTimeClause::toDuration))
           );
     }
 
@@ -295,15 +302,20 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<Struct>, GenericRow> visitTumblingWindowExpression(
         final TumblingWindowExpression window,
         final Void ctx) {
-      final TimeWindows windows = TimeWindows.of(
-          Duration.ofMillis(window.getSizeUnit().toMillis(window.getSize())));
+      TimeWindows windows = TimeWindows.of(window.getSize().toDuration());
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
+          .map(windows::grace)
+          .orElse(windows);
+
       return groupedStream
           .windowedBy(windows)
           .aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
-              materializedFactory.create(
-                  keySerde, valueSerde, StreamsUtil.buildOpName(queryContext))
+              materializedFactory.create(keySerde,
+                  valueSerde,
+                  StreamsUtil.buildOpName(queryContext),
+                  window.getRetention().map(WindowTimeClause::toDuration))
           );
     }
   }

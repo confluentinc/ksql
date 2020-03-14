@@ -23,33 +23,27 @@ import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 @Immutable
 public class SessionWindowExpression extends KsqlWindowExpression {
 
-  private final long gap;
-  private final TimeUnit sizeUnit;
+  private final WindowTimeClause gap;
 
-  public SessionWindowExpression(final long gap, final TimeUnit sizeUnit) {
-    this(Optional.empty(), gap, sizeUnit);
+  public SessionWindowExpression(final WindowTimeClause gap) {
+    this(Optional.empty(), gap, Optional.empty(), Optional.empty());
   }
 
   public SessionWindowExpression(
       final Optional<NodeLocation> location,
-      final long gap,
-      final TimeUnit sizeUnit
+      final WindowTimeClause gap,
+      final Optional<WindowTimeClause> retention,
+      final Optional<WindowTimeClause> gracePeriod
   ) {
-    super(location);
-    this.gap = gap;
-    this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
+    super(location, retention, gracePeriod);
+    this.gap = requireNonNull(gap, "gap");
   }
 
-  public TimeUnit getSizeUnit() {
-    return sizeUnit;
-  }
-
-  public long getGap() {
+  public WindowTimeClause getGap() {
     return gap;
   }
 
@@ -65,12 +59,15 @@ public class SessionWindowExpression extends KsqlWindowExpression {
 
   @Override
   public String toString() {
-    return " SESSION ( " + gap + " " + sizeUnit + " ) ";
+    return " SESSION ( " + gap
+        + retention.map(w -> " , RETENTION " + w).orElse("")
+        + gracePeriod.map(g -> " , GRACE PERIOD " + g).orElse("")
+        + " ) ";
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(gap, sizeUnit);
+    return Objects.hash(gap, retention, gracePeriod);
   }
 
   @Override
@@ -82,6 +79,8 @@ public class SessionWindowExpression extends KsqlWindowExpression {
       return false;
     }
     final SessionWindowExpression sessionWindowExpression = (SessionWindowExpression) o;
-    return sessionWindowExpression.gap == gap && sessionWindowExpression.sizeUnit == sizeUnit;
+    return Objects.equals(gap, sessionWindowExpression.gap)
+        && Objects.equals(gracePeriod, sessionWindowExpression.gracePeriod)
+        && Objects.equals(retention, sessionWindowExpression.retention);
   }
 }

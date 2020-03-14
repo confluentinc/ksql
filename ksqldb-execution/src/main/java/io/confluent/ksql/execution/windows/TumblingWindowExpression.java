@@ -21,44 +21,37 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 @Immutable
 public class TumblingWindowExpression extends KsqlWindowExpression {
 
-  private final long size;
-  private final TimeUnit sizeUnit;
+  private final WindowTimeClause size;
 
-  public TumblingWindowExpression(final long size, final TimeUnit sizeUnit) {
-    this(Optional.empty(), size, sizeUnit);
+  public TumblingWindowExpression(final WindowTimeClause size) {
+    this(Optional.empty(), size, Optional.empty(), Optional.empty());
   }
 
   public TumblingWindowExpression(
       final Optional<NodeLocation> location,
-      final long size,
-      final TimeUnit sizeUnit
+      final WindowTimeClause size,
+      final Optional<WindowTimeClause> retention,
+      final Optional<WindowTimeClause> gracePeriod
   ) {
-    super(location);
-    this.size = size;
-    this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
+    super(location, retention, gracePeriod);
+    this.size = requireNonNull(size, "size");
   }
 
   @Override
   public WindowInfo getWindowInfo() {
     return WindowInfo.of(
         WindowType.TUMBLING,
-        Optional.of(Duration.ofNanos(sizeUnit.toNanos(size)))
+        Optional.of(size.toDuration())
     );
   }
 
-  public TimeUnit getSizeUnit() {
-    return sizeUnit;
-  }
-
-  public long getSize() {
+  public WindowTimeClause getSize() {
     return size;
   }
 
@@ -69,12 +62,15 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
 
   @Override
   public String toString() {
-    return " TUMBLING ( SIZE " + size + " " + sizeUnit + " ) ";
+    return " TUMBLING ( SIZE " + size
+        + retention.map(w -> " , RETENTION " + w).orElse("")
+        + gracePeriod.map(g -> " , GRACE PERIOD " + g).orElse("")
+        + " ) ";
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(size, sizeUnit);
+    return Objects.hash(size, retention, gracePeriod);
   }
 
   @Override
@@ -86,6 +82,8 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
       return false;
     }
     final TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
-    return tumblingWindowExpression.size == size && tumblingWindowExpression.sizeUnit == sizeUnit;
+    return Objects.equals(size, tumblingWindowExpression.size)
+        && Objects.equals(gracePeriod, tumblingWindowExpression.gracePeriod)
+        && Objects.equals(retention, tumblingWindowExpression.retention);
   }
 }

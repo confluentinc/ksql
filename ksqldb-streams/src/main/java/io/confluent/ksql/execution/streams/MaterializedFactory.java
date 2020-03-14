@@ -16,28 +16,40 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
+import java.time.Duration;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
 
 public interface MaterializedFactory {
   <K, S extends StateStore> Materialized<K, GenericRow, S> create(
-      Serde<K> keySerde, Serde<GenericRow> valSerde, String name);
+      Serde<K> keySerde,
+      Serde<GenericRow> valSerde,
+      String name,
+      Optional<Duration> retention
+  );
+
+  <K, S extends StateStore> Materialized<K, GenericRow, S> create(
+      Serde<K> keySerde,
+      Serde<GenericRow> valSerde,
+      String name
+  );
 
   static MaterializedFactory create() {
     return create(
         new Materializer() {
           @Override
-          public <K, V, S extends StateStore> Materialized<K, V, S> materializedWith(
-              final Serde<K> keySerde,
-              final Serde<V> valueSerde) {
-            return Materialized.with(keySerde, valueSerde);
-          }
-
-          @Override
+          @SuppressWarnings("unchecked")
           public <K, V, S extends StateStore> Materialized<K, V, S> materializedAs(
-              final String storeName) {
-            return Materialized.as(storeName);
+              final String storeName,
+              final Optional<Duration> retention) {
+            if (retention.isPresent()) {
+              return (Materialized<K, V, S>) Materialized.as(storeName)
+                  .withRetention(retention.get());
+            } else {
+              return Materialized.as(storeName);
+            }
           }
         }
     );
@@ -49,19 +61,26 @@ public interface MaterializedFactory {
       public <K, S extends StateStore> Materialized<K, GenericRow, S> create(
           final Serde<K> keySerde,
           final Serde<GenericRow> valSerde,
-          final String name) {
-        return materializer.<K, GenericRow, S>materializedAs(name)
+          final String name,
+          final Optional<Duration> retention) {
+        return materializer.<K, GenericRow, S>materializedAs(name, retention)
             .withKeySerde(keySerde)
             .withValueSerde(valSerde);
+      }
+
+      @Override
+      public <K, S extends StateStore> Materialized<K, GenericRow, S> create(
+          final Serde<K> keySerde,
+          final Serde<GenericRow> valSerde,
+          final String name) {
+        return create(keySerde, valSerde, name, Optional.empty());
       }
     };
   }
 
   interface Materializer {
-    <K, V, S extends StateStore> Materialized<K, V, S> materializedWith(
-        Serde<K> keySerde,
-        Serde<V> valueSerde);
-
-    <K, V, S extends StateStore> Materialized<K, V, S> materializedAs(String storeName);
+    <K, V, S extends StateStore> Materialized<K, V, S> materializedAs(
+        String storeName,
+        Optional<Duration> retention);
   }
 }

@@ -22,6 +22,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
+import java.time.Duration;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
@@ -41,13 +43,15 @@ public class MaterializedFactoryTest {
   private Serde<GenericRow> rowSerde;
   @Mock
   private MaterializedFactory.Materializer materializer;
+  @Mock
+  private Optional<Duration> retention;
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldCreateJoinedCorrectlyWhenOptimizationsEnabled() {
     // Given:
     final Materialized asName = mock(Materialized.class);
-    when(materializer.materializedAs(OP_NAME)).thenReturn(asName);
+    when(materializer.materializedAs(OP_NAME, Optional.empty())).thenReturn(asName);
     final Materialized withKeySerde = mock(Materialized.class);
     when(asName.withKeySerde(keySerde)).thenReturn(withKeySerde);
     final Materialized withRowSerde = mock(Materialized.class);
@@ -60,8 +64,21 @@ public class MaterializedFactoryTest {
 
     // Then:
     assertThat(returned, is(withRowSerde));
-    verify(materializer).materializedAs(OP_NAME);
+    verify(materializer).materializedAs(OP_NAME, Optional.empty());
     verify(asName).withKeySerde(keySerde);
     verify(withKeySerde).withValueSerde(rowSerde);
+  }
+
+  @Test
+  public void shouldSetupRetentionWhenNonEmpty() {
+    // Given:
+    when(retention.isPresent()).thenReturn(true);
+    when(retention.get()).thenReturn(Duration.ofSeconds(10));
+
+    // When:
+    MaterializedFactory.create().create(keySerde, rowSerde, OP_NAME, retention);
+
+    // Then:
+    verify(retention).get();
   }
 }

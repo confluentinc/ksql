@@ -24,8 +24,10 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.Operator;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
 import org.junit.Test;
@@ -100,7 +102,30 @@ public class ExpressionParserTest {
     // Then:
     assertThat(
         parsed,
-        equalTo(new TumblingWindowExpression(parsed.getLocation(), 1, TimeUnit.DAYS))
+        equalTo(new TumblingWindowExpression(
+            parsed.getLocation(),
+            new WindowTimeClause(1, TimeUnit.DAYS),
+            Optional.empty(),
+            Optional.empty()))
+    );
+  }
+
+  @Test
+  public void shouldParseWindowExpressionWithRetention() {
+    // When:
+    final KsqlWindowExpression parsed = ExpressionParser.parseWindowExpression(
+        "TUMBLING (SIZE 1 DAYS, RETENTION 2 DAYS, GRACE PERIOD 2 DAYS)"
+    );
+
+    // Then:
+    assertThat(
+        parsed,
+        equalTo(new TumblingWindowExpression(
+            parsed.getLocation(),
+            new WindowTimeClause(1, TimeUnit.DAYS),
+            Optional.of(new WindowTimeClause(2, TimeUnit.DAYS)),
+            Optional.of(new WindowTimeClause(2, TimeUnit.DAYS)))
+        )
     );
   }
 }

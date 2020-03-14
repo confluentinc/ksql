@@ -24,8 +24,23 @@ import java.util.Optional;
 @Immutable
 public abstract class KsqlWindowExpression extends Node {
 
-  KsqlWindowExpression(final Optional<NodeLocation> nodeLocation) {
+  protected final Optional<WindowTimeClause> retention;
+  protected final Optional<WindowTimeClause> gracePeriod;
+
+  KsqlWindowExpression(final Optional<NodeLocation> nodeLocation,
+                       final Optional<WindowTimeClause> retention,
+                       final Optional<WindowTimeClause> gracePeriod) {
     super(nodeLocation);
+    this.retention = retention;
+    this.gracePeriod = gracePeriod;
+  }
+
+  public Optional<WindowTimeClause> getRetention() {
+    return retention;
+  }
+
+  public Optional<WindowTimeClause> getGracePeriod() {
+    return gracePeriod;
   }
 
   public abstract WindowInfo getWindowInfo();

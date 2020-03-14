@@ -21,63 +21,51 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 @Immutable
 public class HoppingWindowExpression extends KsqlWindowExpression {
 
-  private final long size;
-  private final TimeUnit sizeUnit;
-  private final long advanceBy;
-  private final TimeUnit advanceByUnit;
+  private final WindowTimeClause size;
+  private final WindowTimeClause advanceBy;
 
   public HoppingWindowExpression(
-      final long size,
-      final TimeUnit sizeUnit,
-      final long advanceBy,
-      final TimeUnit advanceByUnit
+      final WindowTimeClause size,
+      final WindowTimeClause advanceBy
   ) {
-    this(Optional.empty(), size, sizeUnit, advanceBy, advanceByUnit);
+    this(Optional.empty(),
+         size,
+         advanceBy,
+         Optional.empty(),
+         Optional.empty());
   }
 
   public HoppingWindowExpression(
       final Optional<NodeLocation> location,
-      final long size,
-      final TimeUnit sizeUnit,
-      final long advanceBy,
-      final TimeUnit advanceByUnit
+      final WindowTimeClause size,
+      final WindowTimeClause advanceBy,
+      final Optional<WindowTimeClause> retention,
+      final Optional<WindowTimeClause> gracePeriod
   ) {
-    super(location);
-    this.size = size;
-    this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
-    this.advanceBy = advanceBy;
-    this.advanceByUnit = requireNonNull(advanceByUnit, "advanceByUnit");
+    super(location, retention, gracePeriod);
+    this.size = requireNonNull(size, "size");
+    this.advanceBy = requireNonNull(advanceBy, "advanceBy");
   }
 
   @Override
   public WindowInfo getWindowInfo() {
     return WindowInfo.of(
         WindowType.HOPPING,
-        Optional.of(Duration.ofNanos(sizeUnit.toNanos(size)))
+        Optional.of(size.toDuration())
     );
   }
 
-  public TimeUnit getSizeUnit() {
-    return sizeUnit;
-  }
-
-  public long getSize() {
+  public WindowTimeClause getSize() {
     return size;
   }
 
-  public TimeUnit getAdvanceByUnit() {
-    return advanceByUnit;
-  }
-
-  public long getAdvanceBy() {
+  public WindowTimeClause getAdvanceBy() {
     return advanceBy;
   }
 
@@ -88,13 +76,16 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
 
   @Override
   public String toString() {
-    return " HOPPING ( SIZE " + size + " " + sizeUnit + " , ADVANCE BY "
-        + advanceBy + " " + "" + advanceByUnit + " ) ";
+    return " HOPPING ( SIZE " + size + " , "
+        + "ADVANCE BY " + advanceBy
+        + retention.map(w -> " , RETENTION " + w).orElse("")
+        + gracePeriod.map(g -> " , GRACE PERIOD " + g).orElse("")
+        + " ) ";
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(size, sizeUnit, advanceBy, advanceByUnit);
+    return Objects.hash(size, advanceBy, retention, gracePeriod);
   }
 
   @Override
@@ -106,8 +97,9 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
       return false;
     }
     final HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) o;
-    return hoppingWindowExpression.size == size && hoppingWindowExpression.sizeUnit == sizeUnit
-        && hoppingWindowExpression.advanceBy == advanceBy && hoppingWindowExpression
-        .advanceByUnit == advanceByUnit;
+    return Objects.equals(size, hoppingWindowExpression.size)
+        && Objects.equals(advanceBy, hoppingWindowExpression.advanceBy)
+        && Objects.equals(gracePeriod, hoppingWindowExpression.gracePeriod)
+        && Objects.equals(retention, hoppingWindowExpression.retention);
   }
 }

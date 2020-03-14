@@ -58,6 +58,7 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
@@ -69,16 +70,20 @@ import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.ExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
+import io.confluent.ksql.parser.SqlBaseParser.GracePeriodClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.IdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
+import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.RetentionClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
+import io.confluent.ksql.parser.SqlBaseParser.WindowUnitContext;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -450,23 +455,41 @@ public class AstBuilder {
       throw new KsqlException("Window description is not correct.");
     }
 
+    private static WindowTimeClause getTimeClause(
+        final NumberContext number,
+        final WindowUnitContext unitCtx) {
+      return new WindowTimeClause(
+          Long.parseLong(number.getText()),
+          WindowExpression.getWindowUnit(unitCtx.getText().toUpperCase())
+      );
+    }
+
+    private static Optional<WindowTimeClause> gracePeriodClause(
+        final GracePeriodClauseContext graceCtx) {
+      return graceCtx != null
+          ? Optional.of(getTimeClause(graceCtx.number(), graceCtx.windowUnit()))
+          : Optional.empty();
+    }
+
+    private static Optional<WindowTimeClause> retentionClause(
+        final RetentionClauseContext retentionCtx) {
+      return retentionCtx != null
+          ? Optional.of(getTimeClause(retentionCtx.number(), retentionCtx.windowUnit()))
+          : Optional.empty();
+    }
+
     @Override
     public Node visitHoppingWindowExpression(
         final SqlBaseParser.HoppingWindowExpressionContext ctx) {
 
       final List<SqlBaseParser.NumberContext> numberList = ctx.number();
       final List<SqlBaseParser.WindowUnitContext> windowUnits = ctx.windowUnit();
-      final String sizeStr = numberList.get(0).getText();
-      final String advanceByStr = numberList.get(1).getText();
-
-      final String sizeUnit = windowUnits.get(0).getText();
-      final String advanceByUnit = windowUnits.get(1).getText();
       return new HoppingWindowExpression(
           getLocation(ctx),
-          Long.parseLong(sizeStr),
-          WindowExpression.getWindowUnit(sizeUnit.toUpperCase()),
-          Long.parseLong(advanceByStr),
-          WindowExpression.getWindowUnit(advanceByUnit.toUpperCase())
+          getTimeClause(numberList.get(0), windowUnits.get(0)),
+          getTimeClause(numberList.get(1), windowUnits.get(1)),
+          retentionClause(ctx.retentionClause()),
+          gracePeriodClause(ctx.gracePeriodClause())
       );
     }
 
@@ -474,12 +497,11 @@ public class AstBuilder {
     public Node visitTumblingWindowExpression(
         final SqlBaseParser.TumblingWindowExpressionContext ctx
     ) {
-      final String sizeStr = ctx.number().getText();
-      final String sizeUnit = ctx.windowUnit().getText();
       return new TumblingWindowExpression(
           getLocation(ctx),
-          Long.parseLong(sizeStr),
-          WindowExpression.getWindowUnit(sizeUnit.toUpperCase())
+          getTimeClause(ctx.number(), ctx.windowUnit()),
+          retentionClause(ctx.retentionClause()),
+          gracePeriodClause(ctx.gracePeriodClause())
       );
     }
 
@@ -487,12 +509,11 @@ public class AstBuilder {
     public Node visitSessionWindowExpression(
         final SqlBaseParser.SessionWindowExpressionContext ctx
     ) {
-      final String sizeStr = ctx.number().getText();
-      final String sizeUnit = ctx.windowUnit().getText();
       return new SessionWindowExpression(
           getLocation(ctx),
-          Long.parseLong(sizeStr),
-          WindowExpression.getWindowUnit(sizeUnit.toUpperCase())
+          getTimeClause(ctx.number(), ctx.windowUnit()),
+          retentionClause(ctx.retentionClause()),
+          gracePeriodClause(ctx.gracePeriodClause())
       );
     }
 

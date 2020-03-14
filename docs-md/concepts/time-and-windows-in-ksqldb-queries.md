@@ -365,4 +365,42 @@ SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse
 For more information on joins, see
 [Join Event Streams with ksqlDB](../developer-guide/joins/join-streams-and-tables.md).
 
+### Late Arriving Events
+
+Frequently, events that belong to a window can arrive late, for example, over slow networks, 
+and a grace period may be required to ensure the events are accepted into the window. 
+ksqlDB enables configuring this behavior, for each of the window types. 
+
+For example, to allow events to be accepted for up to two hours after the window ends, 
+you might run a query like:
+
+```sql
+SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
+  GROUP BY order_zipcode
+  EMIT CHANGES;
+```
+
+Events that arrive later than the grace period are dropped and not included in the aggregate result.
+
+### Window Retention 
+
+For each window type, you can configure the number of windows in the past that ksqlDB retains. This 
+capability is very useful for interactive applications that use ksqlDB as their primary 
+serving data store.
+
+For example, to retain the computed windowed aggregation results for a week, 
+you might run the following query:
+
+```sql
+SELECT regionid, COUNT(*) FROM pageviews
+  WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS, RETENTION 7 DAYS, GRACE PERIOD 30 MINUTES)
+  WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
+  GROUP BY regionid
+  EMIT CHANGES;
+```
+
+Note that the specified retention period should be larger than the sum of window size and any grace
+period.
+
 Page last revised on: {{ git_revision_date }}

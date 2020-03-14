@@ -16,9 +16,12 @@
 package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
@@ -42,8 +45,14 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final Sensor requestRateSensor;
   private final Sensor errorRateSensor;
   private final Metrics metrics;
+  private final Map<String, String> customMetricsTags;
+  private final String ksqlServiceId;
 
-  public PullQueryExecutorMetrics() {
+  public PullQueryExecutorMetrics(
+      final String ksqlServiceId,
+      final Map<String, String> customMetricsTags
+  ) {
+
     this.metrics = MetricCollectors.getMetrics();
     this.sensors = new ArrayList<>();
     this.localRequestsSensor = configureLocalRequestsSensor();
@@ -51,6 +60,9 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.latencySensor = configureRequestSensor();
     this.requestRateSensor = configureRateSensor();
     this.errorRateSensor = configureErrorRateSensor();
+    this.customMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
+    this.ksqlServiceId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+        + ksqlServiceId;
   }
 
   @Override
@@ -84,8 +96,9 @@ public class PullQueryExecutorMetrics implements Closeable {
     sensor.add(
         metrics.metricName(
             PULL_REQUESTS + "-local-count",
-            PULL_QUERY_METRIC_GROUP,
-            "Count of local pull query requests"
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Count of local pull query requests",
+            customMetricsTags
         ),
         new WindowedCount()
     );
@@ -99,8 +112,9 @@ public class PullQueryExecutorMetrics implements Closeable {
     sensor.add(
         metrics.metricName(
             PULL_REQUESTS + "-remote-count",
-            PULL_QUERY_METRIC_GROUP,
-            "Count of remote pull query requests"
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Count of remote pull query requests",
+            customMetricsTags
         ),
         new WindowedCount()
     );
@@ -114,8 +128,9 @@ public class PullQueryExecutorMetrics implements Closeable {
     sensor.add(
         metrics.metricName(
             PULL_REQUESTS + "-rate",
-            PULL_QUERY_METRIC_GROUP,
-            "Rate of pull query requests"
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Rate of pull query requests",
+            customMetricsTags
         ),
         new Rate()
     );
@@ -129,16 +144,18 @@ public class PullQueryExecutorMetrics implements Closeable {
     sensor.add(
         metrics.metricName(
             PULL_REQUESTS + "-error-rate",
-            PULL_QUERY_METRIC_GROUP,
-            "Rate of erroneous pull query requests"
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Rate of erroneous pull query requests",
+            customMetricsTags
         ),
         new Rate()
     );
     sensor.add(
         metrics.metricName(
             PULL_REQUESTS + "-error-total",
-            PULL_QUERY_METRIC_GROUP,
-            "Total number of erroneous pull query requests"
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Total number of erroneous pull query requests",
+            customMetricsTags
         ),
         new WindowedCount()
     );
@@ -153,32 +170,36 @@ public class PullQueryExecutorMetrics implements Closeable {
     sensor.add(
         metrics.metricName(
             PULL_REQUESTS + "-latency-avg",
-            PULL_QUERY_METRIC_GROUP,
-            "Average time for a pull query request"
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Average time for a pull query request",
+            customMetricsTags
         ),
         new Avg()
     );
     sensor.add(
         metrics.metricName(
             PULL_REQUESTS + "-latency-max",
-            PULL_QUERY_METRIC_GROUP,
-            "Max time for a pull query request"
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Max time for a pull query request",
+            customMetricsTags
         ),
         new Max()
     );
     sensor.add(
         metrics.metricName(
             PULL_REQUESTS + "-latency-min",
-            PULL_QUERY_METRIC_GROUP,
-            "Min time for a pull query request"
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Min time for a pull query request",
+            customMetricsTags
         ),
         new Min()
     );
     sensor.add(
         metrics.metricName(
             PULL_REQUESTS + "-total",
-            PULL_QUERY_METRIC_GROUP,
-            "Total number of pull query request"
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Total number of pull query request",
+            customMetricsTags
         ),
         new WindowedCount()
     );
@@ -189,24 +210,28 @@ public class PullQueryExecutorMetrics implements Closeable {
         BucketSizing.CONSTANT,
         new Percentile(metrics.metricName(
             PULL_REQUESTS + "-distribution-50",
-            PULL_QUERY_METRIC_GROUP,
-            "Latency distribution"),
-                       50.0),
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Latency distribution",
+            customMetricsTags
+        ), 50.0),
         new Percentile(metrics.metricName(
             PULL_REQUESTS + "-distribution-75",
-            PULL_QUERY_METRIC_GROUP,
-            "Latency distribution"),
-                       75.0),
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Latency distribution",
+            customMetricsTags
+        ), 75.0),
         new Percentile(metrics.metricName(
             PULL_REQUESTS + "-distribution-90",
-            PULL_QUERY_METRIC_GROUP,
-            "Latency distribution"),
-                       90.0),
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Latency distribution",
+            customMetricsTags
+        ), 90.0),
         new Percentile(metrics.metricName(
             PULL_REQUESTS + "-distribution-99",
-            PULL_QUERY_METRIC_GROUP,
-            "Latency distribution"),
-                       99.0)
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Latency distribution",
+            customMetricsTags
+        ), 99.0)
         ));
 
     sensors.add(sensor);

@@ -21,7 +21,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -155,7 +154,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.pullQueryExecutorMetrics = collectMetrics
         ? Optional.of(new PullQueryExecutorMetrics(
             ksqlEngine.getServiceId(),
-            ServiceInfo.create(ksqlConfig, "").customMetricsTags()))
+            ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
         : empty();
   }
 

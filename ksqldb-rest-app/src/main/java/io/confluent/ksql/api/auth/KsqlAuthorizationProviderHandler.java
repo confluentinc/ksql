@@ -26,7 +26,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
 import java.util.Set;
 
-public class AuthorizationPlugin implements Handler<RoutingContext> {
+public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext> {
 
   private static final Set<String> PATHS_WITHOUT_AUTHORIZATION = ImmutableSet
       .of("/v1/metadata", "/healthcheck");
@@ -34,7 +34,7 @@ public class AuthorizationPlugin implements Handler<RoutingContext> {
   private final WorkerExecutor workerExecutor;
   private final KsqlAuthorizationProvider ksqlAuthorizationProvider;
 
-  public AuthorizationPlugin(final WorkerExecutor workerExecutor,
+  public KsqlAuthorizationProviderHandler(final WorkerExecutor workerExecutor,
       final KsqlAuthorizationProvider ksqlAuthorizationProvider) {
     this.workerExecutor = workerExecutor;
     this.ksqlAuthorizationProvider = ksqlAuthorizationProvider;
@@ -67,8 +67,8 @@ public class AuthorizationPlugin implements Handler<RoutingContext> {
   private void authorize(final Promise<Void> promise, final RoutingContext routingContext) {
     final User user = routingContext.user();
     if (user == null) {
-      promise
-          .fail(new IllegalStateException("Null user in " + AuthorizationPlugin.class));
+      promise.fail(
+          new IllegalStateException("Null user in " + KsqlAuthorizationProviderHandler.class));
       return;
     }
     final Principal principal = new ApiPrincipal(user.principal().getString("username"));

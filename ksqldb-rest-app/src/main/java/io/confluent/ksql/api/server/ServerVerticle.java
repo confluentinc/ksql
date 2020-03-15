@@ -18,8 +18,8 @@ package io.confluent.ksql.api.server;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
-import io.confluent.ksql.api.auth.AuthorizationPlugin;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
+import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.vertx.core.AbstractVerticle;
@@ -119,13 +119,17 @@ public class ServerVerticle extends AbstractVerticle {
     if (authHandler.isPresent() || authenticationPlugin.isPresent()) {
       routeToNewApi(router, ServerVerticle::pauseHandler);
       if (authenticationPlugin.isPresent()) {
+        // Authentication plugin has precedence
         routeToNewApi(router, createAuthenticationPluginHandler(authenticationPlugin.get()));
       } else {
+        // Otherwise use user configured JAAS auth handler
         routeToNewApi(router, authHandler.get());
       }
+      // For authorization use auth provider configured via security extension (if any)
       securityExtension.getAuthorizationProvider()
           .ifPresent(ksqlAuthorizationProvider -> routeToNewApi(router,
-              new AuthorizationPlugin(server.getWorkerExecutor(), ksqlAuthorizationProvider)));
+              new KsqlAuthorizationProviderHandler(server.getWorkerExecutor(),
+                  ksqlAuthorizationProvider)));
 
       routeToNewApi(router, ServerVerticle::resumeHandler);
     }
@@ -225,12 +229,14 @@ public class ServerVerticle extends AbstractVerticle {
     routingContext.next();
   }
 
+  // Applies the handler to all new api endpoints
   private void routeToNewApi(final Router router, final Handler<RoutingContext> handler) {
     for (String path : NEW_API_ENDPOINTS) {
       router.route(path).handler(handler);
     }
   }
 
+  // Applies the failure handler to all new api endpoints
   private void routeFailureToNewApi(final Router router, final Handler<RoutingContext> handler) {
     for (String path : NEW_API_ENDPOINTS) {
       router.route(path).failureHandler(handler);

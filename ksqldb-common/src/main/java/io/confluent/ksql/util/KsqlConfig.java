@@ -155,7 +155,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_AUTHENTICATION_PLUGIN_CLASS = "ksql.authentication.plugin.class";
   public static final String KSQL_AUTHENTICATION_PLUGIN_DEFAULT = null;
   public static final String KSQL_AUTHENTICATION_PLUGIN_DOC = "An extension class that allows "
-      + " custom authorization to be plugged in";
+      + " custom authentication to be plugged in.";
 
   public static final String KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR = "ksql.access.validator.enable";
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";

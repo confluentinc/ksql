@@ -380,7 +380,6 @@ public class AuthTest extends ApiTest {
     this.securityHandlerPlugin = new AuthenticationPlugin() {
       @Override
       public void configure(final Map<String, ?> map) {
-
       }
 
       @Override

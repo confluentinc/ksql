@@ -159,7 +159,7 @@ public class JaasAuthProvider implements AuthProvider {
     @Override
     public JsonObject principal() {
       if (principal == null) {
-        principal = new JsonObject().put("username", username);
+        principal = new JsonObject().put("username", username).put("authorized", authorized);
       }
       return principal;
     }

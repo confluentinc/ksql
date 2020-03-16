@@ -101,7 +101,7 @@ public class JaasAuthProviderTest {
     authProvider.authenticate(authInfo, userHandler);
 
     // Then:
-    verifyLoginSuccess();
+    verifyAuthorizedSuccessfulLogin();
   }
 
   @Test
@@ -114,7 +114,7 @@ public class JaasAuthProviderTest {
     authProvider.authenticate(authInfo, userHandler);
 
     // Then:
-    verifyLoginSuccess();
+    verifyAuthorizedSuccessfulLogin();
   }
 
   @Test
@@ -127,7 +127,7 @@ public class JaasAuthProviderTest {
     authProvider.authenticate(authInfo, userHandler);
 
     // Then:
-    verifyLoginSuccess();
+    verifyAuthorizedSuccessfulLogin();
   }
 
   @Test
@@ -140,7 +140,7 @@ public class JaasAuthProviderTest {
     authProvider.authenticate(authInfo, userHandler);
 
     // Then:
-    verifyLoginSuccess();
+    verifyAuthorizedSuccessfulLogin();
   }
 
   @Test
@@ -177,7 +177,7 @@ public class JaasAuthProviderTest {
     authProvider.authenticate(authInfo, userHandler);
 
     // Then:
-    verifyLoginFailure("Failed to log in: Invalid roles.");
+    verifyUnauthorizedSuccessfulLogin();
   }
 
   @Test
@@ -190,7 +190,7 @@ public class JaasAuthProviderTest {
     authProvider.authenticate(authInfo, userHandler);
 
     // Then:
-    verifyLoginFailure("Failed to log in: Invalid roles.");
+    verifyUnauthorizedSuccessfulLogin();
   }
 
   private void givenAllowedRoles(final String... roles) {
@@ -206,13 +206,23 @@ public class JaasAuthProviderTest {
     when(subject.getPrincipals()).thenReturn(principals);
   }
 
-  private void verifyLoginSuccess() {
+  private void verifyAuthorizedSuccessfulLogin() {
+    verifyLoginSuccessWithAuthorization(true);
+  }
+
+  private void verifyUnauthorizedSuccessfulLogin() {
+    verifyLoginSuccessWithAuthorization(false);
+  }
+
+  private void verifyLoginSuccessWithAuthorization(final boolean isAuthorized) {
     verify(userHandler).handle(userCaptor.capture());
     final AsyncResult<User> result = userCaptor.getValue();
     assertThat(result.succeeded(), is(true));
     assertThat(result.result(), instanceOf(JaasUser.class));
     final JaasUser user = (JaasUser) result.result();
-    assertThat(user.principal(), is(new JsonObject().put("username", USERNAME)));
+    assertThat(user.principal(), is(
+        new JsonObject().put("username", USERNAME).put("authorized", isAuthorized)
+    ));
   }
 
   private void verifyLoginFailure(final String expectedMsg) {

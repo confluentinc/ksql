@@ -32,7 +32,6 @@ public final class ErrorCodes {
   public static final int ERROR_CODE_CANNOT_COERCE_FIELD = 7;
   public static final int ERROR_MAX_PUSH_QUERIES_EXCEEDED = 8;
 
-
   public static final int ERROR_CODE_INTERNAL_ERROR = 100;
 
 

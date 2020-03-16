@@ -22,16 +22,20 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import org.reactivestreams.Subscriber;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlServerEndpoints implements Endpoints {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
@@ -52,28 +56,36 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   @Override
-  public QueryPublisher createQueryPublisher(final String sql, final JsonObject properties,
+  public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+      final JsonObject properties,
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    return new QueryStreamEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor)
-        .createQueryPublisher(sql, properties, context, workerExecutor,
-            createServiceContext(apiSecurityContext));
+    return executeOnWorker(
+        () -> new QueryStreamEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor)
+            .createQueryPublisher(sql, properties, context, workerExecutor,
+                ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext()),
+        workerExecutor);
   }
 
   @Override
-  public InsertsStreamSubscriber createInsertsSubscriber(final String target,
+  public CompletableFuture<InsertsStreamSubscriber> createInsertsSubscriber(final String target,
       final JsonObject properties,
       final Subscriber<InsertResult> acksSubscriber, final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    return new InsertsStreamEndpoint(ksqlEngine, ksqlConfig, reservedInternalTopics)
-        .createInsertsSubscriber(target, properties, acksSubscriber, context, workerExecutor,
-            createServiceContext(apiSecurityContext));
+    return executeOnWorker(
+        () -> new InsertsStreamEndpoint(ksqlEngine, ksqlConfig, reservedInternalTopics)
+            .createInsertsSubscriber(target, properties, acksSubscriber, context, workerExecutor,
+                ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext()),
+        workerExecutor);
   }
 
-  private ServiceContext createServiceContext(final ApiSecurityContext apiSecurityContext) {
-    return ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext();
+  private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,
+      final WorkerExecutor workerExecutor) {
+    final VertxCompletableFuture<R> vcf = new VertxCompletableFuture<>();
+    workerExecutor.executeBlocking(promise -> promise.complete(supplier.get()), false, vcf);
+    return vcf;
   }
 
 }

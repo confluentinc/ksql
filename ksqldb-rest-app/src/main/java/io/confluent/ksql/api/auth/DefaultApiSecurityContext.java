@@ -48,5 +48,4 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
     return authToken;
   }
 
-
 }

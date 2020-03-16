@@ -29,6 +29,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.endpoints.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
@@ -167,6 +168,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
   private final KsqlSecurityExtension securityExtension;
+  private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
   private final List<KsqlServerPrecondition> preconditions;
@@ -192,7 +194,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     return new KsqlRestConfig(origs);
   }
 
+  /*
+  Please note that the old KSQL properties are the ones that should be used to configure the
+  server for now, not the new ones.
+   */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static KsqlRestConfig convertToApiServerConfig(final KsqlRestConfig config) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
 
     final List<String> listeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);
     final Map<String, Object> origs = config.getOriginals();
@@ -220,6 +228,23 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       }
     }
 
+    final String authMethod = config.getString("authentication.method");
+    if (authMethod != null) {
+      origs.put(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG, authMethod);
+    }
+    final List<String> authRoles = config.getList("authentication.roles");
+    if (authRoles != null) {
+      final List<String> authRolesUpdated = authRoles.stream()
+          .filter(role -> !"*".equals(role)) // remove "*"
+          .map(role -> "**".equals(role) ? "*" : role) // Change "**" to "*"
+          .collect(Collectors.toList());
+      origs.put(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG, authRolesUpdated);
+    }
+    final String authRealm = config.getString("authentication.realm");
+    if (authRealm != null) {
+      origs.put(ApiServerConfig.AUTHENTICATION_REALM_CONFIG, authRealm);
+    }
+
     return new KsqlRestConfig(origs);
   }
 
@@ -241,6 +266,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
       final KsqlSecurityContextProvider ksqlSecurityContextProvider,
       final KsqlSecurityExtension securityExtension,
+      final Optional<AuthenticationPlugin> authenticationPlugin,
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
       final List<KsqlServerPrecondition> preconditions,
@@ -270,6 +296,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.ksqlSecurityContextProvider = requireNonNull(ksqlSecurityContextProvider,
         "ksqlSecurityContextProvider");
     this.securityExtension = requireNonNull(securityExtension, "securityExtension");
+    this.authenticationPlugin = requireNonNull(authenticationPlugin, "authenticationPlugin");
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
@@ -338,7 +365,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlSecurityContextProvider
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
-    apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension);
+    apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,
+        authenticationPlugin);
     apiServer.start();
     log.info("KSQL New API Server started");
   }
@@ -606,6 +634,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     );
   }
 
+  @SuppressWarnings("checkstyle:MethodLength")
   static KsqlRestApplication buildApplication(
       final String metricsPrefix,
       final KsqlRestConfig restConfig,
@@ -668,6 +697,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final ServerState serverState = new ServerState();
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
+
+    final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
+        ksqlConfig);
 
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
         KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
@@ -754,6 +786,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         serviceContextBinderFactory,
         securityContextProviderFactory.apply(securityExtension),
         securityExtension,
+        securityHandlerPlugin,
         serverState,
         processingLogContext,
         preconditions,
@@ -869,6 +902,19 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     securityExtension.initialize(ksqlConfig);
     return securityExtension;
+  }
+
+  private static Optional<AuthenticationPlugin> loadAuthenticationPlugin(
+      final KsqlConfig ksqlConfig) {
+    final Optional<AuthenticationPlugin> authenticationPlugin = Optional.ofNullable(
+        ksqlConfig.getConfiguredInstance(
+            KsqlConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS,
+            AuthenticationPlugin.class
+        ));
+    authenticationPlugin.ifPresent(securityHandlerPlugin ->
+        securityHandlerPlugin.configure(ksqlConfig.originals())
+    );
+    return authenticationPlugin;
   }
 
   private void displayWelcomeMessage() {

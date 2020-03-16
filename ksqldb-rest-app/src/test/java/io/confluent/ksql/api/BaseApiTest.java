@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import org.junit.After;
 import org.junit.Before;
@@ -113,7 +114,7 @@ public class BaseApiTest {
 
   protected void createServer(ApiServerConfig serverConfig) {
     server = new Server(vertx, serverConfig, testEndpoints, false,
-        new KsqlDefaultSecurityExtension());
+        new KsqlDefaultSecurityExtension(), Optional.empty());
     server.start();
   }
 

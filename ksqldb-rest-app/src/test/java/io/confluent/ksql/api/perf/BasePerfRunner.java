@@ -25,6 +25,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -166,7 +167,9 @@ public abstract class BasePerfRunner {
   private void setUp() {
     vertx = Vertx.vertx();
     ApiServerConfig serverConfig = createServerConfig();
-    server = new Server(vertx, serverConfig, endpoints, false, new KsqlDefaultSecurityExtension());
+    server = new Server(vertx, serverConfig, endpoints, false, new KsqlDefaultSecurityExtension(),
+        Optional
+            .empty());
     server.start();
     client = createClient();
   }

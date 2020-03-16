@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import org.reactivestreams.Subscriber;
 
@@ -103,18 +104,18 @@ public class PullQueryRunner extends BasePerfRunner {
     private final Set<PullQueryPublisher> publishers = new HashSet<>();
 
     @Override
-    public synchronized QueryPublisher createQueryPublisher(final String sql,
+    public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
         final JsonObject properties,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext) {
       PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
       publishers.add(publisher);
-      return publisher;
+      return CompletableFuture.completedFuture(publisher);
     }
 
     @Override
-    public InsertsStreamSubscriber createInsertsSubscriber(final String target,
+    public CompletableFuture<InsertsStreamSubscriber> createInsertsSubscriber(final String target,
         final JsonObject properties,
         final Subscriber<InsertResult> acksSubscriber, final Context context,
         final WorkerExecutor workerExecutor,

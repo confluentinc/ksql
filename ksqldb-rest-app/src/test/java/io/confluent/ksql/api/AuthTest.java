@@ -20,7 +20,9 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.api.server.ServerUtils;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
@@ -30,14 +32,18 @@ import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import java.security.Principal;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.junit.ClassRule;
@@ -69,6 +75,7 @@ public class AuthTest extends ApiTest {
       .build();
 
   private volatile KsqlAuthorizationProvider authorizationProvider;
+  private volatile AuthenticationPlugin securityHandlerPlugin;
 
   @Override
   protected ApiServerConfig createServerConfig() {
@@ -109,7 +116,8 @@ public class AuthTest extends ApiTest {
           @Override
           public void close() {
           }
-        });
+        },
+        Optional.ofNullable(securityHandlerPlugin));
     server.start();
   }
 
@@ -134,47 +142,48 @@ public class AuthTest extends ApiTest {
 
   @Test
   public void shouldFailQueryWithBadCredentials() throws Exception {
-    shouldFailQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
+    shouldFailQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401, "Unauthorized");
   }
 
   @Test
   public void shouldFailCloseQueryWithBadCredentials() throws Exception {
-    shouldFailCloseQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
+    shouldFailCloseQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401, "Unauthorized");
   }
 
   @Test
   public void shouldFailInsertRequestWithBadCredentials() throws Exception {
-    shouldFailInsertRequest(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
+    shouldFailInsertRequest(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401, "Unauthorized");
   }
 
   @Test
   public void shouldFailQueryWithNoCredentials() throws Exception {
-    shouldFailQuery(null, null);
+    shouldFailQuery(null, null, 401, "Unauthorized");
   }
 
   @Test
   public void shouldFailCloseQueryWithNoCredentials() throws Exception {
-    shouldFailCloseQuery(null, null);
+    shouldFailCloseQuery(null, null, 401, "Unauthorized");
   }
 
   @Test
   public void shouldFailInsertRequestWithNoCredentials() throws Exception {
-    shouldFailInsertRequest(null, null);
+    shouldFailInsertRequest(null, null, 401, "Unauthorized");
   }
 
   @Test
   public void shouldFailQueryWithIncorrectRole() throws Exception {
-    shouldFailQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
+    shouldFailQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403, "Forbidden");
   }
 
   @Test
   public void shouldFailCloseQueryWithIncorrectRole() throws Exception {
-    shouldFailCloseQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
+    shouldFailCloseQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403, "Forbidden");
   }
 
   @Test
   public void shouldFailInsertRequestWithIncorrectRole() throws Exception {
-    shouldFailInsertRequest(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
+    shouldFailInsertRequest(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403,
+        "Forbidden");
   }
 
   @Test
@@ -216,22 +225,59 @@ public class AuthTest extends ApiTest {
   @Test
   public void shouldNotAllowQueryIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
-        () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+        () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403, "Forbidden"));
   }
 
   @Test
   public void shouldNotAllowInsertsIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
-        () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+        () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403, "Forbidden"));
   }
 
   @Test
   public void shouldNotAllowCloseQueryIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
-        () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+        () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403, "Forbidden"));
   }
 
-  private void shouldFailQuery(final String username, final String password) throws Exception {
+  @Test
+  public void shouldAllowQueryWithSecurityPlugin() throws Exception {
+    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS, super::shouldExecutePullQuery, true);
+  }
+
+  @Test
+  public void shouldNotAllowQueryWithSecurityPlugin() throws Exception {
+    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
+        () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401, "Unauthorized"), false);
+  }
+
+  @Test
+  public void shouldAllowInsertsWithSecurityPlugin() throws Exception {
+    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS, super::shouldInsertWithAcksStream,
+        true);
+  }
+
+  @Test
+  public void shouldNotAllowInsertsWithSecurityPlugin() throws Exception {
+    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
+        () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401, "Unauthorized"),
+        false);
+  }
+
+  @Test
+  public void shouldAllowCloseQueryWithSecurityPlugin() throws Exception {
+    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS, super::shouldCloseQuery, true);
+  }
+
+  @Test
+  public void shouldNotAllowCloseQueryWithSecurityPlugin() throws Exception {
+    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
+        () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401, "Unauthorized"),
+        false);
+  }
+
+  private void shouldFailQuery(final String username, final String password,
+      final int expectedStatus, final String expectedMessage) throws Exception {
     // When
     HttpResponse<Buffer> response = sendRequestWithCreds(
         "/query-stream",
@@ -241,14 +287,14 @@ public class AuthTest extends ApiTest {
     );
 
     // Then
-    assertThat(response.statusCode(), is(401));
-    assertThat(response.statusMessage(), is("Unauthorized"));
+    assertThat(response.statusCode(), is(expectedStatus));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(401, "Unauthorized", queryResponse.responseObject);
+    validateError(expectedStatus, expectedMessage, queryResponse.responseObject);
   }
 
-  private void shouldFailCloseQuery(final String username, final String password) throws Exception {
+  private void shouldFailCloseQuery(final String username, final String password,
+      final int expectedStatus, final String expectedMessage) throws Exception {
     // Given
     JsonObject requestBody = new JsonObject().put("queryId", "foo");
 
@@ -261,14 +307,14 @@ public class AuthTest extends ApiTest {
     );
 
     // Then
-    assertThat(response.statusCode(), is(401));
-    assertThat(response.statusMessage(), is("Unauthorized"));
+    assertThat(response.statusCode(), is(expectedStatus));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(401, "Unauthorized", queryResponse.responseObject);
+    validateError(expectedStatus, expectedMessage, queryResponse.responseObject);
   }
 
-  private void shouldFailInsertRequest(final String username, final String password) throws Exception {
+  private void shouldFailInsertRequest(final String username, final String password,
+      int expectedStatus, final String expectedMessage) throws Exception {
     // Given
     JsonObject params = new JsonObject().put("target", "test-stream");
     Buffer requestBody = Buffer.buffer();
@@ -286,11 +332,10 @@ public class AuthTest extends ApiTest {
     );
 
     // Then
-    assertThat(response.statusCode(), is(401));
-    assertThat(response.statusMessage(), is("Unauthorized"));
+    assertThat(response.statusCode(), is(expectedStatus));
 
     InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
-    validateError(401, "Unauthorized", insertsResponse.error);
+    validateError(expectedStatus, expectedMessage, insertsResponse.error);
   }
 
   private HttpResponse<Buffer> sendRequestWithCreds(
@@ -326,6 +371,37 @@ public class AuthTest extends ApiTest {
         is(username));
   }
 
+  private void shouldAuthenticateWithSecurityPlugin(final String expectedUser,
+      final ExceptionThrowingRunnable action, final boolean authenticate) throws Exception {
+    stopServer();
+    stopClient();
+
+    final AtomicBoolean handlerCalled = new AtomicBoolean();
+
+    this.securityHandlerPlugin = new AuthenticationPlugin() {
+      @Override
+      public void configure(final Map<String, ?> map) {
+      }
+
+      @Override
+      public CompletableFuture<Principal> handleAuth(final RoutingContext routingContext,
+          final WorkerExecutor workerExecutor) {
+        handlerCalled.set(true);
+        if (authenticate) {
+          return CompletableFuture.completedFuture(new StringPrincipal(expectedUser));
+        } else {
+          ServerUtils.handleError(routingContext.response(), 401, 401, "Unauthorized");
+          return CompletableFuture.completedFuture(null);
+        }
+      }
+    };
+
+    createServer(createServerConfig());
+    client = createClient();
+    action.run();
+    assertThat(handlerCalled.get(), is(true));
+  }
+
   private void shouldAllowAccessWithPermissionCheck(final String expectedUser,
       final String expectedMethod, final String expectedPath,
       final ExceptionThrowingRunnable action) throws Exception {
@@ -352,7 +428,7 @@ public class AuthTest extends ApiTest {
     stopServer();
     stopClient();
     this.authorizationProvider = (user, method, path) -> {
-      throw new KsqlException("Unauthorized");
+      throw new KsqlException("Forbidden");
     };
     createServer(createServerConfig());
     client = createClient();
@@ -363,5 +439,20 @@ public class AuthTest extends ApiTest {
 
     void run() throws Exception;
   }
+
+  private static class StringPrincipal implements Principal {
+
+    private final String name;
+
+    public StringPrincipal(final String name) {
+      this.name = name;
+    }
+
+    @Override
+    public String getName() {
+      return name;
+    }
+  }
+
 
 }

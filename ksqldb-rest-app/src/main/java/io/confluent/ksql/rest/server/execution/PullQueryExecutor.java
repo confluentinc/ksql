@@ -133,7 +133,8 @@ public final class PullQueryExecutor {
 
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
-      final RoutingFilterFactory routingFilterFactory
+      final RoutingFilterFactory routingFilterFactory,
+      final KsqlConfig ksqlConfig
   ) {
     this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
     this.routingFilterFactory =
@@ -152,7 +153,8 @@ public final class PullQueryExecutor {
 
   public TableRowsEntity execute(
       final ConfiguredStatement<Query> statement,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
@@ -193,7 +195,8 @@ public final class PullQueryExecutor {
           analysis,
           whereInfo,
           queryId,
-          contextStacker);
+          contextStacker,
+          pullQueryMetrics);
 
       return handlePullQuery(
           statement,
@@ -201,8 +204,8 @@ public final class PullQueryExecutor {
           serviceContext,
           pullQueryContext
       );
-
     } catch (final Exception e) {
+      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
           e.getMessage() == null ? "Server Error" : e.getMessage(),
           statement.getStatementText(),
@@ -256,6 +259,8 @@ public final class PullQueryExecutor {
     if (node.isLocal()) {
       LOG.debug("Query {} executed locally at host {} at timestamp {}.",
                statement.getStatementText(), node.location(), System.currentTimeMillis());
+      pullQueryContext.pullQueryMetrics
+          .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
       return queryRowsLocally(
           statement,
           executionContext,
@@ -263,6 +268,8 @@ public final class PullQueryExecutor {
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
                 statement.getStatementText(), node.location(), System.currentTimeMillis());
+      pullQueryContext.pullQueryMetrics
+          .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
       return forwardTo(node, statement, serviceContext);
     }
   }
@@ -399,6 +406,7 @@ public final class PullQueryExecutor {
     private final WhereInfo whereInfo;
     private final QueryId queryId;
     private final QueryContext.Stacker contextStacker;
+    private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
     private PullQueryContext(
         final Struct key,
@@ -406,7 +414,9 @@ public final class PullQueryExecutor {
         final ImmutableAnalysis analysis,
         final WhereInfo whereInfo,
         final QueryId queryId,
-        final QueryContext.Stacker contextStacker
+        final QueryContext.Stacker contextStacker,
+        final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+
     ) {
       this.key = Objects.requireNonNull(key, "key");
       this.mat = Objects.requireNonNull(mat, "materialization");
@@ -414,6 +424,8 @@ public final class PullQueryExecutor {
       this.whereInfo = Objects.requireNonNull(whereInfo, "whereInfo");
       this.queryId = Objects.requireNonNull(queryId, "queryId");
       this.contextStacker = Objects.requireNonNull(contextStacker, "contextStacker");
+      this.pullQueryMetrics = Objects.requireNonNull(
+          pullQueryMetrics, "pullQueryExecutorMetrics");
     }
 
     public Struct getKey() {

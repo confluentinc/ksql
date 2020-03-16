@@ -4,6 +4,10 @@
 
 ### Features
 
+* Add metrics for pull queries endpoint ([#4608](https://github.com/confluentinc/ksql/pull/4608)) ([23e3868](https://github.com/confluentinc/ksql/commit/23e3868))
+* add REGEXP_EXTRACT UDF ([#4728](https://github.com/confluentinc/ksql/pull/4728)) ([a25f0fb](https://github.com/confluentinc/ksql/commit/a25f0fb))
+* Security plumbing ([#4778](https://github.com/confluentinc/ksql/pull/4778)) ([395626c](https://github.com/confluentinc/ksql/commit/395626c))
+* support for tunable retention, grace period for windowed tables ([#4733](https://github.com/confluentinc/ksql/pull/4733)) ([30d49b3](https://github.com/confluentinc/ksql/commit/30d49b3)), closes [#4157](https://github.com/confluentinc/ksql/issues/4157)
 * add ARRAY_LENGTH UDF ([#4725](https://github.com/confluentinc/ksql/pull/4725)) ([31a9d9d](https://github.com/confluentinc/ksql/commit/31a9d9d))
 * add confluent-hub to ksqlDB docker image ([#4729](https://github.com/confluentinc/ksql/pull/4729)) ([b74867a](https://github.com/confluentinc/ksql/commit/b74867a))
 * basic auth for new API server ([#4685](https://github.com/confluentinc/ksql/pull/4685)) ([5dcea24](https://github.com/confluentinc/ksql/commit/5dcea24))
@@ -25,6 +29,7 @@
 
 ### Bug Fixes
 
+* add transfer-encoding:chunked header if Jetty omits this ([#4777](https://github.com/confluentinc/ksql/pull/4777)) ([fba15be](https://github.com/confluentinc/ksql/commit/fba15be))
 * build ([#4767](https://github.com/confluentinc/ksql/pull/4767)) ([6f45803](https://github.com/confluentinc/ksql/commit/6f45803))
 * fix test compile goal ([#4769](https://github.com/confluentinc/ksql/pull/4769)) ([4e8e601](https://github.com/confluentinc/ksql/commit/4e8e601))
 * fix the half-fixed json decimal tests ([#4768](https://github.com/confluentinc/ksql/pull/4768)) ([d87b97d](https://github.com/confluentinc/ksql/commit/d87b97d))
@@ -45,7 +50,6 @@
 * support partial schemas ([#4625](https://github.com/confluentinc/ksql/pull/4625)) ([91dfc36](https://github.com/confluentinc/ksql/commit/91dfc36))
 * Tests should use free port for servers ([#4595](https://github.com/confluentinc/ksql/pull/4595)) ([0176721](https://github.com/confluentinc/ksql/commit/0176721))
 * use HTTPS instead of HTTP to resolve dependencies in Maven archetype ([#4511](https://github.com/confluentinc/ksql/pull/4511)) ([f21823f](https://github.com/confluentinc/ksql/commit/f21823f))
-
 
 
 

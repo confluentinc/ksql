@@ -1,0 +1,68 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572103848,
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 1)> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 DECIMAL(4, 1)> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 DECIMAL(4, 1), KSQL_AGG_VARIABLE_0 DECIMAL(4, 1)> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, SUM DECIMAL(4, 1)> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : "5.4"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : "100.1"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "id" : 100,
+      "value" : "500.9"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "id" : 100,
+      "value" : "300.8"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "SUM" : "005.4"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "SUM" : "105.5"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "SUM" : "500.9"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "SUM" : "801.7"
+    }
+  } ]
+}

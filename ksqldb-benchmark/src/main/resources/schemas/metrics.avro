@@ -1,0 +1,98 @@
+{
+  "type": "record",
+  "name": "MetricsRecord",
+  "namespace": "io.confluent.ksql.bench",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "arg.properties": { "length": 36 }
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "arg.properties": { "length": 32 }
+    },
+    {
+      "name": "metric",
+      "type": {
+        "type": "record",
+        "name": "Metric",
+        "namespace": "io.confluent.ksql.bench",
+        "fields": [
+          {
+            "name": "_metricname",
+            "type": "string",
+            "arg.properties": { "length": 32}
+          },
+          {
+            "name": "clusterid",
+            "type": "string",
+            "arg.properties": { "length": 10}
+          },
+          {
+            "name": "controller_revision_hash",
+            "type": "string",
+            "arg.properties": { "length": 16}
+          },
+          {
+            "name": "instance",
+            "type": "long",
+            "arg.properties": {
+                "range": {"min": 0, "max": 100000}
+            }
+          },
+          {
+            "name": "job",
+            "type": "string",
+            "arg.properties": { "length": 8}
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "arg.properties": { "length": 16}
+          },
+          {
+            "name": "physicalstatefulcluster_core_confluent_cloud_name",
+            "type": "string",
+            "arg.properties": { "length": 5}
+          },
+          {
+            "name": "physicalstatefulcluster_core_confluent_cloud_version",
+            "type": "string",
+            "arg.properties": { "length": 2}
+          },
+          {
+            "name": "pscVersion",
+            "type": "string",
+            "arg.properties": { "length": 5}
+          },
+          {
+            "name": "source",
+            "type": "string",
+            "arg.properties": { "length": 16}
+          },
+          {
+            "name": "stateful_kubernetes_io_pod_name",
+            "type": "string",
+            "arg.properties": { "length": 8}
+          },
+          {
+            "name": "topic",
+            "type": "string",
+            "arg.properties": { "length": 40}
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "arg.properties": { "length": 5}
+          }
+        ]
+      }
+    },
+    {
+      "name": "value",
+      "type": "int"
+    }
+  ]
+}

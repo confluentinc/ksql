@@ -1,0 +1,46 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572100629,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input",
+    "key" : 9,
+    "value" : {
+      "id" : 0
+    }
+  }, {
+    "topic" : "input",
+    "key" : 10,
+    "value" : {
+      "id" : 1
+    }
+  }, {
+    "topic" : "input",
+    "key" : 11,
+    "value" : {
+      "id" : 2
+    }
+  }, {
+    "topic" : "input",
+    "key" : 12,
+    "value" : {
+      "id" : 3
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : 11,
+    "value" : {
+      "ID" : 2
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 12,
+    "value" : {
+      "ID" : 3
+    }
+  } ]
+}

@@ -1,0 +1,11 @@
+{
+  "outputs": [
+    {"topic": "TEST_LOOKUP1_OUTPUT", "key": "lu1_0", "value": {"ID": "id0", "LOOKUP1_VALUE": "lu1_0_val", "LOOKUP2": "lu2_2"}, "timestamp": 10},
+    {"topic": "TEST_LOOKUP1_OUTPUT", "key": "lu1_2", "value": {"ID": "id1", "LOOKUP1_VALUE": "lu1_2_val", "LOOKUP2": "lu2_0"}, "timestamp": 20},
+    {"topic": "TEST_LOOKUP1_OUTPUT", "key": "lu1_1", "value": {"ID": "id2", "LOOKUP1_VALUE": "lu1_1_val", "LOOKUP2": "lu2_2"}, "timestamp": 30},
+
+    {"topic": "TEST_LOOKUP2_OUTPUT", "key": "lu2_2", "value": {"ID": "id0", "LOO": "lu1_0_val", "LOOKUP2_VALUE": "lu2_2_val"}, "timestamp": 10},
+    {"topic": "TEST_LOOKUP2_OUTPUT", "key": "lu2_0", "value": {"ID": "id1", "LOO": "lu1_2_val", "LOOKUP2_VALUE": "lu2_0_val"}, "timestamp": 20},
+    {"topic": "TEST_LOOKUP2_OUTPUT", "key": "lu2_2", "value": {"ID": "id2", "LOO": "lu1_1_val", "LOOKUP2_VALUE": "lu2_2_val"}, "timestamp": 30}
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572087302,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<KS ARRAY<VARCHAR>, VALS ARRAY<INT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<M MAP<VARCHAR, INT>> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ks" : [ "a", "b" ],
+      "vals" : [ 1, 2 ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ks" : [ "a", "b", "c" ],
+      "vals" : [ 1, 2, 3 ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ks" : [ "a", "b" ],
+      "vals" : [ 1, 2, 3 ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ks" : [ "a", "b", "c" ],
+      "vals" : [ 1, 2, null ]
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "M" : {
+        "a" : 1,
+        "b" : 2
+      }
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "M" : {
+        "a" : 1,
+        "b" : 2,
+        "c" : 3
+      }
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "M" : {
+        "a" : 1,
+        "b" : 2
+      }
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "M" : {
+        "a" : 1,
+        "b" : 2,
+        "c" : null
+      }
+    }
+  } ]
+}

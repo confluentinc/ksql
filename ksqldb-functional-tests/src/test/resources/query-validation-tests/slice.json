@@ -1,0 +1,46 @@
+{
+  "comments": [
+    "Tests covering SLICE functionality with generics"
+  ],
+  "tests": [
+    {
+      "name": "sublist for string list",
+      "statements": [
+        "CREATE STREAM TEST (l ARRAY<VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT SLICE(l, 2, 3) as sub FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"l": ["a", "b", "c", "d"]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"SUB":["b", "c"]}}
+      ]
+    },
+    {
+      "name": "sublist for list of lists",
+      "statements": [
+        "CREATE STREAM TEST (l ARRAY<ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT SLICE(l, 2, 3) as sub FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"l": [["a"], ["b"], ["c"], ["d"]]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"SUB":[["b"], ["c"]]}}
+      ]
+    },
+    {
+      "name": "sublist for list of maps",
+      "statements": [
+        "CREATE STREAM TEST (l ARRAY<MAP<VARCHAR, VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT SLICE(l, 2, 3) as sub FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"l": [{"a": "1"}, {"b": "2"}, {"c": "3"}, {"d": "4"}]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"SUB":[{"b": "2"}, {"c": "3"}]}}
+      ]
+    }
+  ]
+}

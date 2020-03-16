@@ -1,0 +1,56 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572091240,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<REGION VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "1",
+    "value" : "usa"
+  }, {
+    "topic" : "test_topic",
+    "key" : "2",
+    "value" : "eu"
+  }, {
+    "topic" : "test_topic",
+    "key" : "3",
+    "value" : "usa"
+  }, {
+    "topic" : "test_topic",
+    "key" : "1",
+    "value" : null
+  }, {
+    "topic" : "test_topic",
+    "key" : "2",
+    "value" : "usa"
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : 3,
+    "value" : "1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 2,
+    "value" : "1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 3,
+    "value" : "2"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 3,
+    "value" : "1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 2,
+    "value" : "0"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 3,
+    "value" : "2"
+  } ]
+}

@@ -1,0 +1,124 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572092347,
+  "schemas" : {
+    "CTAS_COUNT_BY_REGION_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, REGION VARCHAR> NOT NULL",
+    "CTAS_COUNT_BY_REGION_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 VARCHAR> NOT NULL",
+    "CTAS_COUNT_BY_REGION_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_AGG_VARIABLE_0 MAP<VARCHAR, BIGINT>> NOT NULL",
+    "CTAS_COUNT_BY_REGION_0.COUNT_BY_REGION" : "STRUCT<REGION VARCHAR, COUNTS MAP<VARCHAR, BIGINT>> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "ID" : 0,
+      "NAME" : "alice",
+      "REGION" : "east"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "1",
+    "value" : {
+      "ID" : 1,
+      "NAME" : "bob",
+      "REGION" : "east"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "2",
+    "value" : {
+      "ID" : 2,
+      "NAME" : "carol",
+      "REGION" : "west"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "3",
+    "value" : {
+      "ID" : 3,
+      "NAME" : "dave",
+      "REGION" : "west"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "1",
+    "value" : {
+      "ID" : 1,
+      "NAME" : "bob",
+      "REGION" : "west"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "1",
+    "value" : null
+  } ],
+  "outputs" : [ {
+    "topic" : "COUNT_BY_REGION",
+    "key" : "east",
+    "value" : {
+      "REGION" : "east",
+      "COUNTS" : {
+        "alice" : 1
+      }
+    }
+  }, {
+    "topic" : "COUNT_BY_REGION",
+    "key" : "east",
+    "value" : {
+      "REGION" : "east",
+      "COUNTS" : {
+        "alice" : 1,
+        "bob" : 1
+      }
+    }
+  }, {
+    "topic" : "COUNT_BY_REGION",
+    "key" : "west",
+    "value" : {
+      "REGION" : "west",
+      "COUNTS" : {
+        "carol" : 1
+      }
+    }
+  }, {
+    "topic" : "COUNT_BY_REGION",
+    "key" : "west",
+    "value" : {
+      "REGION" : "west",
+      "COUNTS" : {
+        "carol" : 1,
+        "dave" : 1
+      }
+    }
+  }, {
+    "topic" : "COUNT_BY_REGION",
+    "key" : "east",
+    "value" : {
+      "REGION" : "east",
+      "COUNTS" : {
+        "alice" : 1
+      }
+    }
+  }, {
+    "topic" : "COUNT_BY_REGION",
+    "key" : "west",
+    "value" : {
+      "REGION" : "west",
+      "COUNTS" : {
+        "carol" : 1,
+        "dave" : 1,
+        "bob" : 1
+      }
+    }
+  }, {
+    "topic" : "COUNT_BY_REGION",
+    "key" : "west",
+    "value" : {
+      "REGION" : "west",
+      "COUNTS" : {
+        "carol" : 1,
+        "dave" : 1
+      }
+    }
+  } ]
+}

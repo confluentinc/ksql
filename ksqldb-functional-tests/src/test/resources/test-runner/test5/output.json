@@ -1,0 +1,8 @@
+{
+  "outputs": [
+    {"topic": "S1", "key": "abc", "value": "abc,13.54"},
+    {"topic": "S1", "key": "bar", "value": "bar,"},
+    {"topic": "S1", "key": "nar", "value": "nar,"},
+    {"topic": "S1", "key": "near", "value": "near,", "timestamp": 100000}
+  ]
+}

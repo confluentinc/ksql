@@ -1,0 +1,25 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572105222,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<PARAM_A VARCHAR, PARAM_B VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "1",
+    "value" : {
+      "url" : "http://www.test.com/?one=a&two=b&three"
+    },
+    "timestamp" : 0
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "1",
+    "value" : {
+      "PARAM_A" : "a",
+      "PARAM_B" : "b"
+    },
+    "timestamp" : 0
+  } ]
+}

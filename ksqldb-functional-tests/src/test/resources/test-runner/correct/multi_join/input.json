@@ -1,0 +1,15 @@
+{
+  "inputs": [
+    {"topic": "lookup1", "key": "lu1_0", "value": {"ID": "lu1_0", "value": "lu1_0_val"}, "timestamp": 0},
+    {"topic": "lookup1", "key": "lu1_1", "value": {"ID": "lu1_1", "value": "lu1_1_val"}, "timestamp": 0},
+    {"topic": "lookup1", "key": "lu1_2", "value": {"ID": "lu1_2", "value": "lu1_2_val"}, "timestamp": 0},
+
+    {"topic": "lookup2", "key": "lu2_0", "value": {"ID": "lu2_0", "value": "lu2_0_val"}, "timestamp": 0},
+    {"topic": "lookup2", "key": "lu2_1", "value": {"ID": "lu2_1", "value": "lu2_1_val"}, "timestamp": 0},
+    {"topic": "lookup2", "key": "lu2_2", "value": {"ID": "lu2_2", "value": "lu2_2_val"}, "timestamp": 0},
+
+    {"topic": "test", "key": "id0", "value": {"ID": "id0", "lookup1": "lu1_0", "lookup2": "lu2_2"}, "timestamp": 10},
+    {"topic": "test", "key": "id1", "value": {"ID": "id1", "lookup1": "lu1_2", "lookup2": "lu2_0"}, "timestamp": 20},
+    {"topic": "test", "key": "id2", "value": {"ID": "id2", "lookup1": "lu1_1", "lookup2": "lu2_2"}, "timestamp": 30}
+  ]
+}

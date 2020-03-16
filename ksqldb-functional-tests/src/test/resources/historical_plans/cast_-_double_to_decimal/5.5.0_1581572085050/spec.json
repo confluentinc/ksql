@@ -1,0 +1,82 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572085050,
+  "schemas" : {
+    "CSAS_OUT_0.KsqlTopic.Source" : "STRUCT<FOO DOUBLE> NOT NULL",
+    "CSAS_OUT_0.OUT" : "STRUCT<VAL DECIMAL(2, 1)> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "foo" : 0.1
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "foo" : 1.1
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "foo" : 0.0
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "foo" : 0.99
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "foo" : 0.10
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "foo" : 0.01
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUT",
+    "key" : "",
+    "value" : {
+      "VAL" : "0.1"
+    }
+  }, {
+    "topic" : "OUT",
+    "key" : "",
+    "value" : {
+      "VAL" : "1.1"
+    }
+  }, {
+    "topic" : "OUT",
+    "key" : "",
+    "value" : {
+      "VAL" : "0.0"
+    }
+  }, {
+    "topic" : "OUT",
+    "key" : "",
+    "value" : {
+      "VAL" : "1.0"
+    }
+  }, {
+    "topic" : "OUT",
+    "key" : "",
+    "value" : {
+      "VAL" : "0.1"
+    }
+  }, {
+    "topic" : "OUT",
+    "key" : "",
+    "value" : {
+      "VAL" : "0.0"
+    }
+  } ]
+}

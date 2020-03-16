@@ -1,0 +1,42 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572102654,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO BOOLEAN> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO BOOLEAN> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : {
+      "FOO" : true
+    }
+  }, {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : {
+      "FOO" : null
+    }
+  }, {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : null
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "FOO" : true
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "FOO" : false
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : null
+  } ]
+}

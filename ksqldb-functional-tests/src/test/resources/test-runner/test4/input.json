@@ -1,0 +1,29 @@
+
+{
+  "inputs": [
+    {
+      "topic": "publication_events",
+      "key": "C.S. Lewis",
+      "value": {
+        "author": "C.S. Lewis",
+        "title": "The Silver Chair"
+      }
+    },
+    {
+      "topic": "publication_events",
+      "key": "George R. R. Martin",
+      "value": {
+        "author": "George R. R. Martin",
+        "title": "A Song of Ice and Fire"
+      }
+    },
+    {
+      "topic": "publication_events",
+      "key": "C.S. Lewis",
+      "value": {
+        "author": "C.S. Lewis",
+        "title": "Perelandra"
+      }
+    }
+  ]
+}

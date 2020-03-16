@@ -1,0 +1,39 @@
+{
+        "namespace": "ksql",
+        "name": "purchase",
+        "type": "record",
+        "fields": [
+                {"name": "id", "type": {
+                    "type": "long",
+                    "arg.properties": {
+                        "iteration": {
+                            "start": 0
+                        }
+                    }
+                }},
+                {"name": "quantity", "type": {
+                    "type": "long",
+                    "arg.properties": {
+                        "iteration": {
+                            "start": 0
+                        }
+                    }
+                }},
+                {"name": "productid", "type": {
+                    "type": "long",
+                    "arg.properties": {
+                      "iteration": {
+                          "start": 0
+                      }
+                    }
+                 }},
+                 {"name": "total", "type": {
+                      "type": "double",
+                       "arg.properties": {
+                           "iteration": {
+                            "start": 0
+                          }
+                     }
+                 }}
+        ]
+}

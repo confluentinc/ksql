@@ -13,3 +13,4 @@ Installation and Configuration
     cli-config
     ../../../cloud/connect/ksql-cloud-config
     upgrading
+    migrate-cloud-preview-cluster

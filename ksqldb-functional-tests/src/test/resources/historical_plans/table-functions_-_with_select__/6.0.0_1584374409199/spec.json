@@ -1,0 +1,56 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584374409199,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, MY_ARR ARRAY<BIGINT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, MY_ARR ARRAY<BIGINT>, VAL BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "ID" : 0,
+      "MY_ARR" : [ 1, 2 ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "1",
+    "value" : {
+      "ID" : 1,
+      "MY_ARR" : [ 3, 4 ]
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "ID" : 0,
+      "MY_ARR" : [ 1, 2 ],
+      "VAL" : 1
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "ID" : 0,
+      "MY_ARR" : [ 1, 2 ],
+      "VAL" : 2
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "1",
+    "value" : {
+      "ID" : 1,
+      "MY_ARR" : [ 3, 4 ],
+      "VAL" : 3
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "1",
+    "value" : {
+      "ID" : 1,
+      "MY_ARR" : [ 3, 4 ],
+      "VAL" : 4
+    }
+  } ]
+}

@@ -1,0 +1,24 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584374405883,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<COL11 MAP<VARCHAR, VARCHAR>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "col11" : {
+        "address" : "{\"city\": \"London\"}"
+      }
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "KSQL_COL_0" : "London"
+    }
+  } ]
+}

@@ -1,0 +1,24 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584374410026,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<COL0 STRUCT<A VARCHAR>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "col0" : {
+        "A" : "expect-result"
+      }
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "KSQL_COL_0" : "expect-result"
+    }
+  } ]
+}

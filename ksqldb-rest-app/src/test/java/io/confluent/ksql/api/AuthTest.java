@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
@@ -31,6 +32,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
@@ -231,6 +233,26 @@ public class AuthTest extends ApiTest {
         () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
   }
 
+  @Test
+  public void shouldReceiveSensibleErrorOnMalformedCreds() throws Exception {
+    // When
+    HttpResponse<Buffer> response = sendRequestWithMalformedCreds(
+        "/query-stream",
+        DEFAULT_PUSH_QUERY_REQUEST_BODY.toBuffer()
+    );
+
+    // Then
+    assertThat(response.statusCode(), is(400));
+    assertThat(response.statusMessage(), is("Bad Request"));
+
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    validateError(
+        ErrorCodes.ERROR_CODE_MALFORMED_REQUEST,
+        "Malformed authorization header",
+        queryResponse.responseObject
+    );
+  }
+
   private void shouldFailQuery(final String username, final String password) throws Exception {
     // When
     HttpResponse<Buffer> response = sendRequestWithCreds(
@@ -316,6 +338,17 @@ public class AuthTest extends ApiTest {
       request = request.basicAuthentication(username, password);
     }
     request.sendBuffer(requestBody, requestFuture);
+    return requestFuture.get();
+  }
+
+  private HttpResponse<Buffer> sendRequestWithMalformedCreds(
+      final String uri,
+      final Buffer requestBody
+  ) throws Exception {
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client.post(uri)
+        .putHeader(HttpHeaders.AUTHORIZATION.toString(), "Basic loadOfGibberishasljdfnalsjnfeknjf")
+        .sendBuffer(requestBody, requestFuture);
     return requestFuture.get();
   }
 

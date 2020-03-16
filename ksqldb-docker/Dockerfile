@@ -6,7 +6,9 @@ FROM ${DOCKER_UPSTREAM_REGISTRY}confluentinc/cp-base-new:${DOCKER_UPSTREAM_TAG}
 ARG PROJECT_VERSION
 ARG ARTIFACT_ID
 
-ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/share/java/${ARTIFACT_ID}/* /usr/share/java/${ARTIFACT_ID}/
+# target directory must be one of the projects that ksql-run-class sets on the KSQL_CLASSPATH,
+# of which the artifact ID (ksqldb-docker) is not one. thus the workaround of using ksqldb-rest-app
+ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/share/java/${ARTIFACT_ID}/* /usr/share/java/ksqldb-rest-app/
 ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/bin/* /usr/bin/
 ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/bin/docker/* /usr/bin/docker/
 ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/etc/* /etc/ksql/

@@ -48,10 +48,10 @@ if [ -z "$KSQL_LOG4J_OPTS" ]; then
   # installed
   if [ -e "$base_dir/config/log4j.properties" ]; then # Dev environment
     KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/config/log4j.properties"
-  elif [ -e "$base_dir/etc/ksqldb/log4j.properties" ]; then # Simple zip file layout
-    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/etc/ksqldb/log4j.properties"
-  elif [ -e "/etc/ksqldb/log4j.properties" ]; then # Normal install layout
-    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksqldb/log4j.properties"
+  elif [ -e "$base_dir/etc/ksql/log4j.properties" ]; then # Simple zip file layout
+    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/etc/ksql/log4j.properties"
+  elif [ -e "/etc/ksql/log4j.properties" ]; then # Normal install layout
+    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksql/log4j.properties"
   fi
 fi
 

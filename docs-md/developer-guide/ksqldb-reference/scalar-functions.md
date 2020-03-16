@@ -40,6 +40,7 @@ keywords: ksqlDB, function, scalar
   - [MASK_LEFT](#maskleft)
   - [MASK_RIGHT](#maskright)
   - [REPLACE](#replace)
+  - [REGEXP_EXTRACT](#regexpextract)
   - [SPLIT](#split)
   - [SUBSTRING](#substring)
   - [TRIM](#trim)
@@ -369,6 +370,20 @@ REPLACE
 
 Replace all instances of a substring in a string with a new string.
 
+REGEXP_EXTRACT
+-------
+
+`REGEXP_EXTRACT('.*', col1)`
+`REGEXP_EXTRACT('(([AEIOU]).)', col1, 2)`
+
+Extract the first subtring matched by the regex pattern from the input.
+
+A capturing group number can also be specified in order to return that specific group. If a number isn't specified,
+the entire substring is returned by default.
+
+For example, `REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2)`
+returns "there".
+
 SPLIT
 -----
 
@@ -390,7 +405,7 @@ SUBSTRING
 ---------
 
 `SUBSTRING(col1, 2, 5)`
-`SUBSTRING(str, pos, [len]`
+`SUBSTRING(str, pos, [len])`
 
 Returns a substring of `str` that starts at
 `pos` (first character is at position 1) and

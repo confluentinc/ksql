@@ -79,7 +79,7 @@ public class ServerVerticle extends AbstractVerticle {
 
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
-        .exceptionHandler(ServerUtils::unhandledExceptonHandler);
+        .exceptionHandler(ServerUtils::unhandledExceptionHandler);
     httpServer.listen(ar -> {
       if (ar.succeeded()) {
         startPromise.complete();

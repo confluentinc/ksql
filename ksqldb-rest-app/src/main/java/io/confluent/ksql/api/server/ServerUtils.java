@@ -41,7 +41,7 @@ public final class ServerUtils {
     response.setStatusCode(statusCode).end(buffer);
   }
 
-  public static void unhandledExceptonHandler(final Throwable t) {
+  public static void unhandledExceptionHandler(final Throwable t) {
     log.error("Unhandled exception", t);
   }
 

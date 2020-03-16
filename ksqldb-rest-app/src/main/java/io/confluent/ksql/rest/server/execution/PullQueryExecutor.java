@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -67,7 +66,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
-import io.confluent.ksql.parser.tree.SelectItem;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
@@ -246,7 +245,7 @@ public final class PullQueryExecutor {
         "Unable to execute pull query: %s", statement.getStatementText()));
   }
 
-  private TableRowsEntity routeQuery(
+  private static TableRowsEntity routeQuery(
       final KsqlNode node,
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
@@ -267,8 +266,7 @@ public final class PullQueryExecutor {
     }
   }
 
-  @VisibleForTesting
-  static TableRowsEntity queryRowsLocally(
+  private static TableRowsEntity queryRowsLocally(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final PullQueryContext pullQueryContext
@@ -297,14 +295,22 @@ public final class PullQueryExecutor {
           result.schema, pullQueryContext.mat.windowType().isPresent());
       rows = TableRowsEntityFactory.createRows(result.rows);
     } else {
+      final List<SelectExpression> projection = pullQueryContext.analysis.getSelectItems().stream()
+          .map(SingleColumn.class::cast)
+          .map(si -> SelectExpression
+              .of(si.getAlias().orElseThrow(IllegalStateException::new), si.getExpression()))
+          .collect(Collectors.toList());
+
       outputSchema = selectOutputSchema(
-          result, executionContext, pullQueryContext.analysis, pullQueryContext.mat.windowType());
+          result, executionContext, projection, pullQueryContext.mat.windowType());
+
       rows = handleSelects(
           result,
           statement,
           executionContext,
           pullQueryContext.analysis,
           outputSchema,
+          projection,
           pullQueryContext.mat.windowType(),
           pullQueryContext.queryId,
           pullQueryContext.contextStacker
@@ -757,8 +763,15 @@ public final class PullQueryExecutor {
   }
 
   private static boolean isSelectStar(final Select select) {
-    final List<SelectItem> selects = select.getSelectItems();
-    return selects.size() == 1 && selects.get(0) instanceof AllColumns;
+    final boolean someStars = select.getSelectItems().stream()
+        .anyMatch(s -> s instanceof AllColumns);
+
+    if (someStars && select.getSelectItems().size() != 1) {
+      throw new KsqlException("Pull queries only support wildcards in the projects "
+          + "if they are the only expression");
+    }
+
+    return someStars;
   }
 
   private static List<List<?>> handleSelects(
@@ -767,14 +780,15 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ImmutableAnalysis analysis,
       final LogicalSchema outputSchema,
+      final List<SelectExpression> projection,
       final Optional<WindowType> windowType,
       final QueryId queryId,
       final Stacker contextStacker
   ) {
-    final boolean noSystemColumns = analysis.getSelectColumnRefs().stream()
+    final boolean noSystemColumns = analysis.getSelectColumnNames().stream()
         .noneMatch(SchemaUtil::isSystemColumn);
 
-    final boolean noKeyColumns = analysis.getSelectColumnRefs().stream()
+    final boolean noKeyColumns = analysis.getSelectColumnNames().stream()
         .noneMatch(input.schema::isKeyColumn);
 
     final LogicalSchema intermediateSchema;
@@ -819,7 +833,7 @@ public final class PullQueryExecutor {
         .cloneWithPropertyOverwrite(statement.getConfigOverrides());
 
     final SelectValueMapper<Object> select = SelectValueMapperFactory.create(
-        analysis.getSelectExpressions(),
+        projection,
         intermediateSchema,
         ksqlConfig,
         executionContext.getMetaStore()
@@ -869,7 +883,7 @@ public final class PullQueryExecutor {
   private static LogicalSchema selectOutputSchema(
       final Result input,
       final KsqlExecutionContext executionContext,
-      final ImmutableAnalysis analysis,
+      final List<SelectExpression> selectExpressions,
       final Optional<WindowType> windowType
   ) {
     final Builder schemaBuilder = LogicalSchema.builder();
@@ -881,8 +895,7 @@ public final class PullQueryExecutor {
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, executionContext.getMetaStore());
 
-    for (int idx = 0; idx < analysis.getSelectExpressions().size(); idx++) {
-      final SelectExpression select = analysis.getSelectExpressions().get(idx);
+    for (final SelectExpression select : selectExpressions) {
       final SqlType type = expressionTypeManager.getExpressionSqlType(select.getExpression());
 
       if (input.schema.isKeyColumn(select.getAlias())

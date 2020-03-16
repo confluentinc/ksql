@@ -1,0 +1,92 @@
+{
+  "tests": [
+    {
+      "name": "nested",
+      "statements": [
+        "CREATE STREAM INPUT (text STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT CONCAT(EXTRACTJSONFIELD(text,'$.name'),CONCAT('-',EXTRACTJSONFIELD(text,'$.value'))) from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"text": "{\"name\":\"fred\",\"value\":1}"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": "fred-1"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "ROWKEY STRING KEY, KSQL_COL_0 STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null args",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT test_udf(ID, NULL), test_udf(ID, ID, NULL) from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "doStuffLongString,doStuffLongLongString"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "var args",
+      "statements": [
+        "CREATE STREAM INPUT (col0 BIGINT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT test_udf(col0, col0, col0, col0, col0) from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "doStuffLongVarargs"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "struct args",
+      "statements": [
+        "CREATE STREAM INPUT (col0 STRUCT<A STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT test_udf(col0) from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"col0": {"A": "expect-result"}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": "expect-result"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "ROWKEY STRING KEY, KSQL_COL_0 STRING"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -22,20 +22,22 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
@@ -78,7 +80,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.doCreateInto = doCreateInto;
     this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
 
-    validate();
+    validate(source);
   }
 
   public boolean isDoCreateInto() {
@@ -130,12 +132,16 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
   }
 
-  private void validate() {
-    final LogicalSchema schema = getSchema();
+  private static void validate(final PlanNode source) {
+    final LogicalSchema schema = source.getSchema();
 
-    final String duplicates = getSelectExpressions().stream()
-        .map(SelectExpression::getAlias)
-        .filter(schema::isKeyColumn)
+    final String duplicates = schema.columns().stream()
+        .map(Column::name)
+        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+        .entrySet()
+        .stream()
+        .filter(e -> e.getValue() > 1)
+        .map(Entry::getKey)
         .map(ColumnName::toString)
         .collect(Collectors.joining(", "));
 

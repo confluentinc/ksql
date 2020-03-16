@@ -22,16 +22,22 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKSourceFactory;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Immutable
 public class DataSourceNode extends PlanNode {
@@ -39,29 +45,25 @@ public class DataSourceNode extends PlanNode {
   private static final String SOURCE_OP_NAME = "Source";
 
   private final DataSource dataSource;
-  private final SourceName alias;
   private final KeyField keyField;
   private final SchemaKStreamFactory schemaKStreamFactory;
 
   public DataSourceNode(
       final PlanNodeId id,
       final DataSource dataSource,
-      final SourceName alias,
-      final List<SelectExpression> selectExpressions
+      final SourceName alias
   ) {
-    this(id, dataSource, alias, selectExpressions, SchemaKSourceFactory::buildSource);
+    this(id, dataSource, alias, SchemaKSourceFactory::buildSource);
   }
 
   DataSourceNode(
       final PlanNodeId id,
       final DataSource dataSource,
       final SourceName alias,
-      final List<SelectExpression> selectExpressions,
       final SchemaKStreamFactory schemaKStreamFactory
   ) {
-    super(id, dataSource.getDataSourceType(), buildSchema(dataSource), selectExpressions);
+    super(id, dataSource.getDataSourceType(), buildSchema(dataSource), Optional.of(alias));
     this.dataSource = requireNonNull(dataSource, "dataSource");
-    this.alias = requireNonNull(alias, "alias");
 
     this.keyField = dataSource.getKeyField()
         .validateKeyExistsIn(getSchema());
@@ -79,7 +81,7 @@ public class DataSourceNode extends PlanNode {
   }
 
   public SourceName getAlias() {
-    return alias;
+    return getSourceName().orElseThrow(IllegalStateException::new);
   }
 
   public DataSourceType getDataSourceType() {
@@ -116,12 +118,41 @@ public class DataSourceNode extends PlanNode {
     );
   }
 
+  @Override
+  public Stream<ColumnName> resolveSelectStar(
+      final Optional<SourceName> sourceName, final boolean valueOnly
+  ) {
+    if (sourceName.isPresent() && !sourceName.equals(getSourceName())) {
+      throw new IllegalArgumentException("Expected alias of " + getAlias()
+          + ", but was " + sourceName.get());
+    }
+
+    return valueOnly
+        ? getSchema().withoutMetaAndKeyColsInValue().value().stream().map(Column::name)
+        : orderColumns(getSchema().value(), getSchema());
+  }
+
   private static LogicalSchema buildSchema(final DataSource dataSource) {
     // DataSourceNode copies implicit and key fields into the value schema
     // It users a KS valueMapper to add the key fields
     // and a KS transformValues to add the implicit fields
     return dataSource.getSchema()
         .withMetaAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
+  }
+
+  private static Stream<ColumnName> orderColumns(
+      final List<Column> columns,
+      final LogicalSchema schema
+  ) {
+    // When doing a `select *` system and key columns should be at the front of the column list
+    // but are added at the back during processing for performance reasons.
+    // Switch them around here:
+    final Map<Boolean, List<Column>> partitioned = columns.stream().collect(Collectors
+        .groupingBy(c -> SchemaUtil.isSystemColumn(c.name()) || schema.isKeyColumn(c.name())));
+
+    final List<Column> all = partitioned.get(true);
+    all.addAll(partitioned.get(false));
+    return all.stream().map(Column::name);
   }
 
   @Immutable

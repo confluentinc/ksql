@@ -18,24 +18,33 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Immutable
 public class ProjectNode extends PlanNode {
 
   private final PlanNode source;
+  private final ImmutableList<SelectExpression> projectExpressions;
   private final KeyField keyField;
+  private final ImmutableMap<ColumnName, ImmutableList<ColumnName>> aliases;
 
   public ProjectNode(
       final PlanNodeId id,
@@ -44,11 +53,15 @@ public class ProjectNode extends PlanNode {
       final LogicalSchema schema,
       final Optional<ColumnName> keyFieldName
   ) {
-    super(id, source.getNodeOutputType(), schema, projectExpressions);
+    super(id, source.getNodeOutputType(), schema, source.getSourceName());
 
     this.source = requireNonNull(source, "source");
+    this.projectExpressions = ImmutableList.copyOf(
+        requireNonNull(projectExpressions, "projectExpressions")
+    );
     this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);
+    this.aliases = buildAliasMapping(projectExpressions);
 
     validate();
   }
@@ -72,6 +85,10 @@ public class ProjectNode extends PlanNode {
     return keyField;
   }
 
+  public List<SelectExpression> getSelectExpressions() {
+    return projectExpressions;
+  }
+
   @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitProject(this, context);
@@ -81,25 +98,54 @@ public class ProjectNode extends PlanNode {
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     return getSource().buildStream(builder)
         .select(
-            getSelectExpressions(),
+            projectExpressions,
             builder.buildNodeContext(getId().toString()),
             builder
         );
   }
 
+  public Stream<ColumnName> resolveSelectStar(
+      final Optional<SourceName> sourceName,
+      final boolean valueOnly
+  ) {
+    return source.resolveSelectStar(sourceName, valueOnly)
+        .map(name -> aliases.getOrDefault(name, ImmutableList.of()))
+        .flatMap(Collection::stream);
+  }
+
   private void validate() {
-    if (getSchema().value().size() != getSelectExpressions().size()) {
+    if (getSchema().value().size() != projectExpressions.size()) {
       throw new KsqlException("Error in projection. Schema fields and expression list are not "
           + "compatible.");
     }
 
-    for (int i = 0; i < getSelectExpressions().size(); i++) {
+    for (int i = 0; i < projectExpressions.size(); i++) {
       final Column column = getSchema().value().get(i);
-      final SelectExpression selectExpression = getSelectExpressions().get(i);
+      final SelectExpression selectExpression = projectExpressions.get(i);
 
       if (!column.name().equals(selectExpression.getAlias())) {
         throw new IllegalArgumentException("Mismatch between schema and selects");
       }
     }
+  }
+
+  private static ImmutableMap<ColumnName, ImmutableList<ColumnName>> buildAliasMapping(
+      final List<SelectExpression> projectExpressions
+  ) {
+    final Map<ColumnName, ImmutableList.Builder<ColumnName>> aliases = new HashMap<>();
+
+    projectExpressions.stream()
+        .filter(se -> se.getExpression() instanceof ColumnReferenceExp)
+        .forEach(se -> aliases.computeIfAbsent(
+            ((ColumnReferenceExp) se.getExpression()).getColumnName(),
+            k -> ImmutableList.builder())
+            .add(se.getAlias()));
+
+    final ImmutableMap.Builder<ColumnName, ImmutableList<ColumnName>> builder =
+        ImmutableMap.builder();
+
+    aliases.forEach((k, v) -> builder.put(k, v.build()));
+
+    return builder.build();
   }
 }

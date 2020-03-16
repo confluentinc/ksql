@@ -348,7 +348,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
-        "message": "Window bounds column TEST.WINDOWSTART can only be used in the SELECT clause of windowed aggregations",
+        "message": "Window bounds column WINDOWSTART can only be used in the SELECT clause of windowed aggregations",
         "status": 400
       }
     },
@@ -360,7 +360,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
-        "message": "Window bounds column TEST.WINDOWSTART can only be used in the SELECT clause of windowed aggregations",
+        "message": "Window bounds column WINDOWSTART can only be used in the SELECT clause of windowed aggregations",
         "status": 400
       }
     }

@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -33,6 +32,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
+import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -61,12 +61,11 @@ public class Analysis implements ImmutableAnalysis {
   private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
   private Optional<JoinInfo> joinInfo = Optional.empty();
   private Optional<Expression> whereExpression = Optional.empty();
-  private final List<SelectExpression> selectExpressions = new ArrayList<>();
+  private final List<SelectItem> selectItems = new ArrayList<>();
   private final Set<ColumnName> selectColumnNames = new HashSet<>();
   private final List<Expression> groupByExpressions = new ArrayList<>();
   private Optional<WindowExpression> windowExpression = Optional.empty();
   private Optional<Expression> partitionBy = Optional.empty();
-  private ImmutableSet<SerdeOption> serdeOptions = ImmutableSet.of();
   private Optional<Expression> havingExpression = Optional.empty();
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
@@ -89,8 +88,8 @@ public class Analysis implements ImmutableAnalysis {
     return resultMaterialization;
   }
 
-  void addSelectItem(final Expression expression, final ColumnName alias) {
-    selectExpressions.add(SelectExpression.of(alias, expression));
+  void addSelectItem(final SelectItem selectItem) {
+    selectItems.add(Objects.requireNonNull(selectItem, "selectItem"));
   }
 
   void addSelectColumnRefs(final Collection<ColumnName> columnNames) {
@@ -116,12 +115,12 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   @Override
-  public List<SelectExpression> getSelectExpressions() {
-    return Collections.unmodifiableList(selectExpressions);
+  public List<SelectItem> getSelectItems() {
+    return Collections.unmodifiableList(selectItems);
   }
 
   @Override
-  public Set<ColumnName> getSelectColumnRefs() {
+  public Set<ColumnName> getSelectColumnNames() {
     return Collections.unmodifiableSet(selectColumnNames);
   }
 
@@ -143,7 +142,8 @@ public class Analysis implements ImmutableAnalysis {
     this.windowExpression = Optional.of(windowExpression);
   }
 
-  Optional<Expression> getHavingExpression() {
+  @Override
+  public Optional<Expression> getHavingExpression() {
     return havingExpression;
   }
 
@@ -209,18 +209,10 @@ public class Analysis implements ImmutableAnalysis {
     fromDataSources.add(new AliasedDataSource(alias, dataSource));
   }
 
-  QualifiedColumnReferenceExp getDefaultArgument() {
+  @Override
+  public QualifiedColumnReferenceExp getDefaultArgument() {
     final SourceName alias = fromDataSources.get(0).getAlias();
     return new QualifiedColumnReferenceExp(alias, SchemaUtil.ROWTIME_NAME);
-  }
-
-  void setSerdeOptions(final Set<SerdeOption> serdeOptions) {
-    this.serdeOptions = ImmutableSet.copyOf(serdeOptions);
-  }
-
-  @Override
-  public Set<SerdeOption> getSerdeOptions() {
-    return serdeOptions;
   }
 
   void setProperties(final CreateSourceAsProperties properties) {
@@ -265,23 +257,28 @@ public class Analysis implements ImmutableAnalysis {
     private final SourceName name;
     private final KsqlTopic topic;
     private final boolean create;
+    private final ImmutableSet<SerdeOption> defaultSerdeOptions;
 
-    public static <K> Into of(
+    public static Into of(
         final SourceName name,
         final boolean create,
-        final KsqlTopic topic
+        final KsqlTopic topic,
+        final Set<SerdeOption> defaultSerdeOptions
     ) {
-      return new Into(name, create, topic);
+      return new Into(name, create, topic, defaultSerdeOptions);
     }
 
     private Into(
         final SourceName name,
         final boolean create,
-        final KsqlTopic topic
+        final KsqlTopic topic,
+        final Set<SerdeOption> defaultSerdeOptions
     ) {
       this.name = requireNonNull(name, "name");
       this.create = create;
       this.topic = requireNonNull(topic, "topic");
+      this.defaultSerdeOptions = ImmutableSet
+          .copyOf(requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
     }
 
     public SourceName getName() {
@@ -294,6 +291,10 @@ public class Analysis implements ImmutableAnalysis {
 
     public KsqlTopic getKsqlTopic() {
       return topic;
+    }
+
+    public ImmutableSet<SerdeOption> getDefaultSerdeOptions() {
+      return defaultSerdeOptions;
     }
   }
 

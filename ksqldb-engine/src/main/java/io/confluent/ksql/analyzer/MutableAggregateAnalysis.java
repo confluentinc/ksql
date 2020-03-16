@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public class MutableAggregateAnalysis implements AggregateAnalysis {
+public class MutableAggregateAnalysis implements AggregateAnalysisResult {
 
   private final List<ColumnReferenceExp> requiredColumns = new ArrayList<>();
   private final Map<Expression, Set<ColumnReferenceExp>> nonAggSelectExpressions
@@ -50,17 +50,14 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
     return Collections.unmodifiableList(requiredColumns);
   }
 
-  @Override
   public Map<Expression, Set<ColumnReferenceExp>> getNonAggregateSelectExpressions() {
     return Collections.unmodifiableMap(nonAggSelectExpressions);
   }
 
-  @Override
   public Set<ColumnReferenceExp> getAggregateSelectFields() {
     return Collections.unmodifiableSet(aggSelectFields);
   }
 
-  @Override
   public Set<ColumnReferenceExp> getNonAggregateHavingFields() {
     return Collections.unmodifiableSet(nonAggHavingFields);
   }

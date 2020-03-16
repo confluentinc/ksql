@@ -44,7 +44,7 @@ public abstract class OutputNode
       final OptionalInt limit,
       final Optional<TimestampColumn> timestampColumn
   ) {
-    super(id, source.getNodeOutputType(), schema, source.getSelectExpressions());
+    super(id, source.getNodeOutputType(), schema, source.getSourceName());
 
     this.source = requireNonNull(source, "source");
     this.limit = requireNonNull(limit, "limit");

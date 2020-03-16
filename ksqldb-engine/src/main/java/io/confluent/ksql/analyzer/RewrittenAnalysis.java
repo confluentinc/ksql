@@ -20,14 +20,15 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.tree.SelectItem;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.serde.SerdeOption;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,6 +45,7 @@ import java.util.stream.Collectors;
  * transformations needed to execute the query.
  */
 public class RewrittenAnalysis implements ImmutableAnalysis {
+
   private final ImmutableAnalysis original;
   private final BiFunction<Expression, Context<Void>, Optional<Expression>> rewriter;
 
@@ -52,7 +54,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
       final BiFunction<Expression, Context<Void>, Optional<Expression>> rewriter
   ) {
     this.original = Objects.requireNonNull(original, "original");
-    this.rewriter = Objects.requireNonNull(rewriter ,"rewriter");
+    this.rewriter = Objects.requireNonNull(rewriter, "rewriter");
   }
 
   public ImmutableAnalysis getOriginal() {
@@ -65,11 +67,21 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
-  public List<SelectExpression> getSelectExpressions() {
-    return original.getSelectExpressions().stream()
-        .map(e -> SelectExpression.of(
-            e.getAlias(),
-            ExpressionTreeRewriter.rewriteWith(rewriter, e.getExpression())))
+  public List<SelectItem> getSelectItems() {
+    return original.getSelectItems().stream()
+        .map(si -> {
+              if (!(si instanceof SingleColumn)) {
+                return si;
+              }
+
+              final SingleColumn singleColumn = (SingleColumn) si;
+              return new SingleColumn(
+                  singleColumn.getLocation(),
+                  rewrite(singleColumn.getExpression()),
+                  singleColumn.getAlias()
+              );
+            }
+        )
         .collect(Collectors.toList());
   }
 
@@ -84,10 +96,10 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
-  public Set<ColumnName> getSelectColumnRefs() {
-    return original.getSelectColumnRefs().stream()
+  public Set<ColumnName> getSelectColumnNames() {
+    return original.getSelectColumnNames().stream()
         .map(UnqualifiedColumnReferenceExp::new)
-        .map(r -> ExpressionTreeRewriter.rewriteWith(rewriter, r))
+        .map(this::rewrite)
         .map(UnqualifiedColumnReferenceExp::getColumnName)
         .collect(Collectors.toSet());
   }
@@ -98,8 +110,18 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
+  public Optional<Expression> getHavingExpression() {
+    return rewriteOptional(original.getHavingExpression());
+  }
+
+  @Override
   public Optional<WindowExpression> getWindowExpression() {
     return original.getWindowExpression();
+  }
+
+  @Override
+  public ColumnReferenceExp getDefaultArgument() {
+    return rewrite(original.getDefaultArgument());
   }
 
   @Override
@@ -116,8 +138,8 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   public Optional<JoinInfo> getJoin() {
     return original.getJoin().map(
         j -> new JoinInfo(
-            ExpressionTreeRewriter.rewriteWith(rewriter, j.getLeftJoinExpression()),
-            ExpressionTreeRewriter.rewriteWith(rewriter, j.getRightJoinExpression()),
+            rewrite(j.getLeftJoinExpression()),
+            rewrite(j.getRightJoinExpression()),
             j.getType(),
             j.getWithinExpression()
         )
@@ -127,11 +149,6 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   @Override
   public List<AliasedDataSource> getFromDataSources() {
     return original.getFromDataSources();
-  }
-
-  @Override
-  public Set<SerdeOption> getSerdeOptions() {
-    return original.getSerdeOptions();
   }
 
   @Override
@@ -145,12 +162,16 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   private <T extends Expression> Optional<T> rewriteOptional(final Optional<T> expression) {
-    return expression.map(e -> ExpressionTreeRewriter.rewriteWith(rewriter, e));
+    return expression.map(this::rewrite);
   }
 
   private <T extends Expression> List<T> rewriteList(final List<T> expressions) {
     return expressions.stream()
-        .map(e -> ExpressionTreeRewriter.rewriteWith(rewriter, e))
+        .map(this::rewrite)
         .collect(Collectors.toList());
+  }
+
+  private <T extends Expression> T rewrite(final T expression) {
+    return ExpressionTreeRewriter.rewriteWith(rewriter, expression);
   }
 }

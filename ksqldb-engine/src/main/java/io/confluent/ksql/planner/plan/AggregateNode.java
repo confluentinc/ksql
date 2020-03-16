@@ -19,6 +19,9 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.analyzer.AggregateAnalysisResult;
+import io.confluent.ksql.analyzer.AggregateExpressionRewriter;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -30,6 +33,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -71,41 +75,45 @@ public class AggregateNode extends PlanNode {
   private final ImmutableList<Expression> aggregateFunctionArguments;
   private final ImmutableList<FunctionCall> functionList;
   private final ImmutableList<ColumnReferenceExp> requiredColumns;
-  private final Expression havingExpressions;
+  private final Optional<Expression> havingExpressions;
+  private final ImmutableList<SelectExpression> finalSelectExpressions;
 
-  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public AggregateNode(
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
       final Optional<ColumnName> keyFieldName,
       final List<Expression> groupByExpressions,
-      final Optional<WindowExpression> windowExpression,
-      final List<Expression> aggregateFunctionArguments,
-      final List<FunctionCall> functionList,
-      final List<ColumnReferenceExp> requiredColumns,
-      final List<Expression> finalSelectExpressions,
-      final Expression havingExpressions
+      final FunctionRegistry functionRegistry,
+      final ImmutableAnalysis analysis,
+      final AggregateAnalysisResult rewrittenAggregateAnalysis,
+      final List<SelectExpression> projectionExpressions
   ) {
-    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    super(
-        id,
-        DataSourceType.KTABLE,
-        schema,
-        buildSelectExpressions(schema, finalSelectExpressions)
-    );
+    super(id, DataSourceType.KTABLE, schema, Optional.empty());
 
     this.source = requireNonNull(source, "source");
     this.groupByExpressions = ImmutableList
         .copyOf(requireNonNull(groupByExpressions, "groupByExpressions"));
-    this.windowExpression = requireNonNull(windowExpression, "windowExpression");
+    this.windowExpression = requireNonNull(analysis, "analysis").getWindowExpression();
+
+    final AggregateExpressionRewriter aggregateExpressionRewriter =
+        new AggregateExpressionRewriter(functionRegistry);
+
     this.aggregateFunctionArguments = ImmutableList
-        .copyOf(requireNonNull(aggregateFunctionArguments, "aggregateFunctionArguments"));
+        .copyOf(rewrittenAggregateAnalysis.getAggregateFunctionArguments());
     this.functionList = ImmutableList
-        .copyOf(requireNonNull(functionList, "functionList"));
+        .copyOf(rewrittenAggregateAnalysis.getAggregateFunctions());
     this.requiredColumns = ImmutableList
-        .copyOf(requireNonNull(requiredColumns, "requiredColumns"));
-    this.havingExpressions = havingExpressions;
+        .copyOf(rewrittenAggregateAnalysis.getRequiredColumns());
+    this.finalSelectExpressions = ImmutableList.copyOf(projectionExpressions.stream()
+        .map(se -> SelectExpression.of(
+            se.getAlias(),
+            ExpressionTreeRewriter
+                .rewriteWith(aggregateExpressionRewriter::process, se.getExpression())
+        ))
+        .collect(Collectors.toList()));
+    this.havingExpressions = rewrittenAggregateAnalysis.getHavingExpression()
+        .map(exp -> ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, exp));
     this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);
   }
@@ -206,7 +214,7 @@ public class AggregateNode extends PlanNode {
         aggregationContext
     );
 
-    final Optional<Expression> havingExpression = Optional.ofNullable(havingExpressions)
+    final Optional<Expression> havingExpression = havingExpressions
         .map(internalSchema::resolveToInternal);
 
     if (havingExpression.isPresent()) {
@@ -217,7 +225,7 @@ public class AggregateNode extends PlanNode {
     }
 
     final List<SelectExpression> finalSelects = internalSchema
-        .updateFinalSelectExpressions(getSelectExpressions());
+        .updateFinalSelectExpressions(finalSelectExpressions);
 
     return aggregated.select(
         finalSelects,
@@ -228,28 +236,6 @@ public class AggregateNode extends PlanNode {
 
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
-  }
-
-  private static List<SelectExpression> buildSelectExpressions(
-      final LogicalSchema schema,
-      final List<Expression> finalSelectExpressions
-  ) {
-    final List<SelectExpression> finalSelectExpressionList = new ArrayList<>();
-    if (finalSelectExpressions.size() != schema.value().size()) {
-      throw new RuntimeException(
-          "Incompatible aggregate schema, field count must match, "
-              + "selected field count:"
-              + finalSelectExpressions.size()
-              + " schema field count:"
-              + schema.value().size());
-    }
-    for (int i = 0; i < finalSelectExpressions.size(); i++) {
-      finalSelectExpressionList.add(SelectExpression.of(
-          schema.value().get(i).name(),
-          finalSelectExpressions.get(i)
-      ));
-    }
-    return finalSelectExpressionList;
   }
 
   private static class InternalSchema {

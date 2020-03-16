@@ -33,6 +33,38 @@
           }
         ]
       }
+    },
+    {
+      "name": "LCASE, UCASE, TRIM SUBSTRING",
+      "statements": [
+        "CREATE STREAM INPUT (text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select LCASE(text), UCASE(text), TRIM(text), SUBSTRING(text, 2, 5) from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "lower"},
+        {"topic": "test_topic", "value": "UPPER"},
+        {"topic": "test_topic", "value": "MiXeD"},
+        {"topic": "test_topic", "value": " \t with white space \t"},
+        {"topic": "test_topic", "value": "s"},
+        {"topic": "test_topic", "value": "long enough"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "lower,LOWER,lower,ower"},
+        {"topic": "OUTPUT", "value": "upper,UPPER,UPPER,PPER"},
+        {"topic": "OUTPUT", "value": "mixed,MIXED,MiXeD,iXeD"},
+        {"topic": "OUTPUT", "value": "\" \t with white space \t\",\" \t WITH WHITE SPACE \t\",with white space,\"\t wit\""},
+        {"topic": "OUTPUT", "value": "s,S,s,"},
+        {"topic": "OUTPUT", "value": "long enough,LONG ENOUGH,long enough,ong e"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING, KSQL_COL_2 STRING, KSQL_COL_3 STRING"
+          }
+        ]
+      }
     }
   ]
 }

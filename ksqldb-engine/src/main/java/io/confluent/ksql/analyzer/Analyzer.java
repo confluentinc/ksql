@@ -17,7 +17,6 @@ package io.confluent.ksql.analyzer;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -31,7 +30,6 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -40,7 +38,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
-import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
@@ -56,22 +53,18 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -99,7 +92,6 @@ class Analyzer {
 
   private final MetaStore metaStore;
   private final String topicPrefix;
-  private final SerdeOptionsSupplier serdeOptionsSupplier;
   private final Set<SerdeOption> defaultSerdeOptions;
 
   /**
@@ -112,25 +104,10 @@ class Analyzer {
       final String topicPrefix,
       final Set<SerdeOption> defaultSerdeOptions
   ) {
-    this(
-        metaStore,
-        topicPrefix,
-        defaultSerdeOptions,
-        SerdeOptions::buildForCreateAsStatement);
-  }
-
-  @VisibleForTesting
-  Analyzer(
-      final MetaStore metaStore,
-      final String topicPrefix,
-      final Set<SerdeOption> defaultSerdeOptions,
-      final SerdeOptionsSupplier serdeOptionsSupplier
-  ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
     this.defaultSerdeOptions = ImmutableSet
         .copyOf(requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
-    this.serdeOptionsSupplier = requireNonNull(serdeOptionsSupplier, "serdeOptionsSupplier");
   }
 
   /**
@@ -161,20 +138,16 @@ class Analyzer {
 
     private final Analysis analysis;
     private final boolean persistent;
-    private final boolean pullQuery;
     private boolean isJoin = false;
     private boolean isGroupBy = false;
 
     Visitor(final Query query, final boolean persistent) {
-      this.pullQuery = query.isPullQuery();
       this.analysis = new Analysis(query.getResultMaterialization());
       this.persistent = persistent;
     }
 
     private void analyzeNonStdOutSink(final Sink sink) {
       analysis.setProperties(sink.getProperties());
-
-      setSerdeOptions(sink);
 
       if (!sink.shouldCreateSink()) {
         final DataSource existing = metaStore.getSource(sink.getName());
@@ -186,7 +159,8 @@ class Analyzer {
         analysis.setInto(Into.of(
             sink.getName(),
             false,
-            existing.getKsqlTopic()
+            existing.getKsqlTopic(),
+            defaultSerdeOptions
         ));
         return;
       }
@@ -224,7 +198,8 @@ class Analyzer {
       analysis.setInto(Into.of(
           sink.getName(),
           true,
-          intoKsqlTopic
+          intoKsqlTopic,
+          defaultSerdeOptions
       ));
     }
 
@@ -241,27 +216,6 @@ class Analyzer {
               .getDataSource()
               .getKsqlTopic()
               .getKeyFormat());
-    }
-
-    private void setSerdeOptions(final Sink sink) {
-      final List<ColumnName> columnNames = getColumnNames();
-
-      final Format valueFormat = getValueFormat(sink);
-
-      final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
-          columnNames,
-          valueFormat,
-          sink.getProperties().getWrapSingleValues(),
-          defaultSerdeOptions
-      );
-
-      analysis.setSerdeOptions(serdeOptions);
-    }
-
-    private List<ColumnName> getColumnNames() {
-      return analysis.getSelectExpressions().stream()
-          .map(SelectExpression::getAlias)
-          .collect(Collectors.toList());
     }
 
     private Format getValueFormat(final Sink sink) {
@@ -287,14 +241,14 @@ class Analyzer {
     ) {
       process(node.getFrom(), context);
 
-      process(node.getSelect(), context);
-
       node.getWhere().ifPresent(this::analyzeWhere);
       node.getGroupBy().ifPresent(this::analyzeGroupBy);
       node.getPartitionBy().ifPresent(this::analyzePartitionBy);
       node.getWindow().ifPresent(this::analyzeWindowExpression);
       node.getHaving().ifPresent(this::analyzeHaving);
       node.getLimit().ifPresent(analysis::setLimitClause);
+
+      process(node.getSelect(), context);
 
       throwOnUnknownColumnReference();
 
@@ -315,8 +269,10 @@ class Analyzer {
       analysis.getHavingExpression()
           .ifPresent(columnValidator::analyzeExpression);
 
-      analysis.getSelectExpressions().stream()
-          .map(SelectExpression::getExpression)
+      analysis.getSelectItems().stream()
+          .filter(si -> si instanceof SingleColumn)
+          .map(SingleColumn.class::cast)
+          .map(SingleColumn::getExpression)
           .forEach(columnValidator::analyzeExpression);
     }
 
@@ -508,13 +464,14 @@ class Analyzer {
     @Override
     protected AstNode visitSelect(final Select node, final Void context) {
       for (final SelectItem selectItem : node.getSelectItems()) {
-        if (selectItem instanceof AllColumns) {
-          visitSelectStar((AllColumns) selectItem);
-        } else if (selectItem instanceof SingleColumn) {
+        analysis.addSelectItem(selectItem);
+
+        if (selectItem instanceof SingleColumn) {
           final SingleColumn column = (SingleColumn) selectItem;
-          addSelectItem(column.getExpression(), column.getAlias().get());
+          validateSelect(column);
+          captureReferencedSourceColumns(column.getExpression());
           visitTableFunctions(column.getExpression());
-        } else {
+        } else if (!(selectItem instanceof AllColumns)) {
           throw new IllegalArgumentException(
               "Unsupported SelectItem type: " + selectItem.getClass().getName());
         }
@@ -552,63 +509,36 @@ class Analyzer {
       analysis.setHavingExpression(node);
     }
 
-    private void visitSelectStar(final AllColumns allColumns) {
+    private void validateSelect(final SingleColumn column) {
+      final ColumnName columnName = column.getAlias()
+          .orElseThrow(IllegalStateException::new);
 
-      final Optional<NodeLocation> location = allColumns.getLocation();
-
-      final Optional<SourceName> prefix = allColumns.getSource();
-
-      for (final AliasedDataSource source : analysis.getFromDataSources()) {
-
-        if (prefix.isPresent() && !prefix.get().equals(source.getAlias())) {
-          continue;
+      if (persistent) {
+        if (SchemaUtil.isSystemColumn(columnName)) {
+          throw new KsqlException("Reserved column name in select: " + columnName + ". "
+              + "Please remove or alias the column.");
         }
+      }
 
-        final String aliasPrefix = analysis.isJoin()
-            ? source.getAlias().text() + "_"
-            : "";
-
-        final LogicalSchema schema = source.getDataSource().getSchema();
-        final boolean windowed = source.getDataSource().getKsqlTopic().getKeyFormat().isWindowed();
-
-        // Non-join persistent queries only require value columns on SELECT *
-        // where as joins and transient queries require all columns in the select:
-        // See https://github.com/confluentinc/ksql/issues/3731 for more info
-        final List<Column> valueColumns = persistent && !analysis.isJoin()
-            ? schema.value()
-            : orderColumns(schema.withMetaAndKeyColsInValue(windowed).value(), schema);
-
-        for (final Column column : valueColumns) {
-
-          if (pullQuery && schema.isMetaColumn(column.name())) {
-            continue;
-          }
-
-          final QualifiedColumnReferenceExp selectItem = new QualifiedColumnReferenceExp(
-              location,
-              source.getAlias(),
-              column.name());
-
-          final String alias = aliasPrefix + column.name().text();
-
-          addSelectItem(selectItem, ColumnName.of(alias));
-        }
+      if (analysis.getGroupByExpressions().isEmpty()) {
+        throwOnUdafs(column.getExpression());
       }
     }
 
-    private List<Column> orderColumns(
-        final List<Column> columns,
-        final LogicalSchema schema
-    ) {
-      // When doing a `select *` system and key columns should be at the front of the column list
-      // but are added at the back during processing for performance reasons.
-      // Switch them around here:
-      final Map<Boolean, List<Column>> partitioned = columns.stream().collect(Collectors
-          .groupingBy(c -> SchemaUtil.isSystemColumn(c.name()) || schema.isKeyColumn(c.name())));
+    private void throwOnUdafs(final Expression expression) {
+      new TraversalExpressionVisitor<Void>() {
+        @Override
+        public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
+          final FunctionName functionName = functionCall.getName();
+          if (metaStore.isAggregate(functionName)) {
+            throw new KsqlException("Use of aggregate function "
+                + functionName.text() + " requires a GROUP BY clause.");
+          }
 
-      final List<Column> all = partitioned.get(true);
-      all.addAll(partitioned.get(false));
-      return all;
+          super.visitFunctionCall(functionCall, context);
+          return null;
+        }
+      }.process(expression, null);
     }
 
     public void validate() {
@@ -636,16 +566,10 @@ class Analyzer {
       }
     }
 
-    private void addSelectItem(final Expression exp, final ColumnName columnName) {
-      if (persistent) {
-        if (SchemaUtil.isSystemColumn(columnName)) {
-          throw new KsqlException("Reserved column name in select: " + columnName + ". "
-              + "Please remove or alias the column.");
-        }
-      }
-
+    private void captureReferencedSourceColumns(final Expression exp) {
       final Set<ColumnName> columnNames = new HashSet<>();
-      final TraversalExpressionVisitor<Void> visitor = new TraversalExpressionVisitor<Void>() {
+
+      new TraversalExpressionVisitor<Void>() {
         @Override
         public Void visitColumnReference(
             final UnqualifiedColumnReferenceExp node,
@@ -663,11 +587,8 @@ class Analyzer {
           columnNames.add(node.getColumnName());
           return null;
         }
-      };
+      }.process(exp, null);
 
-      visitor.process(exp, null);
-
-      analysis.addSelectItem(exp, columnName);
       analysis.addSelectColumnRefs(columnNames);
     }
 
@@ -693,6 +614,10 @@ class Analyzer {
 
           tableFunctionName = Optional.of(functionName);
 
+          if (!analysis.getGroupByExpressions().isEmpty()) {
+            throw new KsqlException("Table functions cannot be used with aggregations.");
+          }
+
           analysis.addTableFunction(functionCall);
         }
 
@@ -705,16 +630,5 @@ class Analyzer {
         return null;
       }
     }
-  }
-
-  @FunctionalInterface
-  interface SerdeOptionsSupplier {
-
-    Set<SerdeOption> build(
-        List<ColumnName> valueColumnNames,
-        Format valueFormat,
-        Optional<Boolean> wrapSingleValues,
-        Set<SerdeOption> singleFieldDefaults
-    );
   }
 }

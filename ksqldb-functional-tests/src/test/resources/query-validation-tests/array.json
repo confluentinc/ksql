@@ -106,6 +106,19 @@
         {"topic": "OUTPUT", "value": {"ARRAY_LEN": 1, "MAP_LEN": 2, "STRUCT_LEN": 3}},
         {"topic": "OUTPUT", "value": {"ARRAY_LEN": 0, "MAP_LEN": 0, "STRUCT_LEN": 0}}
       ]
+    },
+    {
+      "name": "multi-dimensional",
+      "statements": [
+        "CREATE STREAM INPUT (col0 ARRAY<ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT col0[1][2] FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"col0": [[0, 1],[2]]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": 1}}
+      ]
     }
   ]
 }

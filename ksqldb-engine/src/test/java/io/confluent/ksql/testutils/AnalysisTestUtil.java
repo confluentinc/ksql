@@ -18,7 +18,6 @@ package io.confluent.ksql.testutils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
-import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.metastore.MetaStore;
@@ -40,10 +39,6 @@ public final class AnalysisTestUtil {
   private AnalysisTestUtil() {
   }
 
-  public static Analysis analyzeQuery(final String queryStr, final MetaStore metaStore) {
-    return new Analyzer(queryStr, metaStore).analysis;
-  }
-
   public static OutputNode buildLogicalPlan(
       final KsqlConfig ksqlConfig,
       final String queryStr,
@@ -51,26 +46,22 @@ public final class AnalysisTestUtil {
   ) {
     final Analyzer analyzer = new Analyzer(queryStr, metaStore);
 
-    final LogicalPlanner logicalPlanner = new LogicalPlanner(
-        ksqlConfig,
-        analyzer.analysis,
-        analyzer.aggregateAnalysis(),
-        metaStore);
+    final LogicalPlanner logicalPlanner =
+        new LogicalPlanner(ksqlConfig, analyzer.analysis, metaStore);
 
     return logicalPlanner.buildPlan();
   }
 
   private static class Analyzer {
-    private final Query query;
+
     private final Analysis analysis;
-    private final QueryAnalyzer queryAnalyzer;
 
     private Analyzer(final String queryStr, final MetaStore metaStore) {
-      this.queryAnalyzer = new QueryAnalyzer(metaStore, "", SerdeOption.none());
+      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(metaStore, "", SerdeOption.none());
       final Statement statement = parseStatement(queryStr, metaStore);
-      this.query = statement instanceof QueryContainer
-        ? ((QueryContainer)statement).getQuery()
-        : (Query) statement;
+      final Query query = statement instanceof QueryContainer
+          ? ((QueryContainer) statement).getQuery()
+          : (Query) statement;
 
       final Optional<Sink> sink = statement instanceof QueryContainer
           ? Optional.of(((QueryContainer)statement).getSink())
@@ -87,10 +78,6 @@ public final class AnalysisTestUtil {
           KsqlParserTestUtil.buildAst(queryStr, metaStore);
       assertThat(statements, hasSize(1));
       return statements.get(0).getStatement();
-    }
-
-    AggregateAnalysisResult aggregateAnalysis() {
-      return queryAnalyzer.analyzeAggregate(query, analysis);
     }
   }
 }

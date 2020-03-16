@@ -611,26 +611,6 @@
       ]
     },
     {
-      "name": "projection with ROWTIME and star",
-      "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
-        "SELECT *, ROWTIME FROM AGGREGATE WHERE ROWKEY='10';"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 99, "key": "11", "value": {"val": 1}},
-        {"topic": "test_topic", "timestamp": 100, "key": "10", "value": {"val": 2}}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
-          {"row":{"columns":["10", 1, 100]}}
-        ]}
-      ]
-    },
-    {
       "name": "non-windowed projection with ROWMEY and more columns in aggregate",
       "statements": [
         "CREATE STREAM INPUT (VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",

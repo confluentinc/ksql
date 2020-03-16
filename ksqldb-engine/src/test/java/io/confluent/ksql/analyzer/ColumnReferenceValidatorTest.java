@@ -25,12 +25,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
@@ -45,12 +43,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ColumnReferenceValidatorTest {
-
-  private static final Expression WINDOW_START_EXP = new UnqualifiedColumnReferenceExp(
-      SchemaUtil.WINDOWSTART_NAME
-  );
-
-  private static final Expression OTHER_EXP = new StringLiteral("foo");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

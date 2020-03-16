@@ -202,7 +202,6 @@ public class JoinNodeTest {
     // When:
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinType.LEFT,
         left,
         right,
@@ -264,7 +263,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.LEFT,
         left,
         right,
@@ -293,7 +291,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.INNER,
         left,
         right,
@@ -322,7 +319,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.OUTER,
         left,
         right,
@@ -351,7 +347,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.INNER,
         left,
         right,
@@ -379,7 +374,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.OUTER,
         left,
         right,
@@ -404,7 +398,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.LEFT,
         left,
         right,
@@ -431,7 +424,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.LEFT,
         left,
         right,
@@ -458,7 +450,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.INNER,
         left,
         right,
@@ -485,7 +476,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.OUTER,
         left,
         right,
@@ -512,7 +502,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.OUTER,
         left,
         right,
@@ -537,7 +526,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.INNER,
         left,
         right,
@@ -562,7 +550,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.LEFT,
         left,
         right,
@@ -587,7 +574,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.OUTER,
         left,
         right,
@@ -614,7 +600,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.OUTER,
         left,
         right,
@@ -636,7 +621,6 @@ public class JoinNodeTest {
     // When:
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.OUTER,
         left,
         right,
@@ -667,7 +651,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.LEFT,
         left,
         right,
@@ -687,7 +670,6 @@ public class JoinNodeTest {
     // When:
     final JoinNode joinNode = new JoinNode(
         nodeId,
-        Collections.emptyList(),
         JoinNode.JoinType.LEFT,
         left,
         right,

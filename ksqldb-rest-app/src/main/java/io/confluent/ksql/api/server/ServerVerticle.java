@@ -16,9 +16,9 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.auth.ApiServerConfig;
-import io.confluent.ksql.api.auth.KsqlBasicAuthHandler;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationFilter;
+import io.confluent.ksql.api.auth.KsqlBasicAuthHandler;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;

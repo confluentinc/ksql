@@ -44,7 +44,7 @@ topic on the Kafka brokers.
 
 ### STRUCT
 
-You can read nested data, in Avro and JSON
+You can read nested data, in Avro, Protobuf, and JSON
 formats, by using the `STRUCT` type in CREATE STREAM and CREATE TABLE
 statements. You can use the `STRUCT` type in these SQL statements:
 

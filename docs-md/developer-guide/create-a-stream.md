@@ -36,7 +36,7 @@ The following example creates a stream that has three columns from the
 
 ksqlDB can't infer the topic value's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
-data format is `DELIMITED`. Other options are `Avro`, `JSON` and `KAFKA`.
+data format is `DELIMITED`. Other options are `Avro`, `JSON`, `PROTOBUF`, and `KAFKA`.
 See [Serialization Formats](serialization.md#serialization-formats) for more
 details.
 

@@ -3,7 +3,7 @@ layout: page
 title: Schemas in ksqlDB
 tagline: Defining the structure of your data
 description: Learn how schemas work with ksqlDB
-keywords: ksqldb, schema, evolution, avro
+keywords: ksqldb, schema, evolution, avro, protobuf, json, csv
 ---
 
 Data sources like streams and tables have an associated schema. This schema defines the columns

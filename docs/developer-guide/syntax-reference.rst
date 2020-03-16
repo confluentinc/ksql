@@ -1912,6 +1912,12 @@ Scalar functions
 | REPLACE                |  ``REPLACE(col1, 'foo', 'bar')``                                          | Replace all instances of a substring in a string  |
 |                        |                                                                           | with a new string.                                |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| REGEXP_EXTRACT         |  `REGEXP_EXTRACT('.*', col1)` or                                          | Extract the first subtring matched by the regex   |
+|                        |  `REGEXP_EXTRACT('(([AEIOU]).)', col1, 2)`                                | pattern from the input. A capturing group number  |
+|                        |                                                                           | can also be specified in order to return that     |
+|                        |                                                                           | specific group. If a number isn't specified,      |
+|                        |                                                                           | the entire substring is returned by default.      |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)`` or ``ROUND(col1, scale)``                                | Round a value to the number of decimal places     |
 |                        |                                                                           | as specified by scale to the right of the decimal |
 |                        |                                                                           | point. If scale is negative then value is rounded |

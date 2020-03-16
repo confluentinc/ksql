@@ -39,7 +39,9 @@ import org.slf4j.LoggerFactory;
  * The server deploys multiple server verticles. This is where the HTTP2 requests are handled. The
  * actual implementation of the endpoints is provided by an implementation of {@code Endpoints}.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class ServerVerticle extends AbstractVerticle {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(ServerVerticle.class);
 

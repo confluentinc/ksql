@@ -50,14 +50,32 @@ public class MutableAggregateAnalysis implements AggregateAnalysisResult {
     return Collections.unmodifiableList(requiredColumns);
   }
 
+  /**
+   * Get a map of non-aggregate select expression to the set of source schema fields the
+   * expression uses.
+   *
+   * @return the map of select expression to the set of source schema fields.
+   */
   public Map<Expression, Set<ColumnReferenceExp>> getNonAggregateSelectExpressions() {
     return Collections.unmodifiableMap(nonAggSelectExpressions);
   }
 
+  /**
+   * Get the set of select fields that are involved in aggregate columns, but not as parameters
+   * to the aggregate functions.
+   *
+   * @return the set of fields used in aggregate columns outside of aggregate function parameters.
+   */
   public Set<ColumnReferenceExp> getAggregateSelectFields() {
     return Collections.unmodifiableSet(aggSelectFields);
   }
 
+  /**
+   * Get the set of columns from the source schema that are used in the HAVING clause outside
+   * of aggregate functions.
+   *
+   * @return the set of non-aggregate columns used in the HAVING clause.
+   */
   public Set<ColumnReferenceExp> getNonAggregateHavingFields() {
     return Collections.unmodifiableSet(nonAggHavingFields);
   }

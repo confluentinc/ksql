@@ -102,6 +102,15 @@ public class PullQueryExecutorMetrics implements Closeable {
         ),
         new WindowedCount()
     );
+    sensor.add(
+        metrics.metricName(
+            PULL_REQUESTS + "-local-rate",
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Rate of local pull query requests",
+            customMetricsTags
+        ),
+        new Rate()
+    );
     sensors.add(sensor);
     return sensor;
   }
@@ -117,6 +126,15 @@ public class PullQueryExecutorMetrics implements Closeable {
             customMetricsTags
         ),
         new WindowedCount()
+    );
+    sensor.add(
+        metrics.metricName(
+            PULL_REQUESTS + "-remote-rate",
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Rate of remote pull query requests",
+            customMetricsTags
+        ),
+        new Rate()
     );
     sensors.add(sensor);
     return sensor;

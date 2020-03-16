@@ -86,7 +86,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private KsqlConfig ksqlConfig;
   private final PullQueryExecutor pullQueryExecutor;
-  private Optional<PullQueryExecutorMetrics> pullQueryExecutorMetrics;
+  private Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final Time time;
 
   public StreamedQueryResource(
@@ -151,7 +151,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     ksqlConfig = config;
     final Boolean collectMetrics = ksqlConfig.getBoolean(
         KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED);
-    this.pullQueryExecutorMetrics = collectMetrics
+    this.pullQueryMetrics = collectMetrics
         ? Optional.of(new PullQueryExecutorMetrics(
             ksqlEngine.getServiceId(),
             ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
@@ -177,7 +177,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   }
 
   public void closeMetrics() {
-    pullQueryExecutorMetrics.ifPresent(PullQueryExecutorMetrics::close);
+    pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
   }
 
   private void throwIfNotConfigured() {
@@ -219,16 +219,16 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
         if (queryStmt.getStatement().isPullQuery()) {
           final Response response =  handlePullQuery(
-              securityContext.getServiceContext(),
+                securityContext.getServiceContext(),
               queryStmt,
               request.getConfigOverrides(),
               request.getRequestProperties()
           );
-          if (pullQueryExecutorMetrics.isPresent()) {
+          if (pullQueryMetrics.isPresent()) {
             //Record latency at microsecond scale
             final double latency = (time.nanoseconds() - startTime) / 1000f ;
-            pullQueryExecutorMetrics.get().recordLatency(latency);
-            pullQueryExecutorMetrics.get().recordRate(1);
+            pullQueryMetrics.get().recordLatency(latency);
+            pullQueryMetrics.get().recordRate(1);
           }
           return response;
         }
@@ -269,7 +269,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         ConfiguredStatement.of(statement, configOverrides, requestProperties, ksqlConfig);
 
     final TableRowsEntity entity = pullQueryExecutor
-        .execute(configured, serviceContext, pullQueryExecutorMetrics);
+        .execute(configured, serviceContext, pullQueryMetrics);
 
     final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
 

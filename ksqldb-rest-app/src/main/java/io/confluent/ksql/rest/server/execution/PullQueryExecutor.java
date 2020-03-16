@@ -154,7 +154,7 @@ public final class PullQueryExecutor {
   public TableRowsEntity execute(
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
-      final Optional<PullQueryExecutorMetrics> pullQueryExecutorMetrics
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
@@ -196,7 +196,7 @@ public final class PullQueryExecutor {
           whereInfo,
           queryId,
           contextStacker,
-          pullQueryExecutorMetrics);
+          pullQueryMetrics);
 
       return handlePullQuery(
           statement,
@@ -205,7 +205,7 @@ public final class PullQueryExecutor {
           pullQueryContext
       );
     } catch (final Exception e) {
-      pullQueryExecutorMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
+      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
           e.getMessage() == null ? "Server Error" : e.getMessage(),
           statement.getStatementText(),

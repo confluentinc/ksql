@@ -199,6 +199,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DOC = "Timeout in "
       + "milliseconds when waiting for rebalancing of the stream store during a pull query";
 
+  public static final String KSQL_QUERY_PULL_METRICS_ENABLED =
+      "ksql.query.pull.metrics.enabled";
+  public static final String KSQL_QUERY_PULL_METRICS_ENABLED_DOC =
+      "Config to enable/disable collecting JMX metrics for pull queries.";
+
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of();
 
@@ -259,11 +264,6 @@ public class KsqlConfig extends AbstractConfig {
       + "ksql.timestamp.skip.invalid to true.";
 
   public static final String KSQL_ANY_KEY_NAME_ENABLED = "ksql.any.key.name.enabled";
-
-  public static final String KSQL_QUERY_PULL_METRICS_ENABLED =
-      "ksql.query.pull.metrics.enabled";
-  public static final String KSQL_QUERY_PULL_METRICS_ENABLED_DOC =
-      "Config to enable/disable collecting JMX metrics for pull queries.";
 
   private enum ConfigGeneration {
     LEGACY,

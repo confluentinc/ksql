@@ -423,7 +423,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     try {
       streamedQueryResource.closeMetrics();
     } catch (final Exception e) {
-      log.error("Exception while waiting for Pull queries metrics to close", e);
+      log.error("Exception while waiting for pull query metrics to close", e);
     }
     try {
       ksqlEngine.close();

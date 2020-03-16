@@ -123,6 +123,17 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_STREAMS_NUM_STREAM_THREADS`.
 
+### ksql.streams.processing.guarantee
+
+The processing semantics to use for persistent queries. The default is 
+`at_least_once`. To enable exactly-once semantics, use `exactly_once`. 
+
+For more information, see [Processing Guarantees](../../../concepts/processing-guarantees.md).
+
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
+is `KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE`.
+
 ### ksql.output.topic.name.prefix
 
 The default prefix for automatically created topic names. Unless a user
@@ -581,5 +592,3 @@ ksql.streams.num.standby.replicas=1
 For more information, see the
 [ksql-production-server.properties](https://github.com/confluentinc/ksql/blob/master/config/ksql-production-server.properties)
 example file.
-
-Page last revised on: {{ git_revision_date }}

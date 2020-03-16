@@ -19,7 +19,9 @@ POST /query
 JSON Parameters:
 
 - **ksql** (string): The SELECT statement to run.
-- **streamsProperties** (map): Property overrides to run the statements with. Refer to the :ref:`Config Reference <ksql-param-reference>` for details on properties that can be set.
+- **streamsProperties** (map): Property overrides to run the statements with.
+  Refer to the [Config Reference](../../operate-and-deploy/installation/server-config/config-reference.md)
+  for details on properties that you can set.
 - **streamsProperties**[``property-name``] (string): The value of the property named by ``property-name``. Both the value and ``property-name`` should be strings.
 
 Each response chunk is a JSON object with the following format:

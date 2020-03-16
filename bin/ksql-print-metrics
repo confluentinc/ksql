@@ -26,14 +26,14 @@ JAVA="$JAVA_HOME/bin/java"
 
 base_dir=$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 
-for dir in "$base_dir/ksql-tools/target/ksql-tools"-*-development; do
-  KSQL_DIR="$dir/share/java/ksql-tools"
+for dir in "$base_dir/ksqldb-tools/target/ksqldb-tools"-*-development; do
+  KSQL_DIR="$dir/share/java/ksqldb-tools"
   if [ -d $KSQL_DIR ]; then
     KSQL_CLASSPATH="$KSQL_CLASSPATH:$KSQL_DIR/*"
   fi
 done
 
-DIR="$base_dir/share/java/ksql"
+DIR="$base_dir/share/java/ksqldb"
 if [ -d "$DIR" ]; then
   KSQL_CLASSPATH="$DIR/*:$KSQL_CLASSPATH"
 fi

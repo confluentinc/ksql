@@ -1,6 +1,6 @@
-# Docker compose from bringing up a local KSQL cluster and dependencies.
+# Docker compose from bringing up a local ksqlDB cluster and dependencies.
 #
-# By default, the cluster has two KSQL servers. You can scale the number of KSQL nodes in the
+# By default, the cluster has two ksqlDB servers. You can scale the number of ksqlDB nodes in the
 # cluster by using the docker `--scale` command line arg.
 #
 # e.g. for a 4 node cluster run:
@@ -13,25 +13,12 @@
 # difference is that the primary node has a well-known port exposed so clients can connect, where
 # as the additional nodes use auto-port assignment so that ports don't clash.
 #
-# If you wish to run with locally built KSQL docker images then build then:
+# If you wish to run with locally built ksqlDB docker images then:
 #
-# 1. Ensure logged in to docker:
-# > docker login
+# 1. Follow the steps in https://github.com/confluentinc/ksql/blob/master/ksql-docker/README.md
+# to build a ksqlDB docker image with local changes.
 #
-# 2. Ensure you can log in to AWS ECR:
-# > aws ecr get-login --no-include-email | sh
-#
-# 3. Build docker images from local changes 
-#    (NOTE: This currently depends on a Docker image that is not publicly available.
-#           Access to Confluent docker registry is required, and should be specified in docker.upstream-registry)
-#    Change `docker.upstream-tag` if you want to depend on anything other than the latest master upstream, e.g. 5.4.x-latest
-# > mvn -Pdocker package -DskipTests -Dspotbugs.skip -Dcheckstyle.skip  -Ddockerfile.skip=false -Dskip.docker.build=false -Ddocker.upstream-tag=master-latest -Ddocker.tag=local.build  -Ddocker.upstream-registry='XXXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/'
-#
-# 4. check images build:
-# > docker image ls | grep ksql.local.build
-# You should see your new images listed
-#
-# 5. update this file below replacing all references to "confluentinc/ksqldb-server:latest" with your image, e.g. "placeholder/confluentinc/ksql-rest-app:local.build"
+# 2. Update this file below replacing all references to "confluentinc/ksqldb-server:latest" with your image, e.g. "placeholder/confluentinc/ksql-docker:local.build"
 
 ---
 version: '2'

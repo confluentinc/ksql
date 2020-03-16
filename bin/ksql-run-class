@@ -25,7 +25,7 @@ fi
 : "${JAVA_HOME:=""}"
 
 # Development jars. `mvn package` should collect all the required dependency jars here
-for project in ksql-engine ksql-examples ksql-rest-app ksql-cli ksql-functional-tests; do
+for project in ksqldb-engine ksqldb-examples ksqldb-rest-app ksqldb-cli ksqldb-functional-tests; do
     for dir in "$base_dir/$project/target/$project"-*-development; do
       KSQL_DIR="$dir/share/java/$project"
       if [ -d "$KSQL_DIR" ]; then
@@ -35,7 +35,7 @@ for project in ksql-engine ksql-examples ksql-rest-app ksql-cli ksql-functional-
 done
 
 # Production jars - each one is prepended so they will appear in reverse order.  KSQL jars take precedence over other stuff passed in via CLASSPATH env var
-for library in "confluent-common" "ksql-examples" "rest-utils" "ksql-engine" "ksql-rest-app" "ksql-cli" "ksql-functional-tests" "ksql" "monitoring-interceptors" "confluent-security/ksql"; do
+for library in "confluent-common" "ksqldb-examples" "rest-utils" "ksqldb-engine" "ksqldb-rest-app" "ksqldb-cli" "ksqldb-functional-tests" "ksqldb" "monitoring-interceptors" "confluent-security/ksql"; do
   DIR="$base_dir/share/java/$library"
   if [ -d "$DIR" ]; then
     KSQL_CLASSPATH="$DIR/*:$KSQL_CLASSPATH"
@@ -48,10 +48,10 @@ if [ -z "$KSQL_LOG4J_OPTS" ]; then
   # installed
   if [ -e "$base_dir/config/log4j.properties" ]; then # Dev environment
     KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/config/log4j.properties"
-  elif [ -e "$base_dir/etc/ksql/log4j.properties" ]; then # Simple zip file layout
-    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/etc/ksql/log4j.properties"
-  elif [ -e "/etc/ksql/log4j.properties" ]; then # Normal install layout
-    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksql/log4j.properties"
+  elif [ -e "$base_dir/etc/ksqldb/log4j.properties" ]; then # Simple zip file layout
+    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/etc/ksqldb/log4j.properties"
+  elif [ -e "/etc/ksqldb/log4j.properties" ]; then # Normal install layout
+    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksqldb/log4j.properties"
   fi
 fi
 

@@ -29,9 +29,9 @@ import io.vertx.ext.web.impl.RoutingContextDecorator;
  * Wraps the Vert.x BasicAuthHandlerImpl in order to more gracefully handle errors encoutnered when
  * parsing credentials.
  */
-public class BasicAuthHandler extends BasicAuthHandlerImpl {
+public class KsqlBasicAuthHandler extends BasicAuthHandlerImpl {
 
-  public BasicAuthHandler(final AuthProvider authProvider, final String realm) {
+  public KsqlBasicAuthHandler(final AuthProvider authProvider, final String realm) {
     super(authProvider, realm);
   }
 

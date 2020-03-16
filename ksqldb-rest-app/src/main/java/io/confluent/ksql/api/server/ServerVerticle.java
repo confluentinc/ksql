@@ -16,7 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.auth.ApiServerConfig;
-import io.confluent.ksql.api.auth.BasicAuthHandler;
+import io.confluent.ksql.api.auth.KsqlBasicAuthHandler;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationFilter;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -168,7 +168,7 @@ public class ServerVerticle extends AbstractVerticle {
   private static AuthHandler basicAuthHandler(final Server server) {
     final AuthProvider authProvider = new JaasAuthProvider(server, server.getConfig());
     final String realm = server.getConfig().getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
-    return new BasicAuthHandler(authProvider, realm);
+    return new KsqlBasicAuthHandler(authProvider, realm);
   }
 
   private static void pauseHandler(final RoutingContext routingContext) {

@@ -51,6 +51,13 @@ import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.VertxCompletableFuture;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -377,7 +384,7 @@ public class RestApiTest {
     // Given:
     makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
     final String query = REST_APP.getPersistentQueries().iterator().next();
-    makeKsqlRequest("TERMINATE " +  query + ";");
+    makeKsqlRequest("TERMINATE " + query + ";");
 
     assertThat("Expected topic X to be created", topicExists("X"));
 
@@ -386,6 +393,43 @@ public class RestApiTest {
 
     // Then:
     assertThat("Expected topic X to be deleted", !topicExists("X"));
+  }
+
+  // See https://github.com/confluentinc/ksql/issues/4760
+  @Test
+  public void shouldExecuteStatementWithConnectionCloseHeader() throws Exception {
+
+    Vertx vertx = Vertx.vertx();
+    WebClient webClient = null;
+
+    try {
+      // Given:
+      WebClientOptions webClientOptions = new WebClientOptions()
+          .setDefaultHost(REST_APP.getHttpListener().getHost())
+          .setDefaultPort(REST_APP.getHttpListener().getPort());
+
+      webClient = WebClient.create(vertx, webClientOptions);
+      
+      // When:
+      JsonObject requestBody = new JsonObject();
+      requestBody.put("ksql", "SHOW STREAMS;");
+      VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+      webClient
+          .post("/ksql")
+          .putHeader("connection", "close")
+          .sendJsonObject(requestBody, requestFuture);
+      HttpResponse<Buffer> resp = requestFuture.get();
+
+      // Then
+      assertThat(resp.statusCode(), is(200));
+      assertThat(resp.bodyAsString(),
+          startsWith("[{\"@type\":\"streams\",\"statementText\":\"SHOW STREAMS;\""));
+    } finally {
+      if (webClient != null) {
+        webClient.close();
+      }
+      vertx.close();
+    }
   }
 
   private boolean topicExists(final String topicName) {

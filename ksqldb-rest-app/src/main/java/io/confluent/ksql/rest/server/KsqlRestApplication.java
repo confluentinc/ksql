@@ -194,6 +194,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     return new KsqlRestConfig(origs);
   }
 
+  /*
+  Please note that the old KSQL properties are the ones that should be used to configure the
+  server for now, not the new ones.
+   */
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static KsqlRestConfig convertToApiServerConfig(final KsqlRestConfig config) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
@@ -230,12 +234,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     }
     final List<String> authRoles = config.getList("authentication.roles");
     if (authRoles != null) {
-      if (authRoles.size() == 1 && authRoles.get(0).equals("**")) {
-        // "**" in old config means "*" in new config
-        origs.put(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG, ImmutableList.of("*"));
-      } else {
-        origs.put(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG, authRoles);
-      }
+      final List<String> authRolesUpdated = authRoles.stream()
+          .filter(role -> !"*".equals(role)) // remove "*"
+          .map(role -> "**".equals(role) ? "*" : role) // Change "**" to "*"
+          .collect(Collectors.toList());
+      origs.put(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG, authRolesUpdated);
     }
     final String authRealm = config.getString("authentication.realm");
     if (authRealm != null) {

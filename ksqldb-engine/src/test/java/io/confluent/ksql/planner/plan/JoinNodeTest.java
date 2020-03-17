@@ -42,6 +42,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
@@ -792,7 +793,7 @@ public class JoinNodeTest {
         .withRowTime();
     builder.keyColumns(schema.key());
     for (final Column c : schema.value()) {
-      builder.valueColumn(ColumnName.generatedJoinColumnAlias(alias, c.name()), c.type());
+      builder.valueColumn(ColumnNames.generatedJoinColumnAlias(alias, c.name()), c.type());
     }
     return builder.build();
   }

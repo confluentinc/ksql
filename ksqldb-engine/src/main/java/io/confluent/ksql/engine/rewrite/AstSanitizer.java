@@ -25,6 +25,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.AstNode;
@@ -137,7 +138,7 @@ public final class AstSanitizer {
         final ColumnName name = ((QualifiedColumnReferenceExp) expression).getColumnName();
         if (dataSourceExtractor.isJoin()
             && dataSourceExtractor.getCommonFieldNames().contains(name)) {
-          alias = ColumnName.generatedJoinColumnAlias(source, name);
+          alias = ColumnNames.generatedJoinColumnAlias(source, name);
         } else {
           alias = name;
         }
@@ -151,7 +152,7 @@ public final class AstSanitizer {
             dereferenceExpressionString.substring(
                 dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
       } else {
-        alias = ColumnName.generatedColumnAlias(selectItemIndex);
+        alias = ColumnNames.generatedColumnAlias(selectItemIndex);
       }
       selectItemIndex++;
       return Optional.of(

@@ -29,7 +29,8 @@
       "INT_LEN" : 2,
       "BIGINT_LEN" : 3,
       "DOUBLE_LEN" : 4,
-      "STRING_LEN" : 5, "DECIMAL_LEN" : 6
+      "STRING_LEN" : 5,
+      "DECIMAL_LEN" : 6
     }
   }, {
     "topic" : "OUTPUT",

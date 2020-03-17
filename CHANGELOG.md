@@ -6,34 +6,24 @@
 
 * Add metrics for pull queries endpoint ([#4608](https://github.com/confluentinc/ksql/pull/4608)) ([23e3868](https://github.com/confluentinc/ksql/commit/23e3868))
 * add REGEXP_EXTRACT UDF ([#4728](https://github.com/confluentinc/ksql/pull/4728)) ([a25f0fb](https://github.com/confluentinc/ksql/commit/a25f0fb))
-* Security plumbing ([#4778](https://github.com/confluentinc/ksql/pull/4778)) ([395626c](https://github.com/confluentinc/ksql/commit/395626c))
 * support for tunable retention, grace period for windowed tables ([#4733](https://github.com/confluentinc/ksql/pull/4733)) ([30d49b3](https://github.com/confluentinc/ksql/commit/30d49b3)), closes [#4157](https://github.com/confluentinc/ksql/issues/4157)
 * add ARRAY_LENGTH UDF ([#4725](https://github.com/confluentinc/ksql/pull/4725)) ([31a9d9d](https://github.com/confluentinc/ksql/commit/31a9d9d))
 * add confluent-hub to ksqlDB docker image ([#4729](https://github.com/confluentinc/ksql/pull/4729)) ([b74867a](https://github.com/confluentinc/ksql/commit/b74867a))
-* basic auth for new API server ([#4685](https://github.com/confluentinc/ksql/pull/4685)) ([5dcea24](https://github.com/confluentinc/ksql/commit/5dcea24))
-* Integrate new API with existing security framework ([#4713](https://github.com/confluentinc/ksql/pull/4713)) ([0f7de31](https://github.com/confluentinc/ksql/commit/0f7de31))
 * add the topic name to deserialization errors ([#4573](https://github.com/confluentinc/ksql/pull/4573)) ([0f7edf6](https://github.com/confluentinc/ksql/commit/0f7edf6))
 * display errors in CLI in red text ([#4509](https://github.com/confluentinc/ksql/pull/4509)) ([56f9c9b](https://github.com/confluentinc/ksql/commit/56f9c9b))
 * enhance `PRINT TOPIC`'s format detection ([#4551](https://github.com/confluentinc/ksql/pull/4551)) ([8b19bc6](https://github.com/confluentinc/ksql/commit/8b19bc6))
-* Integrate pull queries in new API([#4498](https://github.com/confluentinc/ksql/pull/4498)) ([cd7c058](https://github.com/confluentinc/ksql/commit/cd7c058))
 * introduce JSON_SR format ([#4596](https://github.com/confluentinc/ksql/pull/4596)) ([daa04d2](https://github.com/confluentinc/ksql/commit/daa04d2))
 * log groupby errors to processing logger ([#4575](https://github.com/confluentinc/ksql/pull/4575)) ([b503d25](https://github.com/confluentinc/ksql/commit/b503d25))
-* Plug insert streams into backend ([#4512](https://github.com/confluentinc/ksql/pull/4512)) ([2482f0f](https://github.com/confluentinc/ksql/commit/2482f0f))
 * Provide upper limit on number of push queries ([#4581](https://github.com/confluentinc/ksql/pull/4581)) ([2cd66c7](https://github.com/confluentinc/ksql/commit/2cd66c7))
-* Simple perf tool for new API ([#4590](https://github.com/confluentinc/ksql/pull/4590)) ([ee7ca8a](https://github.com/confluentinc/ksql/commit/ee7ca8a))
 * support custom column widths in cli ([#4616](https://github.com/confluentinc/ksql/pull/4616)) ([42282cd](https://github.com/confluentinc/ksql/commit/42282cd))
 * support JSON schema inference in ksqlDB ([#4563](https://github.com/confluentinc/ksql/pull/4563)) ([fcd6c7f](https://github.com/confluentinc/ksql/commit/fcd6c7f))
 * support Protobuf in ksqlDB ([#4469](https://github.com/confluentinc/ksql/pull/4469)) ([a77cebe](https://github.com/confluentinc/ksql/commit/a77cebe))
+* support partial schemas ([#4625](https://github.com/confluentinc/ksql/pull/4625)) ([91dfc36](https://github.com/confluentinc/ksql/commit/91dfc36))
 
 
 
 ### Bug Fixes
 
-* add transfer-encoding:chunked header if Jetty omits this ([#4777](https://github.com/confluentinc/ksql/pull/4777)) ([fba15be](https://github.com/confluentinc/ksql/commit/fba15be))
-* build ([#4767](https://github.com/confluentinc/ksql/pull/4767)) ([6f45803](https://github.com/confluentinc/ksql/commit/6f45803))
-* fix test compile goal ([#4769](https://github.com/confluentinc/ksql/pull/4769)) ([4e8e601](https://github.com/confluentinc/ksql/commit/4e8e601))
-* fix the half-fixed json decimal tests ([#4768](https://github.com/confluentinc/ksql/pull/4768)) ([d87b97d](https://github.com/confluentinc/ksql/commit/d87b97d))
-* backport fixes from query close ([#4704](https://github.com/confluentinc/ksql/pull/4704)) ([1ac7f13](https://github.com/confluentinc/ksql/commit/1ac7f13)), closes [#4643](https://github.com/confluentinc/ksql/issues/4643) [#4658](https://github.com/confluentinc/ksql/issues/4658)
 * change default exception handling for timestamp extractors ([#4632](https://github.com/confluentinc/ksql/pull/4632)) ([1576af0](https://github.com/confluentinc/ksql/commit/1576af0))
 * create schemas at topic creation ([#4717](https://github.com/confluentinc/ksql/pull/4717)) ([514025d](https://github.com/confluentinc/ksql/commit/514025d))
 * decimals in structs should display as numeric ([#4165](https://github.com/confluentinc/ksql/pull/4165)) ([#4716](https://github.com/confluentinc/ksql/issues/4716)) ([7585d3c](https://github.com/confluentinc/ksql/commit/7585d3c))
@@ -47,8 +37,6 @@
 * don't cleanup topics on engine close ([#4658](https://github.com/confluentinc/ksql/pull/4658)) ([a8ecb72](https://github.com/confluentinc/ksql/commit/a8ecb72))
 * idempotent terminate that can handle hung streams ([#4643](https://github.com/confluentinc/ksql/pull/4643)) ([2dc0727](https://github.com/confluentinc/ksql/commit/2dc0727))
 * patch KafkaStreamsInternalTopicsAccessor as KS internals changed ([#4621](https://github.com/confluentinc/ksql/pull/4621)) ([eb07370](https://github.com/confluentinc/ksql/commit/eb07370))
-* support partial schemas ([#4625](https://github.com/confluentinc/ksql/pull/4625)) ([91dfc36](https://github.com/confluentinc/ksql/commit/91dfc36))
-* Tests should use free port for servers ([#4595](https://github.com/confluentinc/ksql/pull/4595)) ([0176721](https://github.com/confluentinc/ksql/commit/0176721))
 * use HTTPS instead of HTTP to resolve dependencies in Maven archetype ([#4511](https://github.com/confluentinc/ksql/pull/4511)) ([f21823f](https://github.com/confluentinc/ksql/commit/f21823f))
 
 
@@ -123,7 +111,6 @@ Note that ksqlDB 0.7.0 has a number of breaking changes when compared with ksqlD
 * add COUNT_DISTINCT and allow generics in UDAFs ([#4150](https://github.com/confluentinc/ksql/pull/4150)) ([2d5e680](https://github.com/confluentinc/ksql/commit/2d5e680))
 * Add Cube UDTF ([#3935](https://github.com/confluentinc/ksql/pull/3935)) ([6be8e7c](https://github.com/confluentinc/ksql/commit/6be8e7c))
 * remove WindowStart() and WindowEnd() UDAFs ([#4459](https://github.com/confluentinc/ksql/pull/4459)) ([eda2e34](https://github.com/confluentinc/ksql/commit/eda2e34))
-* support Protobuf in ksqlDB ([#4469](https://github.com/confluentinc/ksql/pull/4469)) ([a77cebe](https://github.com/confluentinc/ksql/commit/a77cebe))
 * ask for password if -p is not provided ([#4153](https://github.com/confluentinc/ksql/pull/4153)) ([7a83bbf](https://github.com/confluentinc/ksql/commit/7a83bbf))
 * make (certain types of) server error messages configurable ([#4121](https://github.com/confluentinc/ksql/pull/4121)) ([cedf47e](https://github.com/confluentinc/ksql/commit/cedf47e))
 * add source statement to SourceDescription ([#4134](https://github.com/confluentinc/ksql/pull/4134)) ([1146aa5](https://github.com/confluentinc/ksql/commit/1146aa5))

@@ -120,6 +120,17 @@ first considering all the records from the first window, then the
 late-arriving record, then the records from the second window in
 the order they were originally processed.
 
+LATEST_BY_OFFSET
+----------------
+
+`LATEST_BY_OFFSET(col1)`
+
+Stream
+
+Return the latest value for a given column. Latest here is defined as the value in the partition
+with the greatest offset.
+Note: rows where `col1` is null will be ignored.
+
 MAX
 ---
 

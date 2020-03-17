@@ -23,6 +23,7 @@ import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
+import io.confluent.ksql.util.KsqlConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public final class PlannedTestUtils {
+
   static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.create();
 
   private PlannedTestUtils() {
@@ -42,6 +44,14 @@ public final class PlannedTestUtils {
   public static boolean isPlannedTestCase(final TestCase testCase) {
     return !testCase.expectedException().isPresent()
         && !testCase.getTestFile().endsWith("/scratch.json");
+  }
+
+  public static boolean isNotExcluded(final TestCase testCase) {
+    final boolean anyKeyNameEnabled = (boolean) testCase.properties()
+        .getOrDefault(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED, false);
+
+    // Test case with any key name enabled are currently WIP and so do not generate plans
+    return !anyKeyNameEnabled;
   }
 
   public static boolean isSamePlan(

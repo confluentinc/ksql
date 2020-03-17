@@ -45,7 +45,7 @@
 
 ### Features
 
-* feat: support custom column widths in cli (#4616) ([cb66e05](https://github.com/confluentinc/ksql/commit/cb66e05))
+* support custom column widths in cli ([#4616](https://github.com/confluentinc/ksql/pull/4616)) ([cb66e05](https://github.com/confluentinc/ksql/commit/cb66e05))
     
     A new ksqlDB CLI configuration allows you to specify the width of each column in tabular output.
 
@@ -65,13 +65,13 @@
     ```
     ksql> SET CLI COLUMN-WIDTH 0
     ```
+* support partial schemas ([#4625](https://github.com/confluentinc/ksql/pull/4625)) ([7cc19a0](https://github.com/confluentinc/ksql/commit/7cc19a0))
 
 ### Bug Fixes
 
-* fix: add functional-test dependencies to Docker module (#4586) ([04fcf8d](https://github.com/confluentinc/ksql/commit/04fcf8d))
-* fix: don't cleanup topics on engine close (#4658) ([ad66a81](https://github.com/confluentinc/ksql/commit/ad66a81))
-* fix: idempotent terminate that can handle hung streams (#4643) ([d96db14](https://github.com/confluentinc/ksql/commit/d96db14))
-* fix: support partial schemas (#4625) ([7cc19a0](https://github.com/confluentinc/ksql/commit/7cc19a0))
+* add functional-test dependencies to Docker module ([#4586](https://github.com/confluentinc/ksql/pull/4586)) ([04fcf8d](https://github.com/confluentinc/ksql/commit/04fcf8d))
+* don't cleanup topics on engine close ([#4658](https://github.com/confluentinc/ksql/pull/4658)) ([ad66a81](https://github.com/confluentinc/ksql/commit/ad66a81))
+* idempotent terminate that can handle hung streams ([#4643](https://github.com/confluentinc/ksql/pull/4643)) ([d96db14](https://github.com/confluentinc/ksql/commit/d96db14))
 
 
 ## [0.7.0](https://github.com/confluentinc/ksql/releases/tag/v0.7.0-ksqldb) (2020-02-11)

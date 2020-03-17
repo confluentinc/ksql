@@ -25,7 +25,7 @@ public class PlannedTestGeneratorTest {
    * Run this test to generate new query plans for the {@link QueryTranslationTest} test cases.
    *
    * <p>Ensure only the test plans you expected have changed, then check the new query plans in
-   * with your change. Otherwise, {@link PlannedTestsUpToDateTest} fill fail if there are missing
+   * with your change. Otherwise, {@link PlannedTestsUpToDateTest} will fail if there are missing
    * or changed query plans.
    */
   @Test

@@ -1,13 +1,13 @@
 {
   "version" : "5.5.0",
-  "timestamp" : 1583183630616,
+  "timestamp" : 1584427730405,
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (ROWKEY INTEGER KEY, C1 BIGINT) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM INPUT (C1 BIGINT) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='JSON_SR');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
-      "schema" : "`ROWKEY` INTEGER KEY, `C1` BIGINT",
+      "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT",
       "keyField" : null,
       "timestampColumn" : null,
       "topicName" : "input",
@@ -17,7 +17,7 @@
           "properties" : { }
         },
         "valueFormat" : {
-          "format" : "JSON",
+          "format" : "JSON_SR",
           "properties" : { }
         },
         "options" : [ ]
@@ -27,11 +27,11 @@
     "queryPlan" : null
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT WITH (PARTITIONS=4) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`ROWKEY` INTEGER KEY, `C1` BIGINT",
+      "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT",
       "keyField" : null,
       "timestampColumn" : null,
       "topicName" : "OUTPUT",
@@ -41,7 +41,7 @@
           "properties" : { }
         },
         "valueFormat" : {
-          "format" : "JSON",
+          "format" : "JSON_SR",
           "properties" : { }
         },
         "options" : [ ]
@@ -73,13 +73,13 @@
                 "properties" : { }
               },
               "valueFormat" : {
-                "format" : "JSON",
+                "format" : "JSON_SR",
                 "properties" : { }
               },
               "options" : [ ]
             },
             "timestampColumn" : null,
-            "sourceSchema" : "`ROWKEY` INTEGER KEY, `C1` BIGINT"
+            "sourceSchema" : "`ROWKEY` STRING KEY, `C1` BIGINT"
           },
           "selectExpressions" : [ "C1 AS C1" ]
         },
@@ -89,7 +89,7 @@
             "properties" : { }
           },
           "valueFormat" : {
-            "format" : "JSON",
+            "format" : "JSON_SR",
             "properties" : { }
           },
           "options" : [ ]
@@ -120,7 +120,7 @@
     "ksql.internal.topic.min.insync.replicas" : "1",
     "ksql.streams.shutdown.timeout.ms" : "300000",
     "ksql.new.api.enabled" : "false",
-    "ksql.streams.state.dir" : "/var/folders/bz/qnz23q_j6v12b3b_tm9ztv700000gn/T/confluent501665998288149869",
+    "ksql.streams.state.dir" : "/var/folders/y4/v3q4tgb559sb0x6kwpll19bm0000gn/T/confluent4152515276472166541",
     "ksql.internal.topic.replicas" : "1",
     "ksql.insert.into.values.enabled" : "true",
     "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",

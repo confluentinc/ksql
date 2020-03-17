@@ -40,7 +40,7 @@ public class JsonFormat implements Format {
 
   @Override
   public boolean supportsSchemaInference() {
-    return true;
+    return false;
   }
 
   @Override

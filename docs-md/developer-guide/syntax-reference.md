@@ -472,6 +472,7 @@ CREATE STREAM users_with_wrong_key (userid INT, username VARCHAR, email VARCHAR)
 -- Derive a new stream with the required key changes.
 -- 1) The CAST statement converts the key to the required format.
 -- 2) The PARTITION BY clause re-partitions the stream based on the new, converted key.
+-- 3) The SELECT clause selects the required value columns, (key columns are implicitly included).
 -- The resulting schema will be: ROWKEY INT, USERNAME STRING, EMAIL STRING
 -- the userId will be stored in ROWKEY.
 CREATE STREAM users_with_proper_key

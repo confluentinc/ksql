@@ -15,10 +15,8 @@
 * introduce JSON_SR format ([#4596](https://github.com/confluentinc/ksql/pull/4596)) ([daa04d2](https://github.com/confluentinc/ksql/commit/daa04d2))
 * log groupby errors to processing logger ([#4575](https://github.com/confluentinc/ksql/pull/4575)) ([b503d25](https://github.com/confluentinc/ksql/commit/b503d25))
 * Provide upper limit on number of push queries ([#4581](https://github.com/confluentinc/ksql/pull/4581)) ([2cd66c7](https://github.com/confluentinc/ksql/commit/2cd66c7))
-* support custom column widths in cli ([#4616](https://github.com/confluentinc/ksql/pull/4616)) ([42282cd](https://github.com/confluentinc/ksql/commit/42282cd))
 * support JSON schema inference in ksqlDB ([#4563](https://github.com/confluentinc/ksql/pull/4563)) ([fcd6c7f](https://github.com/confluentinc/ksql/commit/fcd6c7f))
 * support Protobuf in ksqlDB ([#4469](https://github.com/confluentinc/ksql/pull/4469)) ([a77cebe](https://github.com/confluentinc/ksql/commit/a77cebe))
-* support partial schemas ([#4625](https://github.com/confluentinc/ksql/pull/4625)) ([91dfc36](https://github.com/confluentinc/ksql/commit/91dfc36))
 
 
 
@@ -26,16 +24,12 @@
 
 * change default exception handling for timestamp extractors ([#4632](https://github.com/confluentinc/ksql/pull/4632)) ([1576af0](https://github.com/confluentinc/ksql/commit/1576af0))
 * create schemas at topic creation ([#4717](https://github.com/confluentinc/ksql/pull/4717)) ([514025d](https://github.com/confluentinc/ksql/commit/514025d))
-* decimals in structs should display as numeric ([#4165](https://github.com/confluentinc/ksql/pull/4165)) ([#4716](https://github.com/confluentinc/ksql/issues/4716)) ([7585d3c](https://github.com/confluentinc/ksql/commit/7585d3c))
 * don't display decimals in scientific notation in CLI ([#4723](https://github.com/confluentinc/ksql/pull/4723)) ([3626f42](https://github.com/confluentinc/ksql/commit/3626f42))
 * stop logging about command topic creation on startup if exists (MINOR) ([#4709](https://github.com/confluentinc/ksql/pull/4709)) ([f4cec0a](https://github.com/confluentinc/ksql/commit/f4cec0a))
-* add functional-test dependencies to Docker module ([#4586](https://github.com/confluentinc/ksql/pull/4586)) ([b023cd0](https://github.com/confluentinc/ksql/commit/b023cd0)), closes [#4584](https://github.com/confluentinc/ksql/issues/4584)
 * added special handling for forwarded pull query request  ([#4597](https://github.com/confluentinc/ksql/pull/4597)) ([ba4fe74](https://github.com/confluentinc/ksql/commit/ba4fe74))
 * backport fixes from query close ([#4662](https://github.com/confluentinc/ksql/pull/4662)) ([8168002](https://github.com/confluentinc/ksql/commit/8168002))
 * change configOverrides back to streamsProperties ([#4675](https://github.com/confluentinc/ksql/pull/4675)) ([ce74cf8](https://github.com/confluentinc/ksql/commit/ce74cf8))
 * csas/ctas with timestamp column is used for output rowtime ([#4489](https://github.com/confluentinc/ksql/pull/4489)) ([ddddf92](https://github.com/confluentinc/ksql/commit/ddddf92))
-* don't cleanup topics on engine close ([#4658](https://github.com/confluentinc/ksql/pull/4658)) ([a8ecb72](https://github.com/confluentinc/ksql/commit/a8ecb72))
-* idempotent terminate that can handle hung streams ([#4643](https://github.com/confluentinc/ksql/pull/4643)) ([2dc0727](https://github.com/confluentinc/ksql/commit/2dc0727))
 * patch KafkaStreamsInternalTopicsAccessor as KS internals changed ([#4621](https://github.com/confluentinc/ksql/pull/4621)) ([eb07370](https://github.com/confluentinc/ksql/commit/eb07370))
 * use HTTPS instead of HTTP to resolve dependencies in Maven archetype ([#4511](https://github.com/confluentinc/ksql/pull/4511)) ([f21823f](https://github.com/confluentinc/ksql/commit/f21823f))
 

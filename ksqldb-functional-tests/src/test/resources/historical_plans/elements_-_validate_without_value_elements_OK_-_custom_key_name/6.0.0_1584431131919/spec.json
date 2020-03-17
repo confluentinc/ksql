@@ -1,6 +1,6 @@
 {
   "version" : "6.0.0",
-  "timestamp" : 1582752383488,
+  "timestamp" : 1584431131919,
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 BIGINT> NOT NULL"

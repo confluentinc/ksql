@@ -35,6 +35,11 @@ public class JsonFormat extends ConnectFormat {
   }
 
   @Override
+  public boolean supportsSchemaInference() {
+    return false;
+  }
+
+  @Override
   public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
     return new KsqlJsonSerdeFactory(false);
   }

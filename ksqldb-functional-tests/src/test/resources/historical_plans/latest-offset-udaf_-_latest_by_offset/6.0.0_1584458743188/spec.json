@@ -1,0 +1,100 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584458743188,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 INT, KSQL_INTERNAL_COL_2 BIGINT, KSQL_INTERNAL_COL_3 DOUBLE, KSQL_INTERNAL_COL_4 BOOLEAN, KSQL_INTERNAL_COL_5 VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 INT, KSQL_INTERNAL_COL_2 BIGINT, KSQL_INTERNAL_COL_3 DOUBLE, KSQL_INTERNAL_COL_4 BOOLEAN, KSQL_INTERNAL_COL_5 VARCHAR, KSQL_AGG_VARIABLE_0 STRUCT<SEQ BIGINT, VAL INT>, KSQL_AGG_VARIABLE_1 STRUCT<SEQ BIGINT, VAL BIGINT>, KSQL_AGG_VARIABLE_2 STRUCT<SEQ BIGINT, VAL DOUBLE>, KSQL_AGG_VARIABLE_3 STRUCT<SEQ BIGINT, VAL BOOLEAN>, KSQL_AGG_VARIABLE_4 STRUCT<SEQ BIGINT, VAL VARCHAR>> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, L0 INT, L1 BIGINT, L2 DOUBLE, L3 BOOLEAN, L4 VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "F0" : 12,
+      "F1" : 1000,
+      "F2" : 1.23,
+      "F3" : true,
+      "F4" : "foo"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : {
+      "ID" : 1,
+      "F0" : 12,
+      "F1" : 1000,
+      "F2" : 1.23,
+      "F3" : true,
+      "F4" : "foo"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "F0" : 21,
+      "F1" : 2000,
+      "F2" : 2.23,
+      "F3" : false,
+      "F4" : "bar"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : {
+      "ID" : 1,
+      "F0" : 21,
+      "F1" : 2000,
+      "F2" : 2.23,
+      "F3" : false,
+      "F4" : "bar"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "L0" : 12,
+      "L1" : 1000,
+      "L2" : 1.23,
+      "L3" : true,
+      "L4" : "foo"
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : {
+      "ID" : 1,
+      "L0" : 12,
+      "L1" : 1000,
+      "L2" : 1.23,
+      "L3" : true,
+      "L4" : "foo"
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "L0" : 21,
+      "L1" : 2000,
+      "L2" : 2.23,
+      "L3" : false,
+      "L4" : "bar"
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : {
+      "ID" : 1,
+      "L0" : 21,
+      "L1" : 2000,
+      "L2" : 2.23,
+      "L3" : false,
+      "L4" : "bar"
+    }
+  } ]
+}

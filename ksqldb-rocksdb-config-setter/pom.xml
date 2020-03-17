@@ -26,7 +26,7 @@
     </parent>
 
     <artifactId>ksqldb-rocksdb-config-setter</artifactId>
-    <name>KSQL RocksDB Config Setter</name>
+    <name>ksqlDB RocksDB Config Setter</name>
     <packaging>jar</packaging>
 
     <dependencies>

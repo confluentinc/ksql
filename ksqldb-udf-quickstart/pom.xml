@@ -27,7 +27,7 @@
 
     <artifactId>ksqldb-udf-quickstart</artifactId>
     <packaging>maven-archetype</packaging>
-    <name>KSQL UDF / UDAF :: Quickstart</name>
+    <name>ksqlDB UDF / UDAF :: Quickstart</name>
     <url>https://github.com/confluentinc/ksql/blob/master/ksqldb-udf-quickstart</url>
     <description>
         An archetype for building KSQL UDFs and UDAFs

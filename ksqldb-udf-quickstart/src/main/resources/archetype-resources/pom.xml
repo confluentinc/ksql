@@ -24,7 +24,7 @@
     <version>${version}</version>
     <packaging>jar</packaging>
 
-    <name>KSQL UDF / UDAF Quickstart</name>
+    <name>ksqlDB UDF / UDAF Quickstart</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -393,7 +393,8 @@ For example, to retain the computed windowed aggregation results for a week,
 you might run the following query:
 
 ```sql
-SELECT regionid, COUNT(*) FROM pageviews
+CREATE TABLE pageviews_per_region AS
+  SELECT regionid, COUNT(*) FROM pageviews
   WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS, RETENTION 7 DAYS, GRACE PERIOD 30 MINUTES)
   WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
   GROUP BY regionid

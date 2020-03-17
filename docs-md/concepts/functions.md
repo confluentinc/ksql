@@ -738,7 +738,7 @@ You can invoke this UDTF in two different ways:
 import io.confluent.ksql.function.udf.Udtf;
 import io.confluent.ksql.function.udf.UdtfDescription;
 
-@UdfDescription(name = "split_string", description = "splits a string into words")
+@UdtfDescription(name = "split_string", description = "splits a string into words")
 public class SplitString {
 
   @Udtf(description="Splits a string into words")

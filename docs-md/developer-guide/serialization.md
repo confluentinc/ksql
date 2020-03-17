@@ -73,6 +73,10 @@ The serialized object should be a Kafka-serialized string containing a
 valid JSON value. The format supports JSON objects and top-level
 primitives, arrays and maps. See below for more info.
 
+!!! note
+    If you want to use a JSON-based schema with {{ site.sr }}, specify the
+    `JSON_SR` format.
+
 #### JSON Objects
 
 Values that are JSON objects are probably the most common.

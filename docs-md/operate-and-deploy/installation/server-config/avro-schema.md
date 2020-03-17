@@ -19,7 +19,7 @@ ksqlDB supports Avro and Protobuf data in the {{ site.aktm }} message
 values.
 
 Schemas with nested fields are supported. You can read nested data,
-in Avro, PROTOBUF, and JSON formats, by using the STRUCT type. Also, you can
+in Avro, PROTOBUF, JSON, and JSON_SR formats, by using the STRUCT type. Also, you can
 create new nested STRUCT data as the result of a query. For more info, see
 [STRUCT](../../../developer-guide/syntax-reference.md#struct).
 

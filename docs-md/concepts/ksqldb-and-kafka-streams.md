@@ -69,7 +69,7 @@ The following table summarizes some of the differences between ksqlDB and
 | You write:        | SQL statements                              | JVM applications                                          |
 | Graphical UI      | Yes, in {{ site.c3 }} and {{ site.ccloud }} | No                                                        |
 | Console           | Yes                                         | No                                                        |
-| Data formats      | Avro, Protobuf, JSON, CSV                   | Any data format, including Avro, JSON, CSV, Protobuf, XML |
+| Data formats      | Avro, Protobuf, JSON, JSON_SR, CSV          | Any data format, including Avro, JSON, CSV, Protobuf, XML |
 | REST API included | Yes                                         | No, but you can implement your own                        |
 | Runtime included  | Yes, the ksqlDB server                      | Applications run as standard JVM processes                |
 | Queryable state   | No                                          | Yes                                                       |

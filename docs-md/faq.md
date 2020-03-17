@@ -87,6 +87,7 @@ ksqlDB supports the following formats:
 
 -   DELIMITED (for example, comma-separated values)
 -   JSON
+-   JSON_SR, for schema support in {{ site.sr }}.
 -   Avro message values. Avro keys are not yet supported.
     Requires {{ site.sr }} and `ksql.schema.registry.url` in the ksqlDB
     server configuration file. For more information, see

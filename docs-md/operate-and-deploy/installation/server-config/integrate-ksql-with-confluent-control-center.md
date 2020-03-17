@@ -24,7 +24,7 @@ properties in the KSQL Server and {{ site.c3short }} configuration
 files.
 
 -   By default, the KSQL Server configuration file is installed at
-    `<path-to-confluent>/etc/ksql/ksql-server.properties`.
+    `<path-to-confluent>/etc/ksqldb/ksql-server.properties`.
 -   By default, the {{ site.c3short }} configuration file is installed
     at
     `<path-to-confluent>/etc/confluent-control-center/control-center.properties`.

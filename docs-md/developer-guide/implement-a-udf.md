@@ -37,10 +37,10 @@ default, this directory doesn't exist, so you need to create it and
 assign it in the ksqlDB Server configuration properties.
 
 Create the `ksql` extensions directory,
-`<path-to-confluent>/etc/ksql/ext`:
+`<path-to-confluent>/etc/ksqldb/ext`:
 
 ```bash
-mkdir confluent-{{ site.release }}/etc/ksql/ext
+mkdir confluent-{{ site.release }}/etc/ksqldb/ext
 ```
 
 Edit the `ksql-server.properties` configuration file in
@@ -48,12 +48,12 @@ Edit the `ksql-server.properties` configuration file in
 `ext` directory:
 
 ```
-ksql.extension.dir=/home/my-home-dir/confluent-{{ site.release }}/etc/ksql/ext
+ksql.extension.dir=/home/my-home-dir/confluent-{{ site.release }}/etc/ksqldb/ext
 ```
 
 !!! note
 	Use the fully qualified path or the relative path from
-    `<path-to-confluent>/bin`, which is `../etc/ksql/ext`. ksqlDB Server
+    `<path-to-confluent>/bin`, which is `../etc/ksqldb/ext`. ksqlDB Server
     won't load extensions if the path begins with `~`.
 
 Create the Source and Project Files
@@ -262,10 +262,10 @@ directory to the `ext` directory of your ksqlDB installation. For example,
 if your {{ site.cp }} installation is at
 `/home/my-home-dir/confluent-{{ site.release }}`,
 copy the JAR to
-`/home/my-home-dir/confluent-{{ site.release }}/etc/ksql/ext`.
+`/home/my-home-dir/confluent-{{ site.release }}/etc/ksqldb/ext`.
 
 ```bash
-cp target/ksql-udf-demo-1.0-jar-with-dependencies.jar <path-to-confluent>/etc/ksql/ext
+cp target/ksql-udf-demo-1.0-jar-with-dependencies.jar <path-to-confluent>/etc/ksqldb/ext
 ```
 
 The custom UDF is deployed and ready to run.
@@ -329,7 +329,7 @@ Your output should resemble:
 Name        : MULTIPLY
 Overview    : multiplies 2 numbers
 Type        : scalar
-Jar         : /home/my-home-dir/confluent-{{ site.release }}/etc/ksql/ext/ksql-udf-demo-1.0-jar-with-dependencies.jar
+Jar         : /home/my-home-dir/confluent-{{ site.release }}/etc/ksqldb/ext/ksql-udf-demo-1.0-jar-with-dependencies.jar
 Variations  : 
 
     Variation   : MULTIPLY(BIGINT, BIGINT)

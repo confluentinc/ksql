@@ -555,7 +555,7 @@ Recommended ksqlDB Production Settings
 --------------------------------------
 
 When deploying ksqlDB to production, the following settings are
-recommended in your `/etc/ksql/ksql-server.properties` file:
+recommended in your `/etc/ksqldb/ksql-server.properties` file:
 
 ```properties
 # Set the batch expiry to Integer.MAX_VALUE to ensure that queries will not

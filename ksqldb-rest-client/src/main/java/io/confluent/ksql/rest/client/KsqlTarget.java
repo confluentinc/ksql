@@ -105,7 +105,10 @@ public final class KsqlTarget {
   ) {
     executeRequestAsync(
         HEARTBEAT_PATH,
-        new HeartbeatMessage(host, timestamp)
+        new HeartbeatMessage(host, timestamp),
+        // We send heartbeat requests quite frequently and to nodes that might be down.  We don't
+        // want to fill the logs with spam, so we set expectFailures to true.
+        true /* expectFailures */
     );
   }
 
@@ -118,7 +121,8 @@ public final class KsqlTarget {
   ) {
     executeRequestAsync(
         LAG_REPORT_PATH,
-        lagReportingMessage
+        lagReportingMessage,
+        false /* expectFailures */
     );
   }
 
@@ -195,11 +199,16 @@ public final class KsqlTarget {
 
   private void executeRequestAsync(
       final String path,
-      final Object jsonEntity
+      final Object jsonEntity,
+      final boolean expectFailures
   ) {
     execute(HttpMethod.POST, path, jsonEntity, (resp, vcf) -> {
     }).exceptionally(t -> {
-      log.error("Unexpected exception in async request", t);
+      if (expectFailures) {
+        log.debug("Expected exception in async request", t);
+      } else {
+        log.error("Unexpected exception in async request", t);
+      }
       return null;
     });
   }

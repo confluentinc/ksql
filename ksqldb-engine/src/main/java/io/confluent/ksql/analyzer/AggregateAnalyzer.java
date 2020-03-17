@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -32,9 +31,10 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -58,182 +58,248 @@ public class AggregateAnalyzer {
       throw new IllegalArgumentException("Not an aggregate query");
     }
 
-    final Context context = new Context(analysis);
-
-    finalProjection.stream()
-        .map(SelectExpression::getExpression)
-        .forEach(exp -> processSelect(exp, context));
-
-    analysis.getWhereExpression()
-        .ifPresent(exp -> processWhere(exp, context));
-
-    analysis.getGroupByExpressions()
-        .forEach(exp -> processGroupBy(exp, context));
-
-    analysis.getHavingExpression()
-        .ifPresent(exp -> processHaving(exp, context));
-
-    enforceAggregateRules(context);
-
-    return context.aggregateAnalysis;
+    final AggAnalyzer aggAnalyzer = new AggAnalyzer(analysis, functionRegistry);
+    aggAnalyzer.process(finalProjection);
+    return aggAnalyzer.result();
   }
 
-  private void processSelect(final Expression expression, final Context context) {
-    final Set<ColumnReferenceExp> nonAggParams = new HashSet<>();
-    final AggregateVisitor visitor = new AggregateVisitor(context, (aggFuncName, node) -> {
-      if (aggFuncName.isPresent()) {
-        throwOnWindowBoundColumnIfWindowedAggregate(node, context);
+  private static final class AggAnalyzer {
+
+    private final ImmutableAnalysis analysis;
+    private final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
+    private final FunctionRegistry functionRegistry;
+    private final Set<Expression> groupBy;
+
+    // The list of columns from the source schema that are used in aggregate columns, but not as
+    // parameters to the aggregate functions and which are not part of the GROUP BY clause:
+    private final List<ColumnReferenceExp> aggSelectsNotPartOfGroupBy = new ArrayList<>();
+
+    // The list of non-aggregate select expression which are not part of the GROUP BY clause:
+    private final List<Expression> nonAggSelectsNotPartOfGroupBy = new ArrayList<>();
+
+    // The list of columns from the source schema that are used in the HAVING clause outside
+    // of aggregate functions which are not part of the GROUP BY clause:
+    private final List<ColumnReferenceExp> nonAggHavingNotPartOfGroupBy = new ArrayList<>();
+
+    AggAnalyzer(
+        final ImmutableAnalysis analysis,
+        final FunctionRegistry functionRegistry
+    ) {
+      this.analysis = requireNonNull(analysis, "analysis");
+      this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
+      this.groupBy = getGroupByExpressions(analysis);
+    }
+
+    public void process(final List<SelectExpression> finalProjection) {
+      finalProjection.stream()
+          .map(SelectExpression::getExpression)
+          .forEach(this::processSelect);
+
+      analysis.getWhereExpression()
+          .ifPresent(this::processWhere);
+
+      analysis.getGroupByExpressions()
+          .forEach(this::processGroupBy);
+
+      analysis.getHavingExpression()
+          .ifPresent(this::processHaving);
+    }
+
+    private void processSelect(final Expression expression) {
+      final Set<ColumnReferenceExp> nonAggParams = new HashSet<>();
+      final AggregateVisitor visitor = new AggregateVisitor(this, (aggFuncName, node) -> {
+        if (aggFuncName.isPresent()) {
+          throwOnWindowBoundColumnIfWindowedAggregate(node);
+        } else {
+          nonAggParams.add(node);
+        }
+      });
+
+      visitor.process(expression, null);
+
+      if (visitor.visitedAggFunction) {
+        captureAggregateSelectNotPartOfGroupBy(nonAggParams);
       } else {
-        nonAggParams.add(node);
+        captureNonAggregateSelectNotPartOfGroupBy(expression, nonAggParams);
       }
-    });
 
-    visitor.process(expression, null);
-
-    if (visitor.visitedAggFunction) {
-      context.aggregateAnalysis.addAggregateSelectField(nonAggParams);
-    } else {
-      context.aggregateAnalysis.addNonAggregateSelectExpression(expression, nonAggParams);
+      aggregateAnalysis.addFinalSelectExpression(expression);
     }
 
-    context.aggregateAnalysis.addFinalSelectExpression(expression);
-  }
+    private void processGroupBy(final Expression expression) {
+      final AggregateVisitor visitor = new AggregateVisitor(this, (aggFuncName, node) -> {
+        if (aggFuncName.isPresent()) {
+          throw new KsqlException("GROUP BY does not support aggregate functions: "
+              + aggFuncName.get().text() + " is an aggregate function.");
+        }
+        throwOnWindowBoundColumnIfWindowedAggregate(node);
+      });
 
-  private void processGroupBy(final Expression expression, final Context context) {
-    final AggregateVisitor visitor = new AggregateVisitor(context, (aggFuncName, node) -> {
-      if (aggFuncName.isPresent()) {
-        throw new KsqlException("GROUP BY does not support aggregate functions: "
-            + aggFuncName.get().text() + " is an aggregate function.");
+      visitor.process(expression, null);
+    }
+
+    private void processWhere(final Expression expression) {
+      final AggregateVisitor visitor = new AggregateVisitor(this, (aggFuncName, node) ->
+          throwOnWindowBoundColumnIfWindowedAggregate(node));
+
+      visitor.process(expression, null);
+    }
+
+    private void processHaving(final Expression expression) {
+      final AggregateVisitor visitor = new AggregateVisitor(this, (aggFuncName, node) -> {
+        throwOnWindowBoundColumnIfWindowedAggregate(node);
+
+        if (!aggFuncName.isPresent()) {
+          captureNoneAggregateHavingNotPartOfGroupBy(node);
+        }
+      });
+
+      visitor.process(expression, null);
+
+      aggregateAnalysis.setHavingExpression(expression);
+    }
+
+    private void throwOnWindowBoundColumnIfWindowedAggregate(
+        final ColumnReferenceExp node
+    ) {
+      // Window bounds are supported for operations on windowed sources
+      if (!analysis.getWindowExpression().isPresent()) {
+        return;
       }
-      throwOnWindowBoundColumnIfWindowedAggregate(node, context);
-    });
 
-    visitor.process(expression, null);
-  }
-
-  private void processWhere(final Expression expression, final Context context) {
-    final AggregateVisitor visitor = new AggregateVisitor(context, (aggFuncName, node) ->
-        throwOnWindowBoundColumnIfWindowedAggregate(node, context));
-
-    visitor.process(expression, null);
-  }
-
-  private void processHaving(final Expression expression, final Context context) {
-    final AggregateVisitor visitor = new AggregateVisitor(context, (aggFuncName, node) -> {
-      throwOnWindowBoundColumnIfWindowedAggregate(node, context);
-      if (!aggFuncName.isPresent()) {
-        context.aggregateAnalysis.addNonAggregateHavingField(node);
+      // For non-windowed sources, with a windowed GROUP BY, they are only supported in selects:
+      if (SchemaUtil.isWindowBound(node.getColumnName())) {
+        throw new KsqlException(
+            "Window bounds column " + node + " can only be used in the SELECT clause of "
+                + "windowed aggregations and can not be passed to aggregate functions."
+                + System.lineSeparator()
+                + "See https://github.com/confluentinc/ksql/issues/4397"
+        );
       }
-    });
-    visitor.process(expression, null);
+    }
 
-    context.aggregateAnalysis.setHavingExpression(expression);
+    private static Set<Expression> getGroupByExpressions(
+        final ImmutableAnalysis analysis
+    ) {
+      if (!analysis.getWindowExpression().isPresent()) {
+        return ImmutableSet.copyOf(analysis.getGroupByExpressions());
+      }
+
+      // Add in window bounds columns as implicit group by columns:
+      final Set<UnqualifiedColumnReferenceExp> windowBoundColumnRefs =
+          SchemaUtil.windowBoundsColumnNames().stream()
+              .map(UnqualifiedColumnReferenceExp::new)
+              .collect(Collectors.toSet());
+
+      return ImmutableSet.<Expression>builder()
+          .addAll(analysis.getGroupByExpressions())
+          .addAll(windowBoundColumnRefs)
+          .build();
+    }
+
+    private void captureNonAggregateSelectNotPartOfGroupBy(
+        final Expression expression,
+        final Set<ColumnReferenceExp> nonAggParams
+    ) {
+      final boolean matchesGroupBy = groupBy.contains(expression);
+      if (matchesGroupBy) {
+        return;
+      }
+
+      final boolean onlyReferencesColumnsInGroupBy = Sets
+          .difference(nonAggParams, groupBy).isEmpty();
+      if (onlyReferencesColumnsInGroupBy) {
+        return;
+      }
+
+      nonAggSelectsNotPartOfGroupBy.add(expression);
+    }
+
+    private void captureAggregateSelectNotPartOfGroupBy(
+        final Set<ColumnReferenceExp> nonAggParams
+    ) {
+      nonAggParams.stream()
+          .filter(param -> !groupBy.contains(param))
+          .forEach(aggSelectsNotPartOfGroupBy::add);
+    }
+
+    private void captureNoneAggregateHavingNotPartOfGroupBy(final ColumnReferenceExp nonAggColumn) {
+      if (groupBy.contains(new UnqualifiedColumnReferenceExp(nonAggColumn.getColumnName()))) {
+        return;
+      }
+
+      nonAggHavingNotPartOfGroupBy.add(nonAggColumn);
+    }
+
+    public AggregateAnalysisResult result() {
+      enforceAggregateRules();
+      return aggregateAnalysis;
+    }
+
+    private void enforceAggregateRules() {
+      if (aggregateAnalysis.getAggregateFunctions().isEmpty()) {
+        throw new KsqlException(
+            "GROUP BY requires columns using aggregate functions in SELECT clause.");
+      }
+
+      final String unmatchedSelects = nonAggSelectsNotPartOfGroupBy.stream()
+          .map(Objects::toString)
+          .collect(Collectors.joining(", "));
+
+      if (!unmatchedSelects.isEmpty()) {
+        throw new KsqlException(
+            "Non-aggregate SELECT expression(s) not part of GROUP BY: "
+                + unmatchedSelects
+                + System.lineSeparator()
+                + "Either add the column to the GROUP BY or remove it from the SELECT."
+        );
+      }
+
+      final String unmatchedSelectsAgg = aggSelectsNotPartOfGroupBy.stream()
+          .map(Objects::toString)
+          .collect(Collectors.joining(", "));
+
+      if (!unmatchedSelectsAgg.isEmpty()) {
+        throw new KsqlException(
+            "Column used in aggregate SELECT expression(s) outside of aggregate functions "
+                + "not part of GROUP BY: "
+                + unmatchedSelectsAgg
+                + System.lineSeparator()
+                + "Either add the column to the GROUP BY or remove it from the SELECT."
+        );
+      }
+
+      final String havingOnly = nonAggHavingNotPartOfGroupBy.stream()
+          .map(Objects::toString)
+          .collect(Collectors.joining(", "));
+
+      if (!havingOnly.isEmpty()) {
+        throw new KsqlException(
+            "Non-aggregate HAVING expression not part of GROUP BY: " + havingOnly
+                + System.lineSeparator()
+                + "Consider switching the HAVING clause to a WHERE clause before the GROUP BY."
+        );
+      }
+    }
   }
 
-  private static void throwOnWindowBoundColumnIfWindowedAggregate(
-      final ColumnReferenceExp node,
-      final Context context
-  ) {
-    // Window bounds are supported for operations on windowed sources
-    if (!context.analysis.getWindowExpression().isPresent()) {
-      return;
-    }
+  private static final class AggregateVisitor extends TraversalExpressionVisitor<Void> {
 
-    // For non-windowed sources, with a windowed GROUP BY, they are only supported in selects:
-    if (SchemaUtil.isWindowBound(node.getColumnName())) {
-      throw new KsqlException(
-          "Window bounds column " + node + " can only be used in the SELECT clause of "
-              + "windowed aggregations and can not be passed to aggregate functions."
-              + System.lineSeparator()
-              + "See https://github.com/confluentinc/ksql/issues/4397"
-      );
-    }
-  }
-
-  private static void enforceAggregateRules(
-      final Context context
-  ) {
-    if (context.aggregateAnalysis.getAggregateFunctions().isEmpty()) {
-      throw new KsqlException(
-          "GROUP BY requires columns using aggregate functions in SELECT clause.");
-    }
-
-    final Set<Expression> groupByExprs = getGroupByExpressions(context.analysis);
-
-    final List<String> unmatchedSelects = context.aggregateAnalysis
-        .getNonAggregateSelectExpressions()
-        .entrySet()
-        .stream()
-        // Remove any that exactly match a group by expression:
-        .filter(e -> !groupByExprs.contains(e.getKey()))
-        // Remove any that are constants,
-        // or expressions where all params exactly match a group by expression:
-        .filter(e -> !Sets.difference(e.getValue(), groupByExprs).isEmpty())
-        .map(Map.Entry::getKey)
-        .map(Expression::toString)
-        .sorted()
-        .collect(Collectors.toList());
-
-    if (!unmatchedSelects.isEmpty()) {
-      throw new KsqlException(
-          "Non-aggregate SELECT expression(s) not part of GROUP BY: " + unmatchedSelects);
-    }
-
-    final SetView<ColumnReferenceExp> unmatchedSelectsAgg = Sets
-        .difference(context.aggregateAnalysis.getAggregateSelectFields(), groupByExprs);
-    if (!unmatchedSelectsAgg.isEmpty()) {
-      throw new KsqlException(
-          "Column used in aggregate SELECT expression(s) "
-              + "outside of aggregate functions not part of GROUP BY: " + unmatchedSelectsAgg);
-    }
-
-    final Set<ColumnReferenceExp> havingColumns = context.aggregateAnalysis
-        .getNonAggregateHavingFields().stream()
-        .map(ref -> new UnqualifiedColumnReferenceExp(ref.getColumnName()))
-        .collect(Collectors.toSet());
-
-    final Set<ColumnReferenceExp> havingOnly = Sets.difference(havingColumns, groupByExprs);
-    if (!havingOnly.isEmpty()) {
-      throw new KsqlException(
-          "Non-aggregate HAVING expression not part of GROUP BY: " + havingOnly);
-    }
-  }
-
-  private static Set<Expression> getGroupByExpressions(
-      final ImmutableAnalysis analysis
-  ) {
-    if (!analysis.getWindowExpression().isPresent()) {
-      return ImmutableSet.copyOf(analysis.getGroupByExpressions());
-    }
-
-    // Add in window bounds columns as implicit group by columns:
-    final Set<UnqualifiedColumnReferenceExp> windowBoundColumnRefs =
-        SchemaUtil.windowBoundsColumnNames().stream()
-            .map(UnqualifiedColumnReferenceExp::new)
-            .collect(Collectors.toSet());
-
-    return ImmutableSet.<Expression>builder()
-        .addAll(analysis.getGroupByExpressions())
-        .addAll(windowBoundColumnRefs)
-        .build();
-  }
-
-  private final class AggregateVisitor extends TraversalExpressionVisitor<Void> {
-
-    private final BiConsumer<Optional<FunctionName>, ColumnReferenceExp>
-        dereferenceCollector;
+    private final BiConsumer<Optional<FunctionName>, ColumnReferenceExp> dereferenceCollector;
     private final ColumnReferenceExp defaultArgument;
     private final MutableAggregateAnalysis aggregateAnalysis;
+    private final FunctionRegistry functionRegistry;
 
     private Optional<FunctionName> aggFunctionName = Optional.empty();
     private boolean visitedAggFunction = false;
 
     private AggregateVisitor(
-        final Context context,
+        final AggAnalyzer aggAnalyzer,
         final BiConsumer<Optional<FunctionName>, ColumnReferenceExp> dereferenceCollector
     ) {
-      this.defaultArgument = context.analysis.getDefaultArgument();
-      this.aggregateAnalysis = context.aggregateAnalysis;
+      this.defaultArgument = aggAnalyzer.analysis.getDefaultArgument();
+      this.aggregateAnalysis = aggAnalyzer.aggregateAnalysis;
+      this.functionRegistry = aggAnalyzer.functionRegistry;
       this.dereferenceCollector = requireNonNull(dereferenceCollector, "dereferenceCollector");
     }
 
@@ -287,16 +353,6 @@ public class AggregateAnalyzer {
         final Void context
     ) {
       throw new UnsupportedOperationException("Should of been converted to unqualified");
-    }
-  }
-
-  private static final class Context {
-
-    final ImmutableAnalysis analysis;
-    final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
-
-    Context(final ImmutableAnalysis analysis) {
-      this.analysis = requireNonNull(analysis, "analysis");
     }
   }
 }

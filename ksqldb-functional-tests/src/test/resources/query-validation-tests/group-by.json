@@ -523,7 +523,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Column used in aggregate SELECT expression(s) outside of aggregate functions not part of GROUP BY: [F1]"
+        "message": "Column used in aggregate SELECT expression(s) outside of aggregate functions not part of GROUP BY: F1"
       }
     },
     {
@@ -616,7 +616,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(SOURCE, 0, 1)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: SUBSTRING(SOURCE, 0, 1)"
       }
     },
     {
@@ -627,7 +627,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(REGION, 7, 1)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: SUBSTRING(REGION, 7, 1)"
       }
     },
     {
@@ -638,7 +638,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(SOURCE, 0, 3)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: SUBSTRING(SOURCE, 0, 3)"
       }
     },
     {
@@ -649,7 +649,18 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(REGION, 7, 3)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: SUBSTRING(REGION, 7, 3)"
+      }
+    },
+    {
+      "name": "function with having field that is a subset of group by (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) FROM TEST GROUP BY SUBSTRING(source, 0, 2) HAVING LEN(source) < 2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate HAVING expression not part of GROUP BY: SOURCE"
       }
     },
     {
@@ -899,7 +910,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(F1 + F2)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: (F1 + F2)"
       }
     },
     {
@@ -910,7 +921,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(SUBREGION + REGION)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: (SUBREGION + REGION)"
       }
     },
     {
@@ -921,7 +932,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [F1, F2]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: F1, F2"
       }
     },
     {
@@ -932,7 +943,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [REGION, SUBREGION]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: SUBREGION, REGION"
       }
     },
     {
@@ -984,7 +995,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(F1 - F2)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: (F1 - F2)"
       }
     },
     {
@@ -995,7 +1006,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(F1 - F0)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: (F1 - F0)"
       }
     },
     {
@@ -1220,7 +1231,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [D1]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: D1"
       }
     },
     {
@@ -1231,7 +1242,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [D1]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: D1"
       }
     },
     {
@@ -1544,7 +1555,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [ID2]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: ID2"
       }
     },
     {

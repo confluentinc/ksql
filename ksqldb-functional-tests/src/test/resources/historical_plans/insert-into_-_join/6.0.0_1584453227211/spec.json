@@ -1,0 +1,29 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584453227211,
+  "schemas" : {
+    "InsertQuery_1.KafkaTopic_Left.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
+    "InsertQuery_1.KafkaTopic_Right.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
+    "InsertQuery_1.Join.Left" : "STRUCT<S1_DATA VARCHAR, S1_ROWTIME BIGINT, S1_ROWKEY VARCHAR> NOT NULL",
+    "InsertQuery_1.Join.Right" : "STRUCT<S2_DATA VARCHAR, S2_ROWTIME BIGINT, S2_ROWKEY VARCHAR> NOT NULL",
+    "InsertQuery_1.OUTPUT" : "STRUCT<DATA_1 VARCHAR, DATA_2 VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "stream-source",
+    "key" : "k1",
+    "value" : "v1"
+  }, {
+    "topic" : "insert-source",
+    "key" : "k1",
+    "value" : "v2"
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "k1",
+    "value" : "v1,v1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "k1",
+    "value" : "v1,v2"
+  } ]
+}

@@ -30,9 +30,9 @@ Create a new stream along with the corresponding Kafka topic, and
 continuously write the result of the SELECT query into the stream and
 its corresponding topic.
 
-If the PARTITION BY clause is present, then the resulting stream will
-have the specified column as its key. The `column_name` must be present
-in the `from_stream`. For more information, see
+If the PARTITION BY clause is present, then the resulting stream will have the specified column as
+its key. The PARTITION BY clause is applied to the source _after_ any JOIN or WHERE clauses, and
+_before_ the SELECT clause, in much the same way as GROUP BY. For more information, see
 [Partition Data to Enable Joins](../joins/partition-data.md).
 
 For joins, the key of the resulting stream will be the value from the

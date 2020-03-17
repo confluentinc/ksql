@@ -22,7 +22,8 @@ keywords: ksqlDB, function, scalar
   - [SQRT](#sqrt)
 - [Collections](#collections)
   - [ARRAYCONTAINS](#arraycontains)
-  - [AS_ARRAY](#asarray)
+  - [ARRAY](#array)
+  - [MAP](#map)
   - [AS_MAP](#asmap)
   - [ELT](#elt)
   - [FIELD](#field)
@@ -190,7 +191,8 @@ ARRAYCONTAINS
 
 `ARRAYCONTAINS('[1, 2, 3]', 3)`
 
-Given JSON or AVRO array checks if a search value contains in it.
+Given an array in JSON, AVRO, or PROTOBUF format, checks if a search value
+is contained in the array.
 
 ARRAY
 --------

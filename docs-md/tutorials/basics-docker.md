@@ -739,7 +739,7 @@ Use Nested Schemas (STRUCT) in ksqlDB
 -------------------------------------
 
 Struct support enables the modeling and access of nested data in {{ site.ak }}
-topics, from both JSON and Avro.
+topics, from JSON, Avro, and Protobuf.
 
 ### 1. Generate data
 

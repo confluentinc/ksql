@@ -104,6 +104,7 @@ public class ProjectNode extends PlanNode {
         );
   }
 
+  @Override
   public Stream<ColumnName> resolveSelectStar(
       final Optional<SourceName> sourceName,
       final boolean valueOnly

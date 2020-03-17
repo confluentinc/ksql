@@ -94,6 +94,7 @@ public class FlatMapNode extends PlanNode {
     return source.getPartitions(kafkaTopicClient);
   }
 
+  @Override
   public Expression resolveSelect(final int idx, final Expression expression) {
     return columnMappings.getOrDefault(idx, expression);
   }

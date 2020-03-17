@@ -304,7 +304,6 @@ public class LogicalPlanner {
       final Stream<ColumnName> columns = parentNode
           .resolveSelectStar(allColumns.getSource(), analysis.getInto().isPresent());
 
-      // Only need to take value columns as value schema includes key schema by this point
       return columns
           .map(name -> SelectExpression.of(name, new UnqualifiedColumnReferenceExp(
               allColumns.getLocation(),

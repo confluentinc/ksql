@@ -264,8 +264,8 @@ not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-refere
 statements.
 
 When set to the default value, `true`, ksqlDB serializes the column value
-nested with a JSON object or an Avro record, depending on the format in
-use. When set to `false`, ksqlDB persists the column value without any
+nested with a JSON object, Avro record, or Protobuf message, depending on the
+format in use. When set to `false`, ksqlDB persists the column value without any
 nesting.
 
 For example, consider the statement:
@@ -292,9 +292,9 @@ format persists the single field's value as a JSON number: `10`.
 10
 ```
 
-The `AVRO` format supports the same properties. The properties control
-whether or not the field's value is written as a named field within an
-Avro record or as an anonymous value.
+The `AVRO` and `PROTOBUF` formats support the same properties. The properties
+control whether or not the field's value is written as a named field within a
+record or as an anonymous value.
 
 This setting can be toggled using the SET command
 

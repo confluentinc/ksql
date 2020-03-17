@@ -32,6 +32,7 @@ ksqlDB supports these serialization formats:
     [AVRO](#avro) below.
 -   `KAFKA` supports primitives serialized using the standard Kafka
     serializers. See [KAFKA](#kafka) below.
+-   `PROTOBUF` supports Protocol Buffers. See [Protobuf](#protobuf) below.
 
 ### DELIMITED
 
@@ -66,6 +67,10 @@ that have `STRING` keys.
 The serialized object should be a Kafka-serialized string containing a
 valid JSON value. The format supports JSON objects and top-level
 primitives, arrays and maps. See below for more info.
+
+!!! note
+    If you want to use a JSON-based schema with {{ site.sr }}, specify the
+    `JSON_SR` format.
 
 #### JSON Objects
 
@@ -134,7 +139,7 @@ top-level primitives, arrays, and maps.
 
 The format requires ksqlDB to be configured to store and retrieve the Avro
 schemas from the {{ site.srlong }}. For more information, see
-[Configure Avro and {{ site.sr }} for ksqlDB](../operate-and-deploy/installation/server-config/avro-schema.md).
+[Configure ksqlDB for Avro or Protobuf](../operate-and-deploy/installation/server-config/avro-schema.md).
 
 #### Avro Records
 
@@ -268,6 +273,21 @@ Single field (un)wrapping
 !!! note
       The `DELIMITED` and `KAFKA` formats don't support single-field
       unwrapping.
+
+### Protobuf
+
+Protobuf handles `null` values differently than AVRO and JSON. Protobuf doesn't
+have the concept of a `null` value, so the conversion between PROTOBUF and Java
+({{ site.kconnectlong }}) objects is undefined. Usually, Protobuf resolves a
+"missing field" to the default value of its type.
+
+- **String:** the default value is the empty string.
+- **Byte:** the default value is empty bytes.
+- **Bool:** the default value is `false`.
+- **Numeric type:** the default value is zero.
+- **Enum:** the default value is the first defined enum value, which must be zero.
+- **Message field:** the field is not set. Its exact value is language-dependent.
+  See the generated code guide for details.
 
 ### Controlling deserializing of single fields
 

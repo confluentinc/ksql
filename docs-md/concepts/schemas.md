@@ -3,7 +3,7 @@ layout: page
 title: Schemas in ksqlDB
 tagline: Use schemas in your queries 
 description: Learn how schemas work with ksqlDB
-keywords: ksqldb, schema, evolution, avro
+keywords: ksqldb, schema, evolution, avro, protobuf, json, csv
 ---
 
 TODO:

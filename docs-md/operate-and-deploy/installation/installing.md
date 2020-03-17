@@ -18,7 +18,7 @@ The minimal ksqlDB stack has containers for {{ site.aktm }}, {{ site.zk }}, and
 ksqlDB Server. More sophisticated ksqlDB stacks can have {{ site.sr }},
 {{ site.kconnect }}, and other third-party services, like Elasticsearch.
 
-Stacks that have {{ site.sr }} can use Avro-encoded events in ksqlDB
+Stacks that have {{ site.sr }} can use Avro- and Protobuf-encoded events in ksqlDB
 applications. Without {{ site.sr }}, your ksqlDB applications can use only JSON
 or delimited formats.  
 
@@ -112,14 +112,14 @@ stack and one or more ksqlDB Server instances.
 
 - {{ site.zk }} -- one, for cluster metadata
 - {{ site.ak }} -- one or more
-- {{ site.sr }} -- optional, but required for Avro
+- {{ site.sr }} -- optional, but required for Avro and Protobuf
 - ksqlDB Server  -- one or more
 - ksqlDB CLI -- optional
 - Other services -- like Elasticsearch, optional
 
 !!! note
-    A stack that runs {{ site.sr }} can handle Avro-encoded events. Without
-    {{ site.sr }}, ksqlDB handles only JSON or delimited schemas for events. 
+    A stack that runs {{ site.sr }} can handle Avro- and Protobuf-encoded events.
+    Without {{ site.sr }}, ksqlDB handles only JSON or delimited schemas for events. 
 
 You can declare a container for the ksqlDB CLI in the stack, or you can attach
 the CLI to a ksqlDB Server instance later, from a separate container.
@@ -150,7 +150,7 @@ these services:
 
 - {{ site.zk }}
 - {{ site.ak }} -- one broker
-- {{ site.sr }} -- enables Avro
+- {{ site.sr }} -- enables Avro and Protobuf
 - ksqlDB Server -- one instance
 
 Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docs-md/tutorials/docker-compose.yml)
@@ -390,7 +390,7 @@ Download the `docker-compose.yml` file from the **Include Kafka** tab of the
 This `docker-compose.yml` file defines a stack with these features:
 
 - Start one ksqlDB Server instance.
-- Does not start {{ site.sr }}, so Avro schemas aren't available.
+- Does not start {{ site.sr }}, so Avro and Protobuf schemas aren't available.
 - Start the ksqlDB CLI container automatically.
 
 Use the following command to start the ksqlDB CLI in the running `ksqldb-cli`

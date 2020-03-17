@@ -1,37 +1,37 @@
 ---
 layout: page
-title: Configure Avro and Schema Registry for ksqlDB
-tagline: Read and write messages in Avro format
-description: Learn how read and write messages in Avro format by integrating ksqlDB with Confluent Schema Registry
-keywords: ksql, schema, avro
+title: Configure ksqlDB for Avro or Protobuf
+tagline: Set up  Schema Registry to enable reading and writing messages in Avro or Protobuf formats
+description: Learn how read and write messages in Avro and Protobuf by integrating ksqlDB with Confluent Schema Registry
+keywords: ksql, schema, avro, protobuf
 ---
 
-ksqlDB can read and write messages in Avro format by integrating with
+ksqlDB can read and write messages in Avro and Protobuf formats by integrating with
 [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
-ksqlDB automatically retrieves (reads) and registers (writes) Avro schemas as
+ksqlDB automatically retrieves (reads) and registers (writes) schemas as
 needed, which saves you from having to manually define columns
 and data types in SQL and from manual interaction with {{ site.sr }}.
 
 Supported functionality
 =======================
 
-ksqlDB currently supports Avro data in the {{ site.aktm }} message
+ksqlDB supports Avro and Protobuf data in the {{ site.aktm }} message
 values.
 
-Avro schemas with nested fields are supported. You can read nested data,
-in Avro and JSON formats, by using the STRUCT type. You can't create new
-nested STRUCT data as the result of a query, but you can copy existing STRUCT
-fields as-is. For more info, see [STRUCT](../../../developer-guide/syntax-reference.md#struct).
+Schemas with nested fields are supported. You can read nested data,
+in Avro, PROTOBUF, JSON, and JSON_SR formats, by using the STRUCT type. Also, you can
+create new nested STRUCT data as the result of a query. For more info, see
+[STRUCT](../../../developer-guide/syntax-reference.md#struct).
 
 The following functionality is not supported:
 
--   Message keys in Avro format are not supported. Message keys in ksqlDB
+-   Message keys in Avro or Protobuf formats are not supported. Message keys in ksqlDB
     are always interpreted as STRING format, which means ksqlDB ignores
-    Avro schemas that have been registered for message keys, and
+     and Protobuf schemas that have been registered for message keys, and
     the key is read by using `StringDeserializer`.
 
-Configure ksqlDB for Avro
-=========================
+Configure ksqlDB for Avro or Protobuf
+=====================================
 
 You must configure the REST endpoint of {{ site.sr }} by setting
 `ksql.schema.registry.url` (default: `http://localhost:8081`) in the
@@ -44,10 +44,10 @@ information, see
       Don't use the SET statement in the ksqlDB CLI to configure the registry
       endpoint.
 
-Use Avro in ksqlDB
-==================
+Use Avro or Protobuf in ksqlDB
+==============================
 
-Before using Avro in ksqlDB, make sure that {{ site.sr }} is up and
+Before using Avro or Protobuf in ksqlDB, make sure that {{ site.sr }} is up and
 running and that `ksql.schema.registry.url` is set correctly in the ksqlDB
 properties file (defaults to `http://localhost:8081`). {{ site.sr }} is
 [included by
@@ -64,11 +64,11 @@ default](https://docs.confluent.io/current/quickstart/index.html) with
       For example, `com.mycompany.MySchema` registers a schema with the
       `MySchema` name and the `com.mycompany` namespace.
 
-Here's what you can do with Avro in ksqlDB:
+Here's what you can do with Avro and Protobuf in ksqlDB:
 
--   Declare streams and tables on {{ site.ak }} topics with Avro-formatted data
-    by using `CREATE STREAM` and `CREATE TABLE` statements.
--   Read from and write into Avro-formatted data by using
+-   Declare streams and tables on {{ site.ak }} topics with Avro- or Protobuf-
+    formatted data by using `CREATE STREAM` and `CREATE TABLE` statements.
+-   Read from and write into Avro- or Protobuf-formatted data by using
     `CREATE STREAM AS SELECT` and `CREATE TABLE AS SELECT` statements.
 -   Create derived streams and tables from existing streams and tables
     with `CREATE STREAM AS SELECT` and `CREATE TABLE AS SELECT`
@@ -79,6 +79,10 @@ Here's what you can do with Avro in ksqlDB:
 
 Example SQL Statements with Avro
 --------------------------------
+
+The following statements show how to create streams and tables that have 
+Avro-formatted data. If you want to use Protobuf-formatted data, substitute
+`PROTOBUF` for `AVRO` in each statement.
 
 ### Create a New Stream by Reading Avro-formatted Data
 
@@ -169,5 +173,3 @@ CREATE STREAM pageviews_avro
 For more information, see
 [Changing Data Serialization Format from JSON to Avro](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-json-avro)
 in the [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook).
-
-Page last revised on: {{ git_revision_date }}

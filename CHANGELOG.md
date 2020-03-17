@@ -4,18 +4,19 @@
 
 ### Features
 
-* Add metrics for pull queries endpoint ([#4608](https://github.com/confluentinc/ksql/pull/4608)) ([23e3868](https://github.com/confluentinc/ksql/commit/23e3868))
-* add REGEXP_EXTRACT UDF ([#4728](https://github.com/confluentinc/ksql/pull/4728)) ([a25f0fb](https://github.com/confluentinc/ksql/commit/a25f0fb))
+* support Protobuf in ksqlDB ([#4469](https://github.com/confluentinc/ksql/pull/4469)) ([a77cebe](https://github.com/confluentinc/ksql/commit/a77cebe))
+* introduce JSON_SR format ([#4596](https://github.com/confluentinc/ksql/pull/4596)) ([daa04d2](https://github.com/confluentinc/ksql/commit/daa04d2))
 * support for tunable retention, grace period for windowed tables ([#4733](https://github.com/confluentinc/ksql/pull/4733)) ([30d49b3](https://github.com/confluentinc/ksql/commit/30d49b3)), closes [#4157](https://github.com/confluentinc/ksql/issues/4157)
+* add REGEXP_EXTRACT UDF ([#4728](https://github.com/confluentinc/ksql/pull/4728)) ([a25f0fb](https://github.com/confluentinc/ksql/commit/a25f0fb))
 * add ARRAY_LENGTH UDF ([#4725](https://github.com/confluentinc/ksql/pull/4725)) ([31a9d9d](https://github.com/confluentinc/ksql/commit/31a9d9d))
+* Implement latest_by_offset() UDAF ([#4782](https://github.com/confluentinc/ksql/pull/4782)) ([0c13bb0](https://github.com/confluentinc/ksql/commit/0c13bb0))
 * add confluent-hub to ksqlDB docker image ([#4729](https://github.com/confluentinc/ksql/pull/4729)) ([b74867a](https://github.com/confluentinc/ksql/commit/b74867a))
 * add the topic name to deserialization errors ([#4573](https://github.com/confluentinc/ksql/pull/4573)) ([0f7edf6](https://github.com/confluentinc/ksql/commit/0f7edf6))
-* display errors in CLI in red text ([#4509](https://github.com/confluentinc/ksql/pull/4509)) ([56f9c9b](https://github.com/confluentinc/ksql/commit/56f9c9b))
-* enhance `PRINT TOPIC`'s format detection ([#4551](https://github.com/confluentinc/ksql/pull/4551)) ([8b19bc6](https://github.com/confluentinc/ksql/commit/8b19bc6))
-* introduce JSON_SR format ([#4596](https://github.com/confluentinc/ksql/pull/4596)) ([daa04d2](https://github.com/confluentinc/ksql/commit/daa04d2))
+* Add metrics for pull queries endpoint ([#4608](https://github.com/confluentinc/ksql/pull/4608)) ([23e3868](https://github.com/confluentinc/ksql/commit/23e3868))
 * log groupby errors to processing logger ([#4575](https://github.com/confluentinc/ksql/pull/4575)) ([b503d25](https://github.com/confluentinc/ksql/commit/b503d25))
 * Provide upper limit on number of push queries ([#4581](https://github.com/confluentinc/ksql/pull/4581)) ([2cd66c7](https://github.com/confluentinc/ksql/commit/2cd66c7))
-* support Protobuf in ksqlDB ([#4469](https://github.com/confluentinc/ksql/pull/4469)) ([a77cebe](https://github.com/confluentinc/ksql/commit/a77cebe))
+* display errors in CLI in red text ([#4509](https://github.com/confluentinc/ksql/pull/4509)) ([56f9c9b](https://github.com/confluentinc/ksql/commit/56f9c9b))
+* enhance `PRINT TOPIC`'s format detection ([#4551](https://github.com/confluentinc/ksql/pull/4551)) ([8b19bc6](https://github.com/confluentinc/ksql/commit/8b19bc6))
 
 
 

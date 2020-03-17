@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +46,7 @@ public class AggregateExpressionRewriter
       final ExpressionTreeRewriter.Context<Void> context) {
     final FunctionName functionName = node.getName();
     if (functionRegistry.isAggregate(functionName)) {
-      final ColumnName aggVarName = ColumnName.aggregateColumn(aggVariableIndex);
+      final ColumnName aggVarName = ColumnNames.aggregateColumn(aggVariableIndex);
       aggVariableIndex++;
       return Optional.of(
           new UnqualifiedColumnReferenceExp(node.getLocation(), aggVarName));

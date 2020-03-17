@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -216,8 +217,8 @@ public class AggregateParamsFactoryTest {
                 .keyColumns(INPUT_SCHEMA.key())
                 .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
-                .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.BIGINT)
-                .valueColumn(ColumnName.aggregateColumn(1), SqlTypes.DOUBLE)
+                .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
+                .valueColumn(ColumnNames.aggregateColumn(1), SqlTypes.DOUBLE)
                 .build()
         )
     );
@@ -237,8 +238,8 @@ public class AggregateParamsFactoryTest {
                 .keyColumns(INPUT_SCHEMA.key())
                 .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
-                .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.INTEGER)
-                .valueColumn(ColumnName.aggregateColumn(1), SqlTypes.STRING)
+                .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.INTEGER)
+                .valueColumn(ColumnNames.aggregateColumn(1), SqlTypes.STRING)
                 .build()
         )
     );
@@ -267,8 +268,8 @@ public class AggregateParamsFactoryTest {
                 .keyColumns(INPUT_SCHEMA.key())
                 .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
-                .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.INTEGER)
-                .valueColumn(ColumnName.aggregateColumn(1), SqlTypes.STRING)
+                .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.INTEGER)
+                .valueColumn(ColumnNames.aggregateColumn(1), SqlTypes.STRING)
                 .valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE)
                 .valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE)
                 .build()

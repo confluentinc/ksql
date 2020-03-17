@@ -59,6 +59,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -139,7 +140,7 @@ public class StepSchemaResolverTest {
             .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
-            .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.BIGINT)
+            .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
             .build())
     );
   }
@@ -166,7 +167,7 @@ public class StepSchemaResolverTest {
             .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
-            .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.BIGINT)
+            .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
             .valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE)
             .valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE)
             .build())
@@ -221,7 +222,7 @@ public class StepSchemaResolverTest {
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("APPLE"), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("BANANA"), SqlTypes.STRING)
-            .valueColumn(ColumnName.synthesisedSchemaColumn(0), SqlTypes.DOUBLE)
+            .valueColumn(ColumnNames.synthesisedSchemaColumn(0), SqlTypes.DOUBLE)
             .build())
     );
   }
@@ -359,7 +360,7 @@ public class StepSchemaResolverTest {
             .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
-            .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.BIGINT)
+            .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
             .build())
     );
   }

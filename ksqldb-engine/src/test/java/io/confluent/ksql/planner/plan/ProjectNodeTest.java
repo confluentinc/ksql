@@ -16,8 +16,10 @@
 package io.confluent.ksql.planner.plan;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.times;
@@ -28,10 +30,12 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -39,6 +43,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,18 +55,34 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ProjectNodeTest {
 
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
-  private static final BooleanLiteral TRUE_EXPRESSION = new BooleanLiteral("true");
-  private static final BooleanLiteral FALSE_EXPRESSION = new BooleanLiteral("false");
-  private static final SelectExpression SELECT_0 = SelectExpression.of(ColumnName.of("col0"), TRUE_EXPRESSION);
-  private static final SelectExpression SELECT_1 = SelectExpression.of(ColumnName.of("col1"), FALSE_EXPRESSION);
+
+  private static final ColumnName COL_0 = ColumnName.of("col0");
+  private static final ColumnName COL_1 = ColumnName.of("col1");
+  private static final ColumnName COL_2 = ColumnName.of("col2");
+  private static final ColumnName ALIASED_COL_2 = ColumnName.of("a_col2");
+
+  private static final SelectExpression SELECT_0 = SelectExpression
+      .of(COL_0, new BooleanLiteral("true"));
+  private static final SelectExpression SELECT_1 = SelectExpression
+      .of(COL_1, new BooleanLiteral("false"));
+  private static final SelectExpression SELECT_2 = SelectExpression
+      .of(ALIASED_COL_2, new UnqualifiedColumnReferenceExp(COL_2));
+
   private static final String KEY_FIELD_NAME = "col0";
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn(ColumnName.of("col0"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
+      .valueColumn(COL_0, SqlTypes.STRING)
+      .valueColumn(COL_1, SqlTypes.STRING)
+      .valueColumn(ALIASED_COL_2, SqlTypes.STRING)
       .build();
-  private static final List<SelectExpression> SELECTS = ImmutableList.of(SELECT_0, SELECT_1);
+
+  private static final List<SelectExpression> SELECTS = ImmutableList.of(
+      SELECT_0,
+      SELECT_1,
+      SELECT_2
+  );
 
   @Mock
   private PlanNode source;
@@ -86,7 +108,9 @@ public class ProjectNodeTest {
         source,
         SELECTS,
         SCHEMA,
-        Optional.of(ColumnName.of(KEY_FIELD_NAME)));
+        Optional.of(ColumnName.of(KEY_FIELD_NAME)),
+        false
+    );
   }
 
   @Test(expected = KsqlException.class)
@@ -94,9 +118,11 @@ public class ProjectNodeTest {
     new ProjectNode(
         NODE_ID,
         source,
-        ImmutableList.of(SELECT_0),
+        ImmutableList.of(SELECT_0), // <-- not enough expressions
         SCHEMA,
-        Optional.of(ColumnName.of(KEY_FIELD_NAME))); // <-- not enough expressions
+        Optional.of(ColumnName.of(KEY_FIELD_NAME)),
+        false
+    );
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -105,11 +131,13 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         ImmutableList.of(
-            SelectExpression.of(ColumnName.of("wrongName"), TRUE_EXPRESSION),
-            SELECT_1
+            SelectExpression.of(ColumnName.of("wrongName"), new BooleanLiteral("true")),
+            SELECT_1,
+            SELECT_2
         ),
         SCHEMA,
-        Optional.of(ColumnName.of(KEY_FIELD_NAME))
+        Optional.of(ColumnName.of(KEY_FIELD_NAME)),
+        false
     );
   }
 
@@ -129,7 +157,7 @@ public class ProjectNodeTest {
 
     // Then:
     verify(stream).select(
-        eq(ImmutableList.of(SELECT_0, SELECT_1)),
+        eq(SELECTS),
         eq(stacker),
         same(ksqlStreamBuilder)
     );
@@ -142,7 +170,9 @@ public class ProjectNodeTest {
         source,
         SELECTS,
         SCHEMA,
-        Optional.of(ColumnName.of("Unknown Key Field")));
+        Optional.of(ColumnName.of("Unknown Key Field")),
+        false
+    );
   }
 
   @Test
@@ -152,5 +182,60 @@ public class ProjectNodeTest {
 
     // Then:
     assertThat(keyField.ref(), is(Optional.of(ColumnName.of(KEY_FIELD_NAME))));
+  }
+
+  @Test
+  public void shouldResolveStarSelectByCallingParent() {
+    // Given:
+    final Optional<SourceName> source = Optional.of(SourceName.of("Bob"));
+
+    // When:
+    projectNode.resolveSelectStar(source, true);
+
+    // Then:
+    verify(this.source).resolveSelectStar(source, true);
+
+    // When:
+    projectNode.resolveSelectStar(source, false);
+
+    // Then:
+    verify(this.source).resolveSelectStar(source, false);
+  }
+
+  @Test
+  public void shouldResolveStarSelectWhenUnaliased() {
+    // Given:
+    when(source.resolveSelectStar(any(), anyBoolean()))
+        .thenReturn(ImmutableList.of(COL_1, COL_0, COL_2).stream());
+
+    // When:
+    final Stream<ColumnName> result = projectNode.resolveSelectStar(Optional.empty(), true);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(COL_1, COL_0, COL_2));
+  }
+
+  @Test
+  public void shouldResolveStarSelectWhenAliased() {
+    // Given:
+    projectNode = new ProjectNode(
+        NODE_ID,
+        source,
+        SELECTS,
+        SCHEMA,
+        Optional.of(ColumnName.of(KEY_FIELD_NAME)),
+        true
+    );
+
+    when(source.resolveSelectStar(any(), anyBoolean()))
+        .thenReturn(ImmutableList.of(COL_1, COL_0, COL_2).stream());
+
+    // When:
+    final Stream<ColumnName> result = projectNode.resolveSelectStar(Optional.empty(), false);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(COL_1, COL_0, ALIASED_COL_2));
   }
 }

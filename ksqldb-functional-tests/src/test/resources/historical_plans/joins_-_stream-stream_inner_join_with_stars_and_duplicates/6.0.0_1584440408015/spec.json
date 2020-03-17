@@ -1,0 +1,125 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584440408015,
+  "schemas" : {
+    "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<NAME VARCHAR, VALUE BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<F1 VARCHAR, F2 BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.Join.Left" : "STRUCT<TT_NAME VARCHAR, TT_VALUE BIGINT, TT_ROWTIME BIGINT, TT_ID BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.Join.Right" : "STRUCT<T_F1 VARCHAR, T_F2 BIGINT, T_ROWTIME BIGINT, T_ID BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.INNER_JOIN" : "STRUCT<T_ROWTIME BIGINT, T_ID BIGINT, T_F1 VARCHAR, T_F2 BIGINT, F1_2 VARCHAR, TT_ROWTIME BIGINT, TT_ID BIGINT, TT_NAME VARCHAR, TT_VALUE BIGINT, NAME_2 VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "NAME" : "zero",
+      "VALUE" : 0
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "right_topic",
+    "key" : 0,
+    "value" : {
+      "F1" : "blah",
+      "F2" : 50
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "left_topic",
+    "key" : 10,
+    "value" : {
+      "NAME" : "100",
+      "VALUE" : 5
+    },
+    "timestamp" : 11000
+  }, {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "NAME" : "foo",
+      "VALUE" : 100
+    },
+    "timestamp" : 13000
+  }, {
+    "topic" : "right_topic",
+    "key" : 0,
+    "value" : {
+      "F1" : "a",
+      "F2" : 10
+    },
+    "timestamp" : 15000
+  }, {
+    "topic" : "right_topic",
+    "key" : 100,
+    "value" : {
+      "F1" : "newblah",
+      "F2" : 150
+    },
+    "timestamp" : 16000
+  }, {
+    "topic" : "left_topic",
+    "key" : 90,
+    "value" : {
+      "NAME" : "ninety",
+      "VALUE" : 90
+    },
+    "timestamp" : 17000
+  }, {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "NAME" : "bar",
+      "VALUE" : 99
+    },
+    "timestamp" : 30000
+  } ],
+  "outputs" : [ {
+    "topic" : "INNER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "T_F1" : "blah",
+      "T_F2" : 50,
+      "T_ROWTIME" : 10000,
+      "TT_ID" : 0,
+      "TT_NAME" : "zero",
+      "TT_VALUE" : 0,
+      "TT_ROWTIME" : 0,
+      "F1_2" : "blah",
+      "NAME_2" : "zero"
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "INNER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "T_F1" : "blah",
+      "T_F2" : 50,
+      "T_ROWTIME" : 10000,
+      "TT_ID" : 0,
+      "TT_NAME" : "foo",
+      "TT_VALUE" : 100,
+      "TT_ROWTIME" : 13000,
+      "F1_2" : "blah",
+      "NAME_2" : "foo"
+    },
+    "timestamp" : 13000
+  }, {
+    "topic" : "INNER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "T_F1" : "a",
+      "T_F2" : 10,
+      "T_ROWTIME" : 15000,
+      "TT_ID" : 0,
+      "TT_NAME" : "foo",
+      "TT_VALUE" : 100,
+      "TT_ROWTIME" : 13000,
+      "F1_2" : "a",
+      "NAME_2" : "foo"
+    },
+    "timestamp" : 15000
+  } ]
+}

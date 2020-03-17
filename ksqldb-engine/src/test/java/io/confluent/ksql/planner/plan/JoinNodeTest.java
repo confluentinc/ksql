@@ -20,8 +20,10 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -67,6 +69,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
@@ -187,6 +190,9 @@ public class JoinNodeTest {
 
     when(left.getAlias()).thenReturn(LEFT_ALIAS);
     when(right.getAlias()).thenReturn(RIGHT_ALIAS);
+
+    when(left.getSourceName()).thenReturn(Optional.of(LEFT_ALIAS));
+    when(right.getSourceName()).thenReturn(Optional.of(RIGHT_ALIAS));
 
     when(ksqlStreamBuilder.getQueryId()).thenReturn(new QueryId("foo"));
     when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(logContext);
@@ -683,6 +689,55 @@ public class JoinNodeTest {
         .valueColumns(LEFT_NODE_SCHEMA.value())
         .valueColumns(RIGHT_NODE_SCHEMA.value())
         .build()));
+  }
+
+  @Test
+  public void shouldResolveUnaliasedSelectStarByCallingAllSourcesWithValueOnlyFalse() {
+    // Given:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinType.LEFT,
+        left,
+        right,
+        Optional.empty()
+    );
+
+    when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
+    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
+
+    // When:
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.empty(), true);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(ColumnName.of("l"), ColumnName.of("r")));
+
+    verify(left).resolveSelectStar(Optional.empty(), false);
+    verify(right).resolveSelectStar(Optional.empty(), false);
+  }
+
+  @Test
+  public void shouldResolveAliasedSelectStarByCallingOnlyCorrectParent() {
+    // Given:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinType.LEFT,
+        left,
+        right,
+        Optional.empty()
+    );
+
+    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
+
+    // When:
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.of(RIGHT_ALIAS), true);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(ColumnName.of("r")));
+
+    verify(left, never()).resolveSelectStar(any(), anyBoolean());
+    verify(right).resolveSelectStar(Optional.of(RIGHT_ALIAS), false);
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})

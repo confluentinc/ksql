@@ -193,7 +193,10 @@ public class LogicalPlanner {
   private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {
     final List<Expression> groupByExps = analysis.getGroupByExpressions();
 
-    final List<SelectExpression> projectionExpressions = buildSelectExpressions(sourcePlanNode);
+    final List<SelectExpression> projectionExpressions = buildSelectExpressions(
+        sourcePlanNode,
+        analysis.getSelectItems()
+    );
 
     final LogicalSchema schema =
         buildAggregateSchema(sourcePlanNode, groupByExps, projectionExpressions);
@@ -231,13 +234,19 @@ public class LogicalPlanner {
       final PlanNode parentNode,
       final String id
   ) {
-    return buildProjectNode(parentNode, id, buildSelectExpressions(parentNode));
+    return buildProjectNode(
+        parentNode,
+        id,
+        buildSelectExpressions(parentNode, analysis.getSelectItems()),
+        false
+    );
   }
 
   private ProjectNode buildProjectNode(
       final PlanNode sourcePlanNode,
       final String id,
-      final List<SelectExpression> projection
+      final List<SelectExpression> projection,
+      final boolean aliased
   ) {
     final ColumnName sourceKeyFieldName = sourcePlanNode
         .getKeyField()
@@ -258,22 +267,27 @@ public class LogicalPlanner {
         sourcePlanNode,
         projection,
         schema,
-        keyFieldName
+        keyFieldName,
+        aliased
     );
   }
 
-  private List<SelectExpression> buildSelectExpressions(final PlanNode parentNode) {
-    return IntStream.range(0, analysis.getSelectItems().size())
+  private List<SelectExpression> buildSelectExpressions(
+      final PlanNode parentNode,
+      final List<SelectItem> selectItems
+  ) {
+    return IntStream.range(0, selectItems.size())
         .boxed()
-        .flatMap(idx -> resolveSelectItem(idx, parentNode))
+        .flatMap(idx -> resolveSelectItem(idx, selectItems, parentNode))
         .collect(Collectors.toList());
   }
 
   private Stream<SelectExpression> resolveSelectItem(
       final int idx,
+      final List<SelectItem> selectItems,
       final PlanNode parentNode
   ) {
-    final SelectItem selectItem = analysis.getSelectItems().get(idx);
+    final SelectItem selectItem = selectItems.get(idx);
 
     if (selectItem instanceof SingleColumn) {
       final SingleColumn column = (SingleColumn) selectItem;
@@ -380,6 +394,7 @@ public class LogicalPlanner {
             return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
           }
         };
+
     final PlanNode repartition = buildRepartitionNode(
         side + "SourceKeyed",
         sourceNode,
@@ -387,10 +402,17 @@ public class LogicalPlanner {
         // all qualifiers.
         ExpressionTreeRewriter.rewriteWith(rewriter::process, joinExpression)
     );
+
+    final List<SelectExpression> projection = selectWithPrependAlias(
+        source.getAlias(),
+        repartition.getSchema()
+    );
+
     return buildProjectNode(
         repartition,
         "PrependAlias" + side,
-        selectWithPrependAlias(source.getAlias(), repartition.getSchema())
+        projection,
+        true
     );
   }
 

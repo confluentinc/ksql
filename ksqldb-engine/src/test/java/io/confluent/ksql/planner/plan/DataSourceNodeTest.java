@@ -18,9 +18,11 @@ package io.confluent.ksql.planner.plan;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
@@ -63,6 +65,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -79,7 +82,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceNodeTest {
 
-  private static final ColumnName TIMESTAMP_FIELD = ColumnName.of("timestamp");
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final SourceName SOURCE_NAME = SourceName.of("datasource");
 
@@ -87,17 +89,20 @@ public class DataSourceNodeTest {
   private SchemaKStream<?> realStream;
   private StreamsBuilder realBuilder;
 
+  private static final ColumnName K0 = ColumnName.of("k0");
   private static final ColumnName FIELD1 = ColumnName.of("field1");
   private static final ColumnName FIELD2 = ColumnName.of("field2");
   private static final ColumnName FIELD3 = ColumnName.of("field3");
+  private static final ColumnName TIMESTAMP_FIELD = ColumnName.of("timestamp");
+  private static final ColumnName KEY = ColumnName.of("key");
 
   private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+      .keyColumn(K0, SqlTypes.INTEGER)
       .valueColumn(FIELD1, SqlTypes.INTEGER)
       .valueColumn(FIELD2, SqlTypes.STRING)
       .valueColumn(FIELD3, SqlTypes.STRING)
       .valueColumn(TIMESTAMP_FIELD, SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
+      .valueColumn(KEY, SqlTypes.STRING)
       .build();
 
   private static final KeyField KEY_FIELD = KeyField.of(FIELD1);
@@ -367,6 +372,39 @@ public class DataSourceNodeTest {
 
     // Then:
     assertThat(returned, is(table));
+  }
+
+  @Test
+  public void shouldThrowOnResolveSelectStarIfWrongSourceName() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> node.resolveSelectStar(Optional.of(SourceName.of("wrong")), true)
+    );
+  }
+
+  @Test
+  public void shouldNotThrowOnResolveSelectStarIfRightSourceName() {
+    node.resolveSelectStar(Optional.of(SOME_SOURCE.getName()), true);
+  }
+
+  @Test
+  public void shouldResolveSelectStartToValueColumns() {
+    // When:
+    final Stream<ColumnName> result = node.resolveSelectStar(Optional.empty(), true);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY));
+  }
+
+  @Test
+  public void shouldResolveSelectStartToAllColumns() {
+    // When:
+    final Stream<ColumnName> result = node.resolveSelectStar(Optional.empty(), false);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(K0, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY));
   }
 
   private void givenNodeWithMockSource() {

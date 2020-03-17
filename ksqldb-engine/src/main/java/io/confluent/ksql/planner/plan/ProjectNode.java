@@ -31,10 +31,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -44,14 +41,15 @@ public class ProjectNode extends PlanNode {
   private final PlanNode source;
   private final ImmutableList<SelectExpression> projectExpressions;
   private final KeyField keyField;
-  private final ImmutableMap<ColumnName, ImmutableList<ColumnName>> aliases;
+  private final ImmutableMap<ColumnName, ColumnName> aliases;
 
   public ProjectNode(
       final PlanNodeId id,
       final PlanNode source,
       final List<SelectExpression> projectExpressions,
       final LogicalSchema schema,
-      final Optional<ColumnName> keyFieldName
+      final Optional<ColumnName> keyFieldName,
+      final boolean aliased
   ) {
     super(id, source.getNodeOutputType(), schema, source.getSourceName());
 
@@ -61,7 +59,9 @@ public class ProjectNode extends PlanNode {
     );
     this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);
-    this.aliases = buildAliasMapping(projectExpressions);
+    this.aliases = aliased
+        ? buildAliasMapping(projectExpressions)
+        : ImmutableMap.of();
 
     validate();
   }
@@ -109,8 +109,7 @@ public class ProjectNode extends PlanNode {
       final boolean valueOnly
   ) {
     return source.resolveSelectStar(sourceName, valueOnly)
-        .map(name -> aliases.getOrDefault(name, ImmutableList.of()))
-        .flatMap(Collection::stream);
+        .map(name -> aliases.getOrDefault(name, name));
   }
 
   private void validate() {
@@ -129,22 +128,17 @@ public class ProjectNode extends PlanNode {
     }
   }
 
-  private static ImmutableMap<ColumnName, ImmutableList<ColumnName>> buildAliasMapping(
+  private static ImmutableMap<ColumnName, ColumnName> buildAliasMapping(
       final List<SelectExpression> projectExpressions
   ) {
-    final Map<ColumnName, ImmutableList.Builder<ColumnName>> aliases = new HashMap<>();
+    final ImmutableMap.Builder<ColumnName, ColumnName> builder = ImmutableMap.builder();
 
     projectExpressions.stream()
         .filter(se -> se.getExpression() instanceof ColumnReferenceExp)
-        .forEach(se -> aliases.computeIfAbsent(
+        .forEach(se -> builder.put(
             ((ColumnReferenceExp) se.getExpression()).getColumnName(),
-            k -> ImmutableList.builder())
-            .add(se.getAlias()));
-
-    final ImmutableMap.Builder<ColumnName, ImmutableList<ColumnName>> builder =
-        ImmutableMap.builder();
-
-    aliases.forEach((k, v) -> builder.put(k, v.build()));
+            se.getAlias()
+        ));
 
     return builder.build();
   }

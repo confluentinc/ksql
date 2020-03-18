@@ -18,7 +18,6 @@ package io.confluent.ksql.analyzer;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
@@ -58,20 +57,23 @@ public class AggregateAnalyzerTest {
   private static final UnqualifiedColumnReferenceExp DEFAULT_ARGUMENT =
       new UnqualifiedColumnReferenceExp(SchemaUtil.ROWTIME_NAME);
 
-  private static final UnqualifiedColumnReferenceExp COL0 =
+  private static final UnqualifiedColumnReferenceExp GROUP_BY_0 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"));
 
-  private static final UnqualifiedColumnReferenceExp COL1 =
+  private static final UnqualifiedColumnReferenceExp GROUP_BY_1 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"));
 
   private static final UnqualifiedColumnReferenceExp COL2 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
 
+  private static final UnqualifiedColumnReferenceExp COL3 =
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL3"));
+
   private static final FunctionCall FUNCTION_CALL = new FunctionCall(FunctionName.of("UCASE"),
-      ImmutableList.of(COL0));
+      ImmutableList.of(GROUP_BY_0));
 
   private static final FunctionCall AGG_FUNCTION_CALL = new FunctionCall(FunctionName.of("MAX"),
-      ImmutableList.of(COL0, COL1));
+      ImmutableList.of(GROUP_BY_0, GROUP_BY_1));
 
   private static final FunctionCall REQUIRED_AGG_FUNC_CALL = new FunctionCall(
       FunctionName.of("MAX"),
@@ -90,7 +92,7 @@ public class AggregateAnalyzerTest {
   public void init() {
     analyzer = new AggregateAnalyzer(functionRegistry);
 
-    givenGroupByExpressions(COL0, COL1);
+    givenGroupByExpressions(GROUP_BY_0, GROUP_BY_1);
 
     selects = new ArrayList<>();
     // Aggregate requires at least one aggregation column:
@@ -100,71 +102,74 @@ public class AggregateAnalyzerTest {
   }
 
   @Test
-  public void shouldCaptureSelectNonAggregateFunctionArguments() {
+  public void shouldThrowOnNonAggColumnsNotInGroupBy() {
     // Given:
-    givenSelectExpression(FUNCTION_CALL);
+    givenSelectExpression(COL2);
+    givenSelectExpression(COL3);
 
     // When:
-    final MutableAggregateAnalysis result = (MutableAggregateAnalysis) analyzer
-        .analyze(analysis, selects);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(analysis, selects)
+    );
 
     // Then:
-    assertThat(result.getNonAggregateSelectExpressions().get(FUNCTION_CALL), contains(COL0));
+    assertThat(e.getMessage(),
+        containsString("Non-aggregate SELECT expression(s) not part of GROUP BY: COL2, COL3"));
   }
 
   @Test
-  public void shouldCaptureSelectDereferencedExpression() {
+  public void shouldThrowOnNonAggFunctionCallWithColumnParamNotInGroupBy() {
     // Given:
-    givenSelectExpression(COL0);
+    givenSelectExpression(new FunctionCall(FunctionName.of("UCASE"), ImmutableList.of(COL2)));
 
     // When:
-    final MutableAggregateAnalysis result = (MutableAggregateAnalysis) analyzer
-        .analyze(analysis, selects);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(analysis, selects)
+    );
 
     // Then:
-    assertThat(result.getNonAggregateSelectExpressions().get(COL0), contains(COL0));
+    assertThat(e.getMessage(),
+        containsString("Non-aggregate SELECT expression(s) not part of GROUP BY: UCASE(COL2)"));
   }
 
   @Test
-  public void shouldCaptureOtherSelectsWithEmptySet() {
+  public void shouldNotThrowOnOtherExpressionTypesInProjection() {
     // Given:
     final Expression someExpression = mock(Expression.class);
     givenSelectExpression(someExpression);
 
     // When:
-    final MutableAggregateAnalysis result = (MutableAggregateAnalysis) analyzer
-        .analyze(analysis, selects);
+    analyzer.analyze(analysis, selects);
 
-    // Then:
-    assertThat(result.getNonAggregateSelectExpressions().get(someExpression), is(empty()));
+    // Then: did not throw.
   }
 
   @Test
-  public void shouldNotCaptureOtherNonAggregateFunctionArgumentsAsNonAggSelectColumns() {
+  public void shouldNotThrowOnNonAggregateFunctionIfAllParamsAreInGroupBy() {
     // Given:
-    givenGroupByExpressions(COL0);
-
-    givenHavingExpression(FUNCTION_CALL);
+    final Expression someExpression = mock(Expression.class);
+    givenSelectExpression(new FunctionCall(
+        FunctionName.of("UCASE"),
+        ImmutableList.of(GROUP_BY_1, someExpression)
+    ));
 
     // When:
-    final MutableAggregateAnalysis result = (MutableAggregateAnalysis) analyzer
-        .analyze(analysis, selects);
+    analyzer.analyze(analysis, selects);
 
-    // Then:
-    assertThat(result.getNonAggregateSelectExpressions().keySet(), is(empty()));
+    // Then: did not throw.
   }
 
   @Test
-  public void shouldNotCaptureAggregateFunctionArgumentsAsNonAggSelectColumns() {
+  public void shouldNotThrowOnAggregateFunctionInHavingThatReferencesColumnNotInGroupBy() {
     // Given:
     givenHavingExpression(AGG_FUNCTION_CALL);
 
     // When:
-    final MutableAggregateAnalysis result = (MutableAggregateAnalysis) analyzer
-        .analyze(analysis, selects);
+    analyzer.analyze(analysis, selects);
 
-    // Then:
-    assertThat(result.getNonAggregateSelectExpressions().keySet(), is(empty()));
+    // Then: did not throw.
   }
 
   @Test
@@ -200,13 +205,13 @@ public class AggregateAnalyzerTest {
   @Test
   public void shouldCaptureGroupByNonAggregateFunctionArgumentsAsRequired() {
     // Given:
-    givenGroupByExpressions(COL0, COL1);
+    givenGroupByExpressions(GROUP_BY_0, GROUP_BY_1);
 
     // When:
     final AggregateAnalysisResult result = analyzer.analyze(analysis, selects);
 
     // Then:
-    assertThat(result.getRequiredColumns(), hasItems(COL0, COL1));
+    assertThat(result.getRequiredColumns(), hasItems(GROUP_BY_0, GROUP_BY_1));
   }
 
   @Test
@@ -218,7 +223,7 @@ public class AggregateAnalyzerTest {
     final AggregateAnalysisResult result = analyzer.analyze(analysis, selects);
 
     // Then:
-    assertThat(result.getRequiredColumns(), hasItems(COL0, COL1));
+    assertThat(result.getRequiredColumns(), hasItems(GROUP_BY_0, GROUP_BY_1));
   }
 
   @Test
@@ -230,7 +235,7 @@ public class AggregateAnalyzerTest {
     final AggregateAnalysisResult result = analyzer.analyze(analysis, selects);
 
     // Then:
-    assertThat(result.getRequiredColumns(), hasItems(COL0, COL1));
+    assertThat(result.getRequiredColumns(), hasItems(GROUP_BY_0, GROUP_BY_1));
   }
 
   @Test
@@ -317,22 +322,20 @@ public class AggregateAnalyzerTest {
   }
 
   @Test
-  public void shouldNotCaptureNonAggregateFunctionArgumentsWhenNestedInsideAggFunction() {
+  public void shouldNotThrowOnNonAggregateFunctionArgumentsWhenNestedInsideAggFunction() {
     // Given:
     final FunctionCall nonAggFunc = new FunctionCall(FunctionName.of("ROUND"),
-        ImmutableList.of(COL0));
+        ImmutableList.of(COL3));
 
     final FunctionCall aggFuncWithNestedNonAgg = new FunctionCall(FunctionName.of("MAX"),
-        ImmutableList.of(COL1, nonAggFunc));
+        ImmutableList.of(COL2, nonAggFunc));
 
     givenSelectExpression(aggFuncWithNestedNonAgg);
 
     // When:
-    final MutableAggregateAnalysis result = (MutableAggregateAnalysis) analyzer
-        .analyze(analysis, selects);
+    analyzer.analyze(analysis, selects);
 
-    // Then:
-    assertThat(result.getNonAggregateSelectExpressions().keySet(), is(empty()));
+    // Then: did not throw.
   }
 
   @Test

@@ -14,114 +14,29 @@
 
 package io.confluent.ksql.analyzer;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 public class MutableAggregateAnalysis implements AggregateAnalysisResult {
 
   private final List<ColumnReferenceExp> requiredColumns = new ArrayList<>();
-  private final Map<Expression, Set<ColumnReferenceExp>> nonAggSelectExpressions
-      = new HashMap<>();
-  private final Set<ColumnReferenceExp> nonAggHavingFields = new HashSet<>();
-  private final Set<ColumnReferenceExp> aggSelectFields = new HashSet<>();
   private final List<Expression> finalSelectExpressions = new ArrayList<>();
   private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
   private final List<FunctionCall> aggFunctions = new ArrayList<>();
   private Optional<Expression> havingExpression = Optional.empty();
 
-
-  @Override
-  public List<Expression> getAggregateFunctionArguments() {
-    return Collections.unmodifiableList(aggregateFunctionArguments);
-  }
-
-  @Override
-  public List<ColumnReferenceExp> getRequiredColumns() {
-    return Collections.unmodifiableList(requiredColumns);
-  }
-
-  /**
-   * Get a map of non-aggregate select expression to the set of source schema fields the
-   * expression uses.
-   *
-   * @return the map of select expression to the set of source schema fields.
-   */
-  public Map<Expression, Set<ColumnReferenceExp>> getNonAggregateSelectExpressions() {
-    return Collections.unmodifiableMap(nonAggSelectExpressions);
-  }
-
-  /**
-   * Get the set of select fields that are involved in aggregate columns, but not as parameters
-   * to the aggregate functions.
-   *
-   * @return the set of fields used in aggregate columns outside of aggregate function parameters.
-   */
-  public Set<ColumnReferenceExp> getAggregateSelectFields() {
-    return Collections.unmodifiableSet(aggSelectFields);
-  }
-
-  /**
-   * Get the set of columns from the source schema that are used in the HAVING clause outside
-   * of aggregate functions.
-   *
-   * @return the set of non-aggregate columns used in the HAVING clause.
-   */
-  public Set<ColumnReferenceExp> getNonAggregateHavingFields() {
-    return Collections.unmodifiableSet(nonAggHavingFields);
-  }
-
-  @Override
-  public List<FunctionCall> getAggregateFunctions() {
-    return Collections.unmodifiableList(aggFunctions);
-  }
-
-  @Override
-  public List<Expression> getFinalSelectExpressions() {
-    return Collections.unmodifiableList(finalSelectExpressions);
-  }
-
-  @Override
-  public Optional<Expression> getHavingExpression() {
-    return havingExpression;
-  }
-
-  void setHavingExpression(final Expression havingExpression) {
-    this.havingExpression = Optional.of(havingExpression);
-  }
-
   void addAggregateFunctionArgument(final Expression argument) {
     aggregateFunctionArguments.add(argument);
   }
 
-  void addAggFunction(final FunctionCall functionCall) {
-    aggFunctions.add(functionCall);
-  }
-
-  void addAggregateSelectField(
-      final Set<ColumnReferenceExp> fields
-  ) {
-    aggSelectFields.addAll(fields);
-  }
-
-  void addNonAggregateSelectExpression(
-      final Expression selectExpression,
-      final Set<ColumnReferenceExp> referencedFields
-  ) {
-    nonAggSelectExpressions.put(selectExpression, ImmutableSet.copyOf(referencedFields));
-  }
-
-  void addNonAggregateHavingField(final ColumnReferenceExp node) {
-    nonAggHavingFields.add(node);
+  @Override
+  public List<Expression> getAggregateFunctionArguments() {
+    return Collections.unmodifiableList(aggregateFunctionArguments);
   }
 
   void addRequiredColumn(final ColumnReferenceExp node) {
@@ -130,7 +45,35 @@ public class MutableAggregateAnalysis implements AggregateAnalysisResult {
     }
   }
 
+  @Override
+  public List<ColumnReferenceExp> getRequiredColumns() {
+    return Collections.unmodifiableList(requiredColumns);
+  }
+
+  void addAggFunction(final FunctionCall functionCall) {
+    aggFunctions.add(functionCall);
+  }
+
+  @Override
+  public List<FunctionCall> getAggregateFunctions() {
+    return Collections.unmodifiableList(aggFunctions);
+  }
+
   void addFinalSelectExpression(final Expression expression) {
     finalSelectExpressions.add(expression);
+  }
+
+  @Override
+  public List<Expression> getFinalSelectExpressions() {
+    return Collections.unmodifiableList(finalSelectExpressions);
+  }
+
+  void setHavingExpression(final Expression havingExpression) {
+    this.havingExpression = Optional.of(havingExpression);
+  }
+
+  @Override
+  public Optional<Expression> getHavingExpression() {
+    return havingExpression;
   }
 }

@@ -28,9 +28,15 @@ public class KsqlRequestConfig extends AbstractConfig {
 
   public static final String KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING =
       "request.ksql.query.pull.skip.forwarding";
-  public static final Boolean KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING_DEFAULT = false;
+  public static final boolean KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING_DEFAULT = false;
   private static final String KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING_DOC =
       "Controls whether a ksql host forwards a pull query request to another host";
+
+  public static final String KSQL_REQUEST_INTERNAL_REQUEST =
+      "request.ksql.internal.request";
+  public static final boolean KSQL_REQUEST_INTERNAL_REQUEST_DEFAULT = false;
+  private static final String KSQL_REQUEST_INTERNAL_REQUEST_DOC =
+      "Indicates whether a KsqlRequest came from another server ";
 
   private static ConfigDef buildConfigDef() {
     final ConfigDef configDef = new ConfigDef()
@@ -40,6 +46,12 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING_DEFAULT,
             ConfigDef.Importance.MEDIUM,
             KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING_DOC
+        ).define(
+            KSQL_REQUEST_INTERNAL_REQUEST,
+            Type.BOOLEAN,
+            KSQL_REQUEST_INTERNAL_REQUEST_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_REQUEST_INTERNAL_REQUEST_DOC
         );
     return configDef;
   }

@@ -55,6 +55,7 @@ import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlHostInfo;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.net.URL;
@@ -218,7 +219,8 @@ public class KsqlResource implements KsqlConfigurable {
           new SessionProperties(
               request.getStreamsProperties(),
               localHost,
-              localUrl
+              localUrl,
+              false
           )
       );
       return Response.ok(entities).build();
@@ -245,6 +247,8 @@ public class KsqlResource implements KsqlConfigurable {
           request,
           distributedCmdResponseTimeout);
 
+      final KsqlRequestConfig requestConfig =
+          new KsqlRequestConfig(request.getRequestProperties());
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
       validator.validate(
           SandboxedServiceContext.create(securityContext.getServiceContext()),
@@ -252,7 +256,8 @@ public class KsqlResource implements KsqlConfigurable {
           new SessionProperties(
               request.getConfigOverrides(),
               localHost, 
-              localUrl
+              localUrl,
+              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
           ),
           request.getKsql()
       );
@@ -263,7 +268,8 @@ public class KsqlResource implements KsqlConfigurable {
           new SessionProperties(
               request.getConfigOverrides(),
               localHost,
-              localUrl
+              localUrl,
+              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
           )
       );
       return Response.ok(entities).build();

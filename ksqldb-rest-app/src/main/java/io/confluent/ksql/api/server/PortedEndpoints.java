@@ -59,7 +59,7 @@ public class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(MediaType.APPLICATION_JSON)
         .handler(new PortedEndpoints(endpoints, server)::handleKsqlRequest);
-    router.route(HttpMethod.POST, "/terminate")
+    router.route(HttpMethod.POST, "/ksql/terminate")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
         .produces(MediaType.APPLICATION_JSON)

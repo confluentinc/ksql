@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -96,6 +97,12 @@ public final class KsqlQueryBuilder {
 
   public ProcessingLogContext getProcessingLogContext() {
     return processingLogContext;
+  }
+
+  public ProcessingLogger getProcessingLogger(final QueryContext queryContext) {
+    return processingLogContext
+        .getLoggerFactory()
+        .getLogger(QueryLoggerUtil.queryLoggerName(queryId, queryContext));
   }
 
   public ServiceContext getServiceContext() {

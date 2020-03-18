@@ -76,7 +76,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKStreamTest {
 
-  private static final SourceName TEST1 = SourceName.of("TEST1");
   private static final Expression COL1 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"));
 
@@ -513,7 +512,7 @@ public class SchemaKStreamTest {
     assertThat(
         rekeyedSchemaKStream.getSourceStep(),
         equalTo(
-            ExecutionStepFactory.streamSelectKey(
+            ExecutionStepFactory.streamSelectKeyV1(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
                 new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))

@@ -330,27 +330,10 @@ def job = {
 
 def post = {
     withDockerServer([uri: dockerHost()]) {
-        repos = config.dockerArtifacts + config.dockerRepos
-        repos.reverse().each { dockerRepo ->
-            if (params.PROMOTE_TO_PRODUCTION) {
-                sh """#!/usr/bin/env bash \n
-                images=\$(docker images -q ${dockerRepo})
-                if [[ ! -z \$images ]]; then
-                    docker rmi -f \$images || true
-                    else
-                        echo 'No images for ${dockerRepo} need cleanup'
-                    fi
-                """
-            }
-            sh """#!/usr/bin/env bash \n
-            images=\$(docker images -q ${config.dockerRegistry}${dockerRepo})
-            if [[ ! -z \$images ]]; then
-                docker rmi -f \$images || true
-                else
-                    echo 'No images for ${config.dockerRegistry}${dockerRepo} need cleanup'
-                fi
-            """
-        }
+        sh """#!/usr/bin/env bash \n
+            # Delete all images
+            docker rmi -f \$(docker images -a -q) || true
+        """
     }
     commonPost(finalConfig)
 }

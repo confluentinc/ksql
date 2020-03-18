@@ -39,6 +39,7 @@ import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 public class QueryStreamEndpoint {
@@ -91,7 +92,8 @@ public class QueryStreamEndpoint {
   private QueryPublisher createPullQueryPublisher(final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement) {
-    final TableRowsEntity tableRows = pullQueryExecutor.execute(statement, serviceContext);
+    final TableRowsEntity tableRows = pullQueryExecutor.execute(
+        statement, serviceContext, Optional.empty());
     return new PullQueryPublisher(context, tableRows, colNamesFromSchema(tableRows.getSchema()),
         colTypesFromSchema(tableRows.getSchema()));
   }

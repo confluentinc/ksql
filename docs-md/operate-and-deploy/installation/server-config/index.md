@@ -7,7 +7,7 @@ description: Learn about the configuration settings you can use to set up ksqlDB
 
 - [Configure Security for ksqlDB](security.md)
 - [ksqlDB Configuration Parameter Reference](config-reference.md)
-- [Configure Avro and {{ site.sr }} for ksqlDB](avro-schema.md)
+- [Configure ksqlDB for Avro or Protobuf](avro-schema.md)
 - [Integrate ksqlDB with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md)
 
 ksqlDB configuration parameters can be set for ksqlDB Server and for queries,
@@ -40,7 +40,7 @@ configuration file and override specific properties as needed, using the
 ### ksqlDB Server Configuration File
 
 By default, the ksqlDB server configuration file is located at
-`<path-to-confluent>/etc/ksql/ksql-server.properties`. The file follows
+`<path-to-confluent>/etc/ksqldb/ksql-server.properties`. The file follows
 the syntax conventions of
 [Java properties files](https://docs.oracle.com/javase/tutorial/essential/environment/properties.html).
 
@@ -59,7 +59,7 @@ After you have updated the server configuration file, you can start the
 ksqlDB Server with the configuration file specified.
 
 ```bash
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
 For more information, see [ksqlDB Configuration Parameter Reference](config-reference.md).
@@ -73,7 +73,7 @@ system properties. For example, to set
 
 ```bash
 KSQL_OPTS="-Dksql.streams.num.streams.threads=1" <path-to-confluent>/bin/ksql-server-start \
-<path-to-confluent>/etc/ksql/ksql-server.properties
+<path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
 You can specify multiple parameters at the same time. For example, to
@@ -82,7 +82,7 @@ configure `ksql.streams.auto.offset.reset` and
 
 ```bash
 KSQL_OPTS="-Dksql.streams.auto.offset.reset=earliest -Dksql.streams.num.stream.threads=1" <path-to-confluent>/bin/ksql-server-start \
-<path-to-confluent>/etc/ksql/ksql-server.properties
+<path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
 ### ksqlDB Server Runtime Environment Variables
@@ -178,7 +178,7 @@ To enable JMX metrics, set `JMX_PORT` before starting the ksqlDB server:
 
 ```bash
 export JMX_PORT=1099 && \
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
 Run the `ksql-print-metrics` tool to see the available JMX metrics for
@@ -254,9 +254,9 @@ REST endpoint and interactive use.
 
 ### Schema resolution
 
-When you run a ksqlDB application that uses Avro, ksqlDB infers schemas from
-{{ site.sr }} automatically, but the behavior after restarting ksqlDB Server
-differs between interactive and non-interactive mode.
+When you run a ksqlDB application that uses Avro or Protobuf, ksqlDB infers 
+chemas from {{ site.sr }} automatically, but the behavior after restarting
+ksqlDB Server differs between interactive and non-interactive mode.
 
 - **Interactive mode:** after ksqlDB Server restarts, it doesn't contact
   {{ site.sr }} again to resolve schemas, because it has previously persisted
@@ -266,7 +266,7 @@ differs between interactive and non-interactive mode.
   behavior in your ksqlDB applications may occur.
 
 !!! important
-    If your ksqlDB applications use Avro and you run them in non-interactive
+    If your ksqlDB applications use Avro or Protobuf, and you run them in non-interactive
     mode, ensure that the schemas don't change between ksqlDB Server restarts,
     or provide the schema explicitly. If the schema may evolve, it's safer to
     provide the schema explicitly.
@@ -282,7 +282,7 @@ Start the ksqlDB Server with the predefined script specified by using the
 `--queries-file` argument.
 
 ```bash
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties \
+<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties \
 --queries-file /path/to/queries.sql
 ```
 
@@ -307,7 +307,7 @@ ksql.queries.file=/path/to/queries.sql
 Start the ksqlDB server with the configuration file specified.
 
 ```bash
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
 Page last revised on: {{ git_revision_date }}

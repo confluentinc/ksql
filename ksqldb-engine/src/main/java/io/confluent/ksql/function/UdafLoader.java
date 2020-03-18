@@ -52,7 +52,7 @@ class UdafLoader {
 
   void loadUdafFromClass(final Class<?> theClass, final String path) {
     final UdafDescription udafAnnotation = theClass.getAnnotation(UdafDescription.class);
-
+    
     final List<UdafFactoryInvoker> invokers = new ArrayList<>();
     for (final Method method : theClass.getMethods()) {
       if (method.getAnnotation(UdafFactory.class) != null) {

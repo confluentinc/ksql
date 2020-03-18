@@ -143,7 +143,7 @@ precision and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
 `public SqlType <your-method-name>(final List<SqlType> params)` and
-annotate it with `@SchemaProvider`. Also, you need to link it to the
+annotate it with `@UdfSchemaProvider`. Also, you need to link it to the
 corresponding UDF by using the `schemaProvider=<your-method-name>`
 parameter of the `@Udf` annotation.
 
@@ -712,7 +712,7 @@ of the output based on the input schema.
 
 To use this functionality, specify a method with signature
 `public SqlType <your-method-name>(final List<SqlType> params)` and annotate it
-with `@SchemaProvider`. Also, you need to link it to the corresponding UDF by
+with `@UdfSchemaProvider`. Also, you need to link it to the corresponding UDF by
 using the `schemaProvider=<your-method-name>` parameter of the `@Udtf`
 annotation.
 
@@ -738,7 +738,7 @@ You can invoke this UDTF in two different ways:
 import io.confluent.ksql.function.udf.Udtf;
 import io.confluent.ksql.function.udf.UdtfDescription;
 
-@UdfDescription(name = "split_string", description = "splits a string into words")
+@UdtfDescription(name = "split_string", description = "splits a string into words")
 public class SplitString {
 
   @Udtf(description="Splits a string into words")

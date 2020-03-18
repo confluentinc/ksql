@@ -42,6 +42,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -815,7 +816,7 @@ public class SchemaKStreamTest {
     final LogicalSchema.Builder builder = LogicalSchema.builder();
     builder.keyColumns(stream.getSchema().key());
     for (final Column c : stream.getSchema().value()) {
-      builder.valueColumn(ColumnName.generatedJoinColumnAlias(stream.getName(), c.name()), c.type());
+      builder.valueColumn(ColumnNames.generatedJoinColumnAlias(stream.getName(), c.name()), c.type());
     }
     return builder.build();
   }

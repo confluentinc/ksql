@@ -44,9 +44,7 @@ public class AggregateAnalyzer {
 
   private final FunctionRegistry functionRegistry;
 
-  public AggregateAnalyzer(
-      final FunctionRegistry functionRegistry
-  ) {
+  public AggregateAnalyzer(final FunctionRegistry functionRegistry) {
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
   }
 

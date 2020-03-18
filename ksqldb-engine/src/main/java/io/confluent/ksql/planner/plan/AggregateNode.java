@@ -36,6 +36,7 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.ValueFormat;
@@ -373,7 +374,7 @@ public class AggregateNode extends PlanNode {
                   name));
         }
 
-        final boolean isAggregate = node.getColumnName().isAggregate();
+        final boolean isAggregate = ColumnNames.isAggregate(node.getColumnName());
         final boolean windowBounds = SchemaUtil.isWindowBound(node.getColumnName());
 
         if (isAggregate && windowBounds) {

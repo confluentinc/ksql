@@ -16,6 +16,7 @@
 package io.confluent.ksql.test;
 
 import io.confluent.ksql.test.planned.PlannedTestGenerator;
+import io.confluent.ksql.test.planned.PlannedTestUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -31,6 +32,7 @@ public class PlannedTestGeneratorTest {
   @Test
   @Ignore
   public void manuallyGeneratePlans() {
-    PlannedTestGenerator.generatePlans(QueryTranslationTest.findTestCases());
+    PlannedTestGenerator.generatePlans(QueryTranslationTest.findTestCases()
+        .filter(PlannedTestUtils::isNotExcluded));
   }
 }

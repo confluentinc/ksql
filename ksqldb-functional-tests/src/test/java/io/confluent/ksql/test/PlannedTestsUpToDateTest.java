@@ -49,6 +49,7 @@ public class PlannedTestsUpToDateTest {
   public static Collection<Object[]> data() {
     return QueryTranslationTest.findTestCases()
         .filter(PlannedTestUtils::isPlannedTestCase)
+        .filter(PlannedTestUtils::isNotExcluded)
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toList());
   }

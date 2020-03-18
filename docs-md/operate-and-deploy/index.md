@@ -63,7 +63,7 @@ To enable JMX metrics, set `JMX_PORT` before starting the ksqlDB server:
 
 ```bash
 export JMX_PORT=1099 && \
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
 The `ksql-print-metrics` command line utility collects these metrics and

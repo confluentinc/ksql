@@ -37,8 +37,11 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.SourceInfo;
+import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
@@ -66,6 +69,8 @@ import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;
+import javax.ws.rs.core.Response;
+
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Rule;
@@ -83,6 +88,7 @@ public class KsqlRestApplicationTest {
   private static final String LOG_STREAM_NAME = "log_stream";
   private static final String LOG_TOPIC_NAME = "log_topic";
   private static final String CMD_TOPIC_NAME = "command_topic";
+  private static final String LIST_STREAMS_SQL = "list streams;";
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -133,6 +139,8 @@ public class KsqlRestApplicationTest {
   private HeartbeatAgent heartbeatAgent;
   @Mock
   private LagReportingAgent lagReportingAgent;
+  @Mock
+  private Response response;
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
@@ -169,6 +177,17 @@ public class KsqlRestApplicationTest {
     when(precondition1.checkPrecondition(any(), any())).thenReturn(Optional.empty());
     when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
 
+    when(response.getStatus()).thenReturn(200);
+    when(response.getEntity()).thenReturn(new KsqlEntityList(
+        Collections.singletonList(new StreamsList(
+            LIST_STREAMS_SQL,
+            Collections.emptyList()))));
+
+    when(ksqlResource.handleKsqlStatements(
+        any(),
+        any())
+    ).thenReturn(response);
+    
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     logCreateStatement = ProcessingLogServerUtils.processingLogStreamCreateStatement(
@@ -253,6 +272,31 @@ public class KsqlRestApplicationTest {
     );
   }
 
+  @Test
+  public void shouldNotCreateLogStreamIfAlreadyExists() {
+    // Given:
+
+    final StreamsList streamsList =
+        new StreamsList(
+            LIST_STREAMS_SQL,
+            Collections.singletonList(new SourceInfo.Stream(LOG_STREAM_NAME, "", "")));
+    when(response.getEntity()).thenReturn(new KsqlEntityList(Collections.singletonList(streamsList)));
+    
+    when(ksqlResource.handleKsqlStatements(
+        any(),
+        any())
+    ).thenReturn(response);
+
+    // When:
+    app.startKsql(ksqlConfig);
+
+    // Then:
+    verify(ksqlResource, never()).handleKsqlStatements(
+        securityContextArgumentCaptor.capture(),
+        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null))
+    );
+  }
+  
   @Test
   public void shouldStartCommandStoreAndCommandRunnerBeforeCreatingLogStream() {
     // When:

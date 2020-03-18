@@ -55,6 +55,8 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.SourceInfo;
+import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.HeartbeatAgent.Builder;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -967,22 +969,48 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           new ServerInternalKsqlClient(ksqlResource, new KsqlSecurityContext(
               Optional.empty(), serviceContext));
       final URI serverEndpoint = ServerUtil.getServerAddress(restConfig);
-
-      final RestResponse<KsqlEntityList> response = internalClient.makeKsqlRequest(
+      
+      final String processingLogStreamName =
+          processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME);
+      if (!processingLogStreamExists(
+          internalClient,
           serverEndpoint,
-          ProcessingLogServerUtils.processingLogStreamCreateStatement(
-              processingLogConfig,
-              ksqlConfig
-          )
-      );
+          processingLogStreamName
+      )) {
+        final RestResponse<KsqlEntityList> response = internalClient.makeKsqlRequest(
+            serverEndpoint,
+            ProcessingLogServerUtils.processingLogStreamCreateStatement(
+                processingLogConfig,
+                ksqlConfig
+            )
+        );
 
-      if (response.isSuccessful()) {
-        log.info("Successfully created processing log stream.");
+        if (response.isSuccessful()) {
+          log.info("Successfully created processing log stream.");
+        }
       }
     } catch (final Exception e) {
       log.error(
           "Error while sending processing log CreateStream request to KsqlResource: ", e);
     }
+  }
+
+  private static boolean processingLogStreamExists(
+      final SimpleKsqlClient internalClient,
+      final URI serverEndpoint,
+      final String processingLogStreamName
+  ) {
+    final RestResponse<KsqlEntityList> listStreamsResponse = internalClient.makeKsqlRequest(
+        serverEndpoint,
+        "list streams;"
+    );
+
+    final List<SourceInfo.Stream> streams =
+        ((StreamsList) listStreamsResponse.getResponse().get(0)).getStreams();
+
+    return streams
+        .stream()
+        .anyMatch(stream -> stream.getName().equals(processingLogStreamName));
   }
 
   /**

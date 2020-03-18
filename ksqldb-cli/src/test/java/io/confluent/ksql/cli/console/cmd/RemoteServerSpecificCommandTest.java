@@ -94,7 +94,7 @@ public class RemoteServerSpecificCommandTest {
     command.execute(ImmutableList.of(), terminal);
 
     // Then:
-    assertThat(out.toString(), equalTo(INITIAL_SERVER_ADDRESS + "\n"));
+    assertThat(out.toString(), equalTo(INITIAL_SERVER_ADDRESS + System.lineSeparator()));
     verify(restClient, never()).setServerAddress(anyString());
     verify(resetCliForNewServer, never()).fire();
   }
@@ -154,7 +154,8 @@ public class RemoteServerSpecificCommandTest {
 
     // Then:
     assertThat(out.toString(), containsString(
-        "Remote server at http://192.168.0.1:8080 does not appear to be a valid KSQL\n"
+        "Remote server at http://192.168.0.1:8080 does not appear to be a valid KSQL"
+            + System.lineSeparator()
         + "server. Please ensure that the URL provided is for an active KSQL server."));
   }
 
@@ -168,17 +169,20 @@ public class RemoteServerSpecificCommandTest {
 
     // Then:
     assertThat(out.toString(), containsString(
-        "Remote server at http://192.168.0.1:8080 looks to be configured to use HTTPS /\n"
-            + "SSL. Please refer to the KSQL documentation on how to configure the CLI for SSL:\n"
+        "Remote server at http://192.168.0.1:8080 looks to be configured to use HTTPS /"
+            + System.lineSeparator()
+            + "SSL. Please refer to the KSQL documentation on how to configure the CLI for SSL:"
+            + System.lineSeparator()
             + DocumentationLinks.SECURITY_CLI_SSL_DOC_URL));
   }
 
   @Test
   public void shouldGetHelp() {
     assertThat(command.getHelpMessage(),
-        containsString("server:\n\tShow the current server"));
+        containsString("server:" + System.lineSeparator() + "\tShow the current server"));
     assertThat(command.getHelpMessage(),
-        containsString("server <server>:\n\tChange the current server to <server>"));
+        containsString("server <server>:" + System.lineSeparator()
+            + "\tChange the current server to <server>"));
   }
 
   private static Exception genericConnectionIssue() {

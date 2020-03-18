@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
@@ -129,7 +130,8 @@ public class RunScriptTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Failed to read file: " + dir.toString());
-    expectedException.expectCause(hasMessage(containsString("Is a directory")));
+    expectedException.expectCause(
+        hasMessage(anyOf(containsString(dir.toString()), containsString("Is a directory"))));
 
     // When:
     cmd.execute(ImmutableList.of(dir.toString()), terminal);

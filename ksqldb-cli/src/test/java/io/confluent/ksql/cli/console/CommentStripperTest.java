@@ -134,6 +134,7 @@ public class CommentStripperTest {
         + "statement";
 
     // Then:
-    assertThat(CommentStripper.strip(line), is("some multi-line\nstatement"));
+    assertThat(CommentStripper.strip(line),
+        is("some multi-line\nstatement"));
   }
 }

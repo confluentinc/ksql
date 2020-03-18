@@ -108,7 +108,7 @@ public final class Table {
   }
 
   private int getMultiLineStringLength(final String multiLineString) {
-    final String[] split = multiLineString.split("\n");
+    final String[] split = multiLineString.split(System.lineSeparator());
     return Arrays.stream(split)
         .mapToInt(String::length)
         .max()

@@ -1,4 +1,4 @@
-# KSQL UDF / UDAF Quickstart
+# ksqlDB UDF / UDAF Quickstart
 This project includes a Maven archetype that can be used for quickly bootstrapping custom KSQL UDFs and UDAFs. Generating a project from this archetype will produce a couple of example functions (a UDF named `REVERSE` and a UDAF named `SUMMARY_STATS`) that are ready to be deployed to your KSQL server. Feel free to use these examples as a starting point for your own custom KSQL functions.
 
 # Usage

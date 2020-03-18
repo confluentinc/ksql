@@ -33,6 +33,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -115,7 +116,7 @@ public final class StreamFlatMapBuilder {
     // And add new columns representing the exploded values at the end
     for (int i = 0; i < tableFunctions.size(); i++) {
       final FunctionCall functionCall = tableFunctions.get(i);
-      final ColumnName colName = ColumnName.synthesisedSchemaColumn(i);
+      final ColumnName colName = ColumnNames.synthesisedSchemaColumn(i);
       final SqlType fieldType = expressionTypeManager.getExpressionSqlType(functionCall);
       schemaBuilder.valueColumn(colName, fieldType);
     }

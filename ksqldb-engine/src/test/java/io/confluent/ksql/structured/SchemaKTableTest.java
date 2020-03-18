@@ -72,6 +72,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -255,7 +256,7 @@ public class SchemaKTableTest {
     final LogicalSchema.Builder builder = LogicalSchema.builder();
     builder.keyColumns(table.getSchema().key());
     for (final Column c : table.getSchema().value()) {
-      builder.valueColumn(ColumnName.generatedJoinColumnAlias(table.getName(), c.name()), c.type());
+      builder.valueColumn(ColumnNames.generatedJoinColumnAlias(table.getName(), c.name()), c.type());
     }
     return builder.build();
   }

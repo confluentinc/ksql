@@ -37,6 +37,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -593,7 +594,7 @@ public class LogicalPlanner {
   ) {
     return schema.value().stream()
         .map(c -> SelectExpression.of(
-            ColumnName.generatedJoinColumnAlias(alias, c.name()),
+            ColumnNames.generatedJoinColumnAlias(alias, c.name()),
             new UnqualifiedColumnReferenceExp(c.name()))
         ).collect(Collectors.toList());
   }
@@ -615,7 +616,7 @@ public class LogicalPlanner {
     ) {
       if (isJoin) {
         return Optional.of(new UnqualifiedColumnReferenceExp(
-            ColumnName.generatedJoinColumnAlias(node.getQualifier(), node.getColumnName())
+            ColumnNames.generatedJoinColumnAlias(node.getQualifier(), node.getColumnName())
         ));
       } else {
         return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
@@ -664,10 +665,13 @@ public class LogicalPlanner {
     }
 
     private Expression rewriteFinalSelectExpression(final Expression expression) {
-      if (expression instanceof UnqualifiedColumnReferenceExp
-          && ((UnqualifiedColumnReferenceExp) expression).getColumnName().isAggregate()) {
-        return expression;
+      if (expression instanceof UnqualifiedColumnReferenceExp) {
+        final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
+        if (ColumnNames.isAggregate(columnName)) {
+          return expression;
+        }
       }
+
       return ExpressionTreeRewriter.rewriteWith(rewriter, expression);
     }
 

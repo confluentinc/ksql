@@ -23,12 +23,12 @@ with, like {{ site.aktm }} and {{ site.sr }}.
 - ksqlDB supports SSL on all network traffic.
 
 To configure security for ksqlDB, add your configuration settings to the
-`<path-to-confluent>/etc/ksql/ksql-server.properties` file and then
+`<path-to-confluent>/etc/ksqldb/ksql-server.properties` file and then
 [start the ksqlDB Server](../installing.md#start-the-ksqldb-server) with your
 configuration file specified.
 
 ```bash
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
 !!! tip
@@ -143,7 +143,7 @@ should be passed as a JVM option during server start:
 
 ```bash
 export KSQL_OPTS=-Djava.security.auth.login.config=/path/to/the/jaas_config.file
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
 An example `jaas_config.file` is:

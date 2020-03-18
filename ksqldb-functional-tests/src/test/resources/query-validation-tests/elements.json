@@ -61,9 +61,9 @@
       "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
     },
     {
-      "name": "validate without elements OK - JSON SCHEMA",
+      "name": "validate without elements OK - JSON_SR SCHEMA",
       "statements": [
-        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='JSON_SR');",
         "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
@@ -84,16 +84,12 @@
     {
       "name": "with invalid or reserved words in schema - JSON",
       "statements": [
-        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM INPUT (`@TIMESTAMP` BIGINT, `FROM` BIGINT) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM input;"
       ],
       "topics": [
         {
           "name": "input",
-          "schema": {"type": "object","properties": {
-            "@timestamp": {"type": "integer"},
-            "from": {"type": "integer"}
-          }},
           "format": "JSON"
         },
         {
@@ -160,31 +156,6 @@
       }
     },
     {
-      "name": "validate without value elements OK - JSON SCHEMA",
-      "statements": [
-        "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "schema": {"type": "object","properties": {"c1": {"type": "integer"}}},
-          "format": "JSON"
-        },
-        {
-          "name": "OUTPUT",
-          "format": "JSON"
-        }
-      ],
-      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"C1": 4}}],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `C1` BIGINT"}
-        ]
-      }
-    },
-    {
       "name": "validate without value elements OK - JSON_SR SCHEMA",
       "statements": [
         "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='JSON_SR');",
@@ -212,7 +183,7 @@
     {
       "name": "validate without value elements OK - custom key name",
       "statements": [
-        "CREATE STREAM INPUT (id int key) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM INPUT (id int key) WITH (kafka_topic='input', value_format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM input;"
       ],
       "properties": {
@@ -221,7 +192,7 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"type": "object","properties": {"c1": {"type": "integer"}}},
+          "schema": {"type": "object", "properties": {"c1": {"type": "integer"}}},
           "format": "JSON"
         },
         {

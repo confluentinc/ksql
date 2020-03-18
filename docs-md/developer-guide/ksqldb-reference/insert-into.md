@@ -16,6 +16,7 @@ Synopsis
 INSERT INTO stream_name
   SELECT select_expr [., ...]
   FROM from_stream
+  [ LEFT | FULL | INNER ] JOIN [join_table | join_stream] [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] ON join_criteria
   [ WHERE condition ]
   [ PARTITION BY column_name ]
   EMIT CHANGES;
@@ -34,6 +35,9 @@ an error.
 
 The `stream_name` and `from_item` parameters must both refer to a Stream.
 Tables are not supported.
+
+If the PARTITION BY clause is present, it is applied to the source _after_ any JOIN or WHERE clauses, and
+_before_ the SELECT clause, in much the same way as GROUP BY.
 
 Records written into the stream are not timestamp-ordered with respect
 to other queries. Therefore, the topic partitions of the output stream

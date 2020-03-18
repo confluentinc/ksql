@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -165,7 +166,7 @@ public class AggregateParamsFactory {
 
     for (int i = 0; i < aggregateFunctions.size(); i++) {
       final KsqlAggregateFunction<?, ?, ?> aggregateFunction = aggregateFunctions.get(i);
-      final ColumnName colName = ColumnName.aggregateColumn(i);
+      final ColumnName colName = ColumnNames.aggregateColumn(i);
       final SqlType fieldType = useAggregate
           ? aggregateFunction.getAggregateType()
           : aggregateFunction.returnType();

@@ -119,6 +119,23 @@
         {"topic": "sink", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
         {"topic": "sink", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
       ]
+    },
+    {
+      "name": "join",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",
+        "CREATE STREAM SOURCE2 (data VARCHAR) WITH (kafka_topic='insert-source', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT DATA AS DATA_1, DATA AS DATA_2 FROM SOURCE1;",
+        "INSERT INTO OUTPUT SELECT S1.DATA AS DATA_1, S2.DATA AS DATA_2 FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "stream-source", "key": "k1", "value": "v1"},
+        {"topic": "insert-source", "key": "k1", "value": "v2"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": "v1,v1"},
+        {"topic": "OUTPUT", "key": "k1", "value": "v1,v2"}
+      ]
     }
   ]
 }

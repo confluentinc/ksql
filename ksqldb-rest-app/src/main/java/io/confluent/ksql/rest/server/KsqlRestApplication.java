@@ -272,6 +272,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final List<KsqlServerPrecondition> preconditions,
       final List<KsqlConfigurable> configurables,
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
+      final PullQueryExecutor pullQueryExecutor,
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent
   ) {
@@ -300,12 +301,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
+    this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
-
     this.routingFilterFactory = initializeRoutingFilterFactory(
         ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
-    this.pullQueryExecutor = new PullQueryExecutor(ksqlEngine, routingFilterFactory);
   }
 
   @Override
@@ -445,8 +445,14 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     serverState.setReady();
   }
 
+  @SuppressWarnings("checkstyle:NPathComplexity")
   @Override
   public void triggerShutdown() {
+    try {
+      streamedQueryResource.closeMetrics();
+    } catch (final Exception e) {
+      log.error("Exception while waiting for pull query metrics to close", e);
+    }
     try {
       ksqlEngine.close();
     } catch (final Exception e) {
@@ -717,7 +723,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         heartbeatAgent, lagReportingAgent);
 
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, routingFilterFactory);
+        ksqlEngine, routingFilterFactory, ksqlConfig);
+
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         commandStore,
@@ -792,6 +799,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         preconditions,
         configurables,
         rocksDBConfigSetterHandler,
+        pullQueryExecutor,
         heartbeatAgent,
         lagReportingAgent
     );

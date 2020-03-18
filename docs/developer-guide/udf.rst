@@ -120,7 +120,7 @@ A UDF that returns ``BigDecimal`` (which maps to the SQL ``DECIMAL`` type) may v
 and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
-``public SqlType <your-method-name>(final List<SqlType> params)`` and annotate it with ``@SchemaProvider``.
+``public SqlType <your-method-name>(final List<SqlType> params)`` and annotate it with ``@UdfSchemaProvider``.
 Also, you need to link it to the corresponding UDF by using the ``schemaProvider=<your-method-name>``
 parameter of the ``@Udf`` annotation.
 
@@ -732,7 +732,7 @@ implement a UDTF with a non-deterministic return type. A UDTF which returns ``Bi
 for example, may vary the precision and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
-``public SqlType <your-method-name>(final List<SqlType> params)`` and annotate it with ``@SchemaProvider``.
+``public SqlType <your-method-name>(final List<SqlType> params)`` and annotate it with ``@UdfSchemaProvider``.
 Also, you need to link it to the corresponding UDF by using the ``schemaProvider=<your-method-name>``
 parameter of the ``@Udtf`` annotation.
 

@@ -71,7 +71,7 @@ Response JSON Object:
 - **streams[i].name** (string): The name of the stream.
 - **streams[i].topic** (string): The topic backing the stream.
 - **streams[i].format** (string): The serialization format of the data in the
-  stream. One of JSON, AVRO, or DELIMITED.
+  stream. One of JSON, AVRO, PROTOBUF, or DELIMITED.
 
 **LIST TABLES, SHOW TABLES**
 
@@ -81,7 +81,7 @@ Response JSON Object:
 - **tables[i].name** (string): The name of the table.
 - **tables[i].topic** (string): The topic backing the table.
 - **tables[i].format** (string): The serialization format of the data in the
-  table. One of JSON, AVRO, or DELIMITED.
+  table. One of JSON, AVRO, PROTOBUF, or DELIMITED.
 
 **LIST QUERIES, SHOW QUERIES**
 
@@ -128,7 +128,7 @@ Response JSON Object:
 - **sourceDescription.key** (string): The name of the key column.
 - **sourceDescription.timestamp** (string): The name of the timestamp column.
 - **sourceDescription.format** (string): The serialization format of the data in
-  the stream or table. One of JSON, AVRO, or DELIMITED.
+  the stream or table. One of JSON, AVRO, PROTOBUF, or DELIMITED.
 - **sourceDescription.topic** (string): The topic backing the stream or table.
 - **sourceDescription.extended** (boolean): A boolean that indicates whether this
   is an extended description.

@@ -121,7 +121,7 @@ nav:
           - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
           - Server Configuration:
               - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
-              - Configure Avro and Confluent Schema Registry for ksqlDB: operate-and-deploy/installation/server-config/avro-schema.md
+              - Configure ksqlDB for Avro or Protobuf: operate-and-deploy/installation/server-config/avro-schema.md
               - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
           - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
@@ -187,8 +187,8 @@ extra:
         # Build-related string tokens
         kafkaversion: 2.4
         kafkarelease: 5.4.1-ccs
-        ksqldbversion: 0.7.1
-        release: 0.7.1
+        ksqldbversion: 0.8.0
+        release: 0.8.0
         cprelease: 5.4.1
         releasepostbranch: 5.4.1-post
         scalaversion: 2.12

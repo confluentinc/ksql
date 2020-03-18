@@ -84,7 +84,16 @@ public class CommandRunnerStatusMetricTest {
   }
 
   @Test
-  public void shouldUpdateToErrorState() {
+  public void shouldUpdateToStuckState() {
+    // When:
+    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.STUCK);
+
+    // Then:
+    assertThat(currentGaugeValue(), is(CommandRunner.CommandRunnerStatus.STUCK.name()));
+  }
+
+  @Test
+  public void shouldUpdateErrorState() {
     // When:
     when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.ERROR);
 

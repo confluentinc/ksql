@@ -318,7 +318,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
-    config.register(HealthCheckResource.create(ksqlResource, serviceContext, this.config));
+    config.register(HealthCheckResource.create(
+        ksqlResource,
+        serviceContext,
+        this.config,
+        this.ksqlConfigNoPort)
+    );
+
     if (heartbeatAgent.isPresent()) {
       config.register(new HeartbeatResource(heartbeatAgent.get()));
       config.register(new ClusterStatusResource(

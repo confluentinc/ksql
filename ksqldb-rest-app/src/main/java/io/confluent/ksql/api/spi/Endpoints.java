@@ -18,6 +18,7 @@ package io.confluent.ksql.api.spi;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
@@ -62,6 +63,9 @@ public interface Endpoints {
       ApiSecurityContext apiSecurityContext);
 
   CompletableFuture<EndpointResponse> executeKsqlRequest(KsqlRequest request,
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeTerminate(ClusterTerminateRequest request,
       WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
 }

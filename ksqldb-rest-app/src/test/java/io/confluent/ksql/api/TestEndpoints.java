@@ -23,6 +23,7 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.reactive.BufferedPublisher;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -90,6 +91,12 @@ public class TestEndpoints implements Endpoints {
 
   @Override
   public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
+      final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeTerminate(final ClusterTerminateRequest request,
       final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
     return null;
   }

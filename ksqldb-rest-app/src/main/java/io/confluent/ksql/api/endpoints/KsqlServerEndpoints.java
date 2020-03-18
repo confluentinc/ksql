@@ -22,6 +22,7 @@ import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
@@ -46,6 +47,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final ReservedInternalTopics reservedInternalTopics;
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
   private final KsqlStatementsEndpoint ksqlStatementsEndpoint;
+  private final TerminateEndpoint terminateEndpoint;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
@@ -59,6 +61,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.reservedInternalTopics = new ReservedInternalTopics(ksqlConfig);
     this.ksqlSecurityContextProvider = Objects.requireNonNull(ksqlSecurityContextProvider);
     this.ksqlStatementsEndpoint = new KsqlStatementsEndpoint(Objects.requireNonNull(ksqlResource));
+    this.terminateEndpoint = new TerminateEndpoint(ksqlResource);
   }
 
   @Override
@@ -98,6 +101,20 @@ public class KsqlServerEndpoints implements Endpoints {
                 request),
         workerExecutor);
   }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeTerminate(
+      final ClusterTerminateRequest request,
+      final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext) {
+    return executeOnWorker(
+        () -> terminateEndpoint
+            .executeTerminate(
+                ksqlSecurityContextProvider.provide(apiSecurityContext),
+                request),
+        workerExecutor);
+  }
+
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,
       final WorkerExecutor workerExecutor) {

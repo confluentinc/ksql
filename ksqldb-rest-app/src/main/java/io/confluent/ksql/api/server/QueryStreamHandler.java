@@ -67,8 +67,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     }
 
     final Optional<QueryStreamArgs> queryStreamArgs = ServerUtils
-        .deserialiseObject(routingContext.getBody(), routingContext.response(),
-            QueryStreamArgs.class);
+        .deserialiseObject(routingContext.getBody(), routingContext, QueryStreamArgs.class);
     if (!queryStreamArgs.isPresent()) {
       return;
     }
@@ -114,19 +113,19 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     if (t instanceof CompletionException) {
       final Throwable actual = t.getCause();
       if (actual instanceof KsqlStatementException) {
-        ServerUtils.handleError(routingContext.response(), 400, ErrorCodes.ERROR_CODE_INVALID_QUERY,
-            actual.getMessage());
+        routingContext.fail(400,
+            new KsqlApiException(actual.getMessage(), ErrorCodes.ERROR_CODE_INVALID_QUERY));
         return null;
       } else if (actual instanceof KsqlApiException) {
-        ServerUtils
-            .handleError(routingContext.response(), 400, ((KsqlApiException) actual).getErrorCode(),
-                actual.getMessage());
+        routingContext.fail(400, actual);
+        return null;
       }
     }
     // We don't expose internal error message via public API
-    ServerUtils.handleError(routingContext.response(), 500, ErrorCodes.ERROR_CODE_INTERNAL_ERROR,
+    routingContext.fail(500, new KsqlApiException(
         "The server encountered an internal error when processing the query."
-            + " Please consult the server logs for more information.");
+            + " Please consult the server logs for more information.",
+        ErrorCodes.ERROR_CODE_INTERNAL_ERROR));
     return null;
   }
 

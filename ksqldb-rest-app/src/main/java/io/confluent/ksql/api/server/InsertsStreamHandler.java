@@ -117,7 +117,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     private void handleArgs(final Buffer buff) {
       hasReadArguments = true;
       final Optional<InsertsStreamArgs> insertsStreamArgs = deserialiseObject(buff,
-          routingContext.response(),
+          routingContext,
           InsertsStreamArgs.class);
       if (!insertsStreamArgs.isPresent()) {
         return;
@@ -157,9 +157,10 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       }
       log.error("Failed to execute inserts", toLog);
       // We don't expose internal error message via public API
-      ServerUtils.handleError(routingContext.response(), 500, ErrorCodes.ERROR_CODE_INTERNAL_ERROR,
-          "The server encountered an internal error when processing inserts."
-              + " Please consult the server logs for more information.");
+      routingContext.fail(500,
+          new KsqlApiException("The server encountered an internal error when processing inserts."
+              + " Please consult the server logs for more information.",
+              ErrorCodes.ERROR_CODE_INTERNAL_ERROR));
       return null;
     }
 

@@ -16,7 +16,6 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
-import static io.confluent.ksql.api.server.ServerUtils.handleError;
 
 import io.confluent.ksql.api.server.protocol.CloseQueryArgs;
 import io.vertx.core.Handler;
@@ -38,8 +37,7 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
   @Override
   public void handle(final RoutingContext routingContext) {
     final Optional<CloseQueryArgs> closeQueryArgs = ServerUtils
-        .deserialiseObject(routingContext.getBody(), routingContext.response(),
-            CloseQueryArgs.class);
+        .deserialiseObject(routingContext.getBody(), routingContext, CloseQueryArgs.class);
     if (!closeQueryArgs.isPresent()) {
       return;
     }
@@ -47,8 +45,9 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
     final Optional<PushQueryHolder> query = server
         .removeQuery(closeQueryArgs.get().queryId);
     if (!query.isPresent()) {
-      handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,
-          "No query with id " + closeQueryArgs.get().queryId);
+      routingContext
+          .fail(400, new KsqlApiException("No query with id " + closeQueryArgs.get().queryId,
+              ERROR_CODE_UNKNOWN_QUERY_ID));
       return;
     }
     query.get().close();

@@ -362,7 +362,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlEngine,
         ksqlConfigWithPort,
         pullQueryExecutor,
-        ksqlSecurityContextProvider
+        ksqlSecurityContextProvider,
+        ksqlResource
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,

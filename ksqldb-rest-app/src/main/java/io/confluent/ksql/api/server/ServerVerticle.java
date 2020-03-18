@@ -15,19 +15,32 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.rest.Errors.toErrorCode;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
+import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
+import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.util.KsqlException;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -39,6 +52,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +68,8 @@ public class ServerVerticle extends AbstractVerticle {
 
   private static final Set<String> NEW_API_ENDPOINTS = ImmutableSet
       .of("/query-stream", "/inserts-stream", "/close-query");
+
+  private static final Set<String> OLD_API_ENDPOINTS = ImmutableSet.of("/ksql");
 
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
@@ -147,6 +163,12 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
 
+    router.route(HttpMethod.POST, "/ksql")
+        .handler(BodyHandler.create())
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(this::handleKsqlRequests);
+
     if (proxyHandler != null) {
       proxyHandler.setupRoutes(router);
     }
@@ -173,8 +195,68 @@ public class ServerVerticle extends AbstractVerticle {
     };
   }
 
+  private void handleKsqlRequests(final RoutingContext routingContext) {
+    final HttpServerResponse response = routingContext.response();
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+    final KsqlRequest ksqlRequest;
+    try {
+      ksqlRequest = objectMapper.readValue(routingContext.getBody().getBytes(), KsqlRequest.class);
+    } catch (Exception e) {
+      handleException(response, "Failed to deserialise request", e);
+      return;
+    }
+    final CompletableFuture<EndpointResponse> completableFuture = endpoints
+        .executeKsqlRequest(ksqlRequest, server.getWorkerExecutor(),
+            DefaultApiSecurityContext.create(routingContext));
+    completableFuture.thenAccept(endpointResponse -> {
+
+      final Buffer responseBody;
+      try {
+        final byte[] bytes = objectMapper.writeValueAsBytes(endpointResponse.getResponseBody());
+        responseBody = Buffer.buffer(bytes);
+      } catch (JsonProcessingException e) {
+        handleException(response, "Failed to serialize response", e);
+        return;
+      }
+
+      response.setStatusCode(endpointResponse.getStatusCode())
+          .setStatusMessage(endpointResponse.getStatusMessage())
+          .end(responseBody);
+
+    }).exceptionally(t -> {
+      log.error("Failed to execute ksql request", t);
+      routingContext.response().setStatusCode(500).end();
+      return null;
+    });
+  }
+
+  private static void handleException(final HttpServerResponse response, final String message,
+      final Exception e) {
+    log.error(message, e);
+    response.setStatusCode(500).end();
+  }
+
   private static void handleFailure(final RoutingContext routingContext) {
-    if (routingContext.failure() != null) {
+
+    final int statusCode = routingContext.statusCode();
+
+    if (OLD_API_ENDPOINTS.contains(routingContext.normalisedPath())) {
+      final KsqlErrorMessage ksqlErrorMessage = new KsqlErrorMessage(
+          toErrorCode(statusCode),
+          routingContext.failure().getMessage());
+      try {
+        final byte[] bytes = JsonMapper.INSTANCE.mapper.writeValueAsBytes(ksqlErrorMessage);
+        routingContext.response().setStatusCode(statusCode)
+            .end(Buffer.buffer(bytes));
+      } catch (JsonProcessingException e) {
+        throw new KsqlException(e);
+      }
+    } else if (routingContext.failure() != null) {
+      // TODO think about how we can consolidate the error handling
+      // Instead of calling ServerUtils.handleError from various places in the code we should
+      // call fail(code, exception) from those places and handle all the error handling here
+      // the exception should be a KsqlApiException always in here unless it's an unexpected error
+      // or error from an auth handler
       log.error(String.format("Failed to handle request %d %s", routingContext.statusCode(),
           routingContext.request().path()),
           routingContext.failure());
@@ -185,7 +267,7 @@ public class ServerVerticle extends AbstractVerticle {
           routingContext.failure().getMessage()
       );
     } else {
-      routingContext.response().setStatusCode(routingContext.statusCode()).end();
+      routingContext.response().setStatusCode(statusCode).end();
     }
   }
 

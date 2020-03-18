@@ -18,6 +18,7 @@ package io.confluent.ksql.api.spi;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
@@ -59,5 +60,8 @@ public interface Endpoints {
       JsonObject properties,
       Subscriber<InsertResult> acksSubscriber, Context context, WorkerExecutor workerExecutor,
       ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeKsqlRequest(KsqlRequest request,
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
 }

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.planner;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
@@ -333,6 +335,9 @@ public class LogicalPlanner {
 
     if (!(partitionBy instanceof UnqualifiedColumnReferenceExp)) {
       keyField = KeyField.none();
+    } else if (
+        SchemaUtil.isSystemColumn(((UnqualifiedColumnReferenceExp) partitionBy).getColumnName())) {
+      keyField = KeyField.none();
     } else {
       final ColumnName columnName = ((UnqualifiedColumnReferenceExp) partitionBy).getColumnName();
       final LogicalSchema sourceSchema = sourceNode.getSchema();
@@ -404,9 +409,13 @@ public class LogicalPlanner {
         ExpressionTreeRewriter.rewriteWith(rewriter::process, joinExpression)
     );
 
+    // for now, we should always include the ROWTIME in join intermediate topics so
+    // that we can select it in a future plan step - we can be more intelligent
+    // about this and only include them if they are present in the joinExpression
     final List<SelectExpression> projection = selectWithPrependAlias(
         source.getAlias(),
-        repartition.getSchema()
+        repartition.getSchema(),
+        ImmutableSet.of(SchemaUtil.ROWTIME_NAME)
     );
 
     return buildProjectNode(
@@ -600,12 +609,15 @@ public class LogicalPlanner {
 
   private static List<SelectExpression> selectWithPrependAlias(
       final SourceName alias,
-      final LogicalSchema schema
+      final LogicalSchema schema,
+      final Set<ColumnName> includedMetadataFields
   ) {
-    return schema.value().stream()
+    final Stream<ColumnName> values = schema.value().stream().map(Column::name);
+
+    return Streams.concat(values, includedMetadataFields.stream())
         .map(c -> SelectExpression.of(
-            ColumnNames.generatedJoinColumnAlias(alias, c.name()),
-            new UnqualifiedColumnReferenceExp(c.name()))
+            ColumnNames.generatedJoinColumnAlias(alias, c),
+            new UnqualifiedColumnReferenceExp(c))
         ).collect(Collectors.toList());
   }
 

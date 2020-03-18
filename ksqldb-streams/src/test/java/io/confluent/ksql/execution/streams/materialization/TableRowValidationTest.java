@@ -77,16 +77,4 @@ public class TableRowValidationTest {
   public void shouldNotThrowOnMatching() {
     TableRowValidation.validate(SCHEMA, A_KEY, A_VALUE);
   }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnNoMetaColumnsInSchema() {
-    // Given:
-    final LogicalSchema noMetaColumns = LogicalSchema.builder()
-        .keyColumns(SCHEMA.key())
-        .valueColumns(SCHEMA.value())
-        .build();
-
-    // When:
-    TableRowValidation.validate(noMetaColumns, A_KEY, A_VALUE);
-  }
 }

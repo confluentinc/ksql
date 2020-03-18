@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import static io.confluent.ksql.schema.ksql.SchemaConverters.functionToSqlBaseConverter;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.BooleanType;
@@ -36,6 +37,7 @@ import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -51,14 +53,15 @@ public final class SchemaUtil {
   public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
   public static final SqlType WINDOWBOUND_TYPE = SqlTypes.BIGINT;
 
-  private static final Set<ColumnName> WINDOW_BOUNDS_COLUMN_NAMES = ImmutableSet.of(
-      WINDOWSTART_NAME,
-      WINDOWEND_NAME
+  private static final Map<ColumnName, SqlType> WINDOW_BOUNDS_COLUMN_NAMES = ImmutableMap.of(
+      WINDOWSTART_NAME, SqlTypes.BIGINT,
+      WINDOWEND_NAME, SqlTypes.BIGINT
   );
 
-  private static final Set<ColumnName> SYSTEM_COLUMN_NAMES = ImmutableSet.<ColumnName>builder()
-      .add(ROWTIME_NAME)
-      .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
+  private static final Map<ColumnName, SqlType> SYSTEM_COLUMNS = ImmutableMap
+      .<ColumnName, SqlType>builder()
+      .put(ROWTIME_NAME, SqlTypes.BIGINT)
+      .putAll(WINDOW_BOUNDS_COLUMN_NAMES)
       .build();
 
   private static final Set<Schema.Type> ARITHMETIC_TYPES = ImmutableSet.of(
@@ -80,7 +83,7 @@ public final class SchemaUtil {
   }
 
   public static Set<ColumnName> windowBoundsColumnNames() {
-    return WINDOW_BOUNDS_COLUMN_NAMES;
+    return WINDOW_BOUNDS_COLUMN_NAMES.keySet();
   }
 
   public static boolean isSystemColumn(final ColumnName columnName) {
@@ -88,7 +91,11 @@ public final class SchemaUtil {
   }
 
   public static Set<ColumnName> systemColumnNames() {
-    return SYSTEM_COLUMN_NAMES;
+    return SYSTEM_COLUMNS.keySet();
+  }
+
+  public static Optional<SqlType> systemColumnType(final ColumnName systemColumnName) {
+    return Optional.ofNullable(SYSTEM_COLUMNS.get(systemColumnName));
   }
 
   // Do Not use in new code - use `SchemaConverters` directly.

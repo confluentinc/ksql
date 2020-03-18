@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -82,7 +81,6 @@ public class StreamSelectKeyBuilderTest {
       .keyColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of(SchemaUtil.ROWTIME_NAME.text()), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .build();
 
@@ -197,7 +195,7 @@ public class StreamSelectKeyBuilderTest {
     final Predicate<Struct, GenericRow> predicate = getPredicate();
 
     // When:
-    final boolean result = predicate.test(SOURCE_KEY, genericRow(A_BIG, null, 0, "dre"));
+    final boolean result = predicate.test(SOURCE_KEY, value(A_BIG, null, 0, "dre"));
 
     // Then:
     assertThat(result, is(false));
@@ -211,7 +209,7 @@ public class StreamSelectKeyBuilderTest {
     final Predicate<Struct, GenericRow> predicate = getPredicate();
 
     // When:
-    final boolean result = predicate.test(SOURCE_KEY, genericRow(A_BIG, A_BOI, 0, "dre"));
+    final boolean result = predicate.test(SOURCE_KEY, value(A_BIG, A_BOI, 0, "dre"));
 
     // Then:
     assertThat(result, is(true));
@@ -225,7 +223,7 @@ public class StreamSelectKeyBuilderTest {
     final Predicate<Struct, GenericRow> predicate = getPredicate();
 
     // When:
-    final boolean result = predicate.test(SOURCE_KEY, genericRow(null, A_BOI, 0, "dre"));
+    final boolean result = predicate.test(SOURCE_KEY, value(null, A_BOI, 0, "dre"));
 
     // Then:
     assertThat(result, is(true));
@@ -241,7 +239,7 @@ public class StreamSelectKeyBuilderTest {
 
     // When:
     final KeyValue<Struct, GenericRow> result = keyValueMapper
-        .apply(SOURCE_KEY, genericRow(A_BIG, A_BOI, 0, "dre"));
+        .apply(SOURCE_KEY, value(A_BIG, A_BOI, 0, "dre"));
 
     // Then:
     assertThat(result.key, is(RESULT_KEY_BUILDER.build(A_BOI)));
@@ -264,5 +262,14 @@ public class StreamSelectKeyBuilderTest {
   private Predicate<Struct, GenericRow> getPredicate() {
     verify(kstream).filter(predicateCaptor.capture(), any(Named.class));
     return predicateCaptor.getValue();
+  }
+
+  private static GenericRow value(
+      final Long big,
+      final Long boi,
+      final int rowTime,
+      final String rowKey
+  ) {
+    return GenericRow.genericRow(big, boi, rowKey).withMetadata(md -> md.withRowtime((long) rowTime));
   }
 }

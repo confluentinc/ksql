@@ -58,6 +58,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -70,6 +71,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -182,7 +184,14 @@ public class ExpressionTypeManager {
     public Void visitColumnReference(
         final UnqualifiedColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
-      final Optional<Column> possibleColumn = schema.findValueColumn(node.getColumnName());
+      final ColumnName columnName = node.getColumnName();
+      final Optional<SqlType> systemColType = SchemaUtil.systemColumnType(columnName);
+      if (systemColType.isPresent()) {
+        expressionTypeContext.setSqlType(systemColType.get());
+        return null;
+      }
+
+      final Optional<Column> possibleColumn = schema.findValueColumn(columnName);
 
       final Column schemaColumn = possibleColumn
           .orElseThrow(() -> new KsqlException("Unknown column " + node + "."));

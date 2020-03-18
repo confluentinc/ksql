@@ -40,6 +40,7 @@ import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -118,6 +119,7 @@ public class CodeGenRunner {
 
       return new ExpressionMetadata(
           ee,
+          javaCode,
           spec,
           expressionType,
           expression
@@ -209,7 +211,13 @@ public class CodeGenRunner {
 
     @Override
     public Void visitColumnReference(final UnqualifiedColumnReferenceExp node, final Void context) {
-      addRequiredColumn(node.getColumnName());
+      final ColumnName columnName = node.getColumnName();
+      // window bounds are handled like normal columns
+      if (!SchemaUtil.isSystemColumn(columnName) || SchemaUtil.isWindowBound(columnName)) {
+        addRequiredColumn(columnName);
+      } else {
+        spec.addSystemColumn(columnName);
+      }
       return null;
     }
 

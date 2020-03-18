@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -65,20 +66,22 @@ public final class SourceSchemas {
   ) {
     if (!source.isPresent()) {
       return sourceSchemas.entrySet().stream()
-          .filter(e -> e.getValue().findColumn(target).isPresent())
+          .filter(e -> sourceHasField(e.getValue(), target))
           .map(Entry::getKey)
           .collect(Collectors.toSet());
     }
 
     final SourceName sourceName = source.get();
     final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);
-    if (sourceSchema == null) {
-      return ImmutableSet.of();
-    }
 
-    return sourceSchema.findColumn(target).isPresent()
+    return (sourceSchema != null && sourceHasField(sourceSchema, target))
         ? ImmutableSet.of(sourceName)
         : ImmutableSet.of();
+  }
+
+  private boolean sourceHasField(final LogicalSchema source, final ColumnName column) {
+    return SchemaUtil.isSystemColumn(column) || source.findColumn(column).isPresent();
+
   }
 
   /**
@@ -94,7 +97,7 @@ public final class SourceSchemas {
     if (!source.isPresent()) {
       return sourceSchemas.values().stream()
           .anyMatch(schema ->
-              schema.isMetaColumn(column) || schema.isKeyColumn(column));
+              SchemaUtil.isSystemColumn(column) || schema.isKeyColumn(column));
     }
 
     final SourceName sourceName = source.get();
@@ -103,6 +106,6 @@ public final class SourceSchemas {
       throw new IllegalArgumentException("Unknown source: " + sourceName);
     }
 
-    return sourceSchema.isKeyColumn(column) || sourceSchema.isMetaColumn(column);
+    return sourceSchema.isKeyColumn(column) || SchemaUtil.isSystemColumn(column);
   }
 }

@@ -94,12 +94,12 @@ public class GenericRowTest {
         "StringColumn", 1, 100000L, true, 1.23,
         ImmutableList.of(10.0, 20.0, 30.0, 40.0, 50.0),
         ImmutableMap.of("key1", 100.0, "key2", 200.0, "key3", 300.0),
-        address);
+        address).withMetadata(md -> md.withRowtime(123L));
 
     final String rowString = genericRow.toString();
 
     assertThat(rowString, equalTo(
-        "[ 'StringColumn' | 1 | 100000L | true | 1.23 |"
+        "[ 123L | 'StringColumn' | 1 | 100000L | true | 1.23 |"
             + " [10.0, 20.0, 30.0, 40.0, 50.0] |"
             + " {key1=100.0, key2=200.0, key3=300.0} |"
             + " Struct{NUMBER=101,STREET=University Ave.,CITY=Palo Alto,STATE=CA,ZIPCODE=94301} ]"));
@@ -108,22 +108,24 @@ public class GenericRowTest {
 
   @Test
   public void shouldPrintPrimitiveRowCorrectly() {
-    final GenericRow genericRow = genericRow("StringColumn", 1, 100000L, true, 1.23, null);
+    final GenericRow genericRow = genericRow("StringColumn", 1, 100000L, true, 1.23, null)
+        .withMetadata(md -> md.withRowtime(123L));
 
     final String rowString = genericRow.toString();
 
-    assertThat(rowString, is("[ 'StringColumn' | 1 | 100000L | true | 1.23 | null ]"));
+    assertThat(rowString, is("[ 123L | 'StringColumn' | 1 | 100000L | true | 1.23 | null ]"));
   }
 
   @Test
   public void shouldPrintArrayRowCorrectly() {
 
-    final GenericRow genericRow = genericRow(ImmutableList.of(10.0, 20.0, 30.0, 40.0, 50.0));
+    final GenericRow genericRow = genericRow(ImmutableList.of(10.0, 20.0, 30.0, 40.0, 50.0))
+        .withMetadata(md -> md.withRowtime(123L));
 
     final String rowString = genericRow.toString();
 
     assertThat(rowString, equalTo(
-        "[ [10.0, 20.0, 30.0, 40.0, 50.0] ]"));
+        "[ 123L | [10.0, 20.0, 30.0, 40.0, 50.0] ]"));
 
   }
 
@@ -132,12 +134,12 @@ public class GenericRowTest {
 
     final GenericRow genericRow = genericRow(
         ImmutableMap.of("key1", 100.0, "key2", 200.0, "key3", 300.0)
-    );
+    ).withMetadata(md -> md.withRowtime(123L));
 
     final String rowString = genericRow.toString();
 
     assertThat(rowString, equalTo(
-        "[ {key1=100.0, key2=200.0, key3=300.0} ]"));
+        "[ 123L | {key1=100.0, key2=200.0, key3=300.0} ]"));
 
   }
 
@@ -150,12 +152,12 @@ public class GenericRowTest {
     address.put("STATE", "CA");
     address.put("ZIPCODE", 94301L);
 
-    final GenericRow genericRow = genericRow(address);
+    final GenericRow genericRow = genericRow(address).withMetadata(md -> md.withRowtime(123L));
 
     final String rowString = genericRow.toString();
 
     assertThat(rowString, equalTo(
-        "[ Struct{NUMBER=101,STREET=University Ave.,CITY=Palo Alto,STATE=CA,ZIPCODE=94301} ]"));
+        "[ 123L | Struct{NUMBER=101,STREET=University Ave.,CITY=Palo Alto,STATE=CA,ZIPCODE=94301} ]"));
 
   }
 
@@ -179,6 +181,12 @@ public class GenericRowTest {
             GenericRow.genericRow(new Object())
         )
         .addEqualityGroup(
+            GenericRow.genericRow().withMetadata(md -> md.withRowtime(123L))
+        )
+        .addEqualityGroup(
+            GenericRow.genericRow().withMetadata(md -> md.withRowtime(124L))
+        )
+        .addEqualityGroup(
             genericRow("nr"),
             genericRow("nr")
         )
@@ -192,13 +200,13 @@ public class GenericRowTest {
   @Test
   public void shouldSerialize() throws Exception {
     // Given:
-    final GenericRow original = genericRow(1, 2L, 3.0, Long.MAX_VALUE);
+    final GenericRow original = genericRow(1, 2L, 3.0, Long.MAX_VALUE).withMetadata(md -> md.withRowtime(123L));
 
     // When:
     final String json = MAPPER.writeValueAsString(original);
 
     // Then:
-    assertThat(json, is("{\"columns\":[1,2,3.0,9223372036854775807]}"));
+    assertThat(json, is("{\"metadata\":{\"rowtime\":123},\"columns\":[1,2,3.0,9223372036854775807]}"));
 
     // When:
     final GenericRow result = MAPPER.readValue(json, GenericRow.class);
@@ -209,6 +217,6 @@ public class GenericRowTest {
         2,                      // Note: int, not long, as JSON doesn't distinguish
         BigDecimal.valueOf(3.0),// Note: decimal, not double, as Jackson is configured this way
         Long.MAX_VALUE
-    )));
+    ).withMetadata(md -> md.withRowtime(123L))));
   }
 }

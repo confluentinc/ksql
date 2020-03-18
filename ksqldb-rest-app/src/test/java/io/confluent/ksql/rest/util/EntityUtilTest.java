@@ -154,22 +154,6 @@ public class EntityUtilTest {
   }
 
   @Test
-  public void shouldSupportSchemasWithMetaColumns() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
-        .build();
-
-    // When:
-    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
-
-    // Then:
-    assertThat(fields, hasSize(1));
-    assertThat(fields.get(0).getName(), equalTo("ROWTIME"));
-    assertThat(fields.get(0).getSchema().getTypeName(), equalTo("BIGINT"));
-  }
-
-  @Test
   public void shouldSupportSchemasWithKeyColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()

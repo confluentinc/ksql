@@ -423,7 +423,6 @@ public class InsertValuesExecutorTest {
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(BIG_SCHEMA),
         ImmutableList.of(
-            new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
             new IntegerLiteral(0),
@@ -551,7 +550,6 @@ public class InsertValuesExecutorTest {
             new InsertValues(SourceName.of("TOPIC"),
                 allFieldNames(SCHEMA),
                 ImmutableList.of(
-                    new LongLiteral(1L),
                     new StringLiteral("str"),
                     new StringLiteral("str"),
                     new LongLiteral(2L)
@@ -581,7 +579,6 @@ public class InsertValuesExecutorTest {
             new InsertValues(SourceName.of("TOPIC"),
                 allFieldNames(SCHEMA),
                 ImmutableList.of(
-                    new LongLiteral(1L),
                     new StringLiteral("str"),
                     new StringLiteral("str"),
                     new LongLiteral(2L)
@@ -605,7 +602,6 @@ public class InsertValuesExecutorTest {
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(SCHEMA),
         ImmutableList.of(
-            new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
             new LongLiteral(2L)
@@ -630,7 +626,6 @@ public class InsertValuesExecutorTest {
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(SCHEMA),
         ImmutableList.of(
-            new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
             new LongLiteral(2L))
@@ -651,7 +646,6 @@ public class InsertValuesExecutorTest {
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(SCHEMA),
         ImmutableList.of(
-            new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
             new LongLiteral(2L))
@@ -673,7 +667,6 @@ public class InsertValuesExecutorTest {
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(SCHEMA),
         ImmutableList.of(
-            new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
             new LongLiteral(2L))

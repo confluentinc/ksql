@@ -357,7 +357,7 @@ public class SchemaKStream<K> {
 
     final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
     final KeyField newKeyField = isKeyColumn(columnName) ? keyField : KeyField.of(columnName);
-    return getSchema().isMetaColumn(columnName) ? KeyField.none() : newKeyField;
+    return SchemaUtil.isSystemColumn(columnName) ? KeyField.none() : newKeyField;
   }
 
   protected boolean repartitionNotNeeded(final Expression expression) {
@@ -366,6 +366,10 @@ public class SchemaKStream<K> {
     }
 
     final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
+    if (SchemaUtil.isSystemColumn(columnName)) {
+      return false;
+    }
+
     final Optional<Column> existingKey = keyField.resolve(getSchema());
 
     final Column proposedKey = getSchema()

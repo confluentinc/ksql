@@ -29,9 +29,11 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 
@@ -97,6 +99,14 @@ public final class CodeGenSpec {
 
   static class Builder {
 
+    private static final ArgumentSpec ROWTIME_SPEC =
+        new SystemColumnSpec(
+            SchemaUtil.ROWTIME_NAME.text(), Long.class, row -> row.metadata().getRowtime());
+
+    private static final Map<ColumnName, ArgumentSpec> SYSTEM_SPECS = ImmutableMap.of(
+        SchemaUtil.ROWTIME_NAME, ROWTIME_SPEC
+    );
+
     private final ImmutableList.Builder<ArgumentSpec> argumentBuilder = ImmutableList.builder();
     private final Map<ColumnName, String> columnRefToName = new HashMap<>();
     private final ImmutableListMultimap.Builder<FunctionName, String> functionNameBuilder =
@@ -106,6 +116,11 @@ public final class CodeGenSpec {
 
     private int argumentCount = 0;
     private int structSchemaCount = 0;
+
+    void addSystemColumn(final ColumnName systemColumn) {
+      columnRefToName.put(systemColumn, systemColumn.text());
+      argumentBuilder.add(SYSTEM_SPECS.get(systemColumn));
+    }
 
     void addParameter(
         final ColumnName columnName,
@@ -264,4 +279,35 @@ public final class CodeGenSpec {
           + '}';
     }
   }
+
+  @Immutable
+  public static final class SystemColumnSpec extends BaseArgumentSpec {
+
+    @EffectivelyImmutable
+    private final Function<GenericRow, Object> getter;
+
+    SystemColumnSpec(
+        final String name,
+        final Class<?> type,
+        final Function<GenericRow, Object> getter
+    ) {
+      super(name, type);
+      this.getter = getter;
+    }
+
+    @Override
+    public Object resolve(final GenericRow value) {
+      return getter.apply(value);
+    }
+
+    @Override
+    public String toString() {
+      return "SystemColumnSpec{"
+          + "name='" + name() + '\''
+          + ", type=" + type()
+          + '}';
+    }
+  }
+
+
 }

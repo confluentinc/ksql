@@ -88,6 +88,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -309,6 +310,12 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final ColumnName fieldName = node.getColumnName();
+      if (!SchemaUtil.isWindowBound(fieldName) && SchemaUtil.isSystemColumn(fieldName)) {
+        return new Pair<>(
+            fieldName.text(),
+            SchemaUtil.systemColumnType(fieldName).orElseThrow(IllegalStateException::new));
+      }
+
       final Column schemaColumn = schema.findValueColumn(node.getColumnName())
           .orElseThrow(() ->
               new KsqlException("Field not found: " + node.getColumnName()));

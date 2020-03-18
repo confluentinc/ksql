@@ -418,10 +418,10 @@ public final class SourceBuilder {
           }
 
           final long timestamp = processorContext.timestamp();
-          final Collection<?> keyColumns = keyGenerator.apply(key);
+          row.withMetadata(md -> md.withRowtime(timestamp));
 
+          final Collection<?> keyColumns = keyGenerator.apply(key);
           row.ensureAdditionalCapacity(1 + keyColumns.size());
-          row.append(timestamp);
           row.appendAll(keyColumns);
           return row;
         }

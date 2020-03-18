@@ -402,8 +402,6 @@ public class SchemaKTableTest {
         valueColumn(test2, ColumnName.of("COL2"), SqlTypes.STRING),
         valueColumn(test2, ColumnName.of("COL3"), SqlTypes.DOUBLE),
         valueColumn(test2, ColumnName.of("COL4"), SqlTypes.BOOLEAN),
-        valueColumn(test2, ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
-
         valueColumn(test2, ColumnName.of("ROWKEY"), SqlTypes.BIGINT)
     ));
   }

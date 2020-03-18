@@ -63,17 +63,20 @@ public class ExpressionMetadataTest {
     );
     expressionMetadata = new ExpressionMetadata(
         expressionEvaluator,
+        "",
         spec.build(),
         EXPRESSION_TYPE,
         expression
     );
 
     // When:
-    final Object result = expressionMetadata.evaluate(GenericRow.genericRow(123, 456));
+    final Object result = expressionMetadata.evaluate(
+        GenericRow.genericRow(123, 456).withMetadata(md -> md.withRowtime(321L))
+    );
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
-    verify(expressionEvaluator).evaluate(new Object[]{123, 456});
+    verify(expressionEvaluator).evaluate(new Object[]{321L, 123, 456});
   }
 
   @Test
@@ -91,17 +94,19 @@ public class ExpressionMetadataTest {
 
     expressionMetadata = new ExpressionMetadata(
         expressionEvaluator,
+        "",
         spec.build(),
         EXPRESSION_TYPE,
         expression
     );
 
     // When:
-    final Object result = expressionMetadata.evaluate(GenericRow.genericRow(123));
+    final Object result = expressionMetadata.evaluate(
+        GenericRow.genericRow(123).withMetadata(md -> md.withRowtime(321L)));
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
-    verify(expressionEvaluator).evaluate(new Object[]{udf, 123});
+    verify(expressionEvaluator).evaluate(new Object[]{321L, udf, 123});
   }
 
   @Test
@@ -121,7 +126,7 @@ public class ExpressionMetadataTest {
     final CountDownLatch threadLatch = new CountDownLatch(1);
     final CountDownLatch mainLatch = new CountDownLatch(1);
 
-    when(expressionEvaluator.evaluate(new Object[]{123, 456}))
+    when(expressionEvaluator.evaluate(new Object[]{321L, 123, 456}))
         .thenAnswer(
             invocation -> {
               threadLatch.countDown();
@@ -131,13 +136,15 @@ public class ExpressionMetadataTest {
 
     expressionMetadata = new ExpressionMetadata(
         expressionEvaluator,
+        "",
         spec.build(),
         EXPRESSION_TYPE,
         expression
     );
 
     final Thread thread = new Thread(
-        () -> expressionMetadata.evaluate(GenericRow.genericRow(123, 456))
+        () -> expressionMetadata.evaluate(
+            GenericRow.genericRow(123, 456).withMetadata(md -> md.withRowtime(321L)))
     );
 
     // When:
@@ -147,14 +154,15 @@ public class ExpressionMetadataTest {
     assertThat(threadLatch.await(10, TimeUnit.SECONDS), is(true));
 
     // When:
-    expressionMetadata.evaluate(GenericRow.genericRow(100, 200));
+    expressionMetadata.evaluate(GenericRow.genericRow(100, 200)
+        .withMetadata(md -> md.withRowtime(321L)));
     mainLatch.countDown();
 
     // Then:
     thread.join();
     verify(expressionEvaluator, times(1))
-        .evaluate(new Object[]{123, 456});
+        .evaluate(new Object[]{321L, 123, 456});
     verify(expressionEvaluator, times(1))
-        .evaluate(new Object[]{100, 200});
+        .evaluate(new Object[]{321L, 100, 200});
   }
 }

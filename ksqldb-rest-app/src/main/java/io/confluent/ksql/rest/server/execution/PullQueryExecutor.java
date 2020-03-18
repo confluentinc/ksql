@@ -829,7 +829,7 @@ public final class PullQueryExecutor {
             + row.window().map(w -> 2).orElse(0)
         );
 
-        value.append(row.rowTime());
+        value.withMetadata(md -> md.withRowtime(row.rowTime()));
         value.appendAll(keyFields);
 
         row.window().ifPresent(window -> {

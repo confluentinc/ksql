@@ -32,6 +32,8 @@ public class ExpressionMetadata {
 
   @EffectivelyImmutable
   private final IExpressionEvaluator expressionEvaluator;
+  @SuppressWarnings({"FieldCanBeLocal","unused"})
+  private final String code; // useful for debugging
   private final SqlType expressionType;
   private final ThreadLocal<Object[]> threadLocalParameters;
   private final Expression expression;
@@ -39,11 +41,13 @@ public class ExpressionMetadata {
 
   public ExpressionMetadata(
       final IExpressionEvaluator expressionEvaluator,
+      final String code,
       final CodeGenSpec spec,
       final SqlType expressionType,
       final Expression expression
   ) {
     this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
+    this.code = Objects.requireNonNull(code, "code");
     this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
     this.expression = Objects.requireNonNull(expression, "expression");
     this.spec = Objects.requireNonNull(spec, "spec");

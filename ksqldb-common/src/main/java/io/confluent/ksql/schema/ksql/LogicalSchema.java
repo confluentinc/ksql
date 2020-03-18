@@ -25,9 +25,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -48,12 +46,6 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 @Immutable
 public final class LogicalSchema {
 
-  private static final Column IMPLICIT_TIME_COLUMN = Column
-      .of(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT, Column.Namespace.META, 0);
-
-  private static final Column IMPLICIT_KEY_COLUMN = Column
-      .of(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING, Column.Namespace.KEY, 0);
-
   private final ImmutableList<Column> columns;
 
   public static Builder builder() {
@@ -70,14 +62,6 @@ public final class LogicalSchema {
 
   public ConnectSchema valueConnectSchema() {
     return toConnectSchema(value());
-  }
-
-  /**
-   * @return the schema of the metadata.
-   */
-  public List<Column> metadata() {
-    return byNamespace()
-        .get(Namespace.META);
   }
 
   /**
@@ -159,15 +143,6 @@ public final class LogicalSchema {
 
   /**
    * @param columnName the column name to check
-   * @return {@code true} if the column matches the name of any metadata column.
-   */
-  public boolean isMetaColumn(final ColumnName columnName) {
-    return findColumnMatching(withNamespace(Namespace.META).and(withName(columnName)))
-        .isPresent();
-  }
-
-  /**
-   * @param columnName the column name to check
    * @return {@code true} if the column matches the name of any key column.
    */
   public boolean isKeyColumn(final ColumnName columnName) {
@@ -198,10 +173,7 @@ public final class LogicalSchema {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    // Meta columns deliberately excluded.
-
     return columns.stream()
-        .filter(withNamespace(Namespace.META).negate())
         .map(c -> c.toString(formatOptions))
         .collect(Collectors.joining(", "));
   }
@@ -227,18 +199,16 @@ public final class LogicalSchema {
   }
 
   private LogicalSchema rebuild(
-      final boolean withMetaAndKeyColsInValue,
+      final boolean withKeyColsInValue,
       final boolean windowedKey
   ) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
-    final List<Column> metadata = byNamespace.get(Namespace.META);
     final List<Column> key = byNamespace.get(Namespace.KEY);
     final List<Column> value = byNamespace.get(Namespace.VALUE);
 
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
-    builder.addAll(metadata);
     builder.addAll(key);
 
     int valueIndex = 0;
@@ -249,20 +219,14 @@ public final class LogicalSchema {
         continue;
       }
 
-      if (findColumnMatching(
-          (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY)).and(withRef(c.name()))
-          )).isPresent()) {
+      if (findColumnMatching((withNamespace(Namespace.KEY)).and(withRef(c.name()))).isPresent()) {
         continue;
       }
 
       builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
     }
 
-    if (withMetaAndKeyColsInValue) {
-      for (final Column c : metadata) {
-        builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
-      }
-
+    if (withKeyColsInValue) {
       for (final Column c : key) {
         builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
       }
@@ -311,7 +275,6 @@ public final class LogicalSchema {
     private final Set<ColumnName> seenValues = new HashSet<>();
 
     public Builder withRowTime() {
-      columns.add(IMPLICIT_TIME_COLUMN);
       return this;
     }
 

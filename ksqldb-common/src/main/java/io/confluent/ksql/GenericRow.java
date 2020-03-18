@@ -15,18 +15,23 @@
 
 package io.confluent.ksql;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class GenericRow {
 
+  private final GenericRowMetadata metadata;
   private final ArrayList<Object> values;
 
   public GenericRow() {
@@ -35,6 +40,7 @@ public class GenericRow {
 
   public GenericRow(final int initialCapacity) {
     this.values = new ArrayList<>(initialCapacity);
+    this.metadata = new GenericRowMetadata();
   }
 
   @VisibleForTesting // Only use from tests
@@ -70,6 +76,17 @@ public class GenericRow {
     values.set(index, value);
   }
 
+  public GenericRow withMetadata(final Consumer<GenericRowMetadata> metadataConsumer) {
+    metadataConsumer.accept(metadata);
+    return this;
+  }
+
+  @JsonProperty("metadata")
+  @JsonInclude(value = Include.CUSTOM, valueFilter = GenericRowMetadata.EmptyFilter.class)
+  public GenericRowMetadata metadata() {
+    return metadata;
+  }
+
   public GenericRow append(final Object value) {
     values.add(value);
     return this;
@@ -87,7 +104,7 @@ public class GenericRow {
 
   @Override
   public String toString() {
-    return values.stream()
+    return Streams.concat(metadata.asObjectStream(), values.stream())
         .map(GenericRow::formatValue)
         .collect(Collectors.joining(" | ", "[ ", " ]"));
   }
@@ -103,12 +120,13 @@ public class GenericRow {
     }
 
     final GenericRow that = (GenericRow) o;
-    return Objects.equals(this.values, that.values);
+    return Objects.equals(this.values, that.values)
+        && Objects.equals(this.metadata, that.metadata);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(values);
+    return Objects.hash(metadata, values);
   }
 
   private static String formatValue(final Object value) {

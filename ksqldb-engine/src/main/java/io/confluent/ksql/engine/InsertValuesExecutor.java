@@ -60,6 +60,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
@@ -394,6 +395,11 @@ public class InsertValuesExecutor {
   }
 
   private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {
+    final Optional<SqlType> sqlType = SchemaUtil.systemColumnType(column);
+    if (sqlType.isPresent()) {
+      return sqlType.get();
+    }
+
     return schema
         .findColumn(column)
         .map(Column::type)

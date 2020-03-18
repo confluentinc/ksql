@@ -35,8 +35,12 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class DefaultKsqlClient implements SimpleKsqlClient {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultKsqlClient.class);
 
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
@@ -103,7 +107,13 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .target(serverEndPoint);
 
     getTarget(target, authHeader)
-        .postAsyncHeartbeatRequest(new KsqlHostInfoEntity(host.host(), host.port()), timestamp);
+        .postAsyncHeartbeatRequest(new KsqlHostInfoEntity(host.host(), host.port()), timestamp)
+        .exceptionally(t -> {
+          // We send heartbeat requests quite frequently and to nodes that might be down.  We don't
+          // want to fill the logs with spam, so we debug log exceptions.
+          LOG.debug("Exception in async request", t);
+          return null;
+        });
   }
 
   @Override
@@ -122,7 +132,11 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    getTarget(target, authHeader).postAsyncLagReportingRequest(lagReportingMessage);
+    getTarget(target, authHeader).postAsyncLagReportingRequest(lagReportingMessage)
+        .exceptionally(t -> {
+          LOG.error("Unexpected exception in async request", t);
+          return null;
+        });
   }
 
   @Override

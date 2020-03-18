@@ -111,7 +111,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .exceptionally(t -> {
           // We send heartbeat requests quite frequently and to nodes that might be down.  We don't
           // want to fill the logs with spam, so we debug log exceptions.
-          LOG.debug("Exception in async request", t);
+          LOG.debug("Exception in async heartbeat request", t);
           return null;
         });
   }
@@ -134,7 +134,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
     getTarget(target, authHeader).postAsyncLagReportingRequest(lagReportingMessage)
         .exceptionally(t -> {
-          LOG.error("Unexpected exception in async request", t);
+          LOG.debug("Exception in async lag reporting request", t);
           return null;
         });
   }

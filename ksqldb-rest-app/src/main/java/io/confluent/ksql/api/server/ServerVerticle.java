@@ -15,25 +15,14 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.rest.Errors.toErrorCode;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
-import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
-import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.security.KsqlSecurityExtension;
-import io.confluent.ksql.util.KsqlException;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -53,7 +42,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,10 +55,8 @@ public class ServerVerticle extends AbstractVerticle {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final Logger log = LoggerFactory.getLogger(ServerVerticle.class);
 
-  private static final Set<String> NEW_API_ENDPOINTS = ImmutableSet
-      .of("/query-stream", "/inserts-stream", "/close-query");
-
-  private static final Set<String> OLD_API_ENDPOINTS = ImmutableSet.of("/ksql");
+  private static final Set<String> NON_PROXIED_ENDPOINTS = ImmutableSet
+      .of("/query-stream", "/inserts-stream", "/close-query", "/ksql");
 
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
@@ -125,31 +111,11 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
-    // We only want to apply failure handler and auth handlers to routes that are not proxied
-    // as Jetty will do it's own auth and failure handler
-    routeFailureToNewApi(router, ServerVerticle::handleFailure);
+    PortedEndpoints.setupFailureHandler(router);
 
-    final Optional<AuthHandler> authHandler = getAuthHandler(server);
-    final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
-    final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
+    setUpFailureHandler(router);
 
-    if (authHandler.isPresent() || authenticationPlugin.isPresent()) {
-      routeToNewApi(router, ServerVerticle::pauseHandler);
-      if (authenticationPlugin.isPresent()) {
-        // Authentication plugin has precedence
-        routeToNewApi(router, createAuthenticationPluginHandler(authenticationPlugin.get()));
-      } else {
-        // Otherwise use user configured JAAS auth handler
-        routeToNewApi(router, authHandler.get());
-      }
-      // For authorization use auth provider configured via security extension (if any)
-      securityExtension.getAuthorizationProvider()
-          .ifPresent(ksqlAuthorizationProvider -> routeToNewApi(router,
-              new KsqlAuthorizationProviderHandler(server.getWorkerExecutor(),
-                  ksqlAuthorizationProvider)));
-
-      routeToNewApi(router, ServerVerticle::resumeHandler);
-    }
+    setupAuthHandlers(router);
 
     router.route(HttpMethod.POST, "/query-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
@@ -164,11 +130,7 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
 
-    router.route(HttpMethod.POST, "/ksql")
-        .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
-        .handler(this::handleKsqlRequests);
+    PortedEndpoints.setupEndpoints(endpoints, server, router);
 
     if (proxyHandler != null) {
       proxyHandler.setupRoutes(router);
@@ -196,49 +158,32 @@ public class ServerVerticle extends AbstractVerticle {
     };
   }
 
-  private void handleKsqlRequests(final RoutingContext routingContext) {
-    final HttpServerResponse response = routingContext.response();
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    final KsqlRequest ksqlRequest;
-    try {
-      ksqlRequest = objectMapper.readValue(routingContext.getBody().getBytes(), KsqlRequest.class);
-    } catch (Exception e) {
-      routingContext.fail(400,
-          new KsqlApiException("Malformed JSON", ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
-      return;
-    }
-    final CompletableFuture<EndpointResponse> completableFuture = endpoints
-        .executeKsqlRequest(ksqlRequest, server.getWorkerExecutor(),
-            DefaultApiSecurityContext.create(routingContext));
-    completableFuture.thenAccept(endpointResponse -> {
+  private void setupAuthHandlers(final Router router) {
+    final Optional<AuthHandler> authHandler = getAuthHandler(server);
+    final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
+    final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
 
-      final Buffer responseBody;
-      try {
-        final byte[] bytes = objectMapper.writeValueAsBytes(endpointResponse.getResponseBody());
-        responseBody = Buffer.buffer(bytes);
-      } catch (JsonProcessingException e) {
-        // This is an internal error as it's a bug in the server
-        routingContext.fail(500, e);
-        return;
+    if (authHandler.isPresent() || authenticationPlugin.isPresent()) {
+      routeToNonProxiedEndpoints(router, ServerVerticle::pauseHandler);
+      if (authenticationPlugin.isPresent()) {
+        // Authentication plugin has precedence
+        routeToNonProxiedEndpoints(router,
+            createAuthenticationPluginHandler(authenticationPlugin.get()));
+      } else {
+        // Otherwise use user configured JAAS auth handler
+        routeToNonProxiedEndpoints(router, authHandler.get());
       }
+      // For authorization use auth provider configured via security extension (if any)
+      securityExtension.getAuthorizationProvider()
+          .ifPresent(ksqlAuthorizationProvider -> routeToNonProxiedEndpoints(router,
+              new KsqlAuthorizationProviderHandler(server.getWorkerExecutor(),
+                  ksqlAuthorizationProvider)));
 
-      response.setStatusCode(endpointResponse.getStatusCode())
-          .setStatusMessage(endpointResponse.getStatusMessage())
-          .end(responseBody);
-
-    }).exceptionally(t -> {
-      routingContext.fail(500, t);
-      return null;
-    });
+      routeToNonProxiedEndpoints(router, ServerVerticle::resumeHandler);
+    }
   }
 
-  private static void handleException(final HttpServerResponse response, final String message,
-      final Exception e) {
-    log.error(message, e);
-    response.setStatusCode(500).end();
-  }
-
-  private static void handleFailure(final RoutingContext routingContext) {
+  private static void failureHandler(final RoutingContext routingContext) {
 
     log.error(String.format("Failed to handle request %d %s", routingContext.statusCode(),
         routingContext.request().path()),
@@ -247,18 +192,7 @@ public class ServerVerticle extends AbstractVerticle {
     final int statusCode = routingContext.statusCode();
     final Throwable failure = routingContext.failure();
 
-    if (OLD_API_ENDPOINTS.contains(routingContext.normalisedPath())) {
-      final KsqlErrorMessage ksqlErrorMessage = new KsqlErrorMessage(
-          toErrorCode(statusCode),
-          routingContext.failure().getMessage());
-      try {
-        final byte[] bytes = JsonMapper.INSTANCE.mapper.writeValueAsBytes(ksqlErrorMessage);
-        routingContext.response().setStatusCode(statusCode)
-            .end(Buffer.buffer(bytes));
-      } catch (JsonProcessingException e) {
-        throw new KsqlException(e);
-      }
-    } else if (failure != null) {
+    if (failure != null) {
       if (failure instanceof KsqlApiException) {
         final KsqlApiException ksqlApiException = (KsqlApiException) failure;
         handleError(
@@ -339,19 +273,18 @@ public class ServerVerticle extends AbstractVerticle {
     routingContext.next();
   }
 
-  // Applies the handler to all new api endpoints
-  private void routeToNewApi(final Router router, final Handler<RoutingContext> handler) {
-    for (String path : NEW_API_ENDPOINTS) {
+  // Applies the handler to all non proxied endpoints
+  private static void routeToNonProxiedEndpoints(final Router router,
+      final Handler<RoutingContext> handler) {
+    for (String path : NON_PROXIED_ENDPOINTS) {
       router.route(path).handler(handler);
     }
   }
 
-  // Applies the failure handler to all new api endpoints
-  private void routeFailureToNewApi(final Router router, final Handler<RoutingContext> handler) {
-    for (String path : NEW_API_ENDPOINTS) {
-      router.route(path).failureHandler(handler);
+  private static void setUpFailureHandler(final Router router) {
+    for (String path : NON_PROXIED_ENDPOINTS) {
+      router.route(path).failureHandler(ServerVerticle::failureHandler);
     }
   }
-
 
 }

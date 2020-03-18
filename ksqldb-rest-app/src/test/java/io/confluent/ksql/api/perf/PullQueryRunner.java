@@ -27,6 +27,7 @@ import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.reactive.BufferedPublisher;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
@@ -127,6 +128,13 @@ public class PullQueryRunner extends BasePerfRunner {
 
     @Override
     public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
+        final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeTerminate(
+        final ClusterTerminateRequest request,
         final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
       return null;
     }

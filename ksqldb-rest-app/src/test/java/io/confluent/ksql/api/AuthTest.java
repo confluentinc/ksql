@@ -21,8 +21,9 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
+import io.confluent.ksql.api.server.ErrorCodes;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
-import io.confluent.ksql.api.server.ServerUtils;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
@@ -142,48 +143,56 @@ public class AuthTest extends ApiTest {
 
   @Test
   public void shouldFailQueryWithBadCredentials() throws Exception {
-    shouldFailQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401, "Unauthorized");
+    shouldFailQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401,
+        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
   }
 
   @Test
   public void shouldFailCloseQueryWithBadCredentials() throws Exception {
-    shouldFailCloseQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401, "Unauthorized");
+    shouldFailCloseQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401,
+        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
   }
 
   @Test
   public void shouldFailInsertRequestWithBadCredentials() throws Exception {
-    shouldFailInsertRequest(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401, "Unauthorized");
+    shouldFailInsertRequest(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401,
+        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
   }
 
   @Test
   public void shouldFailQueryWithNoCredentials() throws Exception {
-    shouldFailQuery(null, null, 401, "Unauthorized");
+    shouldFailQuery(null, null, 401,
+        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
   }
 
   @Test
   public void shouldFailCloseQueryWithNoCredentials() throws Exception {
-    shouldFailCloseQuery(null, null, 401, "Unauthorized");
+    shouldFailCloseQuery(null, null, 401,
+        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
   }
 
   @Test
   public void shouldFailInsertRequestWithNoCredentials() throws Exception {
-    shouldFailInsertRequest(null, null, 401, "Unauthorized");
+    shouldFailInsertRequest(null, null, 401,
+        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
   }
 
   @Test
   public void shouldFailQueryWithIncorrectRole() throws Exception {
-    shouldFailQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403, "Forbidden");
+    shouldFailQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403,
+        "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION);
   }
 
   @Test
   public void shouldFailCloseQueryWithIncorrectRole() throws Exception {
-    shouldFailCloseQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403, "Forbidden");
+    shouldFailCloseQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403,
+        "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION);
   }
 
   @Test
   public void shouldFailInsertRequestWithIncorrectRole() throws Exception {
     shouldFailInsertRequest(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403,
-        "Forbidden");
+        "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION);
   }
 
   @Test
@@ -225,19 +234,22 @@ public class AuthTest extends ApiTest {
   @Test
   public void shouldNotAllowQueryIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
-        () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403, "Forbidden"));
+        () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403,
+            "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION));
   }
 
   @Test
   public void shouldNotAllowInsertsIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
-        () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403, "Forbidden"));
+        () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403,
+            "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION));
   }
 
   @Test
   public void shouldNotAllowCloseQueryIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
-        () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403, "Forbidden"));
+        () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403,
+            "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION));
   }
 
   @Test
@@ -248,7 +260,8 @@ public class AuthTest extends ApiTest {
   @Test
   public void shouldNotAllowQueryWithSecurityPlugin() throws Exception {
     shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
-        () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401, "Unauthorized"), false);
+        () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401,
+            "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION), false);
   }
 
   @Test
@@ -260,7 +273,8 @@ public class AuthTest extends ApiTest {
   @Test
   public void shouldNotAllowInsertsWithSecurityPlugin() throws Exception {
     shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
-        () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401, "Unauthorized"),
+        () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401,
+            "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION),
         false);
   }
 
@@ -272,12 +286,14 @@ public class AuthTest extends ApiTest {
   @Test
   public void shouldNotAllowCloseQueryWithSecurityPlugin() throws Exception {
     shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
-        () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401, "Unauthorized"),
+        () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401,
+            "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION),
         false);
   }
 
   private void shouldFailQuery(final String username, final String password,
-      final int expectedStatus, final String expectedMessage) throws Exception {
+      final int expectedStatus, final String expectedMessage, final int expectedErrorCode)
+      throws Exception {
     // When
     HttpResponse<Buffer> response = sendRequestWithCreds(
         "/query-stream",
@@ -290,11 +306,12 @@ public class AuthTest extends ApiTest {
     assertThat(response.statusCode(), is(expectedStatus));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(expectedStatus, expectedMessage, queryResponse.responseObject);
+    validateError(expectedErrorCode, expectedMessage, queryResponse.responseObject);
   }
 
   private void shouldFailCloseQuery(final String username, final String password,
-      final int expectedStatus, final String expectedMessage) throws Exception {
+      final int expectedStatus, final String expectedMessage, final int expectedErrorCode)
+      throws Exception {
     // Given
     JsonObject requestBody = new JsonObject().put("queryId", "foo");
 
@@ -310,11 +327,12 @@ public class AuthTest extends ApiTest {
     assertThat(response.statusCode(), is(expectedStatus));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(expectedStatus, expectedMessage, queryResponse.responseObject);
+    validateError(expectedErrorCode, expectedMessage, queryResponse.responseObject);
   }
 
   private void shouldFailInsertRequest(final String username, final String password,
-      int expectedStatus, final String expectedMessage) throws Exception {
+      int expectedStatus, final String expectedMessage, final int expectedErrorCode)
+      throws Exception {
     // Given
     JsonObject params = new JsonObject().put("target", "test-stream");
     Buffer requestBody = Buffer.buffer();
@@ -335,7 +353,7 @@ public class AuthTest extends ApiTest {
     assertThat(response.statusCode(), is(expectedStatus));
 
     InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
-    validateError(expectedStatus, expectedMessage, insertsResponse.error);
+    validateError(expectedErrorCode, expectedMessage, insertsResponse.error);
   }
 
   private HttpResponse<Buffer> sendRequestWithCreds(
@@ -390,7 +408,8 @@ public class AuthTest extends ApiTest {
         if (authenticate) {
           return CompletableFuture.completedFuture(new StringPrincipal(expectedUser));
         } else {
-          ServerUtils.handleError(routingContext.response(), 401, 401, "Unauthorized");
+          routingContext.fail(401,
+              new KsqlApiException("Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION));
           return CompletableFuture.completedFuture(null);
         }
       }

@@ -25,6 +25,7 @@ import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
+import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.json.JsonMapper;
@@ -95,7 +96,7 @@ public class ServerVerticle extends AbstractVerticle {
 
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
-        .exceptionHandler(ServerUtils::unhandledExceptionHandler);
+        .exceptionHandler(ServerVerticle::unhandledExceptionHandler);
     httpServer.listen(ar -> {
       if (ar.succeeded()) {
         startPromise.complete();
@@ -202,7 +203,8 @@ public class ServerVerticle extends AbstractVerticle {
     try {
       ksqlRequest = objectMapper.readValue(routingContext.getBody().getBytes(), KsqlRequest.class);
     } catch (Exception e) {
-      handleException(response, "Failed to deserialise request", e);
+      routingContext.fail(400,
+          new KsqlApiException("Malformed JSON", ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
       return;
     }
     final CompletableFuture<EndpointResponse> completableFuture = endpoints
@@ -215,7 +217,8 @@ public class ServerVerticle extends AbstractVerticle {
         final byte[] bytes = objectMapper.writeValueAsBytes(endpointResponse.getResponseBody());
         responseBody = Buffer.buffer(bytes);
       } catch (JsonProcessingException e) {
-        handleException(response, "Failed to serialize response", e);
+        // This is an internal error as it's a bug in the server
+        routingContext.fail(500, e);
         return;
       }
 
@@ -224,8 +227,7 @@ public class ServerVerticle extends AbstractVerticle {
           .end(responseBody);
 
     }).exceptionally(t -> {
-      log.error("Failed to execute ksql request", t);
-      routingContext.response().setStatusCode(500).end();
+      routingContext.fail(500, t);
       return null;
     });
   }
@@ -238,7 +240,12 @@ public class ServerVerticle extends AbstractVerticle {
 
   private static void handleFailure(final RoutingContext routingContext) {
 
+    log.error(String.format("Failed to handle request %d %s", routingContext.statusCode(),
+        routingContext.request().path()),
+        routingContext.failure());
+
     final int statusCode = routingContext.statusCode();
+    final Throwable failure = routingContext.failure();
 
     if (OLD_API_ENDPOINTS.contains(routingContext.normalisedPath())) {
       final KsqlErrorMessage ksqlErrorMessage = new KsqlErrorMessage(
@@ -251,24 +258,45 @@ public class ServerVerticle extends AbstractVerticle {
       } catch (JsonProcessingException e) {
         throw new KsqlException(e);
       }
-    } else if (routingContext.failure() != null) {
-      // TODO think about how we can consolidate the error handling
-      // Instead of calling ServerUtils.handleError from various places in the code we should
-      // call fail(code, exception) from those places and handle all the error handling here
-      // the exception should be a KsqlApiException always in here unless it's an unexpected error
-      // or error from an auth handler
-      log.error(String.format("Failed to handle request %d %s", routingContext.statusCode(),
-          routingContext.request().path()),
-          routingContext.failure());
-      ServerUtils.handleError(
-          routingContext.response(),
-          routingContext.statusCode(),
-          routingContext.statusCode(),
-          routingContext.failure().getMessage()
-      );
+    } else if (failure != null) {
+      if (failure instanceof KsqlApiException) {
+        final KsqlApiException ksqlApiException = (KsqlApiException) failure;
+        handleError(
+            routingContext.response(),
+            statusCode,
+            ksqlApiException.getErrorCode(),
+            ksqlApiException.getMessage()
+        );
+      } else {
+        final int errorCode;
+        if (statusCode == 401) {
+          errorCode = ErrorCodes.ERROR_FAILED_AUTHENTICATION;
+        } else if (statusCode == 403) {
+          errorCode = ErrorCodes.ERROR_FAILED_AUTHORIZATION;
+        } else {
+          errorCode = ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
+        }
+        handleError(
+            routingContext.response(),
+            statusCode,
+            errorCode,
+            failure.getMessage()
+        );
+      }
     } else {
       routingContext.response().setStatusCode(statusCode).end();
     }
+  }
+
+  private static void handleError(final HttpServerResponse response, final int statusCode,
+      final int errorCode, final String errMsg) {
+    final ErrorResponse errorResponse = new ErrorResponse(errorCode, errMsg);
+    final Buffer buffer = errorResponse.toBuffer();
+    response.setStatusCode(statusCode).end(buffer);
+  }
+
+  private static void unhandledExceptionHandler(final Throwable t) {
+    log.error("Unhandled exception", t);
   }
 
   private static Optional<AuthHandler> getAuthHandler(final Server server) {

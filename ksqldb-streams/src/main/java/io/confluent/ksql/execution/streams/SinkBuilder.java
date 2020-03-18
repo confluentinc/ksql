@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
@@ -108,19 +107,7 @@ public final class SinkBuilder {
         .map(c -> sourceSchema.findValueColumn(c).orElseThrow(IllegalStateException::new))
         .map(Column::index)
         .map(timestampPolicy::create)
-        .map(te -> new TransformTimestamp<>(
-            te,
-            queryBuilder
-                .getProcessingLogContext()
-                .getLoggerFactory()
-                .getLogger(
-                    QueryLoggerUtil.queryLoggerName(
-                        queryBuilder.getQueryId(),
-                        queryContext
-                    )
-                )
-            )
-        );
+        .map(te -> new TransformTimestamp<>(te, queryBuilder.getProcessingLogger(queryContext)));
   }
 
   static class TransformTimestamp<K>

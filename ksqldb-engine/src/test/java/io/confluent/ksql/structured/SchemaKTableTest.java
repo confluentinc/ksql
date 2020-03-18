@@ -67,6 +67,7 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -77,7 +78,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -151,8 +151,10 @@ public class SchemaKTableTest {
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"));
   private static final Expression TEST_2_COL_2 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
-  private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
-  private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
+  private static final KeyFormat keyFormat = KeyFormat
+      .nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
+  private static final ValueFormat valueFormat = ValueFormat
+      .of(FormatInfo.of(FormatFactory.JSON.name()));
 
   private PlanBuilder planBuilder;
 
@@ -160,6 +162,8 @@ public class SchemaKTableTest {
   private KsqlQueryBuilder queryBuilder;
   @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
+  @Mock
+  private ProcessingLogger processingLogger;
 
   @Before
   public void init() {
@@ -190,8 +194,8 @@ public class SchemaKTableTest {
 
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-    when(queryBuilder.getQueryId()).thenReturn(new QueryId("foo"));
+    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),

@@ -326,9 +326,7 @@ public final class SourceBuilder {
     return timestampPolicy.create(
         timestampIndex,
         ksqlConfig.getBoolean(KsqlConfig.KSQL_TIMESTAMP_THROW_ON_INVALID),
-        queryBuilder.getProcessingLogContext()
-            .getLoggerFactory()
-            .getLogger(loggerNamePrefix)
+        queryBuilder.getProcessingLogger(queryContext)
     );
   }
 

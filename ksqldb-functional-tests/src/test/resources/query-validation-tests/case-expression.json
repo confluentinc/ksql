@@ -1,11 +1,6 @@
 {
   "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
+    "Test cases covering SQL CASE statements"
   ],
   "tests": [
     {
@@ -33,11 +28,13 @@
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ORDERID": 4, "ORDERUNITS": 1.9}},
-        {"topic": "test_topic", "value": {"ORDERID": 5, "ORDERUNITS": 1.0}}
+        {"topic": "test_topic", "value": {"ORDERID": 5, "ORDERUNITS": 1.0}},
+        {"topic": "test_topic", "value": {"ORDERID": 5, "ORDERUNITS": 2.0}}
       ],
       "outputs": [
         {"topic": "S1", "value": {"CASE_RESAULT": 6}},
-        {"topic": "S1", "value": {"CASE_RESAULT": 7}}
+        {"topic": "S1", "value": {"CASE_RESAULT": 7}},
+        {"topic": "S1", "value": {"CASE_RESAULT": null}}
       ]
     },
     {
@@ -137,6 +134,40 @@
         {"topic": "S1", "value": {"CASE_RESAULT": "default"}},
         {"topic": "S1", "value": {"CASE_RESAULT": "default"}},
         {"topic": "S1", "value": {"CASE_RESAULT": "CITY_6"}}
+      ]
+    },
+    {
+      "name": "should execute branches lazily",
+      "comment": [
+        "The test UDF 'WHENCONDITION' and 'WHENRESULT' return their first arg and fails if their second arg is false.",
+        "Hence this test case would throw if execution was not lazy"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT CASE WHEN WHENCONDITION(true, true) THEN WHENRESULT(100, true) WHEN WHENCONDITION(true, false) THEN WHENRESULT(200, false) ELSE WHENRESULT(300, false)END FROM input;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT",  "value": {"KSQL_COL_0": 100}}
+      ]
+    },
+    {
+      "name": "should only execute ELSE if not matching WHENs",
+      "comment": [
+        "The test UDF 'WHENCONDITION' and 'WHENRESULT' return their first arg and fails if their second arg is false.",
+        "Hence this test case would throw if execution was not lazy"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT CASE WHEN WHENCONDITION(false, true) THEN WHENRESULT(100, false) WHEN WHENCONDITION(false, true) THEN WHENRESULT(200, false) ELSE WHENRESULT(300, true) END FROM input;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT",  "value": {"KSQL_COL_0": 300}}
       ]
     }
   ]

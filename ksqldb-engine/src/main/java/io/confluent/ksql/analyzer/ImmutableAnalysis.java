@@ -18,13 +18,13 @@ package io.confluent.ksql.analyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
 import java.util.Optional;
@@ -36,17 +36,21 @@ public interface ImmutableAnalysis {
 
   List<FunctionCall> getTableFunctions();
 
-  List<SelectExpression> getSelectExpressions();
+  List<SelectItem> getSelectItems();
 
   Optional<Expression> getWhereExpression();
 
   Optional<Into> getInto();
 
-  Set<ColumnName> getSelectColumnRefs();
+  Set<ColumnName> getSelectColumnNames();
 
   List<Expression> getGroupByExpressions();
 
+  Optional<Expression> getHavingExpression();
+
   Optional<WindowExpression> getWindowExpression();
+
+  ColumnReferenceExp getDefaultArgument();
 
   Optional<Expression> getPartitionBy();
 
@@ -55,8 +59,6 @@ public interface ImmutableAnalysis {
   Optional<JoinInfo> getJoin();
 
   List<AliasedDataSource> getFromDataSources();
-
-  Set<SerdeOption> getSerdeOptions();
 
   CreateSourceAsProperties getProperties();
 

@@ -5,7 +5,6 @@
   "tests": [
     {
       "name": "concat fields using CONCAT",
-      "format": ["JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT CONCAT('prefix-', CONCAT(source, '-postfix')) AS THING FROM TEST;"
@@ -21,7 +20,6 @@
     },
     {
       "name": "concat fields using '+' operator",
-      "format": ["JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT 'prefix-' + source + '-postfix' AS THING FROM TEST;"
@@ -33,6 +31,34 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"THING":"prefix-s1-postfix"}},
         {"topic": "OUTPUT", "value": {"THING":"prefix-s2-postfix"}}
+      ]
+    },
+    {
+      "name": "should handle characters the must be escaped in java",
+      "statements": [
+        "CREATE STREAM INPUT (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT CONCAT('\"', CONCAT(source, '\\')) AS THING FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "foo"}},
+        {"topic": "test_topic", "value": {"source": "\\foo\""}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"THING":"\"foo\\"}},
+        {"topic": "OUTPUT", "value": {"THING":"\"\\foo\"\\"}}
+      ]
+    },
+    {
+      "name": "should handle characters the must be escaped in sql",
+      "statements": [
+        "CREATE STREAM INPUT (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT CONCAT('''', CONCAT(source, '''')) AS THING FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "foo"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"THING":"'foo'"}}
       ]
     }
   ]

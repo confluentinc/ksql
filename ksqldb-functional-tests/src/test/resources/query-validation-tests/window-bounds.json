@@ -126,7 +126,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Window bounds column TEST.WINDOWSTART can only be used in the SELECT clause of windowed aggregations"
+        "message": "Window bounds column WINDOWSTART can only be used in the SELECT clause of windowed aggregations"
       }
     },
     {
@@ -164,7 +164,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Window bounds column TEST.WINDOWEND can only be used in the SELECT clause of windowed aggregations"
+        "message": "Window bounds column WINDOWEND can only be used in the SELECT clause of windowed aggregations"
       }
     },
     {
@@ -176,7 +176,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Window bounds column TEST.WINDOWSTART can only be used in the SELECT clause of windowed aggregations"
+        "message": "Window bounds column WINDOWSTART can only be used in the SELECT clause of windowed aggregations"
       }
     },
     {
@@ -188,7 +188,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Window bounds column TEST.WINDOWSTART can only be used in the SELECT clause of windowed aggregations"
+        "message": "Window bounds column WINDOWSTART can only be used in the SELECT clause of windowed aggregations"
       }
     },
     {
@@ -199,7 +199,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Window bounds column TEST.WINDOWSTART can only be used in the SELECT clause of windowed aggregations"
+        "message": "Window bounds column WINDOWSTART can only be used in the SELECT clause of windowed aggregations"
       }
     },
     {
@@ -210,7 +210,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Window bounds column TEST.WINDOWSTART can only be used in the SELECT clause of windowed aggregations"
+        "message": "Window bounds column WINDOWSTART can only be used in the SELECT clause of windowed aggregations"
       }
     }
   ]

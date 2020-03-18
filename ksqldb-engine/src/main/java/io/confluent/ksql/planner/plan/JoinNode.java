@@ -18,10 +18,11 @@ package io.confluent.ksql.planner.plan;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.JoinParamsFactory;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.ValueFormat;
@@ -37,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 public class JoinNode extends PlanNode {
@@ -53,13 +55,12 @@ public class JoinNode extends PlanNode {
 
   public JoinNode(
       final PlanNodeId id,
-      final List<SelectExpression> selectExpressions,
       final JoinType joinType,
       final PlanNode left,
       final PlanNode right,
       final Optional<WithinExpression> withinExpression
   ) {
-    super(id, calculateSinkType(left, right), buildJoinSchema(left, right), selectExpressions);
+    super(id, calculateSinkType(left, right), buildJoinSchema(left, right), Optional.empty());
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
@@ -109,6 +110,15 @@ public class JoinNode extends PlanNode {
   @Override
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return right.getPartitions(kafkaTopicClient);
+  }
+
+  @Override
+  public Stream<ColumnName> resolveSelectStar(
+      final Optional<SourceName> sourceName, final boolean valueOnly
+  ) {
+    return getSources().stream()
+        .filter(s -> !sourceName.isPresent() || sourceName.equals(s.getSourceName()))
+        .flatMap(s -> s.resolveSelectStar(sourceName, false));
   }
 
   private void ensureMatchingPartitionCounts(final KafkaTopicClient kafkaTopicClient) {

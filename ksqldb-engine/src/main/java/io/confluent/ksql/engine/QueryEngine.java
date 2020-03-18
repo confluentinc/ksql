@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.engine;
 
-import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -38,14 +37,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class QueryEngine {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-
-  private static final Logger LOG = LoggerFactory.getLogger(QueryEngine.class);
 
   private final ServiceContext serviceContext;
   private final ProcessingLogContext processingLogContext;
@@ -78,9 +73,8 @@ class QueryEngine {
         new QueryAnalyzer(metaStore, outputPrefix, defaultSerdeOptions);
 
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
-    final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
-    return new LogicalPlanner(config, analysis, aggAnalysis, metaStore).buildPlan();
+    return new LogicalPlanner(config, analysis, metaStore).buildPlan();
   }
 
   PhysicalPlan buildPhysicalPlan(

@@ -42,7 +42,7 @@ public class RepartitionNode extends PlanNode {
       final Expression partitionBy,
       final KeyField keyField
   ) {
-    super(id, source.getNodeOutputType(), schema, source.getSelectExpressions());
+    super(id, source.getNodeOutputType(), schema, source.getSourceName());
     this.source = requireNonNull(source, "source");
     this.partitionBy = requireNonNull(partitionBy, "partitionBy");
     this.keyField = requireNonNull(keyField, "keyField");

@@ -1,0 +1,99 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584374395116,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<TOTAL INT> NOT NULL",
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<TOTAL INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 INT, KSQL_INTERNAL_COL_2 BIGINT, KSQL_INTERNAL_COL_3 INT, KSQL_INTERNAL_COL_4 INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 INT, KSQL_INTERNAL_COL_2 BIGINT, KSQL_AGG_VARIABLE_0 INT, KSQL_AGG_VARIABLE_1 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<SUM INT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "T1",
+    "key" : 0,
+    "value" : {
+      "total" : 100
+    }
+  }, {
+    "topic" : "T1",
+    "key" : 1,
+    "value" : {
+      "total" : 101
+    }
+  }, {
+    "topic" : "T2",
+    "key" : 0,
+    "value" : {
+      "total" : 5
+    }
+  }, {
+    "topic" : "T2",
+    "key" : 1,
+    "value" : {
+      "total" : 10
+    }
+  }, {
+    "topic" : "T2",
+    "key" : 0,
+    "value" : {
+      "total" : 20
+    }
+  }, {
+    "topic" : "T2",
+    "key" : 0,
+    "value" : null
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "SUM" : 100
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : {
+      "SUM" : 101
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : null
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "SUM" : 105
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : null
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : {
+      "SUM" : 111
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : null
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "SUM" : 120
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : null
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "SUM" : 100
+    }
+  } ]
+}

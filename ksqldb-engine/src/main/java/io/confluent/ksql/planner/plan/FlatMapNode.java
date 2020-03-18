@@ -16,6 +16,7 @@
 package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
@@ -26,13 +27,14 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.StreamFlatMapBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.parser.tree.SelectItem;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -50,6 +52,7 @@ public class FlatMapNode extends PlanNode {
 
   private final PlanNode source;
   private final ImmutableList<FunctionCall> tableFunctions;
+  private final ImmutableMap<Integer, Expression> columnMappings;
 
   public FlatMapNode(
       final PlanNodeId id,
@@ -61,10 +64,11 @@ public class FlatMapNode extends PlanNode {
         id,
         source.getNodeOutputType(),
         buildSchema(source, functionRegistry, analysis),
-        buildFinalSelectExpressions(functionRegistry, analysis)
+        Optional.empty()
     );
     this.source = Objects.requireNonNull(source, "source");
     this.tableFunctions = ImmutableList.copyOf(analysis.getTableFunctions());
+    this.columnMappings = buildColumnMappings(functionRegistry, analysis);
   }
 
   @Override
@@ -92,6 +96,11 @@ public class FlatMapNode extends PlanNode {
   }
 
   @Override
+  public Expression resolveSelect(final int idx, final Expression expression) {
+    return columnMappings.getOrDefault(idx, expression);
+  }
+
+  @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
 
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
@@ -102,24 +111,31 @@ public class FlatMapNode extends PlanNode {
     );
   }
 
-  private static ImmutableList<SelectExpression> buildFinalSelectExpressions(
+  private static ImmutableMap<Integer, Expression> buildColumnMappings(
       final FunctionRegistry functionRegistry,
       final ImmutableAnalysis analysis
   ) {
     final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
         new TableFunctionExpressionRewriter(functionRegistry);
 
-    final ImmutableList.Builder<SelectExpression> selectExpressions = ImmutableList.builder();
-    for (final SelectExpression select : analysis.getSelectExpressions()) {
-      final Expression exp = select.getExpression();
-      selectExpressions.add(
-          SelectExpression.of(
-              select.getAlias(),
-              ExpressionTreeRewriter.rewriteWith(
-                  tableFunctionExpressionRewriter::process, exp)
-          ));
+    final ImmutableMap.Builder<Integer, Expression> builder = ImmutableMap.builder();
+
+    for (int idx = 0; idx < analysis.getSelectItems().size(); idx++) {
+      final SelectItem selectItem = analysis.getSelectItems().get(idx);
+      if (!(selectItem instanceof SingleColumn)) {
+        continue;
+      }
+
+      final SingleColumn singleColumn = (SingleColumn) selectItem;
+      final Expression rewritten = ExpressionTreeRewriter.rewriteWith(
+          tableFunctionExpressionRewriter::process, singleColumn.getExpression());
+
+      if (!rewritten.equals(singleColumn.getExpression())) {
+        builder.put(idx, rewritten);
+      }
     }
-    return selectExpressions.build();
+
+    return builder.build();
   }
 
   private static class TableFunctionExpressionRewriter

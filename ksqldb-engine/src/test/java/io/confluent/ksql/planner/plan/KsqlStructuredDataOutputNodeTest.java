@@ -109,6 +109,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
     when(queryIdGenerator.getNext()).thenReturn(QUERY_ID_VALUE);
 
+    when(sourceNode.getSchema()).thenReturn(LogicalSchema.builder().build());
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
 
@@ -127,10 +128,13 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldThrowIfSelectExpressionsHaveSameNameAsAnyKeyColumn() {
     // Given:
-    givenSourceSelectExpressions(
-        selectExpression("field1"),
-        selectExpression("k0"),
-        selectExpression("field2")
+    givenSourceSchema(
+        LogicalSchema.builder()
+            .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+            .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("k0"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+            .build()
     );
 
     // Expect:
@@ -244,9 +248,9 @@ public class KsqlStructuredDataOutputNodeTest {
         SourceName.of(PLAN_NODE_ID.toString()));
   }
 
-  private void givenSourceSelectExpressions(final SelectExpression... selectExpressions) {
-    when(sourceNode.getSelectExpressions())
-        .thenReturn(ImmutableList.copyOf(selectExpressions));
+  private void givenSourceSchema(final LogicalSchema schema) {
+    when(sourceNode.getSchema())
+        .thenReturn(schema);
   }
 
   private static SelectExpression selectExpression(final String alias) {

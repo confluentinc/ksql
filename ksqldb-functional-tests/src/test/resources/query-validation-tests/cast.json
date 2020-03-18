@@ -162,6 +162,45 @@
         {"topic": "OUT", "value": {"I":  10, "L": 10, "D": 10.00, "S": "10.00"}},
         {"topic": "OUT", "value": {"I":  10, "L": 10, "D": 10.01, "S": "10.01"}}
       ]
+    },
+    {
+      "name": "integer to bigint",
+      "statements": [
+        "CREATE STREAM INPUT (col0 INT, col1 INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT cast((col0 - col1) AS BIGINT) as VAL FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "value": {"col0": 1, "col1": 2}}
+      ],
+      "outputs": [
+        {"topic":  "OUT", "value": {"VAL": -1}}
+      ]
+    },
+    {
+      "name": "integer to string",
+      "statements": [
+        "CREATE STREAM INPUT (col0 INT, col1 INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT cast((col0 - col1) AS STRING) as VAL FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "value": {"col0": 1, "col1": 2}}
+      ],
+      "outputs": [
+        {"topic":  "OUT", "value": {"VAL": "-1"}}
+      ]
+    },
+    {
+      "name": "double to int",
+      "statements": [
+        "CREATE STREAM INPUT (col0 DOUBLE, col1 DOUBLE) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT cast((col0 - col1) AS INT) as VAL FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "value": {"col0": 3.3, "col1": 2.1}}
+      ],
+      "outputs": [
+        {"topic":  "OUT", "value": {"VAL": 1}}
+      ]
     }
   ]
 }

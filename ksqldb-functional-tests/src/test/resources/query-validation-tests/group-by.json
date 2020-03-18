@@ -523,7 +523,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Field used in aggregate SELECT expression(s) outside of aggregate functions not part of GROUP BY: [TEST.F1]"
+        "message": "Column used in aggregate SELECT expression(s) outside of aggregate functions not part of GROUP BY: [F1]"
       }
     },
     {
@@ -616,7 +616,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 1)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(SOURCE, 0, 1)]"
       }
     },
     {
@@ -627,7 +627,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(TEST.REGION, 7, 1)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(REGION, 7, 1)]"
       }
     },
     {
@@ -638,7 +638,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 3)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(SOURCE, 0, 3)]"
       }
     },
     {
@@ -649,7 +649,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(TEST.REGION, 7, 3)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(REGION, 7, 3)]"
       }
     },
     {
@@ -899,7 +899,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(TEST.F1 + TEST.F2)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(F1 + F2)]"
       }
     },
     {
@@ -910,7 +910,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(TEST.SUBREGION + TEST.REGION)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(SUBREGION + REGION)]"
       }
     },
     {
@@ -921,7 +921,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [TEST.F1, TEST.F2]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [F1, F2]"
       }
     },
     {
@@ -932,7 +932,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [TEST.REGION, TEST.SUBREGION]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [REGION, SUBREGION]"
       }
     },
     {
@@ -984,7 +984,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(TEST.F1 - TEST.F2)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(F1 - F2)]"
       }
     },
     {
@@ -995,7 +995,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(TEST.F1 - TEST.F0)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(F1 - F0)]"
       }
     },
     {
@@ -1193,6 +1193,26 @@
       ]
     },
     {
+      "name": "duplicate udafs (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(1), COUNT(1) FROM TEST GROUP BY data;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"DATA": "d1"}, "timestamp": 1},
+        {"topic": "test_topic", "value": {"DATA": "d2"}, "timestamp": 2},
+        {"topic": "test_topic", "value": {"DATA": "d1"}, "timestamp": 3}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_AGG_VARIABLE_0": 1, "KSQL_AGG_VARIABLE_1": 1}, "timestamp": 1},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"KSQL_INTERNAL_COL_0": "d2", "KSQL_AGG_VARIABLE_0": 1, "KSQL_AGG_VARIABLE_1": 1}, "timestamp": 2},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_AGG_VARIABLE_0": 2, "KSQL_AGG_VARIABLE_1": 2}, "timestamp": 3},
+        {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 1}, "timestamp": 1},
+        {"topic": "OUTPUT", "key": "d2", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 1}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0": 2, "KSQL_COL_1": 2}, "timestamp": 3}
+      ]
+    },
+    {
       "name": "with non-aggregate projection field not in group by (stream->table)",
       "statements": [
         "CREATE STREAM TEST (d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1200,7 +1220,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [TEST.D1]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [D1]"
       }
     },
     {
@@ -1211,7 +1231,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [TEST.D1]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [D1]"
       }
     },
     {
@@ -1251,7 +1271,7 @@
       "name": "with projection without aggregate functions (stream->table)",
       "statements": [
         "CREATE STREAM TEST (d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(d2, 1, 2) FROM TEST GROUP BY d2;"
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(d1, 1, 2) FROM TEST GROUP BY d2;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -1266,7 +1286,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Use of aggregate functions requires a GROUP BY clause. Aggregate function(s): COUNT"
+        "message": "Use of aggregate function COUNT requires a GROUP BY clause"
       }
     },
     {
@@ -1502,6 +1522,58 @@
           }
         ]
       }
+    },
+    {
+      "name": "with select * where all columns in group by",
+      "statements": [
+        "CREATE STREAM TEST (id INT, id2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT *, COUNT() FROM TEST GROUP BY id, id2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"ID": 1, "ID2": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1|+|2", "value": {"ID": 1, "ID2": 2, "KSQL_COL_0": 1}}
+      ]
+    },
+    {
+      "name": "with select * where not all columns in group by",
+      "statements": [
+        "CREATE STREAM TEST (id INT, id2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT *, COUNT() FROM TEST GROUP BY id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [ID2]"
+      }
+    },
+    {
+      "name": "on join",
+      "statements": [
+        "CREATE TABLE t1 (ROWKEY BIGINT KEY, TOTAL integer) WITH (kafka_topic='T1', value_format='AVRO');",
+        "CREATE TABLE t2 (ROWKEY BIGINT KEY, TOTAL integer) WITH (kafka_topic='T2', value_format='AVRO');",
+        "CREATE TABLE OUTPUT AS SELECT SUM(t1.total + CASE WHEN t2.total IS NULL THEN 0 ELSE t2.total END) as SUM FROM T1 LEFT JOIN T2 ON (t1.rowkey = t2.rowkey) GROUP BY t1.rowkey HAVING COUNT(1) > 0;"
+      ],
+      "inputs": [
+        {"topic": "T1", "key": 0, "value": {"total": 100}},
+        {"topic": "T1", "key": 1, "value": {"total": 101}},
+        {"topic": "T2", "key": 0, "value": {"total": 5}},
+        {"topic": "T2", "key": 1, "value": {"total": 10}},
+        {"topic": "T2", "key": 0, "value": {"total": 20}},
+        {"topic": "T2", "key": 0, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0,"value": {"SUM": 100}},
+        {"topic": "OUTPUT", "key": 1,"value": {"SUM": 101}},
+        {"topic": "OUTPUT", "key": 0,"value": null},
+        {"topic": "OUTPUT", "key": 0,"value": {"SUM": 105}},
+        {"topic": "OUTPUT", "key": 1,"value": null},
+        {"topic": "OUTPUT", "key": 1,"value": {"SUM": 111}},
+        {"topic": "OUTPUT", "key": 0,"value": null},
+        {"topic": "OUTPUT", "key": 0,"value": {"SUM": 120}},
+        {"topic": "OUTPUT", "key": 0,"value": null},
+        {"topic": "OUTPUT", "key": 0,"value": {"SUM": 100}}
+      ]
     }
   ]
 }

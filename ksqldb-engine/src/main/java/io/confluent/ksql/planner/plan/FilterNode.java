@@ -37,7 +37,7 @@ public class FilterNode extends PlanNode {
       final PlanNode source,
       final Expression predicate
   ) {
-    super(id, source.getNodeOutputType(), source.getSchema(), source.getSelectExpressions());
+    super(id, source.getNodeOutputType(), source.getSchema(), source.getSourceName());
 
     this.source = Objects.requireNonNull(source, "source");
     this.predicate = Objects.requireNonNull(predicate, "predicate");

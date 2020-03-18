@@ -20,7 +20,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import java.util.Optional;
@@ -39,8 +38,6 @@ public class QueryAnalyzerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private MetaStore metaStore;
-  @Mock
   private Analyzer analyzer;
   @Mock
   private Query query;
@@ -57,7 +54,6 @@ public class QueryAnalyzerTest {
   @Before
   public void setUp() {
     queryAnalyzer = new QueryAnalyzer(
-        metaStore,
         analyzer,
         continuousValidator,
         staticValidator

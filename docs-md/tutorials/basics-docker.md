@@ -1520,5 +1520,3 @@ Next Steps
 [Clickstream Analysis demo](clickstream-docker.md),
 which shows how to build an application that performs real-time user
 analytics.
-
-Page last revised on: {{ git_revision_date }}

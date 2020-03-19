@@ -322,5 +322,3 @@ What if automatic topic creation is turned off?
 If automatic topic creation is disabled, ksqlDB and {{ site.kstreams }}
 applications continue to work. ksqlDB and {{ site.kstreams }} applications use
 the Admin Client, so topics are still created.
-
-Page last revised on: {{ git_revision_date }}

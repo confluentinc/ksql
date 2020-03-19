@@ -63,4 +63,3 @@ CREATE STREAM pageviews (viewtime BIGINT, user_id VARCHAR, page_id VARCHAR)
         KAFKA_TOPIC = 'my-pageviews-topic');
 ```
 
-Page last revised on: {{ git_revision_date }}

@@ -422,8 +422,8 @@ public class SchemaKStreamTest {
     // Then:
     assertThat(projectedSchemaKStream.getSchema().value(), contains(
         valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.INTEGER),
-        valueColumn(ColumnName.of("KSQL_COL_2"), SqlTypes.DOUBLE)
+        valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER),
+        valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.DOUBLE)
     ));
 
   }

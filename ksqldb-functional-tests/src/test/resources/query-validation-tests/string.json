@@ -29,7 +29,7 @@
           {
             "name": "OUTPUT",
             "type": "stream",
-            "schema": "`ROWKEY` STRING KEY, `TEXT` STRING, `KSQL_COL_1` BOOLEAN"
+            "schema": "ROWKEY STRING KEY, TEXT STRING, KSQL_COL_0 BOOLEAN"
           }
         ]
       }

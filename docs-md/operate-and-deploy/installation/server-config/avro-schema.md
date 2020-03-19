@@ -36,7 +36,7 @@ Configure ksqlDB for Avro or Protobuf
 You must configure the REST endpoint of {{ site.sr }} by setting
 `ksql.schema.registry.url` (default: `http://localhost:8081`) in the
 ksqlDB Server configuration file
-(`<path-to-confluent>/etc/ksql/ksql-server.properties`). For more
+(`<path-to-confluent>/etc/ksqldb/ksql-server.properties`). For more
 information, see
 [Installation Instructions](../installing.md#installation-instructions).
 

@@ -75,7 +75,7 @@ The following options apply to both the `schema` and `quickstart` options.
 | ``key=<name of key column>``                 |                                                     | Field to use as the key for generated records. Required by the ``schema`` option.                                                     |                                                      |
 | ``iterations=<number of records>``           | 1,000,000                                           | The maximum number of records to generate.                                                                                            |                                                      |
 | ``msgRate=<rate to produce in msgs/second>`` | -1 (unlimited, i.e. as fast as possible)            | The rate to produce messages at, in messages-per-second.                                                                              |                                                      |
-| ``propertiesFile=<path-to-properties-file>`` | ``<path-to-confluent>/etc/ksql/datagen.properties`` | Path to the ``ksql-datagen`` properties file.                                                                                         |                                                      |
+| ``propertiesFile=<path-to-properties-file>`` | ``<path-to-confluent>/etc/ksqldb/datagen.properties`` | Path to the ``ksql-datagen`` properties file.                                                                                         |                                                      |
 | ``schemaRegistryUrl``                        | http://localhost:8081                               | URL of {{ site.sr }} when ``format`` is ``avro``.                                                                                     |                                                      |
 
 !!! tip
@@ -362,4 +362,7 @@ Create the `impressions2` persistent streaming query:
 CREATE STREAM impressions2 as select * from impressions EMIT CHANGES;
 ```
 
-Page last revised on: {{ git_revision_date }}
+Suggested Resources
+-------------------
+
+- [Easy Ways to Generate Test Data in Kafka](https://www.confluent.io/blog/easy-ways-generate-test-data-kafka/)

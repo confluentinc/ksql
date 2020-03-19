@@ -329,62 +329,69 @@ ksql> SHOW TABLES;
 Viewing your data
 -----------------
 
-1. Use `SELECT` to create a query that returns data from a TABLE. This
-   query includes the `LIMIT` keyword to limit the number of rows
-   returned in the query result, and the `EMIT CHANGES` keywords to
-   indicate you that want to stream results back. This is known as a
-   [push query](../concepts/queries/push.md). See the
-   [queries](../concepts/queries/index.md) section for an explanation of the
-   different query types. Note that exact data output may vary because
-   of the randomness of the data generation.
-   ```sql
-   SELECT * from users_original emit changes limit 5;
-   ```
+### 1. Create a query that returns data from a table
 
-   Your output should resemble:
+Use `SELECT` to create a query that returns data from a table. This
+query includes the `LIMIT` keyword to limit the number of rows
+returned in the query result, and the `EMIT CHANGES` keywords to
+indicate you that want to stream results back. This is known as a
+[push query](../concepts/queries/push.md). See the
+[queries](../concepts/queries/index.md) section for an explanation of the
+different query types. Note that exact data output may vary because
+of the randomness of the data generation.
 
-   ```
-   +--------------------+--------------+--------------+---------+----------+-------------+
-   |ROWTIME             |ROWKEY        |REGISTERTIME  |GENDER   |REGIONID  |USERID       |
-   +--------------------+--------------+--------------+---------+----------+-------------+
-   |1581077558655       |User_9        |1513529638461 |OTHER    |Region_1  |User_9       |
-   |1581077561454       |User_7        |1489408314958 |OTHER    |Region_2  |User_7       |
-   |1581077561654       |User_3        |1511291005264 |MALE     |Region_2  |User_3       |
-   |1581077561857       |User_4        |1496797956753 |OTHER    |Region_1  |User_4       |
-   |1581077562858       |User_8        |1489169082491 |FEMALE   |Region_8  |User_8       |
-   Limit Reached
-   Query terminated
-   ```
-   !!! note
-         Push queries on tables output the full history of the table that is stored
-         in the {{ site.ak }} changelog topic, which means that it outputs historic data, followed by the
-         stream of updates to the table. So it's likely that rows with matching
-         `ROWKEY` are output as existing rows in the table are updated.
+```sql
+SELECT * from users_original emit changes limit 5;
+```
 
-2. View the data in your `pageviews_original` stream by issuing the following
-   push query:
-   ```sql
-   SELECT viewtime, userid, pageid FROM pageviews_original emit changes LIMIT 3;
-   ```
+Your output should resemble:
 
-   Your output should resemble:
+```
++--------------------+--------------+--------------+---------+----------+-------------+
+|ROWTIME             |ROWKEY        |REGISTERTIME  |GENDER   |REGIONID  |USERID       |
++--------------------+--------------+--------------+---------+----------+-------------+
+|1581077558655       |User_9        |1513529638461 |OTHER    |Region_1  |User_9       |
+|1581077561454       |User_7        |1489408314958 |OTHER    |Region_2  |User_7       |
+|1581077561654       |User_3        |1511291005264 |MALE     |Region_2  |User_3       |
+|1581077561857       |User_4        |1496797956753 |OTHER    |Region_1  |User_4       |
+|1581077562858       |User_8        |1489169082491 |FEMALE   |Region_8  |User_8       |
+Limit Reached
+Query terminated
+```
 
-   ```
-   +--------------+--------------+--------------+
-   |VIEWTIME      |USERID        |PAGEID        |
-   +--------------+--------------+--------------+
-   |1581078296791 |User_1        |Page_54       |
-   |1581078297792 |User_8        |Page_93       |
-   |1581078298792 |User_6        |Page_26       |
-   Limit Reached
-   Query terminated
-   ```
+!!! note
+    Push queries on tables output the full history of the table that is stored
+    in the {{ site.ak }} changelog topic, which means that it outputs historic data, followed by the
+    stream of updates to the table. So it's likely that rows with matching
+    `ROWKEY` are output as existing rows in the table are updated.
 
-   !!! note
-      By default, push queries on streams only output changes that occur
-      after the query is started, which means that historic data isn't included.
-      Run `set 'auto.offset.reset'='earliest';` to update your session
-      properties if you want to see the historic data.
+### 2. Create a query that returns data from a stream
+
+View the data in your `pageviews_original` stream by issuing the following
+push query:
+
+```sql
+SELECT viewtime, userid, pageid FROM pageviews_original emit changes LIMIT 3;
+```
+
+Your output should resemble:
+
+```
++--------------+--------------+--------------+
+|VIEWTIME      |USERID        |PAGEID        |
++--------------+--------------+--------------+
+|1581078296791 |User_1        |Page_54       |
+|1581078297792 |User_8        |Page_93       |
+|1581078298792 |User_6        |Page_26       |
+Limit Reached
+Query terminated
+```
+
+!!! note
+    By default, push queries on streams only output changes that occur
+    after the query is started, which means that historic data isn't included.
+    Run `set 'auto.offset.reset'='earliest';` to update your session
+    properties if you want to see the historic data.
 
 Write Queries
 -------------

@@ -86,7 +86,7 @@ For more information, see
 To enable exactly-once by default for all queries, and for non-interactive
 (headless) mode, set the configuration in the ksqlDB Server properties file,
 which by default is located at
-`${CONFLUENT_HOME}/etc/ksql/ksql-server.properties` in a {{ site.cp }}
+`${CONFLUENT_HOME}/etc/ksqldb/ksql-server.properties` in a {{ site.cp }}
 deployment.
 
 For more information, see

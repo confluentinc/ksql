@@ -22,6 +22,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -32,10 +33,16 @@ import java.util.List;
 @Immutable
 public class KudtfFlatMapper<K> implements KsqlTransformer<K, Iterable<GenericRow>> {
 
+  private final ProcessingLogger processingLogger;
   private final ImmutableList<TableFunctionApplier> tableFunctionAppliers;
 
-  public KudtfFlatMapper(final List<TableFunctionApplier> tableFunctionAppliers) {
-    this.tableFunctionAppliers = ImmutableList.copyOf(requireNonNull(tableFunctionAppliers));
+  public KudtfFlatMapper(
+      final List<TableFunctionApplier> tableFunctionAppliers,
+      final ProcessingLogger processingLogger
+  ) {
+    this.processingLogger = requireNonNull(processingLogger, "processingLogger");
+    this.tableFunctionAppliers = ImmutableList
+        .copyOf(requireNonNull(tableFunctionAppliers, "tableFunctionAppliers"));
   }
 
   /*
@@ -56,7 +63,7 @@ public class KudtfFlatMapper<K> implements KsqlTransformer<K, Iterable<GenericRo
     final List<Iterator<?>> iters = new ArrayList<>(tableFunctionAppliers.size());
     int maxLength = 0;
     for (final TableFunctionApplier applier : tableFunctionAppliers) {
-      final List<?> exploded = applier.apply(value);
+      final List<?> exploded = applier.apply(value, processingLogger);
       iters.add(exploded.iterator());
       maxLength = Math.max(maxLength, exploded.size());
     }

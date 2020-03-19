@@ -16,27 +16,32 @@
 package io.confluent.ksql.execution.transform.select;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.FunctionName;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -64,6 +69,10 @@ public class SelectValueMapperTest {
 
   @Before
   public void setup() {
+    when(col0.getExpression()).thenReturn(new UnqualifiedColumnReferenceExp(ColumnName.of("a")));
+    when(col1.getExpression()).thenReturn(new UnqualifiedColumnReferenceExp(ColumnName.of("c")));
+    when(col2.getExpression()).thenReturn(new UnqualifiedColumnReferenceExp(ColumnName.of("b")));
+
     final SelectValueMapper<Object> selectValueMapper = new SelectValueMapper<>(
         ImmutableList.of(
             SelectValueMapper.SelectInfo.of(NAME0, col0),
@@ -75,21 +84,35 @@ public class SelectValueMapperTest {
     transformer = selectValueMapper.getTransformer(processingLogger);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldInvokeEvaluatorsWithCorrectParams() {
     // When:
     transformer.transform(KEY, VALUE, ctx);
 
     // Then:
-    verify(col0).evaluate(VALUE);
-    verify(col1).evaluate(VALUE);
-    verify(col2).evaluate(VALUE);
+    final ArgumentCaptor<Supplier<String>> errorMsgCaptor = ArgumentCaptor.forClass(Supplier.class);
+    verify(col0).evaluate(eq(VALUE), isNull(), eq(processingLogger), errorMsgCaptor.capture());
+    verify(col1).evaluate(eq(VALUE), isNull(), eq(processingLogger), errorMsgCaptor.capture());
+    verify(col2).evaluate(eq(VALUE), isNull(), eq(processingLogger), errorMsgCaptor.capture());
+
+    final List<String> errorMsgs = errorMsgCaptor.getAllValues().stream()
+        .map(Supplier::get)
+        .collect(Collectors.toList());
+
+    assertThat(errorMsgs, contains(
+        "Error computing expression a for column apple with index 0",
+        "Error computing expression c for column cherry with index 1",
+        "Error computing expression b for column banana with index 2"
+    ));
   }
 
   @Test
   public void shouldEvaluateExpressions() {
     // Given:
-    givenEvaluations(100, 200, 300);
+    when(col0.evaluate(any(), any(), any(), any())).thenReturn(100);
+    when(col1.evaluate(any(), any(), any(), any())).thenReturn(200);
+    when(col2.evaluate(any(), any(), any(), any())).thenReturn(300);
 
     // When:
     final GenericRow result = transformer.transform(KEY, VALUE, ctx);
@@ -105,34 +128,5 @@ public class SelectValueMapperTest {
 
     // Then:
     assertThat(result, is(nullValue()));
-  }
-
-  @Test
-  public void shouldWriteProcessingLogOnError() {
-    // Given:
-    when(col0.getExpression()).thenReturn(
-        new FunctionCall(FunctionName.of("kumquat"), ImmutableList.of())
-    );
-    final RuntimeException e = new RuntimeException("oops");
-    when(col0.evaluate(any())).thenThrow(e);
-
-    final GenericRow row = genericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo");
-
-    // When:
-    transformer.transform(KEY, row, ctx);
-
-    // Then:
-    verify(processingLogger).error(RecordProcessingError.recordProcessingError(
-        "Error computing expression kumquat() "
-            + "for column apple with index 0: oops",
-        e,
-        row
-    ));
-  }
-
-  private void givenEvaluations(final Object result0, final Object result1, final Object result2) {
-    when(col0.evaluate(any())).thenReturn(result0);
-    when(col1.evaluate(any())).thenReturn(result1);
-    when(col2.evaluate(any())).thenReturn(result2);
   }
 }

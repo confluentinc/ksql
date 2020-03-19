@@ -20,10 +20,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -40,12 +42,15 @@ public class KudtfFlatMapperTest {
 
   @Mock
   private KsqlProcessingContext ctx;
+  @Mock
+  private ProcessingLogger processingLogger;
 
   @Test
   public void shouldFlatMapOneFunction() {
     // Given:
     final TableFunctionApplier applier = createApplier(Arrays.asList(10, 10, 10));
-    final KudtfFlatMapper<String> flatMapper = new KudtfFlatMapper<>(ImmutableList.of(applier));
+    final KudtfFlatMapper<String> flatMapper =
+        new KudtfFlatMapper<>(ImmutableList.of(applier), processingLogger);
 
     // When:
     final Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE, ctx);
@@ -63,7 +68,8 @@ public class KudtfFlatMapperTest {
     // Given:
     final TableFunctionApplier applier1 = createApplier(Arrays.asList(10, 10, 10));
     final TableFunctionApplier applier2 = createApplier(Arrays.asList(20, 20));
-    final KudtfFlatMapper<String> flatMapper = new KudtfFlatMapper<>(ImmutableList.of(applier1, applier2));
+    final KudtfFlatMapper<String> flatMapper =
+        new KudtfFlatMapper<>(ImmutableList.of(applier1, applier2), processingLogger);
 
     // When:
     final Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE, ctx);
@@ -76,9 +82,23 @@ public class KudtfFlatMapperTest {
     assertThat(iter.hasNext(), is(false));
   }
 
-  private static <T> TableFunctionApplier createApplier(final List<?> list) {
+  @Test
+  public void shouldPassCorrectParamsToTableFunctionAppliers() {
+    // Given:
+    final TableFunctionApplier applier = createApplier(Arrays.asList(10, 10, 10));
+    final KudtfFlatMapper<String> flatMapper =
+        new KudtfFlatMapper<>(ImmutableList.of(applier), processingLogger);
+
+    // When:
+    flatMapper.transform(KEY, VALUE, ctx);
+
+    // Then:
+    verify(applier).apply(VALUE, processingLogger);
+  }
+
+  private static TableFunctionApplier createApplier(final List<?> list) {
     final TableFunctionApplier applier = mock(TableFunctionApplier.class);
-    doReturn(list).when(applier).apply(any());
+    doReturn(list).when(applier).apply(any(), any());
     return applier;
   }
 }

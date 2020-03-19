@@ -31,15 +31,13 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Struct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class GroupByParamsFactory {
 
-  private static final Logger LOG = LoggerFactory.getLogger(GroupByParamsFactory.class);
-
   private static final String GROUP_BY_VALUE_SEPARATOR = "|+|";
+  private static final Object EVAL_FAILED = new Object();
 
   private GroupByParamsFactory() {
   }
@@ -98,33 +96,29 @@ final class GroupByParamsFactory {
       final GenericRow row,
       final ProcessingLogger logger
   ) {
-    try {
-      final Object result = exp.evaluate(row);
-      if (result == null) {
-        logger.error(
-            RecordProcessingError.recordProcessingError(
-               String.format(
-                   "Group-by column with index %d resolved to null."
-                       + " The source row will be excluded from the table.",
-                   index),
-                row
-            )
-        );
-      }
-      return result;
-    } catch (final Exception e) {
+    final Supplier<String> errorMsgSupplier = () ->
+        "Error calculating group-by column with index " + index + ". "
+            + "The source row will be excluded from the table.";
+
+    final Object result = exp.evaluate(row, EVAL_FAILED, logger, errorMsgSupplier);
+    if (result == EVAL_FAILED) {
+      return null;
+    }
+
+    if (result == null) {
       logger.error(
           RecordProcessingError.recordProcessingError(
               String.format(
-                  "Error calculating group-by column with index %d. "
-                      + "The source row will be excluded from the table: %s",
-                  index, e.getMessage()),
-              e,
+                  "Group-by column with index %d resolved to null."
+                      + " The source row will be excluded from the table.",
+                  index),
               row
           )
       );
       return null;
     }
+
+    return result;
   }
 
   private static final class SingleExpressionGrouper {

@@ -55,8 +55,8 @@ public final class StreamSelectKeyBuilder {
 
     final KStream<?, GenericRow> kstream = stream.getStream();
     final KStream<Struct, GenericRow> rekeyed = kstream
-        .filter((key, val) -> val != null && expression.evaluate(val) != null)
-        .selectKey((key, val) -> keyBuilder.build(expression.evaluate(val)));
+        .filter((key, val) -> val != null && expression.evaluate(val) != null) // Todo(ac):
+        .selectKey((key, val) -> keyBuilder.build(expression.evaluate(val))); // Todo(ac):
 
     return new KStreamHolder<>(
         rekeyed,

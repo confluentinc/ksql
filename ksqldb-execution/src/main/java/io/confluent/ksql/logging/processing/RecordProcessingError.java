@@ -83,6 +83,10 @@ public final class RecordProcessingError implements ProcessingLogger.ErrorMessag
     this.record = requireNonNull(record, "record");
   }
 
+  public String getMessage() {
+    return errorMsg;
+  }
+
   @Override
   public SchemaAndValue get(final ProcessingLogConfig config) {
     final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);

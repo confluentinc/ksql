@@ -21,6 +21,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.function.UdtfUtil;
@@ -32,6 +33,7 @@ import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
@@ -76,12 +78,16 @@ public final class StreamFlatMapBuilder {
       tableFunctionAppliersBuilder.add(tableFunctionApplier);
     }
 
+    final QueryContext queryContext = step.getProperties().getQueryContext();
+
+    final ProcessingLogger processingLogger = queryBuilder.getProcessingLogger(queryContext);
+
     final ImmutableList<TableFunctionApplier> tableFunctionAppliers = tableFunctionAppliersBuilder
         .build();
 
     final KStream<K, GenericRow> mapped = stream.getStream().flatTransformValues(
-        () -> new KsTransformer<>(new KudtfFlatMapper<>(tableFunctionAppliers)),
-        Named.as(StreamsUtil.buildOpName(step.getProperties().getQueryContext()))
+        () -> new KsTransformer<>(new KudtfFlatMapper<>(tableFunctionAppliers, processingLogger)),
+        Named.as(StreamsUtil.buildOpName(queryContext))
     );
 
     return stream.withStream(

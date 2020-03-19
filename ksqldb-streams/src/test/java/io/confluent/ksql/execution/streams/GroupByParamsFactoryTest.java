@@ -16,9 +16,11 @@
 package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,6 +42,8 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -87,8 +91,8 @@ public class GroupByParamsFactoryTest {
         logger
     );
 
-    when(groupBy0.evaluate(any())).thenReturn(0);
-    when(groupBy1.evaluate(any())).thenReturn(0L);
+    when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(0);
+    when(groupBy1.evaluate(any(), any(), any(), any())).thenReturn(0L);
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -106,20 +110,31 @@ public class GroupByParamsFactoryTest {
     GroupByParamsFactory.build(SOURCE_SCHEMA, Collections.emptyList(), logger);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldInvokeEvaluatorsWithCorrectParams() {
     // When:
     multiParams.getMapper().apply(value);
 
     // Then:
-    verify(groupBy0).evaluate(value);
-    verify(groupBy1).evaluate(value);
+    final ArgumentCaptor<Supplier<String>> errorMsgCaptor = ArgumentCaptor.forClass(Supplier.class);
+    verify(groupBy0).evaluate(eq(value), any(), eq(logger), errorMsgCaptor.capture());
+    verify(groupBy1).evaluate(eq(value), any(), eq(logger), errorMsgCaptor.capture());
+
+    final List<String> errorMsgs = errorMsgCaptor.getAllValues().stream()
+        .map(Supplier::get)
+        .collect(Collectors.toList());
+
+    assertThat(errorMsgs, contains(
+        "Error calculating group-by column with index 0. The source row will be excluded from the table.",
+        "Error calculating group-by column with index 1. The source row will be excluded from the table."
+    ));
   }
 
   @Test
   public void shouldGenerateSingleExpressionGroupByKey() {
     // Given:
-    when(groupBy0.evaluate(any())).thenReturn(10);
+    when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(10);
 
     // When:
     final Struct result = singleParams.getMapper().apply(value);
@@ -131,8 +146,8 @@ public class GroupByParamsFactoryTest {
   @Test
   public void shouldGenerateMultiExpressionGroupByKey() {
     // Given:
-    when(groupBy0.evaluate(any())).thenReturn(99);
-    when(groupBy1.evaluate(any())).thenReturn(-100L);
+    when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(99);
+    when(groupBy1.evaluate(any(), any(), any(), any())).thenReturn(-100L);
 
     // When:
     final Struct result = multiParams.getMapper().apply(value);
@@ -144,7 +159,7 @@ public class GroupByParamsFactoryTest {
   @Test
   public void shouldReturnNullIfSingleExpressionResolvesToNull() {
     // Given:
-    when(groupBy0.evaluate(any())).thenReturn(null);
+    when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(null);
 
     // When:
     final Struct result = singleParams.getMapper().apply(value);
@@ -156,7 +171,7 @@ public class GroupByParamsFactoryTest {
   @Test
   public void shouldLogProcessingErrorIfSingleExpressionResolvesToNull() {
     // Given
-    when(groupBy0.evaluate(any())).thenReturn(null);
+    when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(null);
 
     // When:
     singleParams.getMapper().apply(value);
@@ -174,7 +189,7 @@ public class GroupByParamsFactoryTest {
   @Test
   public void shouldReturnNullIfAnyMultiExpressionResolvesToNull() {
     // Given:
-    when(groupBy0.evaluate(any())).thenReturn(null);
+    when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(null);
 
     // When:
     final Struct result = multiParams.getMapper().apply(value);
@@ -186,7 +201,7 @@ public class GroupByParamsFactoryTest {
   @Test
   public void shouldLogProcessingErrorIfAnyMultiExpressionResolvesToNull() {
     // Given
-    when(groupBy0.evaluate(any())).thenReturn(null);
+    when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(null);
 
     // When:
     multiParams.getMapper().apply(value);
@@ -196,70 +211,6 @@ public class GroupByParamsFactoryTest {
         RecordProcessingError.recordProcessingError(
             "Group-by column with index 0 resolved to null. "
                 + "The source row will be excluded from the table.",
-            value
-        )
-    );
-  }
-
-  @Test
-  public void shouldReturnNullIfExpressionThrowsInSingle() {
-    // Given:
-    when(groupBy0.evaluate(any())).thenThrow(new RuntimeException("Boom"));
-
-    // When:
-    final Struct result = singleParams.getMapper().apply(value);
-
-    // Then:
-    assertThat(result, is(nullValue()));
-  }
-
-  @Test
-  public void shouldLogProcessingErrorIfExpressionThrowsInSingle() {
-    // Given
-    final RuntimeException e = new RuntimeException("Bap");
-    when(groupBy0.evaluate(any())).thenThrow(e);
-
-    // When:
-    singleParams.getMapper().apply(value);
-
-    // Then:
-    verify(logger).error(
-        RecordProcessingError.recordProcessingError(
-            "Error calculating group-by column with index 0. "
-                + "The source row will be excluded from the table: Bap",
-            e,
-            value
-        )
-    );
-  }
-
-  @Test
-  public void shouldReturnNullExpressionThrowsInMulti() {
-    // Given:
-    when(groupBy0.evaluate(any())).thenThrow(new RuntimeException("Boom"));
-
-    // When:
-    final Struct result = multiParams.getMapper().apply(value);
-
-    // Then:
-    assertThat(result, is(nullValue()));
-  }
-
-  @Test
-  public void shouldLogProcessingErrorIfExpressionThrowsInMulti() {
-    // Given
-    final RuntimeException e = new RuntimeException("Bap");
-    when(groupBy0.evaluate(any())).thenThrow(e);
-
-    // When:
-    multiParams.getMapper().apply(value);
-
-    // Then:
-    verify(logger).error(
-        RecordProcessingError.recordProcessingError(
-            "Error calculating group-by column with index 0. "
-                + "The source row will be excluded from the table: Bap",
-            e,
             value
         )
     );

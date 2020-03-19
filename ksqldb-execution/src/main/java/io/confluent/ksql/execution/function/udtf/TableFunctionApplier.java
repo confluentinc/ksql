@@ -21,6 +21,8 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.function.KsqlTableFunction;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import java.util.List;
 
 /**
@@ -30,21 +32,46 @@ import java.util.List;
 public class TableFunctionApplier {
 
   private final KsqlTableFunction tableFunction;
-  private final ImmutableList<ExpressionMetadata> expressionMetadataList;
+  private final ImmutableList<ExpressionMetadata> parameterExtractors;
+  private final String errorMsg;
 
   public TableFunctionApplier(
-      final KsqlTableFunction tableFunction, final List<ExpressionMetadata> expressionMetadataList
+      final KsqlTableFunction tableFunction,
+      final List<ExpressionMetadata> parameterExtractors
   ) {
     this.tableFunction = requireNonNull(tableFunction);
-    this.expressionMetadataList = ImmutableList.copyOf(requireNonNull(expressionMetadataList));
+    this.parameterExtractors = ImmutableList.copyOf(requireNonNull(parameterExtractors));
+    this.errorMsg = "Table function " + tableFunction.name().text() + " threw an exception";
   }
 
-  List<?> apply(final GenericRow row) {
-    final Object[] args = new Object[expressionMetadataList.size()];
-    int i = 0;
-    for (final ExpressionMetadata expressionMetadata : expressionMetadataList) {
-      args[i++] = expressionMetadata.evaluate(row);
+  List<?> apply(
+      final GenericRow row,
+      final ProcessingLogger processingLogger
+  ) {
+    final Object[] args = new Object[parameterExtractors.size()];
+
+    for (int i = 0; i < parameterExtractors.size(); i++) {
+      args[i] = evalParam(row, processingLogger, i);
     }
-    return tableFunction.apply(args);
+
+    try {
+      return tableFunction.apply(args);
+    } catch (final Exception e) {
+      processingLogger.error(RecordProcessingError.recordProcessingError(errorMsg, e, row));
+      return null;
+    }
+  }
+
+  private Object evalParam(
+      final GenericRow row,
+      final ProcessingLogger processingLogger,
+      final int idx
+  ) {
+    return parameterExtractors.get(idx).evaluate(
+        row,
+        null,
+        processingLogger,
+        () -> "Failed to evaluate table function parameter " + idx
+    );
   }
 }

@@ -444,10 +444,11 @@ COALESCE
 
 Returns the first non-null parameter. All parameters must be of the same type.
 
+Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
+complex type are not inspected. The behaviour is the same: the first non-null element is returned.
+
 IFNULL
 ------
-
-Deprecated: Please use [COALESCE](#coalesce)
 
 `IFNULL(col1, retval)`
 

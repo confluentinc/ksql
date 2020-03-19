@@ -17,22 +17,11 @@ package io.confluent.ksql.function.udf.string;
 
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class IfNullKudf implements Kudf {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(IfNullKudf.class);
-  private static final AtomicBoolean FIRST_CALL = new AtomicBoolean(true);
-
   @Override
   public Object evaluate(final Object... args) {
-    if (FIRST_CALL.getAndSet(false)) {
-      LOGGER.warn("Use of IFNULL is deprecated and will be removed in a future release. "
-          + "Please change your queries to use COALESCE.");
-    }
-
     if (args.length != 2) {
       throw new KsqlFunctionException("IfNull udf should have two input argument.");
     }

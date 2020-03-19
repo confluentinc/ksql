@@ -138,11 +138,6 @@ public class ServerVerticle extends AbstractVerticle {
     return router;
   }
 
-  private Handler<RoutingContext> createAuthenticationPluginHandler(
-      final AuthenticationPlugin authPlugin) {
-    return new AuthPluginHandler(server, authPlugin);
-  }
-
   private void setupAuthHandlers(final Router router) {
     final Optional<AuthHandler> authHandler = getAuthHandler(server);
     final KsqlSecurityExtension securityExtension = server.getSecurityExtension();

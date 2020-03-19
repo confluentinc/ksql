@@ -17,10 +17,14 @@ package io.confluent.ksql.parser.json;
 
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 
 public class KsqlTypesDeserializationModule extends SimpleModule {
 
-  public KsqlTypesDeserializationModule(final boolean withImplicitColumns) {
+  public KsqlTypesDeserializationModule(
+      final boolean withImplicitColumns
+  ) {
     addDeserializer(LogicalSchema.class, new LogicalSchemaDeserializer(withImplicitColumns));
+    addDeserializer(SqlType.class, new SqlTypeDeserializer());
   }
 }

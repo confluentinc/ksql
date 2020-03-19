@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -37,6 +38,7 @@ import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -44,7 +46,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.junit.Before;
@@ -175,27 +176,30 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldLogOnErrorExtractingNewKey() {
     // Given:
-    final BiPredicate<Struct, GenericRow> predicate = partitionBy(FAILING_UDF)
-        .getPredicate();
+    final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+        partitionBy(FAILING_UDF).getMapper();
 
     // When:
-    predicate.test(key, value);
+    mapper.apply(key, value);
 
     // Then:
     verify(logger).error(any());
   }
 
   @Test
-  public void shouldFilterOutRowsWhereFailedToExtractKey() {
+  public void shouldPartitionByNullAnyRowsWhereFailedToExtractKey() {
     // Given:
-    final BiPredicate<Struct, GenericRow> predicate = partitionBy(FAILING_UDF)
-        .getPredicate();
+    final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+        partitionBy(FAILING_UDF).getMapper();
 
     // When:
-    final boolean result = predicate.test(key, value);
+    final KeyValue<Struct, GenericRow> result = mapper.apply(key, value);
 
     // Then:
-    assertThat(result, is(false));
+    final KeyBuilder keyBuilder = StructKeyUtil
+        .keyBuilder(ColumnNames.generatedColumnAlias(4), SqlTypes.INTEGER);
+
+    assertThat(result.key, is(keyBuilder.build(null)));
   }
 
   @Test
@@ -208,7 +212,8 @@ public class PartitionByParamsFactoryTest {
     final KeyValue<Struct, GenericRow> result = mapper.apply(key, value);
 
     // Then:
-    assertThat(result.key, is(StructKeyUtil.keyBuilder(COL1, SqlTypes.INTEGER).build(COL1_VALUE)));
+    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(COL1, SqlTypes.INTEGER);
+    assertThat(result.key, is(keyBuilder.build(COL1_VALUE)));
   }
 
   @Test

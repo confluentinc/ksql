@@ -24,7 +24,6 @@ import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
@@ -54,15 +53,12 @@ public final class StreamSelectKeyBuilder {
         logger
     );
 
-    final BiPredicate<Struct, GenericRow> predicate = params.getPredicate();
     final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper = params.getMapper();
 
     // This cast is safe because selectKey is not allowed on windowed streams:
     final KStream<Struct, GenericRow> kStream = (KStream<Struct, GenericRow>) stream.getStream();
 
     final KStream<Struct, GenericRow> reKeyed = kStream
-        .filter(predicate::test, Named
-            .as(queryContext.formatContext() + "-FilterNulls"))
         .map(mapper::apply, Named.as(queryContext.formatContext() + "-SelectKey"));
 
     return new KStreamHolder<>(

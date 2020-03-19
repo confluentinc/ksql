@@ -48,7 +48,6 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -194,11 +193,9 @@ public class SourceBuilderTest {
   @SuppressWarnings("unchecked")
   public void setup() {
     when(queryBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
-    when(queryBuilder.getQueryId()).thenReturn(new QueryId("fooQuery"));
     when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
     when(streamsBuilder.table(anyString(), any(), any())).thenReturn(kTable);
-    when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(kTable.mapValues(any(ValueMapper.class))).thenReturn(kTable);
     when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream);
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);

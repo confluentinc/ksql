@@ -310,4 +310,3 @@ Start the ksqlDB server with the configuration file specified.
 <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
-Page last revised on: {{ git_revision_date }}

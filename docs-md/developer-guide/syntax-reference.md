@@ -540,5 +540,3 @@ CREATE TABLE users_table_2 (ROWKEY INT KEY, userid KEY, username VARCHAR, email 
 
 For more information, see
 [Partition Data to Enable Joins](joins/partition-data.md).
-
-Page last revised on: {{ git_revision_date }}

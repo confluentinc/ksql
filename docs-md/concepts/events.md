@@ -52,5 +52,3 @@ represent fields in the value of an event, but there are a few extra columns.
 In particular, there are the `ROWKEY` and `ROWTIME` columns that represent the
 key and time of the event. These system columns are present on every row.
 In addition, windowed sources have `WINDOWSTART` and `WINDOWEND` columns.
-
-Page last revised on: {{ git_revision_date }}

@@ -8,5 +8,3 @@ keywords: ksqldb, join
 
 - [Join Event Streams](join-streams-and-tables.md)
 - [Partition Data to Enable Joins](partition-data.md)
-
-Page last revised on: {{ git_revision_date }}

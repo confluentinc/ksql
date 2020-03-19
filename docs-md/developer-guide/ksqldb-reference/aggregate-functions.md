@@ -180,6 +180,3 @@ Stream
 
 Return the distinct Top *K* values for the given column and window
 Note: rows where `col1` is null will be ignored.
-
-
-Page last revised on: {{ git_revision_date }}

@@ -292,7 +292,7 @@ SELECT ids[1] AS firstId, ids[2] AS secondId from input;
 
 ### Change in required order for `EMIT CHANGES` and `PARTITION BY`
 
-Previous releases of ksqlDB required the `EMIT CHANGES` _bfore_ the `PARTITION BY`. For example:
+Previous releases of ksqlDB required the `EMIT CHANGES` _before_ the `PARTITION BY`. For example:
 
 ```sql
 SELECT * FROM input EMIT CHANGES PARTITION BY col0;
@@ -310,5 +310,3 @@ SELECT * FROM input PARTITION BY col0 EMIT CHANGES;
 
 Any query using these identifiers will need to be changed to either use some other identifier, or
 to quote them.
-
-Page last revised on: {{ git_revision_date }}

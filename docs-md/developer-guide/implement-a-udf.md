@@ -393,4 +393,3 @@ Next Steps
 -   [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)
 -   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 
-Page last revised on: {{ git_revision_date }}

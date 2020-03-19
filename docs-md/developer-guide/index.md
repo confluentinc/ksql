@@ -23,5 +23,3 @@ These topics show how to develop ksqlDB applications.
 - [Processing Log](test-and-debug/processing-log.md)
 - [Tutorials and Examples](../tutorials/index.md)
 
-
-Page last revised on: {{ git_revision_date }}

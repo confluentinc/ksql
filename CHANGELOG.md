@@ -32,6 +32,7 @@
 * csas/ctas with timestamp column is used for output rowtime ([#4489](https://github.com/confluentinc/ksql/pull/4489)) ([ddddf92](https://github.com/confluentinc/ksql/commit/ddddf92))
 * patch KafkaStreamsInternalTopicsAccessor as KS internals changed ([#4621](https://github.com/confluentinc/ksql/pull/4621)) ([eb07370](https://github.com/confluentinc/ksql/commit/eb07370))
 * use HTTPS instead of HTTP to resolve dependencies in Maven archetype ([#4511](https://github.com/confluentinc/ksql/pull/4511)) ([f21823f](https://github.com/confluentinc/ksql/commit/f21823f))
+* add deserializer for SqlType ([#4830](https://github.com/confluentinc/ksql/pull/4830)) ([eed9912](https://github.com/confluentinc/ksql/commit/eed9912))
 
 
 

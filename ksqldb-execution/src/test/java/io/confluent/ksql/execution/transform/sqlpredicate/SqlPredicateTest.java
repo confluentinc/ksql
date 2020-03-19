@@ -15,51 +15,40 @@
 
 package io.confluent.ksql.execution.transform.sqlpredicate;
 
-import static org.hamcrest.Matchers.equalTo;
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlScalarFunction;
-import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.function.types.ParamTypes;
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
-import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.function.Function;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-@SuppressWarnings("unchecked")
 public class SqlPredicateTest {
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
@@ -74,118 +63,108 @@ public class SqlPredicateTest {
   private static final UnqualifiedColumnReferenceExp COL0 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"));
 
-  private static final UnqualifiedColumnReferenceExp COL2 =
-      new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
-
-  private static final KsqlScalarFunction LEN_FUNCTION = KsqlScalarFunction.createLegacyBuiltIn(
-      SqlTypes.INTEGER,
-      ImmutableList.of(ParamTypes.STRING),
-      FunctionName.of("LEN"),
-      LenDummy.class
-  );
-
-  private static final GenericRow VALUE = GenericRow.genericRow(22L, 33.3, "a string");
+  private static final GenericRow VALUE = genericRow(22L, 33.3, "a string");
 
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private ProcessingLogConfig processingLogConfig;
-  @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private UdfFactory lenFactory;
-  @Mock
   private KsqlProcessingContext ctx;
+  @Mock
+  private Expression filterExpression;
+  @Mock
+  private ExpressionMetadata evaluator;
+
+  private SqlPredicate predicate;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
+  private KsqlTransformer<Object, Optional<GenericRow>> transformer;
 
   @Before
   public void init() {
-    when(functionRegistry.getUdfFactory(FunctionName.of("LEN"))).thenReturn(lenFactory);
-    when(lenFactory.getFunction(any())).thenReturn(LEN_FUNCTION);
+    when(evaluator.getExpressionType()).thenReturn(SqlTypes.BOOLEAN);
+
+    predicate = new SqlPredicate(filterExpression, evaluator);
+    transformer = predicate.getTransformer(processingLogger);
+  }
+
+  @Test
+  public void shouldCompileEvaluator() {
+    // Given:
+    predicate = new SqlPredicate(
+        new ComparisonExpression(Type.LESS_THAN, COL0, new LongLiteral(100)),
+        SCHEMA,
+        KSQL_CONFIG,
+        functionRegistry
+    );
+
+    transformer = predicate.getTransformer(processingLogger);
+
+    // When:
+    final Optional<GenericRow> result1 = transformer.transform("key", genericRow(99L), ctx);
+    final Optional<GenericRow> result2 = transformer.transform("key", genericRow(100L), ctx);
+
+    // Then:
+    assertThat(result1, is(not(Optional.empty())));
+    assertThat(result2, is(Optional.empty()));
   }
 
   @Test
   public void shouldPassFilter() {
     // Given:
-    final KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
-        new ComparisonExpression(Type.LESS_THAN, COL0, new LongLiteral(100)));
+    when(evaluator.evaluate(VALUE)).thenReturn(true);
 
-    // When/Then:
-    assertThat(predicate.transform("key", VALUE, ctx), is(Optional.of(VALUE)));
+    // When:
+    final Optional<GenericRow> result = transformer.transform("key", VALUE, ctx);
+
+    // Then:
+    assertThat(result, is(Optional.of(VALUE)));
   }
 
   @Test
   public void shouldNotPassFilter() {
     // Given:
-    final KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
-        new ComparisonExpression(Type.GREATER_THAN, COL0, new LongLiteral(100)));
+    when(evaluator.evaluate(VALUE)).thenReturn(false);
 
-    // When/Then:
-    assertThat(predicate.transform("key", VALUE, ctx), is(Optional.empty()));
+    // When:
+    final Optional<GenericRow> result = transformer.transform("key", VALUE, ctx);
+
+    // Then:
+    assertThat(result, is(Optional.empty()));
   }
 
   @Test
   public void shouldIgnoreNullRows() {
-    // Given:
-    final KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
-        new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
+    // When:
+    final Optional<GenericRow> result = transformer.transform("key", null, ctx);
 
-    // When/Then:
-    assertThat(predicate.transform("key", null, ctx), is(Optional.empty()));
+    // Then:
+    assertThat(result, is(Optional.empty()));
+
+    verify(evaluator, never()).evaluate(any());
   }
 
   @Test
   public void shouldWriteProcessingLogOnError() {
     // Given:
-    final KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
-        new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
+    final IllegalArgumentException e = new IllegalArgumentException("argument type mismatch");
+
+    when(evaluator.evaluate(any()))
+        .thenThrow(e);
+
+    final GenericRow row = genericRow("wrong", "types", "in", "here", "to", "force", "error");
 
     // When:
-    predicate.transform(
-        "key",
-        GenericRow.genericRow("wrong", "types", "in", "here", "to", "force", "error"),
-        ctx
-    );
+    transformer.transform("key", row, ctx);
 
     // Then:
-    final ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor
-        = ArgumentCaptor.forClass(Function.class);
-    verify(processingLogger).error(captor.capture());
-    final SchemaAndValue schemaAndValue = captor.getValue().apply(processingLogConfig);
-    assertThat(schemaAndValue.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
-    final Struct struct = (Struct) schemaAndValue.value();
-    assertThat(
-        struct.get(ProcessingLogMessageSchema.TYPE),
-        equalTo(MessageType.RECORD_PROCESSING_ERROR.ordinal())
-    );
-    final Struct errorStruct
-        = struct.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
-    assertThat(
-        errorStruct.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
-        equalTo(
-            "Error evaluating predicate (COL0 > 100): "
-                + "argument type mismatch")
-    );
-  }
-
-  private KsqlTransformer<Object, Optional<GenericRow>> givenSqlPredicateFor(
-      final Expression filterExpression
-  ) {
-    return new SqlPredicate(
-        filterExpression,
-        SCHEMA,
-        KSQL_CONFIG,
-        functionRegistry
-    ).getTransformer(processingLogger);
-  }
-
-  public static class LenDummy implements Kudf {
-
-    @Override
-    public Object evaluate(final Object... args) {
-      throw new IllegalStateException();
-    }
+    verify(processingLogger).error(RecordProcessingError.recordProcessingError(
+        "Error evaluating predicate filterExpression: "
+            + "argument type mismatch",
+        e,
+        row
+    ));
   }
 }

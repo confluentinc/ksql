@@ -16,8 +16,7 @@
 package io.confluent.ksql.logging.processing;
 
 import static io.confluent.ksql.GenericRow.genericRow;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,7 +24,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
@@ -112,26 +110,20 @@ public class LoggingDeserializerTest {
     // Then: throws
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void shouldLogOnException() {
     // Given:
     when(delegate.deserialize(any(), any()))
         .thenThrow(new RuntimeException("outer",
             new RuntimeException("inner", new RuntimeException("cause"))));
 
-    try {
-      // When:
-      deserializer.deserialize("t", SOME_BYTES);
-    } catch (final RuntimeException e) {
-      // Then:
-      verify(processingLogger).error(errorCaptor.capture());
+    // When:
+    final RuntimeException e = assertThrows(
+        RuntimeException.class,
+        () -> deserializer.deserialize("t", SOME_BYTES)
+    );
 
-      final SchemaAndValue result = errorCaptor.getValue().apply(LOG_CONFIG);
-
-      assertThat(result, is(SerdeProcessingLogMessageFactory
-          .deserializationErrorMsg(e, Optional.of(SOME_BYTES), "t").apply(LOG_CONFIG)));
-
-      throw e;
-    }
+    // Then:
+    verify(processingLogger).error(new DeserializationError(e, Optional.of(SOME_BYTES), "t"));
   }
 }

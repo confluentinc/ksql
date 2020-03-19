@@ -15,14 +15,30 @@
 
 package io.confluent.ksql.logging.processing;
 
-import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 
 public interface ProcessingLogger {
+
+  /**
+   * The interface all error message types must implement.
+   */
+  interface ErrorMessage {
+
+    /**
+     * Called to convert the error message into a structured message.
+     *
+     * <p>The returned value should use the {@link ProcessingLogMessageSchema}.
+     *
+     * @param config the processing config.
+     * @return the schema and structured error message.
+     */
+    SchemaAndValue get(ProcessingLogConfig config);
+  }
+
   /**
    * Log a message at error level
-   * @param msgFactory A factory function that returns a structured log message given
-   *                   an instance of ProcessingLogConfig
+   *
+   * @param msg the error to log
    */
-  void error(Function<ProcessingLogConfig, SchemaAndValue> msgFactory);
+  void error(ErrorMessage msg);
 }

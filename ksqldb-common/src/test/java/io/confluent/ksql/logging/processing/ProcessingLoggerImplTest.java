@@ -15,14 +15,14 @@
 
 package io.confluent.ksql.logging.processing;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.common.logging.StructuredLogger;
-import java.util.function.Function;
+import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -37,14 +37,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProcessingLoggerImplTest {
+
   @Mock
   private StructuredLogger innerLogger;
   @Mock
   private ProcessingLogConfig processingLogConfig;
   @Mock
-  private Function<ProcessingLogConfig, SchemaAndValue> msgFactory;
-  @Mock
   private SchemaAndValue msg;
+  @Mock
+  private ErrorMessage errorMsg;
   @SuppressWarnings("unchecked")
   private final ArgumentCaptor<Supplier<SchemaAndValue>> msgCaptor
       = ArgumentCaptor.forClass(Supplier.class);
@@ -56,34 +57,29 @@ public class ProcessingLoggerImplTest {
 
   @Before
   public void setup() {
-    when(msgFactory.apply(any())).thenReturn(msg);
+    when(errorMsg.get(any())).thenReturn(msg);
     when(msg.schema()).thenReturn(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
     processingLogger = new ProcessingLoggerImpl(processingLogConfig, innerLogger);
-  }
-
-  private final SchemaAndValue verifyErrorMessage() {
-    verify(innerLogger).error(msgCaptor.capture());
-    return msgCaptor.getValue().get();
   }
 
   @Test
   public void shouldLogError() {
     // When:
-    processingLogger.error(msgFactory);
+    processingLogger.error(errorMsg);
 
     // Then:
     final SchemaAndValue msg = verifyErrorMessage();
-    assertThat(msg, is(this.msg));
+    assertThat(msg, is(msg));
   }
 
   @Test
   public void shouldBuildMessageUsingConfig() {
     // When:
-    processingLogger.error(msgFactory);
+    processingLogger.error(errorMsg);
 
     // Then:
     verifyErrorMessage();
-    verify(msgFactory).apply(processingLogConfig);
+    verify(errorMsg).get(processingLogConfig);
   }
 
   @Test
@@ -95,7 +91,12 @@ public class ProcessingLoggerImplTest {
     expectedException.expect(RuntimeException.class);
 
     // When:
-    processingLogger.error(msgFactory);
+    processingLogger.error(errorMsg);
     verifyErrorMessage();
+  }
+
+  private SchemaAndValue verifyErrorMessage() {
+    verify(innerLogger).error(msgCaptor.capture());
+    return msgCaptor.getValue().get();
   }
 }

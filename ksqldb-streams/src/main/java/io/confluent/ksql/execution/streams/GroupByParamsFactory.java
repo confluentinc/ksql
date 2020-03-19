@@ -20,10 +20,10 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
-import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -102,7 +102,7 @@ final class GroupByParamsFactory {
       final Object result = exp.evaluate(row);
       if (result == null) {
         logger.error(
-            EngineProcessingLogMessageFactory.recordProcessingError(
+            RecordProcessingError.recordProcessingError(
                String.format(
                    "Group-by column with index %d resolved to null."
                        + " The source row will be excluded from the table.",
@@ -114,7 +114,7 @@ final class GroupByParamsFactory {
       return result;
     } catch (final Exception e) {
       logger.error(
-          EngineProcessingLogMessageFactory.recordProcessingError(
+          RecordProcessingError.recordProcessingError(
               String.format(
                   "Error calculating group-by column with index %d. "
                       + "The source row will be excluded from the table: %s",

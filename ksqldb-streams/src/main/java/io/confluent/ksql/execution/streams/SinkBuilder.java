@@ -25,8 +25,8 @@ import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -143,7 +143,7 @@ public final class SinkBuilder {
             );
           } catch (final Exception e) {
             processingLogger.error(
-                EngineProcessingLogMessageFactory
+                RecordProcessingError
                     .recordProcessingError("Error writing row with extracted timestamp: "
                         + e.getMessage(), e, row)
             );

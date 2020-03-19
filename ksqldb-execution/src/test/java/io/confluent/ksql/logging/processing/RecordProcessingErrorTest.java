@@ -1,16 +1,30 @@
-package io.confluent.ksql.execution.util;
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
+package io.confluent.ksql.logging.processing;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
+import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import java.io.IOException;
 import java.util.Collections;
@@ -19,23 +33,26 @@ import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
-public class EngineProcessingLogMessageFactoryTest {
+public class RecordProcessingErrorTest {
+
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final String errorMsg = "error msg";
   private static final Throwable cause = new Exception("cause1", new Exception("cause2"));
   private static final Throwable error = new Exception(errorMsg, cause);
 
   private final ProcessingLogConfig config = new ProcessingLogConfig(
-      Collections.singletonMap(ProcessingLogConfig.INCLUDE_ROWS,  true)
+      Collections.singletonMap(ProcessingLogConfig.INCLUDE_ROWS, true)
   );
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldBuildRecordProcessingErrorCorrectly() throws IOException {
-    // When:
-    final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
+    // Given:
+    final ErrorMessage errorMessage = RecordProcessingError.recordProcessingError(
         errorMsg, error, GenericRow.genericRow(123, "data")
-    ).apply(config);
+    );
+
+    // When:
+    final SchemaAndValue msgAndSchema = errorMessage.get(config);
 
     // Then:
     assertThat(msgAndSchema.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
@@ -54,7 +71,7 @@ public class EngineProcessingLogMessageFactoryTest {
         recordProcessingError.get(
             ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE),
         equalTo(ErrorMessageUtil.getErrorMessages(cause)));
-    final List<Object> rowAsList =
+    final List<?> rowAsList =
         OBJECT_MAPPER.readValue(
             recordProcessingError.getString(
                 ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD),
@@ -65,10 +82,13 @@ public class EngineProcessingLogMessageFactoryTest {
 
   @Test
   public void shouldBuildRecordProcessingErrorCorrectlyIfRowNull() {
+    // Given:
+    final ErrorMessage errorMessage = RecordProcessingError.recordProcessingError(
+        errorMsg, error, (GenericRow) null
+    );
+
     // When:
-    final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, error, null
-    ).apply(config);
+    final SchemaAndValue msgAndSchema = errorMessage.get(config);
 
     // Then:
     final Struct msg = (Struct) msgAndSchema.value();
@@ -82,10 +102,13 @@ public class EngineProcessingLogMessageFactoryTest {
 
   @Test
   public void shouldBuildRecordProcessingErrorCorrectlyIfNoException() {
-    // When:
-    final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
+    // Given:
+    final ErrorMessage errorMessage = RecordProcessingError.recordProcessingError(
         errorMsg, null
-    ).apply(config);
+    );
+
+    // When:
+    final SchemaAndValue msgAndSchema = errorMessage.get(config);
 
     // Then:
     final Struct msg = (Struct) msgAndSchema.value();
@@ -104,10 +127,12 @@ public class EngineProcessingLogMessageFactoryTest {
         Collections.singletonMap(ProcessingLogConfig.INCLUDE_ROWS,  false)
     );
 
-    // When:
-    final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
+    final ErrorMessage errorMessage = RecordProcessingError.recordProcessingError(
         errorMsg, error, GenericRow.genericRow(123, "data")
-    ).apply(config);
+    );
+
+    // When:
+    final SchemaAndValue msgAndSchema = errorMessage.get(config);
 
     // Then:
     final Struct msg = (Struct) msgAndSchema.value();

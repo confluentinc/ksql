@@ -20,7 +20,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Objects;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
@@ -45,14 +45,14 @@ public final class ProductionExceptionHandlerUtil {
     @Override
     public ProductionExceptionHandlerResponse handle(
         final ProducerRecord<byte[], byte[]> record, final Exception exception) {
-      logger.error(productionError(exception.getMessage()));
+      logger.error(new ProductionError(exception.getMessage()));
       return getResponse();
     }
 
     @Override
     public void configure(final Map<String, ?> configs) {
       final Object logger = configs.get(KSQL_PRODUCTION_ERROR_LOGGER);
-      if (! (logger instanceof ProcessingLogger)) {
+      if (!(logger instanceof ProcessingLogger)) {
         throw new IllegalArgumentException("Invalid value for logger: " + logger.toString());
       }
       this.logger = (ProcessingLogger) logger;
@@ -61,19 +61,44 @@ public final class ProductionExceptionHandlerUtil {
     abstract ProductionExceptionHandlerResponse getResponse();
   }
 
-  private static Function<ProcessingLogConfig, SchemaAndValue> productionError(
-      final String errorMsg) {
-    return (config) -> {
+  public static final class ProductionError implements ProcessingLogger.ErrorMessage {
+
+    private final String errorMsg;
+
+    public ProductionError(final String errorMsg) {
+      this.errorMsg = errorMsg == null ? "" : errorMsg;
+    }
+
+    @Override
+    public SchemaAndValue get(final ProcessingLogConfig config) {
       final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
       struct.put(ProcessingLogMessageSchema.TYPE, MessageType.PRODUCTION_ERROR.getTypeId());
-      final Struct productionError =
-          new Struct(MessageType.PRODUCTION_ERROR.getSchema());
-      struct.put(ProcessingLogMessageSchema.PRODUCTION_ERROR, productionError);
-      productionError.put(
-          ProcessingLogMessageSchema.PRODUCTION_ERROR_FIELD_MESSAGE,
-          errorMsg);
+      struct.put(ProcessingLogMessageSchema.PRODUCTION_ERROR, productionError());
       return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
-    };
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final ProductionError that = (ProductionError) o;
+      return Objects.equals(errorMsg, that.errorMsg);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(errorMsg);
+    }
+
+    private Struct productionError() {
+      final Struct productionError = new Struct(MessageType.PRODUCTION_ERROR.getSchema());
+      productionError.put(ProcessingLogMessageSchema.PRODUCTION_ERROR_FIELD_MESSAGE, errorMsg);
+      return productionError;
+    }
   }
 
   public static class LogAndFailProductionExceptionHandler

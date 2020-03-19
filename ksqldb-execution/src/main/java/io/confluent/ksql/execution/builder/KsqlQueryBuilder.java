@@ -95,10 +95,6 @@ public final class KsqlQueryBuilder {
     this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
-  public ProcessingLogContext getProcessingLogContext() {
-    return processingLogContext;
-  }
-
   public ProcessingLogger getProcessingLogger(final QueryContext queryContext) {
     return processingLogContext
         .getLoggerFactory()
@@ -140,6 +136,7 @@ public final class KsqlQueryBuilder {
     );
   }
 
+  @SuppressWarnings("MethodMayBeStatic") // Non-static to allow DI/mocking
   public QueryContext.Stacker buildNodeContext(final String context) {
     return new QueryContext.Stacker()
         .push(context);

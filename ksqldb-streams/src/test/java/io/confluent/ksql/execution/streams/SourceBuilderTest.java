@@ -46,9 +46,7 @@ import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -173,10 +171,6 @@ public class SourceBuilderTest {
   @Mock
   private Materialized<Object, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Mock
-  private ProcessingLogContext processingLogContext;
-  @Mock
-  private ProcessingLoggerFactory processingLoggerFactory;
-  @Mock
   private ProcessingLogger processingLogger;
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
@@ -201,7 +195,7 @@ public class SourceBuilderTest {
   public void setup() {
     when(queryBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(queryBuilder.getQueryId()).thenReturn(new QueryId("fooQuery"));
-    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
     when(streamsBuilder.table(anyString(), any(), any())).thenReturn(kTable);
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
@@ -212,8 +206,6 @@ public class SourceBuilderTest {
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
     when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
-    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger(anyString())).thenReturn(processingLogger);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
     when(materializationFactory.create(any(), any(), any()))

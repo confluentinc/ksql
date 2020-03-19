@@ -1,0 +1,72 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584639497779,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F1 INT, F2 VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_INTERNAL_COL_2 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_INTERNAL_COL_2 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<F1 INT, F2 VARCHAR, KSQL_COL_0 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : "1,a"
+  }, {
+    "topic" : "test_topic",
+    "key" : 2,
+    "value" : "2,b"
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : "1,a"
+  }, {
+    "topic" : "test_topic",
+    "key" : 2,
+    "value" : "2,b"
+  }, {
+    "topic" : "test_topic",
+    "key" : 3,
+    "value" : "3,a"
+  } ],
+  "outputs" : [ {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "a|+|1",
+    "value" : "1,a,0,1"
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "b|+|2",
+    "value" : "2,b,0,1"
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "a|+|1",
+    "value" : "1,a,0,2"
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "b|+|2",
+    "value" : "2,b,0,2"
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "a|+|3",
+    "value" : "3,a,0,1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "a|+|1",
+    "value" : "1,a,1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "b|+|2",
+    "value" : "2,b,1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "a|+|1",
+    "value" : "1,a,2"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "b|+|2",
+    "value" : "2,b,2"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "a|+|3",
+    "value" : "3,a,1"
+  } ]
+}

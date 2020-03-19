@@ -62,7 +62,6 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
   private static final String TOPOLOGY_VERSION_LATEST = "latest-only";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final KsqlVersion CURRENT_VERSION = KsqlVersion.current();
   private static final String INVALID_FILENAME_CHARS_PATTERN = "\\s|/|\\\\|:|\\*|\\?|\"|<|>|\\|";
 
   private final String topologyChecksDir;

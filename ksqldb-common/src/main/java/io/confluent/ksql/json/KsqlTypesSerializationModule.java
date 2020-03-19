@@ -17,10 +17,12 @@ package io.confluent.ksql.json;
 
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 
 public final class KsqlTypesSerializationModule extends SimpleModule {
 
   public KsqlTypesSerializationModule() {
     addSerializer(LogicalSchema.class, new LogicalSchemaSerializer());
+    addSerializer(SqlType.class, new SqlTypeSchemaSerializer());
   }
 }

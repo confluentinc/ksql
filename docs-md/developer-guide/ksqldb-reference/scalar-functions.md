@@ -21,6 +21,7 @@ keywords: ksqlDB, function, scalar
   - [SIGN](#sign)
   - [SQRT](#sqrt)
 - [Collections](#collections)
+  - [ARRAY_LENGTH](#array_length)
   - [ARRAYCONTAINS](#arraycontains)
   - [ARRAY](#array)
   - [MAP](#map)
@@ -31,7 +32,6 @@ keywords: ksqlDB, function, scalar
 - [Strings](#strings)
   - [CONCAT](#concat)
   - [EXTRACTJSONFIELD](#extractjsonfield)
-  - [IFNULL](#ifnull)
   - [INITCAP](#initcap)
   - [LCASE](#lcase)
   - [LEN](#len)
@@ -46,6 +46,9 @@ keywords: ksqlDB, function, scalar
   - [SUBSTRING](#substring)
   - [TRIM](#trim)
   - [UCASE](#ucase)
+- [Nulls](#nulls)
+  - [COALESCE](#coalesce)
+  - [IFNULL](#ifnull)
 - [Date and Time](#date-and-time)
   - [UNIX_DAT](#unixdat)
   - [UNIX_TIMESTAMP](#unixtimestamp)
@@ -90,7 +93,7 @@ Constructs an array of structs from the entries in a map. Each struct has
 a field named `K` containing the key, which is a string, and a field named
 `V`, which holds the value.
 
-If `sorted` is true, the entries are sorted by key.                                          
+If `sorted` is true, the entries are sorted by key.
 
 EXP
 ---
@@ -111,7 +114,7 @@ GENERATE_SERIES
 
 `GENERATE_SERIES(start, end)`
 
-Constructs an array of values between `start` and `end` (inclusive).       
+Constructs an array of values between `start` and `end` (inclusive).
 Parameters can be `INT` or `BIGINT`.
 
 GENERATE_SERIES
@@ -120,7 +123,7 @@ GENERATE_SERIES
 `GENERATE_SERIES(start, end, step)`
 
 Constructs an array of values between `start` and `end` (inclusive)
-with a specified step size. The step can be positive or negative.      
+with a specified step size. The step can be positive or negative.
 Parameters `start` and `end` can be `INT` or `BIGINT`. Parameter `step`
 must be an `INT`.
 
@@ -146,7 +149,7 @@ RANDOM
 
 `RANDOM()`
 
-Return a random DOUBLE value between 0.0 and 1.0.  
+Return a random DOUBLE value between 0.0 and 1.0.
 
 ROUND
 -----
@@ -185,6 +188,15 @@ The square root of a value.
 
 Collections
 ===========
+
+ARRAY_LENGTH
+------------
+
+`ARRAY_LENGTH(ARRAY[1, 2, 3])`
+
+Given an array, return the number of elements in the array.
+
+If the supplied parameter is null the method returns 0.
 
 ARRAYCONTAINS
 -------------
@@ -272,15 +284,6 @@ you can use the `STRUCT` type, which is easier to work with. For example,
 {"foo": {"bar": "quux"}}.
 ```
 
-IFNULL
-------
-
-`IFNULL(col1, retval)`
-
-If the provided VARCHAR is NULL, return `retval`, otherwise, return the
-value. Only VARCHAR values are supported for the input. The return value
-must be a VARCHAR.
-
 INITCAP
 -------
 
@@ -324,7 +327,7 @@ all default masks. `MASK("My Test $123", '*', NULL, '1', NULL)` will yield
 MASK_KEEP_LEFT
 --------------
 
-`MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')` 
+`MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')`
 
 Similar to the `MASK` function above, except
 that the first or left-most `numChars`
@@ -357,7 +360,7 @@ will return `Xx-Xest $123`.
 MASK_RIGHT
 ----------
 
-`MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')`  
+`MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')`
 
 Similar to the `MASK` function above, except
 that only the last or right-most `numChars`
@@ -398,7 +401,7 @@ element in the array. If the delimiter is empty,
 then all characters in the string are split.
 If either, string or delimiter, are NULL, then a
 NULL value is returned.
-                                                  
+
 If the delimiter is found at the beginning or end
 of the string, or there are contiguous delimiters,
 then an empty space is added to the array.
@@ -430,6 +433,26 @@ UCASE
 `UCASE(col1)`
 
 Convert a string to uppercase.
+
+Nulls
+=====
+
+COALESCE
+--------
+
+`COALESCE(a, b, c, d)`
+
+Returns the first non-null parameter. All parameters must be of the same type.
+
+IFNULL
+------
+
+Deprecated: Please use [COALESCE](#coalesce)
+
+`IFNULL(col1, retval)`
+
+If the provided VARCHAR is NULL, return `retval`, otherwise, return `col1`.
+Only VARCHAR values are supported for the input. The return value must be a VARCHAR.
 
 Date and Time
 =============

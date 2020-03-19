@@ -23,7 +23,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
-import java.security.Principal;
 import java.util.Set;
 
 public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext> {
@@ -71,10 +70,13 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
           new IllegalStateException("Null user in " + KsqlAuthorizationProviderHandler.class));
       return;
     }
-    final Principal principal = new ApiPrincipal(user.principal().getString("username"));
+    if (!(user instanceof ApiUser)) {
+      throw new IllegalStateException("Not an ApiUser");
+    }
+    final ApiUser apiUser = (ApiUser) user;
     try {
       ksqlAuthorizationProvider
-          .checkEndpointAccess(principal, routingContext.request().method().toString(),
+          .checkEndpointAccess(apiUser.getPrincipal(), routingContext.request().method().toString(),
               routingContext.normalisedPath());
     } catch (Exception e) {
       promise.fail(e);

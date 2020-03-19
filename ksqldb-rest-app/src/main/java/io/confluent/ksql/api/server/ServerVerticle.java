@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.auth.AuthPluginHandler;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
@@ -37,11 +38,9 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.AuthHandler;
 import io.vertx.ext.web.handler.BasicAuthHandler;
 import io.vertx.ext.web.handler.BodyHandler;
-import java.security.Principal;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -140,22 +139,8 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private Handler<RoutingContext> createAuthenticationPluginHandler(
-      final AuthenticationPlugin securityHandlerPlugin) {
-    return routingContext -> {
-      final CompletableFuture<Principal> cf = securityHandlerPlugin
-          .handleAuth(routingContext, server.getWorkerExecutor());
-      cf.thenAccept(principal -> {
-        if (principal == null) {
-          // Not authenticated
-          // Do nothing, response is already ended by the plugin
-        } else {
-          routingContext.next();
-        }
-      }).exceptionally(t -> {
-        routingContext.fail(t);
-        return null;
-      });
-    };
+      final AuthenticationPlugin authPlugin) {
+    return new AuthPluginHandler(server, authPlugin);
   }
 
   private void setupAuthHandlers(final Router router) {
@@ -163,14 +148,16 @@ public class ServerVerticle extends AbstractVerticle {
     final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
     final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
 
+    System.out.println("setting up auth handlers");
+
     if (authHandler.isPresent() || authenticationPlugin.isPresent()) {
       routeToNonProxiedEndpoints(router, ServerVerticle::pauseHandler);
       if (authenticationPlugin.isPresent()) {
         // Authentication plugin has precedence
         routeToNonProxiedEndpoints(router,
-            createAuthenticationPluginHandler(authenticationPlugin.get()));
+            new AuthPluginHandler(server, authenticationPlugin.get()));
       } else {
-        // Otherwise use user configured JAAS auth handler
+        // Otherwise use user-configured JAAS auth handler
         routeToNonProxiedEndpoints(router, authHandler.get());
       }
       // For authorization use auth provider configured via security extension (if any)

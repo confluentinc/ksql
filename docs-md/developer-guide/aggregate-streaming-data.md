@@ -130,5 +130,3 @@ Next Steps
 -   [Aggregating Data](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/aggregating-data)
 -   [Detecting Abnormal Transactions](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/detecting-abnormal-transactions)
 -   [Inline Streaming Aggregation](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/inline-streaming-aggregation)
-
-Page last revised on: {{ git_revision_date }}

@@ -311,4 +311,3 @@ Next Steps
 -   [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md)
 -   [Query With Arrays and Maps](query-with-arrays-and-maps.md)
 
-Page last revised on: {{ git_revision_date }}

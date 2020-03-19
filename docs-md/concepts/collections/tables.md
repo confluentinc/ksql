@@ -81,5 +81,3 @@ the same topic has a given key.
 
 If an underlying event in the {{ site.ak }} topic doesn’t conform to the given
 table schema, the event is discarded at read-time.
-
-Page last revised on: {{ git_revision_date }}

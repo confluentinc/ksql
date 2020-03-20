@@ -21,5 +21,3 @@ Description
 
 Drop a connector and delete it from the {{ site.kconnect }} cluster. The
 topics associated with this cluster are not deleted by this command.
-
-Page last revised on: {{ git_revision_date }}

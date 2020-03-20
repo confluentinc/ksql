@@ -12,7 +12,7 @@ instance of PostgreSQL.
 Prerequisites:
 
 -   [Confluent Platform](https://docs.confluent.io/current/installation/installing_cp/index.html)
-    is installed an running. This installation includes a Kafka broker,
+    is installed and running. This installation includes a {{ site.ak }} broker,
     ksqlDB, {{ site.zk }}, {{ site.sr }} and {{ site.kconnect }}.
 -   If you installed {{ site.cp }} via TAR or ZIP, navigate into the
     installation directory. The paths and commands used throughout this
@@ -148,5 +148,3 @@ specified, which re-imports the entire database every time. Obviously, this
 isn't appropriate for production. For more information on changelog capture,
 see
 [Incremental Query Modes](https://docs.confluent.io/current/connect/kafka-connect-jdbc/source-connector/index.html#incremental-query-modes).
-
-Page last revised on: {{ git_revision_date }}

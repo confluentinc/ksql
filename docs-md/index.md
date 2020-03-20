@@ -166,4 +166,3 @@ versions.
 | --------------------- | ------------------------ |
 | Apache Kafka version  | 0.11.0 and later         |
 
-Page last revised on: {{ git_revision_date }}

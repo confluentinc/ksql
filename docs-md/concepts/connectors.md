@@ -62,5 +62,3 @@ these connectors into ksqlDB:
     the Kafka messages that it produces, ksqlDB supplies the ability to
     pass in `"key"='<column_name>'` in the `WITH` clause to extract a
     column from the value and make it the key.
-
-Page last revised on: {{ git_revision_date }}

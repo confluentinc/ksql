@@ -594,5 +594,3 @@ Each ksqlDB Server should have at least about 12 GB of memory.
 ksqlDB would create 5 new topics (3 output topics, 1 repartition topic,
 and 1 changelog topic), each with 64 partitions. You would have to
 account for 256 additional partitions in the {{ site.ak }} cluster.
-
-Page last revised on: {{ git_revision_date }}

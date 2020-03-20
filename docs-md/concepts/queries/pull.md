@@ -62,5 +62,3 @@ API Reference
 
 - [SELECT (Pull Query)](../../developer-guide/ksqldb-reference/select-pull-query.md)
 - [SELECT (Push Query)](../../developer-guide/ksqldb-reference/select-push-query.md)
-
-Page last revised on: {{ git_revision_date }}

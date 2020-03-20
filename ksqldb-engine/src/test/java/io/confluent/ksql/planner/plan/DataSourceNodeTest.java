@@ -24,7 +24,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -39,9 +38,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -150,10 +147,6 @@ public class DataSourceNodeTest {
   @Mock
   private KsqlTopic topic;
   @Mock
-  private ProcessingLogContext processingLogContext;
-  @Mock
-  private ProcessingLoggerFactory processingLoggerFactory;
-  @Mock
   private ProcessingLogger processingLogger;
 
   private DataSourceNode node;
@@ -164,9 +157,7 @@ public class DataSourceNodeTest {
     realBuilder = new StreamsBuilder();
 
     when(ksqlStreamBuilder.getQueryId()).thenReturn(new QueryId("fooQuery"));
-    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger(anyString())).thenReturn(processingLogger);
+    when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(realConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->

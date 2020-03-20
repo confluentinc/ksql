@@ -39,5 +39,3 @@ CREATE SOURCE CONNECTOR `jdbc-connector` WITH(
     "table.whitelist"='users',
     "key"='username');
 ```
-
-Page last revised on: {{ git_revision_date }}

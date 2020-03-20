@@ -185,5 +185,3 @@ See the [`CREATE TYPE` docs](../developer-guide/ksqldb-reference/create-type) fo
 TODO:
 
 - schema evolution with ksqlDB and Avro
-
-Page last revised on: {{ git_revision_date }}

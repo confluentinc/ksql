@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
@@ -73,6 +74,7 @@ public final class StepSchemaResolver {
       .put(StreamGroupBy.class, StepSchemaResolver::handleStreamGroupBy)
       .put(StreamGroupByKey.class, StepSchemaResolver::sameSchema)
       .put(StreamSelect.class, StepSchemaResolver::handleStreamSelect)
+      .put(StreamSelectKeyV1.class, StepSchemaResolver::handleSelectKeyV1)
       .put(StreamSelectKey.class, StepSchemaResolver::handleSelectKey)
       .put(StreamSink.class, StepSchemaResolver::sameSchema)
       .put(StreamSource.class, StepSchemaResolver::handleSource)
@@ -207,9 +209,9 @@ public final class StepSchemaResolver {
     return buildSelectSchema(schema, step.getSelectExpressions());
   }
 
-  private LogicalSchema handleSelectKey(
+  private LogicalSchema handleSelectKeyV1(
       final LogicalSchema sourceSchema,
-      final StreamSelectKey step
+      final StreamSelectKeyV1 step
   ) {
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(sourceSchema, functionRegistry);
@@ -222,6 +224,17 @@ public final class StepSchemaResolver {
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();
+  }
+
+  private LogicalSchema handleSelectKey(
+      final LogicalSchema sourceSchema,
+      final StreamSelectKey step
+  ) {
+    return PartitionByParamsFactory.buildSchema(
+        sourceSchema,
+        step.getKeyExpression(),
+        functionRegistry
+    );
   }
 
   private LogicalSchema handleSource(final LogicalSchema schema, final SourceStep<?> step) {

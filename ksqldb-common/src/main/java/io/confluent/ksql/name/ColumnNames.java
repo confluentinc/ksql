@@ -1,8 +1,8 @@
 /*
  * Copyright 2020 Confluent Inc.
  *
- * Licensed under the Confluent Community License (the "License"; you may not use
- * this file except in compliance with the License. You may obtain a copy of the
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
  * License at
  *
  * http://www.confluent.io/confluent-community-license
@@ -71,16 +71,16 @@ public final class ColumnNames {
   }
 
   /**
-   * Used to generate a column name in an intermediate schema, e.g. for a column to hold
-   * values of a table function. These are never exposed to the user
+   * Used to generate a column name in an intermediate schema, e.g. for a column to hold values of a
+   * table function. These are never exposed to the user
    */
   public static ColumnName synthesisedSchemaColumn(final int idx) {
     return ColumnName.of(SYNTHESISED_COLUMN_PREFIX + idx);
   }
 
   /**
-   * Used to generate a column alias for a join where the a column with this name exists
-   * in both of the sources.
+   * Used to generate a column alias for a join where the a column with this name exists in both of
+   * the sources.
    */
   public static ColumnName generatedJoinColumnAlias(
       final SourceName sourceName,

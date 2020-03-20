@@ -28,8 +28,12 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class HighAvailabilityTestUtil {
+
+  private static final Logger LOG = LoggerFactory.getLogger(HighAvailabilityTestUtil.class);
 
   static ClusterStatusResponse sendClusterStatusRequest(final TestKsqlRestApp restApp) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
@@ -159,7 +163,11 @@ class HighAvailabilityTestUtil {
   ) {
 
     try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
-      restClient.makeAsyncHeartbeatRequest(hostInfoEntity, timestamp);
+      restClient.makeAsyncHeartbeatRequest(hostInfoEntity, timestamp)
+          .exceptionally(t -> {
+            LOG.error("Unexpected exception in async request", t);
+            return null;
+          });
     }
   }
 
@@ -169,7 +177,11 @@ class HighAvailabilityTestUtil {
   ) {
 
     try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
-      restClient.makeAsyncLagReportingRequest(lagReportingMessage);
+      restClient.makeAsyncLagReportingRequest(lagReportingMessage)
+          .exceptionally(t -> {
+            LOG.error("Unexpected exception in async request", t);
+            return null;
+          });
     }
   }
 }

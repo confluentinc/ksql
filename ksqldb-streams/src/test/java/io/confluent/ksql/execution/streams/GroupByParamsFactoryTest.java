@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,9 +30,8 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
-import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -74,8 +72,6 @@ public class GroupByParamsFactoryTest {
   private ProcessingLogger logger;
   @Captor
   private ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> msgCaptor;
-  @Mock
-  private ProcessingLogConfig processingLogConfig;
 
   private GroupByParams singleParams;
   private GroupByParams multiParams;
@@ -83,7 +79,6 @@ public class GroupByParamsFactoryTest {
   @Before
   public void setUp() {
     when(groupBy0.getExpressionType()).thenReturn(SqlTypes.INTEGER);
-    when(processingLogConfig.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)).thenReturn(false);
 
     singleParams = GroupByParamsFactory.build(SOURCE_SCHEMA, ImmutableList.of(groupBy0), logger);
     multiParams = GroupByParamsFactory.build(
@@ -167,12 +162,11 @@ public class GroupByParamsFactoryTest {
     singleParams.getMapper().apply(value);
 
     // Then:
-    final Struct msg = verifyAndGetLogMsg();
-    assertThat(
-        msg.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
-        equalTo(
+    verify(logger).error(
+        RecordProcessingError.recordProcessingError(
             "Group-by column with index 0 resolved to null. "
-                + "The source row will be excluded from the table."
+                + "The source row will be excluded from the table.",
+            value
         )
     );
   }
@@ -198,12 +192,11 @@ public class GroupByParamsFactoryTest {
     multiParams.getMapper().apply(value);
 
     // Then:
-    final Struct msg = verifyAndGetLogMsg();
-    assertThat(
-        msg.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
-        equalTo(
+    verify(logger).error(
+        RecordProcessingError.recordProcessingError(
             "Group-by column with index 0 resolved to null. "
-                + "The source row will be excluded from the table."
+                + "The source row will be excluded from the table.",
+            value
         )
     );
   }
@@ -223,18 +216,19 @@ public class GroupByParamsFactoryTest {
   @Test
   public void shouldLogProcessingErrorIfExpressionThrowsInSingle() {
     // Given
-    when(groupBy0.evaluate(any())).thenThrow(new RuntimeException("Bap"));
+    final RuntimeException e = new RuntimeException("Bap");
+    when(groupBy0.evaluate(any())).thenThrow(e);
 
     // When:
     singleParams.getMapper().apply(value);
 
     // Then:
-    final Struct msg = verifyAndGetLogMsg();
-    assertThat(
-        msg.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
-        equalTo(
+    verify(logger).error(
+        RecordProcessingError.recordProcessingError(
             "Error calculating group-by column with index 0. "
-                + "The source row will be excluded from the table: Bap"
+                + "The source row will be excluded from the table: Bap",
+            e,
+            value
         )
     );
   }
@@ -254,32 +248,20 @@ public class GroupByParamsFactoryTest {
   @Test
   public void shouldLogProcessingErrorIfExpressionThrowsInMulti() {
     // Given
-    when(groupBy0.evaluate(any())).thenThrow(new RuntimeException("Bap"));
+    final RuntimeException e = new RuntimeException("Bap");
+    when(groupBy0.evaluate(any())).thenThrow(e);
 
     // When:
     multiParams.getMapper().apply(value);
 
     // Then:
-    final Struct msg = verifyAndGetLogMsg();
-    assertThat(
-        msg.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
-        equalTo(
+    verify(logger).error(
+        RecordProcessingError.recordProcessingError(
             "Error calculating group-by column with index 0. "
-                + "The source row will be excluded from the table: Bap"
+                + "The source row will be excluded from the table: Bap",
+            e,
+            value
         )
     );
-  }
-
-  private Struct verifyAndGetLogMsg() {
-    verify(logger).error(msgCaptor.capture());
-    final Function<ProcessingLogConfig, SchemaAndValue> msgSupplier = msgCaptor.getValue();
-    final SchemaAndValue schemaAndValue = msgSupplier.apply(processingLogConfig);
-    assertThat(schemaAndValue.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
-    final Struct msg = (Struct) schemaAndValue.value();
-    assertThat(
-        msg.get(ProcessingLogMessageSchema.TYPE),
-        equalTo(MessageType.RECORD_PROCESSING_ERROR.getTypeId())
-    );
-    return msg.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
   }
 }

@@ -45,7 +45,7 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
@@ -95,7 +95,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AggregateNodeTest {
 
   private static final FunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
-  private static final KsqlConfig KSQL_CONFIG =  new KsqlConfig(new HashMap<>());
+  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(new HashMap<>());
 
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
@@ -103,11 +103,12 @@ public class AggregateNodeTest {
   private Serde<Struct> keySerde;
   @Mock
   private ProcessorContext ctx;
+  @Mock
+  private ProcessingLogger processLogger;
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
 
   private StreamsBuilder builder = new StreamsBuilder();
-  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
 
   @Test
@@ -337,7 +338,7 @@ public class AggregateNodeTest {
     when(ksqlStreamBuilder.getQueryId()).thenReturn(queryId);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
-    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processLogger);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(FUNCTION_REGISTRY);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()

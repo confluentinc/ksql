@@ -43,6 +43,7 @@ import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
@@ -281,9 +282,33 @@ public class StepSchemaResolverTest {
   }
 
   @Test
-  public void shouldResolveSchemaForStreamSelectKey() {
+  public void shouldResolveSchemaForStreamSelectKeyV1() {
     // Given:
     final Expression keyExpression =
+        new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
+
+    final StreamSelectKeyV1 step = new StreamSelectKeyV1(
+        PROPERTIES,
+        streamSource,
+        keyExpression
+    );
+
+    // When:
+    final LogicalSchema result = resolver.resolve(step, SCHEMA);
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .valueColumns(SCHEMA.value())
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldResolveSchemaForStreamSelectKeyV2() {
+    // Given:
+    final UnqualifiedColumnReferenceExp keyExpression =
         new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
 
     final StreamSelectKey step = new StreamSelectKey(
@@ -298,7 +323,7 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .keyColumn(keyExpression.getColumnName(), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()
     ));

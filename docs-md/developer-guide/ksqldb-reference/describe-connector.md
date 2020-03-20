@@ -54,5 +54,3 @@ WorkerId             : 10.200.7.69:8083
  jdbc-users
 ----------------
 ```
-
-Page last revised on: {{ git_revision_date }}

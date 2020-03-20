@@ -228,7 +228,7 @@ public class CommandRunnerTest {
   }
 
   @Test
-  public void shouldTransitionFromRunningToStuck() throws InterruptedException {
+  public void shouldTransitionFromRunningToErrorWhenStuckOnCommand() throws InterruptedException {
     // Given:
     givenQueuedCommands(queuedCommand1);
 
@@ -260,11 +260,25 @@ public class CommandRunnerTest {
     commandRunnerThread.start();
     commandSetLatch.await();
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.RUNNING));
-    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.STUCK));
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.ERROR));
     handleStatementLatch.countDown();
     commandRunnerThread.join();
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.RUNNING));
     assertThat(expectedException.get(), equalTo(null));
+  }
+
+  @Test
+  public void shouldTransitionFromRunningToErrorWhenNotPollingCommandTopic() {
+    // Given:
+    givenQueuedCommands();
+
+    final Instant current = Instant.now();
+    when(clock.instant()).thenReturn(current)
+        .thenReturn(current.plusMillis(15100));
+
+    // Then:
+    commandRunner.fetchAndRunCommands();
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.ERROR));
   }
 
   @Test

@@ -70,7 +70,6 @@ public class CommandRunner implements Closeable {
 
   public enum CommandRunnerStatus {
     RUNNING,
-    STUCK,
     ERROR
   }
 
@@ -274,7 +273,7 @@ public class CommandRunner implements Closeable {
     
     return Duration.between(currentCommand.right, clock.instant()).toMillis()
         < commandRunnerHealthTimeout.toMillis()
-        ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.STUCK;
+        ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
   }
 
   private class Runner implements Runnable {

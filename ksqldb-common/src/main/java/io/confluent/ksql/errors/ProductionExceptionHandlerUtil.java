@@ -71,9 +71,10 @@ public final class ProductionExceptionHandlerUtil {
 
     @Override
     public SchemaAndValue get(final ProcessingLogConfig config) {
-      final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
-      struct.put(ProcessingLogMessageSchema.TYPE, MessageType.PRODUCTION_ERROR.getTypeId());
-      struct.put(ProcessingLogMessageSchema.PRODUCTION_ERROR, productionError());
+      final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA)
+          .put(ProcessingLogMessageSchema.TYPE, MessageType.PRODUCTION_ERROR.getTypeId())
+          .put(ProcessingLogMessageSchema.PRODUCTION_ERROR, productionError());
+
       return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
     }
 
@@ -95,9 +96,8 @@ public final class ProductionExceptionHandlerUtil {
     }
 
     private Struct productionError() {
-      final Struct productionError = new Struct(MessageType.PRODUCTION_ERROR.getSchema());
-      productionError.put(ProcessingLogMessageSchema.PRODUCTION_ERROR_FIELD_MESSAGE, errorMsg);
-      return productionError;
+      return new Struct(MessageType.PRODUCTION_ERROR.getSchema())
+          .put(ProcessingLogMessageSchema.PRODUCTION_ERROR_FIELD_MESSAGE, errorMsg);
     }
   }
 

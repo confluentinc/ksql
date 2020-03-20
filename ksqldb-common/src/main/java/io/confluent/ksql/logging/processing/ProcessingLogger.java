@@ -29,6 +29,9 @@ public interface ProcessingLogger {
      *
      * <p>The returned value should use the {@link ProcessingLogMessageSchema}.
      *
+     * <p>Implementations should lazily initialize to message being returned as construction
+     * of the message happens on performance critical path.
+     *
      * @param config the processing config.
      * @return the schema and structured error message.
      */

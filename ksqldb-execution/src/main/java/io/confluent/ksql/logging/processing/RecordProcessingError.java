@@ -85,9 +85,9 @@ public final class RecordProcessingError implements ProcessingLogger.ErrorMessag
 
   @Override
   public SchemaAndValue get(final ProcessingLogConfig config) {
-    final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
-    struct.put(ProcessingLogMessageSchema.TYPE, MessageType.RECORD_PROCESSING_ERROR.getTypeId());
-    struct.put(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR, processingError(config));
+    final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA)
+        .put(ProcessingLogMessageSchema.TYPE, MessageType.RECORD_PROCESSING_ERROR.getTypeId())
+        .put(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR, processingError(config));
 
     return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
   }
@@ -113,18 +113,16 @@ public final class RecordProcessingError implements ProcessingLogger.ErrorMessag
 
   private Struct processingError(final ProcessingLogConfig config) {
     final Struct recordProcessingError =
-        new Struct(MessageType.RECORD_PROCESSING_ERROR.getSchema());
-
-    recordProcessingError.put(
-        ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE,
-        errorMsg
-    );
-
-    recordProcessingError.put(
-        ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE,
-        exception.map(RecordProcessingError::getCause)
-            .orElse(Collections.emptyList())
-    );
+        new Struct(MessageType.RECORD_PROCESSING_ERROR.getSchema())
+            .put(
+                ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE,
+                errorMsg
+            )
+            .put(
+                ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE,
+                exception.map(RecordProcessingError::getCause)
+                    .orElse(Collections.emptyList())
+            );
 
     if (config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
       record.ifPresent(r -> recordProcessingError.put(

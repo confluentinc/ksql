@@ -432,10 +432,10 @@ COALESCE
 
 `COALESCE(a, b, c, d)`
 
-Returns the first non-null parameter. All parameters must be of the same type.
+Returns the first parameter that is not NULL. All parameters must be of the same type.
 
 Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
-complex type are not inspected. The behaviour is the same: the first non-null element is returned.
+complex type are not inspected. The behaviour is the same: the first NOT NULL element is returned.
 
 IFNULL
 ------
@@ -443,6 +443,9 @@ IFNULL
 `IFNULL(expression, altValue)`
 
 If the provided `expression` is NULL, returns `altValue`, otherwise, returns `expression`.
+
+Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
+complex type are not inspected.
 
 Date and Time
 =============

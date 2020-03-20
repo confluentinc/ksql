@@ -15,6 +15,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
@@ -46,6 +47,7 @@ public class ExpressionMetadataTest {
   public void setup() throws Exception {
     when(expressionEvaluator.evaluate(any())).thenReturn(RETURN_VALUE);
     spec = new CodeGenSpec.Builder();
+    spec.addSystemColumn(SchemaUtil.ROWTIME_NAME);
   }
 
   @Test

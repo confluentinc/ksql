@@ -88,7 +88,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(output, hasSize(1));
-    assertThat(output.get(0), contains("x", ROWTIME, false));
+    assertThat(output.get(0), contains("x", false));
   }
 
   @Test
@@ -119,9 +119,9 @@ public class TableRowsEntityFactoryTest {
     // Then:
     assertThat(output, hasSize(2));
     assertThat(output.get(0),
-        contains("x", now.toEpochMilli(), now.plusMillis(2).toEpochMilli(), ROWTIME, true));
+        contains("x", now.toEpochMilli(), now.plusMillis(2).toEpochMilli(), true));
     assertThat(output.get(1),
-        contains("y", now.toEpochMilli(), now.plusMillis(1).toEpochMilli(), ROWTIME, false));
+        contains("y", now.toEpochMilli(), now.plusMillis(1).toEpochMilli(), false));
   }
 
   @Test
@@ -137,7 +137,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(output, hasSize(1));
-    assertThat(output.get(0), contains("k", ROWTIME, null, null, null, null));
+    assertThat(output.get(0), contains("k", null, null, null, null));
   }
 
   @Test

@@ -260,7 +260,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
 
 
@@ -287,7 +287,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
 
   @Test
@@ -309,7 +309,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
 
   @Test
@@ -331,7 +331,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
 
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(clusterFormation.router.right,
         sql, LAG_FILTER_25);

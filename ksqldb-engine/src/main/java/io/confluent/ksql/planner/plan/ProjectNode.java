@@ -19,6 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -32,7 +34,10 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Immutable
@@ -109,8 +114,25 @@ public class ProjectNode extends PlanNode {
       final Optional<SourceName> sourceName,
       final boolean valueOnly
   ) {
-    return source.resolveSelectStar(sourceName, valueOnly)
-        .map(name -> aliases.getOrDefault(name, name));
+    // maintaining order here is important, so we first create a list
+    // and only afterwards use a set to optimize candidacy checks
+    final List<ColumnName> sourceNames = source
+        .resolveSelectStar(sourceName, valueOnly)
+        .collect(Collectors.toList());
+    final Set<ColumnName> existingNames = ImmutableSet.copyOf(sourceNames);
+
+    // this is for backwards compatibility with the old JOIN behavior
+    // where we "implicitly" select <source>_ROWTIME as an alias, even
+    // though it doesn't exist in the source node's schema - therefore
+    // it is possible to have _more_ aliases than corresponding source
+    // contents
+    return Streams.concat(
+        aliases.entrySet()
+            .stream()
+            .filter(alias -> !existingNames.contains(alias.getKey()))
+            .map(Map.Entry::getValue),
+        sourceNames.stream().map(name -> aliases.getOrDefault(name, name))
+    );
   }
 
   private void validate() {

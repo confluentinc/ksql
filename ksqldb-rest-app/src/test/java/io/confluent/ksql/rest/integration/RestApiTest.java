@@ -266,11 +266,10 @@ public class RestApiTest {
     assertThat(messages.get(0),
         is("["
             + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
-            + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
             + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
             + "]"));
 
-    final Pattern rowPattern = Pattern.compile("\\{\"row\":\\{\"columns\":\\[\"USER_1\",\\d+,1]}}");
+    final Pattern rowPattern = Pattern.compile("\\{\"row\":\\{\"columns\":\\[\"USER_1\",1]}}");
     final Matcher matcher = rowPattern.matcher(messages.get(1));
     assertThat(messages.get(1) + " should match pattern " + rowPattern, matcher.matches());
   }

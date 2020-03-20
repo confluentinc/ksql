@@ -399,13 +399,6 @@ public class ConsoleTest {
           + "      \"state\" : \"Running\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
-          + "      \"name\" : \"ROWTIME\"," + NEWLINE
-          + "      \"schema\" : {" + NEWLINE
-          + "        \"type\" : \"BIGINT\"," + NEWLINE
-          + "        \"fields\" : null," + NEWLINE
-          + "        \"memberSchema\" : null" + NEWLINE
-          + "      }" + NEWLINE
-          + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
@@ -502,19 +495,18 @@ public class ConsoleTest {
     } else {
       assertThat(output, is("" + NEWLINE
           + "Name                 : TestSource" + NEWLINE
-          + " Field   | Type                      " + NEWLINE
-          + "-------------------------------------" + NEWLINE
-          + " ROWTIME | BIGINT           (system) " + NEWLINE
-          + " ROWKEY  | VARCHAR(STRING)  (system) " + NEWLINE
-          + " f_0     | BOOLEAN                   " + NEWLINE
-          + " f_1     | INTEGER                   " + NEWLINE
-          + " f_2     | BIGINT                    " + NEWLINE
-          + " f_3     | DOUBLE                    " + NEWLINE
-          + " f_4     | VARCHAR(STRING)           " + NEWLINE
-          + " f_5     | ARRAY<VARCHAR(STRING)>    " + NEWLINE
-          + " f_6     | MAP<STRING, BIGINT>       " + NEWLINE
-          + " f_7     | STRUCT<a DOUBLE>          " + NEWLINE
-          + "-------------------------------------" + NEWLINE
+          + " Field  | Type                      " + NEWLINE
+          + "------------------------------------" + NEWLINE
+          + " ROWKEY | VARCHAR(STRING)  (system) " + NEWLINE
+          + " f_0    | BOOLEAN                   " + NEWLINE
+          + " f_1    | INTEGER                   " + NEWLINE
+          + " f_2    | BIGINT                    " + NEWLINE
+          + " f_3    | DOUBLE                    " + NEWLINE
+          + " f_4    | VARCHAR(STRING)           " + NEWLINE
+          + " f_5    | ARRAY<VARCHAR(STRING)>    " + NEWLINE
+          + " f_6    | MAP<STRING, BIGINT>       " + NEWLINE
+          + " f_7    | STRUCT<a DOUBLE>          " + NEWLINE
+          + "------------------------------------" + NEWLINE
           + "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;"
           + NEWLINE));
     }
@@ -602,13 +594,6 @@ public class ConsoleTest {
           + "    \"readQueries\" : [ ]," + NEWLINE
           + "    \"writeQueries\" : [ ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
-          + "      \"name\" : \"ROWTIME\"," + NEWLINE
-          + "      \"schema\" : {" + NEWLINE
-          + "        \"type\" : \"BIGINT\"," + NEWLINE
-          + "        \"fields\" : null," + NEWLINE
-          + "        \"memberSchema\" : null" + NEWLINE
-          + "      }" + NEWLINE
-          + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
@@ -1054,13 +1039,6 @@ public class ConsoleTest {
           + "      \"state\" : \"Running\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
-          + "      \"name\" : \"ROWTIME\"," + NEWLINE
-          + "      \"schema\" : {" + NEWLINE
-          + "        \"type\" : \"BIGINT\"," + NEWLINE
-          + "        \"fields\" : null," + NEWLINE
-          + "        \"memberSchema\" : null" + NEWLINE
-          + "      }" + NEWLINE
-          + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
@@ -1101,12 +1079,11 @@ public class ConsoleTest {
           + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)" + NEWLINE
           + "Statement            : sql statement text" + NEWLINE
           + "" + NEWLINE
-          + " Field   | Type                      " + NEWLINE
-          + "-------------------------------------" + NEWLINE
-          + " ROWTIME | BIGINT           (system) " + NEWLINE
-          + " ROWKEY  | VARCHAR(STRING)  (system) " + NEWLINE
-          + " f_0     | VARCHAR(STRING)           " + NEWLINE
-          + "-------------------------------------" + NEWLINE
+          + " Field  | Type                      " + NEWLINE
+          + "------------------------------------" + NEWLINE
+          + " ROWKEY | VARCHAR(STRING)  (system) " + NEWLINE
+          + " f_0    | VARCHAR(STRING)           " + NEWLINE
+          + "------------------------------------" + NEWLINE
           + "" + NEWLINE
           + "Queries that read from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE

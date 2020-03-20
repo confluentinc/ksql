@@ -468,7 +468,7 @@ public class EndToEndIntegrationTest {
     }
 
     @Udf
-    public long foo(@UdfParameter("bar") final long bar) {
+    public long foo(final long bar) {
       return -1L;
     }
   }

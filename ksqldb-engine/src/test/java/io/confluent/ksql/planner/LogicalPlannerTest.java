@@ -162,7 +162,8 @@ public class LogicalPlannerTest {
         selectCol("COL3", "T1_COL3"),
         selectCol("COL4", "T1_COL4"),
         selectCol("COL5", "T1_COL5"),
-        selectCol("ROWKEY", "T1_ROWKEY")
+        selectCol("ROWKEY", "T1_ROWKEY"),
+        selectCol("ROWTIME", "T1_ROWTIME")
     ));
     final ProjectNode right = (ProjectNode) joinNode.getSources().get(1);
     assertThat(right.getSelectExpressions(), contains(
@@ -171,7 +172,8 @@ public class LogicalPlannerTest {
         selectCol("COL2", "T2_COL2"),
         selectCol("COL3", "T2_COL3"),
         selectCol("COL4", "T2_COL4"),
-        selectCol("ROWKEY", "T2_ROWKEY")
+        selectCol("ROWKEY", "T2_ROWKEY"),
+        selectCol("ROWTIME", "T2_ROWTIME")
     ));
   }
 

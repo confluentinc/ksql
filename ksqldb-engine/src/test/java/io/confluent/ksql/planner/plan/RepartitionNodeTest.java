@@ -59,7 +59,6 @@ public class RepartitionNodeTest {
       .valueColumn(V1, SqlTypes.DOUBLE)
       .valueColumn(V2, SqlTypes.DOUBLE)
       .valueColumn(K0, SqlTypes.DOUBLE)
-      .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
       .build();
 
   private static final List<ColumnName> PARENT_COL_NAMES = ImmutableList.of(

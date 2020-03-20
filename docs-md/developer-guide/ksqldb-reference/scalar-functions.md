@@ -21,7 +21,6 @@ keywords: ksqlDB, function, scalar
   - [SIGN](#sign)
   - [SQRT](#sqrt)
 - [Collections](#collections)
-  - [ARRAY_LENGTH](#array_length)
   - [ARRAYCONTAINS](#arraycontains)
   - [ARRAY](#array)
   - [MAP](#map)
@@ -188,15 +187,6 @@ The square root of a value.
 
 Collections
 ===========
-
-ARRAY_LENGTH
-------------
-
-`ARRAY_LENGTH(ARRAY[1, 2, 3])`
-
-Given an array, return the number of elements in the array.
-
-If the supplied parameter is null the method returns 0.
 
 ARRAYCONTAINS
 -------------

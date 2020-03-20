@@ -1,6 +1,7 @@
 package io.confluent.ksql.execution.function.udtf;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -15,6 +16,7 @@ import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.FunctionName;
+import java.util.List;
 import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,5 +75,46 @@ public class TableFunctionApplierTest {
         e,
         VALUE
     ));
+  }
+
+  @Test
+  public void shouldReturnEmptyListIfUdtfThrows() {
+    // Given:
+    final RuntimeException e = new RuntimeException("Boom");
+    when(tableFunction.apply(any())).thenThrow(e);
+
+    // When:
+    final List<?> result = applier.apply(VALUE, processingLogger);
+
+    // Then:
+    assertThat(result, is(empty()));
+  }
+
+  @Test
+  public void shouldLogIfUdtfReturnsNull() {
+    // Given:
+    when(tableFunction.apply(any())).thenReturn(null);
+
+    // When:
+    applier.apply(VALUE, processingLogger);
+
+    // Then:
+    verify(processingLogger).error(RecordProcessingError.recordProcessingError(
+        "Table function SOME_FUNC returned null. This is invalid. "
+            + "Table functions should always return a valid list.",
+        VALUE
+    ));
+  }
+
+  @Test
+  public void shouldReturnEmptyListIfUdtfReturnsNull() {
+    // Given:
+    when(tableFunction.apply(any())).thenReturn(null);
+
+    // When:
+    final List<?> result = applier.apply(VALUE, processingLogger);
+
+    // Then:
+    assertThat(result, is(empty()));
   }
 }

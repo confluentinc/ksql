@@ -33,7 +33,8 @@ public class TableFunctionApplier {
 
   private final KsqlTableFunction tableFunction;
   private final ImmutableList<ExpressionMetadata> parameterExtractors;
-  private final String errorMsg;
+  private final String nullMsg;
+  private final String exceptionMsg;
 
   public TableFunctionApplier(
       final KsqlTableFunction tableFunction,
@@ -41,7 +42,9 @@ public class TableFunctionApplier {
   ) {
     this.tableFunction = requireNonNull(tableFunction);
     this.parameterExtractors = ImmutableList.copyOf(requireNonNull(parameterExtractors));
-    this.errorMsg = "Table function " + tableFunction.name().text() + " threw an exception";
+    this.nullMsg = "Table function " + tableFunction.name().text() + " returned null. "
+        + "This is invalid. Table functions should always return a valid list.";
+    this.exceptionMsg = "Table function " + tableFunction.name().text() + " threw an exception";
   }
 
   List<?> apply(
@@ -55,10 +58,15 @@ public class TableFunctionApplier {
     }
 
     try {
-      return tableFunction.apply(args);
+      final List<?> result = tableFunction.apply(args);
+      if (result == null) {
+        processingLogger.error(RecordProcessingError.recordProcessingError(nullMsg, row));
+        return ImmutableList.of();
+      }
+      return result;
     } catch (final Exception e) {
-      processingLogger.error(RecordProcessingError.recordProcessingError(errorMsg, e, row));
-      return null;
+      processingLogger.error(RecordProcessingError.recordProcessingError(exceptionMsg, e, row));
+      return ImmutableList.of();
     }
   }
 

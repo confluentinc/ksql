@@ -105,4 +105,3 @@ Combine -\> with . when using aliases:
 SELECT orders.address->street, o.address->zip FROM orders o EMIT CHANGES;
 ```
 
-Page last revised on: {{ git_revision_date }}

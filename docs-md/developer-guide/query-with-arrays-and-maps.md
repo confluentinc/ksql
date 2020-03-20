@@ -145,4 +145,3 @@ Next Steps
 -   [Create a ksqlDB Stream](create-a-stream.md)
 -   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 
-Page last revised on: {{ git_revision_date }}

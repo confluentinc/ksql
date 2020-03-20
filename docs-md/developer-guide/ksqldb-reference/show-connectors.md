@@ -26,4 +26,3 @@ List all connectors in the {{ site.kconnect }} cluster.
     using the ksqlDB from connectors that are created independently by using the
     {{ site.kconnect }} API.
 
-Page last revised on: {{ git_revision_date }}

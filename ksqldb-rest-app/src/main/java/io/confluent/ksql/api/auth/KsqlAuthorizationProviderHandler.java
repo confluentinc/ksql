@@ -71,7 +71,7 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
       return;
     }
     if (!(user instanceof ApiUser)) {
-      throw new IllegalStateException("Not an ApiUser");
+      throw new IllegalStateException("Not an ApiUser: " + user);
     }
     final ApiUser apiUser = (ApiUser) user;
     try {

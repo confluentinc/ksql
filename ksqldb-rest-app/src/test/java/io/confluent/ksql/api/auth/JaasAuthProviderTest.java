@@ -220,9 +220,9 @@ public class JaasAuthProviderTest {
     assertThat(result.succeeded(), is(true));
     assertThat(result.result(), instanceOf(JaasUser.class));
     final JaasUser user = (JaasUser) result.result();
-    assertThat(user.principal(), is(
-        new JsonObject().put("username", USERNAME).put("authorized", isAuthorized)
-    ));
+    assertThat(user.getPrincipal(), instanceOf(ApiPrincipal.class));
+    final ApiPrincipal apiPrincipal = (ApiPrincipal) user.getPrincipal();
+    assertThat(apiPrincipal.getName(), is(USERNAME));
   }
 
   private void verifyLoginFailure(final String expectedMsg) {

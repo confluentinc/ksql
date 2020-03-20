@@ -44,7 +44,7 @@ public class KsqlPlanSchemaTest {
         "Detected a change to the schema of the KSQL physical plan. This is dangerous. "
             + "It means that KSQL may no longer be able to read and execute older plans. "
             + "If you're sure that your change is backwards-compatible, then please regenerate "
-            + "the schema using KsqlPlanSchemaGenerator and update schema.json.",
+            + "the schema.json by running KsqlPlanSchemaTest.runMeToRegenerateSchemaFile().",
         jsonSchema,
         is(expected)
     );

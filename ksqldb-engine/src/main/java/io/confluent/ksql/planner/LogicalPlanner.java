@@ -31,6 +31,7 @@ import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
@@ -552,16 +553,25 @@ public class LogicalPlanner {
       return sourceSchema;
     }
 
-    final ExpressionTypeManager typeManager =
-        new ExpressionTypeManager(sourceSchema, functionRegistry);
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
+      final ExpressionTypeManager expressionTypeManager =
+          new ExpressionTypeManager(sourceSchema, functionRegistry);
 
-    final SqlType keyType = typeManager.getExpressionSqlType(partitionBy);
+      final SqlType keyType = expressionTypeManager
+          .getExpressionSqlType(partitionBy);
 
-    return LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
-        .valueColumns(sourceSchema.value())
-        .build();
+      return LogicalSchema.builder()
+          .withRowTime()
+          .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
+          .valueColumns(sourceSchema.value())
+          .build();
+    }
+
+    return PartitionByParamsFactory.buildSchema(
+        sourceSchema,
+        partitionBy,
+        functionRegistry
+    );
   }
 
   private static boolean exactlyMatchesKeyColumns(

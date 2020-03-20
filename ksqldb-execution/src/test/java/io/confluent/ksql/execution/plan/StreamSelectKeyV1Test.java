@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -23,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class StreamSelectKeyTest {
+public class StreamSelectKeyV1Test {
   @Mock
   private ExecutionStepPropertiesV1 properties1;
   @Mock
@@ -42,10 +43,10 @@ public class StreamSelectKeyTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new StreamSelectKey(properties1, source1, expression1),
-            new StreamSelectKey(properties1, source1, expression1))
-        .addEqualityGroup(new StreamSelectKey(properties2, source1, expression1))
-        .addEqualityGroup(new StreamSelectKey(properties1, source2, expression1))
-        .addEqualityGroup(new StreamSelectKey(properties1, source1, expression2));
+            new StreamSelectKeyV1(properties1, source1, expression1),
+            new StreamSelectKeyV1(properties1, source1, expression1))
+        .addEqualityGroup(new StreamSelectKeyV1(properties2, source1, expression1))
+        .addEqualityGroup(new StreamSelectKeyV1(properties1, source2, expression1))
+        .addEqualityGroup(new StreamSelectKeyV1(properties1, source1, expression2));
   }
 }

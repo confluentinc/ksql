@@ -52,14 +52,14 @@ public final class Errors {
 
   public static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
 
-  public static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
-      toErrorCode(SERVICE_UNAVAILABLE.getStatusCode());
-
   public static final int ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 1;
 
   public static final int ERROR_CODE_SERVER_NOT_READY =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 2;
+
+  public static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
+      toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 3;
 
   public static final int ERROR_CODE_SERVER_ERROR =
       toErrorCode(INTERNAL_SERVER_ERROR.getStatusCode());

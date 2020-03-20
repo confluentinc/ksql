@@ -30,20 +30,13 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
-import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
-import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import java.util.Collections;
-import java.util.function.Function;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -115,40 +108,26 @@ public class SelectValueMapperTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldWriteProcessingLogOnError() {
     // Given:
     when(col0.getExpression()).thenReturn(
         new FunctionCall(FunctionName.of("kumquat"), ImmutableList.of())
     );
-    when(col0.evaluate(any())).thenThrow(new RuntimeException("oops"));
+    final RuntimeException e = new RuntimeException("oops");
+    when(col0.evaluate(any())).thenThrow(e);
+
+    final GenericRow row = genericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo");
 
     // When:
-    transformer.transform(
-        KEY,
-        GenericRow.genericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"),
-        ctx
-    );
+    transformer.transform(KEY, row, ctx);
 
     // Then:
-    final ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor
-        = ArgumentCaptor.forClass(Function.class);
-    verify(processingLogger).error(captor.capture());
-    final SchemaAndValue schemaAndValue = captor.getValue().apply(
-        new ProcessingLogConfig(Collections.emptyMap()));
-    assertThat(schemaAndValue.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
-    final Struct struct = (Struct) schemaAndValue.value();
-    assertThat(
-        struct.get(ProcessingLogMessageSchema.TYPE),
-        equalTo(MessageType.RECORD_PROCESSING_ERROR.ordinal()));
-    final Struct errorStruct
-        = struct.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
-    assertThat(
-        errorStruct.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
-        equalTo(
-            "Error computing expression kumquat() "
-                + "for column apple with index 0: oops")
-    );
+    verify(processingLogger).error(RecordProcessingError.recordProcessingError(
+        "Error computing expression kumquat() "
+            + "for column apple with index 0: oops",
+        e,
+        row
+    ));
   }
 
   private void givenEvaluations(final Object result0, final Object result1, final Object result2) {

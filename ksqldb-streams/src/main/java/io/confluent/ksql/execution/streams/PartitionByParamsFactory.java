@@ -20,12 +20,12 @@ import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
@@ -39,6 +39,26 @@ import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 
+/**
+ * Factory for PartitionByParams.
+ *
+ * <p>Behaviour differs slightly depending on whether PARTITIONing BY a column reference or some
+ * other expression:
+ *
+ * <p>When PARTITIONing BY a column reference the existing key column(s) are moved into the value
+ * schema and the new key column is moved to the key, e.g. logically {@code A => B, C}, when
+ * {@code PARTITION BY B}, becomes {@code B => C, A}.  However, processing schemas contain a copy of
+ * the key columns in the value, so actually {@code A => B, C, A} becomes {@code B => B, C, A}:
+ * Note: the value columns does not need to change.
+ *
+ * <p>When PARTITIONing BY any other type of expression no column can be removed from the logical
+ * schema's value columns. The PARTITION BY expression is creating a <i>new</i> column. Hence, the
+ * existing key column(s) are moved to the value schema and a <i>new</i> key column is added, e.g.
+ * logically {@code A => B, C}, when {@code PARTITION BY exp}, becomes {@code KSQL_COL_0 => B, C, A}
+ * However, processing schemas contain a copy of the key columns in the value, so actually {@code
+ * A => B, C, A} becomes {@code KSQL_COL_0 => B, C, A, KSQL_COL_0}. Note: the value column only has
+ * the new key column added.
+ */
 public final class PartitionByParamsFactory {
 
   private PartitionByParamsFactory() {
@@ -174,7 +194,7 @@ public final class PartitionByParamsFactory {
             + " : "
             + e.getMessage();
 
-        logger.error(EngineProcessingLogMessageFactory.recordProcessingError(errorMsg, e, row));
+        logger.error(RecordProcessingError.recordProcessingError(errorMsg, e, row));
         return null;
       }
     };

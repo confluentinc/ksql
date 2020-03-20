@@ -86,7 +86,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:0.7.0
+    image: confluentinc/ksqldb-server:{{ site.release }}
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -115,7 +115,7 @@ services:
       - ./confluent-hub-components/confluentinc-kafka-connect-jdbc:/usr/share/kafka/plugins/jdbc
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:0.7.0
+    image: confluentinc/ksqldb-cli:{{ site.release }}
     container_name: ksqldb-cli
     depends_on:
       - broker
@@ -142,7 +142,7 @@ included in the `ksqlDB-server` Docker image.
 
 To download the JDBC connector, use the following command:
 ```bash
-docker run -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.7.0 confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:{{ site.cprelease }}
+docker run -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:{{ site.cprelease }}
 ```
 This command downloads the JDBC connector into the directory `./confluent-hub-components`.
 

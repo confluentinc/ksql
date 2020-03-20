@@ -37,9 +37,7 @@ import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -97,11 +95,9 @@ public class StreamSelectBuilderTest {
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
-  private ProcessingLogContext processingLogContext;
-  @Mock
-  private ProcessingLoggerFactory processingLoggerFactory;
-  @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
+  @Mock
+  private ProcessingLogger processingLogger;
   @Captor
   private ArgumentCaptor<Named> nameCaptor;
 
@@ -118,11 +114,9 @@ public class StreamSelectBuilderTest {
   public void setup() {
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(properties.getQueryContext()).thenReturn(context);
-    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger(any())).thenReturn(mock(ProcessingLogger.class));
     when(queryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(queryBuilder.getFunctionRegistry()).thenReturn(mock(FunctionRegistry.class));
-    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(
         sourceKStream.transformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
@@ -190,6 +184,6 @@ public class StreamSelectBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(processingLoggerFactory).getLogger("qid.foo.bar");
+    verify(queryBuilder).getProcessingLogger(context);
   }
 }

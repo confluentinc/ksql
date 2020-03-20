@@ -12,5 +12,3 @@ Functions
 - [Aggregate Functions](aggregate-functions.md)
 - [Scalar Functions](scalar-functions.md)
 - [Table Functions](table-functions.md)
-
-Page last revised on: {{ git_revision_date }}

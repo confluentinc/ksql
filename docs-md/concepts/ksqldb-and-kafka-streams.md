@@ -124,4 +124,3 @@ Next Steps
 -   [ksqlDB Developer Guide](../developer-guide/index.md)
 -   [Streams Developer Guide](https://docs.confluent.io/current/streams/developer-guide/index.html)
 
-Page last revised on: {{ git_revision_date }}

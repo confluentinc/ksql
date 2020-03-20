@@ -156,7 +156,7 @@ if these ordering guarantees are acceptable.
 !!! important
       If the PARTITION BY expression evaluates to NULL, the resulting row is produced to a
       random partition. You many want to use [COALESCE](../syntax-reference#coalesce) to wrap
-      the expression convert any NULL values to a default value, e.g.
+      the expression and convert any NULL values to a default value, for example,
       `PARTITION BY COALESCE(MY_UDF_THAT_MAY_FAIL(Col0), 0)`.
 
 For example, if you need to re-partition a stream to be keyed by a `product_id`

@@ -1,6 +1,58 @@
 {
   "tests": [
     {
+      "name": "matching columns in both sides = select *",
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = R.A;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
+        {"topic": "RIGHT", "key": 0, "value": {"B": -1, "C": -2}, "timestamp": 11}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 10, "R_ROWTIME": 11, "L_A": 0, "R_A": 0, "L_B": 1, "R_B": -1, "L_C": 2, "R_C": -2}, "timestamp":  11}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "A INT KEY, L_ROWTIME BIGINT, L_A INT, L_B INT, L_C INT, R_ROWTIME BIGINT, R_A INT, R_B INT, R_C INT"}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "matching columns in both sides = select left.* and right.*",
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT l.*, r.* FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = R.A;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
+        {"topic": "RIGHT", "key": 0, "value": {"B": -1, "C": -2}, "timestamp": 11}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 10, "R_ROWTIME": 11, "L_A": 0, "R_A": 0, "L_B": 1, "R_B": -1, "L_C": 2, "R_C": -2}, "timestamp":  11}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "A INT KEY, L_ROWTIME BIGINT, L_A INT, L_B INT, L_C INT, R_ROWTIME BIGINT, R_A INT, R_B INT, R_C INT"}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
       "name": "stream-stream left join",
       "format": ["AVRO", "JSON"],
       "statements": [
@@ -104,7 +156,7 @@
       }
     },
     {
-      "name": "stream-stream left join with rowkey - rekey",
+      "name": "stream-stream left join with key in projection - rekey",
       "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
@@ -135,12 +187,12 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "schema": "ROWKEY BIGINT KEY, T_ID BIGINT, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, T_ID BIGINT, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
         ]
       }
     },
     {
-      "name": "stream-stream left join with rowkey - rekey",
+      "name": "stream-stream left join with key in projection - rekey",
       "format": ["PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
@@ -171,7 +223,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "schema": "ROWKEY BIGINT KEY, T_ID BIGINT, T_K STRING, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, T_ID BIGINT, T_K STRING, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
         ]
       }
     },
@@ -223,7 +275,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "schema": "ROWKEY BIGINT KEY, T_ID BIGINT, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, T_ID BIGINT, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
         ]
       }
     },
@@ -275,7 +327,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "schema": "ROWKEY BIGINT KEY, T_ID BIGINT, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, T_ID BIGINT, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
         ]
       }
     },
@@ -1216,7 +1268,7 @@
         {"topic": "right_topic", "key": 1, "value": {"x": 3}, "timestamp": 10}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition", "key": 1, "value": {"TT_X": 3, "TT_ROWTIME": 10, "TT_ID": 1}, "timestamp": 10},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition", "key": 1, "value": {"TT_X": 3, "TT_ROWTIME": 10, "TT_ID": 1, "TT_KSQL_COL_0": 1}, "timestamp": 10},
         {"topic": "OUTPUT", "key": 1, "value": {"T_X": 2}, "timestamp": 10}
       ]
     },
@@ -1236,6 +1288,25 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"L_X": 2}, "timestamp": 11}
+      ]
+    },
+    {
+      "name": "stream-stream join on expression where schema contains KSQL_COL_xx column names",
+      "statements": [
+        "CREATE STREAM TEST1 (KSQL_COL_0 bigint KEY, KSQL_COL_2 bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (KSQL_COL_1 int KEY, KSQL_COL_3 int) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT t.KSQL_COL_2 FROM test1 t JOIN test2 tt WITHIN 30 seconds ON t.KSQL_COL_0 = CAST(tt.KSQL_COL_1 AS BIGINT);"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"KSQL_COL_2": 2}, "timestamp": 10},
+        {"topic": "right_topic", "key": 1, "value": {"KSQL_COL_3": 3}, "timestamp": 10}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition", "key": 1, "value": {"TT_KSQL_COL_3": 3, "TT_ROWTIME": 10, "TT_KSQL_COL_1": 1, "TT_KSQL_COL_4": 1}, "timestamp": 10},
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_2": 2}, "timestamp": 10}
       ]
     },
     {
@@ -1420,7 +1491,7 @@
             "name": "OUTPUT",
             "type": "stream",
             "keyFormat": {"format": "KAFKA"},
-            "schema": "ROWKEY BIGINT KEY, S_ROWTIME BIGINT, S_K STRING, S_SF BIGINT, T_ROWTIME BIGINT, T_ID BIGINT, T_TF INT"
+            "schema": "SF BIGINT KEY, S_ROWTIME BIGINT, S_K STRING, S_SF BIGINT, T_ROWTIME BIGINT, T_ID BIGINT, T_TF INT"
           }
         ]
       }
@@ -1460,7 +1531,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, L_ID STRING, L1 INT, R1 INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "L0 INT KEY, L_ID STRING, L1 INT, R1 INT"}
         ]
       }
     },
@@ -1484,7 +1555,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY BIGINT KEY, L_ID STRING, L1 INT, R1 INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "L0 BIGINT KEY, L_ID STRING, L1 INT, R1 INT"}
         ]
       }
     },
@@ -1508,7 +1579,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY DOUBLE KEY, L_ID STRING, L1 INT, R1 INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "L0 DOUBLE KEY, L_ID STRING, L1 INT, R1 INT"}
         ]
       }
     },
@@ -1532,7 +1603,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, L_ID STRING, L1 INT, R1 INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "L0 STRING KEY, L_ID STRING, L1 INT, R1 INT"}
         ]
       }
     },
@@ -1640,7 +1711,7 @@
       }
     },
     {
-      "name": "windowed vand non-windowed - INT",
+      "name": "windowed and non-windowed - INT",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, V bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='SESSION');",
         "CREATE STREAM S2 (ID INT KEY, V bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -3525,6 +3596,21 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1}, "timestamp": 11}
+      ]
+    },
+    {
+      "name": "stream stream join - contains CAST double to int - reversed",
+      "statements": [
+        "CREATE STREAM L (ID DOUBLE) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM R (ID INT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT L.ID FROM L JOIN R WITHIN 30 seconds ON CAST(L.id AS INT) = R.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "value": {"id": 1.0}, "timestamp": 10},
+        {"topic": "right_topic", "value": {"id": 1}, "timestamp": 11}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1.0}, "timestamp": 11}
       ]
     },
     {

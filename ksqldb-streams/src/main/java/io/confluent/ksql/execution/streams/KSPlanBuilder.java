@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
@@ -135,7 +136,16 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public KStreamHolder<Struct> visitStreamSelectKey(
-      final StreamSelectKey streamSelectKey) {
+      final StreamSelectKeyV1 streamSelectKey
+  ) {
+    final KStreamHolder<?> source = streamSelectKey.getSource().build(this);
+    return StreamSelectKeyBuilderV1.build(source, streamSelectKey, queryBuilder);
+  }
+
+  @Override
+  public KStreamHolder<Struct> visitStreamSelectKey(
+      final StreamSelectKey streamSelectKey
+  ) {
     final KStreamHolder<?> source = streamSelectKey.getSource().build(this);
     return StreamSelectKeyBuilder.build(source, streamSelectKey, queryBuilder);
   }

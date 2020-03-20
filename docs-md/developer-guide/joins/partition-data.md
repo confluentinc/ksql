@@ -154,7 +154,7 @@ Otherwise, Kafka is likely to interleave messages. The use case will determine
 if these ordering guarantees are acceptable.
 
 !!! important
-      If the PARTITION BY expression evaluates to NULL the resulting row will be produced to a
+      If the PARTITION BY expression evaluates to NULL, the resulting row is produced to a
       random partition. You many want to use [COALESCE](../syntax-reference#coalesce) to wrap
       the expression convert any NULL values to a default value, e.g.
       `PARTITION BY COALESCE(MY_UDF_THAT_MAY_FAIL(Col0), 0)`.

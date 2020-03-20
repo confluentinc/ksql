@@ -44,9 +44,10 @@ public class DeserializationError implements ProcessingLogger.ErrorMessage {
 
   @Override
   public SchemaAndValue get(final ProcessingLogConfig config) {
-    final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
-    struct.put(ProcessingLogMessageSchema.TYPE, MessageType.DESERIALIZATION_ERROR.getTypeId());
-    struct.put(ProcessingLogMessageSchema.DESERIALIZATION_ERROR, deserializationError(config));
+    final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA)
+        .put(ProcessingLogMessageSchema.TYPE, MessageType.DESERIALIZATION_ERROR.getTypeId())
+        .put(ProcessingLogMessageSchema.DESERIALIZATION_ERROR, deserializationError(config));
+
     return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
   }
 
@@ -70,20 +71,18 @@ public class DeserializationError implements ProcessingLogger.ErrorMessage {
   }
 
   private Struct deserializationError(final ProcessingLogConfig config) {
-    final Struct deserializationError = new Struct(MessageType.DESERIALIZATION_ERROR.getSchema());
-    deserializationError.put(
-        ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE,
-        exception.getMessage());
-
-    deserializationError.put(
-        ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_CAUSE,
-        getCause()
-    );
-
-    deserializationError.put(
-        ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TOPIC,
-        topic
-    );
+    final Struct deserializationError = new Struct(MessageType.DESERIALIZATION_ERROR.getSchema())
+        .put(
+            ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE,
+            exception.getMessage())
+        .put(
+            ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_CAUSE,
+            getCause()
+        )
+        .put(
+            ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TOPIC,
+            topic
+        );
 
     if (config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
       deserializationError.put(

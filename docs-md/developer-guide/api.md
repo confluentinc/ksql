@@ -92,5 +92,3 @@ Content-Type: application/json
 
 Some endpoints may include additional fields that provide more context
 for handling the error.
-
-Page last revised on: {{ git_revision_date }}

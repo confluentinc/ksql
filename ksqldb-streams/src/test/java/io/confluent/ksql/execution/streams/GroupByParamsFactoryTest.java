@@ -215,4 +215,68 @@ public class GroupByParamsFactoryTest {
         )
     );
   }
+
+  @Test
+  public void shouldReturnNullIfExpressionThrowsInSingle() {
+    // Given:
+    when(groupBy0.evaluate(any())).thenThrow(new RuntimeException("Boom"));
+
+    // When:
+    final Struct result = singleParams.getMapper().apply(value);
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldLogProcessingErrorIfExpressionThrowsInSingle() {
+    // Given
+    final RuntimeException e = new RuntimeException("Bap");
+    when(groupBy0.evaluate(any())).thenThrow(e);
+
+    // When:
+    singleParams.getMapper().apply(value);
+
+    // Then:
+    verify(logger).error(
+        RecordProcessingError.recordProcessingError(
+            "Error calculating group-by column with index 0. "
+                + "The source row will be excluded from the table: Bap",
+            e,
+            value
+        )
+    );
+  }
+
+  @Test
+  public void shouldReturnNullExpressionThrowsInMulti() {
+    // Given:
+    when(groupBy0.evaluate(any())).thenThrow(new RuntimeException("Boom"));
+
+    // When:
+    final Struct result = multiParams.getMapper().apply(value);
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldLogProcessingErrorIfExpressionThrowsInMulti() {
+    // Given
+    final RuntimeException e = new RuntimeException("Bap");
+    when(groupBy0.evaluate(any())).thenThrow(e);
+
+    // When:
+    multiParams.getMapper().apply(value);
+
+    // Then:
+    verify(logger).error(
+        RecordProcessingError.recordProcessingError(
+            "Error calculating group-by column with index 0. "
+                + "The source row will be excluded from the table: Bap",
+            e,
+            value
+        )
+    );
+  }
 }

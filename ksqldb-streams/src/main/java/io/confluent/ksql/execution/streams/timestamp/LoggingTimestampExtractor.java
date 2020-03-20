@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
@@ -50,13 +51,8 @@ public class LoggingTimestampExtractor implements KsqlTimestampExtractor {
   public long extract(final ConsumerRecord<Object, Object> record, final long previousTimestamp) {
     try {
       return delegate.extract(record, previousTimestamp);
-    } catch (final Exception e) {
-      logger.error(RecordProcessingError.recordProcessingError(
-          "Failed to extract timestamp from record", e, record.value()::toString));
-      if (failOnError) {
-        throw e;
-      }
-      return -1L;
+    } catch (final RuntimeException e) {
+      return handleFailure(record.value(), e);
     }
   }
 
@@ -64,18 +60,27 @@ public class LoggingTimestampExtractor implements KsqlTimestampExtractor {
   public long extract(final GenericRow row) {
     try {
       return delegate.extract(row);
-    } catch (final Exception e) {
-      logger.error(RecordProcessingError.recordProcessingError(
-          "Failed to extract timestamp from row", e, row::toString));
-      if (failOnError) {
-        throw e;
-      }
-      return -1L;
+    } catch (final RuntimeException e) {
+      return handleFailure(row, e);
+
     }
   }
 
   @VisibleForTesting
   TimestampExtractor getDelegate() {
     return delegate;
+  }
+
+  private long handleFailure(final Object value, final RuntimeException e) {
+    final Object safeValue = ObjectUtils.defaultIfNull(value, "null");
+
+    logger.error(RecordProcessingError
+        .recordProcessingError("Failed to extract timestamp from row", e, safeValue::toString));
+
+    if (failOnError) {
+      throw e;
+    }
+
+    return -1L;
   }
 }

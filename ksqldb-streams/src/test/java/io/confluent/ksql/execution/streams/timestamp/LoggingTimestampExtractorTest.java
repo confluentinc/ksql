@@ -15,47 +15,67 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.util.KsqlException;
-import org.junit.Assert;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LoggingTimestampExtractorTest {
 
+  private static final long PREVIOUS_TS = 1001L;
+
+  private static final GenericRow ROW = GenericRow.fromList(ImmutableList.of(1, 2, 3));
+
   @Mock
   private ProcessingLogger logger;
 
   @Mock
-  private GenericRow row;
+  private ConsumerRecord<Object, Object> record;
+
+  @Before
+  public void setUp() {
+    when(record.value()).thenReturn(ROW);
+  }
 
   @Test
-  public void shouldLogExceptionsAndNotFail() {
+  public void shouldLogExceptionsAndNotFailOnExtractFromRow() {
     // Given:
+    final KsqlException e = new KsqlException("foo");
     final LoggingTimestampExtractor extractor = new LoggingTimestampExtractor(
         (rec) -> {
-          throw new KsqlException("foo");
+          throw e;
         },
         logger,
         false
     );
 
     // When:
-    extractor.extract(row);
+    final long result = extractor.extract(ROW);
 
     // Then (did not throw):
-    Mockito.verify(logger).error(any());
+    verify(logger).error(RecordProcessingError
+        .recordProcessingError("Failed to extract timestamp from row", e, ROW::toString));
+
+    assertThat(result, is(-1L));
   }
 
   @Test
-  public void shouldLogExceptionsAndFail() {
+  public void shouldLogExceptionsAndFailOnExtractFromRow() {
     // Given:
     final LoggingTimestampExtractor extractor = new LoggingTimestampExtractor(
         (rec) -> {
@@ -66,14 +86,77 @@ public class LoggingTimestampExtractorTest {
     );
 
     // When/Then:
-    try {
-      extractor.extract(row);
-    } catch (final Exception e) {
-      Mockito.verify(logger).error(any());
-      return;
-    }
+    assertThrows(
+        KsqlException.class,
+        () -> extractor.extract(ROW)
+    );
 
-    Assert.fail("Expected error!");
+    verify(logger).error(any());
   }
 
+  @Test
+  public void shouldLogExceptionsAndNotFailOnExtractFromRecord() {
+    // Given:
+    final KsqlException e = new KsqlException("foo");
+    final LoggingTimestampExtractor extractor = new LoggingTimestampExtractor(
+        (rec) -> {
+          throw e;
+        },
+        logger,
+        false
+    );
+
+    // When:
+    final long result = extractor.extract(record, PREVIOUS_TS);
+
+    // Then (did not throw):
+    verify(logger).error(RecordProcessingError
+        .recordProcessingError("Failed to extract timestamp from row", e, ROW::toString));
+
+    assertThat(result, is(-1L));
+  }
+
+  @Test
+  public void shouldLogExceptionsAndFailOnExtractFromRecord() {
+    // Given:
+    final LoggingTimestampExtractor extractor = new LoggingTimestampExtractor(
+        (rec) -> {
+          throw new KsqlException("foo");
+        },
+        logger,
+        true
+    );
+
+    // When/Then:
+    assertThrows(
+        KsqlException.class,
+        () -> extractor.extract(record, PREVIOUS_TS)
+    );
+
+    verify(logger).error(any());
+  }
+
+  @Test
+  public void shouldLogExceptionsAndNotFailOnExtractFromRecordWithNullValue() {
+    // Given:
+    when(record.value()).thenReturn(null);
+
+    final KsqlException e = new KsqlException("foo");
+    final LoggingTimestampExtractor extractor = new LoggingTimestampExtractor(
+        (rec) -> {
+          throw e;
+        },
+        logger,
+        false
+    );
+
+    // When:
+    final long result = extractor.extract(record, PREVIOUS_TS);
+
+    // Then (did not throw):
+    verify(logger).error(RecordProcessingError
+        .recordProcessingError("Failed to extract timestamp from row", e, () -> "null"));
+
+    assertThat(result, is(-1L));
+  }
 }

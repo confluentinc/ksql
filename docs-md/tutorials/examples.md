@@ -414,4 +414,3 @@ EOF
     options (SET statement). Other statements and commands such as `SHOW TOPICS`
     and `SHOW STREAMS` are ignored.
 
-Page last revised on: {{ git_revision_date }}

@@ -58,7 +58,7 @@ public class ServerVerticle extends AbstractVerticle {
       .of("/query-stream", "/inserts-stream", "/close-query", "/ksql");
 
   // Quick switch so we can easily revert to not serving ported endpoints directly
-  private static final boolean SERVE_PORTED_ENDPOINTS = false;
+  private static final boolean SERVE_PORTED_ENDPOINTS = true;
 
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;

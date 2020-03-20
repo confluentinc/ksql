@@ -36,12 +36,12 @@
     "topic" : "OUTPUT",
     "key" : "",
     "value" : {
-      "BOOLEAN_LEN" : 0,
-      "INT_LEN" : 0,
-      "BIGINT_LEN" : 0,
-      "DOUBLE_LEN" : 0,
-      "STRING_LEN" : 0,
-      "DECIMAL_LEN" : 0
+      "BOOLEAN_LEN" : null,
+      "INT_LEN" : null,
+      "BIGINT_LEN" : null,
+      "DOUBLE_LEN" : null,
+      "STRING_LEN" : null,
+      "DECIMAL_LEN" : null
     }
   } ]
 }

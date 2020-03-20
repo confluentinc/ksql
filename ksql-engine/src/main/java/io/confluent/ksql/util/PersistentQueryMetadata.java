@@ -103,4 +103,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
   public DataSource.DataSourceSerDe getResultTopicSerde() {
     return resultTopic.getKsqlTopicSerDe().getSerDe();
   }
+
+  @Override
+  public void stop() {
+    doClose(false);
+  }
 }

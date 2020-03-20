@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static java.util.Collections.emptyMap;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -719,6 +720,39 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     // Then:
     verify(mockParser, mockEngine, mockQuery);
+  }
+
+  @Test
+  public void shouldDoIdempotentTerminate() {
+    // Given:
+    final String queryStatement = "a persistent query";
+
+    final TerminateQuery terminate = mock(TerminateQuery.class);
+    expect(terminate.getQueryId()).andStubReturn(new QueryId("foo"));
+
+    expect(mockParser.parseSingleStatement(queryStatement))
+        .andStubReturn(PreparedStatement.of(queryStatement, terminate));
+
+    final PersistentQueryMetadata query = mock(PersistentQueryMetadata.class);
+    query.close();
+    expectLastCall();
+
+    expect(mockEngine.getPersistentQuery(new QueryId("foo"))).andReturn(Optional.of(query)).once();
+    expect(mockEngine.getPersistentQuery(new QueryId("foo"))).andReturn(Optional.empty()).once();
+
+    replayAll();
+    final QueuedCommand cmd = new QueuedCommand(
+        new CommandId(Type.TERMINATE, "-", Action.EXECUTE),
+        new Command(queryStatement, emptyMap(), emptyMap()),
+        Optional.empty()
+    );
+
+    // When:
+    statementExecutorWithMocks.handleStatement(cmd);
+    statementExecutorWithMocks.handleStatement(cmd);
+
+    // Then should not throw
+    verify(mockParser, mockEngine);
   }
 
   private void createStreamsAndStartTwoPersistentQueries() {

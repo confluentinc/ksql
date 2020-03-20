@@ -24,7 +24,9 @@ import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 
@@ -48,6 +50,15 @@ public final class StreamSelectKeyBuilder {
         sourceSchema
     );
 
+    final ProcessingLogger processingLogger = queryBuilder
+        .getProcessingLogger(selectKey.getProperties().getQueryContext());
+
+    final String errorMsg = "Error extracting new key using expression "
+        + selectKey.getKeyExpression();
+
+    final Function<GenericRow, Object> evaluator = val -> expression
+        .evaluate(val, null, processingLogger, () -> errorMsg);
+
     final LogicalSchema resultSchema = new StepSchemaResolver(queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry()).resolve(selectKey, sourceSchema);
 
@@ -55,8 +66,8 @@ public final class StreamSelectKeyBuilder {
 
     final KStream<?, GenericRow> kstream = stream.getStream();
     final KStream<Struct, GenericRow> rekeyed = kstream
-        .filter((key, val) -> val != null && expression.evaluate(val) != null) // Todo(ac):
-        .selectKey((key, val) -> keyBuilder.build(expression.evaluate(val))); // Todo(ac):
+        .filter((key, val) -> val != null && evaluator.apply(val) != null)
+        .selectKey((key, val) -> keyBuilder.build(evaluator.apply(val)));
 
     return new KStreamHolder<>(
         rekeyed,

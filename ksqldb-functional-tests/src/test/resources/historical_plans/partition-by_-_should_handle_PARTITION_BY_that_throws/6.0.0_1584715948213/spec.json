@@ -1,0 +1,43 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584715948213,
+  "schemas" : {
+    "CSAS_REPARTITIONED_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, SHOULDTHROW BOOLEAN> NOT NULL",
+    "CSAS_REPARTITIONED_0.REPARTITIONED" : "STRUCT<ID BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "a",
+    "value" : {
+      "ID" : 1,
+      "shouldThrow" : false
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "b",
+    "value" : {
+      "ID" : 2,
+      "shouldThrow" : true
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "c",
+    "value" : {
+      "ID" : 3,
+      "shouldThrow" : false
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "REPARTITIONED",
+    "key" : 0,
+    "value" : {
+      "ID" : 1
+    }
+  }, {
+    "topic" : "REPARTITIONED",
+    "key" : 0,
+    "value" : {
+      "ID" : 3
+    }
+  } ]
+}

@@ -440,10 +440,9 @@ complex type are not inspected. The behaviour is the same: the first non-null el
 IFNULL
 ------
 
-`IFNULL(col1, retval)`
+`IFNULL(expression, altValue)`
 
-If the provided VARCHAR is NULL, return `retval`, otherwise, return `col1`.
-Only VARCHAR values are supported for the input. The return value must be a VARCHAR.
+If the provided `expression` is NULL, returns `altValue`, otherwise, returns `expression`.
 
 Date and Time
 =============

@@ -64,7 +64,7 @@ public final class PartitionByParamsFactory {
     final LogicalSchema resultSchema =
         buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCol);
 
-    final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
         buildMapper(resultSchema, partitionByCol, evaluator);
 
     return new PartitionByParams(resultSchema, mapper);
@@ -125,7 +125,7 @@ public final class PartitionByParamsFactory {
     return Optional.of(column);
   }
 
-  private static BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> buildMapper(
+  private static BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> buildMapper(
       final LogicalSchema resultSchema,
       final Optional<Column> partitionByCol,
       final Function<GenericRow, Object> evaluator

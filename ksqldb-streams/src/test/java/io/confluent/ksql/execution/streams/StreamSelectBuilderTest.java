@@ -103,8 +103,6 @@ public class StreamSelectBuilderTest {
   @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
   @Captor
-  private ArgumentCaptor<ValueTransformerWithKeySupplier<Struct, GenericRow, GenericRow>> mapperCaptor;
-  @Captor
   private ArgumentCaptor<Named> nameCaptor;
 
   @Rule

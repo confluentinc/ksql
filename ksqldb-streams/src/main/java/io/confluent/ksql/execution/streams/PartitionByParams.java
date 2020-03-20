@@ -26,11 +26,11 @@ import org.apache.kafka.streams.KeyValue;
 public final class PartitionByParams {
 
   private final LogicalSchema schema;
-  private final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper;
+  private final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper;
 
   public PartitionByParams(
       final LogicalSchema schema,
-      final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper
+      final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper
   ) {
     this.schema = requireNonNull(schema, "schema");
     this.mapper = requireNonNull(mapper, "mapper");
@@ -40,7 +40,7 @@ public final class PartitionByParams {
     return schema;
   }
 
-  public BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> getMapper() {
+  public BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> getMapper() {
     return mapper;
   }
 }

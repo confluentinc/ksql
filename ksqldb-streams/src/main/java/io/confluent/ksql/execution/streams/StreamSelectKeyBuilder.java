@@ -15,14 +15,18 @@
 
 package io.confluent.ksql.execution.streams;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
@@ -34,18 +38,27 @@ public final class StreamSelectKeyBuilder {
   private StreamSelectKeyBuilder() {
   }
 
-  @SuppressWarnings("unchecked")
   public static KStreamHolder<Struct> build(
       final KStreamHolder<?> stream,
       final StreamSelectKey selectKey,
       final KsqlQueryBuilder queryBuilder
+  ) {
+    return build(stream, selectKey, queryBuilder, PartitionByParamsFactory::build);
+  }
+
+  @VisibleForTesting
+  static KStreamHolder<Struct> build(
+      final KStreamHolder<?> stream,
+      final StreamSelectKey selectKey,
+      final KsqlQueryBuilder queryBuilder,
+      final PartitionByParamsBuilder paramsBuilder
   ) {
     final LogicalSchema sourceSchema = stream.getSchema();
     final QueryContext queryContext = selectKey.getProperties().getQueryContext();
 
     final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
 
-    final PartitionByParams params = PartitionByParamsFactory.build(
+    final PartitionByParams params = paramsBuilder.build(
         sourceSchema,
         selectKey.getKeyExpression(),
         queryBuilder.getKsqlConfig(),
@@ -53,10 +66,9 @@ public final class StreamSelectKeyBuilder {
         logger
     );
 
-    final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper = params.getMapper();
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper = params.getMapper();
 
-    // This cast is safe because selectKey is not allowed on windowed streams:
-    final KStream<Struct, GenericRow> kStream = (KStream<Struct, GenericRow>) stream.getStream();
+    final KStream<?, GenericRow> kStream = stream.getStream();
 
     final KStream<Struct, GenericRow> reKeyed = kStream
         .map(mapper::apply, Named.as(queryContext.formatContext() + "-SelectKey"));
@@ -65,6 +77,17 @@ public final class StreamSelectKeyBuilder {
         reKeyed,
         params.getSchema(),
         KeySerdeFactory.unwindowed(queryBuilder)
+    );
+  }
+
+  interface PartitionByParamsBuilder {
+
+    PartitionByParams build(
+        LogicalSchema sourceSchema,
+        Expression partitionBy,
+        KsqlConfig ksqlConfig,
+        FunctionRegistry functionRegistry,
+        ProcessingLogger logger
     );
   }
 }

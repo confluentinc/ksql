@@ -176,7 +176,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldLogOnErrorExtractingNewKey() {
     // Given:
-    final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
         partitionBy(FAILING_UDF).getMapper();
 
     // When:
@@ -189,7 +189,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldPartitionByNullAnyRowsWhereFailedToExtractKey() {
     // Given:
-    final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
         partitionBy(FAILING_UDF).getMapper();
 
     // When:
@@ -205,7 +205,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldSetNewKey() {
     // Given:
-    final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
         partitionBy(new UnqualifiedColumnReferenceExp(COL1)).getMapper();
 
     // When:
@@ -219,7 +219,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldNotChangeValueIfPartitioningByColumnReference() {
     // Given:
-    final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
         partitionBy(new UnqualifiedColumnReferenceExp(COL1)).getMapper();
 
     final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
@@ -234,7 +234,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldAppendNewKeyColumnToValueIfNotPartitioningByColumnReference() {
     // Given:
-    final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
         partitionBy(new FunctionCall(
             CONSTANT_UDF_NAME,
             ImmutableList.of(new UnqualifiedColumnReferenceExp(COL1)))

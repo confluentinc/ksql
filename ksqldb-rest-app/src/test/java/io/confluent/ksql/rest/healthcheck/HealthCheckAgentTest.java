@@ -90,7 +90,7 @@ public class HealthCheckAgentTest {
     when(serviceContext.getAdminClient()).thenReturn(adminClient);
 
     final DescribeTopicsResult topicsResult = mock(DescribeTopicsResult.class);
-    when(adminClient.describeTopics(any())).thenReturn(topicsResult);
+    when(adminClient.describeTopics(any(), any())).thenReturn(topicsResult);
     when(topicsResult.all()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
 
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
@@ -130,7 +130,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnUnhealthyIfKafkaCheckFails() {
     // Given:
-    doThrow(KafkaResponseGetFailedException.class).when(adminClient).describeTopics(any());
+    doThrow(KafkaResponseGetFailedException.class).when(adminClient).describeTopics(any(), any());
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
@@ -143,7 +143,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnHealthyIfKafkaCheckFailsWithAuthorizationException() {
     // Given:
-    doThrow(KsqlTopicAuthorizationException.class).when(adminClient).describeTopics(any());
+    doThrow(KsqlTopicAuthorizationException.class).when(adminClient).describeTopics(any(), any());
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();

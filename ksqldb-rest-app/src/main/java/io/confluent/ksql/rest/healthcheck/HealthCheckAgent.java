@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 
 public class HealthCheckAgent {
 
@@ -103,6 +104,8 @@ public class HealthCheckAgent {
   }
 
   private static class KafkaBrokerCheck implements Check {
+    private static final int DESCRIBE_TOPICS_TIMEOUT_MS = 30000;
+
     private final String name;
 
     KafkaBrokerCheck(final String name) {
@@ -123,7 +126,8 @@ public class HealthCheckAgent {
       try {
         healthCheckAgent.serviceContext
             .getAdminClient()
-            .describeTopics(Collections.singletonList(commandTopic))
+            .describeTopics(Collections.singletonList(commandTopic),
+                new DescribeTopicsOptions().timeoutMs(DESCRIBE_TOPICS_TIMEOUT_MS))
             .all()
             .get();
 

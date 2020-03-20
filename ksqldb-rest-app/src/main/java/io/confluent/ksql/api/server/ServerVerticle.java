@@ -17,8 +17,8 @@ package io.confluent.ksql.api.server;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.ApiServerConfig;
-import io.confluent.ksql.api.auth.AuthPluginHandler;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
+import io.confluent.ksql.api.auth.AuthenticationPluginHandler;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
@@ -150,7 +150,7 @@ public class ServerVerticle extends AbstractVerticle {
       if (authenticationPlugin.isPresent()) {
         // Authentication plugin has precedence
         routeToNonProxiedEndpoints(router,
-            new AuthPluginHandler(server, authenticationPlugin.get()));
+            new AuthenticationPluginHandler(server, authenticationPlugin.get()));
       } else {
         // Otherwise use user-configured JAAS auth handler
         routeToNonProxiedEndpoints(router, authHandler.get());

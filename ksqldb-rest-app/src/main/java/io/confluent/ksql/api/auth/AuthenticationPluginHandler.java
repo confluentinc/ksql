@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.auth;
 
+import io.confluent.ksql.api.server.ErrorCodes;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -25,12 +27,12 @@ import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
 import java.util.concurrent.CompletableFuture;
 
-public class AuthPluginHandler implements Handler<RoutingContext> {
+public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   private final Server server;
   private final AuthenticationPlugin securityHandlerPlugin;
 
-  public AuthPluginHandler(final Server server,
+  public AuthenticationPluginHandler(final Server server,
       final AuthenticationPlugin securityHandlerPlugin) {
     this.server = server;
     this.securityHandlerPlugin = securityHandlerPlugin;
@@ -43,12 +45,14 @@ public class AuthPluginHandler implements Handler<RoutingContext> {
     cf.thenAccept(principal -> {
       if (principal == null) {
         // Not authenticated
-        // Do nothing, response is already ended by the plugin
+        routingContext.fail(401, new KsqlApiException("Failed authentication",
+            ErrorCodes.ERROR_FAILED_AUTHENTICATION));
       } else {
         routingContext.setUser(new AuthPluginUser(principal));
         routingContext.next();
       }
     }).exceptionally(t -> {
+      // An internal error occurred
       routingContext.fail(t);
       return null;
     });

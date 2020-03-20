@@ -17,7 +17,6 @@ package io.confluent.ksql.logging.processing;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -45,10 +44,7 @@ public final class LoggingDeserializer<T> implements Deserializer<T> {
     try {
       return delegate.deserialize(topic, bytes);
     } catch (final RuntimeException e) {
-      processingLogger.error(
-          SerdeProcessingLogMessageFactory.deserializationErrorMsg(
-              e, Optional.ofNullable(bytes), topic)
-      );
+      processingLogger.error(new DeserializationError(e, Optional.ofNullable(bytes), topic));
       throw e;
     }
   }

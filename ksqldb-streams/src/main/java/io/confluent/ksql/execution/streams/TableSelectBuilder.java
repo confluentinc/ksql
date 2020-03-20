@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
@@ -52,15 +51,7 @@ public final class TableSelectBuilder {
 
     final SelectValueMapper<K> selectMapper = selection.getMapper();
 
-    final ProcessingLogger logger = queryBuilder
-        .getProcessingLogContext()
-        .getLoggerFactory()
-        .getLogger(
-            QueryLoggerUtil.queryLoggerName(
-                queryBuilder.getQueryId(),
-                queryContext
-            )
-        );
+    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
 
     final Named selectName = Named.as(StreamsUtil.buildOpName(queryContext));
 

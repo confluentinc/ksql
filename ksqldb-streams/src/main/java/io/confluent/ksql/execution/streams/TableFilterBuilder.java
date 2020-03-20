@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
@@ -58,14 +57,7 @@ public final class TableFilterBuilder {
     );
 
     final ProcessingLogger processingLogger = queryBuilder
-        .getProcessingLogContext()
-        .getLoggerFactory()
-        .getLogger(
-            QueryLoggerUtil.queryLoggerName(
-                queryBuilder.getQueryId(),
-                step.getProperties().getQueryContext()
-            )
-        );
+        .getProcessingLogger(step.getProperties().getQueryContext());
 
     final Stacker stacker = Stacker.of(step.getProperties().getQueryContext());
     final KTable<K, GenericRow> filtered = table.getTable()

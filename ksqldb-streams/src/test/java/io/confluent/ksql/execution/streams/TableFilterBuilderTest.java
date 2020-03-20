@@ -24,9 +24,7 @@
  import io.confluent.ksql.execution.transform.KsqlTransformer;
  import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
  import io.confluent.ksql.function.FunctionRegistry;
- import io.confluent.ksql.logging.processing.ProcessingLogContext;
  import io.confluent.ksql.logging.processing.ProcessingLogger;
- import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
  import io.confluent.ksql.query.QueryId;
  import io.confluent.ksql.schema.ksql.LogicalSchema;
  import io.confluent.ksql.util.KsqlConfig;
@@ -54,10 +52,6 @@ public class TableFilterBuilderTest {
   private KsqlTransformer<Struct, Optional<GenericRow>> preTransformer;
   @Mock
   private KsqlQueryBuilder queryBuilder;
-  @Mock
-  private ProcessingLogContext processingLogContext;
-  @Mock
-  private ProcessingLoggerFactory processingLoggerFactory;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
@@ -110,9 +104,7 @@ public class TableFilterBuilderTest {
     when(queryBuilder.getQueryId()).thenReturn(new QueryId("foo"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
+    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceKTable.transformValues(any(), any(Named.class))).thenReturn((KTable)preKTable);
     when(preKTable.filter(any(), any(Named.class))).thenReturn((KTable)filteredKTable);
@@ -173,7 +165,7 @@ public class TableFilterBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(processingLoggerFactory).getLogger("foo.bar");
+    verify(queryBuilder).getProcessingLogger(queryContext);
   }
 
   @Test

@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
@@ -56,14 +55,7 @@ public final class StreamFilterBuilder {
     );
 
     final ProcessingLogger processingLogger = queryBuilder
-        .getProcessingLogContext()
-        .getLoggerFactory()
-        .getLogger(
-            QueryLoggerUtil.queryLoggerName(
-                queryBuilder.getQueryId(),
-                step.getProperties().getQueryContext()
-            )
-        );
+        .getProcessingLogger(step.getProperties().getQueryContext());
 
     final KStream<K, GenericRow> filtered = stream.getStream()
         .flatTransformValues(

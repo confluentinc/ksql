@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -32,11 +33,8 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -44,7 +42,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Arrays;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -67,8 +64,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SinkBuilderTest {
+
   private static final String TOPIC = "TOPIC";
-  private static final QueryId QUERY_ID = new QueryId("QUERY_ID");
   private static final String QUERY_CONTEXT_NAME = "TIMESTAMP-TRANSFORM";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
@@ -104,17 +101,11 @@ public class SinkBuilderTest {
 
   @Before
   public void setup() {
-    when(queryBuilder.getQueryId()).thenReturn(QUERY_ID);
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
-
-    final ProcessingLogContext processingLogContext = mock(ProcessingLogContext.class);
-    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-    final ProcessingLoggerFactory processingLoggerFactory = mock(ProcessingLoggerFactory.class);
-    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger(anyString())).thenReturn(processingLogger);
-
-    when(queryContext.getContext()).thenReturn(Arrays.asList(QUERY_CONTEXT_NAME));
+    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(queryContext.getContext()).thenReturn(ImmutableList.of(QUERY_CONTEXT_NAME));
   }
 
   @Test

@@ -13,12 +13,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.util;
+package io.confluent.ksql.logging.processing;
 
 import io.confluent.common.logging.LogRecordStructBuilder;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
-import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.services.KafkaTopicClient;

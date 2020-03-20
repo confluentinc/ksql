@@ -19,15 +19,14 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -108,19 +107,7 @@ public final class SinkBuilder {
         .map(c -> sourceSchema.findValueColumn(c).orElseThrow(IllegalStateException::new))
         .map(Column::index)
         .map(timestampPolicy::create)
-        .map(te -> new TransformTimestamp<>(
-            te,
-            queryBuilder
-                .getProcessingLogContext()
-                .getLoggerFactory()
-                .getLogger(
-                    QueryLoggerUtil.queryLoggerName(
-                        queryBuilder.getQueryId(),
-                        queryContext
-                    )
-                )
-            )
-        );
+        .map(te -> new TransformTimestamp<>(te, queryBuilder.getProcessingLogger(queryContext)));
   }
 
   static class TransformTimestamp<K>
@@ -156,7 +143,7 @@ public final class SinkBuilder {
             );
           } catch (final Exception e) {
             processingLogger.error(
-                EngineProcessingLogMessageFactory
+                RecordProcessingError
                     .recordProcessingError("Error writing row with extracted timestamp: "
                         + e.getMessage(), e, row)
             );

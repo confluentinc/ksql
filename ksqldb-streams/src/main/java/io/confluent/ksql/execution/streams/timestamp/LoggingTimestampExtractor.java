@@ -15,19 +15,14 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
-import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.util.ErrorMessageUtil;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 /**
@@ -47,8 +42,8 @@ public class LoggingTimestampExtractor implements KsqlTimestampExtractor {
       final ProcessingLogger logger,
       final boolean failOnError
   ) {
-    this.delegate = Objects.requireNonNull(delegate, "delegate");
-    this.logger = Objects.requireNonNull(logger, "logger");
+    this.delegate = requireNonNull(delegate, "delegate");
+    this.logger = requireNonNull(logger, "logger");
     this.failOnError = failOnError;
   }
 
@@ -56,12 +51,8 @@ public class LoggingTimestampExtractor implements KsqlTimestampExtractor {
   public long extract(final ConsumerRecord<Object, Object> record, final long previousTimestamp) {
     try {
       return delegate.extract(record, previousTimestamp);
-    } catch (final Exception e) {
-      logger.error(timestampExtractErroMsg(e, record.value().toString()));
-      if (failOnError) {
-        throw e;
-      }
-      return -1L;
+    } catch (final RuntimeException e) {
+      return handleFailure(record.value(), e);
     }
   }
 
@@ -69,12 +60,9 @@ public class LoggingTimestampExtractor implements KsqlTimestampExtractor {
   public long extract(final GenericRow row) {
     try {
       return delegate.extract(row);
-    } catch (final Exception e) {
-      logger.error(timestampExtractErroMsg(e, row.toString()));
-      if (failOnError) {
-        throw e;
-      }
-      return -1L;
+    } catch (final RuntimeException e) {
+      return handleFailure(row, e);
+
     }
   }
 
@@ -83,25 +71,16 @@ public class LoggingTimestampExtractor implements KsqlTimestampExtractor {
     return delegate;
   }
 
-  public Function<ProcessingLogConfig, SchemaAndValue> timestampExtractErroMsg(
-      final Exception e,
-      final String row
-  ) {
-    return config -> {
-      final Struct message = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
-      final Struct error = new Struct(MessageType.RECORD_PROCESSING_ERROR.getSchema());
+  private long handleFailure(final Object value, final RuntimeException e) {
+    final Object safeValue = ObjectUtils.defaultIfNull(value, "null");
 
-      error.put(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE, e.getMessage());
+    logger.error(RecordProcessingError
+        .recordProcessingError("Failed to extract timestamp from row", e, safeValue::toString));
 
-      if (config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
-        error.put(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD, row.toString());
-      }
+    if (failOnError) {
+      throw e;
+    }
 
-      final List<String> cause = ErrorMessageUtil.getErrorMessages(e);
-      cause.remove(0);
-      error.put(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE, cause);
-
-      return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, message);
-    };
+    return -1L;
   }
 }

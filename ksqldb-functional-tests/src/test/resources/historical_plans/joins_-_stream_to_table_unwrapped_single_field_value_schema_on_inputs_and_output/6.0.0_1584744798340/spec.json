@@ -1,0 +1,42 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584744798340,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "BIGINT",
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "BIGINT",
+    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S_ID BIGINT, S_ROWKEY VARCHAR, S_ROWTIME BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "BIGINT"
+  },
+  "inputs" : [ {
+    "topic" : "T",
+    "key" : "0",
+    "value" : 2,
+    "timestamp" : 0
+  }, {
+    "topic" : "S",
+    "key" : "0",
+    "value" : 1,
+    "timestamp" : 10
+  }, {
+    "topic" : "S",
+    "key" : "0",
+    "value" : null,
+    "timestamp" : 20
+  }, {
+    "topic" : "T",
+    "key" : "0",
+    "value" : null,
+    "timestamp" : 30
+  }, {
+    "topic" : "S",
+    "key" : "0",
+    "value" : null,
+    "timestamp" : 40
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : 1,
+    "timestamp" : 10
+  } ]
+}

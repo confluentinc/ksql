@@ -1,0 +1,62 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584744799528,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S1_ID BIGINT, S1_ROWKEY INT, S1_WINDOWSTART BIGINT, S1_WINDOWEND BIGINT, S1_ROWTIME BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<S2_ID BIGINT, S2_ROWKEY INT, S2_WINDOWSTART BIGINT, S2_WINDOWEND BIGINT, S2_ROWTIME BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S1_ID BIGINT, S2_ID BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "left_topic",
+    "key" : 1,
+    "value" : {
+      "ID" : 1
+    },
+    "timestamp" : 765,
+    "window" : {
+      "start" : 234,
+      "end" : 765,
+      "type" : "SESSION"
+    }
+  }, {
+    "topic" : "right_topic",
+    "key" : 1,
+    "value" : {
+      "ID" : 2
+    },
+    "timestamp" : 567,
+    "window" : {
+      "start" : 234,
+      "end" : 567,
+      "type" : "SESSION"
+    }
+  }, {
+    "topic" : "right_topic",
+    "key" : 1,
+    "value" : {
+      "ID" : 3
+    },
+    "timestamp" : 765,
+    "window" : {
+      "start" : 234,
+      "end" : 765,
+      "type" : "SESSION"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : {
+      "S1_ID" : 1,
+      "S2_ID" : 3
+    },
+    "timestamp" : 765,
+    "window" : {
+      "start" : 234,
+      "end" : 765,
+      "type" : "SESSION"
+    }
+  } ]
+}

@@ -1,0 +1,118 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584744794304,
+  "schemas" : {
+    "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.Join.Left" : "STRUCT<T_ID BIGINT, T_NAME VARCHAR, T_VALUE BIGINT, T_ROWKEY BIGINT, T_ROWTIME BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.Join.Right" : "STRUCT<TT_ID BIGINT, TT_F1 VARCHAR, TT_F2 BIGINT, TT_ROWKEY BIGINT, TT_ROWTIME BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.INNER_JOIN" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "NAME" : "zero",
+      "VALUE" : 0
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "right_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "F1" : "blah",
+      "F2" : 50
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "left_topic",
+    "key" : 10,
+    "value" : {
+      "ID" : 10,
+      "NAME" : "100",
+      "VALUE" : 5
+    },
+    "timestamp" : 11000
+  }, {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "NAME" : "foo",
+      "VALUE" : 100
+    },
+    "timestamp" : 13000
+  }, {
+    "topic" : "right_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "F1" : "a",
+      "F2" : 10
+    },
+    "timestamp" : 15000
+  }, {
+    "topic" : "right_topic",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "F1" : "newblah",
+      "F2" : 150
+    },
+    "timestamp" : 16000
+  }, {
+    "topic" : "left_topic",
+    "key" : 90,
+    "value" : {
+      "ID" : 90,
+      "NAME" : "ninety",
+      "VALUE" : 90
+    },
+    "timestamp" : 17000
+  }, {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "NAME" : "bar",
+      "VALUE" : 99
+    },
+    "timestamp" : 30000
+  } ],
+  "outputs" : [ {
+    "topic" : "INNER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "zero",
+      "VALUE" : 0,
+      "F1" : "blah",
+      "F2" : 50
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "INNER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "foo",
+      "VALUE" : 100,
+      "F1" : "blah",
+      "F2" : 50
+    },
+    "timestamp" : 13000
+  }, {
+    "topic" : "INNER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "foo",
+      "VALUE" : 100,
+      "F1" : "a",
+      "F2" : 10
+    },
+    "timestamp" : 15000
+  } ]
+}

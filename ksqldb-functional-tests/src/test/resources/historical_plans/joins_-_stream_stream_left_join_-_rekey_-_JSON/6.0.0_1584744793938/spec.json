@@ -1,0 +1,378 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584744793938,
+  "schemas" : {
+    "CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
+    "CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
+    "CSAS_LEFT_OUTER_JOIN_0.Join.Left" : "STRUCT<T_ID BIGINT, T_NAME VARCHAR, T_VALUE BIGINT, T_ROWKEY VARCHAR, T_ROWTIME BIGINT> NOT NULL",
+    "CSAS_LEFT_OUTER_JOIN_0.Join.Right" : "STRUCT<TT_ID BIGINT, TT_F1 VARCHAR, TT_F2 BIGINT, TT_ROWKEY VARCHAR, TT_ROWTIME BIGINT> NOT NULL",
+    "CSAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "left_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 0,
+      "NAME" : "zero",
+      "VALUE" : 0
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "right_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 0,
+      "F1" : "blah",
+      "F2" : 50
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "left_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 10,
+      "NAME" : "100",
+      "VALUE" : 5
+    },
+    "timestamp" : 11000
+  }, {
+    "topic" : "left_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 0,
+      "NAME" : "foo",
+      "VALUE" : 100
+    },
+    "timestamp" : 13000
+  }, {
+    "topic" : "right_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 0,
+      "F1" : "a",
+      "F2" : 10
+    },
+    "timestamp" : 15000
+  }, {
+    "topic" : "right_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 100,
+      "F1" : "newblah",
+      "F2" : 150
+    },
+    "timestamp" : 16000
+  }, {
+    "topic" : "left_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 90,
+      "NAME" : "ninety",
+      "VALUE" : 90
+    },
+    "timestamp" : 17000
+  }, {
+    "topic" : "left_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 0,
+      "NAME" : "bar",
+      "VALUE" : 99
+    },
+    "timestamp" : 30000
+  } ],
+  "outputs" : [ {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition",
+    "key" : 0,
+    "value" : {
+      "T_ROWTIME" : 0,
+      "T_ROWKEY" : "",
+      "T_ID" : 0,
+      "T_NAME" : "zero",
+      "T_VALUE" : 0
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition",
+    "key" : 0,
+    "value" : {
+      "TT_ROWTIME" : 10000,
+      "TT_ROWKEY" : "",
+      "TT_ID" : 0,
+      "TT_F1" : "blah",
+      "TT_F2" : 50
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition",
+    "key" : 10,
+    "value" : {
+      "T_ROWTIME" : 11000,
+      "T_ROWKEY" : "",
+      "T_ID" : 10,
+      "T_NAME" : "100",
+      "T_VALUE" : 5
+    },
+    "timestamp" : 11000
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition",
+    "key" : 0,
+    "value" : {
+      "T_ROWTIME" : 13000,
+      "T_ROWKEY" : "",
+      "T_ID" : 0,
+      "T_NAME" : "foo",
+      "T_VALUE" : 100
+    },
+    "timestamp" : 13000
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition",
+    "key" : 0,
+    "value" : {
+      "TT_ROWTIME" : 15000,
+      "TT_ROWKEY" : "",
+      "TT_ID" : 0,
+      "TT_F1" : "a",
+      "TT_F2" : 10
+    },
+    "timestamp" : 15000
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition",
+    "key" : 100,
+    "value" : {
+      "TT_ROWTIME" : 16000,
+      "TT_ROWKEY" : "",
+      "TT_ID" : 100,
+      "TT_F1" : "newblah",
+      "TT_F2" : 150
+    },
+    "timestamp" : 16000
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition",
+    "key" : 90,
+    "value" : {
+      "T_ROWTIME" : 17000,
+      "T_ROWKEY" : "",
+      "T_ID" : 90,
+      "T_NAME" : "ninety",
+      "T_VALUE" : 90
+    },
+    "timestamp" : 17000
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition",
+    "key" : 0,
+    "value" : {
+      "T_ROWTIME" : 30000,
+      "T_ROWKEY" : "",
+      "T_ID" : 0,
+      "T_NAME" : "bar",
+      "T_VALUE" : 99
+    },
+    "timestamp" : 30000
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog",
+    "key" : 0,
+    "value" : {
+      "T_ROWTIME" : 0,
+      "T_ROWKEY" : "",
+      "T_ID" : 0,
+      "T_NAME" : "zero",
+      "T_VALUE" : 0
+    },
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 11000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog",
+    "key" : 0,
+    "value" : {
+      "TT_ROWTIME" : 10000,
+      "TT_ROWKEY" : "",
+      "TT_ID" : 0,
+      "TT_F1" : "blah",
+      "TT_F2" : 50
+    },
+    "timestamp" : 10000,
+    "window" : {
+      "start" : 10000,
+      "end" : 21000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog",
+    "key" : 10,
+    "value" : {
+      "T_ROWTIME" : 11000,
+      "T_ROWKEY" : "",
+      "T_ID" : 10,
+      "T_NAME" : "100",
+      "T_VALUE" : 5
+    },
+    "timestamp" : 11000,
+    "window" : {
+      "start" : 11000,
+      "end" : 22000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog",
+    "key" : 0,
+    "value" : {
+      "T_ROWTIME" : 13000,
+      "T_ROWKEY" : "",
+      "T_ID" : 0,
+      "T_NAME" : "foo",
+      "T_VALUE" : 100
+    },
+    "timestamp" : 13000,
+    "window" : {
+      "start" : 13000,
+      "end" : 24000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog",
+    "key" : 0,
+    "value" : {
+      "TT_ROWTIME" : 15000,
+      "TT_ROWKEY" : "",
+      "TT_ID" : 0,
+      "TT_F1" : "a",
+      "TT_F2" : 10
+    },
+    "timestamp" : 15000,
+    "window" : {
+      "start" : 15000,
+      "end" : 26000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog",
+    "key" : 100,
+    "value" : {
+      "TT_ROWTIME" : 16000,
+      "TT_ROWKEY" : "",
+      "TT_ID" : 100,
+      "TT_F1" : "newblah",
+      "TT_F2" : 150
+    },
+    "timestamp" : 16000,
+    "window" : {
+      "start" : 16000,
+      "end" : 27000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog",
+    "key" : 90,
+    "value" : {
+      "T_ROWTIME" : 17000,
+      "T_ROWKEY" : "",
+      "T_ID" : 90,
+      "T_NAME" : "ninety",
+      "T_VALUE" : 90
+    },
+    "timestamp" : 17000,
+    "window" : {
+      "start" : 17000,
+      "end" : 28000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog",
+    "key" : 0,
+    "value" : {
+      "T_ROWTIME" : 30000,
+      "T_ROWKEY" : "",
+      "T_ID" : 0,
+      "T_NAME" : "bar",
+      "T_VALUE" : 99
+    },
+    "timestamp" : 30000,
+    "window" : {
+      "start" : 30000,
+      "end" : 41000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "LEFT_OUTER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "zero",
+      "VALUE" : 0,
+      "F1" : null,
+      "F2" : null
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "LEFT_OUTER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "zero",
+      "VALUE" : 0,
+      "F1" : "blah",
+      "F2" : 50
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "LEFT_OUTER_JOIN",
+    "key" : 10,
+    "value" : {
+      "T_ID" : 10,
+      "NAME" : "100",
+      "VALUE" : 5,
+      "F1" : null,
+      "F2" : null
+    },
+    "timestamp" : 11000
+  }, {
+    "topic" : "LEFT_OUTER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "foo",
+      "VALUE" : 100,
+      "F1" : "blah",
+      "F2" : 50
+    },
+    "timestamp" : 13000
+  }, {
+    "topic" : "LEFT_OUTER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "foo",
+      "VALUE" : 100,
+      "F1" : "a",
+      "F2" : 10
+    },
+    "timestamp" : 15000
+  }, {
+    "topic" : "LEFT_OUTER_JOIN",
+    "key" : 90,
+    "value" : {
+      "T_ID" : 90,
+      "NAME" : "ninety",
+      "VALUE" : 90,
+      "F1" : null,
+      "F2" : null
+    },
+    "timestamp" : 17000
+  }, {
+    "topic" : "LEFT_OUTER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "bar",
+      "VALUE" : 99,
+      "F1" : null,
+      "F2" : null
+    },
+    "timestamp" : 30000
+  } ]
+}

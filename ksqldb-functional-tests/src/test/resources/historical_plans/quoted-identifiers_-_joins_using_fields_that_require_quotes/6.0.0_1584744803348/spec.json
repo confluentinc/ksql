@@ -1,0 +1,37 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584744803348,
+  "schemas" : {
+    "CSAS_JOINED_0.KafkaTopic_Right.Source" : "STRUCT<with.dot VARCHAR> NOT NULL",
+    "CSAS_JOINED_0.KafkaTopic_Left.Source" : "STRUCT<SELECT VARCHAR, field! VARCHAR> NOT NULL",
+    "CSAS_JOINED_0.Join.Left" : "STRUCT<L_SELECT VARCHAR, L_field! VARCHAR, L_ROWKEY VARCHAR, L_ROWTIME BIGINT> NOT NULL",
+    "CSAS_JOINED_0.JOINED" : "STRUCT<field! VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "left_topic",
+    "key" : "",
+    "value" : {
+      "SELECT" : "1",
+      "field!" : "A"
+    }
+  }, {
+    "topic" : "right_topic",
+    "key" : "",
+    "value" : {
+      "with.dot" : "1"
+    }
+  }, {
+    "topic" : "right_topic",
+    "key" : "",
+    "value" : {
+      "with.dot" : "2"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "JOINED",
+    "key" : "1",
+    "value" : {
+      "field!" : "A"
+    }
+  } ]
+}

@@ -1,0 +1,264 @@
+{
+  "plan" : [ {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE TABLE T1 (ROWKEY BIGINT KEY, TOTAL INTEGER) WITH (KAFKA_TOPIC='T1', VALUE_FORMAT='AVRO');",
+    "ddlCommand" : {
+      "@type" : "createTableV1",
+      "sourceName" : "T1",
+      "schema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER",
+      "keyField" : null,
+      "timestampColumn" : null,
+      "topicName" : "T1",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "properties" : { }
+        },
+        "valueFormat" : {
+          "format" : "AVRO",
+          "properties" : { }
+        },
+        "options" : [ ]
+      },
+      "windowInfo" : null
+    },
+    "queryPlan" : null
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE TABLE T2 (ROWKEY BIGINT KEY, TOTAL INTEGER) WITH (KAFKA_TOPIC='T2', VALUE_FORMAT='AVRO');",
+    "ddlCommand" : {
+      "@type" : "createTableV1",
+      "sourceName" : "T2",
+      "schema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER",
+      "keyField" : null,
+      "timestampColumn" : null,
+      "topicName" : "T2",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "properties" : { }
+        },
+        "valueFormat" : {
+          "format" : "AVRO",
+          "properties" : { }
+        },
+        "options" : [ ]
+      },
+      "windowInfo" : null
+    },
+    "queryPlan" : null
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE TABLE OUTPUT AS SELECT SUM((T1.TOTAL + (CASE WHEN (T2.TOTAL IS NULL) THEN 0 ELSE T2.TOTAL END))) SUM\nFROM T1 T1\nLEFT OUTER JOIN T2 T2 ON ((T1.ROWKEY = T2.ROWKEY))\nGROUP BY T1.ROWKEY\nHAVING (COUNT(1) > 0)\nEMIT CHANGES",
+    "ddlCommand" : {
+      "@type" : "createTableV1",
+      "sourceName" : "OUTPUT",
+      "schema" : "`ROWKEY` BIGINT KEY, `SUM` INTEGER",
+      "keyField" : null,
+      "timestampColumn" : null,
+      "topicName" : "OUTPUT",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "properties" : { }
+        },
+        "valueFormat" : {
+          "format" : "AVRO",
+          "properties" : { }
+        },
+        "options" : [ ]
+      },
+      "windowInfo" : null
+    },
+    "queryPlan" : {
+      "sources" : [ "T1", "T2" ],
+      "sink" : "OUTPUT",
+      "physicalPlan" : {
+        "@type" : "tableSinkV1",
+        "properties" : {
+          "queryContext" : "OUTPUT"
+        },
+        "source" : {
+          "@type" : "tableSelectV1",
+          "properties" : {
+            "queryContext" : "Aggregate/Project"
+          },
+          "source" : {
+            "@type" : "tableFilterV1",
+            "properties" : {
+              "queryContext" : "Aggregate/HavingFilter"
+            },
+            "source" : {
+              "@type" : "tableAggregateV1",
+              "properties" : {
+                "queryContext" : "Aggregate/Aggregate"
+              },
+              "source" : {
+                "@type" : "tableGroupByV1",
+                "properties" : {
+                  "queryContext" : "Aggregate/GroupBy"
+                },
+                "source" : {
+                  "@type" : "tableSelectV1",
+                  "properties" : {
+                    "queryContext" : "Aggregate/Prepare"
+                  },
+                  "source" : {
+                    "@type" : "tableTableJoinV1",
+                    "properties" : {
+                      "queryContext" : "Join"
+                    },
+                    "joinType" : "LEFT",
+                    "leftSource" : {
+                      "@type" : "tableSelectV1",
+                      "properties" : {
+                        "queryContext" : "PrependAliasLeft"
+                      },
+                      "source" : {
+                        "@type" : "tableSourceV1",
+                        "properties" : {
+                          "queryContext" : "KafkaTopic_Left/Source"
+                        },
+                        "topicName" : "T1",
+                        "formats" : {
+                          "keyFormat" : {
+                            "format" : "KAFKA",
+                            "properties" : { }
+                          },
+                          "valueFormat" : {
+                            "format" : "AVRO",
+                            "properties" : { }
+                          },
+                          "options" : [ ]
+                        },
+                        "timestampColumn" : null,
+                        "sourceSchema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER"
+                      },
+                      "selectExpressions" : [ "TOTAL AS T1_TOTAL", "ROWKEY AS T1_ROWKEY", "ROWTIME AS T1_ROWTIME" ]
+                    },
+                    "rightSource" : {
+                      "@type" : "tableSelectV1",
+                      "properties" : {
+                        "queryContext" : "PrependAliasRight"
+                      },
+                      "source" : {
+                        "@type" : "tableSourceV1",
+                        "properties" : {
+                          "queryContext" : "KafkaTopic_Right/Source"
+                        },
+                        "topicName" : "T2",
+                        "formats" : {
+                          "keyFormat" : {
+                            "format" : "KAFKA",
+                            "properties" : { }
+                          },
+                          "valueFormat" : {
+                            "format" : "AVRO",
+                            "properties" : { }
+                          },
+                          "options" : [ ]
+                        },
+                        "timestampColumn" : null,
+                        "sourceSchema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER"
+                      },
+                      "selectExpressions" : [ "TOTAL AS T2_TOTAL", "ROWKEY AS T2_ROWKEY", "ROWTIME AS T2_ROWTIME" ]
+                    }
+                  },
+                  "selectExpressions" : [ "T1_TOTAL AS KSQL_INTERNAL_COL_0", "T2_TOTAL AS KSQL_INTERNAL_COL_1", "T1_ROWKEY AS KSQL_INTERNAL_COL_2", "(T1_TOTAL + (CASE WHEN (T2_TOTAL IS NULL) THEN 0 ELSE T2_TOTAL END)) AS KSQL_INTERNAL_COL_3", "1 AS KSQL_INTERNAL_COL_4" ]
+                },
+                "internalFormats" : {
+                  "keyFormat" : {
+                    "format" : "KAFKA",
+                    "properties" : { }
+                  },
+                  "valueFormat" : {
+                    "format" : "AVRO",
+                    "properties" : { }
+                  },
+                  "options" : [ ]
+                },
+                "groupByExpressions" : [ "KSQL_INTERNAL_COL_2" ]
+              },
+              "internalFormats" : {
+                "keyFormat" : {
+                  "format" : "KAFKA",
+                  "properties" : { }
+                },
+                "valueFormat" : {
+                  "format" : "AVRO",
+                  "properties" : { }
+                },
+                "options" : [ ]
+              },
+              "nonAggregateColumns" : [ "KSQL_INTERNAL_COL_0", "KSQL_INTERNAL_COL_1", "KSQL_INTERNAL_COL_2" ],
+              "aggregationFunctions" : [ "SUM(KSQL_INTERNAL_COL_3)", "COUNT(KSQL_INTERNAL_COL_4)" ]
+            },
+            "filterExpression" : "(KSQL_AGG_VARIABLE_1 > 0)"
+          },
+          "selectExpressions" : [ "KSQL_AGG_VARIABLE_0 AS SUM" ]
+        },
+        "formats" : {
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "properties" : { }
+          },
+          "valueFormat" : {
+            "format" : "AVRO",
+            "properties" : { }
+          },
+          "options" : [ ]
+        },
+        "topicName" : "OUTPUT",
+        "timestampColumn" : null
+      },
+      "queryId" : "CTAS_OUTPUT_0"
+    }
+  } ],
+  "configs" : {
+    "ksql.extension.dir" : "ext",
+    "ksql.streams.cache.max.bytes.buffering" : "0",
+    "ksql.security.extension.class" : null,
+    "ksql.transient.prefix" : "transient_",
+    "ksql.persistence.wrap.single.values" : "true",
+    "ksql.authorization.cache.expiry.time.secs" : "30",
+    "ksql.schema.registry.url" : "",
+    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+    "ksql.output.topic.name.prefix" : "",
+    "ksql.streams.auto.offset.reset" : "earliest",
+    "ksql.query.pull.enable.standby.reads" : "false",
+    "ksql.connect.url" : "http://localhost:8083",
+    "ksql.service.id" : "some.ksql.service.id",
+    "ksql.internal.topic.min.insync.replicas" : "1",
+    "ksql.streams.shutdown.timeout.ms" : "300000",
+    "ksql.streams.state.dir" : "/var/folders/bz/qnz23q_j6v12b3b_tm9ztv700000gn/T/confluent9051959773499481892",
+    "ksql.internal.topic.replicas" : "1",
+    "ksql.insert.into.values.enabled" : "true",
+    "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",
+    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
+    "ksql.access.validator.enable" : "auto",
+    "ksql.streams.bootstrap.servers" : "localhost:0",
+    "ksql.streams.commit.interval.ms" : "2000",
+    "ksql.metric.reporters" : "",
+    "ksql.query.pull.metrics.enabled" : "false",
+    "ksql.authentication.plugin.class" : null,
+    "ksql.streams.auto.commit.interval.ms" : "0",
+    "ksql.metrics.extension" : null,
+    "ksql.streams.topology.optimization" : "all",
+    "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
+    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.streams.num.stream.threads" : "4",
+    "ksql.timestamp.throw.on.invalid" : "false",
+    "ksql.authorization.cache.max.entries" : "10000",
+    "ksql.metrics.tags.custom" : "",
+    "ksql.pull.queries.enable" : "true",
+    "ksql.udfs.enabled" : "true",
+    "ksql.udf.enable.security.manager" : "true",
+    "ksql.connect.worker.config" : "",
+    "ksql.any.key.name.enabled" : "false",
+    "ksql.sink.window.change.log.additional.retention" : "1000000",
+    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.udf.collect.metrics" : "false",
+    "ksql.persistent.prefix" : "query_",
+    "ksql.query.persistent.active.limit" : "2147483647"
+  }
+}

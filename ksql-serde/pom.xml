@@ -32,6 +32,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-common</artifactId>
+            <version>6.0.0-v0.8.0-6.0.0-SNAPSHOT-1752-hf2</version>
         </dependency>
 
         <dependency>
@@ -41,43 +42,122 @@
 
         <dependency>
             <groupId>io.confluent</groupId>
-            <artifactId>kafka-schema-registry-client</artifactId>
+            <artifactId>common-config</artifactId>
+            <version>5.5.0-20200319.172621-89</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>common-logging</artifactId>
-            <version>${confluent.version}</version>
+            <version>5.5.0-20200319.172627-89</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
-            <artifactId>kafka-connect-avro-converter</artifactId>
+            <artifactId>common-utils</artifactId>
+            <version>5.5.0-20200319.172602-89</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
-            <artifactId>kafka-protobuf-provider</artifactId>
+            <artifactId>confluent-log4j-extensions</artifactId>
+            <version>5.5.0-20200319.172636-89</version>
         </dependency>
 
         <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>kafka-json-schema-provider</artifactId>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-api</artifactId>
+            <version>5.5.0-ccs-20200319.013659-197</version>
         </dependency>
 
         <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>kafka-connect-protobuf-converter</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>kafka-connect-json-schema-converter</artifactId>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-json</artifactId>
+            <version>5.5.0-ccs-20200319.013705-197</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-avro-serializer</artifactId>
+            <version>5.5.0-20200319.235226-213</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>5.5.0-ccs-20200319.013645-198</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-avro-converter</artifactId>
+            <version>5.5.0-20200319.235319-213</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-avro-data</artifactId>
+            <version>5.5.0-20200319.235310-161</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-json-schema-converter</artifactId>
+            <version>5.5.0-20200319.235405-101</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-protobuf-converter</artifactId>
+            <version>5.5.0-20200319.235442-105</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-json-schema-provider</artifactId>
+            <version>5.5.0-20200319.235149-102</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-json-schema-serializer</artifactId>
+            <version>5.5.0-20200319.235351-101</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-json-serializer</artifactId>
+            <version>5.5.0-20200319.235255-213</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-protobuf-provider</artifactId>
+            <version>5.5.0-20200319.235203-106</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-protobuf-serializer</artifactId>
+            <version>5.5.0-20200319.235426-105</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-schema-serializer</artifactId>
+            <version>5.5.0-20200319.235214-111</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-schema-registry-client</artifactId>
+            <version>5.5.0-20200319.235134-213</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-streams</artifactId>
+            <version>5.5.0-ccs-20200319.013652-198</version>
         </dependency>
 
         <!-- Required for running tests -->

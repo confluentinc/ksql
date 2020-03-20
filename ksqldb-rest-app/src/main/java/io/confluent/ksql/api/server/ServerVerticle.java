@@ -149,9 +149,7 @@ public class ServerVerticle extends AbstractVerticle {
     final Optional<AuthHandler> authHandler = getAuthHandler(server);
     final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
     final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
-
-    System.out.println("setting up auth handlers");
-
+    
     if (authHandler.isPresent() || authenticationPlugin.isPresent()) {
       routeToNonProxiedEndpoints(router, ServerVerticle::pauseHandler);
       if (authenticationPlugin.isPresent()) {

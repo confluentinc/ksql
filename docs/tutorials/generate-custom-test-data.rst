@@ -364,4 +364,7 @@ Create the ``impressions2`` persistent streaming query:
 
     CREATE STREAM impressions2 as select * from impressions EMIT CHANGES;
  
+Suggested Resources
+-------------------
 
+- [Easy Ways to Generate Test Data in Kafka](https://www.confluent.io/blog/easy-ways-generate-test-data-kafka/)

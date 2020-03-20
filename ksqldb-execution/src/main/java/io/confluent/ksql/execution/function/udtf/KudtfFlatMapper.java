@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.List;
 @Immutable
 public class KudtfFlatMapper<K> implements KsqlTransformer<K, Iterable<GenericRow>> {
 
+  @EffectivelyImmutable
   private final ProcessingLogger processingLogger;
   private final ImmutableList<TableFunctionApplier> tableFunctionAppliers;
 

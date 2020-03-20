@@ -20,12 +20,12 @@ import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
@@ -202,7 +202,7 @@ public final class PartitionByParamsFactory {
             + " : "
             + e.getMessage();
 
-        logger.error(EngineProcessingLogMessageFactory.recordProcessingError(errorMsg, e, row));
+        logger.error(RecordProcessingError.recordProcessingError(errorMsg, e, row));
         return null;
       }
     };

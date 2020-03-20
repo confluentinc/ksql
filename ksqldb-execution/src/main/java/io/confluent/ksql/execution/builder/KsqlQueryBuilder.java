@@ -101,12 +101,6 @@ public final class KsqlQueryBuilder {
         .getLogger(QueryLoggerUtil.queryLoggerName(queryId, queryContext));
   }
 
-  public ProcessingLogger getProcessingLogger(final QueryContext queryContext) {
-    return processingLogContext
-        .getLoggerFactory()
-        .getLogger(QueryLoggerUtil.queryLoggerName(queryId, queryContext));
-  }
-
   public ServiceContext getServiceContext() {
     return serviceContext;
   }

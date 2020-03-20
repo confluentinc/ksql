@@ -203,7 +203,8 @@ JSON_ARRAY_CONTAINS
 
 Given a `STRING` containing a JSON array, checks if a search value is contained in the array.
 
-Returns false if the first parameter does not contain a json array.
+Returns `false` if the first parameter does not contain a JSON array.
+
 
 
 ARRAY

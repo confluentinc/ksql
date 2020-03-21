@@ -43,14 +43,17 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     final CompletableFuture<Principal> cf = securityHandlerPlugin
         .handleAuth(routingContext, server.getWorkerExecutor());
     cf.thenAccept(principal -> {
-      if (principal == null) {
-        // Not authenticated
-        routingContext.fail(401, new KsqlApiException("Failed authentication",
-            ErrorCodes.ERROR_FAILED_AUTHENTICATION));
-      } else {
-        routingContext.setUser(new AuthPluginUser(principal));
-        routingContext.next();
-      }
+      // Deliberately break things for now
+      routingContext.fail(401, new KsqlApiException("Badgers!!!",
+          ErrorCodes.ERROR_FAILED_AUTHENTICATION));
+      // if (principal == null) {
+      //   // Not authenticated
+      //   routingContext.fail(401, new KsqlApiException("Failed authentication",
+      //       ErrorCodes.ERROR_FAILED_AUTHENTICATION));
+      // } else {
+      //   routingContext.setUser(new AuthPluginUser(principal));
+      //   routingContext.next();
+      // }
     }).exceptionally(t -> {
       // An internal error occurred
       routingContext.fail(t);

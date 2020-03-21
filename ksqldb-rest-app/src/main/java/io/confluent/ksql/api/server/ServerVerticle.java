@@ -16,7 +16,6 @@
 package io.confluent.ksql.api.server;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.AuthenticationPluginHandler;
 import io.confluent.ksql.api.auth.JaasAuthProvider;

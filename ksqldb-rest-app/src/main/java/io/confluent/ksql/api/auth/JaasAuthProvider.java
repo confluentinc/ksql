@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.auth;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -143,7 +144,7 @@ public class JaasAuthProvider implements AuthProvider {
     private boolean authorized;
 
     JaasUser(final String username, final boolean authorized) {
-      this.principal = new ApiPrincipal(Objects.requireNonNull(username));
+      this.principal = new JaasPrincipal(Objects.requireNonNull(username));
       this.authorized = authorized;
     }
 

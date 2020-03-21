@@ -22,7 +22,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Extension point for adding custom authentication.
+ * Extension point for adding custom authentication. E.g. used for custom authentication in
+ * Confluent platform
  */
 public interface AuthenticationPlugin {
 

@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.api.auth.JaasAuthProvider.JaasUser;
 import io.confluent.ksql.api.auth.JaasAuthProvider.LoginContextSupplier;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -220,8 +221,8 @@ public class JaasAuthProviderTest {
     assertThat(result.succeeded(), is(true));
     assertThat(result.result(), instanceOf(JaasUser.class));
     final JaasUser user = (JaasUser) result.result();
-    assertThat(user.getPrincipal(), instanceOf(ApiPrincipal.class));
-    final ApiPrincipal apiPrincipal = (ApiPrincipal) user.getPrincipal();
+    assertThat(user.getPrincipal(), instanceOf(JaasPrincipal.class));
+    final JaasPrincipal apiPrincipal = (JaasPrincipal) user.getPrincipal();
     assertThat(apiPrincipal.getName(), is(USERNAME));
   }
 

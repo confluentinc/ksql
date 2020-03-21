@@ -19,8 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;

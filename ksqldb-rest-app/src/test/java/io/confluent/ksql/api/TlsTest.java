@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api;
 
-import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.client.WebClientOptions;

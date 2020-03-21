@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.auth;
+package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.configdef.ConfigValidators.oneOrMore;
 import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;

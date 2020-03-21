@@ -25,6 +25,10 @@ import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Set;
 
+/**
+ * Handler that calls a KsqlAuthorizationProvider plugin that can be used for custom authorization
+ * (e.g. RBAC in Confluent platform)
+ */
 public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext> {
 
   private static final Set<String> PATHS_WITHOUT_AUTHORIZATION = ImmutableSet

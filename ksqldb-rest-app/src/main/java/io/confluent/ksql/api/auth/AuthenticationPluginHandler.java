@@ -27,6 +27,9 @@ import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Handler that calls any authentication plugin
+ */
 public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   private final Server server;

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -181,7 +182,10 @@ class HighAvailabilityTestUtil {
           .exceptionally(t -> {
             LOG.error("Unexpected exception in async request", t);
             return null;
-          });
+          })
+      .get();
+    } catch (Exception e) {
+      LOG.error("Error waiting on lag report", e);
     }
   }
 }

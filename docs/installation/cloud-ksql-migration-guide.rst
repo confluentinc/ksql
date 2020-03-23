@@ -1,20 +1,20 @@
 .. _cloud-ksql-migration-guide:
 
-Migrate |ccloud| KSQL from the preview version to the publicly available version
-################################################################################
+Migrate |ccloud| KSQL from the preview version to the production-available version
+##################################################################################
 
 To deliver the benefits of new features and improvements as soon as they become
 available, new versions of |ccloud| KSQL are deployed frequently. Most of these
 deployments are invisible to you as a user, requiring no action on your part.
 
-The publicly available version of |ccloud| KSQL is not backward-compatible 
-with the preview version, but after the release of the publicly available
+The production-available version of |ccloud| KSQL is not backward-compatible 
+with the preview version, but after the release of the production-available
 version, we're committed to preserving backward compatibility.
 
 Backward incompatibility comes in various forms, including changes to
 serialization formats, data models, and the SQL syntax. To continue running your
 application from the preview version of KSQL, you may need to migrate your
-workload to an application that's backed by the publicly available version.
+workload to an application that's backed by the production-available version.
 This document provides a simple process to guide you through this migration.
 
 .. note::

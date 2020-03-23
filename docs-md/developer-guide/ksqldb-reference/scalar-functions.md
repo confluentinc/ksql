@@ -13,7 +13,6 @@ keywords: ksqlDB, function, scalar
   - [EXP](#exp)
   - [FLOOR](#floor)
   - [GENERATE_SERIES](#generateseries)
-  - [GENERATE_SERIES](#generateseries-1)
   - [GEO_DISTANCE](#geodistance)
   - [LN](#ln)
   - [RANDOM](#random)
@@ -22,7 +21,7 @@ keywords: ksqlDB, function, scalar
   - [SQRT](#sqrt)
 - [Collections](#collections)
   - [ARRAY_CONTAINS](#arraycontains)
-  - [JSON_ARRAY_CONTAINS](#arraycontains)
+  - [JSON_ARRAY_CONTAINS](#jsonarraycontains)
   - [ARRAY](#array)
   - [MAP](#map)
   - [AS_MAP](#asmap)
@@ -32,7 +31,6 @@ keywords: ksqlDB, function, scalar
 - [Strings](#strings)
   - [CONCAT](#concat)
   - [EXTRACTJSONFIELD](#extractjsonfield)
-  - [IFNULL](#ifnull)
   - [INITCAP](#initcap)
   - [LCASE](#lcase)
   - [LEN](#len)
@@ -42,10 +40,14 @@ keywords: ksqlDB, function, scalar
   - [MASK_LEFT](#maskleft)
   - [MASK_RIGHT](#maskright)
   - [REPLACE](#replace)
+  - [REGEXP_EXTRACT](#regexpextract)
   - [SPLIT](#split)
   - [SUBSTRING](#substring)
   - [TRIM](#trim)
   - [UCASE](#ucase)
+- [Nulls](#nulls)
+  - [COALESCE](#coalesce)
+  - [IFNULL](#ifnull)
 - [Date and Time](#date-and-time)
   - [UNIX_DAT](#unixdat)
   - [UNIX_TIMESTAMP](#unixtimestamp)
@@ -90,7 +92,7 @@ Constructs an array of structs from the entries in a map. Each struct has
 a field named `K` containing the key, which is a string, and a field named
 `V`, which holds the value.
 
-If `sorted` is true, the entries are sorted by key.                                          
+If `sorted` is true, the entries are sorted by key.
 
 EXP
 ---
@@ -110,20 +112,13 @@ GENERATE_SERIES
 ---------------
 
 `GENERATE_SERIES(start, end)`
-
-Constructs an array of values between `start` and `end` (inclusive).       
-Parameters can be `INT` or `BIGINT`.
-
-GENERATE_SERIES
----------------
-
 `GENERATE_SERIES(start, end, step)`
 
-Constructs an array of values between `start` and `end` (inclusive)
-with a specified step size. The step can be positive or negative.      
-Parameters `start` and `end` can be `INT` or `BIGINT`. Parameter `step`
-must be an `INT`.
+Constructs an array of values between `start` and `end` (inclusive).       
+Parameters `start` and `end` can be an `INT` or `BIGINT`.
 
+`step`, if supplied, specifies the step size. The step can be positive or negative.
+If not supplied, `step` defaults to `1`. Parameter `step` must be an `INT`.
 
 GEO_DISTANCE
 ------------
@@ -146,7 +141,7 @@ RANDOM
 
 `RANDOM()`
 
-Return a random DOUBLE value between 0.0 and 1.0.  
+Return a random DOUBLE value between 0.0 and 1.0.
 
 ROUND
 -----
@@ -187,7 +182,7 @@ Collections
 ===========
 
 ARRAY_CONTAINS
--------------
+--------------
 
 `ARRAY_CONTAINS([1, 2, 3], 3)`
 
@@ -196,7 +191,7 @@ Given an array, checks if a search value is contained in the array.
 Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
 
 JSON_ARRAY_CONTAINS
--------------
+-------------------
 
 `JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)`
 
@@ -204,14 +199,19 @@ Given a `STRING` containing a JSON array, checks if a search value is contained 
 
 Returns `false` if the first parameter does not contain a JSON array.
 
+ARRAY
+-----
 
-
-AS_ARRAY
---------
-
-`AS_ARRAY(col1, col2)`
+`ARRAY[col1, col2, ...]`
 
 Construct an array from a variable number of inputs.
+
+MAP
+---
+
+`MAP(key VARCHAR := value, ...)`
+
+Construct a map from specific key-value tuples.
 
 AS_MAP
 ------
@@ -255,36 +255,47 @@ CONCAT
 
 `CONCAT(col1, '_hello')`
 
-Concatenate two strings.
+Concatenate two or more strings.
 
 EXTRACTJSONFIELD
 ----------------
 
 `EXTRACTJSONFIELD(message, '$.log.cloud')`
 
-Given a string column in JSON format, extract the field that matches.
-For example EXTRACTJSONFIELD is necessary in the following JSON:
+Given a STRING that contains JSON data, extract the value at the specified [JSONPath](https://jsonpath.com/).
+
+For example, given a STRING containing the following JSON:
 
 ```json
-{"foo": \"{\"bar\": \"quux\"}\"}
+{
+   "log": {
+      "cloud": "gcp836Csd",
+      "app": "ksProcessor",
+      "instance": 4
+   }
+}
 ```
 
-In cases where the column is really an object but declared as a STRING,
-you can use the `STRUCT` type, which is easier to work with. For example,
-`STRUCT` works in the following case:
+`EXTRACTJSONFIELD(message, '$.log.cloud')` returns the STRING `gcp836Csd`.
 
-```json
-{"foo": {"bar": "quux"}}.
-```
 
-IFNULL
-------
+If the requested JSONPath does not exist, the function returns NULL.
 
-`IFNULL(col1, retval)`
+The result of EXTRACTJSONFIELD is always a STRING. Use `CAST` to convert the result to another
+type. For example, `CAST(EXTRACTJSONFIELD(message, '$.log.instance') AS INT)` will extract the
+instance number from the above JSON object as a INT.
 
-If the provided VARCHAR is NULL, return `retval`, otherwise, return the
-value. Only VARCHAR values are supported for the input. The return value
-must be a VARCHAR.
+!!! note
+    EXTRACTJSONFIELD is useful for extracting data from JSON where either the schema of the JSON
+    data is not static, or where the JSON data is embedded in a row encoded using a different
+    format, for example, a JSON field within an Avro-encoded message.
+
+    If the whole row is encoded as JSON with a known schema or structure, use the `JSON` format and
+
+    define the structure as the source's columns.  For example, a stream of JSON objects similar to
+    the example above could be defined using a statement similar to this:
+
+    `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT, ...) WITH (VALUE_FORMAT=JSON, ...)`
 
 INITCAP
 -------
@@ -329,7 +340,7 @@ all default masks. `MASK("My Test $123", '*', NULL, '1', NULL)` will yield
 MASK_KEEP_LEFT
 --------------
 
-`MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')` 
+`MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')`
 
 Similar to the `MASK` function above, except
 that the first or left-most `numChars`
@@ -362,7 +373,7 @@ will return `Xx-Xest $123`.
 MASK_RIGHT
 ----------
 
-`MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')`  
+`MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')`
 
 Similar to the `MASK` function above, except
 that only the last or right-most `numChars`
@@ -377,6 +388,20 @@ REPLACE
 
 Replace all instances of a substring in a string with a new string.
 
+REGEXP_EXTRACT
+-------
+
+`REGEXP_EXTRACT('.*', col1)`
+`REGEXP_EXTRACT('(([AEIOU]).)', col1, 2)`
+
+Extract the first subtring matched by the regex pattern from the input.
+
+A capturing group number can also be specified in order to return that specific group. If a number isn't specified,
+the entire substring is returned by default.
+
+For example, `REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2)`
+returns "there".
+
 SPLIT
 -----
 
@@ -389,7 +414,7 @@ element in the array. If the delimiter is empty,
 then all characters in the string are split.
 If either, string or delimiter, are NULL, then a
 NULL value is returned.
-                                                  
+
 If the delimiter is found at the beginning or end
 of the string, or there are contiguous delimiters,
 then an empty space is added to the array.
@@ -398,7 +423,7 @@ SUBSTRING
 ---------
 
 `SUBSTRING(col1, 2, 5)`
-`SUBSTRING(str, pos, [len]`
+`SUBSTRING(str, pos, [len])`
 
 Returns a substring of `str` that starts at
 `pos` (first character is at position 1) and
@@ -421,6 +446,27 @@ UCASE
 `UCASE(col1)`
 
 Convert a string to uppercase.
+
+Nulls
+=====
+
+COALESCE
+--------
+
+`COALESCE(a, b, c, d)`
+
+Returns the first non-null parameter. All parameters must be of the same type.
+
+Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
+complex type are not inspected. The behaviour is the same: the first non-null element is returned.
+
+IFNULL
+------
+
+`IFNULL(col1, retval)`
+
+If the provided VARCHAR is NULL, return `retval`, otherwise, return `col1`.
+Only VARCHAR values are supported for the input. The return value must be a VARCHAR.
 
 Date and Time
 =============
@@ -628,5 +674,3 @@ present or `url` is not a valid URI.
     structure of a URI, including definitions of the various components, see
     Section 3 of the RFC. For encoding/decoding, the
     `application/x-www-form-urlencoded` convention is followed.
-
-Page last revised on: {{ git_revision_date }}

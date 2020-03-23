@@ -16,7 +16,9 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.KsqlFunctionException;
 import java.text.ParseException;
@@ -24,16 +26,11 @@ import java.text.SimpleDateFormat;
 import java.util.stream.IntStream;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class StringToTimestampTest {
 
   private StringToTimestamp udf;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -86,23 +83,20 @@ public class StringToTimestampTest {
 
   @Test
   public void shouldThrowIfFormatInvalid() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Unknown pattern letter: i");
-    udf.stringToTimestamp("2021-12-01 12:10:11.123", "invalid");
+    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.stringToTimestamp("2021-12-01 12:10:11.123", "invalid"));
+    assertEquals("Unknown pattern letter: i", e.getMessage());
   }
 
   @Test
   public void shouldThrowIfParseFails() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Text 'invalid' could not be parsed at index 0");
-    udf.stringToTimestamp("invalid", "yyyy-MM-dd'T'HH:mm:ss.SSS");
+    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.stringToTimestamp("invalid", "yyyy-MM-dd'T'HH:mm:ss.SSS"));
+    assertEquals("Text 'invalid' could not be parsed at index 0", e.getMessage());
   }
 
   @Test
   public void shouldThrowOnEmptyString() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Text '' could not be parsed at index 0");
-    udf.stringToTimestamp("", "yyyy-MM-dd'T'HH:mm:ss.SSS");
+    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.stringToTimestamp("", "yyyy-MM-dd'T'HH:mm:ss.SSS"));
+    assertEquals("Text '' could not be parsed at index 0", e.getMessage());
   }
 
   @Test

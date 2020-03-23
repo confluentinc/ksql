@@ -16,8 +16,8 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;

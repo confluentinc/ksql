@@ -22,7 +22,9 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -47,14 +49,9 @@ import java.util.HashMap;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.easymock.EasyMock;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class AvroUtilTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private String ordersAvroSchemaStr = "{"
                      + "\"namespace\": \"kql\","
@@ -98,13 +95,12 @@ public class AvroUtilTest {
 
   @Test
   public void shouldThrowIfAvroSchemaNotCompatibleWithKsql() throws Exception {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+    String expectedMessage =
             "Unable to verify if the Avro schema for topic s1_topic is compatible with KSQL.\n" +
                     "Reason: No name in schema: {\"type\":\"record\"}\n" +
                     "\n" +
                     "Please see https://github.com/confluentinc/ksql/issues/ to see if this particular reason is already\n" +
-                    "known, and if not log a new issue. Please include the full Avro schema that you are trying to use.");
+                    "known, and if not log a new issue. Please include the full Avro schema that you are trying to use.";
 
     final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     final SchemaMetadata schemaMetadata = new SchemaMetadata(1, 1, "{\"type\": \"record\"}");
@@ -115,13 +111,14 @@ public class AvroUtilTest {
          + "(kafka_topic='s1_topic', "
          + "value_format='avro' );");
 
-    AvroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
+    Exception e = assertThrows(KsqlException.class,
+        () -> AvroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient));
+    assertEquals(expectedMessage, e.getMessage());
   }
 
   @Test
   public void shouldNotPassAvroCheckIfSchemaDoesNotExist() throws Exception {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+    String expectedMessage =
             "Avro schema for message values on topic s1_topic does not exist in the Schema Registry.\n" +
                     "Subject: s1_topic-value\n" +
                     "\n" +
@@ -134,7 +131,7 @@ public class AvroUtilTest {
                     "\t-> See https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html\n" +
                     "- The schema is registered on a different instance of the Schema Registry\n" +
                     "\t-> Use the REST API to list available subjects\n\t" +
-                    "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects\n");
+                    "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects\n";
 
     final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     expect(schemaRegistryClient.getLatestSchemaMetadata(anyString()))
@@ -144,7 +141,9 @@ public class AvroUtilTest {
         ("CREATE STREAM S1 WITH "
          + "(kafka_topic='s1_topic', "
          + "value_format='avro' );");
-    AvroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
+    Exception e = assertThrows(KsqlException.class,
+        () -> AvroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient));
+    assertEquals(expectedMessage, e.getMessage());
   }
 
   private PersistentQueryMetadata buildStubPersistentQueryMetadata(final Schema resultSchema,

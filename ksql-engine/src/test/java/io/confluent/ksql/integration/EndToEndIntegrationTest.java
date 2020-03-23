@@ -15,13 +15,13 @@
 package io.confluent.ksql.integration;
 
 import static java.lang.String.format;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;

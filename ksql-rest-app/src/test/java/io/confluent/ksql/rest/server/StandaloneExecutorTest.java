@@ -54,14 +54,15 @@ import java.util.Properties;
 import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.same;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class StandaloneExecutorTest {
@@ -77,8 +78,6 @@ public class StandaloneExecutorTest {
   private QueryMetadata persistentQueryMetadata;
   private VersionCheckerAgent versionCheckerAgent;
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
   private String queriesFile;
 
   @Before
@@ -118,9 +117,8 @@ public class StandaloneExecutorTest {
 
   @Test
   public void shouldFailDropStatement() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Ignoring statements: DROP\n"
-        + "Only DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.");
+    String expectedMessage = "Ignoring statements: DROP\n"
+        + "Only DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.";
 
     EasyMock.expect(engine.parseStatements(anyString()))
         .andReturn(ImmutableList.of(
@@ -134,14 +132,12 @@ public class StandaloneExecutorTest {
 
 
     EasyMock.replay(engine);
-    standaloneExecutor.start();
+    Exception e = assertThrows(KsqlException.class, () -> standaloneExecutor.start());
+    assertEquals(expectedMessage, e.getMessage());
   }
 
   @Test
   public void shouldFailIfNotQueries() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("The SQL file did not contain any queries");
-
     standaloneExecutor =
         new StandaloneExecutor(
             ksqlConfig,
@@ -162,7 +158,8 @@ public class StandaloneExecutorTest {
         .andReturn(Collections.emptyList());
 
     EasyMock.replay(engine);
-    standaloneExecutor.start();
+    Exception e = assertThrows(KsqlException.class, () -> standaloneExecutor.start());
+    assertThat(e.getMessage(), containsString("The SQL file did not contain any queries"));
   }
 
   @Test

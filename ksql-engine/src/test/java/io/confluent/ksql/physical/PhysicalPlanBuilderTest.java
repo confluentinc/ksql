@@ -409,13 +409,13 @@ public class PhysicalPlanBuilderTest {
     final Properties props = calls.get(0).props;
 
     Object val = props.get(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(1));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(0))));
 
     val = props.get(StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     final List<String> producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(1));
     assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(0))));
@@ -494,14 +494,14 @@ public class PhysicalPlanBuilderTest {
     final Properties props = calls.get(0).props;
 
     Object val = props.get(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(2));
     assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(1))));
 
     val = props.get(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(2));
     assertThat(DummyProducerInterceptor.class.getName(), equalTo(producerInterceptors.get(0)));
@@ -525,14 +525,14 @@ public class PhysicalPlanBuilderTest {
     final Properties props = calls.get(0).props;
 
     Object val = props.get(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(2));
     assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(1))));
 
     val = props.get(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     final List<String> producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(2));
     assertThat(DummyProducerInterceptor.class.getName(), equalTo(producerInterceptors.get(0)));
@@ -573,7 +573,7 @@ public class PhysicalPlanBuilderTest {
 
     final Object val = props.get(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(3));
     assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));

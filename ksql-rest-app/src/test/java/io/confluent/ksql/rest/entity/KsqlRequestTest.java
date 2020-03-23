@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
@@ -31,9 +32,8 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-import org.junit.Rule;
+
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("SameParameterValue")
 public class KsqlRequestTest {
@@ -50,9 +50,6 @@ public class KsqlRequestTest {
   );
 
   private static final KsqlRequest A_REQUEST = new KsqlRequest("sql", SOME_PROPS);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldHandleNullStatement() {
@@ -114,12 +111,10 @@ public class KsqlRequestTest {
         SINK_NUMBER_OF_REPLICAS_PROPERTY, "not-parsable"
     ));
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString(SINK_NUMBER_OF_REPLICAS_PROPERTY));
-    expectedException.expectMessage(containsString("not-parsable"));
-
     // When:
-    request.getStreamsProperties();
+    Exception e = assertThrows(KsqlException.class, () -> request.getStreamsProperties());
+    assertThat(e.getMessage(), containsString(SINK_NUMBER_OF_REPLICAS_PROPERTY));
+    assertThat(e.getMessage(), containsString("not-parsable"));
   }
 
   @Test

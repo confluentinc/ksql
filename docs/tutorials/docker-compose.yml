@@ -41,7 +41,7 @@ services:
   ksql-server:
     image: "confluentinc/cp-ksql-server:5.4.0"
     depends_on:
-      - kafkacp-ksqldb-
+      - kafka
       - schema-registry
     environment:
       KSQL_BOOTSTRAP_SERVERS: kafka:39092

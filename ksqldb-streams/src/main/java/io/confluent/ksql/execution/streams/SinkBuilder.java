@@ -142,8 +142,7 @@ public final class SinkBuilder {
                 To.all().withTimestamp(timestampExtractor.extract(row))
             );
           } catch (final Exception e) {
-            processingLogger.error(
-                RecordProcessingError
+            processingLogger.error(RecordProcessingError
                     .recordProcessingError("Error writing row with extracted timestamp: "
                         + e.getMessage(), e, row)
             );

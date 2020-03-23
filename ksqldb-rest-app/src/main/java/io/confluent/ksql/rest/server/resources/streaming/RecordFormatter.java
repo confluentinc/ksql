@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import com.google.protobuf.Message;
 import com.google.protobuf.TextFormat;
@@ -203,6 +204,7 @@ public final class RecordFormatter {
 
     private final String topicName;
     private final List<NamedDeserializer> deserializers;
+    private boolean seenData = false;
 
     @SuppressWarnings("UnstableApiUsage")
     Deserializers(
@@ -232,6 +234,10 @@ public final class RecordFormatter {
     }
 
     List<String> getPossibleFormats() {
+      if (!seenData) {
+        return ImmutableList.of("¯\\_(ツ)_/¯ - no data processed");
+      }
+
       return deserializers.stream()
           .map(NamedDeserializer::toString)
           .filter(name -> !name.equals(Format.UNRECOGNISED_BYTES.toString()))
@@ -242,6 +248,8 @@ public final class RecordFormatter {
       if (bytes == null || bytes.get() == null) {
         return "<null>";
       }
+
+      seenData = true;
 
       String firstResult = null;
       final Iterator<NamedDeserializer> it = deserializers.iterator();

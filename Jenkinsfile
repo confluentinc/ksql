@@ -360,7 +360,7 @@ def job = {
             ]
     }
 
-    // Configure the maven repo settings so we can download from the beta artifacts repo
+    // Configure the maven repo settings so we can download from the maven-public Artifactory repo
     def cloudSettingsFile = "${env.WORKSPACE}/maven-settings-cloud.xml"
     configFileProvider([configFile(fileId: 'jenkins-maven-global-settings', variable: 'jenkins_maven_global_settings')]) {
         settings = readFile("${jenkins_maven_global_settings}")
@@ -485,13 +485,6 @@ def job = {
                 sh "docker tag ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag} ${config.dockerRegistry}${config.ccloudDockerRepo}:master-latest"
                 sh "docker push ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag}"
                 sh "docker push ${config.dockerRegistry}${config.ccloudDockerRepo}:master-latest"
-
-                if (config.release) {
-                    // docker_tag for release builds does not include the build number
-                    // here we add it back so an image version with the build number always exists
-                    sh "docker tag ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag} ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag}-beta${env.BUILD_NUMBER}"
-                    sh "docker push ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag}-beta${env.BUILD_NUMBER}"
-                }
             }
         }
     }

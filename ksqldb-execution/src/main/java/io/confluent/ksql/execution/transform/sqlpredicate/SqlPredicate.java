@@ -116,10 +116,8 @@ public final class SqlPredicate {
         final Exception e,
         final GenericRow row
     ) {
-      processingLogger.error(
-          RecordProcessingError
-              .recordProcessingError(errorMsg + e.getMessage(), e, row)
-      );
+      processingLogger.error(RecordProcessingError
+          .recordProcessingError(errorMsg + e.getMessage(), e, row));
     }
   }
 }

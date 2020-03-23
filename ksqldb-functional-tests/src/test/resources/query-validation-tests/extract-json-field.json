@@ -34,6 +34,21 @@
         {"topic": "OUTPUT", "value": {"COL1":"nest0","COL2":null}},
         {"topic": "OUTPUT", "value": {"COL1":null,"COL2":null}}
       ]
+    },
+    {
+      "name": "array bounds",
+      "statements": [
+        "CREATE STREAM INPUT (json STRING) WITH (kafka_topic='test_topic', value_format='KAFKA');",
+        "CREATE STREAM OUTPUT WITH(value_format='JSON') AS SELECT EXTRACTJSONFIELD(json, '$.array[-1]') AS Col1, EXTRACTJSONFIELD(json, '$.array[0]') AS Col2, EXTRACTJSONFIELD(json, '$.array[1]') AS Col3 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "{\"array\": [1, 2, 3]}"},
+        {"topic": "test_topic", "value": "{\"array\": [1.23450]}"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"COL1": null, "COL2": "1", "COL3": "2"}},
+        {"topic": "OUTPUT", "value": {"COL1": null, "COL2": "1.23450", "COL3": null}}
+      ]
     }
   ]
 }

@@ -90,7 +90,7 @@ def job = {
     
     // Use revision param if provided, otherwise default to master
     config.revision = params.GIT_REVISION ?: 'refs/heads/master'
-    config.ccloud_revision = params.CCLOUD_GIT_REVISION ?: 'refs/heads/vxia-update-common-version'
+    config.ccloud_revision = params.CCLOUD_GIT_REVISION ?: 'refs/heads/vxia-update-common-version-testing'
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"
@@ -365,6 +365,14 @@ def job = {
             ]
     }
 
+    // Configure the maven repo settings so we can download from the beta artifacts repo
+    def cloudSettingsFile = "${env.WORKSPACE}/maven-settings-cloud.xml"
+    configFileProvider([configFile(fileId: 'jenkins-maven-global-settings', variable: 'jenkins_maven_global_settings')]) {
+        settings = readFile("${jenkins_maven_global_settings}")
+    }
+    writeFile file: cloudSettingsFile, text: settings
+    // TODO: do mavenOptions need to be updated?
+
     stage('Build CCloud KSQL Docker image') {
         dir('ksqldb-ccloud-docker') {
             archiveArtifacts artifacts: 'pom.xml'
@@ -372,7 +380,7 @@ def job = {
                 usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME'),
                 usernameColonPassword(credentialsId: 'Jenkins GitHub Account', variable: 'GIT_CREDENTIAL')]) {
                     withDockerServer([uri: dockerHost()]) {
-                        withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
+                        withMaven(globalMavenSettingsFilePath: cloudSettingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
                             sh '''
                                 bash extract-iam-credential.sh

@@ -230,4 +230,53 @@ public class ExpressionMetadataTest {
     // Then:
     assertThat(result, is(DEFAULT_VAL));
   }
+
+  @Test
+  public void shouldReturnDefaultIfThrowsGettingParams() {
+    // Given:
+    spec.addParameter(
+        ColumnName.of("foo1"),
+        Integer.class,
+        0
+    );
+
+    expressionMetadata = new ExpressionMetadata(
+        expressionEvaluator,
+        spec.build(),
+        EXPRESSION_TYPE,
+        expression
+    );
+
+    // When:
+    final Object result = expressionMetadata
+        .evaluate(null, DEFAULT_VAL, processingLogger, errorMsgSupplier);
+
+    // Then:
+    assertThat(result, is(DEFAULT_VAL));
+  }
+
+  @Test
+  public void shouldLogIfGettingParamsThrows() throws Exception {
+    // Given:
+    spec.addParameter(
+        ColumnName.of("foo1"),
+        Integer.class,
+        0
+    );
+
+    expressionMetadata = new ExpressionMetadata(
+        expressionEvaluator,
+        spec.build(),
+        EXPRESSION_TYPE,
+        expression
+    );
+
+    // When:
+    expressionMetadata
+        .evaluate(null, DEFAULT_VAL, processingLogger, errorMsgSupplier);
+
+    // Then:
+    verify(processingLogger).error(RecordProcessingError
+        .recordProcessingError("It went wrong!", new NullPointerException(), (GenericRow)null));
+  }
 }

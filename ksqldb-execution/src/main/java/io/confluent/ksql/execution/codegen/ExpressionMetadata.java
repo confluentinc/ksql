@@ -84,8 +84,12 @@ public class ExpressionMetadata {
   ) {
     try {
       return expressionEvaluator.evaluate(getParameters(row));
-    } catch (final InvocationTargetException e) {
-      logger.error(RecordProcessingError.recordProcessingError(errorMsg.get(), e.getCause(), row));
+    } catch (final Exception e) {
+      final Throwable cause = e instanceof InvocationTargetException
+          ? e.getCause()
+          : e;
+
+      logger.error(RecordProcessingError.recordProcessingError(errorMsg.get(), cause, row));
       return defaultValue;
     }
   }

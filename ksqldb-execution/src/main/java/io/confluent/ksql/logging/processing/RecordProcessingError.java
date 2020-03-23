@@ -106,7 +106,8 @@ public final class RecordProcessingError implements ProcessingLogger.ErrorMessag
     }
     final RecordProcessingError that = (RecordProcessingError) o;
     return Objects.equals(errorMsg, that.errorMsg)
-        && Objects.equals(exception, that.exception)
+        && Objects.equals(exception.map(Object::getClass), that.exception.map(Object::getClass))
+        && Objects.equals(exception.map(Object::toString), that.exception.map(Object::toString))
         && Objects.equals(record.map(Supplier::get), that.record.map(Supplier::get));
   }
 

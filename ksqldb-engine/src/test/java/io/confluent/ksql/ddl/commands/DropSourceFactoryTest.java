@@ -93,7 +93,7 @@ public class DropSourceFactoryTest {
   @Test
   public void shouldCreateDropSourceOnMissingSourceWithIfExistsForStream() {
     // Given:
-    final DropStream dropStream = new DropStream(SOME_NAME, false, true);
+    final DropStream dropStream = new DropStream(SOME_NAME, true, true);
     when(metaStore.getSource(SOME_NAME)).thenReturn(null);
 
     // When:
@@ -106,7 +106,7 @@ public class DropSourceFactoryTest {
   @Test
   public void shouldFailDropSourceOnMissingSourceWithNoIfExistsForStream() {
     // Given:
-    final DropStream dropStream = new DropStream(SOME_NAME, true, true);
+    final DropStream dropStream = new DropStream(SOME_NAME, false, true);
     when(metaStore.getSource(SOME_NAME)).thenReturn(null);
 
     // Then:

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.parser.json;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,7 +26,6 @@ import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 public class KsqlTypesSerdeModuleTest {

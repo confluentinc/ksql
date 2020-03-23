@@ -126,5 +126,17 @@
       "end" : 60000,
       "type" : "TIME"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "S2",
+      "type" : "stream",
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `RKEY` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowType" : "HOPPING",
+        "windowSize" : 30000
+      }
+    } ]
+  }
 }

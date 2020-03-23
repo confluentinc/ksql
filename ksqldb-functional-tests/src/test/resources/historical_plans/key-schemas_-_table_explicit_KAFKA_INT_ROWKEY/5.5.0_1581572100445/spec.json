@@ -45,5 +45,15 @@
       "ID" : 3,
       "KEY" : 1
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "ROWKEY INT KEY, ID BIGINT, KEY INT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    } ]
+  }
 }

@@ -20,9 +20,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.test.model.KsqlVersion;
+import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
+import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -101,7 +103,10 @@ public final class PlannedTestUtils {
             .collect(Collectors.toList()),
         planAtVersionNode.getOutputs().stream()
             .map(n -> n.build(topicsByName))
-            .collect(Collectors.toList())
+            .collect(Collectors.toList()),
+        planAtVersionNode.getSpecNode().getPostConditions()
+            .map(PostConditionsNode::build)
+            .orElse(PostConditions.NONE)
     );
   }
 }

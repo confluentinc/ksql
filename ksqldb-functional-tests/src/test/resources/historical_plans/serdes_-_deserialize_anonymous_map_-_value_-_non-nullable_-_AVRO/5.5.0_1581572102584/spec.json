@@ -24,5 +24,12 @@
         "c" : 3
       }
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "INPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, FOO MAP<STRING, INT>"
+    } ]
+  }
 }

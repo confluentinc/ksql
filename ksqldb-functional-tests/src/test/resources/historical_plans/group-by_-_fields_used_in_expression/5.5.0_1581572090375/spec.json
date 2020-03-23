@@ -32,5 +32,12 @@
     "topic" : "OUTPUT",
     "key" : "9|+|3",
     "value" : "3,2"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "ROWKEY STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT"
+    } ]
+  }
 }

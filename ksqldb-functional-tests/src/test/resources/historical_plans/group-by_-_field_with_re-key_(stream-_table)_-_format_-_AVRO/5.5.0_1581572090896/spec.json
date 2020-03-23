@@ -148,5 +148,12 @@
       "DATA" : "d1",
       "KSQL_COL_1" : 3
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"
+    } ]
+  }
 }

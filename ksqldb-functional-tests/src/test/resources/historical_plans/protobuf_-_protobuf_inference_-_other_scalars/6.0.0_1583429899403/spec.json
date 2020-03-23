@@ -26,5 +26,12 @@
       "C4" : 1,
       "C5" : 400000000000
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT"
+    } ]
+  }
 }

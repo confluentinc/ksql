@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.test.model;
 
+import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.allOf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.model.WindowType;
-import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -33,26 +33,43 @@ import org.hamcrest.Matchers;
 
 public final class KeyFormatNode {
 
-  private final Optional<Format> format;
+  private final Optional<String> format;
   private final Optional<WindowType> windowType;
-  private final Optional<Duration> windowSize;
+  private final Optional<Long> windowSize;
 
   public KeyFormatNode(
-      @JsonProperty("format") final String format,
-      @JsonProperty("windowType") final WindowType windowType,
-      @JsonProperty("windowSize") final Long windowSize
+      @JsonProperty("format") final Optional<String> format,
+      @JsonProperty("windowType") final Optional<WindowType> windowType,
+      @JsonProperty("windowSize") final Optional<Long> windowSize
   ) {
-    this.format = Optional.ofNullable(format)
-        .map(FormatInfo::of)
-        .map(FormatFactory::of);
-    this.windowType = Optional.ofNullable(windowType);
-    this.windowSize = Optional.ofNullable(windowSize)
-        .map(Duration::ofMillis);
+    this.format = requireNonNull(format, "format");
+    this.windowType = requireNonNull(windowType);
+    this.windowSize = requireNonNull(windowSize);
+
+    // Validate and throw early on bad data:
+    build();
+  }
+
+  @SuppressWarnings("unused") // Invoked via reflection
+  public Optional<String> getFormat() {
+    return format;
+  }
+
+  @SuppressWarnings("unused") // Invoked via reflection
+  public Optional<WindowType> getWindowType() {
+    return windowType;
+  }
+
+  @SuppressWarnings("unused") // Invoked via reflection
+  public Optional<Long> getWindowSize() {
+    return windowSize;
   }
 
   @SuppressWarnings("unchecked")
   Matcher<? super KeyFormat> build() {
     final Matcher<KeyFormat> formatMatcher = format
+        .map(FormatInfo::of)
+        .map(FormatFactory::of)
         .map(Matchers::is)
         .map(KeyFormatMatchers::hasFormat)
         .orElse(null);
@@ -61,7 +78,7 @@ public final class KeyFormatNode {
         .hasWindowType(Matchers.is(windowType));
 
     final Matcher<KeyFormat> windowSizeMatcher = KeyFormatMatchers
-        .hasWindowSize(Matchers.is(windowSize));
+        .hasWindowSize(Matchers.is(windowSize.map(Duration::ofMillis)));
 
     final Matcher<KeyFormat>[] matchers = Stream
         .of(formatMatcher, windowTypeMatcher, windowSizeMatcher)

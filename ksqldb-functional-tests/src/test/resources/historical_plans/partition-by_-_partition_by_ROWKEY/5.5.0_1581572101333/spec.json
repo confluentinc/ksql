@@ -18,5 +18,15 @@
     "value" : {
       "ID" : 22
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, ID BIGINT"
+    } ],
+    "topics" : {
+      "blackList" : ".*-repartition"
+    }
+  }
 }

@@ -136,8 +136,7 @@
           },
           "options" : [ ]
         },
-        "topicName" : "OUTPUT",
-        "timestampColumn" : null
+        "topicName" : "OUTPUT"
       },
       "queryId" : "CTAS_OUTPUT_0"
     }

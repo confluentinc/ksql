@@ -30,5 +30,11 @@
       "L_ROWKEY" : "a",
       "R_ROWKEY" : "c"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream"
+    } ]
+  }
 }

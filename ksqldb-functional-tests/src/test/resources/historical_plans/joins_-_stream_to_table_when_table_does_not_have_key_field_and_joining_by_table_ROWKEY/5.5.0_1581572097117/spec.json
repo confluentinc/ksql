@@ -31,5 +31,11 @@
       "NAME" : "bob"
     },
     "timestamp" : 10
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream"
+    } ]
+  }
 }

@@ -120,5 +120,11 @@
     "key" : 90,
     "value" : null,
     "timestamp" : 19000
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table"
+    } ]
+  }
 }

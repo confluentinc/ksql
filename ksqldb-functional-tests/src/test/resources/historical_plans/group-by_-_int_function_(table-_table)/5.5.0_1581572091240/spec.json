@@ -52,5 +52,12 @@
     "topic" : "OUTPUT",
     "key" : 3,
     "value" : "2"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "ROWKEY INT KEY, KSQL_COL_0 BIGINT"
+    } ]
+  }
 }

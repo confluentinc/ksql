@@ -195,8 +195,7 @@
           },
           "options" : [ ]
         },
-        "topicName" : "LEFT_OUTER_JOIN",
-        "timestampColumn" : null
+        "topicName" : "LEFT_OUTER_JOIN"
       },
       "queryId" : "CSAS_LEFT_OUTER_JOIN_0"
     }

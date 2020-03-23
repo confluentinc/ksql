@@ -20,5 +20,18 @@
       "FOO" : 1,
       "BAR" : 2
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "INPUT",
+      "type" : "stream"
+    }, {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY INT KEY, FOO INT, BAR INT"
+    } ],
+    "topics" : {
+      "blackList" : ".*-repartition"
+    }
+  }
 }

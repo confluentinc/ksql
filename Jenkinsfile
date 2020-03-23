@@ -408,8 +408,9 @@ def job = {
                             sh "set -x"
                             sh "mvn --batch-mode versions:set-property -Dproperty=ksql.version -DnewVersion=${config.ksql_db_version}"
 
-                            // Set packaging beta version required to find build dependencies
+                            // Set packaging beta version and build number required to find build dependencies
                             sh "mvn --batch-mode versions:set-property -Dproperty=packaging-beta.version -DnewVersion=${config.cp_version}"
+                            sh "mvn --batch-mode versions:set-property -Dproperty=packaging-beta.build-number -DnewVersion=${config.packaging_build_number}"
 
                             if (!config.isPrJob) {
                                 def git_tag = "v${config.docker_tag}-ksqldb"

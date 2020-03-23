@@ -244,7 +244,7 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   @Test
-  public void shouldQueryActiveWhenActiveAliveQueryIssuedToStandby() {
+  public void shouldQueryActiveWhenActiveAliveQueryIssuedToStandby() throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.standBy.right, 3);
@@ -265,7 +265,7 @@ public class PullQueryRoutingFunctionalTest {
 
 
   @Test
-  public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() {
+  public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
@@ -291,7 +291,7 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   @Test
-  public void shouldQueryStandbyWhenActiveDeadStandbyAliveQueryIssuedToRouter() {
+  public void shouldQueryStandbyWhenActiveDeadStandbyAliveQueryIssuedToRouter() throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
@@ -313,7 +313,7 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   @Test
-  public void shouldFilterLaggyServers() {
+  public void shouldFilterLaggyServers() throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
@@ -336,11 +336,12 @@ public class PullQueryRoutingFunctionalTest {
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(clusterFormation.router.right,
         sql, LAG_FILTER_25);
     Assert.assertEquals(40001, errorMessage.getErrorCode());
+    Assert.assertEquals("All nodes are dead or exceed max allowed lag.", errorMessage.getMessage());
   }
 
   private void sendLagReportingMessages(
       final Pair<KsqlHostInfoEntity, TestKsqlRestApp> to,
-      final Pair<KsqlHostInfoEntity, TestKsqlRestApp> from) {
+      final Pair<KsqlHostInfoEntity, TestKsqlRestApp> from) throws Exception {
     LagReportingMessage lagReportingMessage =
         new LagReportingMessage(from.left,
             new HostStoreLags(createLagMap(HOST_CURRENT_OFFSET, HOST_END_OFFSET, HOST_LAG), 100));

@@ -81,7 +81,7 @@ public class MaximumLagFilterTest {
   }
 
   @Test
-  public void filter_hostNoLag() {
+  public void filter_shouldRemoveWhenNoLag() {
     // Given:
     when(lagReportingAgent.getLagInfoForHost(eq(HOST1),
         eq(QueryStateStoreId.of(APPLICATION_ID, STATE_STORE)), eq(PARTITION)))

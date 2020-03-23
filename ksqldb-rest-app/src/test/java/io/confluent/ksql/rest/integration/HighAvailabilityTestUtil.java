@@ -175,7 +175,7 @@ class HighAvailabilityTestUtil {
   public static void sendLagReportingRequest(
       final TestKsqlRestApp restApp,
       final LagReportingMessage lagReportingMessage
-  ) {
+  ) throws ExecutionException, InterruptedException {
 
     try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
       restClient.makeAsyncLagReportingRequest(lagReportingMessage)
@@ -183,9 +183,7 @@ class HighAvailabilityTestUtil {
             LOG.error("Unexpected exception in async request", t);
             return null;
           })
-      .get();
-    } catch (Exception e) {
-      LOG.error("Error waiting on lag report", e);
+          .get();
     }
   }
 }

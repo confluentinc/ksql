@@ -66,7 +66,10 @@ public final class MaximumLagFilter implements RoutingFilter {
           final long offsetLag = Math.max(endOffset - hostLag.getCurrentOffsetPosition(), 0);
           return offsetLag <= allowedOffsetLag;
         })
-        // If we don't have lag info, we'll be conservative and not include the host
+        // If we don't have lag info, we'll be conservative and not include the host.  We have a
+        // dual purpose, in both having HA and also having lag guarantees.  This ensures that we are
+        // honoring the lag guarantees, and we'll try to minimize the window where lag isn't
+        // available to promote HA.
         .orElse(false);
   }
 

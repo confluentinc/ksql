@@ -20,6 +20,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
@@ -198,19 +199,23 @@ public class UdfCompilerTest {
     assertEquals("Can't coerce argument at index 0 from null to a primitive type", e.getMessage());
   }
 
-
   @Test
-  public void shouldThrowWhenUdafReturnTypeIsntAUdaf() throws NoSuchMethodException {
-    String expectedMessage = "UDAFs must implement io.confluent.ksql.function.udaf.Udaf "
-        + "or io.confluent.ksql.function.udaf.TableUdaf .method='createBlah', functionName='test'"
-        + " UDFClass='class io.confluent.ksql.function.UdfCompilerTest";
-    Exception e = assertThrows(KsqlException.class, () -> udfCompiler.compileAggregate(
-        UdfCompilerTest.class.getMethod("createBlah"),
-        classLoader,
-        "test",
-        "desc"
-    ));
-    assertEquals(expectedMessage, e.getMessage());
+  public void shouldThrowWhenUdafReturnTypeIsntAUdaf() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfCompiler.compileAggregate(
+            UdfCompilerTest.class.getMethod("createBlah"),
+            classLoader,
+            "test",
+            "desc"
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UDAFs must implement io.confluent.ksql.function.udaf.Udaf "
+            + "or io.confluent.ksql.function.udaf.TableUdaf .method='createBlah', functionName='test'"
+            + " UDFClass='class io.confluent.ksql.function.UdfCompilerTest"));
   }
 
   @Test

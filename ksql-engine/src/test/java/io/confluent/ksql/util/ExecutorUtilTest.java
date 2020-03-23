@@ -15,11 +15,14 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ON_RETRYABLE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,12 +32,20 @@ import org.junit.Test;
 public class ExecutorUtilTest {
 
   @Test
-  public void shouldRetryAndEventuallyThrowIfNeverSucceeds() throws Exception {
-    Exception e = assertThrows(ExecutionException.class, () -> ExecutorUtil.executeWithRetries(() -> {
-          throw new ExecutionException(new TestRetriableException("I will never succeed"));
-        },
-        ExecutorUtil.RetryBehaviour.ON_RETRYABLE));
-    assertEquals("I will never succeed", e.getMessage());
+  public void shouldRetryAndEventuallyThrowIfNeverSucceeds()  {
+    // Given:
+    final Callable<Object> i_will_never_succeed = () -> {
+      throw new ExecutionException(new TestRetriableException("I will never succeed"));
+    };
+
+    // When:
+    final Exception e = assertThrows(
+        ExecutionException.class,
+        () -> ExecutorUtil.executeWithRetries(i_will_never_succeed, ON_RETRYABLE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("I will never succeed"));
   }
 
   @Test
@@ -46,7 +57,7 @@ public class ExecutorUtilTest {
       }
       throw new TestRetriableException("I will never succeed");
     },
-    ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    ON_RETRYABLE);
   }
 
   @Test
@@ -54,7 +65,7 @@ public class ExecutorUtilTest {
     final String expectedValue = "should return this";
     assertThat(ExecutorUtil.executeWithRetries(
         () -> expectedValue,
-        ExecutorUtil.RetryBehaviour.ON_RETRYABLE),
+        ON_RETRYABLE),
         is(expectedValue));
   }
 
@@ -68,7 +79,7 @@ public class ExecutorUtilTest {
       } else {
         throw new RuntimeException("Test should not retry");
       }
-    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE));
+    }, ON_RETRYABLE));
     assertEquals("First non-retry exception", e.getMessage());
   }
 
@@ -81,7 +92,7 @@ public class ExecutorUtilTest {
         throw new RuntimeException("First non-retry exception");
       }
       throw new RuntimeException("Test should not retry");
-    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE));
+    }, ON_RETRYABLE));
     assertEquals("First non-retry exception", e.getMessage());
   }
 
@@ -93,7 +104,7 @@ public class ExecutorUtilTest {
         return null;
       }
       throw new TestRetriableException("Test should retry");
-    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    }, ON_RETRYABLE);
   }
 
   @Test
@@ -104,7 +115,7 @@ public class ExecutorUtilTest {
         return null;
       }
       throw new ExecutionException(new TestRetriableException("Test should retry"));
-    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    }, ON_RETRYABLE);
   }
 
   private static final class TestRetriableException extends RetriableException {

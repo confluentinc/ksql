@@ -17,7 +17,7 @@ package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -68,8 +68,14 @@ public class DateToStringTest {
 
   @Test
   public void shouldThrowIfFormatInvalid() {
-    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.dateToString(44444, "invalid"));
-    assertEquals("Failed to format date 44444 with formatter 'invalid'", e.getMessage());
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.dateToString(44444, "invalid")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to format date 44444 with formatter 'invalid'"));
   }
 
   @Test

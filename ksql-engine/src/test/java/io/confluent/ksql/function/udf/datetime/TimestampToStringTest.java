@@ -17,7 +17,7 @@ package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -91,8 +91,14 @@ public class TimestampToStringTest {
 
   @Test
   public void shouldThrowIfInvalidTimeZone() {
-    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.timestampToString(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "PST"));
-    assertEquals("Unknown time-zone ID: PST", e.getMessage());
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.timestampToString(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "PST")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown time-zone ID: PST"));
   }
 
   @Test
@@ -109,8 +115,14 @@ public class TimestampToStringTest {
 
   @Test
   public void shouldThrowIfFormatInvalid() {
-    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.timestampToString(1638360611123L, "invalid"));
-    assertEquals("Unknown pattern letter: i", e.getMessage());
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.timestampToString(1638360611123L, "invalid")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown pattern letter: i"));
   }
 
   @Test

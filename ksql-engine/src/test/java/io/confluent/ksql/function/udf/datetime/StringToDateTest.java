@@ -17,7 +17,7 @@ package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -55,20 +55,38 @@ public class StringToDateTest {
 
   @Test
   public void shouldThrowIfFormatInvalid() {
-    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.stringToDate("2021-12-01", "invalid"));
-    assertEquals("Failed to parse date '2021-12-01' with formatter 'invalid'", e.getMessage());
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.stringToDate("2021-12-01", "invalid")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to parse date '2021-12-01' with formatter 'invalid'"));
   }
 
   @Test
   public void shouldThrowIfParseFails() {
-    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.stringToDate("invalid", "yyyy-MM-dd"));
-    assertEquals("Failed to parse date 'invalid' with formatter 'yyyy-MM-dd'", e.getMessage());
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.stringToDate("invalid", "yyyy-MM-dd")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to parse date 'invalid' with formatter 'yyyy-MM-dd'"));
   }
 
   @Test
   public void shouldThrowOnEmptyString() {
-    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.stringToDate("", "yyyy-MM-dd"));
-    assertEquals("Failed to parse date '' with formatter 'yyyy-MM-dd'", e.getMessage());
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.stringToDate("", "yyyy-MM-dd")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to parse date '' with formatter 'yyyy-MM-dd'"));
   }
 
   @Test

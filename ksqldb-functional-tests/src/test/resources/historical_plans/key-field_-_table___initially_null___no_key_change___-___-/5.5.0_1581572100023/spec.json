@@ -18,5 +18,14 @@
     "value" : {
       "BAR" : 1
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "INPUT",
+      "type" : "table"
+    }, {
+      "name" : "OUTPUT",
+      "type" : "table"
+    } ]
+  }
 }

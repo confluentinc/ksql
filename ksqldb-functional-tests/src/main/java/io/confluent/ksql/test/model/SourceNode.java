@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -39,21 +40,21 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 
-@SuppressWarnings("rawtypes")
 @JsonDeserialize(using = SourceNode.Deserializer.class)
 final class SourceNode {
 
   private final String name;
-  private final Class<? extends DataSource> type;
+  private final String type;
   private final Optional<KeyFieldNode> keyField;
-  private final Optional<LogicalSchema> schema;
+  private final Optional<String> schema;
   private final Optional<KeyFormatNode> keyFormat;
 
-  private SourceNode(
+  @VisibleForTesting
+  SourceNode(
       final String name,
-      final Class<? extends DataSource> type,
+      final String type,
       final Optional<KeyFieldNode> keyField,
-      final Optional<LogicalSchema> schema,
+      final Optional<String> schema,
       final Optional<KeyFormatNode> keyFormat
   ) {
     this.name = Objects.requireNonNull(name, "name");
@@ -65,6 +66,25 @@ final class SourceNode {
     if (this.name.isEmpty()) {
       throw new InvalidFieldException("name", "missing or empty");
     }
+
+    // Fail early:
+    build();
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public String getType() {
+    return type;
+  }
+
+  public Optional<KeyFormatNode> getKeyFormat() {
+    return keyFormat;
+  }
+
+  public Optional<String> getSchema() {
+    return schema;
   }
 
   @SuppressWarnings("unchecked")
@@ -77,7 +97,7 @@ final class SourceNode {
         .hasName(name);
 
     final Matcher<Object> typeMatcher = IsInstanceOf
-        .instanceOf(type);
+        .instanceOf(toType(type));
 
     final Matcher<DataSource> keyFieldMatcher = keyField
         .map(KeyFieldNode::build)
@@ -85,6 +105,7 @@ final class SourceNode {
         .orElse(null);
 
     final Matcher<DataSource> schemaMatcher = schema
+        .map(SourceNode::parseSchema)
         .map(Matchers::is)
         .map(MetaStoreMatchers::hasSchema)
         .orElse(null);
@@ -130,21 +151,18 @@ final class SourceNode {
       final JsonNode node = jp.getCodec().readTree(jp);
 
       final String name = JsonParsingUtil.getRequired("name", node, jp, String.class);
-      final Class<? extends DataSource> type = toType(
-          JsonParsingUtil.getRequired("type", node, jp, String.class)
-      );
+      final String type = JsonParsingUtil.getRequired("type", node, jp, String.class);
 
       final Optional<KeyFieldNode> keyField = JsonParsingUtil
           .getOptionalOrElse("keyField", node, jp, KeyFieldNode.class, KeyFieldNode.none());
 
-      final Optional<LogicalSchema> schema = JsonParsingUtil
-          .getOptional("schema", node, jp, String.class)
-          .map(SourceNode::parseSchema);
+      final Optional<String> rawSchema = JsonParsingUtil
+          .getOptional("schema", node, jp, String.class);
 
       final Optional<KeyFormatNode> keyFormat = JsonParsingUtil
           .getOptional("keyFormat", node, jp, KeyFormatNode.class);
 
-      return new SourceNode(name, type, keyField, schema, keyFormat);
+      return new SourceNode(name, type, keyField, rawSchema, keyFormat);
     }
   }
 }

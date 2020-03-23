@@ -16,10 +16,12 @@
 package io.confluent.ksql.test.planned;
 
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.RecordNode;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class TestCasePlan {
   private final TestCaseSpecNode specNode;
@@ -34,10 +36,11 @@ public final class TestCasePlan {
       final Map<String, String> schemas,
       final Map<String, String> configs,
       final List<RecordNode> inputs,
-      final List<RecordNode> outputs
+      final List<RecordNode> outputs,
+      final Optional<PostConditionsNode> postConditions
   ) {
     this(
-        new TestCaseSpecNode(version, timestamp, schemas, inputs, outputs),
+        new TestCaseSpecNode(version, timestamp, schemas, inputs, outputs, postConditions),
         new TestCasePlanNode(planNode, configs),
         topology
     );
@@ -77,7 +80,7 @@ public final class TestCasePlan {
     return specNode.getVersion();
   }
 
-  TestCaseSpecNode getSpecNode() {
+  public TestCaseSpecNode getSpecNode() {
     return specNode;
   }
 

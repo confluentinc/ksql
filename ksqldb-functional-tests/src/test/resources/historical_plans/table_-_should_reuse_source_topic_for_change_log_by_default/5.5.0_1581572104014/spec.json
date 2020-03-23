@@ -14,5 +14,10 @@
     "topic" : "T1",
     "key" : "1",
     "value" : "2"
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "blackList" : ".*-changelog"
+    }
+  }
 }

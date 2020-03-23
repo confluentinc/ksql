@@ -20,5 +20,12 @@
       "@TIMESTAMP" : 4,
       "FROM" : 5
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT"
+    } ]
+  }
 }

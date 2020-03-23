@@ -545,6 +545,26 @@
       }
     },
     {
+      "name": "nulls using coalesce",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar) with (kafka_topic='test_topic', value_format = 'json');",
+        "CREATE STREAM REPARTITIONED AS select id from TEST partition by COALESCE(name, 'default');"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "fred"}},
+        {"topic": "test_topic", "key": 1, "value": {"NAME": null}},
+        {"topic": "test_topic", "key": 2, "value": {}}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "fred", "value": {"ID": 0}},
+        {"topic": "REPARTITIONED", "key": "default", "value": {"ID": 1}},
+        {"topic": "REPARTITIONED", "key": "default", "value": {"ID": 2}}
+      ]
+    },
+    {
       "name": "should handle PARTITION BY that throws",
       "statements": [
         "CREATE STREAM TEST (ID bigint, shouldThrow BOOLEAN) with (kafka_topic='test_topic', value_format = 'json');",

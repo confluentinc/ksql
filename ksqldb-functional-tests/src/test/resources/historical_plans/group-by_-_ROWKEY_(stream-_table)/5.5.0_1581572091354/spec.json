@@ -48,5 +48,10 @@
     "topic" : "OUTPUT",
     "key" : "1",
     "value" : "3"
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "blackList" : ".*-repartition"
+    }
+  }
 }

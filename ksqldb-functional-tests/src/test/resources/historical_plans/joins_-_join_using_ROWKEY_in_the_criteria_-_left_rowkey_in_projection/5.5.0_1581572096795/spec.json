@@ -104,5 +104,11 @@
       "F2" : 10
     },
     "timestamp" : 15000
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "INNER_JOIN",
+      "type" : "stream"
+    } ]
+  }
 }

@@ -88,5 +88,15 @@
       "end" : 40000,
       "type" : "SESSION"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "S2",
+      "type" : "table",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowType" : "SESSION"
+      }
+    } ]
+  }
 }

@@ -110,7 +110,8 @@ public class TestCase implements VersionedTest {
       final KsqlVersion version,
       final TopologyAndConfigs expectedTopology,
       final List<Record> inputRecords,
-      final List<Record> outputRecords
+      final List<Record> outputRecords,
+      final PostConditions postConditions
   ) {
     if (!versionBounds.contains(version)) {
       throw new IllegalArgumentException("Test does not support supplied version: " + version);
@@ -141,7 +142,7 @@ public class TestCase implements VersionedTest {
       final KsqlVersion version,
       final TopologyAndConfigs expectedTopology
   ) {
-    return withPlan(version, expectedTopology, inputRecords, outputRecords);
+    return withPlan(version, expectedTopology, inputRecords, outputRecords, postConditions);
   }
 
   @Override

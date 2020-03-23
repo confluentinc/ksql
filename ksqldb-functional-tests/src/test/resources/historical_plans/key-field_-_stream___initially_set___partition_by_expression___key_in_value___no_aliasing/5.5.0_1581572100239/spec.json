@@ -19,5 +19,11 @@
     "value" : {
       "KSQL_COL_0" : 3
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream"
+    } ]
+  }
 }

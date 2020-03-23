@@ -116,8 +116,7 @@
           },
           "options" : [ ]
         },
-        "topicName" : "OUTPUT",
-        "timestampColumn" : null
+        "topicName" : "OUTPUT"
       },
       "queryId" : "CSAS_OUTPUT_0"
     }
@@ -126,7 +125,7 @@
     "statementText" : "INSERT INTO OUTPUT SELECT\n  S1.DATA DATA_1,\n  S2.DATA DATA_2\nFROM SOURCE1 S1\nINNER JOIN SOURCE2 S2 WITHIN 1 SECONDS ON ((S1.ROWKEY = S2.ROWKEY))\nEMIT CHANGES",
     "ddlCommand" : null,
     "queryPlan" : {
-      "sources" : [ "SOURCE2", "SOURCE1" ],
+      "sources" : [ "SOURCE1", "SOURCE2" ],
       "sink" : "OUTPUT",
       "physicalPlan" : {
         "@type" : "streamSinkV1",
@@ -236,8 +235,7 @@
           },
           "options" : [ ]
         },
-        "topicName" : "OUTPUT",
-        "timestampColumn" : null
+        "topicName" : "OUTPUT"
       },
       "queryId" : "InsertQuery_1"
     }

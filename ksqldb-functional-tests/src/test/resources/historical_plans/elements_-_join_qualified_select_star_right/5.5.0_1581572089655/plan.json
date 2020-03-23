@@ -71,7 +71,7 @@
       "windowInfo" : null
     },
     "queryPlan" : {
-      "sources" : [ "INPUT_2", "INPUT_1" ],
+      "sources" : [ "INPUT_1", "INPUT_2" ],
       "sink" : "OUTPUT",
       "physicalPlan" : {
         "@type" : "streamSinkV1",

@@ -71,7 +71,7 @@
       "windowInfo" : null
     },
     "queryPlan" : {
-      "sources" : [ "TEST_TABLE", "TEST" ],
+      "sources" : [ "TEST", "TEST_TABLE" ],
       "sink" : "INNER_JOIN",
       "physicalPlan" : {
         "@type" : "tableSinkV1",

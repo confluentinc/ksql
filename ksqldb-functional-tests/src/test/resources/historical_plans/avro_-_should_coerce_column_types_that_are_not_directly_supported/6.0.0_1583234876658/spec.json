@@ -18,5 +18,12 @@
     "value" : {
       "C1" : 4.0
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, C1 DOUBLE"
+    } ]
+  }
 }

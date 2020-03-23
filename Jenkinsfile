@@ -412,6 +412,10 @@ def job = {
                             sh "set -x"
                             sh "mvn --batch-mode versions:set-property -Dproperty=ksql.version -DnewVersion=${config.ksql_db_version}"
 
+                            // Set packaging beta version required to find build dependencies
+                            // TODO: is this only valid if it's a beta version, and not if it's a regular CP version? if so, separate variable
+                            sh "mvn --batch-mode versions:set-property -Dproperty=packaging-beta.version -DnewVersion=${config.cp_version}"
+
                             if (!config.isPrJob) {
                                 def git_tag = "v${config.docker_tag}-ksqldb"
                                 sh "git add ."

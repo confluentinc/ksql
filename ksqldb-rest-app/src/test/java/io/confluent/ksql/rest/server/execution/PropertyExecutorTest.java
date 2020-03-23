@@ -24,13 +24,11 @@ import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import io.confluent.ksql.util.KsqlHostInfo;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,7 +44,7 @@ public class PropertyExecutorTest {
   public void shouldSetProperty() {
     // Given:
     final SessionProperties sessionProperties =
-        new SessionProperties(new HashMap<>(), mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(new HashMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
@@ -69,7 +67,8 @@ public class PropertyExecutorTest {
         new SessionProperties(
             Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none"),
             mock(KsqlHostInfo.class),
-            mock(URL.class));
+            mock(URL.class),
+            false);
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:

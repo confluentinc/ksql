@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest;
 
 import io.confluent.ksql.util.KsqlHostInfo;
-
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,20 +31,25 @@ public class SessionProperties {
   private final Map<String, Object> mutableScopedProperties;
   private final KsqlHostInfo ksqlHostInfo;
   private final URL localUrl;
+  private final boolean internalRequest;
 
   /**
    * @param mutableScopedProperties   The streamsProperties of the incoming request
    * @param ksqlHostInfo              The ksqlHostInfo of the server that handles the request 
    * @param localUrl                  The url of the server that handles the request
+   * @param internalRequest           Flag indicating if request is from within the KSQL cluster
    */
   public SessionProperties(
       final Map<String, Object> mutableScopedProperties,
       final KsqlHostInfo ksqlHostInfo,
-      final URL localUrl) {
+      final URL localUrl,
+      final boolean internalRequest
+  ) {
     this.mutableScopedProperties = 
         new HashMap<>(Objects.requireNonNull(mutableScopedProperties, "mutableScopedProperties"));
     this.ksqlHostInfo = Objects.requireNonNull(ksqlHostInfo, "ksqlHostInfo");
     this.localUrl = Objects.requireNonNull(localUrl, "localUrl");
+    this.internalRequest = internalRequest;
   }
 
   public Map<String, Object> getMutableScopedProperties() {
@@ -58,5 +62,9 @@ public class SessionProperties {
 
   public URL getLocalUrl() {
     return localUrl;
+  }
+
+  public boolean getInternalRequest() {
+    return internalRequest;
   }
 }

@@ -30,13 +30,11 @@ import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
-
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
@@ -76,7 +74,7 @@ public class PropertyOverriderTest {
   public void shouldAllowSetKnownProperty() {
     // Given:
     final SessionProperties sessionProperties = 
-        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
@@ -102,7 +100,7 @@ public class PropertyOverriderTest {
   public void shouldFailOnInvalidSetPropertyValue() {
     // Given:
     final SessionProperties sessionProperties =
-        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
 
     // Expect:
     expectedException.expect(KsqlStatementException.class);
@@ -128,7 +126,7 @@ public class PropertyOverriderTest {
     // Given:
     final Map<String, Object> properties = new HashMap<>();
     final SessionProperties sessionProperties =
-        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class), false);
 
     // Expect:
     expectedException.expect(KsqlStatementException.class);
@@ -156,7 +154,9 @@ public class PropertyOverriderTest {
         new SessionProperties(
             Collections.singletonMap(
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
-                mock(KsqlHostInfo.class), mock(URL.class));
+            mock(KsqlHostInfo.class),
+            mock(URL.class),
+            false);
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:

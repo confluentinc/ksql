@@ -23,18 +23,29 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.rest.RestConfig;
 import java.net.URI;
 import java.net.URL;
+import java.util.Collections;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.DescribeTopicsResult;
+import org.apache.kafka.common.KafkaFuture;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,6 +70,10 @@ public class HealthCheckAgentTest {
   @Mock
   private KsqlRestConfig restConfig;
   @Mock
+  private ServiceContext serviceContext;
+  @Mock
+  private Admin adminClient;
+  @Mock
   private RestResponse<KsqlEntityList> successfulResponse;
   @Mock
   private RestResponse<KsqlEntityList> unSuccessfulResponse;
@@ -71,8 +86,18 @@ public class HealthCheckAgentTest {
         .thenReturn(ImmutableList.of(SERVER_ADDRESS));
     when(successfulResponse.isSuccessful()).thenReturn(true);
     when(unSuccessfulResponse.isSuccessful()).thenReturn(false);
+    when(serviceContext.getAdminClient()).thenReturn(adminClient);
 
-    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig);
+    final DescribeTopicsResult topicsResult = mock(DescribeTopicsResult.class);
+    when(adminClient.describeTopics(any(), any())).thenReturn(topicsResult);
+    when(topicsResult.all()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG,
+        "default_"
+    ));
+
+    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, serviceContext, ksqlConfig);
   }
 
   @Test
@@ -104,8 +129,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnUnhealthyIfKafkaCheckFails() {
     // Given:
-    when(ksqlClient.makeKsqlRequest(SERVER_URI, "list topics;"))
-        .thenReturn(unSuccessfulResponse);
+    doThrow(KafkaResponseGetFailedException.class).when(adminClient).describeTopics(any(), any());
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
@@ -113,5 +137,18 @@ public class HealthCheckAgentTest {
     // Then:
     assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(false));
     assertThat(response.getIsHealthy(), is(false));
+  }
+
+  @Test
+  public void shouldReturnHealthyIfKafkaCheckFailsWithAuthorizationException() {
+    // Given:
+    doThrow(KsqlTopicAuthorizationException.class).when(adminClient).describeTopics(any(), any());
+
+    // When:
+    final HealthCheckResponse response = healthCheckAgent.checkHealth();
+
+    // Then:
+    assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
+    assertThat(response.getIsHealthy(), is(true));
   }
 }

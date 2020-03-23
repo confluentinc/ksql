@@ -20,23 +20,19 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 
 public final class PartitionByParams {
 
   private final LogicalSchema schema;
-  private BiPredicate<Struct, GenericRow> predicate;
-  private BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper;
+  private final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper;
 
   public PartitionByParams(
       final LogicalSchema schema,
-      final BiPredicate<Struct, GenericRow> predicate,
-      final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper
+      final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper
   ) {
     this.schema = requireNonNull(schema, "schema");
-    this.predicate = requireNonNull(predicate, "predicate");
     this.mapper = requireNonNull(mapper, "mapper");
   }
 
@@ -44,11 +40,7 @@ public final class PartitionByParams {
     return schema;
   }
 
-  public BiPredicate<Struct, GenericRow> getPredicate() {
-    return predicate;
-  }
-
-  public BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> getMapper() {
+  public BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> getMapper() {
     return mapper;
   }
 }

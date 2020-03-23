@@ -35,7 +35,6 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
@@ -85,7 +84,10 @@ public final class PartitionByParamsFactory {
     final LogicalSchema resultSchema =
         buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCol);
 
-    return buildMapper(resultSchema, partitionByCol, evaluator);
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+        buildMapper(resultSchema, partitionByCol, evaluator);
+
+    return new PartitionByParams(resultSchema, mapper);
   }
 
   public static LogicalSchema buildSchema(
@@ -143,7 +145,7 @@ public final class PartitionByParamsFactory {
     return Optional.of(column);
   }
 
-  private static PartitionByParams buildMapper(
+  private static BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> buildMapper(
       final LogicalSchema resultSchema,
       final Optional<Column> partitionByCol,
       final Function<GenericRow, Object> evaluator
@@ -155,15 +157,7 @@ public final class PartitionByParamsFactory {
 
     final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(resultSchema);
 
-    final BiPredicate<Struct, GenericRow> predicate = (k, v) -> {
-      if (v == null) {
-        return false;
-      }
-
-      return evaluator.apply(v) != null;
-    };
-
-    final BiFunction<Struct, GenericRow, KeyValue<Struct, GenericRow>> mapper = (k, v) -> {
+    return (k, v) -> {
       final Object newKey = evaluator.apply(v);
       final Struct structKey = keyBuilder.build(newKey);
 
@@ -173,8 +167,6 @@ public final class PartitionByParamsFactory {
 
       return new KeyValue<>(structKey, v);
     };
-
-    return new PartitionByParams(resultSchema, predicate, mapper);
   }
 
   private static Function<GenericRow, Object> buildExpressionEvaluator(

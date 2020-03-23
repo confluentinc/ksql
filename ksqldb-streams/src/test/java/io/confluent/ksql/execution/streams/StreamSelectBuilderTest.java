@@ -99,8 +99,6 @@ public class StreamSelectBuilderTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Captor
-  private ArgumentCaptor<ValueTransformerWithKeySupplier<Struct, GenericRow, GenericRow>> mapperCaptor;
-  @Captor
   private ArgumentCaptor<Named> nameCaptor;
 
   @Rule

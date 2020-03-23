@@ -25,13 +25,13 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndContinueProductionExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndFailProductionExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndXProductionExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.ProductionError;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Function;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
@@ -39,24 +39,20 @@ import org.apache.kafka.streams.errors.ProductionExceptionHandler.ProductionExce
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProductionExceptionHandlerUtilTest {
 
-  private Map<String, ?> CONFIGS;
-
   @Mock
   private ProcessingLogger logger;
-  @Captor
-  private ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> msgCaptor;
   @Mock
   private ProducerRecord<byte[], byte[]> record;
   @Mock
   private ProductionExceptionHandlerResponse mockResponse;
+
+  private Map<String, ?> configs;
 
   private final ProcessingLogConfig processingLogConfig = new ProcessingLogConfig(
       Collections.emptyMap());
@@ -65,11 +61,11 @@ public class ProductionExceptionHandlerUtilTest {
 
   @Before
   public void setUp() {
-    CONFIGS = ImmutableMap.of(
+    configs = ImmutableMap.of(
         ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER, logger);
 
     exceptionHandler = new TestLogAndXProductionExceptionHandler(mockResponse);
-    exceptionHandler.configure(CONFIGS);
+    exceptionHandler.configure(configs);
   }
 
   @Test
@@ -92,9 +88,18 @@ public class ProductionExceptionHandlerUtilTest {
     exceptionHandler.handle(record, new Exception("foo"));
 
     // Then:
-    verify(logger).error(msgCaptor.capture());
-    final SchemaAndValue schemaAndValue = msgCaptor.getValue().apply(processingLogConfig);
+    verify(logger).error(new ProductionError("foo"));
+  }
 
+  @Test
+  public void shouldFormatProductionErrorCorrectly() {
+    // Given:
+    final ProductionError error = new ProductionError("foo");
+
+    // When:
+    final SchemaAndValue schemaAndValue = error.get(processingLogConfig);
+
+    // Then:
     assertThat(schemaAndValue.schema(), is(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
     final Struct msg = (Struct) schemaAndValue.value();
     assertThat(
@@ -109,36 +114,40 @@ public class ProductionExceptionHandlerUtilTest {
 
   @Test
   public void shouldReturnCorrectResponse() {
-    assertResponseIs(mockResponse);
+    // When:
+    final ProductionExceptionHandlerResponse response =
+        exceptionHandler.handle(record, new Exception());
+
+    // Then:
+    assertThat(response, is((Object) mockResponse));
   }
 
   @Test
   public void shouldReturnFailFromLogAndFailHandler() {
     // Given:
     exceptionHandler = new LogAndFailProductionExceptionHandler();
-    exceptionHandler.configure(CONFIGS);
+    exceptionHandler.configure(configs);
+
+    // When:
+    final ProductionExceptionHandlerResponse response =
+        exceptionHandler.handle(record, new Exception());
 
     // Then:
-    assertResponseIs(ProductionExceptionHandlerResponse.FAIL);
+    assertThat(response, is((Object) ProductionExceptionHandlerResponse.FAIL));
   }
 
   @Test
   public void shouldReturnContinueFromLogAndContinueHandler() {
     // Given:
     exceptionHandler = new LogAndContinueProductionExceptionHandler();
-    exceptionHandler.configure(CONFIGS);
+    exceptionHandler.configure(configs);
 
-    // Then:
-    assertResponseIs(ProductionExceptionHandlerResponse.CONTINUE);
-  }
-
-  private void assertResponseIs(final Object o) {
     // When:
     final ProductionExceptionHandlerResponse response =
         exceptionHandler.handle(record, new Exception());
 
     // Then:
-    assertThat(response, is(o));
+    assertThat(response, is((Object) ProductionExceptionHandlerResponse.CONTINUE));
   }
 
   private static class TestLogAndXProductionExceptionHandler extends LogAndXProductionExceptionHandler {

@@ -32,5 +32,3 @@ local and Docker-based versions.
   Shows how to use ksqlDB, ElasticSearch, and Grafana to analyze
   data feeds and build a real-time dashboard for reporting and
   alerting.
-
-Page last revised on: {{ git_revision_date }}

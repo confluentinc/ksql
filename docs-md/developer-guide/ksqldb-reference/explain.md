@@ -70,4 +70,3 @@ Sub-topologies:
         <-- KSTREAM-SOURCE-0000000000
 ```
 
-Page last revised on: {{ git_revision_date }}

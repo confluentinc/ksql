@@ -59,5 +59,3 @@ changes that are applied to a table is stored durably in a {{ site.ak }} topic
 and is replicated across {{ site.ak }} brokers. If a ksqlDB server with a
 materialization of a table fails, a new server rematerializes the table from
 the {{ site.ak }} changelog.
-
-Page last revised on: {{ git_revision_date }}

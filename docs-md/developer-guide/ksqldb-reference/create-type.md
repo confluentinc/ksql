@@ -41,4 +41,3 @@ Use the ADDRESS custom type in a statement:
 CREATE TYPE PERSON AS STRUCT<name VARCHAR, address ADDRESS>;
 ```
 
-Page last revised on: {{ git_revision_date }}

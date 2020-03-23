@@ -69,5 +69,3 @@ format may be `KAFKA_STRING`, but it could also be `JSON` or a windowed `KAFKA_S
 The value format for this topic is `JSON`. However, the `PRINT` command has also determined it could
 be `KAFKA_STRING`. This is because `JSON` is serialized as text. Hence you could choose to deserialize
 this value data as a `KAFKA_STRING` if you wanted to. However, `JSON` is likely the better option.
-
-Page last revised on: {{ git_revision_date }}

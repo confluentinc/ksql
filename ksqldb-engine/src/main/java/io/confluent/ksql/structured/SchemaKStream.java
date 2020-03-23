@@ -34,7 +34,6 @@ import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamSelect;
-import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
@@ -191,8 +190,6 @@ public class SchemaKStream<K> {
     final Optional<ColumnName> filtered = found
         // System columns can not be key fields:
         .filter(f -> !SchemaUtil.isSystemColumn(f.name()))
-        // Key columns can not be key fields:
-        .filter(f -> !schema.isKeyColumn(f.name()))
         .map(Column::name);
 
     return KeyField.of(filtered);
@@ -338,11 +335,10 @@ public class SchemaKStream<K> {
           + "See https://github.com/confluentinc/ksql/issues/4385.");
     }
 
-    final StreamSelectKey step = ExecutionStepFactory.streamSelectKey(
-        contextStacker,
-        sourceStep,
-        keyExpression
-    );
+    final ExecutionStep<KStreamHolder<Struct>> step = ksqlConfig
+        .getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
+        ? ExecutionStepFactory.streamSelectKey(contextStacker, sourceStep, keyExpression)
+        : ExecutionStepFactory.streamSelectKeyV1(contextStacker, sourceStep, keyExpression);
 
     return new SchemaKStream<>(
         step,

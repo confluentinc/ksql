@@ -22,7 +22,8 @@ keywords: ksqlDB, function, scalar
   - [SQRT](#sqrt)
 - [Collections](#collections)
   - [ARRAY_LENGTH](#array_length)
-  - [ARRAYCONTAINS](#arraycontains)
+  - [ARRAY_CONTAINS](#arraycontains)
+  - [JSON_ARRAY_CONTAINS](#arraycontains)
   - [ARRAY](#array)
   - [MAP](#map)
   - [AS_MAP](#asmap)
@@ -196,16 +197,26 @@ Given an array, return the number of elements in the array.
 
 If the supplied parameter is NULL the method returns NULL.
 
-ARRAYCONTAINS
--------------
+ARRAY_CONTAINS
+--------------
 
-`ARRAYCONTAINS('[1, 2, 3]', 3)`
+`ARRAY_CONTAINS([1, 2, 3], 3)`
 
-Given an array in JSON, AVRO, or PROTOBUF format, checks if a search value
-is contained in the array.
+Given an array, checks if a search value is contained in the array.
+
+Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
+
+JSON_ARRAY_CONTAINS
+-------------------
+
+`JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)`
+
+Given a `STRING` containing a JSON array, checks if a search value is contained in the array.
+
+Returns `false` if the first parameter does not contain a JSON array.
 
 ARRAY
---------
+-----
 
 `ARRAY[col1, col2, ...]`
 
@@ -647,5 +658,3 @@ present or `url` is not a valid URI.
     structure of a URI, including definitions of the various components, see
     Section 3 of the RFC. For encoding/decoding, the
     `application/x-www-form-urlencoded` convention is followed.
-
-Page last revised on: {{ git_revision_date }}

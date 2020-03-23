@@ -113,7 +113,9 @@
         },
         "properties" : {
           "type" : "object",
-          "additionalProperties": {"type": "string"}
+          "additionalProperties" : {
+            "type" : "string"
+          }
         }
       },
       "required" : [ "format" ]
@@ -405,7 +407,7 @@
       "title" : "streamSelectV1",
       "required" : [ "@type", "properties", "source", "selectExpressions" ]
     },
-    "StreamSelectKey" : {
+    "StreamSelectKeyV1" : {
       "type" : "object",
       "additionalProperties" : false,
       "properties" : {
@@ -425,6 +427,28 @@
         }
       },
       "title" : "streamSelectKeyV1",
+      "required" : [ "@type", "properties", "source", "keyExpression" ]
+    },
+    "StreamSelectKey" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamSelectKeyV2" ],
+          "default" : "streamSelectKeyV2"
+        },
+        "properties" : {
+          "$ref" : "#/definitions/ExecutionStepPropertiesV1"
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "keyExpression" : {
+          "type" : "string"
+        }
+      },
+      "title" : "streamSelectKeyV2",
       "required" : [ "@type", "properties", "source", "keyExpression" ]
     },
     "StreamSink" : {
@@ -853,6 +877,8 @@
         "$ref" : "#/definitions/StreamGroupByKey"
       }, {
         "$ref" : "#/definitions/StreamSelect"
+      }, {
+        "$ref" : "#/definitions/StreamSelectKeyV1"
       }, {
         "$ref" : "#/definitions/StreamSelectKey"
       }, {

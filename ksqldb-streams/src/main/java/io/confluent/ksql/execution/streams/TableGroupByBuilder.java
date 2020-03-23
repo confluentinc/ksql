@@ -20,7 +20,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -60,12 +59,7 @@ public final class TableGroupByBuilder {
         queryBuilder.getFunctionRegistry()
     );
 
-    final ProcessingLogger logger = queryBuilder
-        .getProcessingLogContext()
-        .getLoggerFactory()
-        .getLogger(
-            QueryLoggerUtil.queryLoggerName(queryBuilder.getQueryId(), queryContext)
-        );
+    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
 
     final GroupByParams params = GroupByParamsFactory.build(sourceSchema, groupBy, logger);
 

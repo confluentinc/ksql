@@ -15,43 +15,31 @@
 
 package io.confluent.ksql.logging.processing;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.common.logging.StructuredLogger;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import org.apache.kafka.connect.data.SchemaAndValue;
 
 public class ProcessingLoggerImpl implements ProcessingLogger {
+
   private final StructuredLogger inner;
   private final ProcessingLogConfig config;
 
-  private static class ProcessingLogMessage implements Supplier<SchemaAndValue> {
-    final ProcessingLogConfig config;
-    final Function<ProcessingLogConfig, SchemaAndValue> msgFactory;
-
-    ProcessingLogMessage(
-        final ProcessingLogConfig config,
-        final Function<ProcessingLogConfig, SchemaAndValue> msgFactory) {
-      this.config = config;
-      this.msgFactory = msgFactory;
-    }
-
-    @Override
-    public SchemaAndValue get() {
-      final SchemaAndValue msg = msgFactory.apply(config);
-      if (msg.schema().equals(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA)) {
-        return msg;
-      }
-      throw new RuntimeException("Received message with invalid schema");
-    }
-  }
-
   public ProcessingLoggerImpl(final ProcessingLogConfig config, final StructuredLogger inner) {
-    this.config = config;
-    this.inner = inner;
+    this.config = requireNonNull(config, "config");
+    this.inner = requireNonNull(inner, "inner");
   }
 
   @Override
-  public void error(final Function<ProcessingLogConfig, SchemaAndValue> msgFactory) {
-    inner.error(new ProcessingLogMessage(config, msgFactory));
+  public void error(final ErrorMessage msg) {
+    inner.error(() -> throwIfNotRightSchema(msg.get(config)));
+  }
+
+  private static SchemaAndValue throwIfNotRightSchema(final SchemaAndValue schemaAndValue) {
+    if (!schemaAndValue.schema().equals(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA)) {
+      throw new RuntimeException("Received message with invalid schema");
+    }
+
+    return schemaAndValue;
   }
 }

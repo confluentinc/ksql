@@ -16,18 +16,25 @@
 package io.confluent.ksql.rest.healthcheck;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponseDetail;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.ServerUtil;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 
 public class HealthCheckAgent {
 
@@ -36,25 +43,31 @@ public class HealthCheckAgent {
 
   private static final List<Check> DEFAULT_CHECKS = ImmutableList.of(
       new ExecuteStatementCheck(METASTORE_CHECK_NAME, "list streams; list tables; list queries;"),
-      new ExecuteStatementCheck(KAFKA_CHECK_NAME, "list topics;")
+      new KafkaBrokerCheck(KAFKA_CHECK_NAME)
   );
 
   private final SimpleKsqlClient ksqlClient;
   private final URI serverEndpoint;
+  private final ServiceContext serviceContext;
+  private final KsqlConfig ksqlConfig;
 
   public HealthCheckAgent(
       final SimpleKsqlClient ksqlClient,
-      final KsqlRestConfig restConfig
+      final KsqlRestConfig restConfig,
+      final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig
   ) {
     this.ksqlClient = Objects.requireNonNull(ksqlClient, "ksqlClient");
     this.serverEndpoint = ServerUtil.getServerAddress(restConfig);
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   public HealthCheckResponse checkHealth() {
     final Map<String, HealthCheckResponseDetail> results = DEFAULT_CHECKS.stream()
         .collect(Collectors.toMap(
             Check::getName,
-            check -> check.check(ksqlClient, serverEndpoint)
+            check -> check.check(this)
         ));
     final boolean allHealthy = results.values().stream()
         .allMatch(HealthCheckResponseDetail::getIsHealthy);
@@ -64,7 +77,7 @@ public class HealthCheckAgent {
   private interface Check {
     String getName();
 
-    HealthCheckResponseDetail check(SimpleKsqlClient ksqlClient, URI serverEndpoint);
+    HealthCheckResponseDetail check(HealthCheckAgent healthCheckAgent);
   }
 
   private static class ExecuteStatementCheck implements Check {
@@ -82,13 +95,50 @@ public class HealthCheckAgent {
     }
 
     @Override
-    public HealthCheckResponseDetail check(
-        final SimpleKsqlClient ksqlClient,
-        final URI serverEndpoint
-    ) {
+    public HealthCheckResponseDetail check(final HealthCheckAgent healthCheckAgent) {
       final RestResponse<KsqlEntityList> response =
-          ksqlClient.makeKsqlRequest(serverEndpoint, ksqlStatement);
+          healthCheckAgent.ksqlClient
+              .makeKsqlRequest(healthCheckAgent.serverEndpoint, ksqlStatement);
       return new HealthCheckResponseDetail(response.isSuccessful());
+    }
+  }
+
+  private static class KafkaBrokerCheck implements Check {
+    private static final int DESCRIBE_TOPICS_TIMEOUT_MS = 30000;
+
+    private final String name;
+
+    KafkaBrokerCheck(final String name) {
+      this.name = Objects.requireNonNull(name, "name");
+    }
+
+    @Override
+    public String getName() {
+      return name;
+    }
+
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+    @Override
+    public HealthCheckResponseDetail check(final HealthCheckAgent healthCheckAgent) {
+      final String commandTopic = ReservedInternalTopics.commandTopic(healthCheckAgent.ksqlConfig);
+      boolean isHealthy;
+
+      try {
+        healthCheckAgent.serviceContext
+            .getAdminClient()
+            .describeTopics(Collections.singletonList(commandTopic),
+                new DescribeTopicsOptions().timeoutMs(DESCRIBE_TOPICS_TIMEOUT_MS))
+            .all()
+            .get();
+
+        isHealthy = true;
+      } catch (final KsqlTopicAuthorizationException e) {
+        isHealthy = true;
+      } catch (final Exception e) {
+        isHealthy = false;
+      }
+
+      return new HealthCheckResponseDetail(isHealthy);
     }
   }
 }

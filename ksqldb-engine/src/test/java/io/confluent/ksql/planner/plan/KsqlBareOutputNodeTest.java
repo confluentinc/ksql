@@ -33,7 +33,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
@@ -69,7 +69,8 @@ public class KsqlBareOutputNodeTest {
 
   private SchemaKStream stream;
   private StreamsBuilder builder;
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private final MetaStore metaStore = MetaStoreFixture
+      .getNewMetaStore(new InternalFunctionRegistry());
   private final QueryId queryId = new QueryId("output-test");
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
@@ -79,6 +80,8 @@ public class KsqlBareOutputNodeTest {
   private FunctionRegistry functionRegistry;
   @Mock
   private Serde<Struct> keySerde;
+  @Mock
+  private ProcessingLogger processingLogger;
 
   @Before
   public void before() {
@@ -87,7 +90,7 @@ public class KsqlBareOutputNodeTest {
     when(ksqlStreamBuilder.getQueryId()).thenReturn(queryId);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(Collections.emptyMap()));
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
-    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(ProcessingLogContext.create());
+    when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()

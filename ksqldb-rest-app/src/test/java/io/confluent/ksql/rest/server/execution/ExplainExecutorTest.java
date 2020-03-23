@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -37,21 +38,35 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+
+import java.util.Collections;
 import java.util.Optional;
+
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ExplainExecutorTest {
 
+  private static final KsqlHostInfo LOCAL_HOST = new KsqlHostInfo("host", 8080);
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
+  @Mock
+  SessionProperties sessionProperties;
+
+  @Before
+  public void setup() {
+    when(sessionProperties.getKsqlHostInfo()).thenReturn(LOCAL_HOST);
+  }
 
   @Test
   public void shouldExplainQueryId() {
@@ -65,13 +80,16 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(query.getQueryDescription(), equalTo(QueryDescriptionFactory.forQueryMetadata(metadata)));
+    assertThat(
+        query.getQueryDescription(),
+        equalTo(QueryDescriptionFactory.forQueryMetadata(
+            metadata, Collections.singletonMap(new KsqlHostInfoEntity(LOCAL_HOST), "Running"))));
   }
 
   @Test
@@ -84,7 +102,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -105,7 +123,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -125,7 +143,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -144,7 +162,7 @@ public class ExplainExecutorTest {
     // When:
     CustomExecutors.EXPLAIN.execute(
         engine.configure("Explain SHOW TOPICS;"),
-        mock(SessionProperties.class),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     );

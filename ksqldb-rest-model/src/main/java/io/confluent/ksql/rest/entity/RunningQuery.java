@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -31,7 +30,7 @@ public class RunningQuery {
   private final Set<String> sinks;
   private final Set<String> sinkKafkaTopics;
   private final QueryId id;
-  private final Optional<String> state;
+  private final KafkaStreamsStateCount state;
 
   @JsonCreator
   public RunningQuery(
@@ -39,7 +38,7 @@ public class RunningQuery {
       @JsonProperty("sinks") final Set<String> sinks,
       @JsonProperty("sinkKafkaTopics") final Set<String> sinkKafkaTopics,
       @JsonProperty("id") final QueryId id,
-      @JsonProperty("state") final Optional<String> state
+      @JsonProperty("state") final KafkaStreamsStateCount state
   ) {
     this.queryString = Objects.requireNonNull(queryString, "queryString");
     this.sinkKafkaTopics = Objects.requireNonNull(sinkKafkaTopics, "sinkKafkaTopics");
@@ -69,7 +68,7 @@ public class RunningQuery {
     return id;
   }
 
-  public Optional<String> getState() {
+  public KafkaStreamsStateCount getState() {
     return state;
   }
 

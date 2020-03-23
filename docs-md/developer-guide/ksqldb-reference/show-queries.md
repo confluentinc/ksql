@@ -13,13 +13,15 @@ Synopsis
 --------
 
 ```sql
-SHOW QUERIES;
+SHOW | LIST QUERIES [EXTENDED];
 ```
 
 Description
 -----------
 
-List the running persistent queries.
+`SHOW QUERIES` lists queries running in the cluster.
+
+`SHOW QUERIES EXTENDED` lists queries running in the cluster in more detail.
 
 Example
 -------

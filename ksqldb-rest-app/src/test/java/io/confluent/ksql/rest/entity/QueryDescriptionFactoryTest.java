@@ -118,7 +118,7 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout);
 
-    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
+    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
     final PersistentQueryMetadata persistentQuery = new PersistentQueryMetadata(
         SQL_TEXT,
@@ -139,7 +139,7 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout);
 
-    persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery);
+    persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, Collections.emptyMap());
   }
 
   @Test
@@ -232,7 +232,7 @@ public class QueryDescriptionFactoryTest {
         closeTimeout);
 
     // When:
-    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
+    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
     // Then:
     assertThat(transientQueryDescription.getFields(), contains(
@@ -265,7 +265,7 @@ public class QueryDescriptionFactoryTest {
         closeTimeout);
 
     // When:
-    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
+    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
     // Then:
     assertThat(transientQueryDescription.getFields(), contains(

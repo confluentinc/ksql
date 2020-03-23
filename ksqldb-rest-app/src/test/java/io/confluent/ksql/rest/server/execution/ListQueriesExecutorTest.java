@@ -29,6 +29,8 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.KafkaStreamsStateCount;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
@@ -39,16 +41,38 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
+
+import org.apache.kafka.streams.KafkaStreams;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ListQueriesExecutorTest {
 
+  private static final KsqlHostInfoEntity LOCAL_HOST = new KsqlHostInfoEntity("some host", 555);
+  private static final KafkaStreams.State QUERY_STATE = KafkaStreams.State.RUNNING;
+  private static final Map<KsqlHostInfoEntity, String> KSQL_HOST_INFO_MAP = Collections.singletonMap(LOCAL_HOST, QUERY_STATE.toString());
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
+
+  @Mock
+  SessionProperties sessionProperties;
+
+  KafkaStreamsStateCount kafkaStreamsStateCount;
+
+  @Before
+  public void setup() {
+    when(sessionProperties.getInternalRequest()).thenReturn(false);
+    when(sessionProperties.getKsqlHostInfo()).thenReturn(LOCAL_HOST.toKsqlHost());
+    kafkaStreamsStateCount = new KafkaStreamsStateCount();
+  }
 
   @Test
   public void shouldListQueriesEmpty() {
@@ -71,11 +95,12 @@ public class ListQueriesExecutorTest {
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
+    kafkaStreamsStateCount.updateStateCount(QUERY_STATE, 1);
 
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -86,7 +111,7 @@ public class ListQueriesExecutorTest {
             ImmutableSet.of(metadata.getSinkName().text()),
             ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
             metadata.getQueryId(),
-            Optional.of(metadata.getState())
+            kafkaStreamsStateCount
         )));
   }
 
@@ -95,7 +120,6 @@ public class ListQueriesExecutorTest {
     // Given
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES EXTENDED;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id");
-    when(metadata.getState()).thenReturn("Running");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
@@ -103,13 +127,13 @@ public class ListQueriesExecutorTest {
     // When
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueryDescriptions(), containsInAnyOrder(
-        QueryDescriptionFactory.forQueryMetadata(metadata)));
+        QueryDescriptionFactory.forQueryMetadata(metadata, KSQL_HOST_INFO_MAP)));
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -119,7 +143,7 @@ public class ListQueriesExecutorTest {
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
-    when(metadata.getState()).thenReturn("Running");
+    when(metadata.getState()).thenReturn(QUERY_STATE.toString());
     when(metadata.getTopologyDescription()).thenReturn("topology");
     when(metadata.getExecutionPlan()).thenReturn("plan");
 

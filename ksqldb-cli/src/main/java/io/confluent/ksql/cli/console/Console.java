@@ -532,7 +532,7 @@ public class Console implements Closeable {
       ));
       for (final RunningQuery writeQuery : queries) {
         writer().println(writeQuery.getId().getId()
-            + " (" + writeQuery.getState().orElse("N/A")
+            + " (" + writeQuery.getState().toString()
             + ") : " + writeQuery.getQuerySingleLine());
       }
       writer().println("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
@@ -660,6 +660,11 @@ public class Console implements Closeable {
     }
     if (query.getState().isPresent()) {
       writer().println(String.format("%-20s : %s", "Status", query.getState().get()));
+    }
+    if (query.getKsqlHostQueryState().size() > 0) {
+      writer().println(String.format(
+          "%-20s : %s", "Host Query Status",
+          query.getKsqlHostQueryState().toString()));
     }
     writer().println();
     printSchema(query.getWindowType(), query.getFields(), "");

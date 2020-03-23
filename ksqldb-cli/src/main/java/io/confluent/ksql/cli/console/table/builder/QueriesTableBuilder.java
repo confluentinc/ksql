@@ -32,7 +32,7 @@ public class QueriesTableBuilder implements TableBuilder<Queries> {
     final Stream<List<String>> rows = entity.getQueries().stream()
         .map(r -> ImmutableList.of(
             r.getId().getId(),
-            r.getState().orElse("N/A"),
+            r.getState().toString(),
             String.join(",", r.getSinks()),
             String.join(",", r.getSinkKafkaTopics()),
             r.getQuerySingleLine()

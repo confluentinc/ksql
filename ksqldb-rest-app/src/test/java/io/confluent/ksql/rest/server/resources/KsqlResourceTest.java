@@ -97,9 +97,11 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
+import io.confluent.ksql.rest.entity.KafkaStreamsStateCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.PropertiesList;
@@ -119,6 +121,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -173,6 +176,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.state.HostInfo;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
@@ -253,6 +257,7 @@ public class KsqlResourceTest {
       .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
       .build();
 
+  private static final String APPLICATION_SERVER = "http://localhost:9099";
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -539,10 +544,18 @@ public class KsqlResourceTest {
     final QueryDescriptionList descriptionList = makeSingleRequest(
         "SHOW QUERIES EXTENDED;", QueryDescriptionList.class);
 
+    final HostInfo hostInfo = ServerUtil.parseHostInfo(APPLICATION_SERVER);
+    final HashMap<KsqlHostInfoEntity, String> queryHostState = 
+        new HashMap<KsqlHostInfoEntity, String>(){{ 
+          put(
+              new KsqlHostInfoEntity(hostInfo.host(), hostInfo.port()),
+              "CREATED"
+          );
+    }};
     // Then:
     assertThat(descriptionList.getQueryDescriptions(), containsInAnyOrder(
-        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0)),
-        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(1))));
+        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0), queryHostState),
+        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(1), queryHostState)));
   }
 
   @Test
@@ -1981,14 +1994,17 @@ public class KsqlResourceTest {
 
     return createQueries(sql, overriddenProperties)
         .stream()
-        .map(md -> new RunningQuery(
+        .map(md -> {
+          final KafkaStreamsStateCount kafkaStreamsStateCount = new KafkaStreamsStateCount();
+          kafkaStreamsStateCount.updateStateCount(md.getState(), 1);
+          return new RunningQuery(
             md.getStatementString(),
             ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
-            Optional.of(md.getState())
-        ))
-        .collect(Collectors.toList());
+            kafkaStreamsStateCount
+          );
+        }).collect(Collectors.toList());
   }
 
   private KsqlErrorMessage makeFailingRequest(final String ksql, final Code errorCode) {
@@ -2212,7 +2228,7 @@ public class KsqlResourceTest {
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     configMap.put("ksql.command.topic.suffix", "commands");
     configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
-    configMap.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://localhost:9099");
+    configMap.put(StreamsConfig.APPLICATION_SERVER_CONFIG, APPLICATION_SERVER);
 
     final Properties properties = new Properties();
     properties.putAll(configMap);

@@ -56,12 +56,14 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   }
 
   @Override
-  public RestResponse<KsqlEntityList> makeKsqlRequest(
-      final URI serverEndpoint,
-      final String sql
+  public RestResponse<KsqlEntityList> makeKsqlRequestWithRequestProperties(
+      final URI serverEndPoint,
+      final String sql,
+      final Map<String, ?> requestProperties
   ) {
     final KsqlRequest request = new KsqlRequest(
-        sql, Collections.emptyMap(), Collections.emptyMap(), null);
+        sql, Collections.emptyMap(), requestProperties, null);
+
     final Response response = ksqlResource.handleKsqlStatements(securityContext, request);
 
     final Code statusCode = HttpStatus.getCode(response.getStatus());
@@ -71,6 +73,14 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
     }
 
     return RestResponse.successful(statusCode, (KsqlEntityList) response.getEntity());
+  }
+
+  @Override
+  public RestResponse<KsqlEntityList> makeKsqlRequest(
+      final URI serverEndpoint,
+      final String sql
+  ) {
+    return makeKsqlRequestWithRequestProperties(serverEndpoint, sql, Collections.emptyMap());
   }
 
   @Override

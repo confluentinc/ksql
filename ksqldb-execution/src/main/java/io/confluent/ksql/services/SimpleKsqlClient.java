@@ -34,6 +34,12 @@ public interface SimpleKsqlClient {
       String sql
   );
 
+  RestResponse<KsqlEntityList> makeKsqlRequestWithRequestProperties(
+      URI serverEndPoint,
+      String sql,
+      Map<String, ?> requestProperties
+  );
+
   /**
    * Send pull query request to remote Ksql server.
    * @param serverEndPoint the remote destination

@@ -247,8 +247,9 @@ public class KsqlResource implements KsqlConfigurable {
           request,
           distributedCmdResponseTimeout);
 
-      final KsqlRequestConfig requestConfig =
-          new KsqlRequestConfig(request.getRequestProperties());
+      final boolean internalRequest =
+          (boolean) request.getRequestProperties()
+              .getOrDefault(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, false);
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
       validator.validate(
           SandboxedServiceContext.create(securityContext.getServiceContext()),
@@ -257,7 +258,7 @@ public class KsqlResource implements KsqlConfigurable {
               request.getConfigOverrides(),
               localHost, 
               localUrl,
-              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
+              internalRequest
           ),
           request.getKsql()
       );
@@ -269,7 +270,7 @@ public class KsqlResource implements KsqlConfigurable {
               request.getConfigOverrides(),
               localHost,
               localUrl,
-              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
+              internalRequest
           )
       );
       return Response.ok(entities).build();

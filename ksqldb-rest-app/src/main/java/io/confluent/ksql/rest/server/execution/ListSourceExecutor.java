@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.KafkaStreamsStateCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -42,6 +43,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -219,14 +221,17 @@ public final class ListSourceExecutor {
     return ksqlEngine.getPersistentQueries()
         .stream()
         .filter(predicate)
-        .map(q -> new RunningQuery(
-            q.getStatementString(),
-            ImmutableSet.of(q.getSinkName().text()),
-            ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
-            q.getQueryId(),
-            Optional.of(q.getState())
-        ))
-        .collect(Collectors.toList());
+        .map(q -> {
+          final KafkaStreamsStateCount kafkaStreamsStateCount = new KafkaStreamsStateCount();
+          kafkaStreamsStateCount.updateStateCount(q.getState(), 1);
+          return new RunningQuery(
+              q.getStatementString(),
+              ImmutableSet.of(q.getSinkName().text()),
+              ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
+              q.getQueryId(),
+              kafkaStreamsStateCount
+          );
+        }).collect(Collectors.toList());
   }
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {

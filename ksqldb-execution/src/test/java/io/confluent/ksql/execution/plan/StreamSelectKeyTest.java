@@ -37,6 +37,7 @@ public class StreamSelectKeyTest {
   @Mock
   private Expression expression2;
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()

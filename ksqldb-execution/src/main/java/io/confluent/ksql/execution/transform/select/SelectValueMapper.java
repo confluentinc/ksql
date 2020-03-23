@@ -22,8 +22,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
-import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import java.util.List;
@@ -135,7 +135,7 @@ public class SelectValueMapper<K> {
         );
 
         processingLogger.error(
-            EngineProcessingLogMessageFactory.recordProcessingError(errorMsg, e, row)
+            RecordProcessingError.recordProcessingError(errorMsg, e, row)
         );
         return null;
       }

@@ -24,9 +24,11 @@ import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
+import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.rest.entity.LagReportingResponse;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.vertx.core.http.HttpClientOptions;
@@ -38,6 +40,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class KsqlRestClient implements Closeable {
@@ -92,21 +95,21 @@ public class KsqlRestClient implements Closeable {
     return target().getServerHealth();
   }
 
-  public void makeAsyncHeartbeatRequest(
+  public CompletableFuture<RestResponse<HeartbeatResponse>> makeAsyncHeartbeatRequest(
       final KsqlHostInfoEntity host,
       final long timestamp
   ) {
-    target().postAsyncHeartbeatRequest(host, timestamp);
+    return target().postAsyncHeartbeatRequest(host, timestamp);
   }
 
   public RestResponse<ClusterStatusResponse> makeClusterStatusRequest() {
     return target().getClusterStatus();
   }
 
-  public void makeAsyncLagReportingRequest(
+  public CompletableFuture<RestResponse<LagReportingResponse>> makeAsyncLagReportingRequest(
       final LagReportingMessage lagReportingMessage
   ) {
-    target().postAsyncLagReportingRequest(lagReportingMessage);
+    return target().postAsyncLagReportingRequest(lagReportingMessage);
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {

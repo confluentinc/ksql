@@ -45,6 +45,7 @@ import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -84,7 +85,6 @@ import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
-import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -318,7 +318,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
-    config.register(HealthCheckResource.create(ksqlResource, serviceContext, this.config));
+    config.register(HealthCheckResource.create(
+        ksqlResource,
+        serviceContext,
+        this.config,
+        this.ksqlConfigNoPort)
+    );
+
     if (heartbeatAgent.isPresent()) {
       config.register(new HeartbeatResource(heartbeatAgent.get()));
       config.register(new ClusterStatusResource(

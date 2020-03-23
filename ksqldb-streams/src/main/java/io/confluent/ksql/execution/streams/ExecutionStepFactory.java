@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
@@ -231,6 +232,15 @@ public final class ExecutionStepFactory {
         Duration.ofMillis(joinWindows.beforeMs),
         Duration.ofMillis(joinWindows.afterMs)
     );
+  }
+
+  public static StreamSelectKeyV1 streamSelectKeyV1(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<? extends KStreamHolder<?>> source,
+      final Expression fieldName
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new StreamSelectKeyV1(new ExecutionStepPropertiesV1(queryContext), source, fieldName);
   }
 
   public static StreamSelectKey streamSelectKey(

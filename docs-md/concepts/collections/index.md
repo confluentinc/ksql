@@ -69,5 +69,3 @@ Insert Events
 
 Use the INSERT INTO VALUES statement to insert events into an existing stream
 or table. for more information, see [Insert Events](inserting-events.md).
-
-Page last revised on: {{ git_revision_date }}

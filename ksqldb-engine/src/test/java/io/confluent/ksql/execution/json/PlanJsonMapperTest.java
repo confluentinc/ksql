@@ -1,10 +1,12 @@
 package io.confluent.ksql.execution.json;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import org.junit.Test;
 
 public class PlanJsonMapperTest {
@@ -28,5 +30,12 @@ public class PlanJsonMapperTest {
   @Test
   public void shouldEnableFailOnInvalidSubtype() {
     assertThat(MAPPER.isEnabled(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE), is(true));
+  }
+
+  @Test
+  public void shouldHaveTypeMapperRegistered() {
+    assertThat(
+        MAPPER.getRegisteredModuleIds(),
+        hasItem(new KsqlTypesDeserializationModule(false).getTypeId()));
   }
 }

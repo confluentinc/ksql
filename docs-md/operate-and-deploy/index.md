@@ -96,5 +96,3 @@ Next Steps
 
 - Watch the
   [screencast of Taking KSQL to Production](https://www.youtube.com/embed/f3wV8W_zjwE).
-
-Page last revised on: {{ git_revision_date }}

@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.transform.sqlpredicate;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
@@ -24,9 +25,9 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
-import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -44,17 +45,27 @@ public final class SqlPredicate {
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
+    this(
+        filterExpression,
+        Iterables.getOnlyElement(CodeGenRunner.compileExpressions(
+            Stream.of(filterExpression),
+            "Predicate",
+            schema,
+            ksqlConfig,
+            functionRegistry
+        ))
+    );
+  }
+
+  @VisibleForTesting
+  SqlPredicate(
+      final Expression filterExpression,
+      final ExpressionMetadata evaluator
+  ) {
     this.filterExpression = requireNonNull(filterExpression, "filterExpression");
+    this.evaluator = requireNonNull(evaluator, "evaluator");
 
-    this.evaluator = Iterables.getOnlyElement(CodeGenRunner.compileExpressions(
-        Stream.of(filterExpression),
-        "Predicate",
-        schema,
-        ksqlConfig,
-        functionRegistry
-    ));
-
-    if (!this.evaluator.getExpressionType().equals(SqlTypes.BOOLEAN)) {
+    if (!evaluator.getExpressionType().equals(SqlTypes.BOOLEAN)) {
       throw new IllegalArgumentException(
           "Filter expression must resolve to boolean: " + filterExpression);
     }
@@ -105,10 +116,8 @@ public final class SqlPredicate {
         final Exception e,
         final GenericRow row
     ) {
-      processingLogger.error(
-          EngineProcessingLogMessageFactory
-              .recordProcessingError(errorMsg + e.getMessage(), e, row)
-      );
+      processingLogger.error(RecordProcessingError
+          .recordProcessingError(errorMsg + e.getMessage(), e, row));
     }
   }
 }

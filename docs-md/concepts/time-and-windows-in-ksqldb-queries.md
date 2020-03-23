@@ -403,5 +403,3 @@ CREATE TABLE pageviews_per_region AS
 
 Note that the specified retention period should be larger than the sum of window size and any grace
 period.
-
-Page last revised on: {{ git_revision_date }}

@@ -52,7 +52,8 @@ public class KsqlRequestTest {
                 + TimestampExtractor.class.getCanonicalName() + "\""
       + "},"
       + "\"requestProperties\":{"
-      + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
+      + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true,"
+      + "\"" + KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST + "\":true"
       + "}}";
   private static final String A_JSON_REQUEST_WITH_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
@@ -62,6 +63,7 @@ public class KsqlRequestTest {
                 + TimestampExtractor.class.getCanonicalName() + "\""
       + "},"
       + "\"requestProperties\":{"
+      + "\"" + KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST + "\":true,"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
       + "\"commandSequenceNumber\":2}";
@@ -73,6 +75,7 @@ public class KsqlRequestTest {
                 + TimestampExtractor.class.getCanonicalName() + "\""
       + "},"
       + "\"requestProperties\":{"
+      + "\"" + KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST + "\":true,"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
       + "\"commandSequenceNumber\":null}";
@@ -82,7 +85,8 @@ public class KsqlRequestTest {
       StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, TimestampExtractor.class
   );
   private static final ImmutableMap<String, Object> SOME_REQUEST_PROPS = ImmutableMap.of(
-      KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true
+      KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true,
+      KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true
   );
   private static final long SOME_COMMAND_NUMBER = 2L;
 
@@ -90,29 +94,31 @@ public class KsqlRequestTest {
       "sql", SOME_PROPS, SOME_REQUEST_PROPS, null);
   private static final KsqlRequest A_REQUEST_WITH_COMMAND_NUMBER =
       new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER);
+  private static final KsqlRequest A_REQUEST_WITH_IS_INTERNAL_REQUEST =
+      new KsqlRequest("sql", SOME_PROPS, Collections.emptyMap(), null);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldHandleNullStatement() {
-    assertThat(new KsqlRequest(null, SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER)
-                   .getKsql(),
-               is(""));
+    assertThat(
+        new KsqlRequest(null, SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER).getKsql(),
+        is(""));
   }
 
   @Test
   public void shouldHandleNullProps() {
-    assertThat(new KsqlRequest("sql", null, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER)
-                   .getConfigOverrides(),
+    assertThat(
+        new KsqlRequest("sql", null, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER).getConfigOverrides(),
         is(Collections.emptyMap()));
   }
 
   @Test
   public void shouldHandleNullCommandNumber() {
-    assertThat(new KsqlRequest(
-        "sql", SOME_PROPS, Collections.emptyMap(), null).getCommandSequenceNumber(),
-               is(Optional.empty()));
+    assertThat(
+        new KsqlRequest("sql", SOME_PROPS, Collections.emptyMap(), null).getCommandSequenceNumber(),
+        is(Optional.empty()));
   }
 
   @Test
@@ -165,10 +171,10 @@ public class KsqlRequestTest {
     new EqualsTester()
         .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER),
             new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
-        .addEqualityGroup(new KsqlRequest("different-sql", SOME_PROPS,
-                                          SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
-        .addEqualityGroup(new KsqlRequest("sql", ImmutableMap.of(),
-                                          SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
+        .addEqualityGroup(
+            new KsqlRequest("different-sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
+        .addEqualityGroup(
+            new KsqlRequest("sql", ImmutableMap.of(), SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
         .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, null))
         .testEquals();
   }
@@ -198,7 +204,8 @@ public class KsqlRequestTest {
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "not-parsable"
         ),
         SOME_REQUEST_PROPS,
-        null);
+        null
+    );
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
@@ -217,7 +224,8 @@ public class KsqlRequestTest {
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
         ),
         SOME_REQUEST_PROPS,
-        null);
+        null
+    );
 
     // When:
     final Map<String, Object> props = request.getConfigOverrides();

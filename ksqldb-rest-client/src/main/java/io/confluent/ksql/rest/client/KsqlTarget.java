@@ -25,10 +25,12 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.rest.entity.LagReportingResponse;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -99,13 +101,15 @@ public final class KsqlTarget {
     return get("/healthcheck", HealthCheckResponse.class);
   }
 
-  public void postAsyncHeartbeatRequest(
+  public CompletableFuture<RestResponse<HeartbeatResponse>> postAsyncHeartbeatRequest(
       final KsqlHostInfoEntity host,
       final long timestamp
   ) {
-    executeRequestAsync(
+    return executeRequestAsync(
+        HttpMethod.POST,
         HEARTBEAT_PATH,
-        new HeartbeatMessage(host, timestamp)
+        new HeartbeatMessage(host, timestamp),
+        r -> deserialize(r.getBody(), HeartbeatResponse.class)
     );
   }
 
@@ -113,12 +117,14 @@ public final class KsqlTarget {
     return get(CLUSTERSTATUS_PATH, ClusterStatusResponse.class);
   }
 
-  public void postAsyncLagReportingRequest(
+  public CompletableFuture<RestResponse<LagReportingResponse>> postAsyncLagReportingRequest(
       final LagReportingMessage lagReportingMessage
   ) {
-    executeRequestAsync(
+    return executeRequestAsync(
+        HttpMethod.POST,
         LAG_REPORT_PATH,
-        lagReportingMessage
+        lagReportingMessage,
+        r -> deserialize(r.getBody(), LagReportingResponse.class)
     );
   }
 
@@ -193,14 +199,14 @@ public final class KsqlTarget {
     return executeRequestSync(HttpMethod.POST, path, jsonEntity, mapper);
   }
 
-  private void executeRequestAsync(
+  private <T> CompletableFuture<RestResponse<T>> executeRequestAsync(
+      final HttpMethod httpMethod,
       final String path,
-      final Object jsonEntity
+      final Object jsonEntity,
+      final Function<ResponseWithBody, T> mapper
   ) {
-    execute(HttpMethod.POST, path, jsonEntity, (resp, vcf) -> {
-    }).exceptionally(t -> {
-      log.error("Unexpected exception in async request", t);
-      return null;
+    return executeAsync(httpMethod, path, jsonEntity, mapper, (resp, vcf) -> {
+      resp.bodyHandler(buff -> vcf.complete(new ResponseWithBody(resp, buff)));
     });
   }
 
@@ -253,6 +259,18 @@ public final class KsqlTarget {
           "Error issuing " + httpMethod + " to KSQL server. path:" + path, e);
     }
     return KsqlClientUtil.toRestResponse(response, path, mapper);
+  }
+
+  private <T> CompletableFuture<RestResponse<T>> executeAsync(
+      final HttpMethod httpMethod,
+      final String path,
+      final Object requestBody,
+      final Function<ResponseWithBody, T> mapper,
+      final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
+  ) {
+    final CompletableFuture<ResponseWithBody> vcf =
+        execute(httpMethod, path, requestBody, responseHandler);
+    return vcf.thenApply(response -> KsqlClientUtil.toRestResponse(response, path, mapper));
   }
 
   private CompletableFuture<ResponseWithBody> execute(

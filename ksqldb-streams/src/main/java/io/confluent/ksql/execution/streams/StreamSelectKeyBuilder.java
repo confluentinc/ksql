@@ -15,22 +15,25 @@
 
 package io.confluent.ksql.execution.streams;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.Named;
 
 public final class StreamSelectKeyBuilder {
-
-  private static final String EXP_TYPE = "SelectKey";
 
   private StreamSelectKeyBuilder() {
   }
@@ -40,42 +43,51 @@ public final class StreamSelectKeyBuilder {
       final StreamSelectKey selectKey,
       final KsqlQueryBuilder queryBuilder
   ) {
-    final LogicalSchema sourceSchema = stream.getSchema();
+    return build(stream, selectKey, queryBuilder, PartitionByParamsFactory::build);
+  }
 
-    final ExpressionMetadata expression = buildExpressionEvaluator(
-        selectKey,
-        queryBuilder,
-        sourceSchema
+  @VisibleForTesting
+  static KStreamHolder<Struct> build(
+      final KStreamHolder<?> stream,
+      final StreamSelectKey selectKey,
+      final KsqlQueryBuilder queryBuilder,
+      final PartitionByParamsBuilder paramsBuilder
+  ) {
+    final LogicalSchema sourceSchema = stream.getSchema();
+    final QueryContext queryContext = selectKey.getProperties().getQueryContext();
+
+    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+
+    final PartitionByParams params = paramsBuilder.build(
+        sourceSchema,
+        selectKey.getKeyExpression(),
+        queryBuilder.getKsqlConfig(),
+        queryBuilder.getFunctionRegistry(),
+        logger
     );
 
-    final LogicalSchema resultSchema = new StepSchemaResolver(queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()).resolve(selectKey, sourceSchema);
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper = params.getMapper();
 
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(resultSchema);
+    final KStream<?, GenericRow> kStream = stream.getStream();
 
-    final KStream<?, GenericRow> kstream = stream.getStream();
-    final KStream<Struct, GenericRow> rekeyed = kstream
-        .filter((key, val) -> val != null && expression.evaluate(val) != null)
-        .selectKey((key, val) -> keyBuilder.build(expression.evaluate(val)));
+    final KStream<Struct, GenericRow> reKeyed = kStream
+        .map(mapper::apply, Named.as(queryContext.formatContext() + "-SelectKey"));
 
     return new KStreamHolder<>(
-        rekeyed,
-        resultSchema,
+        reKeyed,
+        params.getSchema(),
         KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
 
-  private static ExpressionMetadata buildExpressionEvaluator(
-      final StreamSelectKey selectKey,
-      final KsqlQueryBuilder queryBuilder,
-      final LogicalSchema sourceSchema
-  ) {
-    final CodeGenRunner codeGen = new CodeGenRunner(
-        sourceSchema,
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
-    );
+  interface PartitionByParamsBuilder {
 
-    return codeGen.buildCodeGenFromParseTree(selectKey.getKeyExpression(), EXP_TYPE);
+    PartitionByParams build(
+        LogicalSchema sourceSchema,
+        Expression partitionBy,
+        KsqlConfig ksqlConfig,
+        FunctionRegistry functionRegistry,
+        ProcessingLogger logger
+    );
   }
 }

@@ -12,5 +12,3 @@ keywords: ksqldb, install, uninstall, upgrade
 - [Configure ksqlDB Server](server-config/index.md)
 - [Configure ksqlDB CLI](cli-config.md)
 - [Upgrade ksqlDB](upgrading.md)
-
-Page last revised on: {{ git_revision_date }}

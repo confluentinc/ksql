@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
@@ -67,6 +68,7 @@ public class PlanSummary {
           .put(StreamFlatMap.class, "FLAT_MAP")
           .put(StreamGroupBy.class, "GROUP_BY")
           .put(StreamSelect.class, "PROJECT")
+          .put(StreamSelectKeyV1.class, "REKEY")
           .put(StreamSelectKey.class, "REKEY")
           .put(StreamSink.class, "SINK")
           .put(StreamSource.class, "SOURCE")

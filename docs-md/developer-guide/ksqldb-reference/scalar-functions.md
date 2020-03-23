@@ -21,7 +21,8 @@ keywords: ksqlDB, function, scalar
   - [SIGN](#sign)
   - [SQRT](#sqrt)
 - [Collections](#collections)
-  - [ARRAYCONTAINS](#arraycontains)
+  - [ARRAY_CONTAINS](#arraycontains)
+  - [JSON_ARRAY_CONTAINS](#arraycontains)
   - [ARRAY](#array)
   - [MAP](#map)
   - [AS_MAP](#asmap)
@@ -188,13 +189,25 @@ The square root of a value.
 Collections
 ===========
 
-ARRAYCONTAINS
+ARRAY_CONTAINS
 -------------
 
-`ARRAYCONTAINS('[1, 2, 3]', 3)`
+`ARRAY_CONTAINS([1, 2, 3], 3)`
 
-Given an array in JSON, AVRO, or PROTOBUF format, checks if a search value
-is contained in the array.
+Given an array, checks if a search value is contained in the array.
+
+Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
+
+JSON_ARRAY_CONTAINS
+-------------
+
+`JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)`
+
+Given a `STRING` containing a JSON array, checks if a search value is contained in the array.
+
+Returns `false` if the first parameter does not contain a JSON array.
+
+
 
 ARRAY
 --------
@@ -653,5 +666,3 @@ present or `url` is not a valid URI.
     structure of a URI, including definitions of the various components, see
     Section 3 of the RFC. For encoding/decoding, the
     `application/x-www-form-urlencoded` convention is followed.
-
-Page last revised on: {{ git_revision_date }}

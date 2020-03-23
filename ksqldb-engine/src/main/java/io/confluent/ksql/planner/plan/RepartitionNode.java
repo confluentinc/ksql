@@ -23,10 +23,15 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Immutable
 public class RepartitionNode extends PlanNode {
@@ -77,5 +82,20 @@ public class RepartitionNode extends PlanNode {
   @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitRepartition(this, context);
+  }
+
+  @Override
+  public Stream<ColumnName> resolveSelectStar(
+      final Optional<SourceName> sourceName,
+      final boolean valueOnly
+  ) {
+    final boolean sourceNameMatches = !sourceName.isPresent() || sourceName.equals(getSourceName());
+    if (sourceNameMatches && valueOnly) {
+      // Override set of value columns to take into account the repartition:
+      return getSchema().withoutMetaAndKeyColsInValue().value().stream().map(Column::name);
+    }
+
+    // Set of all columns not changed by a repartition:
+    return super.resolveSelectStar(sourceName, valueOnly);
   }
 }

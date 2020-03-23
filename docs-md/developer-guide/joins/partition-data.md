@@ -153,6 +153,12 @@ only if they are also both in the same partition after the repartition.
 Otherwise, Kafka is likely to interleave messages. The use case will determine
 if these ordering guarantees are acceptable.
 
+!!! important
+      If the PARTITION BY expression evaluates to NULL, the resulting row is produced to a
+      random partition. You many want to use [COALESCE](../syntax-reference#coalesce) to wrap
+      the expression and convert any NULL values to a default value, for example,
+      `PARTITION BY COALESCE(MY_UDF_THAT_MAY_FAIL(Col0), 0)`.
+
 For example, if you need to re-partition a stream to be keyed by a `product_id`
 field, and keys need to be distributed over 6 partitions to make a join work,
 use the following SQL statement:
@@ -230,5 +236,3 @@ and are assigned in the producer configuration property,
 For example implementations of a custom partitioner, see
 [Built for realtime: Big data messaging with Apache Kafka, Part2](https://www.javaworld.com/article/3066873/big-data/big-data-messaging-with-kafka-part-2.html)
 and [Apache Kafka Foundation Course - Custom Partitioner](https://www.learningjournal.guru/courses/kafka/kafka-foundation-training/custom-partitioner/).
-
-Page last revised on: {{ git_revision_date }}

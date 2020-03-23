@@ -35,4 +35,3 @@ Here are some common ksqlDB CLI properties that you can customize:
 -   [ksql.streams.cache.max.bytes.buffering](server-config/config-reference.md#ksqlstreamscachemaxbytesbuffering)
 -   [ksql.streams.num.stream.threads](server-config/config-reference.md#ksqlstreamsnumstreamthreads)
 
-Page last revised on: {{ git_revision_date }}

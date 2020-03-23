@@ -37,9 +37,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -158,11 +156,7 @@ public class JoinNodeTest {
   @Mock
   private KafkaTopicClient mockKafkaTopicClient;
   @Mock
-  private ProcessingLogContext logContext;
-  @Mock
-  private ProcessingLoggerFactory loggerFactory;
-  @Mock
-  private ProcessingLogger logger;
+  private ProcessingLogger processLogger;
 
   @Before
   public void setUp() {
@@ -196,9 +190,7 @@ public class JoinNodeTest {
     when(right.getSourceName()).thenReturn(Optional.of(RIGHT_ALIAS));
 
     when(ksqlStreamBuilder.getQueryId()).thenReturn(new QueryId("foo"));
-    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(logContext);
-    when(logContext.getLoggerFactory()).thenReturn(loggerFactory);
-    when(loggerFactory.getLogger(any())).thenReturn(logger);
+    when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processLogger);
 
     setUpSource(left, VALUE_FORMAT, leftSource, "Foobar1");
     setUpSource(right, OTHER_FORMAT, rightSource, "Foobar2");

@@ -7,6 +7,7 @@ import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DE
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TOPIC;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.TYPE;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -20,7 +21,6 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class DeserializationErrorTest {
@@ -49,7 +49,7 @@ public class DeserializationErrorTest {
     // Then:
     final Struct struct = (Struct) msg.value();
     final Struct deserializationError = struct.getStruct(DESERIALIZATION_ERROR);
-    Assert.assertThat(deserializationError.get(DESERIALIZATION_ERROR_FIELD_RECORD_B64),
+    assertThat(deserializationError.get(DESERIALIZATION_ERROR_FIELD_RECORD_B64),
         is(nullValue()));
   }
 
@@ -67,32 +67,32 @@ public class DeserializationErrorTest {
 
     // Then:
     final Schema schema = msg.schema();
-    Assert.assertThat(schema, equalTo(PROCESSING_LOG_SCHEMA));
+    assertThat(schema, equalTo(PROCESSING_LOG_SCHEMA));
     final Struct struct = (Struct) msg.value();
-    Assert.assertThat(
+    assertThat(
         struct.get(ProcessingLogMessageSchema.TYPE),
         equalTo(MessageType.DESERIALIZATION_ERROR.getTypeId()));
     final Struct deserializationError = struct.getStruct(DESERIALIZATION_ERROR);
-    Assert.assertThat(
+    assertThat(
         deserializationError.get(DESERIALIZATION_ERROR_FIELD_MESSAGE),
         equalTo(error.getMessage())
     );
-    Assert.assertThat(
+    assertThat(
         deserializationError.get(DESERIALIZATION_ERROR_FIELD_CAUSE),
         equalTo(causeList)
     );
-    Assert.assertThat(
+    assertThat(
         deserializationError.get(DESERIALIZATION_ERROR_FIELD_RECORD_B64),
         equalTo(Base64.getEncoder().encodeToString(record))
     );
-    Assert.assertThat(
+    assertThat(
         deserializationError.get(DESERIALIZATION_ERROR_FIELD_TOPIC),
         equalTo("topic")
     );
     schema.fields().forEach(
         f -> {
           if (!ImmutableList.of(TYPE, DESERIALIZATION_ERROR).contains(f.name())) {
-            Assert.assertThat(struct.get(f), is(nullValue()));
+            assertThat(struct.get(f), is(nullValue()));
           }
         }
     );
@@ -116,11 +116,10 @@ public class DeserializationErrorTest {
 
     // Then:
     final Struct struct = (Struct) msg.value();
-    Assert.assertThat(
+    assertThat(
         struct.get(ProcessingLogMessageSchema.TYPE),
         equalTo(MessageType.DESERIALIZATION_ERROR.getTypeId()));
     final Struct deserializationError = struct.getStruct(DESERIALIZATION_ERROR);
-    Assert
-        .assertThat(deserializationError.get(DESERIALIZATION_ERROR_FIELD_RECORD_B64), nullValue());
+    assertThat(deserializationError.get(DESERIALIZATION_ERROR_FIELD_RECORD_B64), nullValue());
   }
 }

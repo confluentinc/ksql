@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import org.junit.Before;
-import org.junit.Test;
-
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
+
+import org.junit.Before;
+import org.junit.Test;
 
 public class SignTest {
   private Sign udf;

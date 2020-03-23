@@ -1,11 +1,11 @@
 package io.confluent.ksql.function.udf.string;
 
-import org.junit.Before;
-import org.junit.Test;
-
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.junit.Assert.*;
+
+import org.junit.Before;
+import org.junit.Test;
 
 public class InitCapTest {
   private InitCap udf;

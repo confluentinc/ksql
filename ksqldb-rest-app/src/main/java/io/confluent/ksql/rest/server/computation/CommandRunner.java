@@ -64,6 +64,7 @@ public class CommandRunner implements Closeable {
 
   private final CommandRunnerStatusMetric commandRunnerStatusMetric;
   private final AtomicReference<Pair<QueuedCommand, Instant>> currentCommandRef;
+  private final AtomicReference<Instant> lastPollTime;
   private final Duration commandRunnerHealthTimeout;
   private final Clock clock;
 
@@ -118,6 +119,7 @@ public class CommandRunner implements Closeable {
     this.commandRunnerHealthTimeout =
         Objects.requireNonNull(commandRunnerHealthTimeout, "commandRunnerHealthTimeout");
     this.currentCommandRef = new AtomicReference<>(null);
+    this.lastPollTime = new AtomicReference<>(null);
     this.commandRunnerStatusMetric =
         new CommandRunnerStatusMetric(ksqlServiceId, this, metricsGroupPrefix);
     this.clock = clock;
@@ -194,6 +196,7 @@ public class CommandRunner implements Closeable {
   }
 
   void fetchAndRunCommands() {
+    lastPollTime.set(clock.instant());
     final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
     if (commands.isEmpty()) {
       return;
@@ -262,7 +265,10 @@ public class CommandRunner implements Closeable {
   CommandRunnerStatus checkCommandRunnerStatus() {
     final Pair<QueuedCommand, Instant> currentCommand = currentCommandRef.get();
     if (currentCommand == null) {
-      return CommandRunnerStatus.RUNNING;
+      return lastPollTime.get() == null
+          || Duration.between(lastPollTime.get(), clock.instant()).toMillis()
+              < NEW_CMDS_TIMEOUT.toMillis() * 3
+              ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
     }
     
     return Duration.between(currentCommand.right, clock.instant()).toMillis()

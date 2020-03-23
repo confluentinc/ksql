@@ -28,7 +28,8 @@ Port the application’s schema
 You can run the following commands by using the |ccloud| web interface or the
 KSQL CLI. If you choose to use the KSQL CLI, you may find the SPOOL command
 to be helpful, because it captures all the output from your session to a file
-on your local filesystem.
+on your local filesystem. For more information, see
+:ref:`Accessing a KSQL Application in |ccloud| with API keys <cloud-ksql-access-ksql-app-with-api-keys>`.
 
 Now let’s begin the migration process:
 

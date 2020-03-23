@@ -352,7 +352,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(SqlTypes.NULL));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -366,7 +366,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(null, SqlTypes.STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(SqlTypes.NULL, SqlTypes.STRING));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -381,7 +381,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(SqlTypes.NULL));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -395,7 +395,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new SqlType[]{null}));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new SqlType[]{SqlTypes.NULL}));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -409,7 +409,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(null, SqlTypes.STRING, null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(SqlTypes.NULL, SqlTypes.STRING, SqlTypes.NULL));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -424,7 +424,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(SqlTypes.NULL));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -439,7 +439,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new SqlType[]{null, null}));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new SqlType[]{SqlTypes.NULL, SqlTypes.NULL}));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -454,7 +454,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new SqlType[]{null, null}));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new SqlType[]{SqlTypes.NULL, SqlTypes.NULL}));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -469,7 +469,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(SqlTypes.STRING, null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(SqlTypes.STRING, SqlTypes.NULL));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -487,7 +487,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(SqlTypes.STRING, SqlTypes.INTEGER, null, SqlTypes.INTEGER));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(SqlTypes.STRING, SqlTypes.INTEGER, SqlTypes.NULL, SqlTypes.INTEGER));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -609,10 +609,10 @@ public class UdfIndexTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Function 'name' does not accept parameters "
-        + "(INTEGER, null)");
+        + "(INTEGER, NULL)");
 
     // When:
-    udfIndex.getFunction(Arrays.asList(SqlTypes.INTEGER, null));
+    udfIndex.getFunction(Arrays.asList(SqlTypes.INTEGER, SqlTypes.NULL));
   }
 
   @Test
@@ -642,10 +642,10 @@ public class UdfIndexTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Function 'name' does not accept parameters "
-        + "(STRING, null)");
+        + "(STRING, NULL)");
 
     // When:
-    udfIndex.getFunction(Arrays.asList(SqlTypes.STRING, null));
+    udfIndex.getFunction(Arrays.asList(SqlTypes.STRING, SqlTypes.NULL));
   }
 
   @Test

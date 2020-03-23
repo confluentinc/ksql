@@ -41,7 +41,7 @@ final class ComparisonUtil {
   static void isValidComparison(
       final SqlType left, final ComparisonExpression.Type operator, final SqlType right
   ) {
-    if (left == null || right == null) {
+    if (left.baseType() == SqlBaseType.NULL || right.baseType() == SqlBaseType.NULL) {
       throw nullSchemaException(left, operator, right);
     }
 
@@ -64,14 +64,12 @@ final class ComparisonUtil {
       final Type operator,
       final SqlType right
   ) {
-    final String leftType = left == null ? "NULL" : left.baseType().name();
-    final String rightType = right == null ? "NULL" : right.baseType().name();
 
     return new KsqlException(
         "Comparison with NULL not supported: "
-            + leftType + " " + operator.getValue() + " " + rightType
-        + System.lineSeparator()
-        + "Use 'IS NULL' or 'IS NOT NULL' instead."
+            + left.baseType().name() + " " + operator.getValue() + " " + right.baseType().name()
+            + System.lineSeparator()
+            + "Use 'IS NULL' or 'IS NOT NULL' instead."
     );
   }
 

@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
@@ -742,6 +743,22 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(schema.valueContainsAny(ImmutableSet.of(K0, V0, ROWTIME_NAME)), is(false));
+  }
+
+  @Test
+  public void shouldThrowOnNullKeyColumn() {
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> LogicalSchema.builder().keyColumn(F0, SqlTypes.NULL)
+    );
+  }
+
+  @Test
+  public void shouldThrowOnNullValueColumn() {
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> LogicalSchema.builder().valueColumn(F0, SqlTypes.NULL)
+    );
   }
 
   private static org.apache.kafka.connect.data.Field connectField(

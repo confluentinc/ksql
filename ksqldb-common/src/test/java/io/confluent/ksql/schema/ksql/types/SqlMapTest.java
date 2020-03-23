@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
@@ -35,6 +36,7 @@ public class SqlMapTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
     new EqualsTester()
@@ -122,5 +124,13 @@ public class SqlMapTest {
 
     // When:
     schema.validateValue(mapWithNull);
+  }
+
+  @Test
+  public void shouldThrowOnNullType() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> SqlTypes.map(SqlTypes.NULL)
+    );
   }
 }

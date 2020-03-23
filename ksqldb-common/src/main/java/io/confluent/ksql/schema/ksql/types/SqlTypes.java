@@ -22,6 +22,7 @@ public final class SqlTypes {
   private SqlTypes() {
   }
 
+  public static final SqlNull NULL = SqlNull.INSTANCE;
   public static final SqlPrimitiveType BOOLEAN = SqlPrimitiveType.of(SqlBaseType.BOOLEAN);
   public static final SqlPrimitiveType INTEGER = SqlPrimitiveType.of(SqlBaseType.INTEGER);
   public static final SqlPrimitiveType BIGINT = SqlPrimitiveType.of(SqlBaseType.BIGINT);

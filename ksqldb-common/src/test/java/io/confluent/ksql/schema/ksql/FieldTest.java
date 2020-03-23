@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
@@ -32,6 +33,7 @@ public class FieldTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldThrowNPE() {
     new NullPointerTester()
@@ -40,6 +42,7 @@ public class FieldTest {
         .testAllPublicStaticMethods(Field.class);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
@@ -111,5 +114,13 @@ public class FieldTest {
 
     // When:
     Field.of(" bar ", SqlTypes.STRING);
+  }
+
+  @Test
+  public void shouldThrowOnNullType() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> Field.of("x", SqlTypes.NULL)
+    );
   }
 }

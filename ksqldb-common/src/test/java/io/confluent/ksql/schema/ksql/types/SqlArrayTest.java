@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
@@ -34,6 +35,7 @@ public class SqlArrayTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
     new EqualsTester()
@@ -104,5 +106,13 @@ public class SqlArrayTest {
 
     // When:
     schema.validateValue(Arrays.asList(19L, null));
+  }
+
+  @Test
+  public void shouldThrowOnNullType() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> SqlTypes.array(SqlTypes.NULL)
+    );
   }
 }

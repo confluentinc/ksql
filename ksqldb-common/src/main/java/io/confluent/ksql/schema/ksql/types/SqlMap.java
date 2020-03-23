@@ -39,15 +39,14 @@ public final class SqlMap extends SqlType {
   private SqlMap(final SqlType valueType) {
     super(SqlBaseType.MAP);
     this.valueType = requireNonNull(valueType, "valueType");
+
+    if (valueType.baseType() == SqlBaseType.NULL) {
+      throw new IllegalArgumentException("Value type of NULL not supported");
+    }
   }
 
   public SqlType getValueType() {
     return valueType;
-  }
-
-  @Override
-  public boolean supportsCast() {
-    return false;
   }
 
   @Override

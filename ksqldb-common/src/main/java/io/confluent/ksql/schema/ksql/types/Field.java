@@ -19,6 +19,7 @@ import static io.confluent.ksql.util.Identifiers.ensureTrimmed;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.Identifiers;
 import java.util.Objects;
 
@@ -35,6 +36,10 @@ public final class Field {
   private Field(final String name, final SqlType type) {
     this.name = ensureTrimmed(Objects.requireNonNull(name, "name"), "name");
     this.type = Objects.requireNonNull(type, "type");
+
+    if (type.baseType() == SqlBaseType.NULL) {
+      throw new IllegalArgumentException("Field type of NULL not supported");
+    }
   }
 
   public SqlType type() {

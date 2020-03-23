@@ -52,6 +52,7 @@ public class OperatorTest {
 
   private static final Map<SqlBaseType, SqlType> TYPES = ImmutableMap
       .<SqlBaseType, SqlType>builder()
+      .put(SqlBaseType.NULL, SqlTypes.NULL)
       .put(SqlBaseType.BOOLEAN, BOOLEAN)
       .put(SqlBaseType.INTEGER, INTEGER)
       .put(SqlBaseType.BIGINT, BIGINT)

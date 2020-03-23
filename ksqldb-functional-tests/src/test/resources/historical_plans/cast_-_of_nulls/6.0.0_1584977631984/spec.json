@@ -1,0 +1,27 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584977631984,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BOOLEAN, KSQL_COL_1 INT, KSQL_COL_2 BIGINT, KSQL_COL_3 DOUBLE, KSQL_COL_4 VARCHAR, KSQL_COL_5 ARRAY<INT>, KSQL_COL_6 MAP<VARCHAR, INT>, KSQL_COL_7 STRUCT<F0 INT>> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : { }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "KQL_COL_0" : null,
+      "KQL_COL_1" : null,
+      "KQL_COL_2" : null,
+      "KQL_COL_3" : null,
+      "KQL_COL_4" : null,
+      "KQL_COL_5" : null,
+      "KQL_COL_6" : null,
+      "KQL_COL_7" : null
+    }
+  } ]
+}

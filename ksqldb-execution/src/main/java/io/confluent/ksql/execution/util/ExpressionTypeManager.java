@@ -55,7 +55,6 @@ import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.ksql.Column;
@@ -146,13 +145,7 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitCast(final Cast node, final ExpressionTypeContext expressionTypeContext) {
-      final SqlType sqlType = node.getType().getSqlType();
-      if (!sqlType.supportsCast()) {
-        throw new KsqlFunctionException("Only casts to primitive types or decimals "
-            + "are supported: " + sqlType);
-      }
-
-      expressionTypeContext.setSqlType(sqlType);
+      expressionTypeContext.setSqlType(node.getType().getSqlType());
       return null;
     }
 
@@ -266,7 +259,7 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitNullLiteral(final NullLiteral node, final ExpressionTypeContext context) {
-      context.setSqlType(null);
+      context.setSqlType(SqlTypes.NULL);
       return null;
     }
 
@@ -301,7 +294,8 @@ public class ExpressionTypeManager {
       final Optional<SqlType> whenType = validateWhenClauses(node.getWhenClauses(), context);
 
       final Optional<SqlType> defaultType = node.getDefaultValue()
-          .map(ExpressionTypeManager.this::getExpressionSqlType);
+          .map(ExpressionTypeManager.this::getExpressionSqlType)
+          .filter(sqlType -> sqlType.baseType() != SqlBaseType.NULL);
 
       if (whenType.isPresent() && defaultType.isPresent()) {
         if (!whenType.get().equals(defaultType.get())) {
@@ -363,7 +357,7 @@ public class ExpressionTypeManager {
             process(val, context);
             return context.getSqlType();
           })
-          .filter(Objects::nonNull)
+          .filter(sqlType -> sqlType.baseType() != SqlBaseType.NULL)
           .collect(Collectors.toList());
 
       if (sqlTypes.size() == 0) {
@@ -414,8 +408,15 @@ public class ExpressionTypeManager {
             process(val, context);
             return context.getSqlType();
           })
+          .filter(sqlType -> sqlType.baseType() != SqlBaseType.NULL)
           .distinct()
           .collect(Collectors.toList());
+
+      if (valueTypes.size() == 0) {
+        throw new KsqlException("Cannot construct a map with all NULL values "
+            + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
+            + "cast a NULL value to the desired type.");
+      }
 
       if (valueTypes.size() != 1) {
         throw new KsqlException(
@@ -423,11 +424,6 @@ public class ExpressionTypeManager {
                 "Cannot construct a map with mismatching value types (%s) from expression %s.",
                 valueTypes,
                 exp));
-      }
-
-      if (valueTypes.get(0) == null) {
-        throw new KsqlException("Cannot construct MAP with NULL values. As a workaround, you "
-            + "may cast a NULL value to the desired type.");
       }
 
       context.setSqlType(SqlMap.of(valueTypes.get(0)));
@@ -581,8 +577,8 @@ public class ExpressionTypeManager {
         process(whenClause.getResult(), context);
 
         final SqlType resultType = context.getSqlType();
-        if (resultType == null) {
-          continue; // `null` type
+        if (resultType.baseType() == SqlBaseType.NULL) {
+          continue;
         }
 
         if (!previousResult.isPresent()) {

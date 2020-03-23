@@ -23,7 +23,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -34,6 +33,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -127,7 +127,9 @@ public class SchemaConvertersTest {
         .map(SqlType::baseType)
         .collect(Collectors.toSet());
 
-    final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
+    final Set<SqlBaseType> allTypes = Arrays.stream(SqlBaseType.values())
+        .filter(t -> t != SqlBaseType.NULL) // Can not convert NULL <> Connect type
+        .collect(Collectors.toSet());
 
     assertThat("If this test fails then there has been a new SQL type added and this test "
         + "file needs updating to cover that new type", tested, is(allTypes));
@@ -154,7 +156,9 @@ public class SchemaConvertersTest {
   public void shouldHaveJavaTestsForAllSqlTypes() {
     final Set<SqlBaseType> tested = new HashSet<>(SQL_TO_JAVA.keySet());
 
-    final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
+    final Set<SqlBaseType> allTypes = Arrays.stream(SqlBaseType.values())
+        .filter(t -> t != SqlBaseType.NULL) // Can not convert NULL <> Java Type
+        .collect(Collectors.toSet());
 
     assertThat("If this test fails then there has been a new SQL type added and this test "
         + "file needs updating to cover that new type", tested, is(allTypes));

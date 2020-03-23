@@ -139,7 +139,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
     final Map<?, ?> map = (Map<?, ?>) value;
     final HashMap<Object, Object> coerced = new HashMap<>();
-    for (final Map.Entry entry : map.entrySet()) {
+    for (final Map.Entry<?, ?> entry : map.entrySet()) {
       final Optional<?> coercedKey = doCoerce(entry.getKey(), SqlTypes.STRING);
       final Optional<?> coercedValue = doCoerce(entry.getValue(), targetType.getValueType());
       if (!coercedKey.isPresent() || !coercedValue.isPresent()) {

@@ -21,6 +21,7 @@ import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -193,7 +194,7 @@ public class UdfIndex<T extends FunctionSignature> {
     LOG.debug("Current UdfIndex:\n{}", describe());
 
     final String requiredTypes = paramTypes.stream()
-        .map(type -> type == null ? "null" : type.toString(FormatOptions.noEscape()))
+        .map(type -> type.toString(FormatOptions.noEscape()))
         .collect(Collectors.joining(", ", "(", ")"));
 
     final String acceptedTypes = allFunctions.values().stream()
@@ -346,7 +347,7 @@ public class UdfIndex<T extends FunctionSignature> {
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
     boolean accepts(final SqlType argument, final Map<GenericType, SqlType> reservedGenerics,
         final boolean allowCasts) {
-      if (argument == null) {
+      if (argument.baseType() == SqlBaseType.NULL) {
         return true;
       }
 

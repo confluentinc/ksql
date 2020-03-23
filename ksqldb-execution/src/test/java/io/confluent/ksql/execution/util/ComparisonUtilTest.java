@@ -109,7 +109,6 @@ public class ComparisonUtilTest {
     }
   }
 
-  @SuppressWarnings("ConstantConditions")
   @Test
   public void shouldNotCompareLeftNullSchema() {
     // Expect:
@@ -117,10 +116,9 @@ public class ComparisonUtilTest {
     expectedException.expectMessage("Comparison with NULL not supported: NULL = STRING");
 
     // When:
-    ComparisonUtil.isValidComparison(null, ComparisonExpression.Type.EQUAL, SqlTypes.STRING);
+    ComparisonUtil.isValidComparison(SqlTypes.NULL, ComparisonExpression.Type.EQUAL, SqlTypes.STRING);
   }
 
-  @SuppressWarnings("ConstantConditions")
   @Test
   public void shouldNotCompareLeftRightSchema() {
     // Expect:
@@ -128,6 +126,6 @@ public class ComparisonUtilTest {
     expectedException.expectMessage("Comparison with NULL not supported: STRING = NULL");
 
     // When:
-    ComparisonUtil.isValidComparison(SqlTypes.STRING, ComparisonExpression.Type.EQUAL, null);
+    ComparisonUtil.isValidComparison(SqlTypes.STRING, ComparisonExpression.Type.EQUAL, SqlTypes.NULL);
   }
 }

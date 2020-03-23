@@ -37,6 +37,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -112,7 +113,10 @@ public class CodeGenRunner {
       final SqlType expressionType = expressionTypeManager
           .getExpressionSqlType(expression);
 
-      ee.setExpressionType(SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(expressionType));
+      if (expressionType.baseType() != SqlBaseType.NULL) {
+        // leave as default Object for NULLs.
+        ee.setExpressionType(SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(expressionType));
+      }
 
       ee.cook(javaCode);
 
@@ -123,8 +127,7 @@ public class CodeGenRunner {
           expression
       );
     } catch (KsqlException | CompileException e) {
-      throw new KsqlException("Code generation failed for " + type
-          + ": " + e.getMessage()
+      throw new KsqlException("Invalid " + type + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);
     } catch (final Exception e) {
       throw new RuntimeException("Unexpected error generating code for " + type

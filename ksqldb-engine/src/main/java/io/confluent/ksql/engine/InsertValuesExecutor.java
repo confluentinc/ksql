@@ -562,6 +562,9 @@ public class InsertValuesExecutor {
 
       // we expect no column references, so we can pass in an empty generic row
       final Object value = metadata.evaluate(new GenericRow());
+      if (value == null) {
+        return null;
+      }
 
       return sqlValueCoercer.coerce(value, fieldType)
           .orElseThrow(() -> {
@@ -574,7 +577,6 @@ public class InsertValuesExecutor {
                     fieldName,
                     valueSqlType,
                     value));
-
           });
     }
   }

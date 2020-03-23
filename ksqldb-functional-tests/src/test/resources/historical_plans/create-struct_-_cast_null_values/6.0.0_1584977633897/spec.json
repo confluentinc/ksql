@@ -1,0 +1,22 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584977633897,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S STRUCT<F1 INT>> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test",
+    "key" : "",
+    "value" : { }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "S" : {
+        "F1" : null
+      }
+    }
+  } ]
+}

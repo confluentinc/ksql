@@ -38,15 +38,14 @@ public final class SqlArray extends SqlType {
   private SqlArray(final SqlType itemType) {
     super(SqlBaseType.ARRAY);
     this.itemType = requireNonNull(itemType, "itemType");
+
+    if (itemType.baseType() == SqlBaseType.NULL) {
+      throw new IllegalArgumentException("Element type of NULL not supported");
+    }
   }
 
   public SqlType getItemType() {
     return itemType;
-  }
-
-  @Override
-  public boolean supportsCast() {
-    return false;
   }
 
   @Override

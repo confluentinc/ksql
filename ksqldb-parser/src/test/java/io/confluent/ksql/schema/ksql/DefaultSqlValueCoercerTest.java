@@ -28,8 +28,6 @@ import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.DecimalUtil;
-import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -50,7 +48,8 @@ public class DefaultSqlValueCoercerTest {
   private static final Set<SqlBaseType> UNSUPPORTED = ImmutableSet.of(
       SqlBaseType.ARRAY,
       SqlBaseType.MAP,
-      SqlBaseType.STRUCT
+      SqlBaseType.STRUCT,
+      SqlBaseType.NULL
   );
 
   private static final Map<SqlBaseType, SqlType> TYPES = ImmutableMap

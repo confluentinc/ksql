@@ -348,6 +348,10 @@ public final class LogicalSchema {
     }
 
     private void addColumn(final Column column) {
+      if (column.type().baseType() == SqlBaseType.NULL) {
+        throw new UnsupportedOperationException("NULL column types are not supported");
+      }
+
       switch (column.namespace()) {
         case KEY:
           if (!seenKeys.add(column.name())) {

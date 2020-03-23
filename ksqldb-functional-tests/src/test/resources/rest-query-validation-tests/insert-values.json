@@ -704,6 +704,18 @@
       "outputs": [
         {"topic": "test_topic", "key": null, "value": {"VAL": {"FOO": null, "bar": null}}}
       ]
+    },
+    {
+      "name": "should insert nulls",
+      "statements": [
+        "CREATE STREAM S (ROWKEY INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO S (ROWKEY, NAME) VALUES (NULL, NULL);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"NAME": null}}
+      ]
     }
   ]
 }

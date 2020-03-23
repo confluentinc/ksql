@@ -94,11 +94,16 @@ final class GroupByParamsFactory {
       final int index,
       final ExpressionMetadata exp,
       final GenericRow row,
-      final ProcessingLogger logger
+      final ProcessingLogger logger,
+      final boolean single
   ) {
+    final String additionalMsg = single
+        ? " The source row will be excluded from the table."
+        : "";
+
     final Supplier<String> errorMsgSupplier = () ->
-        "Error calculating group-by column with index " + index + ". "
-            + "The source row will be excluded from the table.";
+        "Error calculating group-by column with index " + index + "."
+            + additionalMsg;
 
     final Object result = exp.evaluate(row, EVAL_FAILED, logger, errorMsgSupplier);
     if (result == EVAL_FAILED) {
@@ -106,15 +111,10 @@ final class GroupByParamsFactory {
     }
 
     if (result == null) {
-      logger.error(
-          RecordProcessingError.recordProcessingError(
-              String.format(
-                  "Group-by column with index %d resolved to null."
-                      + " The source row will be excluded from the table.",
-                  index),
-              row
-          )
-      );
+      logger.error(RecordProcessingError.recordProcessingError(
+          "Group-by column with index " + index + " resolved to null." + additionalMsg,
+          row
+      ));
       return null;
     }
 
@@ -137,7 +137,7 @@ final class GroupByParamsFactory {
     }
 
     public Struct apply(final GenericRow row) {
-      final Object key = processColumn(0, expression, row, logger);
+      final Object key = processColumn(0, expression, row, logger, true);
       if (key == null) {
         return null;
       }
@@ -167,7 +167,7 @@ final class GroupByParamsFactory {
     public Struct apply(final GenericRow row) {
       final StringBuilder key = new StringBuilder();
       for (int i = 0; i < expressions.size(); i++) {
-        final Object result = processColumn(i, expressions.get(i), row, logger);
+        final Object result = processColumn(i, expressions.get(i), row, logger, false);
         if (result == null) {
           return null;
         }

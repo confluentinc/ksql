@@ -23,7 +23,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.testing.EffectivelyImmutable;
-import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Objects;
@@ -63,15 +62,6 @@ public class ExpressionMetadata {
 
   public Expression getExpression() {
     return expression;
-  }
-
-  // Todo(ac): remove
-  public Object evaluate(final GenericRow row) {
-    try {
-      return expressionEvaluator.evaluate(getParameters(row));
-    } catch (final InvocationTargetException e) {
-      throw new KsqlException(e.getCause().getMessage(), e.getCause());
-    }
   }
 
   /**

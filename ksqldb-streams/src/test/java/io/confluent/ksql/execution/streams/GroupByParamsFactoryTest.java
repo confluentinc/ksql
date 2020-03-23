@@ -112,7 +112,22 @@ public class GroupByParamsFactoryTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void shouldInvokeEvaluatorsWithCorrectParams() {
+  public void shouldInvokeSingleEvaluatorsWithCorrectParams() {
+    // When:
+    singleParams.getMapper().apply(value);
+
+    // Then:
+    final ArgumentCaptor<Supplier<String>> errorMsgCaptor = ArgumentCaptor.forClass(Supplier.class);
+    verify(groupBy0).evaluate(eq(value), any(), eq(logger), errorMsgCaptor.capture());
+
+    assertThat(errorMsgCaptor.getValue().get(), is(
+        "Error calculating group-by column with index 0. The source row will be excluded from the table."
+    ));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldInvokeMultipleEvaluatorsWithCorrectParams() {
     // When:
     multiParams.getMapper().apply(value);
 
@@ -126,8 +141,8 @@ public class GroupByParamsFactoryTest {
         .collect(Collectors.toList());
 
     assertThat(errorMsgs, contains(
-        "Error calculating group-by column with index 0. The source row will be excluded from the table.",
-        "Error calculating group-by column with index 1. The source row will be excluded from the table."
+        "Error calculating group-by column with index 0.",
+        "Error calculating group-by column with index 1."
     ));
   }
 
@@ -209,74 +224,21 @@ public class GroupByParamsFactoryTest {
     // Then:
     verify(logger).error(
         RecordProcessingError.recordProcessingError(
-            "Group-by column with index 0 resolved to null. "
-                + "The source row will be excluded from the table.",
+            "Group-by column with index 0 resolved to null.",
             value
         )
     );
   }
 
   @Test
-  public void shouldReturnNullIfExpressionThrowsInSingle() {
+  public void shouldUseNullInGroupByIfOneExpressionFailsOrReturnsNullInMulti() {
     // Given:
-    when(groupBy0.evaluate(any())).thenThrow(new RuntimeException("Boom"));
-
-    // When:
-    final Struct result = singleParams.getMapper().apply(value);
-
-    // Then:
-    assertThat(result, is(nullValue()));
-  }
-
-  @Test
-  public void shouldLogProcessingErrorIfExpressionThrowsInSingle() {
-    // Given
-    final RuntimeException e = new RuntimeException("Bap");
-    when(groupBy0.evaluate(any())).thenThrow(e);
-
-    // When:
-    singleParams.getMapper().apply(value);
-
-    // Then:
-    verify(logger).error(
-        RecordProcessingError.recordProcessingError(
-            "Error calculating group-by column with index 0. "
-                + "The source row will be excluded from the table: Bap",
-            e,
-            value
-        )
-    );
-  }
-
-  @Test
-  public void shouldReturnNullExpressionThrowsInMulti() {
-    // Given:
-    when(groupBy0.evaluate(any())).thenThrow(new RuntimeException("Boom"));
+    when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(null);
 
     // When:
     final Struct result = multiParams.getMapper().apply(value);
 
     // Then:
     assertThat(result, is(nullValue()));
-  }
-
-  @Test
-  public void shouldLogProcessingErrorIfExpressionThrowsInMulti() {
-    // Given
-    final RuntimeException e = new RuntimeException("Bap");
-    when(groupBy0.evaluate(any())).thenThrow(e);
-
-    // When:
-    multiParams.getMapper().apply(value);
-
-    // Then:
-    verify(logger).error(
-        RecordProcessingError.recordProcessingError(
-            "Error calculating group-by column with index 0. "
-                + "The source row will be excluded from the table: Bap",
-            e,
-            value
-        )
-    );
   }
 }

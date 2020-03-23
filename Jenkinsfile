@@ -1,8 +1,8 @@
 def config = {
     owner = 'ksql'
-    slackChannel = ''
+    slackChannel = '#ksql-alerts'
     ksql_db_version = "0.8.0-SNAPSHOT"
-    cp_version = "6.0.0-beta200320180305"
+    cp_version = "6.0.0-beta200320180305"  // must be a beta version from the packaging build
     packaging_build_number = "1"
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
     dockerArtifacts = ['confluentinc/ksqldb-docker', 'confluentinc/ksqldb-docker']
@@ -89,7 +89,7 @@ def job = {
     
     // Use revision param if provided, otherwise default to master
     config.revision = params.GIT_REVISION ?: 'refs/heads/master'
-    config.ccloud_revision = params.CCLOUD_GIT_REVISION ?: 'refs/heads/vxia-update-common-version-testing'
+    config.ccloud_revision = params.CCLOUD_GIT_REVISION ?: 'refs/heads/master'
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"
@@ -101,7 +101,6 @@ def job = {
         openTasksPublisher(disabled: true)
     ]
 
-    // TODO: add analogous section for ccloud promotion? maybe not necessary since requires manual spec update anyway
     if (params.PROMOTE_TO_PRODUCTION) {
         stage("Pulling Docker Images") {
             withCredentials([usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME')]) {
@@ -158,7 +157,6 @@ def job = {
 
     // Build on-prem ksqlDB image
 
-    if (false) {
     stage('Checkout KSQL') {
         checkout changelog: false,
             poll: false,
@@ -341,7 +339,6 @@ def job = {
             }
         }
     }
-    }
 
     // Build CCloud ksqlDB image
 
@@ -369,7 +366,6 @@ def job = {
         settings = readFile("${jenkins_maven_global_settings}")
     }
     writeFile file: cloudSettingsFile, text: settings
-    // TODO: do mavenOptions need to be updated?
 
     stage('Build CCloud KSQL Docker image') {
         dir('ksqldb-ccloud-docker') {
@@ -413,7 +409,6 @@ def job = {
                             sh "mvn --batch-mode versions:set-property -Dproperty=ksql.version -DnewVersion=${config.ksql_db_version}"
 
                             // Set packaging beta version required to find build dependencies
-                            // TODO: is this only valid if it's a beta version, and not if it's a regular CP version? if so, separate variable
                             sh "mvn --batch-mode versions:set-property -Dproperty=packaging-beta.version -DnewVersion=${config.cp_version}"
 
                             if (!config.isPrJob) {
@@ -445,7 +440,6 @@ def job = {
         }
     }
 
-    // TODO: de-dup between on-prem and ccloud sections
     if(config.dockerScan){
         stage('Twistloc scan') {
             withDockerServer([uri: dockerHost()]) {

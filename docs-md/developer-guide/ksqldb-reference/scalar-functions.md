@@ -12,17 +12,16 @@ keywords: ksqlDB, function, scalar
   - [ENTRIES](#entries)
   - [EXP](#exp)
   - [FLOOR](#floor)
-  - [GENERATE_SERIES](#generateseries)
-  - [GENERATE_SERIES](#generateseries-1)
-  - [GEO_DISTANCE](#geodistance)
+  - [GENERATE_SERIES](#generate_series)
+  - [GEO_DISTANCE](#geo_distance)
   - [LN](#ln)
   - [RANDOM](#random)
   - [ROUND](#round)
   - [SIGN](#sign)
   - [SQRT](#sqrt)
 - [Collections](#collections)
-  - [ARRAY_CONTAINS](#arraycontains)
-  - [JSON_ARRAY_CONTAINS](#arraycontains)
+  - [ARRAY_CONTAINS](#array_contains)
+  - [JSON_ARRAY_CONTAINS](#json_array_contains)
   - [ARRAY](#array)
   - [MAP](#map)
   - [AS_MAP](#asmap)
@@ -37,33 +36,33 @@ keywords: ksqlDB, function, scalar
   - [LCASE](#lcase)
   - [LEN](#len)
   - [MASK](#mask)
-  - [MASK_KEEP_LEFT](#maskkeepleft)
-  - [MASK_KEEP_RIGHT](#maskkeepright)
-  - [MASK_LEFT](#maskleft)
-  - [MASK_RIGHT](#maskright)
+  - [MASK_KEEP_LEFT](#mask_keep_left)
+  - [MASK_KEEP_RIGHT](#mask_keep_right)
+  - [MASK_LEFT](#mask_left)
+  - [MASK_RIGHT](#mask_right)
   - [REPLACE](#replace)
-  - [REGEXP_EXTRACT](#regexpextract)
+  - [REGEXP_EXTRACT](#regexp_extract)
   - [SPLIT](#split)
   - [SUBSTRING](#substring)
   - [TRIM](#trim)
   - [UCASE](#ucase)
 - [Date and Time](#date-and-time)
-  - [UNIX_DAT](#unixdat)
-  - [UNIX_TIMESTAMP](#unixtimestamp)
+  - [UNIX_DATE](#unix_date)
+  - [UNIX_TIMESTAMP](#unix_timestamp)
   - [DATETOSTRING](#datetostring)
   - [STRINGTODATE](#stringtodate)
   - [STRINGTOTIMESTAMP](#stringtotimestamp)
   - [TIMESTAMPTOSTRING](#timestamptostring)
 - [URL](#url)
-  - [URL_DECODE_PARAM](#urldecodeparam)
-  - [URL_ENCODE_PARAM](#urlencodeparam)
-  - [URL_EXTRACT_FRAGMENT](#urlextractfragment)
-  - [URL_EXTRACT_HOST](#urlextracthost)
-  - [URL_EXTRACT_PARAMETER](#urlextractparameter)
-  - [URL_EXTRACT_PATH](#urlextractpath)
-  - [URL_EXTRACT_PORT](#urlextractport)
-  - [URL_EXTRACT_PROTOCOL](#urlextractprotocol)
-  - [URL_EXTRACT_QUERY](#urlextractquery)
+  - [URL_DECODE_PARAM](#url_decode_param)
+  - [URL_ENCODE_PARAM](#url_encode_param)
+  - [URL_EXTRACT_FRAGMENT](#url_extract_fragment)
+  - [URL_EXTRACT_HOST](#url_extract_host)
+  - [URL_EXTRACT_PARAMETER](#url_extract_parameter)
+  - [URL_EXTRACT_PATH](#url_extract_path)
+  - [URL_EXTRACT_PORT](#url_extract_port)
+  - [URL_EXTRACT_PROTOCOL](#url_extract_protocol)
+  - [URL_EXTRACT_QUERY](#url_extract_query)
 
 Numeric Functions
 =================
@@ -111,20 +110,13 @@ GENERATE_SERIES
 ---------------
 
 `GENERATE_SERIES(start, end)`
-
-Constructs an array of values between `start` and `end` (inclusive).       
-Parameters can be `INT` or `BIGINT`.
-
-GENERATE_SERIES
----------------
-
 `GENERATE_SERIES(start, end, step)`
 
-Constructs an array of values between `start` and `end` (inclusive)
-with a specified step size. The step can be positive or negative.      
-Parameters `start` and `end` can be `INT` or `BIGINT`. Parameter `step`
-must be an `INT`.
+Constructs an array of values between `start` and `end` (inclusive).       
+Parameters `start` and `end` can be an `INT` or `BIGINT`.
 
+`step`, if supplied, specifies the step size. The step can be positive or negative.
+If not supplied, `step` defaults to `1`. Parameter `step` must be an `INT`.
 
 GEO_DISTANCE
 ------------
@@ -188,7 +180,7 @@ Collections
 ===========
 
 ARRAY_CONTAINS
--------------
+--------------
 
 `ARRAY_CONTAINS([1, 2, 3], 3)`
 
@@ -197,7 +189,7 @@ Given an array, checks if a search value is contained in the array.
 Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
 
 JSON_ARRAY_CONTAINS
--------------
+-------------------
 
 `JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)`
 
@@ -205,10 +197,8 @@ Given a `STRING` containing a JSON array, checks if a search value is contained 
 
 Returns `false` if the first parameter does not contain a JSON array.
 
-
-
 ARRAY
---------
+-----
 
 `ARRAY[col1, col2, ...]`
 
@@ -263,27 +253,43 @@ CONCAT
 
 `CONCAT(col1, '_hello')`
 
-Concatenate two strings.
+Concatenate two or more strings.
 
 EXTRACTJSONFIELD
 ----------------
 
 `EXTRACTJSONFIELD(message, '$.log.cloud')`
 
-Given a string column in JSON format, extract the field that matches.
-For example EXTRACTJSONFIELD is necessary in the following JSON:
+Given a STRING that contains JSON data, extract the value at the specified [JSONPath](https://jsonpath.com/).
+
+For example, given a STRING containing the following JSON:
 
 ```json
-{"foo": \"{\"bar\": \"quux\"}\"}
+{
+   "log": {
+      "cloud": "gcp836Csd",
+      "app": "ksProcessor",
+      "instance": 4
+   }
+}
 ```
 
-In cases where the column is really an object but declared as a STRING,
-you can use the `STRUCT` type, which is easier to work with. For example,
-`STRUCT` works in the following case:
+`EXTRACTJSONFIELD(message, '$.log.cloud')` will return the STRING `gcp836Csd`.
 
-```json
-{"foo": {"bar": "quux"}}.
-```
+If the requested JSONPath does not exist, the function returns NULL.
+
+The result of EXTRACTJSONFIELD is always a STRING. Use `CAST` to convert the result to another
+type. For example, `CAST(EXTRACTJSONFIELD(message, '$.log.instance') AS INT)` will extract the
+instance number from the above JSON object as a INT.
+
+!!! note
+    EXTRACTJSONFIELD is useful for extracting data from JSON where either the schema of the JSON
+    data is not static, or where the JSON data is embedded in a row encoded using a different
+    format, For example a JSON field within an Avro encoded message.
+    Where the whole row is encoded as JSON of a known schema or structure, use the `JSON` format and
+    define the structure as the source's columns.  For example, a stream of JSON objects similar to
+    the example above could be defined using something similar to
+    `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT, ...) WITH (VALUE_FORMAT=JSON, ...)`
 
 IFNULL
 ------

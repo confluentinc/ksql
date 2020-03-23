@@ -95,7 +95,7 @@
       "windowInfo" : null
     },
     "queryPlan" : {
-      "sources" : [ "TEST_TABLE", "TEST" ],
+      "sources" : [ "TEST", "TEST_TABLE" ],
       "sink" : "INNER_JOIN",
       "physicalPlan" : {
         "@type" : "tableSinkV1",
@@ -209,7 +209,7 @@
       "windowInfo" : null
     },
     "queryPlan" : {
-      "sources" : [ "TEST_TABLE_2", "INNER_JOIN" ],
+      "sources" : [ "INNER_JOIN", "TEST_TABLE_2" ],
       "sink" : "INNER_JOIN_2",
       "physicalPlan" : {
         "@type" : "tableSinkV1",

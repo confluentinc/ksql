@@ -18,5 +18,12 @@
     "value" : {
       "S" : { }
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "BIG_STRUCT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, S STRUCT< >"
+    } ]
+  }
 }

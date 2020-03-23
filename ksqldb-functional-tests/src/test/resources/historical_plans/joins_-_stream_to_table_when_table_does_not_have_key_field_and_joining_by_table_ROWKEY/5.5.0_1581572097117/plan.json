@@ -71,7 +71,7 @@
       "windowInfo" : null
     },
     "queryPlan" : {
-      "sources" : [ "S", "NO_KEY" ],
+      "sources" : [ "NO_KEY", "S" ],
       "sink" : "OUTPUT",
       "physicalPlan" : {
         "@type" : "streamSinkV1",

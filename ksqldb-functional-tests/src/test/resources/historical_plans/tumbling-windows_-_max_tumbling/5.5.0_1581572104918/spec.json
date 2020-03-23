@@ -113,5 +113,16 @@
       "end" : 60000,
       "type" : "TIME"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "S2",
+      "type" : "table",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowType" : "TUMBLING",
+        "windowSize" : 30000
+      }
+    } ]
+  }
 }

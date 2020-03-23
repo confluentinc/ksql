@@ -51,5 +51,15 @@
       "T_TF" : 12
     },
     "timestamp" : 300
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY BIGINT KEY, S_ROWTIME BIGINT, S_ROWKEY STRING, S_SF BIGINT, T_ROWTIME BIGINT, T_ROWKEY BIGINT, T_ID BIGINT, T_TF INT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    } ]
+  }
 }

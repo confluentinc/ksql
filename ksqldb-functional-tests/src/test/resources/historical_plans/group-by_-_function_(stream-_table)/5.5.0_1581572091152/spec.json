@@ -56,5 +56,12 @@
     "topic" : "OUTPUT",
     "key" : "th",
     "value" : "th,1"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 BIGINT"
+    } ]
+  }
 }

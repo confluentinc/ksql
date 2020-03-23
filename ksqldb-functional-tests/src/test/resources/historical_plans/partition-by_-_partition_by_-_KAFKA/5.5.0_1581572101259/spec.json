@@ -14,5 +14,15 @@
     "topic" : "OUTPUT",
     "key" : 10,
     "value" : 10
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY INT KEY, ID INT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    } ]
+  }
 }

@@ -78,5 +78,16 @@
     "value" : {
       "DEC" : 0.0001
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "INPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, DEC DECIMAL(6,4)"
+    }, {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, DEC DECIMAL(6,4)"
+    } ]
+  }
 }

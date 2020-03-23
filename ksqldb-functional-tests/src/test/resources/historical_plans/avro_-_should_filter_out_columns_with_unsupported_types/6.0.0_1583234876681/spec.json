@@ -20,5 +20,12 @@
     "value" : {
       "EXPECTED" : 1
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, EXPECTED INT"
+    } ]
+  }
 }

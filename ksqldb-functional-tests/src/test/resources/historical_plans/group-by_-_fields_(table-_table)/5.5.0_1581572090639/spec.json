@@ -84,5 +84,12 @@
     "topic" : "OUTPUT",
     "key" : "a|+|1",
     "value" : "1,a,1"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"
+    } ]
+  }
 }

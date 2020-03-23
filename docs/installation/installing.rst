@@ -12,7 +12,7 @@ KSQL must have access to a running |ak-tm| cluster, which can be in your data ce
 
 Docker support
     You can deploy KSQL by using :ref:`Docker containers <install-ksql-with-docker>`. Starting with |cp| 4.1.2,
-    Confluent maintains images at `Docker Hub <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
+    Confluent maintains images at `Docker Hub <https://hub.docker.com/r/confluentinc/cp-ksqldb-server/>`__.
     To start KSQL containers in configurations like "KSQL Headless Server" and
     "Interactive Server with Interceptors", see
     :ref:`Docker Configuration Parameters <config_reference>`.

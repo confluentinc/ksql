@@ -15,16 +15,12 @@
 
 package io.confluent.ksql.parser.util;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseParser.DecimalLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
-import io.confluent.ksql.parser.SqlBaseParser.NumericLiteralContext;
 import io.confluent.ksql.util.ParserUtil;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;

@@ -1,9 +1,9 @@
 package io.confluent.ksql.ddl.commands;
 
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;

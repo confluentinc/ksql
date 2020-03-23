@@ -17,7 +17,7 @@ package io.confluent.ksql.util;
 
 import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ON_RETRYABLE;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.time.Duration;
 import java.util.concurrent.Callable;

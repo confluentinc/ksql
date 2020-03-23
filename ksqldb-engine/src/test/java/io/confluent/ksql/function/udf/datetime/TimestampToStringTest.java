@@ -16,8 +16,8 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
-import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.function.KsqlFunctionException;
 import java.text.SimpleDateFormat;

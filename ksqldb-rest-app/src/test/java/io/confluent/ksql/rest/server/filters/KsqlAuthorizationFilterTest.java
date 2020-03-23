@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.filters;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -29,7 +29,6 @@ import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.util.KsqlException;
 import java.net.URI;
 import java.security.Principal;
-
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import org.glassfish.jersey.internal.PropertiesDelegate;

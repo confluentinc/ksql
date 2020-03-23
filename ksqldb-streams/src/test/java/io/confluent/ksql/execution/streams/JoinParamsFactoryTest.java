@@ -2,8 +2,8 @@ package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;

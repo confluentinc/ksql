@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.test;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.json.PlanJsonMapper;

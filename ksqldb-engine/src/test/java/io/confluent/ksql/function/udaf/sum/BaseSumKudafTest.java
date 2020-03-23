@@ -16,7 +16,7 @@
 package io.confluent.ksql.function.udaf.sum;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import java.util.List;

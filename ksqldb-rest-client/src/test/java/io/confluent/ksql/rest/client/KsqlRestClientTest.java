@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.client;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.properties.LocalProperties;
 import java.net.URI;

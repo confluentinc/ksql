@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.base.Charsets;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;

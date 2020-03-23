@@ -16,7 +16,6 @@ def config = {
     ccloudDockerRepo = 'confluentinc/cc-ksql'
     ccloudDockerUpstreamTag = 'v3.2.0'
     ccloudDockerPullDeps = ['confluentinc/cc-base']
-    maven_staging_url = "https://staging-ksqldb-maven.s3-us-west-2.amazonaws.com"
 }
 
 def defaultParams = [
@@ -95,8 +94,7 @@ def job = {
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"
     def maven_packages_url = "${config.maven_packages_url}/${config.cp_version}/${config.packaging_build_number}/maven"
-    def maven_staging_url = "${config.maven_staging_url}/maven"
-    def settings = readFile('maven-settings-template.xml').replace('PACKAGES_MAVEN_URL', maven_packages_url).replace('STAGING_MAVEN_URL', maven_staging_url)
+    def settings = readFile('maven-settings-template.xml').replace('PACKAGES_MAVEN_URL', maven_packages_url)
     writeFile file: settingsFile, text: settings
     mavenOptions = [artifactsPublisher(disabled: true),
         junitPublisher(disabled: true),

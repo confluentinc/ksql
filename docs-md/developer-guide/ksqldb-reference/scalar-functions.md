@@ -274,7 +274,8 @@ For example, given a STRING containing the following JSON:
 }
 ```
 
-`EXTRACTJSONFIELD(message, '$.log.cloud')` will return the STRING `gcp836Csd`.
+`EXTRACTJSONFIELD(message, '$.log.cloud')` returns the STRING `gcp836Csd`.
+
 
 If the requested JSONPath does not exist, the function returns NULL.
 

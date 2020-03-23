@@ -213,7 +213,8 @@ public final class TestCasePlanLoader {
         queryMetadata.getSchemasDescription(),
         BASE_CONFIG.getAllConfigPropsWithSecretsObfuscated(),
         testCase.getInputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),
-        testCase.getOutputRecords().stream().map(RecordNode::from).collect(Collectors.toList())
+        testCase.getOutputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),
+        testCase.getPostConditions().asNode()
     );
   }
 

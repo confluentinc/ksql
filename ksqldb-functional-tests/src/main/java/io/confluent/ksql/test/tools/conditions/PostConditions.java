@@ -22,9 +22,12 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.test.model.PostConditionsNode;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -37,18 +40,22 @@ public class PostConditions {
 
   public static final PostConditions NONE = new PostConditions(
       hasItems(anything()),
-      Pattern.compile(MATCH_NOTHING)
+      Pattern.compile(MATCH_NOTHING),
+      new PostConditionsNode(ImmutableList.of(), Optional.empty())
   );
 
   private final Matcher<Iterable<DataSource>> sourcesMatcher;
   private final Pattern topicBlackList;
+  private final PostConditionsNode sourceNode;
 
   public PostConditions(
       final Matcher<Iterable<DataSource>> sourcesMatcher,
-      final Pattern topicBlackList
+      final Pattern topicBlackList,
+      final PostConditionsNode sourceNode
   ) {
     this.sourcesMatcher = requireNonNull(sourcesMatcher, "sourcesMatcher");
     this.topicBlackList = requireNonNull(topicBlackList, "topicBlackList");
+    this.sourceNode = requireNonNull(sourceNode, "sourceNode");
   }
 
   public void verify(
@@ -57,6 +64,13 @@ public class PostConditions {
   ) {
     verifyMetaStore(metaStore);
     verifyTopics(topicNames);
+  }
+
+  public PostConditionsNode asNode() {
+    if (this == NONE) {
+      return null;
+    }
+    return sourceNode;
   }
 
   private void verifyMetaStore(final MetaStore metaStore) {

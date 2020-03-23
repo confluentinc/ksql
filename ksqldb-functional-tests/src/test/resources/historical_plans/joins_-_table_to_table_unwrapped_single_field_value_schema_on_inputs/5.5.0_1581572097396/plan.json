@@ -71,7 +71,7 @@
       "windowInfo" : null
     },
     "queryPlan" : {
-      "sources" : [ "T2", "T1" ],
+      "sources" : [ "T1", "T2" ],
       "sink" : "OUTPUT",
       "physicalPlan" : {
         "@type" : "tableSinkV1",

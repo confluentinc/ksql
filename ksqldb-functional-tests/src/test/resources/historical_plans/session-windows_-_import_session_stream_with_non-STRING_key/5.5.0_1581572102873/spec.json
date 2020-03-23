@@ -106,5 +106,16 @@
       "end" : 40000,
       "type" : "SESSION"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "S2",
+      "type" : "stream",
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowType" : "SESSION"
+      }
+    } ]
+  }
 }

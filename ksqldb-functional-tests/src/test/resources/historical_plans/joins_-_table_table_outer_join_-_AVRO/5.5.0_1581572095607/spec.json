@@ -147,5 +147,11 @@
       "F2" : 10
     },
     "timestamp" : 16000
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTER_JOIN",
+      "type" : "table"
+    } ]
+  }
 }

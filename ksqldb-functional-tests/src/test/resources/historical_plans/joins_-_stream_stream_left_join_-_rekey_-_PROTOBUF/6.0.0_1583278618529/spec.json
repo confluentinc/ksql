@@ -374,5 +374,11 @@
       "F2" : 0
     },
     "timestamp" : 30000
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "LEFT_OUTER_JOIN",
+      "type" : "stream"
+    } ]
+  }
 }

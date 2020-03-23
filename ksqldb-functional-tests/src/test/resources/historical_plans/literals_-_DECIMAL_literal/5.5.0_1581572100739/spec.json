@@ -14,5 +14,12 @@
     "topic" : "OUTPUT",
     "key" : "",
     "value" : "0,2.345"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, ID BIGINT, KSQL_COL_1 DECIMAL(4,3)"
+    } ]
+  }
 }

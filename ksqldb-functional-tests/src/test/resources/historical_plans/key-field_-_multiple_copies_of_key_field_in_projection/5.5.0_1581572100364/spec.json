@@ -22,5 +22,11 @@
       "FOO2" : 1,
       "FOO3" : 1
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream"
+    } ]
+  }
 }

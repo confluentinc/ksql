@@ -71,7 +71,7 @@
       "windowInfo" : null
     },
     "queryPlan" : {
-      "sources" : [ "R", "L" ],
+      "sources" : [ "L", "R" ],
       "sink" : "OUTPUT",
       "physicalPlan" : {
         "@type" : "streamSinkV1",
@@ -195,8 +195,7 @@
           },
           "options" : [ ]
         },
-        "topicName" : "OUTPUT",
-        "timestampColumn" : null
+        "topicName" : "OUTPUT"
       },
       "queryId" : "CSAS_OUTPUT_0"
     }

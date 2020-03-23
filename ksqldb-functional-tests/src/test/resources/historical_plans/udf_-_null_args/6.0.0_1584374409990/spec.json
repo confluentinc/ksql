@@ -14,5 +14,12 @@
     "topic" : "OUTPUT",
     "key" : "",
     "value" : "doStuffLongString,doStuffLongLongString"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING"
+    } ]
+  }
 }

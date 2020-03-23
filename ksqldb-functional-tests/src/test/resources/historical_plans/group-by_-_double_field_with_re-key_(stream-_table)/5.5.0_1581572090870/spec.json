@@ -88,5 +88,12 @@
     "topic" : "OUTPUT",
     "key" : 0.1,
     "value" : "0.1,3"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "ROWKEY DOUBLE KEY, DATA DOUBLE, KSQL_COL_1 BIGINT"
+    } ]
+  }
 }

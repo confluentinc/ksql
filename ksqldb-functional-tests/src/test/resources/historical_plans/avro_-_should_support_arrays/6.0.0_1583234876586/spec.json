@@ -18,5 +18,12 @@
     "value" : {
       "C1" : [ "a", "", "Bc" ]
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, C1 ARRAY<STRING>"
+    } ]
+  }
 }

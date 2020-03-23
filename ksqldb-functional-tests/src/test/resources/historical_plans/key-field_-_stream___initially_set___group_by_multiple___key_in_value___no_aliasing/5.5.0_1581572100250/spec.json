@@ -23,5 +23,11 @@
       "BAR" : 2,
       "KSQL_COL_2" : 1
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table"
+    } ]
+  }
 }

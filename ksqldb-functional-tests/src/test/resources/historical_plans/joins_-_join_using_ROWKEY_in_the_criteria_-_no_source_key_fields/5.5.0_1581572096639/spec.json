@@ -158,5 +158,11 @@
       "F2" : null
     },
     "timestamp" : 30000
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "LEFT_OUTER_JOIN",
+      "type" : "stream"
+    } ]
+  }
 }

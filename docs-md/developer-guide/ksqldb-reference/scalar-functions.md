@@ -288,7 +288,8 @@ instance number from the above JSON object as a INT.
     data is not static, or where the JSON data is embedded in a row encoded using a different
     format, for example, a JSON field within an Avro-encoded message.
 
-    Where the whole row is encoded as JSON of a known schema or structure, use the `JSON` format and
+    If the whole row is encoded as JSON with a known schema or structure, use the `JSON` format and
+
     define the structure as the source's columns.  For example, a stream of JSON objects similar to
     the example above could be defined using something similar to
     `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT, ...) WITH (VALUE_FORMAT=JSON, ...)`

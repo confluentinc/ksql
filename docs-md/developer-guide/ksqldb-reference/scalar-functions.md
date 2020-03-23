@@ -291,7 +291,8 @@ instance number from the above JSON object as a INT.
     If the whole row is encoded as JSON with a known schema or structure, use the `JSON` format and
 
     define the structure as the source's columns.  For example, a stream of JSON objects similar to
-    the example above could be defined using something similar to
+    the example above could be defined using a statement similar to this:
+
     `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT, ...) WITH (VALUE_FORMAT=JSON, ...)`
 
 IFNULL

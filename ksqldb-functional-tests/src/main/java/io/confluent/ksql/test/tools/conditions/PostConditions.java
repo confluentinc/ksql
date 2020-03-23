@@ -66,11 +66,11 @@ public class PostConditions {
     verifyTopics(topicNames);
   }
 
-  public PostConditionsNode asNode() {
+  public Optional<PostConditionsNode> asNode() {
     if (this == NONE) {
-      return null;
+      return Optional.empty();
     }
-    return sourceNode;
+    return Optional.of(sourceNode);
   }
 
   private void verifyMetaStore(final MetaStore metaStore) {

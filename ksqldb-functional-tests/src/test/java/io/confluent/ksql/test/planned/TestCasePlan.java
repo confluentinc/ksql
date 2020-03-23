@@ -37,10 +37,10 @@ public final class TestCasePlan {
       final Map<String, String> configs,
       final List<RecordNode> inputs,
       final List<RecordNode> outputs,
-      final PostConditionsNode postConditions
+      final Optional<PostConditionsNode> postConditions
   ) {
     this(
-        new TestCaseSpecNode(version, timestamp, schemas, inputs, outputs, Optional.of(postConditions)),
+        new TestCaseSpecNode(version, timestamp, schemas, inputs, outputs, postConditions),
         new TestCasePlanNode(planNode, configs),
         topology
     );

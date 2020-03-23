@@ -12,10 +12,6 @@ def config = {
     cron = '@daily'
     maven_packages_url = "https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com"
     dockerPullDeps = ['confluentinc/cp-base-new']
-
-    ccloudDockerRepo = 'confluentinc/cc-ksql'
-    ccloudDockerUpstreamTag = 'v3.2.0'
-    ccloudDockerPullDeps = ['confluentinc/cc-base']
 }
 
 def defaultParams = [
@@ -84,12 +80,10 @@ def job = {
         config.docker_tag = config.ksql_db_version
     } else {
         config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-beta' + env.BUILD_NUMBER
-        config.ccloud_docker_tag = 'v' + config.docker_tag
     }
     
     // Use revision param if provided, otherwise default to master
     config.revision = params.GIT_REVISION ?: 'refs/heads/master'
-    config.ccloud_revision = params.CCLOUD_GIT_REVISION ?: 'refs/heads/master'
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"
@@ -347,146 +341,17 @@ def job = {
         return null
     }
 
-    stage('Checkout CCloud ksqlDB Docker repo') {
-        checkout changelog: false,
-            poll: false,
-            scm: [$class: 'GitSCM',
-                branches: [[name: config.ccloud_revision]],
-                doGenerateSubmoduleConfigurations: false,
-                extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'ksqldb-ccloud-docker']],
-                submoduleCfg: [],
-                userRemoteConfigs: [[credentialsId: 'ConfluentJenkins Github SSH Key',
-                    url: 'git@github.com:confluentinc/cc-docker-ksql.git']]
+    stage('Trigger CCloud ksqlDB Docker image job') {
+        build job: "confluentinc/cc-docker-ksql/master",
+            wait: false,
+            parameters: [
+                booleanParam(name: "NIGHTLY_BUILD", value: true),
+                string(name: "NIGHTLY_BUILD_NUMBER", value: "${env.BUILD_NUMBER}"),
+                string(name: "CP_BETA_VERSION", value: "${config.cp_version}"),
+                string(name: "CP_BETA_BUILD_NUMBER", value: "${config.packaging_build_number}"),
+                string(name: "KSQLDB_VERSION", value: "${config.ksql_db_version}"),
+                string(name: "CCLOUD_GIT_REVISION", value: "${params.CCLOUD_GIT_REVISION}")
             ]
-    }
-
-    // Configure the maven repo settings so we can download from the maven-public Artifactory repo
-    def cloudSettingsFile = "${env.WORKSPACE}/maven-settings-cloud.xml"
-    configFileProvider([configFile(fileId: 'jenkins-maven-global-settings', variable: 'jenkins_maven_global_settings')]) {
-        settings = readFile("${jenkins_maven_global_settings}")
-    }
-    writeFile file: cloudSettingsFile, text: settings
-
-    stage('Build CCloud KSQL Docker image') {
-        dir('ksqldb-ccloud-docker') {
-            archiveArtifacts artifacts: 'pom.xml'
-            withCredentials([
-                usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME'),
-                usernameColonPassword(credentialsId: 'Jenkins GitHub Account', variable: 'GIT_CREDENTIAL')]) {
-                    withDockerServer([uri: dockerHost()]) {
-                        withMaven(globalMavenSettingsFilePath: cloudSettingsFile, options: mavenOptions) {
-                            writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
-                            sh '''
-                                bash extract-iam-credential.sh
-
-                                # Hide login credential from below
-                                set +x
-
-                                LOGIN_CMD=$(aws ecr get-login --no-include-email --region us-west-2)
-
-                                $LOGIN_CMD
-                            '''
-                            sh '''
-                                echo $ARTIFACTORY_PASSWORD | docker login confluent-docker.jfrog.io -u $ARTIFACTORY_USERNAME --password-stdin
-                            '''
-                            writeFile file:'create-pip-conf-with-jfrog.sh', text:libraryResource('scripts/create-pip-conf-with-jfrog.sh')
-                            writeFile file:'create-pypirc-with-jfrog.sh', text:libraryResource('scripts/create-pypirc-with-jfrog.sh')
-                            writeFile file:'setup-credential-store.sh', text:libraryResource('scripts/setup-credential-store.sh')
-                            writeFile file:'set-global-user.sh', text:libraryResource('scripts/set-global-user.sh')
-                            sh '''
-                                bash create-pip-conf-with-jfrog.sh
-                                bash create-pypirc-with-jfrog.sh
-                                bash setup-credential-store.sh
-                                bash set-global-user.sh
-                            '''
-
-                            config.ccloudDockerPullDeps.each { dockerRepo ->
-                                sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.ccloudDockerUpstreamTag}"
-                            }
-
-                            // Set the ksqlDB dependency to be the artifacts built earlier
-                            sh "set -x"
-                            sh "mvn --batch-mode versions:set-property -Dproperty=ksql.version -DnewVersion=${config.ksql_db_version}"
-
-                            // Set packaging beta version and build number required to find build dependencies
-                            sh "mvn --batch-mode versions:set-property -Dproperty=packaging-beta.version -DnewVersion=${config.cp_version}"
-                            sh "mvn --batch-mode versions:set-property -Dproperty=packaging-beta.build-number -DnewVersion=${config.packaging_build_number}"
-
-                            if (!config.isPrJob) {
-                                def git_tag = "v${config.docker_tag}-ksqldb"
-                                sh "git add ."
-                                sh "git commit -m \"build: Setting ksqlDB dependency version ${config.ksql_db_version}.\""
-                                sh "git tag ${git_tag}"
-                                sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
-                                    sh "git push origin ${git_tag}"
-                                }
-                            }
-
-                            cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
-                            cmd += "-DskipTests "
-                            cmd += "-Dspotbugs.skip "
-                            cmd += "-Dcheckstyle.skip "
-                            cmd += "-Ddocker.tag=${config.ccloud_docker_tag} "
-                            cmd += "-Ddocker.registry=${config.dockerRegistry} "
-                            cmd += "-Ddocker.upstream-tag=${config.ccloudDockerUpstreamTag} "
-                            cmd += "-Dskip.docker.build=false "
-
-                            withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
-                                sh cmd
-                            }
-                            step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
-                        }
-                    }
-                }
-        }
-    }
-
-    if(config.dockerScan){
-        stage('Twistloc scan') {
-            withDockerServer([uri: dockerHost()]) {
-                dockerName = config.dockerRegistry+config.ccloudDockerRepo+":${config.ccloud_docker_tag}"
-                echo "Twistloc Scan ${dockerName}"
-                twistlockScan   ca: '',
-                                cert: '',
-                                compliancePolicy: 'critical',
-                                dockerAddress: dockerHost(),
-                                gracePeriodDays: 0,
-                                ignoreImageBuildTime: true,
-                                image: dockerName,
-                                key: '',
-                                logLevel: 'true',
-                                policy: 'warn',
-                                requirePackageUpdate: false,
-                                timeout: 10
-            }
-        }
-    }
-
-    if(config.dockerScan){
-        stage('Twistloc publish') {
-            withDockerServer([uri: dockerHost()]) {
-                dockerName = config.dockerRegistry+config.ccloudDockerRepo+":${config.ccloud_docker_tag}"
-                echo "Twistloc Publish ${dockerName}"
-                twistlockPublish    ca: '',
-                                    cert: '',
-                                    dockerAddress: dockerHost(),
-                                    ignoreImageBuildTime: true,
-                                    image: dockerName,
-                                    key: '',
-                                    logLevel: 'true',
-                                    timeout: 10
-            }
-        }
-    }
-
-    if (!config.isPrJob) {
-        stage('Publish CCloud ksqlDB Docker Images') {
-            withDockerServer([uri: dockerHost()]) {
-                sh "docker tag ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag} ${config.dockerRegistry}${config.ccloudDockerRepo}:master-latest"
-                sh "docker push ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag}"
-                sh "docker push ${config.dockerRegistry}${config.ccloudDockerRepo}:master-latest"
-            }
-        }
     }
 }
 

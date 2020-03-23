@@ -38,7 +38,6 @@ import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -197,7 +196,7 @@ public class PartitionByParamsFactoryTest {
 
     // Then:
     final KeyBuilder keyBuilder = StructKeyUtil
-        .keyBuilder(ColumnNames.generatedColumnAlias(4), SqlTypes.INTEGER);
+        .keyBuilder(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER);
 
     assertThat(result.key, is(keyBuilder.build(null)));
   }

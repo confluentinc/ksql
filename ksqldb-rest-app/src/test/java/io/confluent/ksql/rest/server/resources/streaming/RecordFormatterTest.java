@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
@@ -121,40 +120,52 @@ public class RecordFormatterTest {
     }
 
     @Test
-    public void shouldStartWithAllKeyFormats() {
+    public void shouldStartWithUnknownKeyFormat() {
       // Given:
       formatter = new RecordFormatter(schemaRegistryClient, TOPIC_NAME);
 
       // Then:
-      assertThat(formatter.getPossibleKeyFormats(), containsInAnyOrder(
-          "AVRO", "SESSION(AVRO)", "TUMBLING(AVRO)", "HOPPING(AVRO)",
-          "JSON_SR", "SESSION(JSON_SR)", "TUMBLING(JSON_SR)", "HOPPING(JSON_SR)",
-          "PROTOBUF", "SESSION(PROTOBUF)", "TUMBLING(PROTOBUF)", "HOPPING(PROTOBUF)",
-          "JSON", "SESSION(JSON)", "TUMBLING(JSON)", "HOPPING(JSON)",
-          "KAFKA_INT", "SESSION(KAFKA_INT)", "TUMBLING(KAFKA_INT)", "HOPPING(KAFKA_INT)",
-          "KAFKA_BIGINT", "SESSION(KAFKA_BIGINT)", "TUMBLING(KAFKA_BIGINT)",
-          "HOPPING(KAFKA_BIGINT)",
-          "KAFKA_DOUBLE", "SESSION(KAFKA_DOUBLE)", "TUMBLING(KAFKA_DOUBLE)",
-          "HOPPING(KAFKA_DOUBLE)",
-          "KAFKA_STRING", "SESSION(KAFKA_STRING)", "TUMBLING(KAFKA_STRING)", "HOPPING(KAFKA_STRING)"
+      assertThat(formatter.getPossibleKeyFormats(), is(
+          ImmutableList.of("¯\\_(ツ)_/¯ - no data processed")
       ));
     }
 
     @Test
-    public void shouldStartWithAllValueFormats() {
+    public void shouldStartWithUnknownValueFormat() {
       // Given:
       formatter = new RecordFormatter(schemaRegistryClient, TOPIC_NAME);
 
       // Then:
-      assertThat(formatter.getPossibleValueFormats(), containsInAnyOrder(
-          "AVRO",
-          "PROTOBUF",
-          "JSON",
-          "JSON_SR",
-          "KAFKA_INT",
-          "KAFKA_BIGINT",
-          "KAFKA_DOUBLE",
-          "KAFKA_STRING"
+      assertThat(formatter.getPossibleValueFormats(), is(
+          ImmutableList.of("¯\\_(ツ)_/¯ - no data processed")
+      ));
+    }
+
+    @Test
+    public void shouldStayWithUnknownKeyFormatIfProcessingNullKeys() {
+      // Given:
+      formatter = new RecordFormatter(schemaRegistryClient, TOPIC_NAME);
+
+      // When:
+      formatter.format(consumerRecords(null, VALUE_BYTES));
+
+      // Then:
+      assertThat(formatter.getPossibleKeyFormats(), is(
+          ImmutableList.of("¯\\_(ツ)_/¯ - no data processed")
+      ));
+    }
+
+    @Test
+    public void shouldStayWithUnknownKeyFormatIfProcessingNullValues() {
+      // Given:
+      formatter = new RecordFormatter(schemaRegistryClient, TOPIC_NAME);
+
+      // When:
+      formatter.format(consumerRecords(KEY_BYTES, null));
+
+      // Then:
+      assertThat(formatter.getPossibleValueFormats(), is(
+          ImmutableList.of("¯\\_(ツ)_/¯ - no data processed")
       ));
     }
 
@@ -422,7 +433,6 @@ public class RecordFormatterTest {
     private SchemaRegistryClient schemaRegistryClient;
 
     private Deserializers deserializers;
-
 
     @Before
     public void setUp() {
@@ -1245,7 +1255,7 @@ public class RecordFormatterTest {
       props.put("schema.registry.url", "localhost:9092");
 
       final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-      return new KafkaProtobufSerializer<Message>(schemaRegistryClient, props);
+      return new KafkaProtobufSerializer<>(schemaRegistryClient, props);
     }
 
     private static Serializer<Object> jsonSrSerializer() {

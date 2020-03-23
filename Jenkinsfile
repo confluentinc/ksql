@@ -489,7 +489,7 @@ def job = {
                 if (config.release) {
                     // docker_tag for release builds does not include the build number
                     // here we add it back so an image version with the build number always exists
-                    sh "docker tag ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag} ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.docker_tag}-beta${env.BUILD_NUMBER}"
+                    sh "docker tag ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag} ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag}-beta${env.BUILD_NUMBER}"
                     sh "docker push ${config.dockerRegistry}${config.ccloudDockerRepo}:${config.ccloud_docker_tag}-beta${env.BUILD_NUMBER}"
                 }
             }

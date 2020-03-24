@@ -317,7 +317,7 @@ public class InternalFunctionRegistryTest {
     // Verify that all built-in UDF are correctly registered in the InternalFunctionRegistry
     final List<String> buildtInUDF = Arrays.asList(
         // String UDF
-        "LCASE", "UCASE", "CONCAT", "TRIM", "IFNULL", "LEN",
+        "LCASE", "UCASE", "CONCAT", "TRIM", "LEN",
         // Math UDF
         "RANDOM",
         // JSON UDF

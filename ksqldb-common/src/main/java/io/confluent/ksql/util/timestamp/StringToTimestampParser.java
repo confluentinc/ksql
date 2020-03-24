@@ -32,6 +32,7 @@ public class StringToTimestampParser {
 
   private static final Function<ZoneId, ZonedDateTime> DEFAULT_ZONED_DATE_TIME =
       zid -> ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, zid);
+  private static final long LEAP_DAY_OF_THE_YEAR = 366;
 
   private final DateTimeFormatter formatter;
 
@@ -72,7 +73,16 @@ public class StringToTimestampParser {
           throw new KsqlException(
               "Unsupported temporal field in timestamp: " + text + " (" + override + ")");
         }
-        resolved = resolved.with(override, parsed.getLong(override));
+
+        final long value = parsed.getLong(override);
+        if (override == ChronoField.DAY_OF_YEAR && value == LEAP_DAY_OF_THE_YEAR) {
+          if (!parsed.isSupported(ChronoField.YEAR)) {
+            throw new KsqlException("Leap day cannot be parsed without supplying the year field");
+          }
+          // eagerly override year, to avoid mismatch with epoch year, which is not a leap year
+          resolved = resolved.withYear(parsed.get(ChronoField.YEAR));
+        }
+        resolved = resolved.with(override, value);
       }
     }
 

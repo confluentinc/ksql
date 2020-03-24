@@ -16,6 +16,8 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.server.computation.ConfigTopicKey.StringKey;
@@ -112,6 +114,7 @@ public class KafkaConfigStore implements ConfigStore {
   public static class KsqlProperties {
     private final Map<String, String> ksqlProperties;
 
+    @SuppressWarnings("UnstableApiUsage")
     @JsonCreator
     KsqlProperties(
         @JsonProperty("ksqlProperties") final Optional<Map<String, String>> ksqlProperties) {
@@ -123,6 +126,8 @@ public class KafkaConfigStore implements ConfigStore {
           : Collections.emptyMap();
     }
 
+    @SuppressWarnings("DefaultAnnotationParam") // ALWAYS overrides the default set on the mapper.
+    @JsonInclude(content = Include.ALWAYS)
     public Map<String, String> getKsqlProperties() {
       return ksqlProperties;
     }
@@ -193,7 +198,7 @@ public class KafkaConfigStore implements ConfigStore {
         final long endOffset = offsets.get(topicPartition);
         while (consumer.position(topicPartition) < endOffset) {
           log.debug(
-              "Reading from topic %s. Position(%d) End(%d)",
+              "Reading from topic {}. Position({}) End({})",
               topicName,
               consumer.position(topicPartition),
               endOffset);
@@ -208,10 +213,10 @@ public class KafkaConfigStore implements ConfigStore {
             continue;
           }
           final byte[] value = record.get().value();
-          log.debug("Found existing value in topic %s", topicName);
+          log.debug("Found existing value in topic {}", topicName);
           return Optional.of(deserializer.deserialize(topicName, value));
         }
-        log.debug("No value found on topic %s", topicName);
+        log.debug("No value found on topic {}", topicName);
         return Optional.empty();
       }
     }

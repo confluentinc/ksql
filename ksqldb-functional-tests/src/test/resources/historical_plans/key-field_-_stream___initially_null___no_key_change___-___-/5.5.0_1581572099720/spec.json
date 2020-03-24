@@ -20,5 +20,14 @@
       "FOO" : 1,
       "BAR" : 2
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream"
+    } ],
+    "topics" : {
+      "blackList" : ".*-repartition"
+    }
+  }
 }

@@ -19,5 +19,11 @@
     "value" : {
       "BAR" : 2
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table"
+    } ]
+  }
 }

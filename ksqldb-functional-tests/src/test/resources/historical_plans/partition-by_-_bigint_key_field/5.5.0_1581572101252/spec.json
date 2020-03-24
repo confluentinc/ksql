@@ -14,5 +14,15 @@
     "topic" : "OUTPUT",
     "key" : 0,
     "value" : "0"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY BIGINT KEY, ID BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    } ]
+  }
 }

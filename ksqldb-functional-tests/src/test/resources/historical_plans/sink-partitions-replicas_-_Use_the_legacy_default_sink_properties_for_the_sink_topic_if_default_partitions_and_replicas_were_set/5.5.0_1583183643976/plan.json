@@ -97,7 +97,7 @@
       "queryId" : "CSAS_S_0"
     }
   } ],
-   "configs" : {
+  "configs" : {
     "ksql.extension.dir" : "ext",
     "ksql.streams.cache.max.bytes.buffering" : "0",
     "ksql.security.extension.class" : null,

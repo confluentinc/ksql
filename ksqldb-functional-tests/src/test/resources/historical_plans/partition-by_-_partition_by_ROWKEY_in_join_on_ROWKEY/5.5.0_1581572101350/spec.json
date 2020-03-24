@@ -30,5 +30,14 @@
       "L_ROWKEY" : "join",
       "R_ROWKEY" : "join"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream"
+    } ],
+    "topics" : {
+      "blackList" : ".*-repartition"
+    }
+  }
 }

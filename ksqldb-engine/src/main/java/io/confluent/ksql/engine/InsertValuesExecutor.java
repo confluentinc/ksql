@@ -28,6 +28,8 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -63,6 +65,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -527,6 +530,11 @@ public class InsertValuesExecutor {
 
   private static class ExpressionResolver extends VisitParentExpressionVisitor<Object, Void> {
 
+    private static final Supplier<String> IGNORED_MSG = () -> "";
+    private static final ProcessingLogger THROWING_LOGGER = errorMessage -> {
+      throw new KsqlException(((RecordProcessingError) errorMessage).getMessage());
+    };
+
     private final SqlType fieldType;
     private final ColumnName fieldName;
     private final LogicalSchema schema;
@@ -561,7 +569,7 @@ public class InsertValuesExecutor {
           );
 
       // we expect no column references, so we can pass in an empty generic row
-      final Object value = metadata.evaluate(new GenericRow());
+      final Object value = metadata.evaluate(new GenericRow(), null, THROWING_LOGGER, IGNORED_MSG);
       if (value == null) {
         return null;
       }

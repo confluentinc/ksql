@@ -77,7 +77,7 @@
       "windowInfo" : null
     },
     "queryPlan" : {
-      "sources" : [ "S2", "S1" ],
+      "sources" : [ "S1", "S2" ],
       "sink" : "S1_JOIN_S2",
       "physicalPlan" : {
         "@type" : "streamSinkV1",

@@ -19,5 +19,18 @@
     "value" : {
       "BAR" : 2
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "INPUT",
+      "type" : "stream"
+    }, {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY INT KEY, BAR INT"
+    } ],
+    "topics" : {
+      "blackList" : ".*-repartition"
+    }
+  }
 }

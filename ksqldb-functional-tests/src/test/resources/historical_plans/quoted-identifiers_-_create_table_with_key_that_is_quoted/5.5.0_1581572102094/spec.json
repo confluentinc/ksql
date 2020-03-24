@@ -18,5 +18,14 @@
     "value" : {
       "some.key" : "key"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "TEST",
+      "type" : "table"
+    }, {
+      "name" : "OUTPUT",
+      "type" : "table"
+    } ]
+  }
 }

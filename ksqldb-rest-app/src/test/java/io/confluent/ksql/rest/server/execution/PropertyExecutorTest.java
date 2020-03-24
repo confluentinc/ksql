@@ -24,13 +24,11 @@ import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import io.confluent.ksql.util.KsqlHostInfo;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;

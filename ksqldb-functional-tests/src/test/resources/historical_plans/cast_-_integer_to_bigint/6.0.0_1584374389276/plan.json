@@ -92,8 +92,7 @@
           },
           "options" : [ ]
         },
-        "topicName" : "OUT",
-        "timestampColumn" : null
+        "topicName" : "OUT"
       },
       "queryId" : "CSAS_OUT_0"
     }

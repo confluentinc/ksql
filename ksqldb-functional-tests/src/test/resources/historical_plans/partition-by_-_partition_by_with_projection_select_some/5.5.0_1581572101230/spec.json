@@ -14,5 +14,15 @@
     "topic" : "REPARTITIONED",
     "key" : "zero",
     "value" : "zero,0"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "REPARTITIONED",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, NAME STRING, ID BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    } ]
+  }
 }

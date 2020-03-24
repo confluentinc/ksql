@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest;
 
 import io.confluent.ksql.util.KsqlHostInfo;
-
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;

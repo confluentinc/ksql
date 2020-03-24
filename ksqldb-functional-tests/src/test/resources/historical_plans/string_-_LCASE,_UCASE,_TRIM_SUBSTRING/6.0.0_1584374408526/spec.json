@@ -54,5 +54,12 @@
     "topic" : "OUTPUT",
     "key" : "",
     "value" : "long enough,LONG ENOUGH,long enough,ong e"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING, KSQL_COL_2 STRING, KSQL_COL_3 STRING"
+    } ]
+  }
 }

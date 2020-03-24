@@ -19,5 +19,11 @@
     "value" : {
       "FOO" : 1
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream"
+    } ]
+  }
 }

@@ -16,10 +16,11 @@
 package io.confluent.ksql.execution.transform.sqlpredicate;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,16 +36,17 @@ import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -114,7 +116,7 @@ public class SqlPredicateTest {
   @Test
   public void shouldPassFilter() {
     // Given:
-    when(evaluator.evaluate(VALUE)).thenReturn(true);
+    when(evaluator.evaluate(any(), any(), any(), any())).thenReturn(true);
 
     // When:
     final Optional<GenericRow> result = transformer.transform("key", VALUE, ctx);
@@ -126,7 +128,7 @@ public class SqlPredicateTest {
   @Test
   public void shouldNotPassFilter() {
     // Given:
-    when(evaluator.evaluate(VALUE)).thenReturn(false);
+    when(evaluator.evaluate(any(), any(), any(), any())).thenReturn(false);
 
     // When:
     final Optional<GenericRow> result = transformer.transform("key", VALUE, ctx);
@@ -143,28 +145,23 @@ public class SqlPredicateTest {
     // Then:
     assertThat(result, is(Optional.empty()));
 
-    verify(evaluator, never()).evaluate(any());
+    verify(evaluator, never()).evaluate(any(), any(), any(), any());
   }
 
+  @SuppressWarnings("unchecked")
   @Test
-  public void shouldWriteProcessingLogOnError() {
+  public void shouldInvokeEvaluatorWithCorrectParams() {
     // Given:
-    final IllegalArgumentException e = new IllegalArgumentException("argument type mismatch");
-
-    when(evaluator.evaluate(any()))
-        .thenThrow(e);
-
-    final GenericRow row = genericRow("wrong", "types", "in", "here", "to", "force", "error");
+    when(evaluator.evaluate(any(), any(), any(), any())).thenReturn(true);
 
     // When:
-    transformer.transform("key", row, ctx);
+    transformer.transform("key", VALUE, ctx);
 
     // Then:
-    verify(processingLogger).error(RecordProcessingError.recordProcessingError(
-        "Error evaluating predicate filterExpression: "
-            + "argument type mismatch",
-        e,
-        row
-    ));
+    final ArgumentCaptor<Supplier<String>> errorMsgCaptor = ArgumentCaptor.forClass(Supplier.class);
+    verify(evaluator)
+        .evaluate(eq(VALUE), eq(false), eq(processingLogger), errorMsgCaptor.capture());
+
+    assertThat(errorMsgCaptor.getValue().get(), is("Error evaluating predicate filterExpression"));
   }
 }

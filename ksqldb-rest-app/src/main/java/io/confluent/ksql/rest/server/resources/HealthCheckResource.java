@@ -27,7 +27,6 @@ import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;

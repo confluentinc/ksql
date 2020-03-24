@@ -18,5 +18,12 @@
     "value" : {
       "KSQL_COL_0" : "fred-1"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, KSQL_COL_0 STRING"
+    } ]
+  }
 }

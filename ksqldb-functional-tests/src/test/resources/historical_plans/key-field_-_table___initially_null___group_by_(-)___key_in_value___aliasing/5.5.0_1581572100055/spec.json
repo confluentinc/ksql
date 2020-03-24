@@ -21,5 +21,14 @@
       "ALIASED" : 1,
       "KSQL_COL_1" : 1
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "INPUT",
+      "type" : "table"
+    }, {
+      "name" : "OUTPUT",
+      "type" : "table"
+    } ]
+  }
 }

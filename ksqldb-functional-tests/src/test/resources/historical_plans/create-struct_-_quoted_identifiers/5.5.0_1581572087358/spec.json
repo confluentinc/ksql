@@ -21,5 +21,12 @@
         "foo" : "foo"
       }
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "BIG_STRUCT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, S STRUCT<FOO VARCHAR, `foo` VARCHAR>"
+    } ]
+  }
 }

@@ -223,5 +223,16 @@
       "end" : 70000,
       "type" : "TIME"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "S2",
+      "type" : "table",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowType" : "HOPPING",
+        "windowSize" : 30000
+      }
+    } ]
+  }
 }

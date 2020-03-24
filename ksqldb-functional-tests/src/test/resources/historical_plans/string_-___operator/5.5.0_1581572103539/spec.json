@@ -62,5 +62,12 @@
     "topic" : "OUTPUT",
     "key" : "",
     "value" : "b01,true"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING, `KSQL_COL_1` BOOLEAN"
+    } ]
+  }
 }

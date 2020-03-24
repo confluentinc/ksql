@@ -57,7 +57,7 @@ public class ClusterStatusResource {
   private final KsqlEngine engine;
   private final HeartbeatAgent heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
-  private static final HostStoreLags EMPTY_HOST_STORE_LAGS =
+  static final HostStoreLags EMPTY_HOST_STORE_LAGS =
       new HostStoreLags(ImmutableMap.of(), 0);
 
   public ClusterStatusResource(
@@ -86,13 +86,19 @@ public class ClusterStatusResource {
             entry -> new HostStatusEntity(entry.getValue().isHostAlive(),
                                           entry.getValue().getLastStatusUpdateMs(),
                                           getActiveStandbyInformation(entry.getKey()),
-                                          getHostStoreLags(entry.getKey()))
+                                          getHostStoreLags(entry.getKey(),
+                                              entry.getValue().isHostAlive()))
         ));
 
     return new ClusterStatusResponse(response);
   }
 
-  private HostStoreLags getHostStoreLags(final KsqlHostInfo ksqlHostInfo) {
+  private HostStoreLags getHostStoreLags(final KsqlHostInfo ksqlHostInfo, final boolean isAlive) {
+    // The lag reporting agent currently caches lag info without regard to the current alive status,
+    // so don't show lags for hosts we consider down.
+    if (!isAlive) {
+      return EMPTY_HOST_STORE_LAGS;
+    }
     return lagReportingAgent
         .flatMap(agent -> agent.getLagPerHost(ksqlHostInfo))
         .orElse(EMPTY_HOST_STORE_LAGS);

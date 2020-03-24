@@ -22,5 +22,11 @@
     "topic" : "REPARTITIONED",
     "key" : "1",
     "value" : "1_new,b"
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "REPARTITIONED",
+      "type" : "stream"
+    } ]
+  }
 }

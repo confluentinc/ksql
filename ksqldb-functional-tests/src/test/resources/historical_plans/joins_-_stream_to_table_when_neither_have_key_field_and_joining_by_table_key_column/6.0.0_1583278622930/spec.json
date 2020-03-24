@@ -31,5 +31,12 @@
       "NAME" : "bob"
     },
     "timestamp" : 10
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY BIGINT KEY, ID BIGINT, NAME STRING"
+    } ]
+  }
 }

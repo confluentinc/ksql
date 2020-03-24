@@ -140,5 +140,11 @@
       "F2" : null
     },
     "timestamp" : 17000
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "LEFT_OUTER_JOIN",
+      "type" : "table"
+    } ]
+  }
 }

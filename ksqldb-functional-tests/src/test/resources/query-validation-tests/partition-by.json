@@ -137,6 +137,26 @@
       }
     },
     {
+      "name": "nulls",
+      "statements": [
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM REPARTITIONED AS select id from TEST partition by name;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": "4,"},
+        {"topic": "test_topic", "key": 3, "value": "5,zero"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": null, "value": null},
+        {"topic": "REPARTITIONED", "key": null, "value": "4"},
+        {"topic": "REPARTITIONED", "key": "zero", "value": "5"}
+      ]
+    },
+    {
       "name": "partition by with projection select some",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
@@ -523,6 +543,42 @@
           }
         ]
       }
+    },
+    {
+      "name": "nulls using coalesce",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar) with (kafka_topic='test_topic', value_format = 'json');",
+        "CREATE STREAM REPARTITIONED AS select id from TEST partition by COALESCE(name, 'default');"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "fred"}},
+        {"topic": "test_topic", "key": 1, "value": {"NAME": null}},
+        {"topic": "test_topic", "key": 2, "value": {}}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "fred", "value": {"ID": 0}},
+        {"topic": "REPARTITIONED", "key": "default", "value": {"ID": 1}},
+        {"topic": "REPARTITIONED", "key": "default", "value": {"ID": 2}}
+      ]
+    },
+    {
+      "name": "should handle PARTITION BY that throws",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, shouldThrow BOOLEAN) with (kafka_topic='test_topic', value_format = 'json');",
+        "CREATE STREAM REPARTITIONED AS select ID from TEST partition by bad_udf(shouldThrow);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "a", "value": {"ID": 1, "shouldThrow": false}},
+        {"topic": "test_topic", "key": "b", "value": {"ID": 2, "shouldThrow": true}},
+        {"topic": "test_topic", "key": "c", "value": {"ID": 3, "shouldThrow": false}}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": 0, "value": {"ID": 1}},
+        {"topic": "REPARTITIONED", "key": 0, "value": {"ID": 3}}
+      ]
     }
   ]
 }

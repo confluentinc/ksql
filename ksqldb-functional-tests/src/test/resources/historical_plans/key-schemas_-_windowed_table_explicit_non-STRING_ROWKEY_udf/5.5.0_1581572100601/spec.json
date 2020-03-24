@@ -26,5 +26,17 @@
       "end" : 30000,
       "type" : "TIME"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "`ROWKEY` BIGINT KEY, `EXP` DOUBLE, `KSQL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowType" : "TUMBLING",
+        "windowSize" : 30000
+      }
+    } ]
+  }
 }

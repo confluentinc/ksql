@@ -128,5 +128,12 @@
       "KSQL_COL_1" : 3
     },
     "timestamp" : 5
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "ROWKEY INT KEY, ID INT, KSQL_COL_1 BIGINT"
+    } ]
+  }
 }

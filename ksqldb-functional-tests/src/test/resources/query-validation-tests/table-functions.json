@@ -320,6 +320,38 @@
         {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 3}},
         {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 4, "KSQL_COL_1": 4}}
       ]
+    },
+    {
+      "name": "should handle UDTFs that throw",
+      "statements": [
+        "CREATE STREAM TEST (shouldThrow BOOLEAN) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT shouldThrow, throwing_udtf(shouldThrow) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "a", "value": {"shouldThrow": false}},
+        {"topic": "test_topic", "key": "b", "value": {"shouldThrow": true}},
+        {"topic": "test_topic", "key": "c", "value": {"shouldThrow": false}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a", "value": {"SHOULDTHROW": false, "KSQL_COL_1": false}},
+        {"topic": "OUTPUT", "key": "c", "value": {"SHOULDTHROW": false, "KSQL_COL_1": false}}
+      ]
+    },
+    {
+      "name": "should handle UDTF parameter evaluation that throws",
+      "statements": [
+        "CREATE STREAM TEST (shouldThrow BOOLEAN) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT shouldThrow, test_udtf(bad_udf(shouldThrow)) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "a", "value": {"shouldThrow": false}},
+        {"topic": "test_topic", "key": "b", "value": {"shouldThrow": true}},
+        {"topic": "test_topic", "key": "c", "value": {"shouldThrow": false}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a", "value": {"SHOULDTHROW": false, "KSQL_COL_1": 0}},
+        {"topic": "OUTPUT", "key": "c", "value": {"SHOULDTHROW": false, "KSQL_COL_1": 0}}
+      ]
     }
   ]
 }

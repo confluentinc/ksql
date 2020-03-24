@@ -65,5 +65,17 @@
       "end" : 14000,
       "type" : "TIME"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "`ROWKEY` INTEGER KEY, `COUNT` BIGINT, `WSTART` BIGINT, `WEND` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowType" : "TUMBLING",
+        "windowSize" : 1000
+      }
+    } ]
+  }
 }

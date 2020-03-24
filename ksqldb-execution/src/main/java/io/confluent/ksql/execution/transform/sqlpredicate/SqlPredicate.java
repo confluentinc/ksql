@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -84,9 +83,7 @@ public final class SqlPredicate {
 
     Transformer(final ProcessingLogger processingLogger) {
       this.processingLogger = requireNonNull(processingLogger, "processingLogger");
-      this.errorMsg = "Error evaluating predicate "
-          + SqlPredicate.this.filterExpression.toString()
-          + ": ";
+      this.errorMsg = "Error evaluating predicate " + filterExpression.toString();
     }
 
     @Override
@@ -99,27 +96,12 @@ public final class SqlPredicate {
         return Optional.empty();
       }
 
-      try {
-        final boolean result = (Boolean) evaluator.evaluate(value);
-        return result
-            ? Optional.of(value)
-            : Optional.empty();
+      final boolean result = (Boolean) evaluator
+          .evaluate(value, false, processingLogger, () -> errorMsg);
 
-      } catch (final Exception e) {
-        logProcessingError(processingLogger, e, value);
-        return Optional.empty();
-      }
-    }
-
-    private void logProcessingError(
-        final ProcessingLogger processingLogger,
-        final Exception e,
-        final GenericRow row
-    ) {
-      processingLogger.error(
-          RecordProcessingError
-              .recordProcessingError(errorMsg + e.getMessage(), e, row)
-      );
+      return result
+          ? Optional.of(value)
+          : Optional.empty();
     }
   }
 }

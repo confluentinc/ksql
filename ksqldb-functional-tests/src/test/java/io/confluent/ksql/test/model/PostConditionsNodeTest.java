@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,22 +13,22 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udf.string;
+package io.confluent.ksql.test.model;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.test.model.PostConditionsNode.TopicsNode;
+import java.util.Optional;
+import org.junit.Test;
 
-public class IfNullKudf implements Kudf {
+public class PostConditionsNodeTest {
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 2) {
-      throw new KsqlFunctionException("IfNull udf should have two input argument.");
-    }
-    if (args[0] == null) {
-      return args[1];
-    } else {
-      return args[0];
-    }
+  @Test
+  public void shouldRoundTrip() {
+    ModelTester.assertRoundTrip(
+        new PostConditionsNode(
+            ImmutableList.of(SourceNodeTest.INSTANCE),
+            Optional.of(new TopicsNode(Optional.of(".*repartition")))
+        )
+    );
   }
 }

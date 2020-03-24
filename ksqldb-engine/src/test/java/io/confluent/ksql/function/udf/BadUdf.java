@@ -16,11 +16,20 @@
 package io.confluent.ksql.function.udf;
 
 @UdfDescription(name="bad_udf", description = "throws exceptions when called")
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "MethodMayBeStatic"})
 public class BadUdf {
 
   @Udf(description = "throws")
   public String blowUp(final int arg1) {
     throw new RuntimeException("boom!");
+  }
+
+  @Udf(description = "throws if arg is true")
+  public int mightThrow(final boolean arg) {
+    if (arg) {
+      throw new RuntimeException("You asked me to throw...");
+    }
+
+    return 0;
   }
 }

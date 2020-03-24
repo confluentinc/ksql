@@ -21,5 +21,14 @@
     "value" : {
       "KSQL_COL_0" : 1
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table"
+    } ],
+    "topics" : {
+      "blackList" : ".*-repartition"
+    }
+  }
 }

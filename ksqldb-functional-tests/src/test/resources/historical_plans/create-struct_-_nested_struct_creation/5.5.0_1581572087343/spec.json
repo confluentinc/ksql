@@ -22,5 +22,12 @@
         }
       }
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "BIG_STRUCT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, S STRUCT<F1 STRUCT<C1 STRING>>"
+    } ]
+  }
 }

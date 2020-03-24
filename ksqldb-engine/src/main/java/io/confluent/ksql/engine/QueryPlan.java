@@ -16,9 +16,12 @@
 package io.confluent.ksql.engine;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableSortedSet;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.name.Name;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 
@@ -34,7 +37,10 @@ public final class QueryPlan  {
       @JsonProperty(value = "physicalPlan", required = true) final ExecutionStep<?> physicalPlan,
       @JsonProperty(value = "queryId", required = true) final QueryId queryId
   ) {
-    this.sources = Objects.requireNonNull(sources, "sources");
+    this.sources = ImmutableSortedSet.copyOf(
+        Comparator.comparing(Name::text),
+        Objects.requireNonNull(sources, "sources")
+    );
     this.sink = Objects.requireNonNull(sink, "sink");
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
     this.queryId = Objects.requireNonNull(queryId, "queryId");

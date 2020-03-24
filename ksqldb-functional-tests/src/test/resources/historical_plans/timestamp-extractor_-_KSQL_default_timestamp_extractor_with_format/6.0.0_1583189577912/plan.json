@@ -98,8 +98,7 @@
           },
           "options" : [ ]
         },
-        "topicName" : "TS",
-        "timestampColumn" : null
+        "topicName" : "TS"
       },
       "queryId" : "CSAS_TS_0"
     }

@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+@JsonInclude(Include.NON_ABSENT)
 @Immutable
 public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStepPropertiesV1 properties;

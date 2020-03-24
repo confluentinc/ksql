@@ -20,5 +20,12 @@
     "value" : {
       "KSQL_COL_0" : "expect-result"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, KSQL_COL_0 STRING"
+    } ]
+  }
 }

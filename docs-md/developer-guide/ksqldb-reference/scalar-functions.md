@@ -114,7 +114,7 @@ GENERATE_SERIES
 `GENERATE_SERIES(start, end)`
 `GENERATE_SERIES(start, end, step)`
 
-Constructs an array of values between `start` and `end` (inclusive).       
+Constructs an array of values between `start` and `end` (inclusive).
 Parameters `start` and `end` can be an `INT` or `BIGINT`.
 
 `step`, if supplied, specifies the step size. The step can be positive or negative.
@@ -455,18 +455,20 @@ COALESCE
 
 `COALESCE(a, b, c, d)`
 
-Returns the first non-null parameter. All parameters must be of the same type.
+Returns the first parameter that is not NULL. All parameters must be of the same type.
 
 Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
-complex type are not inspected. The behaviour is the same: the first non-null element is returned.
+complex type are not inspected. The behaviour is the same: the first NOT NULL element is returned.
 
 IFNULL
 ------
 
-`IFNULL(col1, retval)`
+`IFNULL(expression, altValue)`
 
-If the provided VARCHAR is NULL, return `retval`, otherwise, return `col1`.
-Only VARCHAR values are supported for the input. The return value must be a VARCHAR.
+If the provided `expression` is NULL, returns `altValue`, otherwise, returns `expression`.
+
+Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
+complex type are not inspected.
 
 Date and Time
 =============

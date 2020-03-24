@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
@@ -186,18 +185,9 @@ public final class PartitionByParamsFactory {
     final ExpressionMetadata expressionMetadata = codeGen
         .buildCodeGenFromParseTree(partitionBy, "SelectKey");
 
-    return row -> {
-      try {
-        return expressionMetadata.evaluate(row);
-      } catch (final Exception e) {
-        final String errorMsg = "Error computing new key from expression "
-            + expressionMetadata.getExpression()
-            + " : "
-            + e.getMessage();
+    final String errorMsg = "Error computing new key from expression "
+        + expressionMetadata.getExpression();
 
-        logger.error(RecordProcessingError.recordProcessingError(errorMsg, e, row));
-        return null;
-      }
-    };
+    return row -> expressionMetadata.evaluate(row, null, logger, () -> errorMsg);
   }
 }

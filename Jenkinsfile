@@ -1,4 +1,4 @@
-def config = {
+def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
     ksql_db_version = "0.8.0-SNAPSHOT"
@@ -39,7 +39,7 @@ def updateConfig = { c ->
     c.properties = [parameters(defaultParams)]
 }
 
-def finalConfig = jobConfig(config, [:], updateConfig)
+def config = jobConfig(baseConfig, [:], updateConfig)
 
 def job = {
     if (config.isPrJob && params.PROMOTE_TO_PRODUCTION) {
@@ -273,7 +273,7 @@ def job = {
         }
     }
 
-    if(config.dockerScan){
+    if(config.dockerScan && !config.isPrJob){
         stage('Twistloc scan') {
             withDockerServer([uri: dockerHost()]) {
                 config.dockerRepos.each { dockerRepo ->
@@ -296,7 +296,7 @@ def job = {
         }
     }
 
-    if(config.dockerScan){
+    if(config.dockerScan && !config.isPrJob){
         stage('Twistloc publish') {
             withDockerServer([uri: dockerHost()]) {
                 config.dockerRepos.each { dockerRepo ->
@@ -357,12 +357,29 @@ def job = {
 
 def post = {
     withDockerServer([uri: dockerHost()]) {
-        sh """#!/usr/bin/env bash \n
-            # Delete all images
-            docker rmi -f \$(docker images -a -q) || true
-        """
+        repos = config.dockerArtifacts + config.dockerRepos
+        repos.reverse().each { dockerRepo ->
+            if (params.PROMOTE_TO_PRODUCTION) {
+                sh """#!/usr/bin/env bash \n
+                images=\$(docker images -q ${dockerRepo})
+                if [[ ! -z \$images ]]; then
+                    docker rmi -f \$images || true
+                    else
+                        echo 'No images for ${dockerRepo} need cleanup'
+                    fi
+                """
+            }
+            sh """#!/usr/bin/env bash \n
+            images=\$(docker images -q ${config.dockerRegistry}${dockerRepo})
+            if [[ ! -z \$images ]]; then
+                docker rmi -f \$images || true
+                else
+                    echo 'No images for ${config.dockerRegistry}${dockerRepo} need cleanup'
+                fi
+            """
+        }
     }
-    commonPost(finalConfig)
+    commonPost(config)
 }
 
-runJob finalConfig, job, post
+runJob config, job, post

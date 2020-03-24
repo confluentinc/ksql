@@ -876,6 +876,38 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "'ROWKEY' is a reserved column name. It can only be used for KEY columns."
       }
+    },
+    {
+      "name": "should handle sources with generated column names",
+      "statements": [
+        "CREATE STREAM INPUT (KSQL_COL_3 INT KEY, KSQL_COL_2 INT, KSQL_COL_4 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT KSQL_COL_2, ABS(KSQL_COL_2), ABS(KSQL_COL_2), ABS(KSQL_COL_2) FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "input", "key": 1, "value": {"KSQL_COL_2": 2, "KSQL_COL_4": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_2": 2, "KSQL_COL_0": 2, "KSQL_COL_1": 2, "KSQL_COL_5": 2}}
+      ]
+    },
+    {
+      "name": "should handle sources with generated column names - with select star",
+      "statements": [
+        "CREATE STREAM INPUT (KSQL_COL_3 INT KEY, KSQL_COL_2 INT, KSQL_COL_4 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ABS(KSQL_COL_2), ABS(KSQL_COL_2), ABS(KSQL_COL_2), * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "input", "key": 1, "value": {"KSQL_COL_2": 2, "KSQL_COL_4": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_2": 2, "KSQL_COL_4": 4, "KSQL_COL_0": 2, "KSQL_COL_1": 2, "KSQL_COL_5": 2}}
+      ]
     }
   ]
 }

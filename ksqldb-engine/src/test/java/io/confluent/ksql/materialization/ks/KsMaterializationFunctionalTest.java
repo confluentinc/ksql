@@ -529,7 +529,7 @@ public class KsMaterializationFunctionalTest {
 
     final LogicalSchema schema = schema(
         "USERID", SqlTypes.STRING,
-        "KSQL_COL_1", SqlTypes.BIGINT,
+        "KSQL_COL_0", SqlTypes.BIGINT,
         "USERID_2", SqlTypes.STRING
     );
 

@@ -1,0 +1,66 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584639514494,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<TEXT VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<TEXT VARCHAR, KSQL_COL_0 BOOLEAN> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "a1"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "b1"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "B2"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "b2"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "b3"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "b10"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "b01"
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : "a1,true"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : "b1,true"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : "B2,true"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : "b2,false"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : "b3,false"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : "b10,true"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : "b01,true"
+  } ]
+}

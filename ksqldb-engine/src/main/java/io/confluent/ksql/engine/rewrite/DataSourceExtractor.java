@@ -44,9 +44,10 @@ class DataSourceExtractor {
   private SourceName rightAlias;
   private SourceName rightName;
 
-  private final Set<ColumnName> commonFieldNames = new HashSet<>();
-  private final Set<ColumnName> leftFieldNames = new HashSet<>();
-  private final Set<ColumnName> rightFieldNames = new HashSet<>();
+  private final Set<DataSource> allSources = new HashSet<>();
+  private final Set<ColumnName> commonColumnNames = new HashSet<>();
+  private final Set<ColumnName> leftColumnNames = new HashSet<>();
+  private final Set<ColumnName> rightColumnNames = new HashSet<>();
 
   private boolean isJoin = false;
 
@@ -56,7 +57,7 @@ class DataSourceExtractor {
 
   public void extractDataSources(final AstNode node) {
     new Visitor().process(node, null);
-    commonFieldNames.addAll(Sets.intersection(leftFieldNames, rightFieldNames));
+    commonColumnNames.addAll(Sets.intersection(leftColumnNames, rightColumnNames));
   }
 
   public SourceName getFromAlias() {
@@ -71,16 +72,12 @@ class DataSourceExtractor {
     return rightAlias;
   }
 
-  public Set<ColumnName> getCommonFieldNames() {
-    return Collections.unmodifiableSet(commonFieldNames);
+  public Set<DataSource> getAllSources() {
+    return Collections.unmodifiableSet(allSources);
   }
 
-  public Set<ColumnName> getLeftFieldNames() {
-    return Collections.unmodifiableSet(leftFieldNames);
-  }
-
-  public Set<ColumnName> getRightFieldNames() {
-    return Collections.unmodifiableSet(rightFieldNames);
+  public Set<ColumnName> getCommonColumnNames() {
+    return Collections.unmodifiableSet(commonColumnNames);
   }
 
   public SourceName getFromName() {
@@ -101,15 +98,15 @@ class DataSourceExtractor {
 
   public SourceName getAliasFor(final ColumnName columnName) {
     if (isJoin) {
-      if (commonFieldNames.contains(columnName)) {
+      if (commonColumnNames.contains(columnName)) {
         throw new KsqlException("Column '" + columnName.text() + "' is ambiguous.");
       }
 
-      if (leftFieldNames.contains(columnName)) {
+      if (leftColumnNames.contains(columnName)) {
         return leftAlias;
       }
 
-      if (rightFieldNames.contains(columnName)) {
+      if (rightColumnNames.contains(columnName)) {
         return rightAlias;
       }
 
@@ -130,9 +127,12 @@ class DataSourceExtractor {
     public Void visitAliasedRelation(final AliasedRelation relation, final Void ctx) {
       fromAlias = relation.getAlias();
       fromName = ((Table) relation.getRelation()).getName();
-      if (metaStore.getSource(fromName) == null) {
+      final DataSource source = metaStore.getSource(fromName);
+      if (source == null) {
         throw new KsqlException(fromName.text() + " does not exist.");
       }
+
+      allSources.add(source);
       return null;
     }
 
@@ -149,7 +149,7 @@ class DataSourceExtractor {
         throw new KsqlException(((Table) left.getRelation()).getName().text() + " does not "
             + "exist.");
       }
-      addFieldNames(leftDataSource.getSchema(), leftFieldNames);
+      addFieldNames(leftDataSource.getSchema(), leftColumnNames);
       final AliasedRelation right = (AliasedRelation) join.getRight();
       rightAlias = right.getAlias();
       rightName = ((Table) right.getRelation()).getName();
@@ -160,7 +160,9 @@ class DataSourceExtractor {
         throw new KsqlException(((Table) right.getRelation()).getName().text() + " does not "
             + "exist.");
       }
-      addFieldNames(rightDataSource.getSchema(), rightFieldNames);
+      addFieldNames(rightDataSource.getSchema(), rightColumnNames);
+      allSources.add(leftDataSource);
+      allSources.add(rightDataSource);
       return null;
     }
   }

@@ -440,7 +440,7 @@
         {"topic": "input", "key": 10, "value": {"value": 1}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 10, "value": {"EXP": 22026.465794806718, "KSQL_COL_1": 1}, "window": {"start": 0, "end": 30000, "type":  "time"}}
+        {"topic": "OUTPUT", "key": 10, "value": {"EXP": 22026.465794806718, "KSQL_COL_0": 1}, "window": {"start": 0, "end": 30000, "type":  "time"}}
       ],
       "post": {
         "sources": [
@@ -448,7 +448,7 @@
             "name": "OUTPUT",
             "type": "table",
             "keyFormat": {"format": "KAFKA", "windowType": "TUMBLING", "windowSize": 30000},
-            "schema": "`ROWKEY` BIGINT KEY, `EXP` DOUBLE, `KSQL_COL_1` BIGINT"
+            "schema": "`ROWKEY` BIGINT KEY, `EXP` DOUBLE, `KSQL_COL_0` BIGINT"
           }
         ]
       }

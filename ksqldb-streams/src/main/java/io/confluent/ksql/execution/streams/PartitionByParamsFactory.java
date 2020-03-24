@@ -35,6 +35,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 
@@ -112,7 +113,7 @@ public final class PartitionByParamsFactory {
 
     final ColumnName newKeyName = partitionByCol
         .map(Column::name)
-        .orElseGet(() -> ColumnNames.nextGeneratedColumnAlias(sourceSchema));
+        .orElseGet(() -> ColumnNames.columnAliasGenerator(Stream.of(sourceSchema)).get());
 
     final Builder builder = LogicalSchema.builder()
         .withRowTime()

@@ -1,0 +1,42 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585050801382,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SHOULDTHROW BOOLEAN> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SHOULDTHROW BOOLEAN, KSQL_COL_0 INT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "a",
+    "value" : {
+      "shouldThrow" : false
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "b",
+    "value" : {
+      "shouldThrow" : true
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "c",
+    "value" : {
+      "shouldThrow" : false
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "a",
+    "value" : {
+      "SHOULDTHROW" : false,
+      "KSQL_COL_0" : 0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "c",
+    "value" : {
+      "SHOULDTHROW" : false,
+      "KSQL_COL_0" : 0
+    }
+  } ]
+}

@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafAggregatorFactory;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafUndoAggregatorFactory;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
@@ -66,10 +65,6 @@ public class AggregateParamsFactoryTest {
       FunctionName.of("TABLE_AGG"),
       ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("ARGUMENT0")))
   );
-  private static final FunctionCall WINDOW_START = new FunctionCall(
-      FunctionName.of("WindowStart"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("ARGUMENT0")))
-  );
   private static final String INITIAL_VALUE1 = "initial";
   private static final List<FunctionCall> FUNCTIONS = ImmutableList.of(AGG0, AGG1);
 
@@ -82,8 +77,6 @@ public class AggregateParamsFactoryTest {
   @Mock
   private TableAggregationFunction tableAgg;
   @Mock
-  private KsqlAggregateFunction windowStart;
-  @Mock
   private KudafAggregatorFactory udafFactory;
   @Mock
   private KudafUndoAggregatorFactory undoUdafFactory;
@@ -91,8 +84,6 @@ public class AggregateParamsFactoryTest {
   private KudafAggregator aggregator;
   @Mock
   private KudafUndoAggregator undoAggregator;
-  @Mock
-  private KsqlProcessingContext ctx;
 
   private AggregateParams aggregateParams;
 
@@ -102,13 +93,11 @@ public class AggregateParamsFactoryTest {
     when(functionRegistry.getAggregateFunction(same(AGG0.getName()), any(), any()))
         .thenReturn(agg0);
     when(agg0.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
-    when(agg0.name()).thenReturn(AGG0.getName());
     when(agg0.returnType()).thenReturn(SqlTypes.INTEGER);
     when(agg0.getAggregateType()).thenReturn(SqlTypes.BIGINT);
     when(functionRegistry.getAggregateFunction(same(AGG1.getName()), any(), any()))
         .thenReturn(agg1);
     when(agg1.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE1);
-    when(agg1.name()).thenReturn(AGG1.getName());
     when(agg1.returnType()).thenReturn(SqlTypes.STRING);
     when(agg1.getAggregateType()).thenReturn(SqlTypes.DOUBLE);
     when(functionRegistry.getAggregateFunction(same(TABLE_AGG.getName()), any(), any()))
@@ -116,13 +105,6 @@ public class AggregateParamsFactoryTest {
     when(tableAgg.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(tableAgg.returnType()).thenReturn(SqlTypes.INTEGER);
     when(tableAgg.getAggregateType()).thenReturn(SqlTypes.BIGINT);
-    when(tableAgg.name()).thenReturn(TABLE_AGG.getName());
-    when(functionRegistry.getAggregateFunction(same(WINDOW_START.getName()), any(), any()))
-        .thenReturn(windowStart);
-    when(windowStart.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
-    when(windowStart.name()).thenReturn(WINDOW_START.getName());
-    when(windowStart.returnType()).thenReturn(SqlTypes.BIGINT);
-    when(windowStart.getAggregateType()).thenReturn(SqlTypes.BIGINT);
 
     when(udafFactory.create(anyInt(), any())).thenReturn(aggregator);
     when(undoUdafFactory.create(anyInt(), any())).thenReturn(undoAggregator);

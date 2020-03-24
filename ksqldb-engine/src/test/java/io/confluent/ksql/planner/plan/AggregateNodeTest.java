@@ -247,8 +247,8 @@ public class AggregateNodeTest {
     // Then:
     assertThat(stream.getSchema().value(), contains(
         valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.DOUBLE),
-        valueColumn(ColumnName.of("KSQL_COL_2"), SqlTypes.BIGINT)));
+        valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.DOUBLE),
+        valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.BIGINT)));
   }
 
   @Test

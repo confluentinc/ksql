@@ -124,7 +124,7 @@
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -133,7 +133,7 @@
             "name": "OUTPUT",
             "type": "table",
             "keyField": "FOO",
-            "schema": "ROWKEY INT KEY, FOO INT, KSQL_COL_1 BIGINT"
+            "schema": "ROWKEY INT KEY, FOO INT, KSQL_COL_0 BIGINT"
           }
         ]
       }
@@ -148,7 +148,7 @@
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED":1, "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -366,7 +366,7 @@
         {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -388,7 +388,7 @@
         {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED":1, "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -431,7 +431,7 @@
         {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": {"BAR":2, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 2, "value": {"BAR":2, "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -449,7 +449,7 @@
         {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": {"ALIASED":2, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 2, "value": {"ALIASED":2, "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -504,7 +504,7 @@
         {"topic": "input_topic", "key": "x", "value": {"foo": 1}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"FOO": 1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO": 1, "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -526,7 +526,7 @@
         {"topic": "input_topic", "key": "x", "value": {"foo": 1}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED": 1, "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -601,7 +601,7 @@
         {"topic": "input_topic", "key": 1,"value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1,"value": {"FOO": 1, "KSQL_COL_1":  1}}
+        {"topic": "OUTPUT", "key": 1,"value": {"FOO": 1, "KSQL_COL_0":  1}}
       ],
       "post": {
         "sources": [
@@ -619,7 +619,7 @@
         {"topic": "input_topic", "key": 1,"value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1,"value": {"ALIASED": 1, "KSQL_COL_1":  1}}
+        {"topic": "OUTPUT", "key": 1,"value": {"ALIASED": 1, "KSQL_COL_0":  1}}
       ],
       "post": {
         "sources": [
@@ -655,7 +655,7 @@
         {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": {"BAR": 2, "KSQL_COL_1":  1}}
+        {"topic": "OUTPUT", "key": 2, "value": {"BAR": 2, "KSQL_COL_0":  1}}
       ],
       "post": {
         "sources": [
@@ -673,7 +673,7 @@
         {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2,"value": {"ALIASED": 2, "KSQL_COL_1":  1}}
+        {"topic": "OUTPUT", "key": 2,"value": {"ALIASED": 2, "KSQL_COL_0":  1}}
       ],
       "post": {
         "sources": [
@@ -741,7 +741,7 @@
         {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"2|+|1", "value": {"FOO": 1, "BAR": 2, "KSQL_COL_2": 1}}
+        {"topic": "OUTPUT", "key":"2|+|1", "value": {"FOO": 1, "BAR": 2, "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [

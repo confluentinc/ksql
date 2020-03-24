@@ -67,7 +67,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, ID BIGINT, KSQL_COL_1 DECIMAL(4,3)"}
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, ID BIGINT, KSQL_COL_0 DECIMAL(4,3)"}
         ]
       }
     },

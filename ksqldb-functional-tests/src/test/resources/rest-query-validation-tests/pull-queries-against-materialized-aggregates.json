@@ -503,7 +503,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`COUNT` BIGINT, `ID` STRING, `KSQL_COL_2` BIGINT"}},
+          {"header":{"schema":"`COUNT` BIGINT, `ID` STRING, `KSQL_COL_0` BIGINT"}},
           {"row":{"columns":[1, "10x", 2]}}
         ]}
       ]
@@ -524,7 +524,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`COUNT` BIGINT, `ID` STRING, `KSQL_COL_2` BIGINT"}},
+          {"header":{"schema":"`COUNT` BIGINT, `ID` STRING, `KSQL_COL_0` BIGINT"}},
           {"row":{"columns":[1, "10x", 2]}}
         ]}
       ]

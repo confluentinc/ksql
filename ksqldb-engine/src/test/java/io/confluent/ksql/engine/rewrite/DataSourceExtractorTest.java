@@ -16,12 +16,15 @@
 package io.confluent.ksql.engine.rewrite;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -30,6 +33,7 @@ import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -181,6 +185,37 @@ public class DataSourceExtractorTest {
 
     // When:
     extractor.extractDataSources(stmt);
+  }
+
+  @Test
+  public void shouldCaptureDataSources() {
+    // Given:
+    final AstNode stmt = givenQuery("SELECT * FROM TEST1;");
+
+    // When:
+    extractor.extractDataSources(stmt);
+
+    // Then:
+    final List<SourceName> names = extractor.getAllSources().stream()
+        .map(DataSource::getName)
+        .collect(Collectors.toList());
+    assertThat(names, contains(TEST1));
+  }
+
+  @Test
+  public void shouldCaptureJoinDataSources() {
+    // Given:
+    final AstNode stmt = givenQuery("SELECT * FROM TEST1 JOIN TEST2"
+        + " ON test1.col1 = test2.col1;");
+
+    // When:
+    extractor.extractDataSources(stmt);
+
+    // Then:
+    final List<SourceName> names = extractor.getAllSources().stream()
+        .map(DataSource::getName)
+        .collect(Collectors.toList());
+    assertThat(names, containsInAnyOrder(TEST1, TEST2));
   }
 
   private static AstNode givenQuery(final String sql) {

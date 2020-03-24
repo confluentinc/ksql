@@ -25,11 +25,11 @@
     "queryPlan" : null
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.SHOULDTHROW SHOULDTHROW,\n  THROWING_UDTF(TEST.SHOULDTHROW) KSQL_COL_1\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.SHOULDTHROW SHOULDTHROW,\n  TEST_UDTF(BAD_UDF(TEST.SHOULDTHROW)) KSQL_COL_0\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`ROWKEY` STRING KEY, `SHOULDTHROW` BOOLEAN, `KSQL_COL_1` BOOLEAN",
+      "schema" : "`ROWKEY` STRING KEY, `SHOULDTHROW` BOOLEAN, `KSQL_COL_0` INTEGER",
       "keyField" : null,
       "timestampColumn" : null,
       "topicName" : "OUTPUT",
@@ -84,9 +84,9 @@
               "timestampColumn" : null,
               "sourceSchema" : "`ROWKEY` STRING KEY, `SHOULDTHROW` BOOLEAN"
             },
-            "tableFunctions" : [ "THROWING_UDTF(SHOULDTHROW)" ]
+            "tableFunctions" : [ "TEST_UDTF(BAD_UDF(SHOULDTHROW))" ]
           },
-          "selectExpressions" : [ "SHOULDTHROW AS SHOULDTHROW", "KSQL_SYNTH_0 AS KSQL_COL_1" ]
+          "selectExpressions" : [ "SHOULDTHROW AS SHOULDTHROW", "KSQL_SYNTH_0 AS KSQL_COL_0" ]
         },
         "formats" : {
           "keyFormat" : {
@@ -99,8 +99,7 @@
           },
           "options" : [ ]
         },
-        "topicName" : "OUTPUT",
-        "timestampColumn" : null
+        "topicName" : "OUTPUT"
       },
       "queryId" : "CSAS_OUTPUT_0"
     }
@@ -121,7 +120,7 @@
     "ksql.service.id" : "some.ksql.service.id",
     "ksql.internal.topic.min.insync.replicas" : "1",
     "ksql.streams.shutdown.timeout.ms" : "300000",
-    "ksql.streams.state.dir" : "/var/folders/2d/3pt97ylj3zngd51bwl91bl3r0000gp/T/confluent5381695383456269897",
+    "ksql.streams.state.dir" : "/var/folders/2d/3pt97ylj3zngd51bwl91bl3r0000gp/T/confluent828390110039021725",
     "ksql.internal.topic.replicas" : "1",
     "ksql.insert.into.values.enabled" : "true",
     "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",

@@ -333,8 +333,8 @@
         {"topic": "test_topic", "key": "c", "value": {"shouldThrow": false}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a", "value": {"SHOULDTHROW": false, "KSQL_COL_1": false}},
-        {"topic": "OUTPUT", "key": "c", "value": {"SHOULDTHROW": false, "KSQL_COL_1": false}}
+        {"topic": "OUTPUT", "key": "a", "value": {"SHOULDTHROW": false, "KSQL_COL_0": false}},
+        {"topic": "OUTPUT", "key": "c", "value": {"SHOULDTHROW": false, "KSQL_COL_0": false}}
       ]
     },
     {
@@ -349,8 +349,8 @@
         {"topic": "test_topic", "key": "c", "value": {"shouldThrow": false}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a", "value": {"SHOULDTHROW": false, "KSQL_COL_1": 0}},
-        {"topic": "OUTPUT", "key": "c", "value": {"SHOULDTHROW": false, "KSQL_COL_1": 0}}
+        {"topic": "OUTPUT", "key": "a", "value": {"SHOULDTHROW": false, "KSQL_COL_0": 0}},
+        {"topic": "OUTPUT", "key": "c", "value": {"SHOULDTHROW": false, "KSQL_COL_0": 0}}
       ]
     }
   ]

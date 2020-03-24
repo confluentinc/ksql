@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -25,14 +24,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SequenceNumberFutureStoreTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private SequenceNumberFutureStore futureStore;
 

@@ -17,16 +17,13 @@ package io.confluent.ksql.cli.console;
 
 import static io.confluent.ksql.cli.console.OutputFormat.VALID_FORMATS;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class OutputFormatTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldReturnAllValues() {
@@ -41,12 +38,14 @@ public class OutputFormatTest {
 
   @Test
   public void shouldThrowOnUnknownFormat() {
-    // Expect:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Unknown Output format: This-is-unknown. "
-        + "Valid values are: " + VALID_FORMATS);
-
     // When:
-    OutputFormat.get("This-is-unknown");
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> OutputFormat.get("This-is-unknown")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown Output format: This-is-unknown. "
+        + "Valid values are: " + VALID_FORMATS));
   }
 }

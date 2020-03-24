@@ -16,8 +16,10 @@
 package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -47,17 +49,12 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class AnalyzerTest {
 
   private MutableMetaStore jsonMetaStore;
   private MutableMetaStore avroMetaStore;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() {
@@ -436,9 +433,14 @@ public class AnalyzerTest {
     final Analysis analysis = new Analysis();
     final Analyzer analyzer = new Analyzer("sqlExpression", analysis, jsonMetaStore, "");
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
-    analyzer.visitQuerySpecification(newQuerySpecification, new AnalysisContext(null));
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.visitQuerySpecification(newQuerySpecification, new AnalysisContext(null))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics."));
   }
 
   @Test
@@ -463,9 +465,14 @@ public class AnalyzerTest {
     final Analysis analysis = new Analysis();
     final Analyzer analyzer = new Analyzer("sqlExpression", analysis, jsonMetaStore, "");
 
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("the schema name cannot be empty");
-    analyzer.visitQuerySpecification(newQuerySpecification, new AnalysisContext(null));
+    // When:
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> analyzer.visitQuerySpecification(newQuerySpecification, new AnalysisContext(null))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("the schema name cannot be empty"));
   }
 
   private static List<Statement> parse(final String simpleQuery, final MetaStore metaStore) {

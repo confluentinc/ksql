@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import com.google.common.testing.EqualsTester;
@@ -28,9 +30,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ConfigTopicKeyTest {
   private static final StringKey STRING_KEY = new StringKey("string-key-value");
@@ -41,9 +41,6 @@ public class ConfigTopicKeyTest {
       = InternalTopicJsonSerdeUtil.getJsonSerializer(false);
   private final Deserializer<ConfigTopicKey> deserializer
       = InternalTopicJsonSerdeUtil.getJsonDeserializer(ConfigTopicKey.class, false);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementEqualsForStringKey() {
@@ -95,28 +92,24 @@ public class ConfigTopicKeyTest {
     }
   }
 
-  private IllegalArgumentMatcher illegalString(
-      final Class<? extends Exception> exceptionClass,
-      final String msg) {
-    return new IllegalArgumentMatcher(exceptionClass, msg);
-  }
-
   @Test
   public void shouldThrowOnStringKeyWithNoValue() {
-    // Then:
-    expectedException.expect(illegalString(NullPointerException.class, ""));
-
     // When:
-    deserializer.deserialize("", "{\"string\":{}}".getBytes(StandardCharsets.UTF_8));
+    assertThrows(
+        NullPointerException.class,
+        () -> deserializer.deserialize("", "{\"string\":{}}".getBytes(StandardCharsets.UTF_8))
+    );
   }
 
   @Test
   public void shouldThrowOnStringKeyWithEmptyValue() {
-    // Then:
-    expectedException.expect(
-        illegalString(IllegalArgumentException.class, "StringKey value must not be empty"));
-
     // When:
-    deserializer.deserialize("", "{\"string\":{\"value\": \"\"}}".getBytes(StandardCharsets.UTF_8));
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> deserializer.deserialize("", "{\"string\":{\"value\": \"\"}}".getBytes(StandardCharsets.UTF_8))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("StringKey value must not be empty"));
   }
 }

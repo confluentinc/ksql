@@ -17,8 +17,10 @@ package io.confluent.ksql.rest.client.properties;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -31,9 +33,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -45,9 +45,6 @@ public class LocalPropertiesTest {
       "prop-1", "initial-val-1",
       "prop-2", "initial-val-2"
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private PropertyParser parser;
@@ -77,13 +74,15 @@ public class LocalPropertiesTest {
         "this.is.not.valid", "value"
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("invalid property found");
-    expectedException.expectMessage("'this.is.not.valid'");
-
     // When:
-    new LocalProperties(invalid);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new LocalProperties(invalid)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("invalid property found"));
+    assertThat(e.getMessage(), containsString("'this.is.not.valid'"));
   }
 
   @Test

@@ -15,22 +15,21 @@
 
 package io.confluent.ksql.serde.tls;
 
-import io.confluent.ksql.GenericRow;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.easymock.EasyMock;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import io.confluent.ksql.GenericRow;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.easymock.EasyMock;
+import org.junit.Test;
 
 public class ThreadLocalDeserializerTest {
   @Test

@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;

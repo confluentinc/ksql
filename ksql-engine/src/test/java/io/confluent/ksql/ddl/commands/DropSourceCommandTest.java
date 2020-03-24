@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -35,9 +37,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -62,9 +62,6 @@ public class DropSourceCommandTest {
   private StructuredDataSource dataSource;
 
   private DropSourceCommand dropSourceCommand;
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -92,11 +89,14 @@ public class DropSourceCommandTest {
     givenDropSourceCommand(ALWAYS, WITH_DELETE_TOPIC);
     givenSourceDoesNotExist();
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Source foo does not exist.");
-
     // When:
-    dropSourceCommand.run(metaStore);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceCommand.run(metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Source foo does not exist."));
   }
 
   @Test

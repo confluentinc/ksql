@@ -17,23 +17,20 @@ package io.confluent.ksql.rest.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class QueryCapacityUtilTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlEngine ksqlEngine;
@@ -87,22 +84,25 @@ public class QueryCapacityUtilTest {
   @Test
   public void shouldThrowWhenAsked() {
     // Given:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Not executing statement(s) 'my statement' as it would cause the number "
-            + "of active, persistent queries to exceed the configured limit. "
-            + "Use the TERMINATE command to terminate existing queries, "
-            + "or increase the 'ksql.query.persistent.active.limit' setting "
-            + "via the 'ksql-server.properties' file. "
-            + "Current persistent query count: 3. Configured limit: 2.");
-
     final String statementStr = "my statement";
     givenActivePersistentQueries(3);
     givenQueryLimit(2);
 
     // When:
-    QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
-        ksqlEngine, ksqlConfig, statementStr);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+        ksqlEngine, ksqlConfig, statementStr)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Not executing statement(s) 'my statement' as it would cause the number "
+            + "of active, persistent queries to exceed the configured limit. "
+            + "Use the TERMINATE command to terminate existing queries, "
+            + "or increase the 'ksql.query.persistent.active.limit' setting "
+            + "via the 'ksql-server.properties' file. "
+            + "Current persistent query count: 3. Configured limit: 2."));
   }
 
   private void givenActivePersistentQueries(final int numQueries) {

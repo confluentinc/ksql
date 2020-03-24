@@ -19,6 +19,8 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -73,9 +75,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -109,9 +109,6 @@ public class StandaloneExecutorTest {
 
   private final static PreparedStatement<?> PREPARED_STMT_1 = PreparedStatement
       .of("sql 1", CREATE_STREAM);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Query query;
@@ -219,11 +216,14 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileDoesNotExist();
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not read the query file");
-
     // When:
-    standaloneExecutor.start();
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> standaloneExecutor.start()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not read the query file"));
   }
 
   @Test
@@ -277,9 +277,14 @@ public class StandaloneExecutorTest {
             new DropStream(SOME_NAME, false, false))
     );
 
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> standaloneExecutor.start()
+    );
+
     // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unsupported statement: DROP Test\n"
+    assertThat(e.getMessage(), containsString("Unsupported statement: DROP Test\n"
         + "Only the following statements are supporting in standalone mode:\n"
         + "CREAETE STREAM AS SELECT\n"
         + "CREATE STREAM\n"
@@ -287,10 +292,7 @@ public class StandaloneExecutorTest {
         + "CREATE TABLE AS SELECT\n"
         + "INSERT INTO\n"
         + "SET\n"
-        + "UNSET");
-
-    // When:
-    standaloneExecutor.start();
+        + "UNSET"));
   }
 
   @Test
@@ -301,11 +303,14 @@ public class StandaloneExecutorTest {
     givenQueryFileParsesTo(PreparedStatement.of("SET PROP",
         new SetProperty(Optional.empty(), "name", "value")));
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("The SQL file did not contain any queries");
-
     // When:
-    standaloneExecutor.start();
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> standaloneExecutor.start()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The SQL file did not contain any queries"));
   }
 
   @Test
@@ -439,11 +444,14 @@ public class StandaloneExecutorTest {
     when(sandBox.execute(any(), any(), any()))
         .thenReturn(ExecuteResult.of("well, this is unexpected."));
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not build the query");
-
     // When:
-    standaloneExecutor.start();
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> standaloneExecutor.start()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not build the query"));
   }
 
   @Test
@@ -454,11 +462,14 @@ public class StandaloneExecutorTest {
     when(sandBox.execute(any(), any(), any()))
         .thenReturn(ExecuteResult.of(nonPersistentQueryMd));
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not build the query");
-
     // When:
-    standaloneExecutor.start();
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> standaloneExecutor.start()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not build the query"));
   }
 
   @Test(expected = RuntimeException.class)

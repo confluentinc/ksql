@@ -16,8 +16,8 @@
 package io.confluent.ksql.metrics;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.SystemTime;

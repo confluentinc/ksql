@@ -23,9 +23,7 @@ import io.confluent.ksql.parser.tree.ComparisonExpression;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ComparisonUtilTest {
 
@@ -42,9 +40,6 @@ public class ComparisonUtilTest {
       ImmutableList.of(false, false, false, false, false, false, false, false), // Map
       ImmutableList.of(false, false, false, false, false, false, false, false) // Struct
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldAssertTrueForValidComparisons() {
@@ -66,11 +61,8 @@ public class ComparisonUtilTest {
     }
   }
 
-  @Test
+  @Test(expected = KsqlStatementException.class)
   public void shouldThrowForInvalidComparisons() {
-    // Given:
-    expectedException.expect(KsqlException.class);
-
     // When:
     int i = 0;
     int j = 0;

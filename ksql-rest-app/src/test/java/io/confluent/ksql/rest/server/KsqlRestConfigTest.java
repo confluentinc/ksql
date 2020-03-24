@@ -17,9 +17,9 @@ package io.confluent.ksql.rest.server;
 
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlConfig;

@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -81,9 +82,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
@@ -107,9 +106,6 @@ public class PhysicalPlanBuilderTest {
   private final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private KsqlEngine ksqlEngine;
   private ProcessingLogContext processingLogContext;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private ServiceContext serviceContext;
   @Mock
@@ -269,18 +265,20 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(statementText(is("INSERT INTO s1 SELECT col0, col1, col2 FROM test1;")));
-    expectedException.expect(rawMessage(is(
-        "Sink does not exist for the INSERT INTO statement: S1")));
-
     // When:
-    KsqlEngineTestUtil.execute(
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
           ksqlEngine,
           createStream + "\n " + insertIntoQuery,
           ksqlConfig,
-          Collections.emptyMap());
+          Collections.emptyMap())
+    );
+
+    // Then:
+    assertThat(e, statementText(is("INSERT INTO s1 SELECT col0, col1, col2 FROM test1;")));
+    assertThat(e, rawMessage(is(
+        "Sink does not exist for the INSERT INTO statement: S1")));
   }
 
   @Test
@@ -290,19 +288,21 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
-        "Incompatible schema between results and sink. Result schema is "
-        + "[COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE], "
-        + "but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR].")));
-
     // When:
-    KsqlEngineTestUtil.execute(
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
           ksqlEngine,
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
-          Collections.emptyMap());
+          Collections.emptyMap())
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Incompatible schema between results and sink. Result schema is "
+            + "[COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE], "
+            + "but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR].")));
   }
 
   @Test
@@ -316,16 +316,18 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1);
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
-        "INSERT INTO can only be used to insert into a stream. T2 is a table.")));
-
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(ksqlEngine,
         createTable + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
-        Collections.emptyMap());
+        Collections.emptyMap())
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "INSERT INTO can only be used to insert into a stream. T2 is a table.")));
   }
 
   @Test
@@ -372,17 +374,19 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("t1", 1, (short) 1, Collections.emptyMap());
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
-        "Incompatible data sink and query result. "
-        + "Data sink (S2) type is KTABLE but select query result is KSTREAM.")));
-
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(ksqlEngine,
           createTable + "\n " + createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
-          Collections.emptyMap());
+          Collections.emptyMap())
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Incompatible data sink and query result. "
+            + "Data sink (S2) type is KTABLE but select query result is KSTREAM.")));
   }
 
   @Test
@@ -416,19 +420,21 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
-        "Incompatible key fields for sink and results. "
-        + "Sink key field is COL0 (type: Schema{INT64}) "
-        + "while result key field is null (type: null)")));
-
     // When:
-    KsqlEngineTestUtil.execute(
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
           ksqlEngine,
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
-          Collections.emptyMap());
+          Collections.emptyMap())
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Incompatible key fields for sink and results. "
+            + "Sink key field is COL0 (type: Schema{INT64}) "
+            + "while result key field is null (type: null)")));
   }
 
   @Test
@@ -440,13 +446,13 @@ public class PhysicalPlanBuilderTest {
     final Properties props = calls.get(0).props;
 
     Object val = props.get(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(1));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(0))));
 
     val = props.get(StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     final List<String> producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(1));
     assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(0))));
@@ -533,14 +539,14 @@ public class PhysicalPlanBuilderTest {
     final Properties props = calls.get(0).props;
 
     Object val = props.get(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(2));
     assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(1))));
 
     val = props.get(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(2));
     assertThat(DummyProducerInterceptor.class.getName(), equalTo(producerInterceptors.get(0)));
@@ -564,14 +570,14 @@ public class PhysicalPlanBuilderTest {
     final Properties props = calls.get(0).props;
 
     Object val = props.get(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(2));
     assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(1))));
 
     val = props.get(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     final List<String> producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(2));
     assertThat(DummyProducerInterceptor.class.getName(), equalTo(producerInterceptors.get(0)));
@@ -638,7 +644,7 @@ public class PhysicalPlanBuilderTest {
 
     final Object val = props.get(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
-    Assert.assertThat(val, instanceOf(List.class));
+    assertThat(val, instanceOf(List.class));
     final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(3));
     assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));

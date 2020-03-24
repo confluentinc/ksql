@@ -42,6 +42,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -139,9 +140,7 @@ import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -162,9 +161,6 @@ public class KsqlResourceTest {
 
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
@@ -400,47 +396,53 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailForIncorrectCSASStatementResultType() {
+    // When:
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest("CREATE STREAM s1 AS SELECT * FROM test_table;")
+    );
+
     // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is(
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead."))));
-    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+    assertThat(e, exceptionStatementErrorMessage(statement(is(
         "CREATE STREAM s1 AS SELECT * FROM test_table;"))));
-
-    // When:
-    makeRequest("CREATE STREAM s1 AS SELECT * FROM test_table;");
   }
 
   @Test
   public void shouldFailForIncorrectCSASStatementResultTypeWithGroupBy() {
+    // When:
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest("CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;")
+    );
+
     // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is(
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead."))));
-    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+    assertThat(e, exceptionStatementErrorMessage(statement(is(
         "CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;"))));
-
-    // When:
-    makeRequest("CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;");
   }
 
   @Test
   public void shouldFailForIncorrectCTASStatementResultType() {
+    // When:
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest("CREATE TABLE s1 AS SELECT * FROM test_stream;")
+    );
+
     // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is(
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Invalid result type. Your SELECT query produces a STREAM. "
             + "Please use CREATE STREAM AS SELECT statement instead."))));
-    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+    assertThat(e, exceptionStatementErrorMessage(statement(is(
         "CREATE TABLE s1 AS SELECT * FROM test_stream;"))));
-
-    // When:
-    makeRequest("CREATE TABLE s1 AS SELECT * FROM test_stream;");
   }
 
   @Test
@@ -480,30 +482,34 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailBareQuery() {
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
-            "SELECT and PRINT queries must use the /query endpoint"))));
-    expectedException.expect(exceptionStatementErrorMessage(statement(is(
-        "SELECT * FROM test_table;"))));
-
     // When:
-    makeRequest("SELECT * FROM test_table;");
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest("SELECT * FROM test_table;")
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionStatementErrorMessage(errorMessage(is(
+        "SELECT and PRINT queries must use the /query endpoint"))));
+    assertThat(e, exceptionStatementErrorMessage(statement(is(
+        "SELECT * FROM test_table;"))));
   }
 
   @Test
   public void shouldFailPrintTopic() {
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
-        "SELECT and PRINT queries must use the /query endpoint"))));
-    expectedException.expect(exceptionStatementErrorMessage(statement(is(
-        "PRINT 'orders-topic';"))));
-
     // When:
-    makeRequest("PRINT 'orders-topic';");
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest("PRINT 'orders-topic';")
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionStatementErrorMessage(errorMessage(is(
+        "SELECT and PRINT queries must use the /query endpoint"))));
+    assertThat(e, exceptionStatementErrorMessage(statement(is(
+        "PRINT 'orders-topic';"))));
   }
 
   @Test
@@ -574,14 +580,15 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldNotDistributeCreateStatementIfTopicDoesNotExist() {
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException
-        .expect(exceptionErrorMessage(errorMessage(is("Kafka topic does not exist: unknown"))));
-
     // When:
-    makeRequest("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON', KAFKA_TOPIC='unknown');");
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON', KAFKA_TOPIC='unknown');")
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(is("Kafka topic does not exist: unknown"))));
   }
 
   @Test
@@ -731,20 +738,19 @@ public class KsqlResourceTest {
         .when(commandStore)
         .ensureConsumedPast(anyLong(), any());
 
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException
-        .expect(exceptionErrorMessage(errorMessage(is("The server is shutting down"))));
-    expectedException
-        .expect(exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_SERVER_SHUTTING_DOWN))));
-
     // When:
-    makeMultipleRequest(
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeMultipleRequest(
         "CREATE STREAM S AS SELECT * FROM test_stream;\n"
             + "DESCRIBE S;",
         KsqlEntity.class
-    );
+    ));
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    assertThat(e, exceptionErrorMessage(errorMessage(is("The server is shutting down"))));
+    assertThat(e, exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_SERVER_SHUTTING_DOWN))));
   }
 
   @Test
@@ -756,22 +762,23 @@ public class KsqlResourceTest {
         .when(commandStore)
         .ensureConsumedPast(anyLong(), any());
 
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(
-        containsString("Timed out"))));
-    expectedException.expect(exceptionErrorMessage(errorMessage(
-        containsString("sequence number: " + commandStatus.getCommandSequenceNumber()))));
-    expectedException.expect(exceptionErrorMessage(errorCode(
-        is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
-
     // When:
-    makeMultipleRequest(
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeMultipleRequest(
         "CREATE STREAM S AS SELECT * FROM test_stream;\n"
             + "DESCRIBE S;",
         KsqlEntity.class
-    );
+    ));
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    assertThat(e, exceptionErrorMessage(errorMessage(
+        containsString("Timed out"))));
+    assertThat(e, exceptionErrorMessage(errorMessage(
+        containsString("sequence number: " + commandStatus.getCommandSequenceNumber()))));
+    assertThat(e, exceptionErrorMessage(errorCode(
+        is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
   }
 
   @Test
@@ -812,16 +819,18 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldThrowOnTerminateUnknownQuery() {
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is(
-        "Unknown queryId: unknown_query_id"))));
-    expectedException.expect(exceptionStatementErrorMessage(statement(is(
-        "TERMINATE unknown_query_id;"))));
-
     // When:
-    makeRequest("TERMINATE unknown_query_id;");
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest("TERMINATE unknown_query_id;")
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(is(
+        "Unknown queryId: unknown_query_id"))));
+    assertThat(e, exceptionStatementErrorMessage(statement(is(
+        "TERMINATE unknown_query_id;"))));
   }
 
   @Test
@@ -833,19 +842,21 @@ public class KsqlResourceTest {
         .getQueryId()
         .getId();
 
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(containsString(
-        "Unknown queryId:"))));
-    expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
-        "TERMINATE /*second*/"))));
-
     // When:
-    makeRequest(
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest(
         "TERMINATE " + queryId + ";"
             + "TERMINATE /*second*/ " + queryId + ";"
-    );
+    ));
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(containsString(
+        "Unknown queryId:"))));
+    assertThat(e, exceptionStatementErrorMessage(statement(containsString(
+        "TERMINATE /*second*/"))));
+
   }
 
   @Test
@@ -1344,14 +1355,16 @@ public class KsqlResourceTest {
     final ClusterTerminateRequest request = new ClusterTerminateRequest(
         ImmutableList.of("[Invalid Regex"));
 
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is(
-        "Invalid pattern: [Invalid Regex"))));
-
     // When:
-    ksqlResource.terminateCluster(request);
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> ksqlResource.terminateCluster(request)
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(is(
+        "Invalid pattern: [Invalid Regex"))));
   }
 
   @Test
@@ -1372,14 +1385,16 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldThrowOnRunScriptStatementMissingScriptContent() {
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is(
-        "Request is missing script content"))));
-
     // When:
-    makeRequest("RUN SCRIPT '/some/script.sql';");
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest("RUN SCRIPT '/some/script.sql';")
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(is(
+        "Request is missing script content"))));
   }
 
   private Answer executeAgainstEngine(final String sql) {

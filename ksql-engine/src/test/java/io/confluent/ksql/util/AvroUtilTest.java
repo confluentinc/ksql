@@ -16,9 +16,11 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -42,9 +44,7 @@ import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import java.io.IOException;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -73,9 +73,6 @@ public class AvroUtilTest {
 
   private static final KsqlTopic RESULT_TOPIC =
       new KsqlTopic("registered-name", "actual-name", new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME), false);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SchemaRegistryClient srClient;
@@ -120,16 +117,18 @@ public class AvroUtilTest {
     when(srClient.getLatestSchemaMetadata(any())).thenReturn(
         new SchemaMetadata(1, 1, "{\"type\": \"record\"}"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.checkAndSetAvroSchema(statement, srClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
         "Unable to verify if the Avro schema for topic s1_topic is compatible with KSQL.\n"
             + "Reason: No name in schema: {\"type\":\"record\"}\n\n"
             + "Please see https://github.com/confluentinc/ksql/issues/ to see if this particular reason is already\n"
-            + "known, and if not log a new issue. Please include the full Avro schema that you are trying to use.");
-
-    // When:
-    AvroUtil.checkAndSetAvroSchema(statement, srClient);
+            + "known, and if not log a new issue. Please include the full Avro schema that you are trying to use."));
   }
 
   @Test
@@ -138,9 +137,14 @@ public class AvroUtilTest {
     when(srClient.getLatestSchemaMetadata(any()))
         .thenThrow(new RestClientException("Not found", 404, 40401));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.checkAndSetAvroSchema(statement, srClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
         "Avro schema for message values on topic s1_topic does not exist in the Schema Registry.\n"
             + "Subject: s1_topic-value\n\n"
             + "Possible causes include:\n"
@@ -152,10 +156,8 @@ public class AvroUtilTest {
             + "\t-> See https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html\n"
             + "- The schema is registered on a different instance of the Schema Registry\n"
             + "\t-> Use the REST API to list available subjects\n\t"
-            + "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects\n");
+            + "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects\n"));
 
-    // When:
-    AvroUtil.checkAndSetAvroSchema(statement, srClient);
   }
 
   @Test
@@ -228,12 +230,14 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new RestClientException("Unknown subject", 403, 40401));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not connect to Schema Registry service");
-
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.isValidSchemaEvolution(persistentQuery, srClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not connect to Schema Registry service"));
   }
 
   @Test
@@ -242,12 +246,14 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new IOException("something"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not check Schema compatibility");
-
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.isValidSchemaEvolution(persistentQuery, srClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not check Schema compatibility"));
   }
 
   private static AbstractStreamCreateStatement createStreamCreateSql() {

@@ -31,15 +31,13 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Struct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class GroupByParamsFactory {
 
-  private static final Logger LOG = LoggerFactory.getLogger(GroupByParamsFactory.class);
-
   private static final String GROUP_BY_VALUE_SEPARATOR = "|+|";
+  private static final Object EVAL_FAILED = new Object();
 
   private GroupByParamsFactory() {
   }
@@ -96,35 +94,31 @@ final class GroupByParamsFactory {
       final int index,
       final ExpressionMetadata exp,
       final GenericRow row,
-      final ProcessingLogger logger
+      final ProcessingLogger logger,
+      final boolean single
   ) {
-    try {
-      final Object result = exp.evaluate(row);
-      if (result == null) {
-        logger.error(
-            RecordProcessingError.recordProcessingError(
-               String.format(
-                   "Group-by column with index %d resolved to null."
-                       + " The source row will be excluded from the table.",
-                   index),
-                row
-            )
-        );
-      }
-      return result;
-    } catch (final Exception e) {
-      logger.error(
-          RecordProcessingError.recordProcessingError(
-              String.format(
-                  "Error calculating group-by column with index %d. "
-                      + "The source row will be excluded from the table: %s",
-                  index, e.getMessage()),
-              e,
-              row
-          )
-      );
+    final String additionalMsg = single
+        ? " The source row will be excluded from the table."
+        : "";
+
+    final Supplier<String> errorMsgSupplier = () ->
+        "Error calculating group-by column with index " + index + "."
+            + additionalMsg;
+
+    final Object result = exp.evaluate(row, EVAL_FAILED, logger, errorMsgSupplier);
+    if (result == EVAL_FAILED) {
       return null;
     }
+
+    if (result == null) {
+      logger.error(RecordProcessingError.recordProcessingError(
+          "Group-by column with index " + index + " resolved to null." + additionalMsg,
+          row
+      ));
+      return null;
+    }
+
+    return result;
   }
 
   private static final class SingleExpressionGrouper {
@@ -143,7 +137,7 @@ final class GroupByParamsFactory {
     }
 
     public Struct apply(final GenericRow row) {
-      final Object key = processColumn(0, expression, row, logger);
+      final Object key = processColumn(0, expression, row, logger, true);
       if (key == null) {
         return null;
       }
@@ -173,7 +167,7 @@ final class GroupByParamsFactory {
     public Struct apply(final GenericRow row) {
       final StringBuilder key = new StringBuilder();
       for (int i = 0; i < expressions.size(); i++) {
-        final Object result = processColumn(i, expressions.get(i), row, logger);
+        final Object result = processColumn(i, expressions.get(i), row, logger, false);
         if (result == null) {
           return null;
         }

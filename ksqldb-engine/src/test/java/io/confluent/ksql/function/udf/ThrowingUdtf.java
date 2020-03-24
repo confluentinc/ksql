@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,21 +15,20 @@
 
 package io.confluent.ksql.function.udf;
 
-@UdfDescription(name="bad_udf", description = "throws exceptions when called")
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.udtf.Udtf;
+import io.confluent.ksql.function.udtf.UdtfDescription;
+import java.util.List;
+
+@UdtfDescription(name = "throwing_udtf", description = "test UDTF that throws if param is true")
 @SuppressWarnings({"unused", "MethodMayBeStatic"})
-public class BadUdf {
+public class ThrowingUdtf {
 
-  @Udf(description = "throws")
-  public String blowUp(final int arg1) {
-    throw new RuntimeException("boom!");
-  }
-
-  @Udf(description = "throws if arg is true")
-  public int mightThrow(final boolean arg) {
-    if (arg) {
+  @Udtf
+  public List<Boolean> throwIfTrue(final boolean shouldThrow) {
+    if (shouldThrow) {
       throw new RuntimeException("You asked me to throw...");
     }
-
-    return 0;
+    return ImmutableList.of(shouldThrow);
   }
 }

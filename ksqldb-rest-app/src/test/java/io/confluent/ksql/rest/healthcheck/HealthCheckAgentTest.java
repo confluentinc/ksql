@@ -43,7 +43,6 @@ import io.confluent.rest.RestConfig;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
-
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.common.KafkaFuture;

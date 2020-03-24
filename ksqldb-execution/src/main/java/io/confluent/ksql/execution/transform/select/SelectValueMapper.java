@@ -23,11 +23,11 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public class SelectValueMapper<K> {
 
@@ -123,22 +123,12 @@ public class SelectValueMapper<K> {
     private Object processColumn(final int column, final GenericRow row) {
       final SelectInfo select = selects.get(column);
 
-      try {
-        return select.evaluator.evaluate(row);
-      } catch (final Exception e) {
-        final String errorMsg = String.format(
-            "Error computing expression %s for column %s with index %d: %s",
-            select.evaluator.getExpression(),
-            select.fieldName.toString(FormatOptions.noEscape()),
-            column,
-            e.getMessage()
-        );
+      final Supplier<String> errorMsgSupplier = () ->
+          "Error computing expression " + select.evaluator.getExpression()
+              + " for column " + select.fieldName.toString(FormatOptions.noEscape())
+              + " with index " + column;
 
-        processingLogger.error(
-            RecordProcessingError.recordProcessingError(errorMsg, e, row)
-        );
-        return null;
-      }
+      return select.evaluator.evaluate(row, null, processingLogger, errorMsgSupplier);
     }
   }
 }

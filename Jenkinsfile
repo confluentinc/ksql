@@ -1,4 +1,4 @@
-def config = {
+def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
     ksql_db_version = "0.8.0-SNAPSHOT"
@@ -36,7 +36,7 @@ def updateConfig = { c ->
     c.properties = [parameters(defaultParams)]
 }
 
-def finalConfig = jobConfig(config, [:], updateConfig)
+def config = jobConfig(baseConfig, [:], updateConfig)
 
 def job = {
     if (config.isPrJob && params.PROMOTE_TO_PRODUCTION) {
@@ -268,7 +268,7 @@ def job = {
             }
         }
 
-    if(config.dockerScan){
+    if(config.dockerScan && !config.isPrJob){
         stage('Twistloc scan') {
             withDockerServer([uri: dockerHost()]) {
                 config.dockerRepos.each { dockerRepo ->
@@ -291,7 +291,7 @@ def job = {
         }
     }
 
-    if(config.dockerScan){
+    if(config.dockerScan && !config.isPrJob){
         stage('Twistloc publish') {
             withDockerServer([uri: dockerHost()]) {
                 config.dockerRepos.each { dockerRepo ->
@@ -352,7 +352,7 @@ def post = {
             """
         }
     }
-    commonPost(finalConfig)
+    commonPost(config)
 }
 
-runJob finalConfig, job, post
+runJob config, job, post

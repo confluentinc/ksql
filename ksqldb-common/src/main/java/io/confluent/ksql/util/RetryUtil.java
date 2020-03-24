@@ -19,6 +19,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -42,6 +43,7 @@ public final class RetryUtil {
         initialWaitMs,
         maxWaitMs,
         runnable,
+        new AtomicBoolean(false),
         Arrays.stream(passThroughExceptions)
             .map(c -> (Predicate<Exception>) c::isInstance)
             .collect(Collectors.toList())
@@ -53,6 +55,7 @@ public final class RetryUtil {
       final int initialWaitMs,
       final int maxWaitMs,
       final Runnable runnable,
+      final AtomicBoolean stopRetrying,
       final List<Predicate<Exception>> passThroughExceptions) {
     retryWithBackoff(
         maxRetries,
@@ -66,6 +69,7 @@ public final class RetryUtil {
             log.debug("retryWithBackoff interrupted while sleeping");
           }
         },
+        stopRetrying,
         passThroughExceptions
     );
   }
@@ -76,6 +80,7 @@ public final class RetryUtil {
       final int maxWaitMs,
       final Runnable runnable,
       final Consumer<Long> sleep,
+      final AtomicBoolean stopRetrying,
       final List<Predicate<Exception>> passThroughExceptions) {
     long wait = initialWaitMs;
     int i = 0;
@@ -105,6 +110,13 @@ public final class RetryUtil {
         log.error("Stack trace: " + stringWriter.toString());
         sleep.accept(wait);
         wait = wait * 2 > maxWaitMs ? maxWaitMs : wait * 2;
+
+        // If the stopRetrying flag is used, it's likely triggered during sleep and would interrupt
+        // the thread, so just check it after sleep and if set, throw the last exception.
+        if (stopRetrying.get()) {
+          log.info("Stopping retries");
+          throw exception;
+        }
       }
     }
   }

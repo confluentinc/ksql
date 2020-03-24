@@ -65,7 +65,6 @@ public final class LagReportingAgent implements HostStatusListener {
 
   private static final int SERVICE_TIMEOUT_SEC = 2;
   private static final int NUM_THREADS_EXECUTOR = 1;
-  private static final int SEND_LAG_DELAY_MS = 100;
   private static final Logger LOG = LoggerFactory.getLogger(LagReportingAgent.class);
 
   private final KsqlEngine engine;
@@ -260,9 +259,11 @@ public final class LagReportingAgent implements HostStatusListener {
 
     @Override
     protected Scheduler scheduler() {
-      return Scheduler.newFixedRateSchedule(SEND_LAG_DELAY_MS,
+      return Scheduler.newFixedDelaySchedule(
+          config.lagSendIntervalMs / 2,
           config.lagSendIntervalMs,
-          TimeUnit.MILLISECONDS);
+          TimeUnit.MILLISECONDS
+      );
     }
 
     @Override
@@ -277,7 +278,7 @@ public final class LagReportingAgent implements HostStatusListener {
   public static class Builder {
 
     // Some defaults set, in case none is given
-    private long nestedLagSendIntervalMs = 500;
+    private long nestedLagSendIntervalMs = 1000L * 60L * 10L;
     private Clock nestedClock = Clock.systemUTC();
 
     LagReportingAgent.Builder lagSendIntervalMs(final long interval) {

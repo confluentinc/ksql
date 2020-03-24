@@ -274,7 +274,7 @@ public class KsqlRestConfig extends RestConfig {
     ).define(
         KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG,
         Type.LONG,
-        5000L,
+        1000L * 60L * 10L,
         Importance.MEDIUM,
         KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC
     );

@@ -39,6 +39,10 @@ def updateConfig = { c ->
 def finalConfig = jobConfig(config, [:], updateConfig)
 
 def job = {
+
+    echo("IS_PR_JOB: " + config.isPrJob)
+    error("done testing")
+
     if (config.isPrJob && params.PROMOTE_TO_PRODUCTION) {
         currentBuild.result = 'ABORTED'
         error('PROMOTE_TO_PRODUCTION can not be used with PR builds.')

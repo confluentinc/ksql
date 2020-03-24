@@ -1,17 +1,16 @@
 package io.confluent.ksql.function.udf.geo;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.KsqlFunctionException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class GeoDistanceKudfTest {
-  private GeoDistanceKudf distanceUdf = new GeoDistanceKudf();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+  private final GeoDistanceKudf distanceUdf = new GeoDistanceKudf();
 
   /*
    * Compute distance between Palo Alto and London Confluent offices.
@@ -55,31 +54,52 @@ public class GeoDistanceKudfTest {
 
   @Test
   public void shouldFailWithTooFewParams() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GeoDistance function expects either 4 or 5 arguments");
-    distanceUdf.evaluate(37.4439, -122.1663);
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> distanceUdf.evaluate(37.4439, -122.1663)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("GeoDistance function expects either 4 or 5 arguments"));
   }
 
   @Test
   public void shouldFailWithTooManyParams() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GeoDistance function expects either 4 or 5 arguments");
-    distanceUdf.evaluate(37.4439, -122.1663, 51.5257, -0.1122, "Foo", "Bar");
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> distanceUdf.evaluate(37.4439, -122.1663, 51.5257, -0.1122, "Foo", "Bar")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("GeoDistance function expects either 4 or 5 arguments"));
   }
+
   /**
    * Valid values for latitude range from -90->90 decimal degrees, and longitude is from -180->180
    */
   @Test
   public void shouldFailOutOfBoundsCoordinates() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("valid latitude values");
-    distanceUdf.evaluate(90.1, -122.1663, -91.5257, -0.1122);
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> distanceUdf.evaluate(90.1, -122.1663, -91.5257, -0.1122)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("valid latitude values"));
   }
 
   @Test
   public void shouldFailInvalidUnitOfMeasure() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GeoDistance function fifth parameter must be");
-    distanceUdf.evaluate(37.4439, -122.1663, 51.5257, -0.1122, "Widget");
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> distanceUdf.evaluate(37.4439, -122.1663, 51.5257, -0.1122, "Widget")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("GeoDistance function fifth parameter must be"));
   }
 }

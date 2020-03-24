@@ -1,7 +1,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;

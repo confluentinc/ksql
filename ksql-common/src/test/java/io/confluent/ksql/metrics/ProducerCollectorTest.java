@@ -1,7 +1,7 @@
 package io.confluent.ksql.metrics;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Collection;
 import org.apache.kafka.clients.producer.ProducerRecord;

@@ -17,7 +17,7 @@ package io.confluent.ksql.function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;

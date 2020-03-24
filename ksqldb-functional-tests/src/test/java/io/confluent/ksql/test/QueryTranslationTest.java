@@ -61,7 +61,7 @@ public class QueryTranslationTest {
         .collect(Collectors.toCollection(ArrayList::new));
   }
 
-  static Stream<TestCase> findTestCases() {
+  public static Stream<TestCase> findTestCases() {
     return testFileLoader().load();
   }
 

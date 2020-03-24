@@ -104,8 +104,8 @@ public final class TestCasePlanLoader {
           configs,
           serviceContext,
           engine,
-          original.getVersion(),
-          original.getTimestamp()
+          original.getSpecNode().getVersion(),
+          original.getSpecNode().getTimestamp()
       );
     }
   }
@@ -120,8 +120,8 @@ public final class TestCasePlanLoader {
     KsqlVersion latestVersion = null;
     TestCasePlan latest = null;
     for (final TestCasePlan candidate : allForTestCase(testCase)) {
-      final KsqlVersion version = KsqlVersion.parse(candidate.getVersion())
-          .withTimestamp(candidate.getTimestamp());
+      final KsqlVersion version = KsqlVersion.parse(candidate.getSpecNode().getVersion())
+          .withTimestamp(candidate.getSpecNode().getTimestamp());
       if (latestVersion == null || latestVersion.compareTo(version) < 0) {
         latestVersion = version;
         latest = candidate;

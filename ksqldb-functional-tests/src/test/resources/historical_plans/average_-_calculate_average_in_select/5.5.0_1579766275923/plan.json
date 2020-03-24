@@ -7,22 +7,16 @@
       "sourceName" : "TEST",
       "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
       "keyField" : "ID",
-      "timestampColumn" : null,
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
+          "format" : "KAFKA"
         },
         "valueFormat" : {
-          "format" : "DELIMITED",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
-    },
-    "queryPlan" : null
+          "format" : "DELIMITED"
+        }
+      }
+    }
   }, {
     "@type" : "ksqlPlanV1",
     "statementText" : "CREATE TABLE AVG AS SELECT\n  TEST.ID ID,\n  (ABS((SUM(TEST.VALUE) / COUNT(TEST.ID))) * 10) AVG\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES",
@@ -31,20 +25,15 @@
       "sourceName" : "AVG",
       "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `AVG` BIGINT",
       "keyField" : "ID",
-      "timestampColumn" : null,
       "topicName" : "AVG",
       "formats" : {
         "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
+          "format" : "KAFKA"
         },
         "valueFormat" : {
-          "format" : "DELIMITED",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
+          "format" : "DELIMITED"
+        }
+      }
     },
     "queryPlan" : {
       "sources" : [ "TEST" ],
@@ -82,42 +71,32 @@
                   "topicName" : "test_topic",
                   "formats" : {
                     "keyFormat" : {
-                      "format" : "KAFKA",
-                      "properties" : { }
+                      "format" : "KAFKA"
                     },
                     "valueFormat" : {
-                      "format" : "DELIMITED",
-                      "properties" : { }
-                    },
-                    "options" : [ ]
+                      "format" : "DELIMITED"
+                    }
                   },
-                  "timestampColumn" : null,
                   "sourceSchema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT"
                 },
                 "selectExpressions" : [ "ID AS KSQL_INTERNAL_COL_0", "VALUE AS KSQL_INTERNAL_COL_1" ]
               },
               "internalFormats" : {
                 "keyFormat" : {
-                  "format" : "KAFKA",
-                  "properties" : { }
+                  "format" : "KAFKA"
                 },
                 "valueFormat" : {
-                  "format" : "DELIMITED",
-                  "properties" : { }
-                },
-                "options" : [ ]
+                  "format" : "DELIMITED"
+                }
               }
             },
             "internalFormats" : {
               "keyFormat" : {
-                "format" : "KAFKA",
-                "properties" : { }
+                "format" : "KAFKA"
               },
               "valueFormat" : {
-                "format" : "DELIMITED",
-                "properties" : { }
-              },
-              "options" : [ ]
+                "format" : "DELIMITED"
+              }
             },
             "nonAggregateColumns" : [ "KSQL_INTERNAL_COL_0", "KSQL_INTERNAL_COL_1" ],
             "aggregationFunctions" : [ "SUM(KSQL_INTERNAL_COL_1)", "COUNT(KSQL_INTERNAL_COL_0)" ]
@@ -126,14 +105,11 @@
         },
         "formats" : {
           "keyFormat" : {
-            "format" : "KAFKA",
-            "properties" : { }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "DELIMITED",
-            "properties" : { }
-          },
-          "options" : [ ]
+            "format" : "DELIMITED"
+          }
         },
         "topicName" : "AVG"
       },

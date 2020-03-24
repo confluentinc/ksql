@@ -50,7 +50,7 @@ public final class KeyFormat {
   @JsonCreator
   private KeyFormat(
       @JsonProperty(value = "formatInfo", required = true) final FormatInfo format,
-      @JsonProperty(value = "windowInfo", required = true) final Optional<WindowInfo> window
+      @JsonProperty(value = "windowInfo") final Optional<WindowInfo> window
   ) {
     this.format = Objects.requireNonNull(format, "format");
     this.window = Objects.requireNonNull(window, "window");

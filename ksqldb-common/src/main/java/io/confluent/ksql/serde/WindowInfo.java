@@ -35,7 +35,7 @@ public final class WindowInfo {
   @JsonCreator
   public static WindowInfo of(
       @JsonProperty(value = "type", required = true) final WindowType type,
-      @JsonProperty(value = "size", required = true) final Optional<Duration> size) {
+      @JsonProperty(value = "size") final Optional<Duration> size) {
     return new WindowInfo(type, size);
   }
 

@@ -63,15 +63,39 @@ public class KsqlRestClient implements Closeable {
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> creds
   ) {
-    final LocalProperties localProperties = new LocalProperties(localProps);
-    final Map<String, String> clientPropsWithTls = maybeConfigureTls(serverAddress, clientProps);
-    final KsqlClient client = new KsqlClient(clientPropsWithTls, creds, localProperties,
-        new HttpClientOptions());
-    return new KsqlRestClient(client, serverAddress, localProperties);
+    return create(
+        serverAddress,
+        localProps,
+        clientProps,
+        creds,
+        (cProps, credz, lProps) -> new KsqlClient(cProps, credz, lProps, new HttpClientOptions())
+    );
   }
 
   @VisibleForTesting
-  KsqlRestClient(
+  static KsqlRestClient create(
+      final String serverAddress,
+      final Map<String, ?> localProps,
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> creds,
+      final KsqlClientSupplier clientSupplier
+  ) {
+    final LocalProperties localProperties = new LocalProperties(localProps);
+    final Map<String, String> clientPropsWithTls = maybeConfigureTls(serverAddress, clientProps);
+    final KsqlClient client = clientSupplier.get(clientPropsWithTls, creds, localProperties);
+    return new KsqlRestClient(client, serverAddress, localProperties);
+  }
+
+  @FunctionalInterface
+  interface KsqlClientSupplier {
+    KsqlClient get(
+        Map<String, String> clientProps,
+        Optional<BasicCredentials> creds,
+        LocalProperties localProps
+    );
+  }
+
+  private KsqlRestClient(
       final KsqlClient client,
       final String serverAddress,
       final LocalProperties localProps

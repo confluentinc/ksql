@@ -73,7 +73,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
   @Override
   protected R visitJoin(final Join node, final C context) {
     process(node.getLeft(), context);
-    process(node.getRight(), context);
+    node.getSources().forEach(join -> process(join, context));
 
     return null;
   }

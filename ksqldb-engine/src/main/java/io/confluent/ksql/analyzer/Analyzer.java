@@ -45,6 +45,7 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -281,14 +282,15 @@ class Analyzer {
       isJoin = true;
 
       process(node.getLeft(), context);
-      process(node.getRight(), context);
+      node.getSources().forEach(right -> process(right.getRelation(), context));
 
       final JoinNode.JoinType joinType = getJoinType(node);
 
       final AliasedDataSource left = analysis.getFromDataSources().get(0);
       final AliasedDataSource right = analysis.getFromDataSources().get(1);
 
-      final JoinOn joinOn = (JoinOn) node.getCriteria();
+      final JoinedSource source = Iterables.getOnlyElement(node.getSources());
+      final JoinOn joinOn = (JoinOn) source.getCriteria();
       final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
           .getExpression();
 
@@ -315,11 +317,11 @@ class Analyzer {
       throwOnIncompatibleSourceWindowing(left, right);
 
       final boolean flipped = leftSourceName.equals(right.getAlias());
-      analysis.setJoin(new JoinInfo(
+      analysis.addJoin(new JoinInfo(
           flipped ? comparisonExpression.getRight() : comparisonExpression.getLeft(),
           flipped ? comparisonExpression.getLeft() : comparisonExpression.getRight(),
           joinType,
-          node.getWithinExpression()
+          source.getWithinExpression()
       ));
 
       return null;
@@ -432,7 +434,8 @@ class Analyzer {
 
     private JoinNode.JoinType getJoinType(final Join node) {
       final JoinNode.JoinType joinType;
-      switch (node.getType()) {
+      final JoinedSource source = Iterables.getOnlyElement(node.getSources());
+      switch (source.getType()) {
         case INNER:
           joinType = JoinNode.JoinType.INNER;
           break;
@@ -443,7 +446,7 @@ class Analyzer {
           joinType = JoinNode.JoinType.OUTER;
           break;
         default:
-          throw new KsqlException("Join type is not supported: " + node.getType().name());
+          throw new KsqlException("Join type is not supported: " + source.getType().name());
       }
       return joinType;
     }

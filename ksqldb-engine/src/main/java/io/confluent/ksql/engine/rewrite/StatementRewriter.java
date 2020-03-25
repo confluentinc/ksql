@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.engine.rewrite;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -33,6 +35,7 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
@@ -294,23 +297,26 @@ public final class StatementRewriter<C> {
       }
 
       final Relation rewrittenLeft = (Relation) rewriter.apply(node.getLeft(), context);
-      final Relation rewrittenRight = (Relation) rewriter.apply(node.getRight(), context);
-      final Optional<WithinExpression> rewrittenWithin = node.getWithinExpression()
+      final JoinedSource rightSource = Iterables.getOnlyElement(node.getSources());
+      final Relation rewrittenRight = (Relation) rewriter.apply(rightSource.getRelation(), context);
+      final Optional<WithinExpression> rewrittenWithin = rightSource.getWithinExpression()
           .map(within -> (WithinExpression) rewriter.apply(within, context));
-      JoinCriteria rewrittenCriteria = node.getCriteria();
-      if (node.getCriteria() instanceof JoinOn) {
+      JoinCriteria rewrittenCriteria = rightSource.getCriteria();
+      if (rightSource.getCriteria() instanceof JoinOn) {
         rewrittenCriteria = new JoinOn(
-            processExpression(((JoinOn) node.getCriteria()).getExpression(), context)
+            processExpression(((JoinOn) rightSource.getCriteria()).getExpression(), context)
         );
       }
 
       return new Join(
           node.getLocation(),
-          node.getType(),
           rewrittenLeft,
-          rewrittenRight,
-          rewrittenCriteria,
-          rewrittenWithin);
+          ImmutableList.of(new JoinedSource(
+              rightSource.getLocation(),
+              rewrittenRight,
+              rightSource.getType(),
+              rewrittenCriteria,
+              rewrittenWithin)));
     }
 
     @Override

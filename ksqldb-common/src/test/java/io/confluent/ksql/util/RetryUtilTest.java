@@ -16,12 +16,16 @@
 package io.confluent.ksql.util;
 
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.mockito.InOrder;
@@ -31,6 +35,7 @@ public class RetryUtilTest {
   final Runnable runnable = mock(Runnable.class);
   @SuppressWarnings("unchecked")
   final Consumer<Long> sleep = mock(Consumer.class);
+  final AtomicBoolean stopRetrying = new AtomicBoolean(false);
 
   @Test
   public void shouldReturnOnSuccess() {
@@ -42,7 +47,7 @@ public class RetryUtilTest {
   public void shouldBackoffOnFailure() {
     doThrow(new RuntimeException("error")).when(runnable).run();
     try {
-      RetryUtil.retryWithBackoff(3, 1, 100, runnable, sleep, Collections.emptyList());
+      RetryUtil.retryWithBackoff(3, 1, 100, runnable, sleep, stopRetrying, Collections.emptyList());
       fail("retry should have thrown");
     } catch (final RuntimeException e) {
     }
@@ -58,7 +63,7 @@ public class RetryUtilTest {
   public void shouldRespectMaxWait() {
     doThrow(new RuntimeException("error")).when(runnable).run();
     try {
-      RetryUtil.retryWithBackoff(3, 1, 3, runnable, sleep, Collections.emptyList());
+      RetryUtil.retryWithBackoff(3, 1, 3, runnable, sleep, stopRetrying, Collections.emptyList());
       fail("retry should have thrown");
     } catch (final RuntimeException e) {
     }
@@ -79,5 +84,28 @@ public class RetryUtilTest {
     } catch (final IllegalArgumentException e) {
     }
     verify(runnable, times(1)).run();
+  }
+
+  @Test
+  public void shouldRespectStopRetrying() {
+    doThrow(new RuntimeException("error")).when(runnable).run();
+    int[] times = new int[1];
+    doAnswer(invocationOnMock -> {
+      // Interrupts on the 2nd sleep
+      if (times[0]++ == 1) {
+        stopRetrying.set(true);
+      }
+      return null;
+    }).when(sleep).accept(any());
+    try {
+      RetryUtil.retryWithBackoff(3, 1, 100, runnable, sleep, stopRetrying, Collections.emptyList());
+      fail("retry should have thrown");
+    } catch (final RuntimeException e) {
+    }
+    verify(runnable, times(2)).run();
+    final InOrder inOrder = Mockito.inOrder(sleep);
+    inOrder.verify(sleep).accept((long) 1);
+    inOrder.verify(sleep).accept((long) 2);
+    inOrder.verifyNoMoreInteractions();
   }
 }

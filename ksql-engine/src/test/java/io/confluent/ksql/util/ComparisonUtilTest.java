@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -61,7 +62,7 @@ public class ComparisonUtilTest {
     }
   }
 
-  @Test(expected = KsqlStatementException.class)
+  @Test
   public void shouldThrowForInvalidComparisons() {
     // When:
     int i = 0;
@@ -69,7 +70,10 @@ public class ComparisonUtilTest {
     for (final Schema.Type leftType: typesTable) {
       for (final Schema.Type rightType: typesTable) {
         if (!expectedResults.get(i).get(j)) {
-          ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType);
+          assertThrows(
+              KsqlException.class,
+              () -> ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType)
+          );
         }
 
         j++;

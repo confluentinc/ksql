@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -63,10 +64,8 @@ public class KsqlRestClient implements Closeable {
       final Optional<BasicCredentials> creds
   ) {
     final LocalProperties localProperties = new LocalProperties(localProps);
-    if (serverAddress.toLowerCase().startsWith("https:")) {
-      clientProps.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
-    }
-    final KsqlClient client = new KsqlClient(clientProps, creds, localProperties,
+    final Map<String, String> clientPropsWithTls = maybeConfigureTls(serverAddress, clientProps);
+    final KsqlClient client = new KsqlClient(clientPropsWithTls, creds, localProperties,
         new HttpClientOptions());
     return new KsqlRestClient(client, serverAddress, localProperties);
   }
@@ -190,6 +189,20 @@ public class KsqlRestClient implements Closeable {
     } catch (final Exception e) {
       throw new KsqlRestClientException(
           "The supplied serverAddress is invalid: " + serverAddress, e);
+    }
+  }
+
+  private static Map<String, String> maybeConfigureTls(
+      final String serverAddress,
+      final Map<String, String> clientProps
+  ) {
+    if (serverAddress.toLowerCase().startsWith("https:")) {
+      return ImmutableMap.<String, String>builder()
+          .putAll(clientProps)
+          .put(KsqlClient.TLS_ENABLED_PROP_NAME, "true")
+          .build();
+    } else {
+      return clientProps;
     }
   }
 }

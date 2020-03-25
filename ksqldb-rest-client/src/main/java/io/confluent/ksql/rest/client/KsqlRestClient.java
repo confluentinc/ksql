@@ -63,6 +63,9 @@ public class KsqlRestClient implements Closeable {
       final Optional<BasicCredentials> creds
   ) {
     final LocalProperties localProperties = new LocalProperties(localProps);
+    if (serverAddress.startsWith("https:")) {
+      clientProps.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
+    }
     final KsqlClient client = new KsqlClient(clientProps, creds, localProperties,
         new HttpClientOptions());
     return new KsqlRestClient(client, serverAddress, localProperties);

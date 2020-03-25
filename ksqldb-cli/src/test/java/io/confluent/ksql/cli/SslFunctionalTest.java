@@ -176,7 +176,6 @@ public class SslFunctionalTest {
     clientProps = new HashMap<>();
     clientProps.putAll(ClientTrustStore.trustStoreProps());
     clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
-    clientProps.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
 
     // WS:
     sslContextFactory.setTrustStorePath(ClientTrustStore.trustStorePath());
@@ -187,7 +186,6 @@ public class SslFunctionalTest {
   private void givenClientConfguredWithoutTruststore() {
     clientProps = new HashMap<>();
     clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
-    clientProps.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
   }
 
   private Code canMakeCliRequest() {

@@ -21,6 +21,7 @@ import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
@@ -47,7 +48,7 @@ public final class ServerUtils {
     private final RoutingContext routingContext;
 
     HttpResponseErrorHandler(final RoutingContext routingContext) {
-      this.routingContext = routingContext;
+      this.routingContext = Objects.requireNonNull(routingContext);
     }
 
     @Override

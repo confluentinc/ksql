@@ -20,6 +20,7 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.VertxUtils;
+import java.util.Objects;
 import javax.ws.rs.core.Response;
 
 public class TerminateEndpoint {
@@ -27,7 +28,7 @@ public class TerminateEndpoint {
   private final KsqlResource ksqlResource;
 
   public TerminateEndpoint(final KsqlResource ksqlResource) {
-    this.ksqlResource = ksqlResource;
+    this.ksqlResource = Objects.requireNonNull(ksqlResource);
   }
 
   public EndpointResponse executeTerminate(final KsqlSecurityContext ksqlSecurityContext,

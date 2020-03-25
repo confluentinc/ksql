@@ -22,6 +22,7 @@ import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.http.HttpStatus;
 
 /**
  * Handles requests to the close-query endpoint
@@ -46,8 +47,9 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
         .removeQuery(closeQueryArgs.get().queryId);
     if (!query.isPresent()) {
       routingContext
-          .fail(400, new KsqlApiException("No query with id " + closeQueryArgs.get().queryId,
-              ERROR_CODE_UNKNOWN_QUERY_ID));
+          .fail(HttpStatus.SC_BAD_REQUEST,
+              new KsqlApiException("No query with id " + closeQueryArgs.get().queryId,
+                  ERROR_CODE_UNKNOWN_QUERY_ID));
       return;
     }
     query.get().close();

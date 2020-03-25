@@ -34,6 +34,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,7 +158,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       }
       log.error("Failed to execute inserts", toLog);
       // We don't expose internal error message via public API
-      routingContext.fail(500,
+      routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR,
           new KsqlApiException("The server encountered an internal error when processing inserts."
               + " Please consult the server logs for more information.",
               ErrorCodes.ERROR_CODE_INTERNAL_ERROR));

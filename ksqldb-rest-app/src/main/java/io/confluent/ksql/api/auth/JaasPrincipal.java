@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.auth;
 
 import java.security.Principal;
+import java.util.Objects;
 
 /**
  * Principal implementation created when authenticating with the JaasAuthProvider
@@ -25,7 +26,7 @@ class JaasPrincipal implements Principal {
   private final String name;
 
   JaasPrincipal(final String name) {
-    this.name = name;
+    this.name = Objects.requireNonNull(name);
   }
 
   @Override

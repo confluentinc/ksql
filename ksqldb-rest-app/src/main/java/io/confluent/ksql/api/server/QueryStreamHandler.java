@@ -26,6 +26,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,16 +114,16 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     if (t instanceof CompletionException) {
       final Throwable actual = t.getCause();
       if (actual instanceof KsqlStatementException) {
-        routingContext.fail(400,
+        routingContext.fail(HttpStatus.SC_BAD_REQUEST,
             new KsqlApiException(actual.getMessage(), ErrorCodes.ERROR_CODE_INVALID_QUERY));
         return null;
       } else if (actual instanceof KsqlApiException) {
-        routingContext.fail(400, actual);
+        routingContext.fail(HttpStatus.SC_BAD_REQUEST, actual);
         return null;
       }
     }
     // We don't expose internal error message via public API
-    routingContext.fail(500, new KsqlApiException(
+    routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR, new KsqlApiException(
         "The server encountered an internal error when processing the query."
             + " Please consult the server logs for more information.",
         ErrorCodes.ERROR_CODE_INTERNAL_ERROR));

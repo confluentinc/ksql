@@ -35,6 +35,7 @@ import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +108,7 @@ class ProxyHandler {
               .end();
         } else {
           log.error("Failed to proxy websocket", ar.cause());
-          request.response().setStatusCode(500).end();
+          request.response().setStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR).end();
         }
       }
     });

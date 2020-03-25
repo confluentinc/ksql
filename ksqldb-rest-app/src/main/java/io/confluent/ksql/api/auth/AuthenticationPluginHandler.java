@@ -25,7 +25,9 @@ import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import org.apache.http.HttpStatus;
 
 /**
  * Handler that calls any authentication plugin
@@ -37,8 +39,8 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   public AuthenticationPluginHandler(final Server server,
       final AuthenticationPlugin securityHandlerPlugin) {
-    this.server = server;
-    this.securityHandlerPlugin = securityHandlerPlugin;
+    this.server = Objects.requireNonNull(server);
+    this.securityHandlerPlugin = Objects.requireNonNull(securityHandlerPlugin);
   }
 
   @Override
@@ -48,8 +50,9 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     cf.thenAccept(principal -> {
       if (principal == null) {
         // Not authenticated
-        routingContext.fail(401, new KsqlApiException("Failed authentication",
-            ErrorCodes.ERROR_FAILED_AUTHENTICATION));
+        routingContext
+            .fail(HttpStatus.SC_UNAUTHORIZED, new KsqlApiException("Failed authentication",
+                ErrorCodes.ERROR_FAILED_AUTHENTICATION));
       } else {
         routingContext.setUser(new AuthPluginUser(principal));
         routingContext.next();
@@ -66,7 +69,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     private final Principal principal;
 
     AuthPluginUser(final Principal principal) {
-      this.principal = principal;
+      this.principal = Objects.requireNonNull(principal);
     }
 
     @SuppressWarnings("deprecation")

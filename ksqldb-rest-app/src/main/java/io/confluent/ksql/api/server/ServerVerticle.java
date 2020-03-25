@@ -40,6 +40,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,9 +190,9 @@ public class ServerVerticle extends AbstractVerticle {
         );
       } else {
         final int errorCode;
-        if (statusCode == 401) {
+        if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
           errorCode = ErrorCodes.ERROR_FAILED_AUTHENTICATION;
-        } else if (statusCode == 403) {
+        } else if (statusCode == HttpStatus.SC_FORBIDDEN) {
           errorCode = ErrorCodes.ERROR_FAILED_AUTHORIZATION;
         } else {
           errorCode = ErrorCodes.ERROR_CODE_INTERNAL_ERROR;

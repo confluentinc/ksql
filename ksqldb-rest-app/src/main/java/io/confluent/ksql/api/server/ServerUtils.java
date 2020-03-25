@@ -22,6 +22,7 @@ import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,20 +52,23 @@ public final class ServerUtils {
 
     @Override
     public void onMissingParam(final String paramName) {
-      routingContext.fail(400, new KsqlApiException("No " + paramName + " in arguments",
-          ERROR_CODE_MISSING_PARAM));
+      routingContext
+          .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("No " + paramName + " in arguments",
+              ERROR_CODE_MISSING_PARAM));
     }
 
     @Override
     public void onExtraParam(final String paramName) {
-      routingContext.fail(400, new KsqlApiException("Unknown arg " + paramName,
-          ErrorCodes.ERROR_CODE_UNKNOWN_PARAM));
+      routingContext
+          .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("Unknown arg " + paramName,
+              ErrorCodes.ERROR_CODE_UNKNOWN_PARAM));
     }
 
     @Override
     public void onInvalidJson() {
-      routingContext.fail(400, new KsqlApiException("Malformed JSON in request",
-          ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
+      routingContext
+          .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("Malformed JSON in request",
+              ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
     }
   }
 

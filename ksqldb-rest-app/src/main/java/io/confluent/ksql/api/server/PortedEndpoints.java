@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import javax.ws.rs.core.MediaType;
+import org.apache.http.HttpStatus;
 
 public class PortedEndpoints {
 
@@ -99,7 +100,7 @@ public class PortedEndpoints {
     try {
       requestObject = objectMapper.readValue(routingContext.getBody().getBytes(), requestClass);
     } catch (Exception e) {
-      routingContext.fail(400,
+      routingContext.fail(HttpStatus.SC_BAD_REQUEST,
           new KsqlApiException("Malformed JSON", ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
       return;
     }
@@ -113,7 +114,7 @@ public class PortedEndpoints {
         responseBody = Buffer.buffer(bytes);
       } catch (JsonProcessingException e) {
         // This is an internal error as it's a bug in the server
-        routingContext.fail(500, e);
+        routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR, e);
         return;
       }
 
@@ -122,7 +123,7 @@ public class PortedEndpoints {
           .end(responseBody);
 
     }).exceptionally(t -> {
-      routingContext.fail(500, t);
+      routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR, t);
       return null;
     });
   }
@@ -137,7 +138,7 @@ public class PortedEndpoints {
       routingContext.response().setStatusCode(statusCode)
           .end(Buffer.buffer(bytes));
     } catch (JsonProcessingException e) {
-      routingContext.fail(500, e);
+      routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR, e);
     }
   }
 

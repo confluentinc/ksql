@@ -60,7 +60,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor);
     this.reservedInternalTopics = new ReservedInternalTopics(ksqlConfig);
     this.ksqlSecurityContextProvider = Objects.requireNonNull(ksqlSecurityContextProvider);
-    this.ksqlStatementsEndpoint = new KsqlStatementsEndpoint(Objects.requireNonNull(ksqlResource));
+    this.ksqlStatementsEndpoint = new KsqlStatementsEndpoint(ksqlResource);
     this.terminateEndpoint = new TerminateEndpoint(ksqlResource);
   }
 

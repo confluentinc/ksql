@@ -24,10 +24,10 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Set;
+import org.apache.http.HttpStatus;
 
 /**
  * Handler that calls a KsqlAuthorizationProvider plugin that can be used for custom authorization
- * (e.g. RBAC in Confluent platform)
  */
 public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext> {
 
@@ -63,7 +63,7 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
     if (ar.succeeded()) {
       routingContext.next();
     } else {
-      routingContext.fail(403, ar.cause());
+      routingContext.fail(HttpStatus.SC_FORBIDDEN, ar.cause());
     }
   }
 

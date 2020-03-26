@@ -77,8 +77,12 @@ def job = {
 
         // For a release build we remove the -SNAPSHOT from the version.
         config.ksql_db_version = config.ksql_db_version.tokenize("-")[0]
+
+        config.ksql_db_artifact_version = config.ksql_db_version
         config.docker_tag = config.ksql_db_version
     } else {
+        // For non-release builds, we append the build number to the maven artifacts and docker image tag
+        config.ksql_db_artifact_version = config.ksql_db_version + '-' + env.BUILD_NUMBER
         config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-beta' + env.BUILD_NUMBER
     }
     
@@ -203,7 +207,7 @@ def job = {
 
                             // Set the project versions in the pom files
                             sh "set -x"
-                            sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_version} -DgenerateBackupPoms=false"
+                            sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_artifact_version} -DgenerateBackupPoms=false"
 
                             // Set the version of the parent project to use.
                             sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
@@ -211,7 +215,7 @@ def job = {
                             if (!config.isPrJob) {
                                 def git_tag = "v${config.docker_tag}-ksqldb"
                                 sh "git add ."
-                                sh "git commit -m \"build: Setting project version ${config.ksql_db_version} and parent version ${config. cp_version}.\""
+                                sh "git commit -m \"build: Setting project version ${config.ksql_db_artifact_version} and parent version ${config. cp_version}.\""
                                 sh "git tag ${git_tag}"
                                 sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
                                     sh "git push origin ${git_tag}"
@@ -349,7 +353,7 @@ def job = {
                 string(name: "NIGHTLY_BUILD_NUMBER", value: "${env.BUILD_NUMBER}"),
                 string(name: "CP_BETA_VERSION", value: "${config.cp_version}"),
                 string(name: "CP_BETA_BUILD_NUMBER", value: "${config.packaging_build_number}"),
-                string(name: "KSQLDB_VERSION", value: "${config.ksql_db_version}"),
+                string(name: "KSQLDB_ARTIFACT_VERSION", value: "${config.ksql_db_artifact_version}"),
                 string(name: "CCLOUD_GIT_REVISION", value: "${params.CCLOUD_GIT_REVISION}")
             ]
     }

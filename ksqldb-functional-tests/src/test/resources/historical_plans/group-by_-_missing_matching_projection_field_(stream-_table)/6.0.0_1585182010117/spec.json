@@ -1,0 +1,81 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585182010117,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ROWTIME BIGINT, DATA VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ROWTIME BIGINT, DATA VARCHAR, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "DATA" : "d1"
+    },
+    "timestamp" : 1
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "DATA" : "d2"
+    },
+    "timestamp" : 2
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "DATA" : "d1"
+    },
+    "timestamp" : 3
+  } ],
+  "outputs" : [ {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "d1",
+    "value" : {
+      "ROWTIME" : 1,
+      "DATA" : "d1",
+      "KSQL_AGG_VARIABLE_0" : 1
+    },
+    "timestamp" : 1
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "d2",
+    "value" : {
+      "ROWTIME" : 2,
+      "DATA" : "d2",
+      "KSQL_AGG_VARIABLE_0" : 1
+    },
+    "timestamp" : 2
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "d1",
+    "value" : {
+      "ROWTIME" : 3,
+      "DATA" : "d1",
+      "KSQL_AGG_VARIABLE_0" : 2
+    },
+    "timestamp" : 3
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "d1",
+    "value" : {
+      "KSQL_COL_0" : 1
+    },
+    "timestamp" : 1
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "d2",
+    "value" : {
+      "KSQL_COL_0" : 1
+    },
+    "timestamp" : 2
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "d1",
+    "value" : {
+      "KSQL_COL_0" : 2
+    },
+    "timestamp" : 3
+  } ]
+}

@@ -184,7 +184,7 @@ public final class StepSchemaResolver {
         functionRegistry
     );
 
-    return GroupByParamsFactory.buildSchema(sourceSchema, compiledGroupBy);
+    return GroupByParamsFactory.buildSchema(sourceSchema, compiledGroupBy, ksqlConfig);
   }
 
   private LogicalSchema handleTableGroupBy(
@@ -199,7 +199,7 @@ public final class StepSchemaResolver {
         functionRegistry
     );
 
-    return GroupByParamsFactory.buildSchema(sourceSchema, compiledGroupBy);
+    return GroupByParamsFactory.buildSchema(sourceSchema, compiledGroupBy, ksqlConfig);
   }
 
   private LogicalSchema handleStreamSelect(

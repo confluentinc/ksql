@@ -1,0 +1,96 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585181998248,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<VALUE BIGINT, ROWKEY VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<VALUE BIGINT, ROWKEY VARCHAR, KSQL_AGG_VARIABLE_0 STRUCT<SUM BIGINT, COUNT BIGINT>> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<AVG DOUBLE> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "alice",
+    "value" : {
+      "value" : -1
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "bob",
+    "value" : {
+      "value" : 2
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "alice",
+    "value" : {
+      "value" : 9223372036854775807
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "alice",
+    "value" : {
+      "value" : 1
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "bob",
+    "value" : {
+      "value" : -2
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "bob",
+    "value" : {
+      "value" : 0
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "alice",
+    "value" : {
+      "value" : null
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "alice",
+    "value" : {
+      "AVG" : -1.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "bob",
+    "value" : {
+      "AVG" : 2.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "alice",
+    "value" : {
+      "AVG" : 4.6116860184273879E+18
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "alice",
+    "value" : {
+      "AVG" : 3.0744573456182584E+18
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "bob",
+    "value" : {
+      "AVG" : 0.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "bob",
+    "value" : {
+      "AVG" : 0.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "alice",
+    "value" : {
+      "AVG" : 3.0744573456182584E+18
+    }
+  } ]
+}

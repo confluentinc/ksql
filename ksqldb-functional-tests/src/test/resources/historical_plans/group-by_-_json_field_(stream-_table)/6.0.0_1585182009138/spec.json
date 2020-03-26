@@ -1,0 +1,69 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585182009138,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DATA STRUCT<FIELD VARCHAR>> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<DATA STRUCT<FIELD VARCHAR>, ROWTIME BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<DATA STRUCT<FIELD VARCHAR>, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<FIELD VARCHAR, COUNT BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "data" : {
+        "field" : "Something"
+      }
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "data" : {
+        "field" : "Something Else"
+      }
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "data" : { }
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "data" : {
+        "field" : "Something"
+      }
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "data" : { }
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "Something",
+    "value" : {
+      "FIELD" : "Something",
+      "COUNT" : 1
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "Something Else",
+    "value" : {
+      "FIELD" : "Something Else",
+      "COUNT" : 1
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "Something",
+    "value" : {
+      "FIELD" : "Something",
+      "COUNT" : 2
+    }
+  } ]
+}

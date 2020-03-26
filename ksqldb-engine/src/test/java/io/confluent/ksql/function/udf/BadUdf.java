@@ -19,6 +19,8 @@ package io.confluent.ksql.function.udf;
 @SuppressWarnings({"unused", "MethodMayBeStatic"})
 public class BadUdf {
 
+  private int i;
+
   @Udf(description = "throws")
   public String blowUp(final int arg1) {
     throw new RuntimeException("boom!");
@@ -31,5 +33,10 @@ public class BadUdf {
     }
 
     return 0;
+  }
+
+  @Udf(description = "returns null every other invocation")
+  public String returnNull(final String arg) {
+    return i++ % 2 == 0 ? null : arg;
   }
 }

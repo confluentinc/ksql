@@ -235,6 +235,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           origs.put(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED, "required");
         }
       }
+      final List<String> unauthedPaths = config.getList(RestConfig.AUTHENTICATION_SKIP_PATHS);
+      if (unauthedPaths != null) {
+        origs.put(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
+      }
     }
 
     final String authMethod = config.getString("authentication.method");

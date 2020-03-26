@@ -92,6 +92,12 @@ public class ApiServerConfig extends AbstractConfig {
           + "Specify '*' to indicate all roles should be allowed.";
   public static final List<String> AUTHENTICATION_ROLES_DEFAULT =
       Collections.unmodifiableList(Collections.emptyList());
+  public static final String AUTHENTICATION_SKIP_PATHS_CONFIG = propertyName(
+      "authentication.skip.paths");
+  public static final String AUTHENTICATION_SKIP_PATHS_DOC =
+      "List of paths where authentication is not required.";
+  public static final List<String> AUTHENTICATION_SKIP_PATHS_DEFAULT =
+      Collections.unmodifiableList(Collections.emptyList());
 
   public static final String WORKER_POOL_SIZE = propertyName("worker.pool.size");
   public static final String WORKER_POOL_DOC =
@@ -171,6 +177,12 @@ public class ApiServerConfig extends AbstractConfig {
           AUTHENTICATION_ROLES_DEFAULT,
           Importance.LOW,
           AUTHENTICATION_ROLES_DOC)
+      .define(
+          AUTHENTICATION_SKIP_PATHS_CONFIG,
+          Type.LIST,
+          AUTHENTICATION_SKIP_PATHS_DEFAULT,
+          Importance.LOW,
+          AUTHENTICATION_SKIP_PATHS_DOC)
       .define(
           WORKER_POOL_SIZE,
           Type.INT,

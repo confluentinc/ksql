@@ -31,7 +31,7 @@ import org.apache.http.HttpStatus;
  */
 public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext> {
 
-  private static final Set<String> PATHS_WITHOUT_AUTHORIZATION = ImmutableSet
+  public static final Set<String> PATHS_WITHOUT_AUTHORIZATION = ImmutableSet
       .of("/v1/metadata", "/healthcheck");
 
   private final WorkerExecutor workerExecutor;

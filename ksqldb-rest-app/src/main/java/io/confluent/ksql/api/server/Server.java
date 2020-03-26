@@ -207,7 +207,7 @@ public class Server {
     return authenticationPlugin;
   }
 
-  ApiServerConfig getConfig() {
+  public ApiServerConfig getConfig() {
     return config;
   }
 

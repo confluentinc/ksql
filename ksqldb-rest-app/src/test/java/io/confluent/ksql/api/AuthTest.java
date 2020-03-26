@@ -77,6 +77,7 @@ public class AuthTest extends ApiTest {
 
   private volatile KsqlAuthorizationProvider authorizationProvider;
   private volatile AuthenticationPlugin securityHandlerPlugin;
+  private String unauthedPaths;
 
   @Override
   protected ApiServerConfig createServerConfig() {
@@ -93,6 +94,9 @@ public class AuthTest extends ApiTest {
         ApiServerConfig.AUTHENTICATION_ROLES_CONFIG,
         KSQL_RESOURCE
     );
+    if (unauthedPaths != null) {
+      origs.put(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
+    }
     return new ApiServerConfig(origs);
   }
 
@@ -291,6 +295,13 @@ public class AuthTest extends ApiTest {
         false);
   }
 
+  @Test
+  public void shouldAllowQueryWithSecurityPluginRejectingIfInAuthedPaths() throws Exception {
+    unauthedPaths = "/query-stream";
+    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
+        super::shouldExecutePullQuery, false, false);
+  }
+
   private void shouldFailQuery(final String username, final String password,
       final int expectedStatus, final String expectedMessage, final int expectedErrorCode)
       throws Exception {
@@ -391,6 +402,12 @@ public class AuthTest extends ApiTest {
 
   private void shouldAuthenticateWithSecurityPlugin(final String expectedUser,
       final ExceptionThrowingRunnable action, final boolean authenticate) throws Exception {
+    shouldAuthenticateWithSecurityPlugin(expectedUser, action, authenticate, true);
+  }
+
+  private void shouldAuthenticateWithSecurityPlugin(final String expectedUser,
+      final ExceptionThrowingRunnable action, final boolean authenticate,
+      final boolean shouldCallHandler) throws Exception {
     stopServer();
     stopClient();
 
@@ -418,7 +435,7 @@ public class AuthTest extends ApiTest {
     createServer(createServerConfig());
     client = createClient();
     action.run();
-    assertThat(handlerCalled.get(), is(true));
+    assertThat(handlerCalled.get(), is(shouldCallHandler));
   }
 
   private void shouldAllowAccessWithPermissionCheck(final String expectedUser,

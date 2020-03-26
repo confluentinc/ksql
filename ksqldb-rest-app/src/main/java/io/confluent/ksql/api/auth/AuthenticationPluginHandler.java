@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.auth;
 
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
@@ -25,7 +26,10 @@ import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.http.HttpStatus;
 
@@ -36,15 +40,27 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   private final Server server;
   private final AuthenticationPlugin securityHandlerPlugin;
+  private final Set<String> unauthenticatedPaths = new HashSet<>();
 
   public AuthenticationPluginHandler(final Server server,
       final AuthenticationPlugin securityHandlerPlugin) {
     this.server = Objects.requireNonNull(server);
     this.securityHandlerPlugin = Objects.requireNonNull(securityHandlerPlugin);
+    // We add in all the paths that don't require authorization from KsqlAuthorizationProviderHandler
+    unauthenticatedPaths.addAll(KsqlAuthorizationProviderHandler.PATHS_WITHOUT_AUTHORIZATION);
+    // And then we add anything from the property authentication.skip.paths
+    // This preserves the behaviour from the previous Jetty based implementation
+    final List<String> unauthed = server.getConfig()
+        .getList(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG);
+    unauthenticatedPaths.addAll(unauthed);
   }
 
   @Override
   public void handle(final RoutingContext routingContext) {
+    if (unauthenticatedPaths.contains(routingContext.normalisedPath())) {
+      routingContext.next();
+      return;
+    }
     final CompletableFuture<Principal> cf = securityHandlerPlugin
         .handleAuth(routingContext, server.getWorkerExecutor());
     cf.thenAccept(principal -> {

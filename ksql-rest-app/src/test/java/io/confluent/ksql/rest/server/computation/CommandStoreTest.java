@@ -139,17 +139,18 @@ public class CommandStoreTest {
         .thenThrow(new RuntimeException("oops"))
         .thenReturn(recordMetadata);
 
-    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
-
-    // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
         () -> commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES)
     );
 
-    // Then:
     assertThat(e.getMessage(),
         containsString("Could not write the statement 'test-statement' into the command topic."));
+
+    // When:
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+
+    // Then: did not throw.
   }
 
   @Test

@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
 
@@ -92,24 +91,33 @@ public class ConfigTopicKeyTest {
     }
   }
 
+  private IllegalArgumentMatcher illegalString(
+      final Class<? extends Exception> exceptionClass,
+      final String msg) {
+    return new IllegalArgumentMatcher(exceptionClass, msg);
+  }
+
   @Test
   public void shouldThrowOnStringKeyWithNoValue() {
     // When:
-    assertThrows(
-        NullPointerException.class,
+    final SerializationException e = assertThrows(
+        SerializationException.class,
         () -> deserializer.deserialize("", "{\"string\":{}}".getBytes(StandardCharsets.UTF_8))
     );
+
+    // Then:
+    assertThat(e, illegalString(NullPointerException.class, ""));
   }
 
   @Test
   public void shouldThrowOnStringKeyWithEmptyValue() {
     // When:
-    final IllegalArgumentException e = assertThrows(
-        IllegalArgumentException.class,
+    final SerializationException e = assertThrows(
+        SerializationException.class,
         () -> deserializer.deserialize("", "{\"string\":{\"value\": \"\"}}".getBytes(StandardCharsets.UTF_8))
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("StringKey value must not be empty"));
+    assertThat(e, illegalString(IllegalArgumentException.class, "StringKey value must not be empty"));
   }
 }

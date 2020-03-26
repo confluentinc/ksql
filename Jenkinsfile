@@ -207,16 +207,6 @@ def job = {
                             // Set the version of the parent project to use.
                             sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
 
-                            if (!config.isPrJob) {
-                                def git_tag = "v${config.docker_tag}-ksqldb"
-                                sh "git add ."
-                                sh "git commit -m \"build: Setting project version ${config.ksql_db_artifact_version} and parent version ${config. cp_version}.\""
-                                sh "git tag ${git_tag}"
-                                sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
-                                    sh "git push origin ${git_tag}"
-                                }
-                            }
-
                             cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
                             cmd += "-DskipTests "
                             cmd += "-Dspotbugs.skip "
@@ -230,6 +220,16 @@ def job = {
                                 sh cmd
                             }
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
+
+                            if (!config.isPrJob) {
+                                def git_tag = "v${config.docker_tag}-ksqldb"
+                                sh "git add ."
+                                sh "git commit -m \"build: Setting project version ${config.ksql_db_artifact_version} and parent version ${config. cp_version}.\""
+                                sh "git tag ${git_tag}"
+                                sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
+                                    sh "git push origin ${git_tag}"
+                                }
+                            }
                         }
                     }
                 }

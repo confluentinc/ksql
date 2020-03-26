@@ -44,7 +44,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class KsqlRestClient implements Closeable {
+public final class KsqlRestClient implements Closeable {
 
   private final KsqlClient client;
   private final LocalProperties localProperties;

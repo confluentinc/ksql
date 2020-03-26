@@ -620,6 +620,18 @@ public class RecoveryTest {
 
     shouldRecover(ImmutableList.of(
         new QueuedCommand(
+            new CommandId(Type.STREAM, "B", Action.CREATE),
+            new Command(
+                "CREATE STREAM B (COLUMN STRING) "
+                    + "WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
+                Collections.emptyMap(),
+                null,
+                Optional.empty()
+            ),
+            Optional.empty(),
+            2L
+        ),
+        new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
             new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of(), Optional.empty()),
             Optional.empty(),

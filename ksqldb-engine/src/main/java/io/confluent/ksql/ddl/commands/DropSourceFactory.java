@@ -56,7 +56,7 @@ public final class DropSourceFactory {
       final DataSourceType dataSourceType) {
     final DataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
-      if (ifExists) {
+      if (!ifExists) {
         throw new KsqlException("Source " + sourceName.text() + " does not exist.");
       }
     } else if (dataSource.getDataSourceType() != dataSourceType) {

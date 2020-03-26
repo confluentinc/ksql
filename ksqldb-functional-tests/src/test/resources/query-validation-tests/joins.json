@@ -1305,7 +1305,7 @@
         {"topic": "right_topic", "key": 1, "value": {"KSQL_COL_3": 3}, "timestamp": 10}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition", "key": 1, "value": {"TT_KSQL_COL_3": 3, "TT_ROWTIME": 10, "TT_KSQL_COL_1": 1, "TT_KSQL_COL_4": 1}, "timestamp": 10},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition", "key": 1, "value": {"TT_KSQL_COL_3": 3, "TT_ROWTIME": 10, "TT_KSQL_COL_1": 1, "TT_KSQL_COL_0": 1}, "timestamp": 10},
         {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_2": 2}, "timestamp": 10}
       ]
     },

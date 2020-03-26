@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.engine.rewrite;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -38,9 +40,9 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * Validate and clean ASTs generated from externally supplied statements
@@ -69,13 +71,16 @@ public final class AstSanitizer {
     final MetaStore metaStore;
     final DataSourceExtractor dataSourceExtractor;
 
-    private int selectItemIndex = 0;
+    private Supplier<ColumnName> aliasGenerator;
 
     RewriterPlugin(final MetaStore metaStore, final DataSourceExtractor dataSourceExtractor) {
       super(Optional.empty());
-      this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-      this.dataSourceExtractor
-          = Objects.requireNonNull(dataSourceExtractor, "dataSourceExtractor");
+      this.metaStore = requireNonNull(metaStore, "metaStore");
+      this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
+      this.aliasGenerator = ColumnNames.columnAliasGenerator(
+          dataSourceExtractor.getAllSources().stream()
+              .map(DataSource::getSchema)
+      );
     }
 
     @Override
@@ -128,16 +133,16 @@ public final class AstSanitizer {
         final StatementRewriter.Context<Void> ctx
     ) {
       if (singleColumn.getAlias().isPresent()) {
-        selectItemIndex++;
         return Optional.empty();
       }
+
       final ColumnName alias;
       final Expression expression = ctx.process(singleColumn.getExpression());
       if (expression instanceof QualifiedColumnReferenceExp) {
         final SourceName source = ((QualifiedColumnReferenceExp) expression).getQualifier();
         final ColumnName name = ((QualifiedColumnReferenceExp) expression).getColumnName();
         if (dataSourceExtractor.isJoin()
-            && dataSourceExtractor.getCommonFieldNames().contains(name)) {
+            && dataSourceExtractor.getCommonColumnNames().contains(name)) {
           alias = ColumnNames.generatedJoinColumnAlias(source, name);
         } else {
           alias = name;
@@ -152,9 +157,9 @@ public final class AstSanitizer {
             dereferenceExpressionString.substring(
                 dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
       } else {
-        alias = ColumnNames.generatedColumnAlias(selectItemIndex);
+        alias = aliasGenerator.get();
       }
-      selectItemIndex++;
+
       return Optional.of(
           new SingleColumn(singleColumn.getLocation(), expression, Optional.of(alias))
       );
@@ -188,9 +193,8 @@ public final class AstSanitizer {
         final MetaStore metaStore,
         final DataSourceExtractor dataSourceExtractor) {
       super(Optional.empty());
-      this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-      this.dataSourceExtractor
-          = Objects.requireNonNull(dataSourceExtractor, "dataSourceExtractor");
+      this.metaStore = requireNonNull(metaStore, "metaStore");
+      this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
     }
 
     @Override

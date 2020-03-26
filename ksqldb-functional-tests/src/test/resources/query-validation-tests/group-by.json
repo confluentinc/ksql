@@ -30,7 +30,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -65,15 +65,15 @@
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 3, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 3},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"KSQL_INTERNAL_COL_0": "d2", "KSQL_INTERNAL_COL_1": 4, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 4},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 5, "KSQL_AGG_VARIABLE_0": 3}, "timestamp": 5},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":1}, "timestamp": 1},
-        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1":1}, "timestamp": 2},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":2}, "timestamp": 3},
-        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1":2}, "timestamp": 4},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":3}, "timestamp": 5}
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_0":1}, "timestamp": 1},
+        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_0":1}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_0":2}, "timestamp": 3},
+        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_0":2}, "timestamp": 4},
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_0":3}, "timestamp": 5}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -96,15 +96,15 @@
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 1, "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": 3, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 3},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"KSQL_INTERNAL_COL_0": 2, "KSQL_INTERNAL_COL_1": 4, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 4},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 1, "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": 5, "KSQL_AGG_VARIABLE_0": 3}, "timestamp": 5},
-        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "KSQL_COL_1":1}, "timestamp": 1},
-        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KSQL_COL_1":1}, "timestamp": 2},
-        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "KSQL_COL_1":2}, "timestamp": 3},
-        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KSQL_COL_1":2}, "timestamp": 4},
-        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "KSQL_COL_1":3}, "timestamp": 5}
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "KSQL_COL_0":1}, "timestamp": 1},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KSQL_COL_0":1}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "KSQL_COL_0":2}, "timestamp": 3},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KSQL_COL_0":2}, "timestamp": 4},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "KSQL_COL_0":3}, "timestamp": 5}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY INT KEY, ID INT, KSQL_COL_1 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY INT KEY, ID INT, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -135,7 +135,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -157,7 +157,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, KSQL_COL_0 INTEGER, KSQL_COL_1 BIGINT"}
         ]
       }
     },
@@ -181,15 +181,15 @@
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": "a", "KSQL_INTERNAL_COL_2": 0, "KSQL_AGG_VARIABLE_0": 2}},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": {"KSQL_INTERNAL_COL_0": 2, "KSQL_INTERNAL_COL_1": "b", "KSQL_INTERNAL_COL_2": 0, "KSQL_AGG_VARIABLE_0": 2}},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|3", "value": {"KSQL_INTERNAL_COL_0": 3, "KSQL_INTERNAL_COL_1": "a", "KSQL_INTERNAL_COL_2": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_2": 1}},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "KSQL_COL_2": 1}},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_2": 2}},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "KSQL_COL_2": 2}},
-        {"topic": "OUTPUT", "key": "a|+|3", "value": {"F1": 3, "F2": "a", "KSQL_COL_2": 1}}
+        {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_0": 2}},
+        {"topic": "OUTPUT", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "KSQL_COL_0": 2}},
+        {"topic": "OUTPUT", "key": "a|+|3", "value": {"F1": 3, "F2": "a", "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -215,7 +215,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -250,7 +250,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -276,17 +276,17 @@
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": {"KSQL_INTERNAL_COL_0": 2, "KSQL_INTERNAL_COL_1": "b", "KSQL_INTERNAL_COL_2": 0, "KSQL_AGG_VARIABLE_0": 0}},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|1", "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": "b", "KSQL_INTERNAL_COL_2": 0, "KSQL_AGG_VARIABLE_0": 0}},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": "a", "KSQL_INTERNAL_COL_2": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_2": 1}},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "KSQL_COL_2": 1}},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_2": 0}},
-        {"topic": "OUTPUT", "key": "b|+|1", "value": {"F1": 1, "F2": "b", "KSQL_COL_2": 1}},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "KSQL_COL_2": 0}},
-        {"topic": "OUTPUT", "key": "b|+|1", "value": {"F1": 1, "F2": "b", "KSQL_COL_2": 0}},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_2": 1}}
+        {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_0": 0}},
+        {"topic": "OUTPUT", "key": "b|+|1", "value": {"F1": 1, "F2": "b", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "KSQL_COL_0": 0}},
+        {"topic": "OUTPUT", "key": "b|+|1", "value": {"F1": 1, "F2": "b", "KSQL_COL_0": 0}},
+        {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -322,7 +322,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -358,7 +358,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY DOUBLE KEY, DATA DOUBLE, KSQL_COL_1 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY DOUBLE KEY, DATA DOUBLE, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -387,15 +387,15 @@
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 0, "KSQL_AGG_VARIABLE_0": 2}},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"KSQL_INTERNAL_COL_0": "d2", "KSQL_INTERNAL_COL_1": 0, "KSQL_AGG_VARIABLE_0": 2}},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 0, "KSQL_AGG_VARIABLE_0": 3}},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":1}},
-        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1":1}},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":2}},
-        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1":2}},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":3}}
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_0":1}},
+        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_0":1}},
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_0":2}},
+        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_0":2}},
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_0":3}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -444,7 +444,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -1198,9 +1198,9 @@
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 1, "KSQL_AGG_VARIABLE_0": 1, "KSQL_AGG_VARIABLE_1": 1}, "timestamp": 1},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"KSQL_INTERNAL_COL_0": "d2", "KSQL_INTERNAL_COL_1": 2, "KSQL_AGG_VARIABLE_0": 1, "KSQL_AGG_VARIABLE_1": 1}, "timestamp": 2},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 3, "KSQL_AGG_VARIABLE_0": 2, "KSQL_AGG_VARIABLE_1": 2}, "timestamp": 3},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1": 1, "KSQL_COL_2": 1, "COPY": "d1"}, "timestamp": 1},
-        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1": 1, "KSQL_COL_2": 1, "COPY": "d2"}, "timestamp": 2},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1": 2, "KSQL_COL_2": 2, "COPY": "d1"}, "timestamp": 3}
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_0": 1, "KSQL_COL_1": 1, "COPY": "d1"}, "timestamp": 1},
+        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_0": 1, "KSQL_COL_1": 1, "COPY": "d2"}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_0": 2, "KSQL_COL_1": 2, "COPY": "d1"}, "timestamp": 3}
       ]
     },
     {

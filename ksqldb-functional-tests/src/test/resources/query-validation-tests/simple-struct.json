@@ -591,7 +591,7 @@
           "timestamp": 0,
           "value": {
             "ITEMID": "{\"ITEMID\":6,\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"NAME\":\"Item_6\"}",
-            "KSQL_COL_1": "6"
+            "KSQL_COL_0": "6"
           },
           "key": "0"
         },
@@ -600,7 +600,7 @@
           "timestamp": 0,
           "value": {
             "ITEMID": "{\"ITEMID\":6,\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"},\"NAME\":\"Item_6\"}",
-            "KSQL_COL_1": "6"
+            "KSQL_COL_0": "6"
           },
           "key": "100"
         },
@@ -609,7 +609,7 @@
           "timestamp": 0,
           "value": {
             "ITEMID": "{\"ITEMID\":6,\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"},\"NAME\":\"Item_6\"}",
-            "KSQL_COL_1": "6"
+            "KSQL_COL_0": "6"
           },
           "key": "101"
         },
@@ -618,7 +618,7 @@
           "timestamp": 0,
           "value": {
             "ITEMID": "{\"ITEMID\":2,\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"},\"NAME\":\"Item_2\"}",
-            "KSQL_COL_1": "2"
+            "KSQL_COL_0": "2"
           },
           "key": "101"
         },
@@ -627,7 +627,7 @@
           "timestamp": 0,
           "value": {
             "ITEMID":  "{\"ITEMID\":5,\"CATEGORY\":{\"ID\":1,\"NAME\":\"Produce\"},\"NAME\":\"Item_5\"}",
-            "KSQL_COL_1": "5"
+            "KSQL_COL_0": "5"
           },
           "key": "101"
         }

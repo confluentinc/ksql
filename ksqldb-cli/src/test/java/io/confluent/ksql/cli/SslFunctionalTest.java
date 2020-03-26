@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.internal.matchers.ThrowableCauseMatcher.hasCause;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -110,8 +111,7 @@ public class SslFunctionalTest {
 
   @Before
   public void setUp() {
-    clientProps = new HashMap<>();
-    clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
+    clientProps = ImmutableMap.of(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
     sslContextFactory = new Server();
   }
 
@@ -173,10 +173,10 @@ public class SslFunctionalTest {
 
   private void givenTrustStoreConfigured() {
     // HTTP:
-    clientProps = new HashMap<>();
-    clientProps.putAll(ClientTrustStore.trustStoreProps());
-    clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
-    clientProps.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
+    clientProps = ImmutableMap.<String, String>builder()
+        .putAll(ClientTrustStore.trustStoreProps())
+        .put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true")
+        .build();
 
     // WS:
     sslContextFactory.setTrustStorePath(ClientTrustStore.trustStorePath());
@@ -185,9 +185,7 @@ public class SslFunctionalTest {
   }
 
   private void givenClientConfguredWithoutTruststore() {
-    clientProps = new HashMap<>();
-    clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
-    clientProps.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
+    clientProps = ImmutableMap.of(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
   }
 
   private Code canMakeCliRequest() {

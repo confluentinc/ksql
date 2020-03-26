@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -40,7 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class KsqlRestClient implements Closeable {
+public final class KsqlRestClient implements Closeable {
 
   private final KsqlClient client;
   private final LocalProperties localProperties;
@@ -59,14 +60,39 @@ public class KsqlRestClient implements Closeable {
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> creds
   ) {
-    final LocalProperties localProperties = new LocalProperties(localProps);
-    final KsqlClient client = new KsqlClient(clientProps, creds, localProperties,
-        new HttpClientOptions());
-    return new KsqlRestClient(client, serverAddress, localProperties);
+    return create(
+        serverAddress,
+        localProps,
+        clientProps,
+        creds,
+        (cProps, credz, lProps) -> new KsqlClient(cProps, credz, lProps, new HttpClientOptions())
+    );
   }
 
   @VisibleForTesting
-  KsqlRestClient(
+  static KsqlRestClient create(
+      final String serverAddress,
+      final Map<String, ?> localProps,
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> creds,
+      final KsqlClientSupplier clientSupplier
+  ) {
+    final LocalProperties localProperties = new LocalProperties(localProps);
+    final Map<String, String> clientPropsWithTls = maybeConfigureTls(serverAddress, clientProps);
+    final KsqlClient client = clientSupplier.get(clientPropsWithTls, creds, localProperties);
+    return new KsqlRestClient(client, serverAddress, localProperties);
+  }
+
+  @FunctionalInterface
+  interface KsqlClientSupplier {
+    KsqlClient get(
+        Map<String, String> clientProps,
+        Optional<BasicCredentials> creds,
+        LocalProperties localProps
+    );
+  }
+
+  private KsqlRestClient(
       final KsqlClient client,
       final String serverAddress,
       final LocalProperties localProps
@@ -184,6 +210,20 @@ public class KsqlRestClient implements Closeable {
     } catch (final Exception e) {
       throw new KsqlRestClientException(
           "The supplied serverAddress is invalid: " + serverAddress, e);
+    }
+  }
+
+  private static Map<String, String> maybeConfigureTls(
+      final String serverAddress,
+      final Map<String, String> clientProps
+  ) {
+    if (serverAddress.toLowerCase().startsWith("https:")) {
+      return ImmutableMap.<String, String>builder()
+          .putAll(clientProps)
+          .put(KsqlClient.TLS_ENABLED_PROP_NAME, "true")
+          .build();
+    } else {
+      return clientProps;
     }
   }
 }

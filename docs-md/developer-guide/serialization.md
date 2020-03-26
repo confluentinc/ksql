@@ -213,7 +213,7 @@ Avro record's field name. The first case-insensitive match is used.
 
 ### KAFKA
 
-The `KAFKA` format supports`INT`, `BIGINT`, `DOUBLE` and `STRING`
+The `KAFKA` format supports `INT`, `BIGINT`, `DOUBLE` and `STRING`
 primitives that have been serialized using Kafka's standard set of
 serializers.
 

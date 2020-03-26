@@ -18,9 +18,11 @@ package io.confluent.ksql.parser;
 import static io.confluent.ksql.parser.tree.JoinMatchers.hasLeft;
 import static io.confluent.ksql.parser.tree.JoinMatchers.hasRight;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -104,6 +106,18 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getFrom(), is(new AliasedRelation(TEST1, SourceName.of("T"))));
+  }
+
+  @Test
+  public void shouldFailOnMultiWayJoin() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1 JOIN TEST2 ON test1.col1 = test2.col2 JOIN TEST3 ON test1.col1 = test3.col0;");
+
+    // When:
+    final KsqlException e= assertThrows(KsqlException.class, () -> builder.buildStatement(stmt));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("KSQL does not support multi-way joins."));
   }
 
   @Test

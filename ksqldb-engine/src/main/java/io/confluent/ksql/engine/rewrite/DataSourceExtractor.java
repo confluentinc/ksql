@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine.rewrite;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -150,7 +151,8 @@ class DataSourceExtractor {
             + "exist.");
       }
       addFieldNames(leftDataSource.getSchema(), leftColumnNames);
-      final AliasedRelation right = (AliasedRelation) join.getRight();
+      final AliasedRelation right =
+          (AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation();
       rightAlias = right.getAlias();
       rightName = ((Table) right.getRelation()).getName();
       final DataSource

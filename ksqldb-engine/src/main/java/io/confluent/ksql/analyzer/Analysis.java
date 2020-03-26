@@ -59,7 +59,7 @@ public class Analysis implements ImmutableAnalysis {
   private final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
-  private Optional<JoinInfo> joinInfo = Optional.empty();
+  private final List<JoinInfo> joinInfo = new ArrayList<>();
   private Optional<Expression> whereExpression = Optional.empty();
   private final List<SelectItem> selectItems = new ArrayList<>();
   private final Set<ColumnName> selectColumnNames = new HashSet<>();
@@ -169,20 +169,21 @@ public class Analysis implements ImmutableAnalysis {
     this.limitClause = OptionalInt.of(limitClause);
   }
 
-  void setJoin(final JoinInfo joinInfo) {
-    if (fromDataSources.size() <= 1) {
+  void addJoin(final JoinInfo joinInfo) {
+    // we cannot add more joins than we have data sources
+    if (fromDataSources.size() < this.joinInfo.size()) {
       throw new IllegalStateException("Join info can only be supplied for joins");
     }
 
-    this.joinInfo = Optional.of(joinInfo);
+    this.joinInfo.add(joinInfo);
   }
 
-  public Optional<JoinInfo> getJoin() {
+  public List<JoinInfo> getJoin() {
     return joinInfo;
   }
 
   public boolean isJoin() {
-    return joinInfo.isPresent();
+    return !joinInfo.isEmpty();
   }
 
   @Override

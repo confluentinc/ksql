@@ -18,6 +18,7 @@ package io.confluent.ksql.parser;
 import static com.google.common.collect.Iterables.getOnlyElement;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.Name;
@@ -40,6 +41,7 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
@@ -203,14 +205,16 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitJoin(final Join node, final Integer indent) {
+    protected Void visitJoin(final Join join, final Integer indent) {
+      final JoinedSource node = Iterables.getOnlyElement(join.getRights());
+
       final String type = node.getType().getFormatted();
-      process(node.getLeft(), indent);
+      process(join.getLeft(), indent);
 
       builder.append('\n');
       append(indent, type).append(" JOIN ");
 
-      process(node.getRight(), indent);
+      process(node.getRelation(), indent);
 
       final JoinCriteria criteria = node.getCriteria();
 

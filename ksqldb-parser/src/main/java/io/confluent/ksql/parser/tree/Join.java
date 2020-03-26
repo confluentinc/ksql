@@ -15,81 +15,46 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
 public class Join extends Relation {
 
-  private final Type type;
   private final Relation left;
-  private final Relation right;
-  private final JoinCriteria criteria;
-  private final Optional<WithinExpression> withinExpression;
-
-  public enum Type {
-    INNER("INNER"), LEFT("LEFT OUTER"), OUTER("FULL OUTER");
-
-    private final String formattedText;
-
-    Type(final String formattedText) {
-      this.formattedText = Objects.requireNonNull(formattedText, "formattedText");
-    }
-
-    public String getFormatted() {
-      return formattedText;
-    }
-  }
+  private final ImmutableList<JoinedSource> rights;
 
   public Join(
-      final Type type,
       final Relation left,
-      final Relation right,
-      final JoinCriteria criteria,
-      final Optional<WithinExpression> withinExpression
+      final List<JoinedSource> rights
   ) {
-    this(Optional.empty(), type, left, right, criteria, withinExpression);
+    this(Optional.empty(), left, rights);
   }
 
   public Join(
       final Optional<NodeLocation> location,
-      final Type type,
       final Relation left,
-      final Relation right,
-      final JoinCriteria criteria,
-      final Optional<WithinExpression> withinExpression
+      final List<JoinedSource> rights
   ) {
     super(location);
-    this.type = requireNonNull(type, "type");
     this.left = requireNonNull(left, "left");
-    this.right = requireNonNull(right, "right");
-    this.criteria = requireNonNull(criteria, "criteria");
-    this.withinExpression = requireNonNull(withinExpression, "withinExpression");
-  }
-
-  public Type getType() {
-    return type;
+    this.rights = ImmutableList.copyOf(Objects.requireNonNull(rights, "sources"));
+    Preconditions.checkArgument(!rights.isEmpty(), "Cannot join without any right sources!");
   }
 
   public Relation getLeft() {
     return left;
   }
 
-  public Relation getRight() {
-    return right;
-  }
-
-  public JoinCriteria getCriteria() {
-    return criteria;
-  }
-
-  public Optional<WithinExpression> getWithinExpression() {
-    return withinExpression;
+  public ImmutableList<JoinedSource> getRights() {
+    return rights;
   }
 
   @Override
@@ -99,13 +64,10 @@ public class Join extends Relation {
 
   @Override
   public String toString() {
-    return toStringHelper(this)
-        .add("type", type)
-        .add("left", left)
-        .add("right", right)
-        .add("criteria", criteria)
-        .omitNullValues()
-        .toString();
+    return "Join{"
+        + "left=" + left
+        + ", rights=" + rights
+        + '}';
   }
 
   @Override
@@ -116,16 +78,13 @@ public class Join extends Relation {
     if ((o == null) || (getClass() != o.getClass())) {
       return false;
     }
-    final Join join = (Join) o;
-    return (type == join.type)
-           && Objects.equals(left, join.left)
-           && Objects.equals(right, join.right)
-           && Objects.equals(criteria, join.criteria)
-           && Objects.equals(withinExpression, join.withinExpression);
+    final Join that = (Join) o;
+    return Objects.equals(left, that.left)
+           && Objects.equals(rights, that.rights);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, left, right, criteria, withinExpression);
+    return Objects.hash(left, rights);
   }
 }

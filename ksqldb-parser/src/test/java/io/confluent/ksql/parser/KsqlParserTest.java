@@ -63,6 +63,7 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
@@ -395,9 +396,9 @@ public class KsqlParserTest {
     final Query query = (Query) statement;
     assertThat(query.getFrom(), is(instanceOf(Join.class)));
     final Join join = (Join) query.getFrom();
-    assertThat(join.getType().toString(), is("LEFT"));
+    assertThat(Iterables.getOnlyElement(join.getRights()).getType().toString(), is("LEFT"));
     assertThat(((AliasedRelation)join.getLeft()).getAlias(), is(SourceName.of("T1")));
-    assertThat(((AliasedRelation)join.getRight()).getAlias(), is(SourceName.of("T2")));
+    assertThat(((AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation()).getAlias(), is(SourceName.of("T2")));
   }
 
   @Test
@@ -411,9 +412,9 @@ public class KsqlParserTest {
     final Query query = (Query) statement;
     assertThat(query.getFrom(), is(instanceOf(Join.class)));
     final Join join = (Join) query.getFrom();
-    assertThat(join.getType().toString(), is("LEFT"));
+    assertThat(Iterables.getOnlyElement(join.getRights()).getType().toString(), is("LEFT"));
     assertThat(((AliasedRelation)join.getLeft()).getAlias(), is(SourceName.of("T1")));
-    assertThat(((AliasedRelation)join.getRight()).getAlias(), is(SourceName.of("T2")));
+    assertThat(((AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation()).getAlias(), is(SourceName.of("T2")));
     assertThat(query.getWhere().get().toString(), is("(T2.COL2 = 'test')"));
   }
 
@@ -479,7 +480,7 @@ public class KsqlParserTest {
 
     final Join join = (Join) query.getFrom();
     assertThat(((AliasedRelation) join.getLeft()).getAlias(), is(SourceName.of("T1")));
-    assertThat(((AliasedRelation) join.getRight()).getAlias(), is(SourceName.of("T2")));
+    assertThat(((AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation()).getAlias(), is(SourceName.of("T2")));
   }
 
   @Test
@@ -863,7 +864,7 @@ public class KsqlParserTest {
 
     assertThat(query.getFrom(), instanceOf(Join.class));
 
-    final Join join = (Join) query.getFrom();
+    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
 
     assertTrue(join.getWithinExpression().isPresent());
 
@@ -872,7 +873,7 @@ public class KsqlParserTest {
     assertThat(withinExpression.getBefore(), is(10L));
     assertThat(withinExpression.getAfter(), is(10L));
     assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
-    assertThat(join.getType(), is(Join.Type.INNER));
+    assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 
 
@@ -893,7 +894,7 @@ public class KsqlParserTest {
 
     assertThat(query.getFrom(), instanceOf(Join.class));
 
-    final Join join = (Join) query.getFrom();
+    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
 
     assertTrue(join.getWithinExpression().isPresent());
 
@@ -903,7 +904,7 @@ public class KsqlParserTest {
     assertThat(withinExpression.getAfter(), is(20L));
     assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
     assertThat(withinExpression.getAfterTimeUnit(), is(TimeUnit.MINUTES));
-    assertThat(join.getType(), is(Join.Type.INNER));
+    assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 
   @Test
@@ -922,9 +923,9 @@ public class KsqlParserTest {
 
     assertThat(query.getFrom(), instanceOf(Join.class));
 
-    final Join join = (Join) query.getFrom();
+    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
 
-    assertThat(join.getType(), is(Join.Type.INNER));
+    assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 
   @Test
@@ -943,9 +944,9 @@ public class KsqlParserTest {
 
     assertThat(query.getFrom(), instanceOf(Join.class));
 
-    final Join join = (Join) query.getFrom();
+    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
 
-    assertThat(join.getType(), is(Join.Type.LEFT));
+    assertThat(join.getType(), is(JoinedSource.Type.LEFT));
   }
 
   @Test
@@ -964,9 +965,9 @@ public class KsqlParserTest {
 
     assertThat(query.getFrom(), instanceOf(Join.class));
 
-    final Join join = (Join) query.getFrom();
+    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
 
-    assertThat(join.getType(), is(Join.Type.LEFT));
+    assertThat(join.getType(), is(JoinedSource.Type.LEFT));
   }
 
   @Test
@@ -985,9 +986,9 @@ public class KsqlParserTest {
 
     assertThat(query.getFrom(), instanceOf(Join.class));
 
-    final Join join = (Join) query.getFrom();
+    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
 
-    assertThat(join.getType(), is(Join.Type.OUTER));
+    assertThat(join.getType(), is(JoinedSource.Type.OUTER));
   }
 
   @Test
@@ -1006,9 +1007,9 @@ public class KsqlParserTest {
 
     assertThat(query.getFrom(), instanceOf(Join.class));
 
-    final Join join = (Join) query.getFrom();
+    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
 
-    assertThat(join.getType(), is(Join.Type.OUTER));
+    assertThat(join.getType(), is(JoinedSource.Type.OUTER));
   }
 
   @Test

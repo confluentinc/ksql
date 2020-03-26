@@ -202,6 +202,7 @@ public class ValidatedCommandFactoryTest {
 
   private void givenPlannedQuery() {
     configuredStatement = configuredStatement("CREATE STREAM", plannedQuery);
+    when(plan.getStatementText()).thenReturn("CREATE STREAM ");
     when(executionContext.plan(any(), any())).thenReturn(plan);
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
   }

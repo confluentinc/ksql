@@ -3,6 +3,7 @@ package io.confluent.ksql.util.timestamp;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.util.KsqlException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.hamcrest.Description;
@@ -22,6 +23,9 @@ public class StringToTimestampParserTest {
   private static final ZonedDateTime FIFTH_OF_NOVEMBER =
       ZonedDateTime.of(1605, 11, 5, 0, 0, 0, 0, ZID);
 
+  private static final ZonedDateTime NEW_YEARS_EVE_2012 =
+      ZonedDateTime.of(2012, 12, 31, 23, 59, 58, 660000000, ZID);
+
   @Test
   public void shouldParseBasicLocalDate() {
     // Given
@@ -29,7 +33,7 @@ public class StringToTimestampParserTest {
     final String timestamp = "1605-11-05 10";
 
     // When
-    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
     // Then
     assertThat(ts, sameInstant(
@@ -45,7 +49,7 @@ public class StringToTimestampParserTest {
     final String timestamp = "1605-11-05 10";
 
     // When
-    long ts = new StringToTimestampParser(format).parse(timestamp);
+    final long ts = new StringToTimestampParser(format).parse(timestamp);
 
     // Then
     assertThat(ts, is(
@@ -63,7 +67,7 @@ public class StringToTimestampParserTest {
     final String timestamp = "1605-11-05 10:10:10:010";
 
     // When
-    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
     // Then
     assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER
@@ -83,7 +87,7 @@ public class StringToTimestampParserTest {
     final String timestamp = "1605-11-05 10:10:10:001000000";
 
     // When
-    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
     // Then
     assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER
@@ -100,7 +104,7 @@ public class StringToTimestampParserTest {
     final String timestamp = "1605-11-05";
 
     // When
-    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
     // Then
     assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER)));
@@ -113,7 +117,7 @@ public class StringToTimestampParserTest {
     final String timestamp = "1605-11-05 10";
 
     // When
-    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, GMT_3);
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, GMT_3);
 
     // Then
     assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER.withHour(10).withZoneSameLocal(GMT_3))));
@@ -128,7 +132,7 @@ public class StringToTimestampParserTest {
     final String timestamp = "1605-11-05 10 GMT+3 ";
 
     // When
-    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, IGNORED);
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, IGNORED);
 
     // Then
     assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER.withHour(10).withZoneSameLocal(GMT_3))));
@@ -141,10 +145,33 @@ public class StringToTimestampParserTest {
     final String timestamp = String.format("1605-%d 10", FIFTH_OF_NOVEMBER.getDayOfYear());
 
     // When
-    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
     // Then
     assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER.withHour(10))));
+  }
+
+  @Test
+  public void shouldParseLeapDay() {
+    // Given
+    final String format = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+    final String timestamp = "2012-12-31T23:59:58.660";
+
+    // When
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+
+    // Then
+    assertThat(ts, is(sameInstant(NEW_YEARS_EVE_2012)));
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowErrorForLeapDayWithoutYear() {
+    // Given
+    final String format = "DDD";
+    final String timestamp = "366";
+
+    // When
+    new StringToTimestampParser(format).parseZoned(timestamp, ZID);
   }
 
   @Test
@@ -154,7 +181,7 @@ public class StringToTimestampParserTest {
     final String timestamp = "";
 
     // When
-    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
     // Then
     assertThat(ts, is(sameInstant(EPOCH.withZoneSameInstant(ZID))));
@@ -167,7 +194,7 @@ public class StringToTimestampParserTest {
     final String timestamp = "2019";
 
     // When
-    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
     // Then
     assertThat(ts, is(sameInstant(EPOCH.withYear(2019).withZoneSameInstant(ZID))));
@@ -180,7 +207,7 @@ public class StringToTimestampParserTest {
     final String timestamp = "100";
 
     // When
-    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
     // Then
     assertThat(ts, is(sameInstant(EPOCH.withDayOfYear(100).withZoneSameInstant(ZID))));
@@ -189,15 +216,16 @@ public class StringToTimestampParserTest {
   private static Matcher<ZonedDateTime> sameInstant(final ZonedDateTime other) {
     return new TypeSafeMatcher<ZonedDateTime>() {
       @Override
-      protected boolean matchesSafely(ZonedDateTime item) {
+      protected boolean matchesSafely(final ZonedDateTime item) {
         return item.toInstant().equals(other.toInstant());
       }
 
       @Override
-      public void describeTo(Description description) {
+      public void describeTo(final Description description) {
         description.appendText(other.toString());
       }
     };
   }
 
 }
+

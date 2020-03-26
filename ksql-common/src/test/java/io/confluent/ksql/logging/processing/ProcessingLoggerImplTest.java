@@ -15,8 +15,9 @@
 
 package io.confluent.ksql.logging.processing;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,9 +28,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -50,9 +49,6 @@ public class ProcessingLoggerImplTest {
       = ArgumentCaptor.forClass(Supplier.class);
 
   private ProcessingLogger processingLogger;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setup() {
@@ -91,11 +87,15 @@ public class ProcessingLoggerImplTest {
     // Given:
     when(msg.schema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
 
-    // Then:
-    expectedException.expect(RuntimeException.class);
+    processingLogger.error(msgFactory);
+
+    verify(innerLogger).error(msgCaptor.capture());
+    final Supplier<SchemaAndValue> supplier = msgCaptor.getValue();
 
     // When:
-    processingLogger.error(msgFactory);
-    verifyErrorMessage();
+    assertThrows(
+        Exception.class,
+        supplier::get
+    );
   }
 }

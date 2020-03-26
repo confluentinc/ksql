@@ -15,8 +15,10 @@
 package io.confluent.ksql.ddl.commands;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,9 +29,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -41,9 +41,6 @@ public class RegisterTopicCommandTest {
 
   private static final String KSQL_TOPIC_NAME = "bob";
   private static final String KAFKA_TOPIC_NAME = "fred";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private MutableMetaStore metaStore;
@@ -74,11 +71,14 @@ public class RegisterTopicCommandTest {
     // Given:
     when(metaStore.getTopic(KSQL_TOPIC_NAME)).thenReturn(topic);
 
-    // Then:
-    expectedException.expectMessage("A topic with name 'bob' already exists");
-
     // When:
-    cmd.run(metaStore);
+    final RuntimeException e = assertThrows(
+        RuntimeException.class,
+        () -> cmd.run(metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("A topic with name 'bob' already exists"));
   }
 
   @Test

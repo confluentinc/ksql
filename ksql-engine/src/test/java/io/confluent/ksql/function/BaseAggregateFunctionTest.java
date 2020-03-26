@@ -15,39 +15,40 @@
 
 package io.confluent.ksql.function;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 
 public class BaseAggregateFunctionTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Supplier<Integer> initialValueSupplier;
 
   @Test
   public void shouldThrowOnNonOptionalReturnType() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("KSQL only supports optional field types");
-
     // When:
-    new TestAggFunc(
-        "funcName",
-        0,
-        initialValueSupplier,
-        Schema.INT32_SCHEMA, // <-- non-optional return type.
-        Collections.emptyList(),
-        "the description"
+    final IllegalArgumentException e = assertThrows(
+        (IllegalArgumentException.class),
+        () -> new TestAggFunc(
+            "funcName",
+            0,
+            initialValueSupplier,
+            Schema.INT32_SCHEMA, // <-- non-optional return type.
+            Collections.emptyList(),
+            "the description"
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("KSQL only supports optional field types"));
   }
 
   private static final class TestAggFunc extends BaseAggregateFunction<String, Integer> {

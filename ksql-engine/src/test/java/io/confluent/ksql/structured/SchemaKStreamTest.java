@@ -88,7 +88,6 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -635,7 +634,7 @@ public class SchemaKStreamTest {
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    Assert.assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
+    assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
     assertEquals(Arrays.asList(initialSchemaKStream, secondSchemaKStream),
                  joinedKStream.sourceSchemaKStreams);
   }

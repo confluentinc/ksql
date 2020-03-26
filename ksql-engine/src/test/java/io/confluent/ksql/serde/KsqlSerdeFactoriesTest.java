@@ -16,7 +16,9 @@
 package io.confluent.ksql.serde;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.ddl.DdlConfig;
@@ -29,18 +31,13 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlSerdeFactoriesTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private CreateSourceProperties statementProps;
@@ -59,12 +56,14 @@ public class KsqlSerdeFactoriesTest {
     // Given:
     when(statementProps.getValueAvroSchemaName()).thenReturn(Optional.of("vic"));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("VALUE_AVRO_SCHEMA_FULL_NAME is only valid for AVRO topics.");
-
     // When:
-    factory.create(Format.JSON, statementProps);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> factory.create(Format.JSON, statementProps)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("VALUE_AVRO_SCHEMA_FULL_NAME is only valid for AVRO topics."));
   }
 
   @Test
@@ -73,12 +72,14 @@ public class KsqlSerdeFactoriesTest {
     when(sinkProps.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME))
         .thenReturn(new StringLiteral("bob"));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("VALUE_AVRO_SCHEMA_FULL_NAME is only valid for AVRO topics.");
-
     // When:
-    factory.create(Format.DELIMITED, sinkProps);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> factory.create(Format.DELIMITED, sinkProps)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("VALUE_AVRO_SCHEMA_FULL_NAME is only valid for AVRO topics."));
   }
 
   @Test

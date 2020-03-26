@@ -16,14 +16,14 @@
 package io.confluent.ksql.rocksdb;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class KsqlBoundedMemoryRocksDBConfigTest {
 
@@ -31,8 +31,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
   private static final int NUM_BACKGROUND_THREADS = 4;
   private static final double INDEX_FILTER_BLOCK_RATIO = 0.1;
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+
 
   @Test
   public void shouldCreateConfig() {
@@ -65,13 +64,15 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
         "ksql.plugins.rocksdb.num.background.threads", NUM_BACKGROUND_THREADS
     );
 
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage(
-        "Missing required configuration \"ksql.plugins.rocksdb.total.memory\" which has no default value.");
-
     // When:
-    new KsqlBoundedMemoryRocksDBConfig(configs);
+    final ConfigException e = assertThrows(
+        (ConfigException.class),
+        () -> new KsqlBoundedMemoryRocksDBConfig(configs)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Missing required configuration \"ksql.plugins.rocksdb.total.memory\" which has no default value."));
   }
 
   @Test

@@ -16,12 +16,10 @@
 package io.confluent.ksql.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +27,6 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -57,8 +54,6 @@ public class RetryTest {
 
   @Rule
   public Retry retry = Retry.none();
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   public TimeUnit timeUnit;
@@ -100,21 +95,6 @@ public class RetryTest {
   }
 
   @Test
-  public void shouldFailOnSecondRetry() {
-    // Given:
-    test++;
-
-    // Expect:
-    if (test == 2) {
-      expectedException.expect(RetryException.class);
-      expectedException.expectMessage("2");
-    }
-
-    // When:
-    throw new RetryException(test);
-  }
-
-  @Test
   public void shouldOverrideRetryInBefore() {
     // Given:
     test++;
@@ -127,28 +107,21 @@ public class RetryTest {
     assertThat(test, equalTo(3));
   }
 
-  @Test
+  @Test(expected = RetryException.class)
   public void shouldOverrideRetryInBeforeAndFail() {
     // Given:
     test++;
     retry.upTo(0);
 
-    // Expect:
-    expectedException.expect(RetryException.class);
-
     // When:
     if (test == 1) throw new RetryException(test);
   }
 
-  @Test
+  @Test(expected = RetryException.class)
   public void shouldNotRetryTestsWithDifferingExceptions() {
     // Given:
     test++;
     retry.when(KsqlException.class);
-
-    // Expect:
-    expectedException.expect(RetryException.class);
-    expectedException.expectMessage("1");
 
     // When:
     throw new RetryException(test);
@@ -174,6 +147,12 @@ public class RetryTest {
   private static class RetryException extends RuntimeException {
     RetryException(final int attemptNumber) {
       super(String.valueOf(attemptNumber));
+    }
+  }
+
+  private static class RetryAgainException extends RetryException {
+    RetryAgainException(final int attemptNumber) {
+      super(attemptNumber);
     }
   }
 }

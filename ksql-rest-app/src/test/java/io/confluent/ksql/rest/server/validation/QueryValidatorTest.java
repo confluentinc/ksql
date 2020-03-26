@@ -19,8 +19,10 @@ import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessag
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
@@ -32,7 +34,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -40,29 +41,29 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryValidatorTest {
 
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldThrowExceptionOnQueryEndpoint() {
-    // Expect:
-    // Expect:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
-        "SELECT and PRINT queries must use the /query endpoint"))));
-    expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
-        "SELECT * FROM test_table"))));
-
     // When:
-    CustomValidators.QUERY_ENDPOINT.validate(
-        ConfiguredStatement.of(
-            PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
-            ImmutableMap.of(),
-            engine.getKsqlConfig()
-        ),
-        engine.getEngine(),
-        engine.getServiceContext()
+    final KsqlRestException e = assertThrows(
+        (KsqlRestException.class),
+        () -> CustomValidators.QUERY_ENDPOINT.validate(
+            ConfiguredStatement.of(
+                PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
+                ImmutableMap.of(),
+                engine.getKsqlConfig()
+            ),
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionStatementErrorMessage(errorMessage(containsString(
+        "SELECT and PRINT queries must use the /query endpoint"))));
+    assertThat(e, exceptionStatementErrorMessage(statement(containsString(
+        "SELECT * FROM test_table"))));
   }
 
 

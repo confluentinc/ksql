@@ -18,9 +18,11 @@ package io.confluent.ksql.analyzer;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -34,9 +36,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("unchecked")
 public class AggregateAnalyzerTest {
@@ -62,9 +62,6 @@ public class AggregateAnalyzerTest {
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private MutableAggregateAnalysis analysis;
   private AggregateAnalyzer analyzer;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() {
@@ -124,13 +121,15 @@ public class AggregateAnalyzerTest {
 
   @Test
   public void shouldThrowOnGroupByAggregateFunction() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "GROUP BY does not support aggregate functions: MAX is an aggregate function.");
-
     // When:
-    analyzer.processGroupBy(AGG_FUNCTION_CALL);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.processGroupBy(AGG_FUNCTION_CALL)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "GROUP BY does not support aggregate functions: MAX is an aggregate function."));
   }
 
   @Test
@@ -213,12 +212,14 @@ public class AggregateAnalyzerTest {
     final FunctionCall nestedCall = new FunctionCall(QualifiedName.of("MIN"),
         ImmutableList.of(AGG_FUNCTION_CALL, COL2));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Aggregate functions can not be nested: MIN(MAX())");
-
     // When:
-    analyzer.processSelect(nestedCall);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.processSelect(nestedCall)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Aggregate functions can not be nested: MIN(MAX())"));
   }
 
   @Test
@@ -227,12 +228,14 @@ public class AggregateAnalyzerTest {
     final FunctionCall nestedCall = new FunctionCall(QualifiedName.of("MIN"),
         ImmutableList.of(AGG_FUNCTION_CALL, COL2));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Aggregate functions can not be nested: MIN(MAX())");
-
     // When:
-    analyzer.processHaving(nestedCall);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.processHaving(nestedCall)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Aggregate functions can not be nested: MIN(MAX())"));
   }
 
   @Test

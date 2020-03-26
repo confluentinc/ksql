@@ -17,8 +17,10 @@ package io.confluent.ksql.rest.ssl;
 
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.collect.ImmutableMap;
@@ -32,14 +34,9 @@ import java.util.Optional;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SslUtilTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldNotLoadKeyStoreByDefault() {
@@ -100,12 +97,14 @@ public class SslUtilTest {
         RestConfig.SSL_KEYSTORE_LOCATION_CONFIG, "/will/not/find/me"
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to load keyStore: /will/not/find/me");
-
     // When:
-    SslUtil.loadKeyStore(props);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SslUtil.loadKeyStore(props)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to load keyStore: /will/not/find/me"));
   }
 
   @Test
@@ -115,12 +114,14 @@ public class SslUtilTest {
         RestConfig.SSL_TRUSTSTORE_LOCATION_CONFIG, "/will/not/find/me"
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to load keyStore: /will/not/find/me");
-
     // When:
-    SslUtil.loadTrustStore(props);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SslUtil.loadTrustStore(props)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to load keyStore: /will/not/find/me"));
   }
 
   @Test
@@ -133,14 +134,16 @@ public class SslUtilTest {
         "wrong!"
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to load keyStore:");
-    expectedException.expectCause(hasMessage(is(
-        "Keystore was tampered with, or password was incorrect")));
-
     // When:
-    SslUtil.loadKeyStore(props);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SslUtil.loadKeyStore(props)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to load keyStore:"));
+    assertThat(e.getCause(), hasMessage(is(
+        "Keystore was tampered with, or password was incorrect")));
   }
 
   @Test
@@ -153,14 +156,16 @@ public class SslUtilTest {
         "wrong!"
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to load keyStore:");
-    expectedException.expectCause(hasMessage(is(
-        "Keystore was tampered with, or password was incorrect")));
-
     // When:
-    SslUtil.loadTrustStore(props);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SslUtil.loadTrustStore(props)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to load keyStore:"));
+    assertThat(e.getCause(), hasMessage(is(
+        "Keystore was tampered with, or password was incorrect")));
   }
 
   @Test
@@ -215,13 +220,15 @@ public class SslUtilTest {
         RestConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "what?"
     );
 
-    // Then:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage(
-        "Invalid value what? for configuration ssl.endpoint.identification.algorithm: Not supported");
-
     // When:
-    SslUtil.getHostNameVerifier(props);
+    final ConfigException e = assertThrows(
+        ConfigException.class,
+        () -> SslUtil.getHostNameVerifier(props)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid value what? for configuration ssl.endpoint.identification.algorithm: Not supported"));
   }
 
   private static String keyStoreProp(final String config) {

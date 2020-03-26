@@ -16,9 +16,11 @@
 package io.confluent.ksql.serde.avro;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -47,9 +49,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -89,10 +89,6 @@ public class KsqlAvroDeserializerTest {
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.singletonMap(
           KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "fake-schema-registry-url"));
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
 
   private SchemaRegistryClient schemaRegistryClient;
   private AvroConverter converter;
@@ -632,12 +628,14 @@ public class KsqlAvroDeserializerTest {
 
   @Test
   public void shouldThrowIfTopLevelNotStruct() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("KSQL expects all top level schemas to be STRUCTs");
-
     // When:
-    deserializer(Schema.OPTIONAL_INT64_SCHEMA);
+    final IllegalArgumentException e = assertThrows(
+        (IllegalArgumentException.class),
+        () -> deserializer(Schema.OPTIONAL_INT64_SCHEMA)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("KSQL expects all top level schemas to be STRUCTs"));
   }
 
   private byte[] serializeAsBinaryAvro(

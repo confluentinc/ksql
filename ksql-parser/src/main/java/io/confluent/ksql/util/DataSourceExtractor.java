@@ -176,7 +176,7 @@ public class DataSourceExtractor {
       final AliasedRelation left = (AliasedRelation) visit(context.left);
       leftAlias = left.getAlias();
       leftName = ((Table) left.getRelation()).getName().getSuffix();
-      final DataSource
+      final DataSource<?>
           leftDataSource =
           metaStore.getSource(((Table) left.getRelation()).getName().getSuffix());
       if (leftDataSource == null) {
@@ -188,7 +188,7 @@ public class DataSourceExtractor {
       final AliasedRelation right = (AliasedRelation) visit(context.right);
       rightAlias = right.getAlias();
       rightName = ((Table) right.getRelation()).getName().getSuffix();
-      final DataSource
+      final DataSource<?>
           rightDataSource =
           metaStore.getSource(((Table) right.getRelation()).getName().getSuffix());
       if (rightDataSource == null) {

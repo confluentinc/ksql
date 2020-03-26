@@ -16,7 +16,9 @@
 package io.confluent.ksql.rocksdb;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,9 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.Map;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -71,8 +71,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
   private KsqlBoundedMemoryRocksDBConfigSetter rocksDBConfig;
   private KsqlBoundedMemoryRocksDBConfigSetter secondRocksDBConfig;
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+
 
   @Before
   public void setUp() {
@@ -88,13 +87,15 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
 
   @Test
   public void shouldFailWithoutConfigure() {
-    // Expect:
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage(
-        "Cannot use KsqlBoundedMemoryRocksDBConfigSetter before it's been configured.");
-
     // When:
-    rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());
+    final IllegalStateException e = assertThrows(
+        (IllegalStateException.class),
+        () -> rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot use KsqlBoundedMemoryRocksDBConfigSetter before it's been configured."));
   }
 
   @Test
@@ -102,13 +103,15 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
     // Given:
     rocksDBConfig.configure(CONFIG_PROPS);
 
-    // Expect:
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage(
-        "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure.");
-
     // When:
-    rocksDBConfig.configure(CONFIG_PROPS);
+    final IllegalStateException e = assertThrows(
+        (IllegalStateException.class),
+        () -> rocksDBConfig.configure(CONFIG_PROPS)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure."));
   }
 
   @Test
@@ -116,13 +119,15 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
     // Given:
     rocksDBConfig.configure(CONFIG_PROPS);
 
-    // Expect:
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage(
-        "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure.");
-
     // When:
-    secondRocksDBConfig.configure(CONFIG_PROPS);
+    final IllegalStateException e = assertThrows(
+        (IllegalStateException.class),
+        () -> secondRocksDBConfig.configure(CONFIG_PROPS)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure."));
   }
 
   @Test

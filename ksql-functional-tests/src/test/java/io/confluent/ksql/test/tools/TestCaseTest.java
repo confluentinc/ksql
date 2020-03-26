@@ -17,6 +17,8 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -40,9 +42,7 @@ import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.TopologyTestDriver;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -53,8 +53,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TestCaseTest {
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+
 
   private final SerdeSupplier serdeSupplier = new StringSerdeSupplier();
   private final Topic topic = new Topic("foo_kafka", Optional.empty(), serdeSupplier, 4, 1);
@@ -139,16 +138,16 @@ public class TestCaseTest {
     when(topologyTestDriver.readOutput(any(), any(), any()))
         .thenReturn(new ProducerRecord<>("bar_kafka", 1, 123456789L, "k12", "v1, v2"));
 
-    // Expect
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage("TestCase name: test in file: null failed while processing output row 0 topic: "
-        + "foo_kafka due to: Expected <k1, v1, v2> with timestamp=123456789 "
-        + "but was <k12, v1, v2> with timestamp=123456789");
-
-
     // When:
-    testCase.verifyOutput(topologyTestDriverContainer, null);
+    final AssertionError e = assertThrows(
+        (AssertionError.class),
+        () -> testCase.verifyOutput(topologyTestDriverContainer, null)
+    );
 
+    // Expect
+    assertThat(e.getMessage(), containsString("TestCase name: test in file: null failed while processing output row 0 topic: "
+        + "foo_kafka due to: Expected <k1, v1, v2> with timestamp=123456789 "
+        + "but was <k12, v1, v2> with timestamp=123456789"));
   }
 
   @Test
@@ -211,15 +210,17 @@ public class TestCaseTest {
         "Test_topology1", Optional.empty(), Optional.empty());
     testCase.setExpectedTopology(topologyAndConfigs);
 
+    // When:
+    final AssertionError e = assertThrows(
+        (AssertionError.class),
+        () -> testCase.verifyTopology()
+    );
+
     // Then:
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage("Generated topology differs from that built by previous versions of KSQL - this likely means there is a non-backwards compatible change.\n"
+    assertThat(e.getMessage(), containsString("Generated topology differs from that built by previous versions of KSQL - this likely means there is a non-backwards compatible change.\n"
         + "THIS IS BAD!\n"
         + "Expected: is \"Test_topology1\"\n"
-        + "     but: was \"Test_topology\"");
-
-    // When:
-    testCase.verifyTopology();
+        + "     but: was \"Test_topology\""));
   }
 
   private TopologyTestDriverContainer getSampleTopologyTestDriverContainer() {

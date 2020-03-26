@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -30,7 +33,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -38,24 +40,25 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TerminateQueryValidatorTest {
 
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldFailOnTerminateUnknownQueryId() {
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Unknown queryId");
-
     // When:
-    CustomValidators.TERMINATE_QUERY.validate(
-        ConfiguredStatement.of(
-            PreparedStatement.of("", new TerminateQuery("id")),
-            ImmutableMap.of(),
-            engine.getKsqlConfig()
-        ),
-        engine.getEngine(),
-        engine.getServiceContext()
+    final KsqlStatementException e = assertThrows(
+        (KsqlStatementException.class),
+        () -> CustomValidators.TERMINATE_QUERY.validate(
+            ConfiguredStatement.of(
+                PreparedStatement.of("", new TerminateQuery("id")),
+                ImmutableMap.of(),
+                engine.getKsqlConfig()
+            ),
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown queryId"));
   }
 
   @Test

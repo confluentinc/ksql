@@ -15,8 +15,10 @@
 package io.confluent.ksql.ddl.commands;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,11 +28,11 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
@@ -42,9 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -56,8 +56,6 @@ public class CreateSourceCommandTest {
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
       new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
   @Mock
   private CreateSource statement;
   @Mock
@@ -80,13 +78,14 @@ public class CreateSourceCommandTest {
     // Given:
     when(statement.getElements()).thenReturn(Collections.emptyList());
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "The statement does not define any columns.");
-
     // When:
-    new TestCmd("look mum, no columns", statement, ksqlConfig, kafkaTopicClient);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new TestCmd("look mum, no columns", statement, ksqlConfig, kafkaTopicClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The statement does not define any columns."));
   }
 
   @Test
@@ -105,12 +104,14 @@ public class CreateSourceCommandTest {
     // Given:
     when(kafkaTopicClient.isTopicExists(any())).thenReturn(false);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Kafka topic does not exist: " + TOPIC_NAME);
-
     // When:
-    new TestCmd("what, no value topic?", statement, ksqlConfig, kafkaTopicClient);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new TestCmd("what, no value topic?", statement, ksqlConfig, kafkaTopicClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Kafka topic does not exist: " + TOPIC_NAME));
   }
 
   @Test
@@ -131,14 +132,16 @@ public class CreateSourceCommandTest {
     givenPropertiesWith(ImmutableMap.of(
         DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "The KEY column set in the WITH clause does not exist in the schema: "
-            + "'WILL-NOT-FIND-ME'");
-
     // When:
-    new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The KEY column set in the WITH clause does not exist in the schema: "
+            + "'WILL-NOT-FIND-ME'"));
   }
 
   @Test
@@ -148,14 +151,16 @@ public class CreateSourceCommandTest {
     givenPropertiesWith(ImmutableMap.of(
         DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "The TIMESTAMP column set in the WITH clause does not exist in the schema: "
-            + "'WILL-NOT-FIND-ME'");
-
     // When:
-    new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The TIMESTAMP column set in the WITH clause does not exist in the schema: "
+            + "'WILL-NOT-FIND-ME'"));
   }
 
   private static Map<String, Literal> minValidProps() {

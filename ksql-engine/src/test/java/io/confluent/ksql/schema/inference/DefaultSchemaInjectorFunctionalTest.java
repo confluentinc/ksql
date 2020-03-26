@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.inference;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -34,7 +35,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -470,7 +470,7 @@ public class DefaultSchemaInjectorFunctionalTest {
 
     final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);
 
-    Assert.assertThat(actual, equalTo(expectedKqlSchema));
+    assertThat(actual, equalTo(expectedKqlSchema));
   }
 
   private static Schema getSchemaForDdlStatement(final CreateSource statement) {

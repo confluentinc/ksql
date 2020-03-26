@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.structured;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.GenericRow;

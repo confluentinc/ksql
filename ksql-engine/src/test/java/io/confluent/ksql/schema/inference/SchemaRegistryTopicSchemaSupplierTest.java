@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
@@ -35,9 +36,7 @@ import java.util.function.Function;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -49,9 +48,6 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   private static final String TOPIC_NAME = "some-topic";
   private static final int SCHEMA_ID = 12;
   private static final String AVRO_SCHEMA = "{use your imagination}";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SchemaRegistryClient srClient;
@@ -131,13 +127,15 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(srClient.getLatestSchemaMetadata(any()))
         .thenThrow(new RestClientException("failure", 1, 1));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema registry fetch for topic "
-        + TOPIC_NAME + " request failed.");
-
     // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.empty());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Schema registry fetch for topic "
+        + TOPIC_NAME + " request failed."));
   }
 
   @Test
@@ -146,13 +144,15 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(srClient.getSchemaMetadata(any(), anyInt()))
         .thenThrow(new RestClientException("failure", 1, 1));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema registry fetch for topic "
-        + TOPIC_NAME + " request failed.");
-
     // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.of(42));
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.of(42))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Schema registry fetch for topic "
+        + TOPIC_NAME + " request failed."));
   }
 
   @Test
@@ -161,13 +161,15 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(srClient.getLatestSchemaMetadata(any()))
         .thenThrow(new IOException("boom"));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema registry fetch for topic "
-        + TOPIC_NAME + " request failed.");
-
     // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.empty());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Schema registry fetch for topic "
+        + TOPIC_NAME + " request failed."));
   }
 
   @Test
@@ -176,13 +178,15 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(srClient.getSchemaMetadata(any(), anyInt()))
         .thenThrow(new IOException("boom"));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema registry fetch for topic "
-        + TOPIC_NAME + " request failed.");
-
     // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.of(42));
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.of(42))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Schema registry fetch for topic "
+        + TOPIC_NAME + " request failed."));
   }
 
   @Test

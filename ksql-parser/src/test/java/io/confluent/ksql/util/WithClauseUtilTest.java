@@ -1,19 +1,17 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class WithClauseUtilTest {
-
-  @Rule public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldParseIntLiteralPartitions() {
@@ -56,12 +54,14 @@ public class WithClauseUtilTest {
     // Given:
     final Expression expression = new StringLiteral("not a number");
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid number of partitions in WITH clause");
-
     // When:
-    WithClauseUtil.parsePartitions(expression.toString());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> WithClauseUtil.parsePartitions(expression.toString())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid number of partitions in WITH clause"));
   }
 
   @Test
@@ -69,13 +69,16 @@ public class WithClauseUtilTest {
     // Given:
     final Expression expression = new StringLiteral("0.5");
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid number of partitions in WITH clause");
-
     // When:
-    WithClauseUtil.parsePartitions(expression.toString());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> WithClauseUtil.parsePartitions(expression.toString())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid number of partitions in WITH clause"));
+
   }
 
   @Test
@@ -83,13 +86,15 @@ public class WithClauseUtilTest {
     // Given:
     final Expression expression = new IntegerLiteral(-1);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid number of partitions in WITH clause (must be positive)");
-
     // When:
-    WithClauseUtil.parsePartitions(expression.toString());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> WithClauseUtil.parsePartitions(expression.toString())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid number of partitions in WITH clause (must be positive)"));
   }
 
   @Test
@@ -97,13 +102,15 @@ public class WithClauseUtilTest {
     // Given:
     final Expression expression = new IntegerLiteral(0);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid number of partitions in WITH clause (must be positive)");
-
     // When:
-    WithClauseUtil.parsePartitions(expression.toString());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> WithClauseUtil.parsePartitions(expression.toString())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid number of partitions in WITH clause (must be positive)"));
   }
 
   @Test
@@ -111,13 +118,15 @@ public class WithClauseUtilTest {
     // Given:
     final Expression expression = new StringLiteral("9999999999999999999999");
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid number of partitions in WITH clause");
-
     // When:
-    WithClauseUtil.parsePartitions(expression.toString());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> WithClauseUtil.parsePartitions(expression.toString())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid number of partitions in WITH clause"));
   }
 
   @Test
@@ -161,12 +170,14 @@ public class WithClauseUtilTest {
     // Given:
     final Expression expression = new StringLiteral("not a number");
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid number of replicas in WITH clause");
-
     // When:
-    WithClauseUtil.parseReplicas(expression.toString());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> WithClauseUtil.parseReplicas(expression.toString())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid number of replicas in WITH clause"));
   }
 
   @Test
@@ -174,13 +185,15 @@ public class WithClauseUtilTest {
     // Given:
     final Expression expression = new StringLiteral("0.5");
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid number of replicas in WITH clause");
-
     // When:
-    WithClauseUtil.parseReplicas(expression.toString());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> WithClauseUtil.parseReplicas(expression.toString())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid number of replicas in WITH clause"));
   }
 
   @Test
@@ -188,13 +201,15 @@ public class WithClauseUtilTest {
     // Given:
     final Expression expression = new IntegerLiteral(0);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid number of replicas in WITH clause (must be positive)");
-
     // When:
-    WithClauseUtil.parseReplicas(expression.toString());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> WithClauseUtil.parseReplicas(expression.toString())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid number of replicas in WITH clause (must be positive)"));
   }
 
   @Test
@@ -202,13 +217,15 @@ public class WithClauseUtilTest {
     // Given:
     final Expression expression = new IntegerLiteral(-1);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid number of replicas in WITH clause (must be positive)");
-
     // When:
-    WithClauseUtil.parseReplicas(expression.toString());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> WithClauseUtil.parseReplicas(expression.toString())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid number of replicas in WITH clause (must be positive)"));
   }
 
   @Test
@@ -216,13 +233,15 @@ public class WithClauseUtilTest {
     // Given:
     final Expression expression = new StringLiteral("9999999999999999999999");
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid number of replicas in WITH clause");
-
     // When:
-    WithClauseUtil.parseReplicas(expression.toString());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> WithClauseUtil.parseReplicas(expression.toString())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid number of replicas in WITH clause"));
   }
 
 }

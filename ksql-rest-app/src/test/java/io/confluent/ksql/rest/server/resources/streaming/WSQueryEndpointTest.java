@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -71,9 +71,9 @@ import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
+import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.KafkaClientSupplier;
-import javax.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -19,6 +19,7 @@ import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.TestFunctionRegistry;
@@ -29,14 +30,9 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SqlToJavaVisitorTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private MetaStore metaStore;
   private SqlToJavaVisitor sqlToJavaVisitor;
@@ -252,11 +248,11 @@ public class SqlToJavaVisitorTest {
 
     final Expression decimal = analysis.getSelectExpressions().get(0);
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(decimal);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(decimal)
+    );
   }
 
   @Test
@@ -267,11 +263,11 @@ public class SqlToJavaVisitorTest {
 
     final Expression where = analysis.getWhereExpression();
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(where);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(where)
+    );
   }
 
   @Test
@@ -282,10 +278,10 @@ public class SqlToJavaVisitorTest {
 
     final Expression decimal = analysis.getWhereExpression();
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(decimal);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(decimal)
+    );
   }
 }

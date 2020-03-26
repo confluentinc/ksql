@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
@@ -25,16 +27,13 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Optional;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
 import org.apache.kafka.streams.processor.UsePreviousTimeOnInvalidTimestamp;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TimestampExtractionPolicyFactoryTest {
 
@@ -43,9 +42,6 @@ public class TimestampExtractionPolicyFactoryTest {
       .field("id", Schema.OPTIONAL_INT64_SCHEMA);
 
   private KsqlConfig ksqlConfig;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setup() {
@@ -76,19 +72,21 @@ public class TimestampExtractionPolicyFactoryTest {
         this.getClass()
     ));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "cannot be cast to org.apache.kafka.streams.processor.TimestampExtractor");
-
     // When:
-    TimestampExtractionPolicyFactory
-        .create(
-            ksqlConfig,
-            KsqlSchema.of(schemaBuilder.build()),
-            Optional.empty(),
-            Optional.empty()
-        );
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> TimestampExtractionPolicyFactory
+            .create(
+                ksqlConfig,
+                KsqlSchema.of(schemaBuilder.build()),
+                Optional.empty(),
+                Optional.empty()
+            )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "cannot be cast to org.apache.kafka.streams.processor.TimestampExtractor"));
   }
 
   @Test
@@ -146,12 +144,8 @@ public class TimestampExtractionPolicyFactoryTest {
     assertThat(result.timestampField(), equalTo(timestamp.toUpperCase()));
   }
 
-  @Test
+  @Test(expected = KsqlException.class)
   public void shouldFailIfCantFindTimestampField() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-
-    // When:
     TimestampExtractionPolicyFactory
         .create(
             ksqlConfig,
@@ -186,12 +180,12 @@ public class TimestampExtractionPolicyFactoryTest {
         .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-
     // When:
-    TimestampExtractionPolicyFactory
-        .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(field), Optional.empty());
+    assertThrows(
+        KsqlException.class,
+        () -> TimestampExtractionPolicyFactory
+            .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(field), Optional.empty())
+    );
   }
 
   @Test
@@ -202,12 +196,12 @@ public class TimestampExtractionPolicyFactoryTest {
         .field(timestamp.toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-
     // When:
-    TimestampExtractionPolicyFactory
-        .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(timestamp), Optional.of("b"));
+    assertThrows(
+        KsqlException.class,
+        () -> TimestampExtractionPolicyFactory
+        .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(timestamp), Optional.of("b"))
+    );
   }
 
   @Test
@@ -218,11 +212,11 @@ public class TimestampExtractionPolicyFactoryTest {
         .field(field.toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-
     // When:
-    TimestampExtractionPolicyFactory
-        .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(field), Optional.empty());
+    assertThrows(
+        KsqlException.class,
+        () -> TimestampExtractionPolicyFactory
+        .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(field), Optional.empty())
+    );
   }
 }

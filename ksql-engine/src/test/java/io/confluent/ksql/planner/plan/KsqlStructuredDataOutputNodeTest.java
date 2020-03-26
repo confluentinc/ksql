@@ -63,9 +63,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -84,9 +82,6 @@ public class KsqlStructuredDataOutputNodeTest {
   private static final String SOURCE_KAFKA_TOPIC_NAME = "input_kafka";
   private static final String SINK_TOPIC_NAME = "output";
   private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)

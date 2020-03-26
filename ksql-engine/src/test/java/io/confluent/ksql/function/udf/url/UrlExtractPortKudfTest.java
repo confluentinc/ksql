@@ -17,19 +17,16 @@ package io.confluent.ksql.function.udf.url;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class UrlExtractPortKudfTest {
 
   private UrlExtractPortKudf extractUdf;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -52,12 +49,13 @@ public class UrlExtractPortKudfTest {
 
   @Test
   public void shouldThrowExceptionForMalformedURL() {
-    // Given:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("URL input has invalid syntax: http://257.1/bogus/[url");
-
     // When:
-    extractUdf.extractPort("http://257.1/bogus/[url");
-  }
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> extractUdf.extractPort("http://257.1/bogus/[url")
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("URL input has invalid syntax: http://257.1/bogus/[url"));
+  }
 }

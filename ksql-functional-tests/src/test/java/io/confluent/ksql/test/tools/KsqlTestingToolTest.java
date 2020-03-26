@@ -17,6 +17,7 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -27,9 +28,7 @@ import java.io.UnsupportedEncodingException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class KsqlTestingToolTest {
 
@@ -41,8 +40,7 @@ public class KsqlTestingToolTest {
   private final static String CORRECT_TESTS_FOLDER = "src/test/resources/test-runner/correct/";
   private final static String INCORRECT_TESTS_FOLDER = "src/test/resources/test-runner/incorrect";
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+
 
   @Before
   public void setUpStreams() throws UnsupportedEncodingException {
@@ -108,59 +106,63 @@ public class KsqlTestingToolTest {
 
   @Test
   public void shouldFailWithIncorrectInputFormat() throws Exception {
-    // Given:
-    expectedException.expect(Exception.class);
-    expectedException.expectMessage("File name: " + INCORRECT_TESTS_FOLDER + "/incorrect_input_format/input.json Message: Unexpected character ('{' (code 123)): was expecting double-quote to start field name");
-
     // When:
-    KsqlTestingTool.runWithTripleFiles(
+    final Exception e = assertThrows(
+        (Exception.class),
+        () -> KsqlTestingTool.runWithTripleFiles(
         INCORRECT_TESTS_FOLDER + "/incorrect_input_format/statements.sql",
         INCORRECT_TESTS_FOLDER + "/incorrect_input_format/input.json",
-        INCORRECT_TESTS_FOLDER + "/incorrect_input_format/output.json");
+        INCORRECT_TESTS_FOLDER + "/incorrect_input_format/output.json")
+    );
 
+    // Given:
+    assertThat(e.getMessage(), containsString("File name: " + INCORRECT_TESTS_FOLDER + "/incorrect_input_format/input.json Message: Unexpected character ('{' (code 123)): was expecting double-quote to start field name"));
   }
 
 
   @Test
   public void shouldFailWithOutputFileMissingField() throws Exception {
-    // Given:
-    expectedException.expect(Exception.class);
-    expectedException.expectMessage("Message: Cannot construct instance of `io.confluent.ksql.test.model.OutputRecordsNode`, problem: No 'outputs' field in the output file.");
-
     // When:
-    KsqlTestingTool.runWithTripleFiles(
-        INCORRECT_TESTS_FOLDER + "/missing_field_in_output/statements.sql",
-        INCORRECT_TESTS_FOLDER + "/missing_field_in_output/input.json",
-        INCORRECT_TESTS_FOLDER + "/missing_field_in_output/output.json");
+    final Exception e = assertThrows(
+        (Exception.class),
+        () -> KsqlTestingTool.runWithTripleFiles(
+            INCORRECT_TESTS_FOLDER + "/missing_field_in_output/statements.sql",
+            INCORRECT_TESTS_FOLDER + "/missing_field_in_output/input.json",
+            INCORRECT_TESTS_FOLDER + "/missing_field_in_output/output.json")
+    );
 
+    // Given:
+    assertThat(e.getMessage(), containsString("Message: Cannot construct instance of `io.confluent.ksql.test.model.OutputRecordsNode`, problem: No 'outputs' field in the output file."));
   }
 
   @Test
   public void shouldFailWithEmptyInput() throws Exception {
-    // Given:
-    expectedException.expect(Exception.class);
-    expectedException.expectMessage("File name: " + INCORRECT_TESTS_FOLDER + "/empty_input/input.json Message: Cannot construct instance of `io.confluent.ksql.test.model.InputRecordsNode`, problem: Inputs cannot be empty.");
-
     // When:
-    KsqlTestingTool.runWithTripleFiles(
-        INCORRECT_TESTS_FOLDER + "/empty_input/statements.sql",
-        INCORRECT_TESTS_FOLDER + "/empty_input/input.json",
-        INCORRECT_TESTS_FOLDER + "/empty_input/output.json");
+    final Exception e = assertThrows(
+        (Exception.class),
+        () -> KsqlTestingTool.runWithTripleFiles(
+            INCORRECT_TESTS_FOLDER + "/empty_input/statements.sql",
+            INCORRECT_TESTS_FOLDER + "/empty_input/input.json",
+            INCORRECT_TESTS_FOLDER + "/empty_input/output.json")
+    );
 
+    // Given:
+    assertThat(e.getMessage(), containsString("File name: " + INCORRECT_TESTS_FOLDER + "/empty_input/input.json Message: Cannot construct instance of `io.confluent.ksql.test.model.InputRecordsNode`, problem: Inputs cannot be empty."));
   }
 
   @Test
   public void shouldFailWithEmptyOutput() throws Exception {
-    // Given:
-    expectedException.expect(Exception.class);
-    expectedException.expectMessage("File name: " + INCORRECT_TESTS_FOLDER + "/empty_output/output.json Message: Cannot construct instance of `io.confluent.ksql.test.model.OutputRecordsNode`, problem: Outputs cannot be empty.");
-
     // When:
-    KsqlTestingTool.runWithTripleFiles(
-        INCORRECT_TESTS_FOLDER + "/empty_output/statements.sql",
-        INCORRECT_TESTS_FOLDER + "/empty_output/input.json",
-        INCORRECT_TESTS_FOLDER + "/empty_output/output.json");
+    final Exception e = assertThrows(
+        (Exception.class),
+        () -> KsqlTestingTool.runWithTripleFiles(
+            INCORRECT_TESTS_FOLDER + "/empty_output/statements.sql",
+            INCORRECT_TESTS_FOLDER + "/empty_output/input.json",
+            INCORRECT_TESTS_FOLDER + "/empty_output/output.json")
+    );
 
+    // Given:
+    assertThat(e.getMessage(), containsString("File name: " + INCORRECT_TESTS_FOLDER + "/empty_output/output.json Message: Cannot construct instance of `io.confluent.ksql.test.model.OutputRecordsNode`, problem: Outputs cannot be empty."));
   }
 
   private void runTestCaseAndAssertPassed(

@@ -20,11 +20,12 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -86,18 +87,12 @@ import org.hamcrest.TypeSafeMatcher;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 
 public class KsqlParserTest {
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   private MutableMetaStore metaStore;
-
 
   @Before
   public void init() {
@@ -428,20 +423,28 @@ public class KsqlParserTest {
 
   @Test
   public void testReservedRowTimeAlias() {
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage(containsString(
-        "ROWTIME is a reserved token for implicit column. You cannot use it as an alias for a column."));
+    // When:
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.buildSingleAst("SELECT C1 as ROWTIME FROM test1 t1;", metaStore)
+    );
 
-    KsqlParserTestUtil.buildSingleAst("SELECT C1 as ROWTIME FROM test1 t1;", metaStore);
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "ROWTIME is a reserved token for implicit column. You cannot use it as an alias for a column."));
   }
 
   @Test
   public void testReservedRowKeyAlias() {
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage(containsString(
-        "ROWKEY is a reserved token for implicit column. You cannot use it as an alias for a column."));
+    // When:
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.buildSingleAst("SELECT C2 as ROWKEY FROM test1 t1;", metaStore)
+    );
 
-    KsqlParserTestUtil.buildSingleAst("SELECT C2 as ROWKEY FROM test1 t1;", metaStore);
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "ROWKEY is a reserved token for implicit column. You cannot use it as an alias for a column."));
   }
 
   @Test
@@ -710,7 +713,7 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof ListStreams);
     final ListStreams listStreams = (ListStreams) statement;
     assertThat(listStreams.toString(), is("ListStreams{showExtended=false}"));
-    Assert.assertThat(listStreams.getShowExtended(), is(false));
+    assertThat(listStreams.getShowExtended(), is(false));
   }
 
   @Test
@@ -720,7 +723,7 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof ListTables);
     final ListTables listTables = (ListTables) statement;
     assertThat(listTables.toString(), is("ListTables{showExtended=false}"));
-    Assert.assertThat(listTables.getShowExtended(), is(false));
+    assertThat(listTables.getShowExtended(), is(false));
   }
 
   @Test
@@ -728,9 +731,9 @@ public class KsqlParserTest {
     final String statementString = "SHOW QUERIES;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
-    Assert.assertThat(statement, instanceOf(ListQueries.class));
+    assertThat(statement, instanceOf(ListQueries.class));
     final ListQueries listQueries = (ListQueries)statement;
-    Assert.assertThat(listQueries.getShowExtended(), is(false));
+    assertThat(listQueries.getShowExtended(), is(false));
   }
 
   @Test
@@ -833,9 +836,9 @@ public class KsqlParserTest {
     final String statementString = "SHOW STREAMS EXTENDED;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
-    Assert.assertThat(statement, instanceOf(ListStreams.class));
+    assertThat(statement, instanceOf(ListStreams.class));
     final ListStreams listStreams = (ListStreams)statement;
-    Assert.assertThat(listStreams.getShowExtended(), is(true));
+    assertThat(listStreams.getShowExtended(), is(true));
   }
 
   @Test
@@ -843,9 +846,9 @@ public class KsqlParserTest {
     final String statementString = "SHOW TABLES EXTENDED;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
-    Assert.assertThat(statement, instanceOf(ListTables.class));
+    assertThat(statement, instanceOf(ListTables.class));
     final ListTables listTables = (ListTables)statement;
-    Assert.assertThat(listTables.getShowExtended(), is(true));
+    assertThat(listTables.getShowExtended(), is(true));
   }
 
   @Test
@@ -853,9 +856,9 @@ public class KsqlParserTest {
     final String statementString = "SHOW QUERIES EXTENDED;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
-    Assert.assertThat(statement, instanceOf(ListQueries.class));
+    assertThat(statement, instanceOf(ListQueries.class));
     final ListQueries listQueries = (ListQueries)statement;
-    Assert.assertThat(listQueries.getShowExtended(), is(true));
+    assertThat(listQueries.getShowExtended(), is(true));
   }
   
   private void assertQuerySucceeds(final String sql) {
@@ -1101,29 +1104,36 @@ public class KsqlParserTest {
 
   @Test
   public void testSelectWithOnlyColumns() {
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage("line 1:21: extraneous input ';' expecting {',', 'FROM'}");
-
     final String simpleQuery = "SELECT ONLY, COLUMNS;";
-    KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
+
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+    );
+
+    assertThat(e.getMessage(), containsString("line 1:21: extraneous input ';' expecting {',', 'FROM'}"));
   }
 
   @Test
   public void testSelectWithMissingComma() {
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage(containsString("line 1:12: extraneous input 'C' expecting"));
-
     final String simpleQuery = "SELECT A B C FROM address;";
-    KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+    );
+
+    assertThat(e.getMessage(), containsString("line 1:12: extraneous input 'C' expecting"));
   }
 
   @Test
   public void testSelectWithMultipleFroms() {
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage(containsString("line 1:22: mismatched input ',' expecting"));
-
     final String simpleQuery = "SELECT * FROM address, itemid;";
-    KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+    );
+
+    assertThat(e.getMessage(), containsString("line 1:22: mismatched input ',' expecting"));
   }
 
   @Test
@@ -1213,12 +1223,15 @@ public class KsqlParserTest {
   // https://github.com/confluentinc/ksql/issues/2287
   @Test
   public void shouldThrowHelpfulErrorMessageIfKeyFieldNotQuoted() {
-    // Then:
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage("mismatched input 'ID'");
-
     // When:
-    KsqlParserTestUtil.buildSingleAst("CREATE STREAM S (ID INT) WITH (KEY=ID);", metaStore);
+    final ParseFailedException e = assertThrows(
+        (ParseFailedException.class),
+        () -> KsqlParserTestUtil
+            .buildSingleAst("CREATE STREAM S (ID INT) WITH (KEY=ID);", metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("mismatched input 'ID'"));
   }
 
   private static SearchedCaseExpression getSearchedCaseExpressionFromCsas(final Statement statement) {

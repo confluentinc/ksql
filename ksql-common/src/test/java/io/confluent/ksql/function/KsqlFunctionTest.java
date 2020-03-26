@@ -15,14 +15,16 @@
 
 package io.confluent.ksql.function;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
+
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -30,30 +32,28 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlFunctionTest {
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Mock
   private Function<KsqlConfig, Kudf> udfFactory;
 
   @Test
   public void shouldThrowOnNonOptionalReturnType() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("KSQL only supports optional field types");
-
     // When:
-    KsqlFunction.create(
-        Schema.INT32_SCHEMA, // <-- non-optional return type.
-        Collections.emptyList(),
-        "funcName",
-        MyUdf.class,
-        udfFactory,
-        "the description",
-        "path/udf/loaded/from.jar",
-        false
-
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> KsqlFunction.create(
+            Schema.INT32_SCHEMA, // <-- non-optional return type.
+            Collections.emptyList(),
+            "funcName",
+            MyUdf.class,
+            udfFactory,
+            "the description",
+            "path/udf/loaded/from.jar",
+            false
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("KSQL only supports optional field types"));
   }
 
   private static final class MyUdf implements Kudf {

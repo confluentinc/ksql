@@ -15,8 +15,10 @@
 package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -44,9 +46,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -64,9 +64,6 @@ public class DistributingExecutorTest {
           ImmutableMap.of(),
           KSQL_CONFIG
       );
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Mock CommandQueue queue;
   @Mock QueuedCommandStatus status;
@@ -143,14 +140,16 @@ public class DistributingExecutorTest {
             ImmutableMap.of(),
             KSQL_CONFIG);
 
-    // Expect:
-    expectedException.expect(KsqlServerException.class);
-    expectedException.expectMessage(
-        "Could not write the statement 'x' into the command topic: fail");
-    expectedException.expectCause(is(cause));
-
     // When:
-    distributor.execute(configured, null, serviceContext);
+    final KsqlServerException e = assertThrows(
+        (KsqlServerException.class),
+        () -> distributor.execute(configured, null, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not write the statement 'x' into the command topic: fail"));
+    assertThat(e.getCause(), (is(cause)));
   }
 
   @Test
@@ -162,12 +161,14 @@ public class DistributingExecutorTest {
         ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
     when(schemaInjector.inject(any())).thenThrow(new KsqlException("Could not infer!"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not infer!");
-
     // When:
-    distributor.execute(configured, null, serviceContext);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> distributor.execute(configured, null, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not infer!"));
   }
 
 }

@@ -24,6 +24,7 @@ import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -136,7 +137,7 @@ public class SchemaKGroupedTableTest {
         processingLogContext);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         rowSerde, groupByExpressions, queryContext);
-    Assert.assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
+    assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
     return (SchemaKGroupedTable)groupedSchemaKTable;
   }
 
@@ -166,7 +167,7 @@ public class SchemaKGroupedTableTest {
       );
       Assert.fail("Should fail to build topology for aggregation with window");
     } catch(final KsqlException e) {
-      Assert.assertThat(e.getMessage(), equalTo("Windowing not supported for table aggregations."));
+      assertThat(e.getMessage(), equalTo("Windowing not supported for table aggregations."));
     }
   }
 
@@ -197,7 +198,7 @@ public class SchemaKGroupedTableTest {
       );
       Assert.fail("Should fail to build topology for aggregation with unsupported function");
     } catch(final KsqlException e) {
-      Assert.assertThat(
+      assertThat(
           e.getMessage(),
           equalTo(
               "The aggregation function(s) (MAX, MIN) cannot be applied to a table."));

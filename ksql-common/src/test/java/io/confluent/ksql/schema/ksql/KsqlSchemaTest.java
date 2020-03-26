@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.common.testing.EqualsTester;
@@ -33,9 +34,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class KsqlSchemaTest {
 
@@ -60,9 +59,6 @@ public class KsqlSchemaTest {
 
   private static final KsqlSchema SOME_SCHEMA = KsqlSchema.of(SOME_CONNECT_SCHEMA);
   private static final KsqlSchema ALIASED_SCHEMA = KsqlSchema.of(ALIASED_CONNECT_SCHEMA);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementEqualsProperly() {
@@ -99,106 +95,122 @@ public class KsqlSchemaTest {
 
   @Test
   public void shouldThrowIfNotTopLevelStruct() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Top level schema must be STRUCT");
-
     // When:
-    KsqlSchema.of(Schema.OPTIONAL_INT64_SCHEMA);
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> KsqlSchema.of(Schema.OPTIONAL_INT64_SCHEMA)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Top level schema must be STRUCT"));
   }
 
   @Test
   public void shouldThrowOnMutableStructFields() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
     // When:
-    KsqlSchema.of(nested(
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> KsqlSchema.of(nested(
         SchemaBuilder.struct()
             .field("fieldWithMutableSchema", MUTABLE_SCHEMA)
             .optional()
             .build()
-    ));
+    ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Mutable schema found"));
   }
 
   @Test
   public void shouldThrowOnMutableMapKeys() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
     // When:
-    KsqlSchema.of(nested(
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> KsqlSchema.of(nested(
         SchemaBuilder.map(new SchemaBuilder(Type.STRING).optional(), IMMUTABLE_SCHEMA)
             .optional()
             .build()
-    ));
+    ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Mutable schema found"));
   }
 
   @Test
   public void shouldThrowOnMutableMapValues() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
     // When:
-    KsqlSchema.of(nested(
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> KsqlSchema.of(nested(
         SchemaBuilder.map(IMMUTABLE_SCHEMA, MUTABLE_SCHEMA)
             .optional()
             .build()
-    ));
+    ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Mutable schema found"));
   }
 
   @Test
   public void shouldThrowOnMutableArrayElements() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
     // When:
-    KsqlSchema.of(nested(
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> KsqlSchema.of(nested(
         SchemaBuilder.array(MUTABLE_SCHEMA)
             .optional()
             .build()
-    ));
+    ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Mutable schema found"));
   }
 
   @Test
   public void shouldThrowOnNoneOptionalMapKeys() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Non-optional field found");
-
     // When:
-    KsqlSchema.of(nested(
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> KsqlSchema.of(nested(
         SchemaBuilder.map(IMMUTABLE_SCHEMA, IMMUTABLE_SCHEMA)
             .build()
-    ));
+    ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Non-optional field found"));
   }
 
   @Test
   public void shouldThrowOnNoneOptionalMapValues() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Non-optional field found");
-
     // When:
-    KsqlSchema.of(nested(
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> KsqlSchema.of(nested(
         SchemaBuilder.map(IMMUTABLE_SCHEMA, IMMUTABLE_SCHEMA).build()
-    ));
+    ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Non-optional field found"));
   }
 
   @Test
   public void shouldThrowOnNoneOptionalElements() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Non-optional field found");
-
     // When:
-    KsqlSchema.of(nested(
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> KsqlSchema.of(nested(
         SchemaBuilder.array(IMMUTABLE_SCHEMA).build()
-    ));
+    ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Non-optional field found"));
   }
 
   @Test
@@ -216,16 +228,18 @@ public class KsqlSchemaTest {
 
   @Test
   public void shouldThrowOnNoneStringMapLey() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("MAP only supports STRING keys");
-
     // When:
-    KsqlSchema.of(nested(
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> KsqlSchema.of(nested(
         SchemaBuilder.map(Schema.OPTIONAL_INT64_SCHEMA, IMMUTABLE_SCHEMA)
             .optional()
             .build()
-    ));
+    ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("MAP only supports STRING keys"));
   }
 
   @Test

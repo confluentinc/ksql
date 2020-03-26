@@ -18,6 +18,9 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -28,9 +31,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class ExpressionTypeManagerTest {
@@ -40,9 +41,6 @@ public class ExpressionTypeManagerTest {
   private MetaStore metaStore;
   private ExpressionTypeManager expressionTypeManager;
   private ExpressionTypeManager ordersExpressionTypeManager;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() {
@@ -93,12 +91,16 @@ public class ExpressionTypeManagerTest {
     // Given:
     final String simpleQuery = "SELECT col1 > 10 FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare STRING and INT32");
 
     // When:
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0))
+    );
 
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Operator GREATER_THAN cannot be used to compare STRING and INT32"));
   }
 
   @Test
@@ -106,44 +108,57 @@ public class ExpressionTypeManagerTest {
     // Given:
     final String simpleQuery = "SELECT true > false FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare BOOLEAN");
 
     // When:
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0))
+    );
 
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Operator GREATER_THAN cannot be used to compare BOOLEAN"));
   }
 
   @Test
   public void shouldFailForComplexTypeComparison() {
     // Given:
-    final Analysis analysis = analyzeQuery("SELECT MAPCOL > NESTED_ORDER_COL from NESTED_STREAM;", metaStore);
+    final Analysis analysis = analyzeQuery("SELECT MAPCOL > NESTED_ORDER_COL from NESTED_STREAM;",
+        metaStore);
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         metaStore.getSource("NESTED_STREAM").getSchema(),
         FUNCTION_REGISTRY
     );
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare MAP and STRUCT");
 
     // When:
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0))
+    );
 
+    assertThat(e.getMessage(),
+        containsString("Operator GREATER_THAN cannot be used to compare MAP and STRUCT"));
   }
 
   @Test
   public void shouldFailForComparingComplexTypes() {
     // Given:
-    final Analysis analysis = analyzeQuery("SELECT NESTED_ORDER_COL = NESTED_ORDER_COL from NESTED_STREAM;", metaStore);
+    final Analysis analysis = analyzeQuery(
+        "SELECT NESTED_ORDER_COL = NESTED_ORDER_COL from NESTED_STREAM;", metaStore);
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         metaStore.getSource("NESTED_STREAM").getSchema(),
         FUNCTION_REGISTRY
     );
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Operator EQUAL cannot be used to compare STRUCT and STRUCT");
 
     // When:
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0))
+    );
 
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Operator EQUAL cannot be used to compare STRUCT and STRUCT"));
   }
 
   @Test
@@ -229,15 +244,15 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldFailIfThereIsInvalidFieldNameInStructCall() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not find field ZIP in ORDERS.ADDRESS.");
     final Analysis analysis = analyzeQuery(
         "SELECT itemid, address->zip, address->state from orders;", metaStore);
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         metaStore.getSource("ORDERS").getSchema(),
         FUNCTION_REGISTRY
     );
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+    Exception e = assertThrows(KsqlException.class,
+        () -> expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1)));
+    assertEquals("Could not find field ZIP in ORDERS.ADDRESS.", e.getMessage());
   }
 
   @Test
@@ -287,36 +302,57 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldFailIfWhenIsNotBoolean() {
     // Given:
-    final Analysis analysis = analyzeQuery("SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits + 100 THEN 'medium' ELSE 'large' END FROM orders;", metaStore);
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("When operand schema should be boolean. Schema for ((ORDERS.ORDERUNITS + 100)) is Schema{INT32}");
+    final Analysis analysis = analyzeQuery(
+        "SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits + 100 THEN 'medium' ELSE 'large' END FROM orders;",
+        metaStore);
 
     // When:
-    ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> ordersExpressionTypeManager
+            .getExpressionSchema(analysis.getSelectExpressions().get(0))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "When operand schema should be boolean. Schema for ((ORDERS.ORDERUNITS + 100)) is Schema{INT32}"));
   }
 
   @Test
   public void shouldFailOnInconsistentWhenResultType() {
     // Given:
-    final Analysis analysis = analyzeQuery("SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 10 ELSE 'large' END FROM orders;", metaStore);
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid Case expression. Schemas for 'THEN' clauses should be the same. Result schema: Schema{STRING}. Schema for THEN expression 'WHEN (ORDERS.ORDERUNITS < 100) THEN 10' is Schema{INT32}");
+    final Analysis analysis = analyzeQuery(
+        "SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 10 ELSE 'large' END FROM orders;",
+        metaStore);
 
     // When:
-    ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> ordersExpressionTypeManager
+            .getExpressionSchema(analysis.getSelectExpressions().get(0))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid Case expression. Schemas for 'THEN' clauses should be the same. Result schema: Schema{STRING}. Schema for THEN expression 'WHEN (ORDERS.ORDERUNITS < 100) THEN 10' is Schema{INT32}"));
   }
 
   @Test
   public void shouldFailIfDefaultHasDifferentTypeToWhen() {
     // Given:
-    final Analysis analysis = analyzeQuery("SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE true END FROM orders;", metaStore);
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid Case expression. Schema for the default clause should be the same as schema for THEN clauses. Result scheme: Schema{STRING}. Schema for default expression is Schema{BOOLEAN}");
+    final Analysis analysis = analyzeQuery(
+        "SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE true END FROM orders;",
+        metaStore);
 
     // When:
-    ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> ordersExpressionTypeManager
+            .getExpressionSchema(analysis.getSelectExpressions().get(0))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid Case expression. Schema for the default clause should be the same as schema for THEN clauses. Result scheme: Schema{STRING}. Schema for default expression is Schema{BOOLEAN}"));
   }
 }

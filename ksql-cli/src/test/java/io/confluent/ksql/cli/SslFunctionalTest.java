@@ -17,13 +17,10 @@ package io.confluent.ksql.cli;
 
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.internal.matchers.ThrowableCauseMatcher.hasCause;
-import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.net.UrlEscapers;
 import io.confluent.common.utils.IntegrationTest;
@@ -63,10 +60,8 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
@@ -95,9 +90,6 @@ public class SslFunctionalTest {
       .around(CLUSTER)
       .around(REST_APP);
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   private Map<String, String> clientProps;
   private SslContextFactory sslContextFactory;
 
@@ -117,13 +109,15 @@ public class SslFunctionalTest {
 
   @Test
   public void shouldNotBeAbleToUseCliIfClientDoesNotTrustServerCert() {
-    // Then:
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectCause(is(instanceOf(ProcessingException.class)));
-    expectedException.expectCause(hasCause(is(instanceOf(SSLHandshakeException.class))));
-
     // When:
-    canMakeCliRequest();
+    final KsqlRestClientException e = assertThrows(
+        KsqlRestClientException.class,
+        this::canMakeCliRequest
+    );
+
+    // Then:
+    assertThat(e.getCause(), instanceOf(ProcessingException.class));
+    assertThat(e.getCause().getCause(), instanceOf(SSLHandshakeException.class));
   }
 
   @Test
@@ -140,17 +134,20 @@ public class SslFunctionalTest {
 
   @Test
   public void shouldNotBeAbleToUseWssIfClientDoesNotTrustServerCert() throws Exception {
-    // Then:
-    expectedException.expect(either(
-        both(hasCause(hasCause(hasMessage(
-            containsString("unable to find valid certification path to requested target")))))
-            .and(instanceOf(SSLHandshakeException.class))
-    ).or(
-        instanceOf(EOFException.class)  // Occasionally, get EOF exception.
-    ));
-
     // When:
-    makeWsRequest();
+    final Exception e = assertThrows(
+        Exception.class,
+        this::makeWsRequest
+    );
+
+    // Then:
+    if (!(e instanceof EOFException)) { // Occasionally, get EOF exception.
+      assertThat(e, instanceOf(SSLHandshakeException.class));
+      assertThat(
+          e.getCause().getCause().getMessage(),
+          containsString("unable to find valid certification path to requested target")
+      );
+    }
   }
 
   @Test

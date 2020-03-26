@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.engine;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
@@ -40,9 +43,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -65,9 +66,6 @@ public class AuthorizationTopicAccessValidatorTest {
   private TopicDescription TOPIC_1;
   @Mock
   private TopicDescription TOPIC_2;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private TopicAccessValidator accessValidator;
   private KsqlEngine ksqlEngine;
@@ -131,14 +129,16 @@ public class AuthorizationTopicAccessValidatorTest {
         "SELECT * FROM %s;", STREAM_TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
-    ));
-
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> accessValidator.validate(serviceContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+    )));
   }
 
   @Test
@@ -166,14 +166,16 @@ public class AuthorizationTopicAccessValidatorTest {
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
-    ));
-
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> accessValidator.validate(serviceContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+    )));
   }
 
   @Test
@@ -185,14 +187,16 @@ public class AuthorizationTopicAccessValidatorTest {
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_2.name()
-    ));
-
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> accessValidator.validate(serviceContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_2.name()
+    )));
   }
 
   @Test
@@ -204,14 +208,16 @@ public class AuthorizationTopicAccessValidatorTest {
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
-    ));
-
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> accessValidator.validate(serviceContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+    )));
   }
 
   @Test
@@ -239,14 +245,16 @@ public class AuthorizationTopicAccessValidatorTest {
         "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(String.format(
-        "Failed to Write Kafka topic: [%s]", TOPIC_2.name()
-    ));
-
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> accessValidator.validate(serviceContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Failed to Write Kafka topic: [%s]", TOPIC_2.name()
+    )));
   }
 
   @Test
@@ -258,14 +266,16 @@ public class AuthorizationTopicAccessValidatorTest {
         "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
-    ));
-
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> accessValidator.validate(serviceContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+    )));
   }
 
   @Test
@@ -276,14 +286,16 @@ public class AuthorizationTopicAccessValidatorTest {
         "CREATE STREAM newStream AS SELECT * FROM %s;", STREAM_TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
-    ));
-
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> accessValidator.validate(serviceContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+    )));
   }
 
   @Test
@@ -311,15 +323,16 @@ public class AuthorizationTopicAccessValidatorTest {
         "CREATE STREAM %s AS SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(String.format(
-        "Failed to Write Kafka topic: [%s]", TOPIC_2.name()
-    ));
-
-
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> accessValidator.validate(serviceContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Failed to Write Kafka topic: [%s]", TOPIC_2.name()
+    )));
   }
 
   @Test
@@ -346,11 +359,11 @@ public class AuthorizationTopicAccessValidatorTest {
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
     givenTopicClientError(TOPIC_1);
 
-    // Then:
-    expectedException.expect(KafkaResponseGetFailedException.class);
-
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    assertThrows(
+        (KafkaResponseGetFailedException.class),
+        () -> accessValidator.validate(serviceContext, metaStore, statement)
+    );
   }
 
   private void givenTopic(final String topicName, final TopicDescription topicDescription) {

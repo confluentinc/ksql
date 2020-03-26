@@ -15,17 +15,16 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.util.KsqlException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class InsertValuesTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementEqualsHashcode() {
@@ -44,28 +43,32 @@ public class InsertValuesTest {
 
   @Test
   public void shouldThrowIfEmptyValues() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected some values for INSERT INTO statement");
-
     // When:
-    new InsertValues(
-        QualifiedName.of("a"),
-        ImmutableList.of("col1"),
-        ImmutableList.of());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new InsertValues(
+            QualifiedName.of("a"),
+            ImmutableList.of("col1"),
+            ImmutableList.of())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected some values for INSERT INTO statement"));
   }
 
   @Test
   public void shouldThrowIfNonEmptyColumnsValuesDoNotMatch() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected number columns and values to match");
-
     // When:
-    new InsertValues(
-        QualifiedName.of("a"),
-        ImmutableList.of("col1"),
-        ImmutableList.of(new StringLiteral("val1"), new StringLiteral("val2")));
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new InsertValues(
+            QualifiedName.of("a"),
+            ImmutableList.of("col1"),
+            ImmutableList.of(new StringLiteral("val1"), new StringLiteral("val2")))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected number columns and values to match"));
   }
 
 }

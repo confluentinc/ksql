@@ -16,17 +16,14 @@
 package io.confluent.ksql.serde;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.util.KsqlException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class FormatTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldCreateFromString() {
@@ -44,11 +41,13 @@ public class FormatTest {
 
   @Test
   public void shouldThrowOnUnknownFormat() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unknown format: bob");
-
     // When:
-    Format.of("bob");
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> Format.of("bob")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown format: bob"));
   }
 }

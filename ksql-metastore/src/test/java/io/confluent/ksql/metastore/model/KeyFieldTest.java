@@ -16,7 +16,9 @@
 package io.confluent.ksql.metastore.model;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
@@ -26,9 +28,7 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class KeyFieldTest {
 
@@ -67,8 +67,7 @@ public class KeyFieldTest {
   private static final KeyField UNALIASED_KEY_FIELD = KeyField
       .of(OTHER_SCHEMA_FIELD.name(),SCHEMA_FIELD);
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
@@ -128,12 +127,14 @@ public class KeyFieldTest {
     // Given:
     final KeyField keyField = KeyField.of(Optional.of("????"), Optional.empty());
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Invalid key field, not found in schema: ????");
-
     // When:
-    keyField.validateKeyExistsIn(SCHEMA);
+    final IllegalArgumentException e = assertThrows(
+        (IllegalArgumentException.class),
+        () -> keyField.validateKeyExistsIn(SCHEMA)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid key field, not found in schema: ????"));
   }
 
   @Test
@@ -152,11 +153,11 @@ public class KeyFieldTest {
     // Given:
     final KeyField keyField = KeyField.of(Optional.of("not found"), Optional.empty());
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-
     // When:
-    keyField.resolve(SCHEMA, LATEST_CONFIG);
+    assertThrows(
+        (IllegalArgumentException.class),
+        () -> keyField.resolve(SCHEMA, LATEST_CONFIG)
+    );
   }
 
   @Test

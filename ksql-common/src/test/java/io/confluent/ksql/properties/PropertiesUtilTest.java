@@ -18,9 +18,11 @@ package io.confluent.ksql.properties;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
@@ -32,18 +34,13 @@ import java.util.Properties;
 import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 public class PropertiesUtilTest {
 
   @ClassRule
   public static final TemporaryFolder TMP = new TemporaryFolder();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private File propsFile;
 
@@ -79,10 +76,10 @@ public class PropertiesUtilTest {
     final Map<String, String> result = PropertiesUtil.loadProperties(propsFile);
 
     // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
-    // When:
-    result.put("new", "value");
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> result.put("new", "value")
+    );
   }
 
   @Test
@@ -90,12 +87,14 @@ public class PropertiesUtilTest {
     // Given:
     propsFile = new File("i_do_not_exist");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to load properties file: i_do_not_exist");
+    // When::
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> PropertiesUtil.loadProperties(propsFile)
+    );
 
-    // When:
-    PropertiesUtil.loadProperties(propsFile);
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to load properties file: i_do_not_exist"));
   }
 
   @Test
@@ -106,14 +105,16 @@ public class PropertiesUtilTest {
             + "java.not.another.one=v"
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Property file contains the following blacklisted properties");
-    expectedException.expectMessage("java.some.disallowed.setting");
-    expectedException.expectMessage("java.not.another.one");
-
     // When:
-    PropertiesUtil.loadProperties(propsFile);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> PropertiesUtil.loadProperties(propsFile)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Property file contains the following blacklisted properties"));
+    assertThat(e.getMessage(), containsString("java.some.disallowed.setting"));
+    assertThat(e.getMessage(), containsString("java.not.another.one"));
   }
 
   @Test

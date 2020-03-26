@@ -16,8 +16,10 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -37,9 +39,7 @@ import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -76,9 +76,6 @@ public class AvroUtilTest {
       "actual-name",
       new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
       false);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SchemaRegistryClient srClient;
@@ -158,12 +155,14 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new RestClientException("Unknown subject", 403, 40401));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not connect to Schema Registry service");
-
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.isValidSchemaEvolution(persistentQuery, srClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not connect to Schema Registry service"));
   }
 
   @Test
@@ -172,12 +171,14 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new IOException("something"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not check Schema compatibility");
-
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.isValidSchemaEvolution(persistentQuery, srClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not check Schema compatibility"));
   }
 
   private static KsqlSchema toKsqlSchema(final String avroSchemaString) {

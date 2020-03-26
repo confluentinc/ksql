@@ -19,8 +19,10 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -58,7 +60,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -67,8 +68,6 @@ public class ListSourceExecutorTest {
 
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldShowStreams() {
@@ -244,16 +243,18 @@ public class ListSourceExecutorTest {
 
   @Test
   public void shouldThrowOnDescribeMissingTopic() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not find Topic");
-
     // When:
-    CustomExecutors.SHOW_COLUMNS.execute(
-        engine.configure("DESCRIBE TOPIC S;"),
-        engine.getEngine(),
-        engine.getServiceContext()
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> CustomExecutors.SHOW_COLUMNS.execute(
+            engine.configure("DESCRIBE TOPIC S;"),
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not find Topic"));
   }
 
   @Test

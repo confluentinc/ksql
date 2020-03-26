@@ -17,7 +17,9 @@ package io.confluent.ksql.topic;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.KsqlEngine;
@@ -41,9 +43,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -66,9 +66,6 @@ public class SourceTopicsExtractorTest {
   private TopicDescription TOPIC_1;
   @Mock
   private TopicDescription TOPIC_2;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private SourceTopicsExtractor extractor;
   private KsqlEngine ksqlEngine;
@@ -142,12 +139,14 @@ public class SourceTopicsExtractorTest {
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
     metaStore.deleteSource(STREAM_TOPIC_1.toUpperCase());
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(STREAM_TOPIC_1.toUpperCase() + " does not exist.");
-
     // When:
-    extractor.process(statement, null);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> extractor.process(statement, null)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(STREAM_TOPIC_1.toUpperCase() + " does not exist."));
   }
 
   private void givenStreamWithTopic(

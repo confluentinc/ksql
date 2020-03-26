@@ -16,8 +16,10 @@
 package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
@@ -27,9 +29,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class CreateSourcePropertiesTest {
 
@@ -37,9 +37,6 @@ public class CreateSourcePropertiesTest {
       DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO"),
       DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("foo")
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldSetMinimumValidProps() {
@@ -203,57 +200,65 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldFailIfNoKafkaTopicName() {
-    // Expect:
-    expectedException.expectMessage(
-        "Corresponding Kafka topic (KAFKA_TOPIC) should be set in WITH clause");
-    expectedException.expect(KsqlException.class);
-
     // When:
-    new CreateSourceProperties(
-        ImmutableMap.<String, Literal>builder()
-            .put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO"))
-            .build()
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new CreateSourceProperties(
+            ImmutableMap.<String, Literal>builder()
+                .put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO"))
+                .build()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Corresponding Kafka topic (KAFKA_TOPIC) should be set in WITH clause"));
   }
 
   @Test
   public void shouldFailIfNoValueFormat() {
-    // Expect:
-    expectedException.expectMessage("Topic format(VALUE_FORMAT) should be set in WITH clause.");
-    expectedException.expect(KsqlException.class);
-
     // When:
-    new CreateSourceProperties(ImmutableMap.of());
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new CreateSourceProperties(ImmutableMap.of())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Topic format(VALUE_FORMAT) should be set in WITH clause."));
   }
 
   @Test
   public void shouldFailIfInvalidWindowConfig() {
-    // Expect:
-    expectedException.expectMessage("WINDOW_TYPE property is not set correctly");
-    expectedException.expect(KsqlException.class);
-
     // When:
-    new CreateSourceProperties(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("bar"))
-            .build()
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new CreateSourceProperties(
+            ImmutableMap.<String, Literal>builder()
+                .putAll(MINIMUM_VALID_PROPS)
+                .put(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("bar"))
+                .build()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("WINDOW_TYPE property is not set correctly"));
   }
 
   @Test
   public void shouldFailIfInvalidConfig() {
-    // Expect:
-    expectedException.expectMessage("Invalid config variable in the WITH clause: FOO");
-    expectedException.expect(KsqlException.class);
-
     // When:
-    new CreateSourceProperties(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put("foo", new StringLiteral("bar"))
-            .build()
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new CreateSourceProperties(
+            ImmutableMap.<String, Literal>builder()
+                .putAll(MINIMUM_VALID_PROPS)
+                .put("foo", new StringLiteral("bar"))
+                .build()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid config variable in the WITH clause: FOO"));
   }
 
   @Test

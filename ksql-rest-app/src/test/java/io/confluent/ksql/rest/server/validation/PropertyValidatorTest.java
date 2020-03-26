@@ -15,19 +15,21 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
+
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -35,25 +37,26 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class PropertyValidatorTest {
 
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldFailOnUnknownSetProperty() {
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Unknown property: consumer.invalid");
-
     // When:
-    CustomValidators.SET_PROPERTY.validate(
-        ConfiguredStatement.of(
-        PreparedStatement.of(
-            "SET 'consumer.invalid'='value';",
-            new SetProperty(Optional.empty(), "consumer.invalid", "value")),
-            new HashMap<>(),
-            engine.getKsqlConfig()),
-        engine.getEngine(),
-        engine.getServiceContext()
+    final KsqlStatementException e = assertThrows(
+        (KsqlStatementException.class),
+        () -> CustomValidators.SET_PROPERTY.validate(
+            ConfiguredStatement.of(
+                PreparedStatement.of(
+                    "SET 'consumer.invalid'='value';",
+                    new SetProperty(Optional.empty(), "consumer.invalid", "value")),
+                new HashMap<>(),
+                engine.getKsqlConfig()),
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown property: consumer.invalid"));
   }
 
   @Test
@@ -74,40 +77,45 @@ public class PropertyValidatorTest {
 
   @Test
   public void shouldFailOnInvalidSetPropertyValue() {
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Invalid value invalid");
-
     // When:
-    CustomValidators.SET_PROPERTY.validate(
-        ConfiguredStatement.of(
-        PreparedStatement.of(
-             "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
-            new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "invalid")),
-            new HashMap<>(),
-            engine.getKsqlConfig()),
-        engine.getEngine(),
-        engine.getServiceContext()
+    final KsqlStatementException e = assertThrows(
+        (KsqlStatementException.class),
+        () -> CustomValidators.SET_PROPERTY.validate(
+            ConfiguredStatement.of(
+                PreparedStatement.of(
+                    "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
+                    new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+                        "invalid")),
+                new HashMap<>(),
+                engine.getKsqlConfig()),
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value invalid"));
   }
 
   @Test
   public void shouldFailOnUnknownUnsetProperty() {
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Unknown property: consumer.invalid");
-
     // When:
-    CustomValidators.UNSET_PROPERTY.validate(
-        ConfiguredStatement.of(
-        PreparedStatement.of(
-            "UNSET 'consumer.invalid';",
-            new UnsetProperty(Optional.empty(), "consumer.invalid")),
-            new HashMap<>(),
-            engine.getKsqlConfig()),
-        engine.getEngine(),
-        engine.getServiceContext()
+    final KsqlStatementException e = assertThrows(
+        (KsqlStatementException.class),
+        () -> CustomValidators.UNSET_PROPERTY.validate(
+            ConfiguredStatement.of(
+                PreparedStatement.of(
+                    "UNSET 'consumer.invalid';",
+                    new UnsetProperty(Optional.empty(), "consumer.invalid")),
+                new HashMap<>(),
+                engine.getKsqlConfig()),
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown property: consumer.invalid"));
   }
 
   @Test

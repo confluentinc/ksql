@@ -15,22 +15,22 @@
 
 package io.confluent.ksql.serde.tls;
 
-import org.easymock.EasyMock;
-import org.junit.Test;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import org.easymock.EasyMock;
+import org.junit.Test;
 
 public class ThreadLocalCloseableTest {
+
   @Test
   public void shouldCloseAllInstances() {
     final Object lock = new Object();

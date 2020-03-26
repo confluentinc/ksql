@@ -17,7 +17,9 @@ package io.confluent.ksql.serde.json;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,9 +41,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -73,9 +73,6 @@ public class KsqlJsonDeserializerTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final ProcessingLogConfig processingLogConfig
       = new ProcessingLogConfig(Collections.emptyMap());
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private ProcessingLogger recordLogger;
@@ -191,12 +188,14 @@ public class KsqlJsonDeserializerTest {
 
   @Test
   public void shouldThrowIfTopLevelNotStruct() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("KSQL expects all top level schemas to be STRUCTs");
-
     // When:
-    new KsqlJsonDeserializer(Schema.OPTIONAL_INT64_SCHEMA, recordLogger);
+    final IllegalArgumentException e = assertThrows(
+        (IllegalArgumentException.class),
+        () -> new KsqlJsonDeserializer(Schema.OPTIONAL_INT64_SCHEMA, recordLogger)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("KSQL expects all top level schemas to be STRUCTs"));
   }
 
   @Test

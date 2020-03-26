@@ -17,9 +17,11 @@ package io.confluent.ksql.metastore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -40,9 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -50,9 +50,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
 @RunWith(MockitoJUnitRunner.class)
 public class MetaStoreImplTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private FunctionRegistry functionRegistry;
@@ -159,11 +156,11 @@ public class MetaStoreImplTest {
 
     final Map<String, KsqlTopic> topics = metaStore.getAllKsqlTopics();
 
-    // Expect:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When
-    topics.keySet().clear();
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> topics.keySet().clear()
+    );
   }
 
   @Test
@@ -171,22 +168,26 @@ public class MetaStoreImplTest {
     // Given:
     metaStore.putTopic(topic);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Another topic with the same name already exists");
-
     // When:
-    metaStore.putTopic(topic);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> metaStore.putTopic(topic)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Another topic with the same name already exists"));
   }
 
   @Test
   public void shouldThrowOnRemoveUnknownTopic() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("No topic with name bob was registered");
-
     // When:
-    metaStore.deleteTopic("bob");
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> metaStore.deleteTopic("bob")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("No topic with name bob was registered"));
   }
 
   @Test
@@ -194,22 +195,27 @@ public class MetaStoreImplTest {
     // Given:
     metaStore.putSource(dataSource);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Another data source with the same name already exists");
-
     // When:
-    metaStore.putSource(dataSource);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> metaStore.putSource(dataSource)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Another data source with the same name already exists"));
   }
 
   @Test
   public void shouldThrowOnRemoveUnknownSource() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("No data source with name bob exists");
-
     // When:
-    metaStore.deleteSource("bob");
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> metaStore.deleteSource("bob")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("No data source with name bob exists"));
   }
 
   @Test
@@ -221,38 +227,45 @@ public class MetaStoreImplTest {
         ImmutableSet.of(dataSource.getName()),
         ImmutableSet.of());
 
-    // Then:
-    expectedException.expect(KsqlReferentialIntegrityException.class);
-    expectedException.expectMessage("The following queries read from this source: [source query]");
-
     // When:
-    metaStore.deleteSource(dataSource.getName());
+    final KsqlReferentialIntegrityException e = assertThrows(
+        KsqlReferentialIntegrityException.class,
+        () -> metaStore.deleteSource(dataSource.getName())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("The following queries read from this source: [source query]"));
   }
 
   @Test
   public void shouldThrowOnUpdateForPersistentQueryOnUnknownSource() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unknown source: unknown");
-
     // When:
-    metaStore.updateForPersistentQuery(
-        "source query",
-        ImmutableSet.of("unknown"),
-        ImmutableSet.of());
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> metaStore.updateForPersistentQuery(
+            "source query",
+            ImmutableSet.of("unknown"),
+            ImmutableSet.of())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown source: unknown"));
   }
 
   @Test
   public void shouldThrowOnUpdateForPersistentQueryOnUnknownSink() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unknown source: unknown");
-
     // When:
-    metaStore.updateForPersistentQuery(
-        "sink query",
-        ImmutableSet.of(),
-        ImmutableSet.of("unknown"));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> metaStore.updateForPersistentQuery(
+            "sink query",
+            ImmutableSet.of(),
+            ImmutableSet.of("unknown"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown source: unknown"));
   }
 
   @Test
@@ -264,12 +277,15 @@ public class MetaStoreImplTest {
         ImmutableSet.of(),
         ImmutableSet.of(dataSource.getName()));
 
-    // Then:
-    expectedException.expect(KsqlReferentialIntegrityException.class);
-    expectedException.expectMessage("The following queries write into this source: [sink query]");
-
     // When:
-    metaStore.deleteSource(dataSource.getName());
+    final KsqlReferentialIntegrityException e = assertThrows(
+        KsqlReferentialIntegrityException.class,
+        () -> metaStore.deleteSource(dataSource.getName())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("The following queries write into this source: [sink query]"));
   }
 
   @Test

@@ -16,8 +16,10 @@
 package io.confluent.ksql.topic;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -45,9 +47,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -61,9 +61,6 @@ public class TopicDeleteInjectorTest {
   private static final ConfiguredStatement<DropStream> DROP_WITHOUT_DELETE_TOPIC = givenStatement(
       "DROP STREAM SOMETHING",
       new DropStream(QualifiedName.of("SOMETHING"), false, false));
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private MutableMetaStore metaStore;
@@ -154,12 +151,14 @@ public class TopicDeleteInjectorTest {
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
         "DROP SOMETHING", new DropStream(QualifiedName.of("SOMETHING_ELSE"), true, true));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not find source to delete topic for");
-
     // When:
-    deleteInjector.inject(dropStatement);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> deleteInjector.inject(dropStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not find source to delete topic for"));
   }
 
   private static <T extends Statement> ConfiguredStatement<T> givenStatement(

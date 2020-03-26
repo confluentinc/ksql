@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.rest.client;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -29,9 +32,7 @@ import java.util.Map;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -40,9 +41,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlRestClientTest {
 
   private static final String SERVER_ADDRESS = "http://timbuktu";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private ClientBuilder clientBuilder;
@@ -78,22 +76,26 @@ public class KsqlRestClientTest {
     // Given:
     when(clientBuilder.register(any(Object.class))).thenThrow(new RuntimeException("boom"));
 
-    // Then:
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectMessage("Failed to configure rest client");
-    expectedException.expectCause(hasMessage(is("boom")));
-
     // When:
-    new KsqlRestClient(SERVER_ADDRESS, localProps, clientProps, clientBuilder, sslClientConfigurer);
+    final KsqlRestClientException e = assertThrows(
+        KsqlRestClientException.class,
+        () -> new KsqlRestClient(SERVER_ADDRESS, localProps, clientProps, clientBuilder, sslClientConfigurer)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to configure rest client"));
+    assertThat(e.getCause(), hasMessage(is("boom")));
   }
 
   @Test
   public void shouldThrowOnInvalidServerAddress() {
-    // Then:
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectMessage("The supplied serverAddress is invalid: timbuktu");
-
     // When:
-    new KsqlRestClient("timbuktu", localProps, clientProps, clientBuilder, sslClientConfigurer);
+    final KsqlRestClientException e = assertThrows(
+        KsqlRestClientException.class,
+        () -> new KsqlRestClient("timbuktu", localProps, clientProps, clientBuilder, sslClientConfigurer)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The supplied serverAddress is invalid: timbuktu"));
   }
 }

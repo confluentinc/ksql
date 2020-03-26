@@ -16,9 +16,11 @@
 package io.confluent.ksql.serde.delimited;
 
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
@@ -36,9 +38,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -55,9 +55,6 @@ public class KsqlDelimitedDeserializerTest {
 
   private final ProcessingLogConfig processingLogConfig =
       new ProcessingLogConfig(Collections.emptyMap());
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private KsqlDelimitedDeserializer deserializer;
 
@@ -127,13 +124,14 @@ public class KsqlDelimitedDeserializerTest {
     // Given:
     final byte[] bytes = "1511897796092,1,item_1\r\n".getBytes(StandardCharsets.UTF_8);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException
-        .expectCause(hasMessage(is("Unexpected field count, csvFields:3 schemaFields:4")));
-
     // When:
-    deserializer.deserialize("", bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize("", bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), hasMessage(is("Unexpected field count, csvFields:3 schemaFields:4")));
   }
 
   @Test
@@ -141,23 +139,26 @@ public class KsqlDelimitedDeserializerTest {
     // Given:
     final byte[] bytes = "1511897796092,1,item_1,10.0,extra\r\n".getBytes(StandardCharsets.UTF_8);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException
-        .expectCause(hasMessage(is("Unexpected field count, csvFields:5 schemaFields:4")));
-
     // When:
-    deserializer.deserialize("", bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize("", bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), hasMessage(is("Unexpected field count, csvFields:5 schemaFields:4")));
   }
 
   @Test
   public void shouldThrowIfTopLevelNotStruct() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("KSQL expects all top level schemas to be STRUCTs");
-
     // When:
-    new KsqlDelimitedDeserializer(Schema.OPTIONAL_INT64_SCHEMA, recordLogger);
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new KsqlDelimitedDeserializer(Schema.OPTIONAL_INT64_SCHEMA, recordLogger)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("KSQL expects all top level schemas to be STRUCTs"));
   }
 
   @Test
@@ -192,14 +193,16 @@ public class KsqlDelimitedDeserializerTest {
 
     final byte[] bytes = "10".getBytes(StandardCharsets.UTF_8);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(instanceOf(KsqlException.class));
-    expectedException.expectCause(
-        hasMessage(CoreMatchers.is("Unexpected field count, csvFields:1 schemaFields:2")));
-
     // When:
-    deserializer.deserialize("", bytes);
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> deserializer.deserialize("", bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (instanceOf(KsqlException.class)));
+    assertThat(e.getCause(), 
+        hasMessage(CoreMatchers.is("Unexpected field count, csvFields:1 schemaFields:2")));
   }
 
   @Test
@@ -212,12 +215,14 @@ public class KsqlDelimitedDeserializerTest {
             .build())
         .build();
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("DELIMITED does not support complex type: ARRAY");
-
     // When:
-    new KsqlDelimitedDeserializer(schema, recordLogger);
+    final Exception e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> new KsqlDelimitedDeserializer(schema, recordLogger)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("DELIMITED does not support complex type: ARRAY"));
   }
 
   @Test
@@ -230,12 +235,14 @@ public class KsqlDelimitedDeserializerTest {
             .build())
         .build();
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("DELIMITED does not support complex type: MAP");
-
     // When:
-    new KsqlDelimitedDeserializer(schema, recordLogger);
+    final Exception e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> new KsqlDelimitedDeserializer(schema, recordLogger)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("DELIMITED does not support complex type: MAP"));
   }
 
   @Test
@@ -249,11 +256,13 @@ public class KsqlDelimitedDeserializerTest {
             .build())
         .build();
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("DELIMITED does not support complex type: STRUCT");
-
     // When:
-    new KsqlDelimitedDeserializer(schema, recordLogger);
+    final Exception e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> new KsqlDelimitedDeserializer(schema, recordLogger)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("DELIMITED does not support complex type: STRUCT"));
   }
 }

@@ -1,7 +1,9 @@
 package io.confluent.ksql.schema.ksql;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.Map;
@@ -10,14 +12,9 @@ import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.util.KsqlException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TypeContextUtilTest {
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldGetTypeFromVarchar() {
@@ -99,12 +96,14 @@ public class TypeContextUtilTest {
     // Given:
     final String schemaString = "SHAKESPEARE";
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unknown primitive type: SHAKESPEARE");
-
     // When:
-    TypeContextUtil.getType(schemaString);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> TypeContextUtil.getType(schemaString)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown primitive type: SHAKESPEARE"));
   }
 
 }

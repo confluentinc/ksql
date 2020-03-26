@@ -18,8 +18,10 @@ package io.confluent.ksql.ddl.commands;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -28,11 +30,11 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
@@ -48,9 +50,7 @@ import java.util.Optional;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -70,9 +70,6 @@ public class CreateStreamCommandTest {
   private CreateStream createStreamStatement;
   @Mock
   private KsqlConfig ksqlConfig;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private final MutableMetaStore metaStore = MetaStoreFixture
       .getNewMetaStore(new InternalFunctionRegistry());
@@ -141,13 +138,14 @@ public class CreateStreamCommandTest {
     // Given:
     when(topicClient.isTopicExists(any())).thenReturn(false);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Kafka topic does not exist: some-topic");
-
     // When:
-    createCmd();
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        this::createCmd
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Kafka topic does not exist: some-topic"));
   }
 
   @Test
@@ -156,12 +154,15 @@ public class CreateStreamCommandTest {
     final CreateStreamCommand cmd = createCmd();
     cmd.run(metaStore);
 
-    // Then:
-    expectedException.expectMessage("Cannot create stream 's1': A stream " +
-            "with name 's1' already exists");
-
     // When:
-    cmd.run(metaStore);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> cmd.run(metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot create stream 's1': A stream with name 's1' already exists"));
   }
 
   @Test

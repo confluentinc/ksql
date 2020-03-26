@@ -15,18 +15,16 @@
 
 package io.confluent.ksql.function.udf.geo;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.KsqlFunctionException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class GeoDistanceTest {
   private GeoDistance distanceUdf = new GeoDistance();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   /*
    * Compute distance between Palo Alto and London Confluent offices.
@@ -72,15 +70,20 @@ public class GeoDistanceTest {
    */
   @Test
   public void shouldFailOutOfBoundsCoordinates() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("valid latitude values for GeoDistance function are");
-    distanceUdf.geoDistance(90.1, -122.1663, -91.5257, -0.1122);
+    final KsqlFunctionException e = assertThrows(
+        (KsqlFunctionException.class),
+        () -> distanceUdf.geoDistance(90.1, -122.1663, -91.5257, -0.1122)
+    );
+    assertThat(e.getMessage(), containsString("valid latitude values for GeoDistance function are"));
   }
 
   @Test
   public void shouldFailInvalidUnitOfMeasure() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GeoDistance function units parameter must be one of");
-    distanceUdf.geoDistance(37.4439, -122.1663, 51.5257, -0.1122, "Parsecs");
+    final KsqlFunctionException e = assertThrows(
+        (KsqlFunctionException.class),
+        () -> distanceUdf.geoDistance(37.4439, -122.1663, 51.5257, -0.1122, "Parsecs")
+    );
+
+    assertThat(e.getMessage(), containsString("GeoDistance function units parameter must be one of"));
   }
 }

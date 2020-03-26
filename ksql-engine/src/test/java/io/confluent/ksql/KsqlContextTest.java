@@ -15,6 +15,9 @@
 
 package io.confluent.ksql;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -32,19 +35,17 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collections;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -86,9 +87,6 @@ public class KsqlContextTest {
 
   private final static ConfiguredStatement<?> STMT_1_WITH_TOPIC = ConfiguredStatement.of(
       PREPARED_STMT_1, SOME_PROPERTIES, SOME_CONFIG);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private ServiceContext serviceContext;
@@ -184,12 +182,14 @@ public class KsqlContextTest {
     when(ksqlEngine.parse(any()))
         .thenThrow(new KsqlException("Bad tings happen"));
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Bad tings happen");
-
     // When:
-    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> ksqlContext.sql("Some SQL", SOME_PROPERTIES)
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString("Bad tings happen"));
   }
 
   @Test
@@ -198,12 +198,14 @@ public class KsqlContextTest {
     when(sandbox.execute(any()))
         .thenThrow(new KsqlException("Bad tings happen"));
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Bad tings happen");
-
     // When:
-    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> ksqlContext.sql("Some SQL", SOME_PROPERTIES)
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString("Bad tings happen"));
   }
 
   @Test
@@ -212,12 +214,14 @@ public class KsqlContextTest {
     when(ksqlEngine.execute(any()))
         .thenThrow(new KsqlException("Bad tings happen"));
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Bad tings happen");
-
     // When:
-    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> ksqlContext.sql("Some SQL", SOME_PROPERTIES)
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString("Bad tings happen"));
   }
 
   @Test
@@ -293,12 +297,14 @@ public class KsqlContextTest {
     when(schemaInjector.inject(any()))
         .thenThrow(new RuntimeException("Boom"));
 
-    // Then:
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("Boom");
-
     // When:
-    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+    final RuntimeException e = assertThrows(
+        (RuntimeException.class),
+        () -> ksqlContext.sql("Some SQL", SOME_PROPERTIES)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Boom"));
   }
 
   @SuppressWarnings("unchecked")
@@ -334,12 +340,14 @@ public class KsqlContextTest {
     when(topicInjector.inject(any()))
         .thenThrow(new RuntimeException("Boom"));
 
-    // Then:
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("Boom");
-
     // When:
-    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+    final RuntimeException e = assertThrows(
+        (RuntimeException.class),
+        () -> ksqlContext.sql("Some SQL", SOME_PROPERTIES)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Boom"));
   }
 
   @SuppressWarnings("unchecked")

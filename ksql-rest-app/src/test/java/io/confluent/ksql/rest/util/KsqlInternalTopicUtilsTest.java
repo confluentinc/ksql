@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -40,9 +41,7 @@ import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.TopicConfig;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -60,9 +59,6 @@ public class KsqlInternalTopicUtilsTest {
   private KafkaTopicClient topicClient;
   @Mock
   private KsqlConfig ksqlConfig;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -125,7 +121,6 @@ public class KsqlInternalTopicUtilsTest {
     verify(topicClient).addTopicConfig(TOPIC_NAME, retentionConfig);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldCreateInternalTopicWithNumReplicasFromConfig() {
     // Given:
@@ -146,8 +141,10 @@ public class KsqlInternalTopicUtilsTest {
         .createTopic(any(), anyInt(), anyShort(), anyMap());
 
     // When/Then:
-    expectedException.expect(KafkaTopicExistsException.class);
-    KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);
+    assertThrows(
+        KafkaTopicExistsException.class,
+        () -> KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient)
+    );
   }
 
   @Test
@@ -156,8 +153,10 @@ public class KsqlInternalTopicUtilsTest {
     whenTopicExistsWith(2, NREPLICAS);
 
     // When/Then:
-    expectedException.expect(IllegalStateException.class);
-    KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);
+    assertThrows(
+        IllegalStateException.class,
+        () -> KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient)
+    );
   }
 
   @Test
@@ -166,8 +165,10 @@ public class KsqlInternalTopicUtilsTest {
     whenTopicExistsWith(1, 1);
 
     // When/Then:
-    expectedException.expect(IllegalStateException.class);
-    KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);
+    assertThrows(
+        IllegalStateException.class,
+        () -> KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient)
+    );
   }
 
   @Test

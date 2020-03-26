@@ -16,7 +16,9 @@
 package io.confluent.ksql.schema.ksql;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -30,9 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class LogicalSchemasTest {
 
@@ -81,8 +81,7 @@ public class LogicalSchemasTest {
       .addField("STRUCT", STRUCT_SQL_TYPE)
       .build();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+
 
   @Test
   public void shouldHaveTestsForAllTypes() {
@@ -129,12 +128,14 @@ public class LogicalSchemasTest {
         .map(LOGICAL_BIGINT_SCHEMA, LOGICAL_DOUBLE_SCHEMA).optional()
         .build();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unsupported map key type: Schema{INT64}");
-
     // When:
-    LogicalSchemas.toSqlTypeConverter().toSqlType(mapSchema);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> LogicalSchemas.toSqlTypeConverter().toSqlType(mapSchema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported map key type: Schema{INT64}"));
   }
 
   @Test
@@ -142,11 +143,13 @@ public class LogicalSchemasTest {
     // Given:
     final Schema unsupported = SchemaBuilder.int8().build();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unexpected logical type: Schema{INT8}");
-
     // When:
-    LogicalSchemas.toSqlTypeConverter().toSqlType(unsupported);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> LogicalSchemas.toSqlTypeConverter().toSqlType(unsupported)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unexpected logical type: Schema{INT8}"));
   }
 }

@@ -2,25 +2,19 @@ package io.confluent.ksql.function;
 
 import static io.confluent.ksql.function.KsqlFunction.INTERNAL_PATH;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 
 public class UdfIndexTest {
 
@@ -43,9 +37,6 @@ public class UdfIndexTest {
   public void setUp() {
     udfIndex = new UdfIndex("name");
   }
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldFindNoArgs() {
@@ -427,12 +418,14 @@ public class UdfIndexTest {
     final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(STRING, STRING));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(STRING, STRING))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters"));
   }
 
   @Test
@@ -441,13 +434,14 @@ public class UdfIndexTest {
     final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(INT));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(INT))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters"));
   }
 
   @Test
@@ -457,13 +451,14 @@ public class UdfIndexTest {
         function(OTHER, false, Schema.INT32_SCHEMA)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(new Schema[]{null}))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters"));
   }
 
   @Test
@@ -473,13 +468,14 @@ public class UdfIndexTest {
         function(OTHER, true, SchemaBuilder.array(Schema.INT32_SCHEMA))};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(new Schema[]{null}))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters"));
   }
 
   @Test
@@ -488,13 +484,14 @@ public class UdfIndexTest {
     final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING, INT)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(INT, null));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(INT, null))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters"));
   }
 
   @Test
@@ -504,13 +501,14 @@ public class UdfIndexTest {
         function("two", true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(STRING, INT, STRING));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(STRING, INT, STRING))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters"));
   }
 
   @Test
@@ -519,13 +517,14 @@ public class UdfIndexTest {
     final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(STRING, null));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(STRING, null))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters"));
   }
 
   @Test
@@ -535,12 +534,14 @@ public class UdfIndexTest {
         function(OTHER, true, SchemaBuilder.array(STRUCT1).build())};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(STRUCT1, STRUCT2));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(STRUCT1, STRUCT2))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters"));
   }
 
   @Test
@@ -550,14 +551,15 @@ public class UdfIndexTest {
         function(OTHER, false, STRUCT3)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(STRUCT3_PERMUTE));
-  }
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(STRUCT3_PERMUTE))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters"));
+  }
 
   private static KsqlFunction function(
       final String name,
@@ -591,6 +593,4 @@ public class UdfIndexTest {
       return null;
     }
   }
-
-
 }

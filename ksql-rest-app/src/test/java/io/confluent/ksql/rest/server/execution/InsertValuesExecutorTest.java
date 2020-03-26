@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -62,9 +65,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -93,9 +94,6 @@ public class InsertValuesExecutorTest {
   private static final byte[] VALUE = new byte[]{2};
 
   private static final String TOPIC_NAME = "topic";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlEngine engine;
@@ -356,12 +354,14 @@ public class InsertValuesExecutorTest {
     when(failure.get()).thenThrow(ExecutionException.class);
     doReturn(failure).when(producer).send(any());
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to insert values into stream/table: ");
-
     // When:
-    new InsertValuesExecutor(() -> -1L).execute(statement, engine, serviceContext);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new InsertValuesExecutor(() -> -1L).execute(statement, engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to insert values into stream/table: "));
   }
 
   @Test
@@ -377,12 +377,14 @@ public class InsertValuesExecutorTest {
     );
     when(keySerializer.serialize(any(), any())).thenThrow(new SerializationException("Jibberish!"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not serialize key");
-
     // When:
-    new InsertValuesExecutor(() -> -1L).execute(statement, engine, serviceContext);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new InsertValuesExecutor(() -> -1L).execute(statement, engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not serialize key"));
   }
 
   @Test
@@ -398,12 +400,14 @@ public class InsertValuesExecutorTest {
     );
     when(rowSerializer.serialize(any(), any())).thenThrow(new SerializationException("Jibberish!"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not serialize row");
-
     // When:
-    new InsertValuesExecutor(() -> -1L).execute(statement, engine, serviceContext);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new InsertValuesExecutor(() -> -1L).execute(statement, engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not serialize row"));
   }
 
   @Test
@@ -416,12 +420,14 @@ public class InsertValuesExecutorTest {
             new LongLiteral(2L))
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected ROWKEY and COL0 to match");
-
     // When:
-    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected ROWKEY and COL0 to match"));
   }
 
   @Test
@@ -433,12 +439,14 @@ public class InsertValuesExecutorTest {
             new LongLiteral(1L))
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected a value for each column");
-
     // When:
-    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected a value for each column"));
   }
 
   @Test
@@ -453,12 +461,14 @@ public class InsertValuesExecutorTest {
         )
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected type INT32 for field");
-
     // When:
-    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected type INT32 for field"));
   }
 
   private ConfiguredStatement<InsertValues> givenInsertValues(

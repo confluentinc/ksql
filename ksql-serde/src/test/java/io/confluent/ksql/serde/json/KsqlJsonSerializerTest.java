@@ -16,8 +16,8 @@
 package io.confluent.ksql.serde.json;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,9 +31,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -88,8 +86,7 @@ public class KsqlJsonSerializerTest {
       .field("address", ADDRESS_SCHEMA)
       .build();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+
 
   private KsqlJsonSerializer serializer;
 

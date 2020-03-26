@@ -17,8 +17,11 @@ package io.confluent.ksql.rest.server.validation;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -58,9 +61,7 @@ import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -73,9 +74,6 @@ public class RequestValidatorTest {
       .field("val", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   SandboxEngine ksqlEngine;
@@ -173,12 +171,14 @@ public class RequestValidatorTest {
     final List<ParsedStatement> statements =
         givenParsed(SOME_STREAM_SQL);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Fail");
-
     // When:
-    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> validator.validate(serviceContext, statements, ImmutableMap.of(), "sql")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Fail"));
   }
 
   @Test
@@ -187,12 +187,14 @@ public class RequestValidatorTest {
     final List<ParsedStatement> statements =
         givenParsed("EXPLAIN X;");
 
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Do not know how to validate statement");
-
     // When:
-    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
+    final KsqlStatementException e = assertThrows(
+        (KsqlStatementException.class),
+        () -> validator.validate(serviceContext, statements, ImmutableMap.of(), "sql")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Do not know how to validate statement"));
   }
 
   @Test
@@ -206,12 +208,14 @@ public class RequestValidatorTest {
                 + "CREATE STREAM sink2 as SELECT * FROM sink;"
         );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("persistent queries to exceed the configured limit");
-
     // When:
-    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> validator.validate(serviceContext, statements, ImmutableMap.of(), "sql")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("persistent queries to exceed the configured limit"));
   }
 
   @Test
@@ -267,12 +271,14 @@ public class RequestValidatorTest {
     serviceContext = mock(ServiceContext.class);
     givenRequestValidator(ImmutableMap.of());
 
-    // Expect:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Expected sandbox");
-
     // When:
-    validator.validate(serviceContext, ImmutableList.of(), ImmutableMap.of(), "sql");
+    final IllegalArgumentException e = assertThrows(
+        (IllegalArgumentException.class),
+        () -> validator.validate(serviceContext, ImmutableList.of(), ImmutableMap.of(), "sql")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected sandbox"));
   }
 
   @Test
@@ -281,12 +287,14 @@ public class RequestValidatorTest {
     executionContext = mock(KsqlExecutionContext.class);
     givenRequestValidator(ImmutableMap.of());
 
-    // Expect:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Expected sandbox");
-
     // When:
-    validator.validate(serviceContext, ImmutableList.of(), ImmutableMap.of(), "sql");
+    final IllegalArgumentException e = assertThrows(
+        (IllegalArgumentException.class),
+        () -> validator.validate(serviceContext, ImmutableList.of(), ImmutableMap.of(), "sql")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected sandbox"));
   }
 
   @Test

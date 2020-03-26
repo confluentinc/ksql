@@ -16,8 +16,10 @@
 package io.confluent.ksql.ddl.commands;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -26,9 +28,7 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -46,9 +46,6 @@ public class DropSourceCommandTest {
   private DataSource<?> dataSource;
 
   private DropSourceCommand dropSourceCommand;
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @SuppressWarnings("unchecked")
   @Before
@@ -76,11 +73,14 @@ public class DropSourceCommandTest {
     givenDropSourceCommand(ALWAYS);
     givenSourceDoesNotExist();
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Source foo does not exist.");
-
     // When:
-    dropSourceCommand.run(metaStore);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceCommand.run(metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Source foo does not exist."));
   }
 
   @Test
@@ -88,12 +88,14 @@ public class DropSourceCommandTest {
     // Given:
     givenIncompatibleDropSourceCommand();
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Incompatible data source type is STREAM");
-
     // When:
-    dropSourceCommand.run(metaStore);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceCommand.run(metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Incompatible data source type is STREAM"));
   }
 
   private void givenDropSourceCommand(final boolean ifExists) {

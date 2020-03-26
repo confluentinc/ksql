@@ -15,21 +15,20 @@
 
 package io.confluent.ksql.rest.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.RocksDBConfigSetter;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -40,9 +39,6 @@ public class RocksDBConfigSetterHandlerTest {
 
   @Mock
   private KsqlConfig ksqlConfig;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldConfigure() throws Exception {
@@ -85,14 +81,16 @@ public class RocksDBConfigSetterHandlerTest {
             Class.forName("io.confluent.ksql.rest.util.RocksDBConfigSetterHandlerTest$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor"))
     );
 
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage(containsString("Failed to configure Configurable RocksDBConfigSetter."));
-    expectedException.expectMessage(containsString(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG));
-    expectedException.expectMessage(containsString("io.confluent.ksql.rest.util.RocksDBConfigSetterHandlerTest$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor"));
-
     // When:
-    RocksDBConfigSetterHandler.maybeConfigureRocksDBConfigSetter(ksqlConfig);
+    final ConfigException e = assertThrows(
+        (ConfigException.class),
+        () -> RocksDBConfigSetterHandler.maybeConfigureRocksDBConfigSetter(ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to configure Configurable RocksDBConfigSetter."));
+    assertThat(e.getMessage(), containsString(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG));
+    assertThat(e.getMessage(), containsString("io.confluent.ksql.rest.util.RocksDBConfigSetterHandlerTest$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor"));
   }
 
   public static class ConfigurableTestRocksDBConfigSetter

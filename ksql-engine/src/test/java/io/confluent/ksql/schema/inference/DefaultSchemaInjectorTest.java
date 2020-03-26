@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -33,13 +34,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
@@ -55,9 +56,7 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
@@ -119,9 +118,6 @@ public class DefaultSchemaInjectorTest {
           .build()))
       .build();
   private static final int SCHEMA_ID = 5;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Statement statement;
@@ -226,12 +222,14 @@ public class DefaultSchemaInjectorTest {
     when(schemaSupplier.getValueSchema(any(), any()))
         .thenReturn(SchemaResult.failure(new KsqlException("schema missing or incompatible")));
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("schema missing or incompatible");
-
     // When:
-    injector.inject(ctStatement);
+    final KsqlStatementException e = assertThrows(
+        (KsqlStatementException.class),
+        () -> injector.inject(ctStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("schema missing or incompatible"));
   }
 
   @Test
@@ -422,13 +420,15 @@ public class DefaultSchemaInjectorTest {
     when(schemaSupplier.getValueSchema(any(), any()))
         .thenThrow(new KsqlException("Oh no!"));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expect(not(instanceOf(KsqlStatementException.class)));
-    expectedException.expectMessage("Oh no");
-
     // When:
-    injector.inject(csStatement);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> injector.inject(csStatement)
+    );
+
+    // Then:
+    assertThat(e, not(instanceOf(KsqlStatementException.class)));
+    assertThat(e.getMessage(), containsString("Oh no"));
   }
 
   @SuppressWarnings("SameParameterValue")

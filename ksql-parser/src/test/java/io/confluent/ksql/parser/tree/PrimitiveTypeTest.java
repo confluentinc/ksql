@@ -16,20 +16,17 @@
 package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.util.KsqlException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class PrimitiveTypeTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
@@ -50,42 +47,50 @@ public class PrimitiveTypeTest {
 
   @Test
   public void shouldThrowOnUnknownTypeString() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unknown primitive type: WHAT_IS_THIS?");
-
     // When:
-    PrimitiveType.of("WHAT_IS_THIS?");
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> PrimitiveType.of("WHAT_IS_THIS?")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown primitive type: WHAT_IS_THIS?"));
   }
 
   @Test
   public void shouldThrowOnArrayType() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid primitive type: ARRAY");
-
     // When:
-    PrimitiveType.of(SqlType.ARRAY);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> PrimitiveType.of(SqlType.ARRAY)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid primitive type: ARRAY"));
   }
 
   @Test
   public void shouldThrowOnMapType() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid primitive type: MAP");
-
     // When:
-    PrimitiveType.of(SqlType.MAP);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> PrimitiveType.of(SqlType.MAP)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid primitive type: MAP"));
   }
 
   @Test
   public void shouldThrowOnStructType() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid primitive type: STRUCT");
-
     // When:
-    PrimitiveType.of(SqlType.STRUCT);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> PrimitiveType.of(SqlType.STRUCT)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid primitive type: STRUCT"));
   }
 
   @Test

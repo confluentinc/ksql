@@ -17,8 +17,8 @@ package io.confluent.ksql.rest.entity;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;

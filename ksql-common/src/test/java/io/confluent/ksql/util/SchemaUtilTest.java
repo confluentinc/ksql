@@ -835,7 +835,7 @@ public class SchemaUtilTest {
     // Given:
     final long val = 1L;
 
-    // Expect:
+    // Then:
     assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT32, Schema.Type.INT64, val), is(empty()));
   }
 
@@ -844,7 +844,7 @@ public class SchemaUtilTest {
     // Given:
     final float val = 1f;
 
-    // Expect:
+    // Then:
     assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT64, Schema.Type.FLOAT32, val), is(empty()));
     assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT32, Schema.Type.FLOAT32, val), is(empty()));
   }
@@ -854,7 +854,7 @@ public class SchemaUtilTest {
     // Given:
     final double val = 1d;
 
-    // Expect:
+    // Then:
     assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT32, Schema.Type.FLOAT64, val), is(empty()));
     assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT64, Schema.Type.FLOAT64, val), is(empty()));
     assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT32, Schema.Type.FLOAT64, val), is(empty()));

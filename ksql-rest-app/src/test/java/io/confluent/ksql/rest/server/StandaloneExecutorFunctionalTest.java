@@ -17,6 +17,9 @@ package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.serde.Format.AVRO;
 import static io.confluent.ksql.serde.Format.JSON;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -46,10 +49,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -64,9 +65,6 @@ public class StandaloneExecutorFunctionalTest {
 
   @ClassRule
   public static final TemporaryFolder TMP = new TemporaryFolder();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private static final String AVRO_TOPIC = "avro-topic";
   private static final String JSON_TOPIC = "json-topic";
@@ -236,13 +234,15 @@ public class StandaloneExecutorFunctionalTest {
         + ""
         + "CREATE STREAM S WITH (kafka_topic='topic-without-schema', value_format='avro');");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Schema registry fetch for topic topic-without-schema request failed");
-
     // When:
-    standalone.start();
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> standalone.start()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schema registry fetch for topic topic-without-schema request failed"));
   }
 
   @Test
@@ -257,12 +257,14 @@ public class StandaloneExecutorFunctionalTest {
         + ""
         + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("schema evolution issues");
-
     // When:
-    standalone.start();
+    final KsqlStatementException e = assertThrows(
+        (KsqlStatementException.class),
+        () -> standalone.start()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("schema evolution issues"));
   }
 
   @Test

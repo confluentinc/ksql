@@ -16,7 +16,9 @@
 package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
@@ -24,9 +26,7 @@ import io.confluent.ksql.parser.tree.Struct.Field;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 
 public class StructTest {
@@ -45,9 +45,6 @@ public class StructTest {
       new Field("f6", Map.of(PrimitiveType.of(SqlType.INTEGER))),
       new Field("f7", Struct.builder().addFields(SOME_OTHER_FIELDS).build())
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
@@ -75,25 +72,29 @@ public class StructTest {
 
   @Test
   public void shouldThrowIfNoFields() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("STRUCT type must define fields");
-
     // When:
-    Struct.builder().build();
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> Struct.builder().build()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("STRUCT type must define fields"));
   }
 
   @Test
   public void shouldThrowOnDuplicateFieldName() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Duplicate field names found in STRUCT: 'F0 BOOLEAN' and 'F0 INTEGER'");
-
     // When:
-    Struct.builder()
-        .addField("F0", PrimitiveType.of(SqlType.BOOLEAN))
-        .addField("F0", PrimitiveType.of(SqlType.INTEGER));
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> Struct.builder()
+            .addField("F0", PrimitiveType.of(SqlType.BOOLEAN))
+            .addField("F0", PrimitiveType.of(SqlType.INTEGER))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Duplicate field names found in STRUCT: 'F0 BOOLEAN' and 'F0 INTEGER'"));
   }
 
   @Test

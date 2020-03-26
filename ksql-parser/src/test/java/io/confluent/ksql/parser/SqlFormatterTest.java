@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
@@ -63,14 +64,9 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SqlFormatterTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private AliasedRelation leftAlias;
   private AliasedRelation rightAlias;
@@ -536,12 +532,14 @@ public class SqlFormatterTest {
     // Given:
     final String statementString = "INSERT INTO ADDRESS VALUES (2 + 1);";
 
-    // Expect:
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage("mismatched input");
-
     // When:
-    KsqlParserTestUtil.buildSingleAst(statementString, metaStore);
+    final ParseFailedException e = assertThrows(
+        (ParseFailedException.class),
+        () -> KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("mismatched input"));
   }
 
   @Test

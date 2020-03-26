@@ -17,8 +17,8 @@ package io.confluent.ksql.serde.avro;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -45,9 +45,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -67,9 +65,6 @@ public class KsqlAvroSerializerTest {
           .map(Schema.STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
       .optional()
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private Serializer<Struct> serializer;

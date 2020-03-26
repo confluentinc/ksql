@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -27,6 +28,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.collect.ImmutableList;
@@ -61,9 +63,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 
 @SuppressWarnings("SameParameterValue")
@@ -95,9 +95,6 @@ public class CodeGenRunnerTest {
         ImmutableList.of("one", "two"),
         ImmutableList.of(ImmutableList.of("1", "2"), ImmutableList.of("3")),
         new Struct(STRUCT_SCHEMA).put("A", "VALUE"));
-
-    @Rule
-    public final ExpectedException expectedException = ExpectedException.none();
 
     private MutableMetaStore metaStore;
     private CodeGenRunner codeGenRunner;
@@ -279,30 +276,34 @@ public class CodeGenRunnerTest {
 
     @Test
     public void testBooleanExprArrayComparisonFails() {
-        // Given:
-        expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot compare ARRAY values. "
-            + "expression:(CODEGEN_TEST.COL9 = CODEGEN_TEST.COL10)");
-        expectedException.expectCause(hasMessage(equalTo("Cannot compare ARRAY values")));
-
         // When:
-        evalBooleanExprEq(ARRAY_INDEX1, ARRAY_INDEX2,
-            new Object[]{new Integer[]{1}, new Integer[]{1}});
+        final KsqlException e = assertThrows(
+            KsqlException.class,
+            () -> evalBooleanExprEq(ARRAY_INDEX1, ARRAY_INDEX2,
+                new Object[]{new Integer[]{1}, new Integer[]{1}})
+        );
+
+        // Then:
+        assertThat(e.getMessage(), containsString("Code generation failed for Filter: "
+            + "Cannot compare ARRAY values. "
+            + "expression:(CODEGEN_TEST.COL9 = CODEGEN_TEST.COL10)"));
+        assertThat(e.getCause(), hasMessage(equalTo("Cannot compare ARRAY values")));
     }
 
     @Test
     public void testBooleanExprMapComparisonFails() {
-        // Given:
-        expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot compare MAP values. "
-            + "expression:(CODEGEN_TEST.COL11 = CODEGEN_TEST.COL12)");
-        expectedException.expectCause(hasMessage(equalTo("Cannot compare MAP values")));
-
         // When:
-        evalBooleanExprEq(MAP_INDEX1, MAP_INDEX2,
-            new Object[]{ImmutableMap.of(1, 2), ImmutableMap.of(1, 2)});
+        final KsqlException e = assertThrows(
+            KsqlException.class,
+            () -> evalBooleanExprEq(MAP_INDEX1, MAP_INDEX2,
+            new Object[]{ImmutableMap.of(1, 2), ImmutableMap.of(1, 2)})
+        );
+
+        // Then:
+        assertThat(e.getMessage(), containsString("Code generation failed for Filter: "
+            + "Cannot compare MAP values. "
+            + "expression:(CODEGEN_TEST.COL11 = CODEGEN_TEST.COL12)"));
+        assertThat(e.getCause(), hasMessage(equalTo("Cannot compare MAP values")));
     }
 
     @Test
@@ -480,44 +481,50 @@ public class CodeGenRunnerTest {
 
     @Test
     public void testInvalidBetweenArrayValue() {
-        // Given:
-        expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute BETWEEN with ARRAY values. "
-            + "expression:(NOT (CODEGEN_TEST.COL9 BETWEEN 'a' AND 'c'))");
-        expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute BETWEEN with ARRAY values")));
-
         // When:
-        evalNotBetweenClauseObject(ARRAY_INDEX1, new Object[]{1, 2}, "'a'", "'c'");
+        final KsqlException e = assertThrows(
+            KsqlException.class,
+            () -> evalNotBetweenClauseObject(ARRAY_INDEX1, new Object[]{1, 2}, "'a'", "'c'")
+        );
+
+        // Then:
+        assertThat(e.getMessage(), containsString("Code generation failed for Filter: "
+            + "Cannot execute BETWEEN with ARRAY values. "
+            + "expression:(NOT (CODEGEN_TEST.COL9 BETWEEN 'a' AND 'c'))"));
+        assertThat(e.getCause(), hasMessage(
+            equalTo("Cannot execute BETWEEN with ARRAY values")));
     }
 
     @Test
     public void testInvalidBetweenMapValue() {
-        // Given:
-        expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute BETWEEN with MAP values. "
-            + "expression:(NOT (CODEGEN_TEST.COL11 BETWEEN 'a' AND 'c'))");
-        expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute BETWEEN with MAP values")));
-
         // When:
-        evalNotBetweenClauseObject(MAP_INDEX1, ImmutableMap.of(1, 2), "'a'", "'c'");
+        final KsqlException e = assertThrows(
+            KsqlException.class,
+            () -> evalNotBetweenClauseObject(MAP_INDEX1, ImmutableMap.of(1, 2), "'a'", "'c'")
+        );
+
+        // Then:
+        assertThat(e.getMessage(), containsString("Code generation failed for Filter: "
+            + "Cannot execute BETWEEN with MAP values. "
+            + "expression:(NOT (CODEGEN_TEST.COL11 BETWEEN 'a' AND 'c'))"));
+        assertThat(e.getCause(), hasMessage(
+            equalTo("Cannot execute BETWEEN with MAP values")));
     }
 
     @Test
     public void testInvalidBetweenBooleanValue() {
-        // Given:
-        expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute BETWEEN with BOOLEAN values. "
-            + "expression:(NOT (CODEGEN_TEST.COL6 BETWEEN 'a' AND 'c'))");
-        expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute BETWEEN with BOOLEAN values")));
-
         // When:
-        evalNotBetweenClauseObject(BOOLEAN_INDEX1, true, "'a'", "'c'");
+        final KsqlException e = assertThrows(
+            KsqlException.class,
+            () -> evalNotBetweenClauseObject(BOOLEAN_INDEX1, true, "'a'", "'c'")
+        );
+
+        // Then:
+        assertThat(e.getMessage(), containsString("Code generation failed for Filter: "
+            + "Cannot execute BETWEEN with BOOLEAN values. "
+            + "expression:(NOT (CODEGEN_TEST.COL6 BETWEEN 'a' AND 'c'))"));
+        assertThat(e.getCause(), hasMessage(
+            equalTo("Cannot execute BETWEEN with BOOLEAN values")));
     }
 
     @Test

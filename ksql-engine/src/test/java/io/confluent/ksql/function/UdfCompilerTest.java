@@ -20,6 +20,9 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.udaf.TestUdaf;
@@ -36,17 +39,13 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class UdfCompilerTest {
 
   private static final Schema STRUCT_SCHEMA =
       SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA).build();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
   private final ClassLoader classLoader = UdfCompilerTest.class.getClassLoader();
   private final UdfCompiler udfCompiler = new UdfCompiler(Optional.empty());
 
@@ -236,43 +235,54 @@ public class UdfCompilerTest {
 
   @Test
   public void shouldThrowIfArrayWithoutVarArgs() throws Exception {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Invalid UDF method signature (contains non var-arg array)");
-    UdfCompiler.compile(
-        getClass().getMethod("invalidUdf", int[].class),
-        classLoader);
+    final KsqlFunctionException e = assertThrows(
+        (KsqlFunctionException.class),
+        () -> UdfCompiler.compile(
+            getClass().getMethod("invalidUdf", int[].class),
+            classLoader)
+    );
+
+    assertThat(e.getMessage(), containsString("Invalid UDF method signature (contains non var-arg array)"));
   }
 
   @Test
   public void shouldThrowIfArrayAndVarArgs() throws Exception {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Invalid UDF method signature (contains non var-arg array):");
-    UdfCompiler.compile(
-        getClass().getMethod("invalidUdf", int[].class, int[].class),
-        classLoader);
+    final KsqlFunctionException e = assertThrows(
+        (KsqlFunctionException.class),
+        () -> UdfCompiler.compile(
+            getClass().getMethod("invalidUdf", int[].class, int[].class),
+            classLoader)
+    );
+
+    assertThat(e.getMessage(), containsString("Invalid UDF method signature (contains non var-arg array):"));
   }
 
   @Test
   public void shouldThrowKsqlFunctionExceptionIfNullPassedWhenExpectingPrimitiveType()
       throws Exception {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Can't coerce argument at index 0 from null to a primitive type");
     final UdfInvoker udf =
         UdfCompiler.compile(getClass().getMethod("udfPrimitive", double.class), classLoader);
-    udf.eval(this, new Object[]{null});
+    Exception e = assertThrows(KsqlFunctionException.class, () -> udf.eval(this, new Object[]{null}));
+    assertEquals("Can't coerce argument at index 0 from null to a primitive type", e.getMessage());
   }
 
   @Test
-  public void shouldThrowWhenUdafReturnTypeIsntAUdaf() throws Exception {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UDAFs must implement io.confluent.ksql.function.udaf.Udaf "
-        + "or io.confluent.ksql.function.udaf.TableUdaf .method='createBlah', functionName='test'"
-        + " UDFClass='class io.confluent.ksql.function.UdfCompilerTest");
-    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBlah"),
-        classLoader,
-        "test",
-        "desc"
+  public void shouldThrowWhenUdafReturnTypeIsntAUdaf() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBlah"),
+            classLoader,
+            "test",
+            "desc"
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UDAFs must implement io.confluent.ksql.function.udaf.Udaf "
+            + "or io.confluent.ksql.function.udaf.TableUdaf .method='createBlah', functionName='test'"
+            + " UDFClass='class io.confluent.ksql.function.UdfCompilerTest"));
   }
 
   @Test

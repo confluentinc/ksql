@@ -36,10 +36,10 @@ public class JoinedSource extends Relation {
       final Optional<WithinExpression> withinExpression
   ) {
     super(location);
-    this.relation = relation;
-    this.type = type;
-    this.criteria = criteria;
-    this.withinExpression = withinExpression;
+    this.relation = Objects.requireNonNull(relation, "relation");
+    this.type = Objects.requireNonNull(type, "type");
+    this.criteria = Objects.requireNonNull(criteria, "criteria");
+    this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
   }
 
   public Relation getRelation() {

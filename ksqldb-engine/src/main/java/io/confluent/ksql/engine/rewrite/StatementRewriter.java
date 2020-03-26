@@ -297,7 +297,7 @@ public final class StatementRewriter<C> {
       }
 
       final Relation rewrittenLeft = (Relation) rewriter.apply(node.getLeft(), context);
-      final JoinedSource rightSource = Iterables.getOnlyElement(node.getSources());
+      final JoinedSource rightSource = Iterables.getOnlyElement(node.getRights());
       final Relation rewrittenRight = (Relation) rewriter.apply(rightSource.getRelation(), context);
       final Optional<WithinExpression> rewrittenWithin = rightSource.getWithinExpression()
           .map(within -> (WithinExpression) rewriter.apply(within, context));

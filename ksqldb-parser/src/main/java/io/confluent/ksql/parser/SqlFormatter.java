@@ -206,7 +206,7 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitJoin(final Join join, final Integer indent) {
-      final JoinedSource node = Iterables.getOnlyElement(join.getSources());
+      final JoinedSource node = Iterables.getOnlyElement(join.getRights());
 
       final String type = node.getType().getFormatted();
       process(join.getLeft(), indent);

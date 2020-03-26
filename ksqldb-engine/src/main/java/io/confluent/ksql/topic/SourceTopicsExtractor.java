@@ -51,7 +51,7 @@ public class SourceTopicsExtractor extends DefaultTraversalVisitor<AstNode, Void
   @Override
   protected AstNode visitJoin(final Join node, final Void context) {
     process(node.getLeft(), context);
-    node.getSources().forEach(source -> process(source.getRelation(), context));
+    node.getRights().forEach(source -> process(source.getRelation(), context));
     return null;
   }
 

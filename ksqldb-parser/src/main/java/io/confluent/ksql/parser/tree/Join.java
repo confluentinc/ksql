@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
@@ -29,31 +30,32 @@ import java.util.Optional;
 public class Join extends Relation {
 
   private final Relation left;
-  private final ImmutableList<JoinedSource> sources;
+  private final ImmutableList<JoinedSource> rights;
 
   public Join(
       final Relation left,
-      final List<JoinedSource> sources
+      final List<JoinedSource> rights
   ) {
-    this(Optional.empty(), left, sources);
+    this(Optional.empty(), left, rights);
   }
 
   public Join(
       final Optional<NodeLocation> location,
       final Relation left,
-      final List<JoinedSource> sources
+      final List<JoinedSource> rights
   ) {
     super(location);
     this.left = requireNonNull(left, "left");
-    this.sources = ImmutableList.copyOf(Objects.requireNonNull(sources, "sources"));
+    this.rights = ImmutableList.copyOf(Objects.requireNonNull(rights, "sources"));
+    Preconditions.checkArgument(!rights.isEmpty(), "Cannot join without any right sources!");
   }
 
   public Relation getLeft() {
     return left;
   }
 
-  public ImmutableList<JoinedSource> getSources() {
-    return sources;
+  public ImmutableList<JoinedSource> getRights() {
+    return rights;
   }
 
   @Override
@@ -63,11 +65,10 @@ public class Join extends Relation {
 
   @Override
   public String toString() {
-    return toStringHelper(this)
-        .add("left", left)
-        .add("sources", sources)
-        .omitNullValues()
-        .toString();
+    return "Join{"
+        + "left=" + left
+        + ", rights=" + rights
+        + '}';
   }
 
   @Override
@@ -80,11 +81,11 @@ public class Join extends Relation {
     }
     final Join that = (Join) o;
     return Objects.equals(left, that.left)
-           && Objects.equals(sources, that.sources);
+           && Objects.equals(rights, that.rights);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(left, sources);
+    return Objects.hash(left, rights);
   }
 }

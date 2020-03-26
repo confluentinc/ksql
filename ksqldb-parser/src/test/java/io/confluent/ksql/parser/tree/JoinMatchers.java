@@ -49,7 +49,7 @@ public final class JoinMatchers {
         (relationship, "right relationship", "right") {
       @Override
       protected Relation featureValueOf(final Join actual) {
-        return Iterables.getOnlyElement(actual.getSources()).getRelation();
+        return Iterables.getOnlyElement(actual.getRights()).getRelation();
       }
     };
   }

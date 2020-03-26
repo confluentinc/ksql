@@ -152,7 +152,7 @@ class DataSourceExtractor {
       }
       addFieldNames(leftDataSource.getSchema(), leftColumnNames);
       final AliasedRelation right =
-          (AliasedRelation) Iterables.getOnlyElement(join.getSources()).getRelation();
+          (AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation();
       rightAlias = right.getAlias();
       rightName = ((Table) right.getRelation()).getName();
       final DataSource

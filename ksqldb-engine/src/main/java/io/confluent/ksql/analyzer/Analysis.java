@@ -170,7 +170,8 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   void addJoin(final JoinInfo joinInfo) {
-    if (fromDataSources.size() <= 1) {
+    // we cannot add more joins than we have data sources
+    if (fromDataSources.size() < this.joinInfo.size()) {
       throw new IllegalStateException("Join info can only be supplied for joins");
     }
 

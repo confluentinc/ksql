@@ -282,14 +282,14 @@ class Analyzer {
       isJoin = true;
 
       process(node.getLeft(), context);
-      node.getSources().forEach(right -> process(right.getRelation(), context));
+      node.getRights().forEach(right -> process(right.getRelation(), context));
 
       final JoinNode.JoinType joinType = getJoinType(node);
 
       final AliasedDataSource left = analysis.getFromDataSources().get(0);
       final AliasedDataSource right = analysis.getFromDataSources().get(1);
 
-      final JoinedSource source = Iterables.getOnlyElement(node.getSources());
+      final JoinedSource source = Iterables.getOnlyElement(node.getRights());
       final JoinOn joinOn = (JoinOn) source.getCriteria();
       final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
           .getExpression();
@@ -434,7 +434,7 @@ class Analyzer {
 
     private JoinNode.JoinType getJoinType(final Join node) {
       final JoinNode.JoinType joinType;
-      final JoinedSource source = Iterables.getOnlyElement(node.getSources());
+      final JoinedSource source = Iterables.getOnlyElement(node.getRights());
       switch (source.getType()) {
         case INNER:
           joinType = JoinNode.JoinType.INNER;

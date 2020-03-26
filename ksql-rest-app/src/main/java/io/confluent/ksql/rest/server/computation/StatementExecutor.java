@@ -350,9 +350,7 @@ public class StatementExecutor {
       final TerminateQuery terminateQuery,
       final Mode mode) throws Exception {
     final QueryId queryId = terminateQuery.getQueryId();
-    if (!ksqlEngine.terminateQuery(queryId, mode == Mode.EXECUTE)) {
-      throw new Exception(String.format("No running query with id %s was found", queryId));
-    }
+    ksqlEngine.terminateQuery(queryId, mode == Mode.EXECUTE);
   }
 
   private void maybeTerminateQueryForLegacyDropCommand(

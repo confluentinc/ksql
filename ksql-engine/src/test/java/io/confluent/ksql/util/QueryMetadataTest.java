@@ -27,6 +27,8 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
 import org.easymock.EasyMock;
+import org.easymock.IAnswer;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,25 +51,19 @@ public class QueryMetadataTest {
   private Metrics metrics;
   private MetricName metricName;
   private final String metricGroupName = "ksql-queries";
+  private QueryMetadata query;
+  private boolean cleanUp;
 
   @Before
   public void setup() {
+    cleanUp = false;
     metrics = MetricsTestUtil.getMetrics();
     metricName = metrics.metricName("query-status", metricGroupName,
         "The current status of the given query.",
         Collections.singletonMap("status", queryApplicationId));
     outputNode = EasyMock.niceMock(OutputNode.class);
     kafkaStreams = EasyMock.niceMock(KafkaStreams.class);
-  }
-
-  @Test
-  public void shouldAddandRemoveTheMetricOnClose() {
-    EasyMock.expect(kafkaStreams.state()).andReturn(State.RUNNING).once();
-    EasyMock.expect(kafkaStreams.state()).andReturn(State.NOT_RUNNING).once();
-    EasyMock.replay(kafkaStreams, outputNode);
-    final QueryStateListener queryStateListener = new QueryStateListener(metrics, kafkaStreams, queryApplicationId);
-    kafkaStreams.setStateListener(EasyMock.eq(queryStateListener));
-    final QueryMetadata queryMetadata = new QueryMetadata(
+    query = new QueryMetadata(
         statementString,
         kafkaStreams,
         outputNode,
@@ -77,19 +73,68 @@ public class QueryMetadataTest {
         kafkaTopicClient,
         topoplogy,
         overriddenProperties
-    );
-    queryMetadata.registerQueryStateListener(queryStateListener);
-    queryMetadata.start();
+    ) {
+      @Override
+      public void stop() {
+        doClose(cleanUp);
+      }
+    };
+  }
+
+  @Test
+  public void shouldAddandRemoveTheMetricOnClose() {
+    EasyMock.expect(kafkaStreams.state()).andReturn(State.RUNNING).once();
+    EasyMock.replay(kafkaStreams);
+    final QueryStateListener queryStateListener = new QueryStateListener(metrics, kafkaStreams, queryApplicationId);
+    kafkaStreams.setStateListener(EasyMock.eq(queryStateListener));
+    query.registerQueryStateListener(queryStateListener);
+    query.start();
     assertThat(metrics.metric(metricName).metricName().name(), equalTo("query-status"));
     assertThat(metrics.metric(metricName).metricValue().toString(), equalTo("RUNNING"));
     queryStateListener.onChange(State.REBALANCING, State.RUNNING);
     assertThat(metrics.metric(metricName).metricValue().toString(), equalTo("REBALANCING"));
     queryStateListener.onChange(State.RUNNING, State.REBALANCING);
     assertThat(metrics.metric(metricName).metricValue().toString(), equalTo("RUNNING"));
-    queryMetadata.close();
+    query.close();
     EasyMock.verify(kafkaStreams);
     assertThat(metrics.metric(metricName), nullValue());
-
   }
 
+  @Test
+  public void shouldCallKafkaStreamsCloseOnStop() {
+    kafkaStreams.close();
+    EasyMock.expectLastCall().times(1);
+    EasyMock.replay(kafkaStreams);
+            
+    // When:
+    query.stop();
+    EasyMock.verify(kafkaStreams);
+  }
+
+  @Test
+  public void shouldNotCleanUpKStreamsAppOnStop() {
+    kafkaStreams.cleanUp();
+    EasyMock.expectLastCall().andAnswer(() -> {
+      Assert.fail();
+      return null;
+    }).anyTimes();
+    EasyMock.replay(kafkaStreams);
+
+    // When:
+    query.stop();
+    EasyMock.verify(kafkaStreams);
+  }
+
+  @Test
+  public void shouldCallCleanupOnStopIfCleanup() {
+    // Given:
+    cleanUp = true;
+    kafkaStreams.cleanUp();
+    EasyMock.expectLastCall().times(1);
+    EasyMock.replay(kafkaStreams);
+
+    // When:
+    query.stop();
+    EasyMock.verify(kafkaStreams);
+  }
 }

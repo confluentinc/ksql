@@ -95,4 +95,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
   public int hashCode() {
     return Objects.hash(id, super.hashCode());
   }
+
+  public void stop() {
+    doClose(false);
+  }
 }

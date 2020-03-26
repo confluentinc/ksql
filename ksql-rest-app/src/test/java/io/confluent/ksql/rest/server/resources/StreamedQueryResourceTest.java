@@ -168,9 +168,9 @@ public class StreamedQueryResourceTest {
     expectLastCall();
     mockKafkaStreams.setUncaughtExceptionHandler(anyObject(Thread.UncaughtExceptionHandler.class));
     expectLastCall();
-    expect(mockKafkaStreams.state()).andReturn(State.RUNNING).once();
-    expect(mockKafkaStreams.state()).andReturn(KafkaStreams.State.NOT_RUNNING).once();
     mockKafkaStreams.close();
+    expectLastCall();
+    mockKafkaStreams.cleanUp();
     expectLastCall();
 
 

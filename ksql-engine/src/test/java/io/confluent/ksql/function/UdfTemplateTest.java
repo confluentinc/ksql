@@ -1,25 +1,21 @@
 package io.confluent.ksql.function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class UdfTemplateTest {
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
-  @SuppressWarnings("ConstantConditions")
   @Test
   public void testCoerceNumbers() {
     // Given:
@@ -77,12 +73,14 @@ public class UdfTemplateTest {
     // Given:
     Object[] args = new Object[]{null};
 
-    // Then:
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("from null to a primitive type");
-
     // When:
-    UdfTemplate.coerce(args, int.class, 0);
+    final KsqlFunctionException e = assertThrows(
+        KsqlFunctionException.class,
+        () -> UdfTemplate.coerce(args, int.class, 0)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("from null to a primitive type"));
   }
 
   @Test
@@ -101,12 +99,14 @@ public class UdfTemplateTest {
     // Given:
     Object[] args = new Object[]{"not a number"};
 
-    // Then:
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Couldn't coerce string");
-
     // When:
-    UdfTemplate.coerce(args, int.class, 0);
+    final KsqlFunctionException e = assertThrows(
+        KsqlFunctionException.class,
+        () -> UdfTemplate.coerce(args, int.class, 0)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Couldn't coerce string"));
   }
 
   @Test
@@ -114,12 +114,14 @@ public class UdfTemplateTest {
     // Given:
     Object[] args = new Object[]{1};
 
-    // Then:
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Couldn't coerce numeric");
-
     // When:
-    UdfTemplate.coerce(args, Map.class, 0);
+    final KsqlFunctionException e = assertThrows(
+        KsqlFunctionException.class,
+        () -> UdfTemplate.coerce(args, Map.class, 0)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Couldn't coerce numeric"));
   }
 
   @Test
@@ -127,12 +129,13 @@ public class UdfTemplateTest {
     // Given
     Object[] args = new Object[]{(Supplier) () -> null};
 
-    // Then:
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Impossible to coerce");
-
     // When:
-    UdfTemplate.coerce(args, int.class, 0);
-  }
+    final KsqlFunctionException e = assertThrows(
+        KsqlFunctionException.class,
+        () -> UdfTemplate.coerce(args, int.class, 0)
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("Impossible to coerce"));
+  }
 }

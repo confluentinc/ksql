@@ -33,8 +33,8 @@ import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
@@ -46,7 +46,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -73,7 +72,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -85,9 +83,7 @@ import org.easymock.Mock;
 import org.easymock.MockType;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
@@ -95,9 +91,6 @@ public class StreamedQueryResourceTest {
 
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
   private static final Duration COMMAND_QUEUE_CATCHUP_TIMOEUT = Duration.ofMillis(1000);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock(MockType.NICE)
   private KsqlConfig ksqlConfig;
@@ -150,15 +143,17 @@ public class StreamedQueryResourceTest {
 
     replay(mockStatementParser);
 
-    // Expect
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is("some error message"))));
-    expectedException.expect(
-        exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
-
     // When:
-    testResource.streamQuery(new KsqlRequest("query", Collections.emptyMap(), null));
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> testResource.streamQuery(new KsqlRequest("query", Collections.emptyMap(), null))
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(is("some error message"))));
+    assertThat(e,
+        exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
   }
 
   @Test
@@ -197,16 +192,18 @@ public class StreamedQueryResourceTest {
 
     replay(commandQueue);
 
-    // Expect
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(
-        containsString("Timed out while waiting for a previous command to execute"))));
-    expectedException.expect(
-        exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
-
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L))
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    assertThat(e, exceptionErrorMessage(errorMessage(
+        containsString("Timed out while waiting for a previous command to execute"))));
+    assertThat(e,
+        exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
   }
 
   @SuppressWarnings("unchecked")

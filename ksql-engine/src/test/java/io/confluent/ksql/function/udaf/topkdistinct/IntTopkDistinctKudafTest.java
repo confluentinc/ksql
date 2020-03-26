@@ -17,7 +17,7 @@ package io.confluent.ksql.function.udaf.topkdistinct;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;

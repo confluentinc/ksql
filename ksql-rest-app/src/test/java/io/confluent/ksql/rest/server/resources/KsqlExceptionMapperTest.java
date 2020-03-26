@@ -18,7 +18,7 @@ package io.confluent.ksql.rest.server.resources;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import javax.ws.rs.WebApplicationException;

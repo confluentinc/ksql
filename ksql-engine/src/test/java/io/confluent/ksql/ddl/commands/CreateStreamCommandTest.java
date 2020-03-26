@@ -16,8 +16,10 @@
 package io.confluent.ksql.ddl.commands;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -37,9 +39,7 @@ import java.util.Map;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -51,9 +51,6 @@ public class CreateStreamCommandTest {
   private KafkaTopicClient topicClient;
   @Mock
   private CreateStream createStreamStatement;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -120,13 +117,15 @@ public class CreateStreamCommandTest {
     givenPropertiesWith(ImmutableMap.of(
         DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Unknown")));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("WINDOW_TYPE property is not set correctly. "
-        + "value: UNKNOWN, validValues: [SESSION, TUMBLING, HOPPING]");
-
     // When:
-    createCmd();
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        this::createCmd
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("WINDOW_TYPE property is not set correctly. "
+        + "value: UNKNOWN, validValues: [SESSION, TUMBLING, HOPPING]"));
   }
 
   @Test
@@ -135,13 +134,15 @@ public class CreateStreamCommandTest {
     givenPropertiesWith(ImmutableMap.of(
         "WINDOWED", new BooleanLiteral("true")));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid config variable in the WITH clause: WINDOWED");
-
     // When:
-    createCmd();
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        this::createCmd
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid config variable in the WITH clause: WINDOWED"));
   }
 
   @Test
@@ -149,13 +150,15 @@ public class CreateStreamCommandTest {
     // Given:
     when(topicClient.isTopicExists(any())).thenReturn(false);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Kafka topic does not exist: some-topic");
-
     // When:
-    createCmd();
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        this::createCmd
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Kafka topic does not exist: some-topic"));
   }
 
   private CreateStreamCommand createCmd() {

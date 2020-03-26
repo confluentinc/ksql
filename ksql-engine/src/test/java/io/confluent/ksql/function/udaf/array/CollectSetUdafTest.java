@@ -15,11 +15,12 @@
 
 package io.confluent.ksql.function.udaf.array;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+
 import io.confluent.ksql.function.udaf.Udaf;
 import java.util.List;
 import org.junit.Test;

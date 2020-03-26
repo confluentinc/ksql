@@ -15,6 +15,15 @@
 
 package io.confluent.ksql.metrics;
 
+import static io.confluent.ksql.metrics.StreamsErrorCollector.CONSUMER_FAILED_MESSAGES;
+import static io.confluent.ksql.metrics.StreamsErrorCollector.CONSUMER_FAILED_MESSAGES_PER_SEC;
+import static io.confluent.ksql.metrics.StreamsErrorCollector.notifyApplicationClose;
+import static io.confluent.ksql.metrics.StreamsErrorCollector.recordError;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metrics.TopicSensors.Stat;
 import java.util.Map;
@@ -22,15 +31,6 @@ import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static io.confluent.ksql.metrics.StreamsErrorCollector.CONSUMER_FAILED_MESSAGES;
-import static io.confluent.ksql.metrics.StreamsErrorCollector.CONSUMER_FAILED_MESSAGES_PER_SEC;
-import static io.confluent.ksql.metrics.StreamsErrorCollector.notifyApplicationClose;
-import static io.confluent.ksql.metrics.StreamsErrorCollector.recordError;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertThat;
 
 public class StreamsErrorCollectorTest {
   private final static String TOPIC_NAME = "test-topic";

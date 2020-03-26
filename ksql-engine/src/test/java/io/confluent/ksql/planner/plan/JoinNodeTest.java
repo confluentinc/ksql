@@ -79,7 +79,6 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -269,7 +268,7 @@ public class JoinNodeTest {
               + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;",
           ksqlConfig);
     } catch (final KsqlException e) {
-      Assert.assertThat(e.getMessage(), equalTo(
+      assertThat(e.getMessage(), equalTo(
           "Can't join TEST1 with TEST2 since the number of partitions don't match. TEST1 "
           + "partitions = 1; TEST2 partitions = 2. Please repartition either one so that the "
           + "number of partitions match."

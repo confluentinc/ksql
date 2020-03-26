@@ -17,10 +17,12 @@ package io.confluent.ksql.util;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
@@ -40,10 +42,8 @@ import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 
 @Category({IntegrationTest.class})
 public class KafkaTopicClientImplIntegrationTest {
@@ -51,9 +51,6 @@ public class KafkaTopicClientImplIntegrationTest {
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster KAFKA =
       EmbeddedSingleNodeKafkaCluster.newBuilder().build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private String testTopic;
   private KafkaTopicClient client;
@@ -197,13 +194,15 @@ public class KafkaTopicClientImplIntegrationTest {
 
   @Test
   public void shouldThrowOnDescribeIfTopicDoesNotExist() {
-    // Expect
-    expectedException.expect(KafkaResponseGetFailedException.class);
-    expectedException.expectMessage("Failed to Describe Kafka Topic(s):");
-    expectedException.expectMessage("i_do_not_exist");
-
     // When:
-    client.describeTopic("i_do_not_exist");
+    final KafkaResponseGetFailedException e = assertThrows(
+        KafkaResponseGetFailedException.class,
+        () -> client.describeTopic("i_do_not_exist")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to Describe Kafka Topic(s):"));
+    assertThat(e.getMessage(), containsString("i_do_not_exist"));
   }
 
   private String getTopicConfig(final String configName) {

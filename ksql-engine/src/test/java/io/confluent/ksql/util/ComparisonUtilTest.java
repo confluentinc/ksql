@@ -17,15 +17,14 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ComparisonUtilTest {
 
@@ -42,9 +41,6 @@ public class ComparisonUtilTest {
       ImmutableList.of(false, false, false, false, false, false, false, false), // Map
       ImmutableList.of(false, false, false, false, false, false, false, false) // Struct
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldAssertTrueForValidComparisons() {
@@ -68,16 +64,16 @@ public class ComparisonUtilTest {
 
   @Test
   public void shouldThrowForInvalidComparisons() {
-    // Given:
-    expectedException.expect(KsqlException.class);
-
     // When:
     int i = 0;
     int j = 0;
     for (final Schema.Type leftType: typesTable) {
       for (final Schema.Type rightType: typesTable) {
         if (!expectedResults.get(i).get(j)) {
-          ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType);
+          assertThrows(
+              KsqlException.class,
+              () -> ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType)
+          );
         }
 
         j++;

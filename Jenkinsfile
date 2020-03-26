@@ -16,17 +16,14 @@ def baseConfig = {
 
 def defaultParams = [
     booleanParam(name: 'RELEASE_BUILD',
-        description: 'Is this a release build. If so, GIT_REVISION must be specified, and only on-prem images will be built.',
+        description: 'Is this a release build. If so, GIT_REVISION must be specified, and the downstream CCloud job will not be triggered.',
         defaultValue: false),
     string(name: 'GIT_REVISION',
         description: 'The git SHA to build ksqlDB from.',
         defaultValue: ''),
-    string(name: 'CCLOUD_GIT_REVISION',
-        description: 'The cc-docker-ksql git SHA to build the CCloud ksqlDB image from.',
-        defaultValue: ''),
     booleanParam(name: 'PROMOTE_TO_PRODUCTION',
         defaultValue: false,
-        description: 'Promote images to production (DockerHub) for on-prem release build images only.'),
+        description: 'Promote images to production (DockerHub) for release build images only.'),
     string(name: 'KSQLDB_VERSION',
         defaultValue: '',
         description: 'KSQLDB version to promote to production.'),
@@ -82,7 +79,7 @@ def job = {
         config.docker_tag = config.ksql_db_version
     } else {
         // For non-release builds, we append the build number to the maven artifacts and docker image tag
-        config.ksql_db_artifact_version = config.ksql_db_version + '-' + env.BUILD_NUMBER
+        config.ksql_db_artifact_version = config.ksql_db_version.tokenize("-")[0] + '-' + env.BUILD_NUMBER
         config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-beta' + env.BUILD_NUMBER
     }
     
@@ -152,8 +149,6 @@ def job = {
 
         return null
     }
-
-    // Build on-prem ksqlDB image
 
     stage('Checkout KSQL') {
         checkout changelog: false,
@@ -340,22 +335,18 @@ def job = {
 
     // Build CCloud ksqlDB image
 
-    if (config.release) {
-        // Do not build CCloud image in release mode
-        return null
-    }
-
-    stage('Trigger CCloud ksqlDB Docker image job') {
-        build job: "confluentinc/cc-docker-ksql/master",
-            wait: false,
-            parameters: [
-                booleanParam(name: "NIGHTLY_BUILD", value: true),
-                string(name: "NIGHTLY_BUILD_NUMBER", value: "${env.BUILD_NUMBER}"),
-                string(name: "CP_BETA_VERSION", value: "${config.cp_version}"),
-                string(name: "CP_BETA_BUILD_NUMBER", value: "${config.packaging_build_number}"),
-                string(name: "KSQLDB_ARTIFACT_VERSION", value: "${config.ksql_db_artifact_version}"),
-                string(name: "CCLOUD_GIT_REVISION", value: "${params.CCLOUD_GIT_REVISION}")
-            ]
+    if (!config.release && !config.isPrJob) {
+        stage('Trigger CCloud ksqlDB Docker image job') {
+            build job: "confluentinc/cc-docker-ksql/master",
+                wait: false,
+                parameters: [
+                    booleanParam(name: "NIGHTLY_BUILD", value: true),
+                    string(name: "NIGHTLY_BUILD_NUMBER", value: "${env.BUILD_NUMBER}"),
+                    string(name: "CP_BETA_VERSION", value: "${config.cp_version}"),
+                    string(name: "CP_BETA_BUILD_NUMBER", value: "${config.packaging_build_number}"),
+                    string(name: "KSQLDB_ARTIFACT_VERSION", value: "${config.ksql_db_artifact_version}")
+                ]
+        }
     }
 }
 

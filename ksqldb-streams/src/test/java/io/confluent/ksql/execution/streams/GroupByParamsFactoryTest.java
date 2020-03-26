@@ -29,6 +29,7 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.util.StructKeyUtil;
@@ -38,12 +39,14 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -65,9 +68,15 @@ public class GroupByParamsFactoryTest {
   private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil
       .keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
 
+  private static final ColumnName COL3 = ColumnName.of("COL3");
+  private static final SqlStruct COL3_TYPE = SqlTypes.struct()
+      .field("someField", SqlTypes.BIGINT)
+      .build();
+
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("v0"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.DOUBLE)
+      .valueColumn(COL3, COL3_TYPE)
       .build();
 
   @Mock
@@ -270,7 +279,29 @@ public class GroupByParamsFactoryTest {
   }
 
   @Test
-  public void shouldGenerateKeyNameFromSingleGroupByThatAreNotColumnRefs() {
+  public void shouldSetKeyNameFromSingleGroupByFieldName() {
+    // When:
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
+    when(groupBy0.getExpression()).thenReturn(new DereferenceExpression(
+        Optional.empty(),
+        new UnqualifiedColumnReferenceExp(COL3),
+        "someField"
+    ));
+
+    // When:
+    final LogicalSchema schema = GroupByParamsFactory
+        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0), ksqlConfig);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(ColumnName.of("someField"), SqlTypes.INTEGER)
+        .valueColumns(SOURCE_SCHEMA.value())
+        .build()));
+  }
+
+  @Test
+  public void shouldGenerateKeyNameFromSingleGroupByOtherExpressionType() {
     // When:
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
     when(groupBy0.getExpression())

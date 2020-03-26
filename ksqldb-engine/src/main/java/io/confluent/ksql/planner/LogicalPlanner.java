@@ -25,6 +25,7 @@ import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
@@ -537,6 +538,8 @@ public class LogicalPlanner {
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
         if (expression instanceof ColumnReferenceExp) {
           keyName = ((ColumnReferenceExp) expression).getColumnName();
+        } else if (expression instanceof DereferenceExpression) {
+          keyName = ColumnName.of(((DereferenceExpression) expression).getFieldName());
         } else {
           keyName = keyColNameGen.get();
         }

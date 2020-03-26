@@ -21,6 +21,8 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -90,12 +92,22 @@ final class GroupByParamsFactory {
       final KsqlConfig ksqlConfig
   ) {
     final SqlType keyType = groupBy.getExpressionType();
+    final Expression groupByExp = groupBy.getExpression();
 
-    final Optional<ColumnName> singleColumnName = Optional.of(groupBy.getExpression())
-        .filter(colRef -> ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED))
-        .filter(gb -> gb instanceof ColumnReferenceExp)
-        .map(ColumnReferenceExp.class::cast)
-        .map(ColumnReferenceExp::getColumnName);
+    final Optional<ColumnName> singleColumnName;
+
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
+      if (groupByExp instanceof ColumnReferenceExp) {
+        singleColumnName = Optional.of(((ColumnReferenceExp) groupByExp).getColumnName());
+      } else if (groupByExp instanceof DereferenceExpression) {
+        singleColumnName = Optional
+            .of(ColumnName.of(((DereferenceExpression) groupByExp).getFieldName()));
+      } else {
+        singleColumnName = Optional.empty();
+      }
+    } else {
+      singleColumnName = Optional.empty();
+    }
 
     return buildSchemaWithKeyType(sourceSchema, singleColumnName, keyType, ksqlConfig);
   }

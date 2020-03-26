@@ -1,0 +1,146 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585182011202,
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID INT> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID INT, KSQL_INTERNAL_COL_1 INT> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID INT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<COUNT BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0
+    },
+    "timestamp" : 10345
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0
+    },
+    "timestamp" : 13251
+  } ],
+  "outputs" : [ {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "COUNT" : 1
+    },
+    "timestamp" : 10345,
+    "window" : {
+      "start" : 6000,
+      "end" : 11000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "COUNT" : 1
+    },
+    "timestamp" : 10345,
+    "window" : {
+      "start" : 7000,
+      "end" : 12000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "COUNT" : 1
+    },
+    "timestamp" : 10345,
+    "window" : {
+      "start" : 8000,
+      "end" : 13000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "COUNT" : 1
+    },
+    "timestamp" : 10345,
+    "window" : {
+      "start" : 9000,
+      "end" : 14000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "COUNT" : 1
+    },
+    "timestamp" : 10345,
+    "window" : {
+      "start" : 10000,
+      "end" : 15000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "COUNT" : 2
+    },
+    "timestamp" : 13251,
+    "window" : {
+      "start" : 9000,
+      "end" : 14000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "COUNT" : 2
+    },
+    "timestamp" : 13251,
+    "window" : {
+      "start" : 10000,
+      "end" : 15000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "COUNT" : 1
+    },
+    "timestamp" : 13251,
+    "window" : {
+      "start" : 11000,
+      "end" : 16000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "COUNT" : 1
+    },
+    "timestamp" : 13251,
+    "window" : {
+      "start" : 12000,
+      "end" : 17000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "COUNT" : 1
+    },
+    "timestamp" : 13251,
+    "window" : {
+      "start" : 13000,
+      "end" : 18000,
+      "type" : "TIME"
+    }
+  } ]
+}

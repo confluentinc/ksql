@@ -1,0 +1,166 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585182020782,
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE DOUBLE> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE DOUBLE> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE DOUBLE, KSQL_AGG_VARIABLE_0 DOUBLE> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, VALUE DOUBLE> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : {
+      "id" : 1,
+      "value" : null
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : null
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : -1000000.123
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : 0.0
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : 5.1
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : null
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "id" : 100,
+      "value" : 100.1
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "id" : 100,
+      "value" : 6.4
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "id" : 100,
+      "value" : 300.8
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : 2000.99
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : 100.11
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "S2",
+    "key" : 1,
+    "value" : {
+      "ID" : 1,
+      "VALUE" : null
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : null
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : -1000000.123
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : 0.0
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : 5.1
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : 5.1
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "VALUE" : 100.1
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "VALUE" : 100.1
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "VALUE" : 300.8
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : 2000.99
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : 2000.99
+    }
+  } ]
+}

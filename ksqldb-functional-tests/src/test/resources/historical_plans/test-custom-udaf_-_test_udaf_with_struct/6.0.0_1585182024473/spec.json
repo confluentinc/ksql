@@ -1,0 +1,72 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585182024473,
+  "schemas" : {
+    "CTAS_RESULT_0.KsqlTopic.Source" : "STRUCT<ID VARCHAR, VAL STRUCT<A INT, B INT>> NOT NULL",
+    "CTAS_RESULT_0.Aggregate.GroupBy" : "STRUCT<ID VARCHAR, VAL STRUCT<A INT, B INT>> NOT NULL",
+    "CTAS_RESULT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID VARCHAR, VAL STRUCT<A INT, B INT>, KSQL_AGG_VARIABLE_0 STRUCT<A INT, B INT>> NOT NULL",
+    "CTAS_RESULT_0.RESULT" : "STRUCT<ID VARCHAR, RESULT STRUCT<A INT, B INT>> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : "0",
+      "val" : {
+        "A" : 1,
+        "B" : 2
+      }
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : "0",
+      "val" : {
+        "A" : 2,
+        "B" : 3
+      }
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : {
+      "id" : "1",
+      "val" : {
+        "A" : 1,
+        "B" : 0
+      }
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "RESULT",
+    "key" : "0",
+    "value" : {
+      "ID" : "0",
+      "RESULT" : {
+        "A" : 1,
+        "B" : 2
+      }
+    }
+  }, {
+    "topic" : "RESULT",
+    "key" : "0",
+    "value" : {
+      "ID" : "0",
+      "RESULT" : {
+        "A" : 3,
+        "B" : 5
+      }
+    }
+  }, {
+    "topic" : "RESULT",
+    "key" : "1",
+    "value" : {
+      "ID" : "1",
+      "RESULT" : {
+        "A" : 1,
+        "B" : 0
+      }
+    }
+  } ]
+}

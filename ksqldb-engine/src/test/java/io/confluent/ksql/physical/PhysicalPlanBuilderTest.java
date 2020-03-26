@@ -208,16 +208,14 @@ public class PhysicalPlanBuilderTest {
         " > [ PROJECT ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, KSQL_COL_0 DOUBLE, "
             + "KSQL_COL_1 BIGINT |"));
     assertThat(lines[1], startsWith(
-        "\t\t > [ AGGREGATE ] | Schema: ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
-            + "KSQL_INTERNAL_COL_1 DOUBLE, KSQL_AGG_VARIABLE_0 DOUBLE, "
+        "\t\t > [ AGGREGATE ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, "
+            + "COL3 DOUBLE, KSQL_AGG_VARIABLE_0 DOUBLE, "
             + "KSQL_AGG_VARIABLE_1 BIGINT |"));
     assertThat(lines[2], startsWith(
-        "\t\t\t\t > [ GROUP_BY ] | Schema: ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
-            + "KSQL_INTERNAL_COL_1 DOUBLE |"
+        "\t\t\t\t > [ GROUP_BY ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL3 DOUBLE |"
     ));
     assertThat(lines[3], startsWith(
-        "\t\t\t\t\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, KSQL_INTERNAL_COL_0 BIGINT, "
-            + "KSQL_INTERNAL_COL_1 DOUBLE |"));
+        "\t\t\t\t\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL3 DOUBLE |"));
     assertThat(lines[4], startsWith(
         "\t\t\t\t\t\t\t\t > [ FILTER ] | Schema: ROWKEY STRING KEY, "
             + "COL0 BIGINT, COL1 STRING, COL2 STRING, "

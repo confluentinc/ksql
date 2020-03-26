@@ -335,7 +335,6 @@ public class AggregateNodeTest {
   }
 
   private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
-    when(ksqlStreamBuilder.getQueryId()).thenReturn(queryId);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
     when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processLogger);

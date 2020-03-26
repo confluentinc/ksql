@@ -29,6 +29,8 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
@@ -38,6 +40,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.List;
@@ -64,6 +67,7 @@ public class GroupByParamsFactoryTest {
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("v0"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.DOUBLE)
       .build();
 
   @Mock
@@ -74,6 +78,8 @@ public class GroupByParamsFactoryTest {
   private GenericRow value;
   @Mock
   private ProcessingLogger logger;
+  @Mock
+  private KsqlConfig ksqlConfig;
   @Captor
   private ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> msgCaptor;
 
@@ -82,14 +88,14 @@ public class GroupByParamsFactoryTest {
 
   @Before
   public void setUp() {
+    when(groupBy0.getExpression()).thenReturn(new LongLiteral(0));
     when(groupBy0.getExpressionType()).thenReturn(SqlTypes.INTEGER);
 
-    singleParams = GroupByParamsFactory.build(SOURCE_SCHEMA, ImmutableList.of(groupBy0), logger);
-    multiParams = GroupByParamsFactory.build(
-        SOURCE_SCHEMA,
-        ImmutableList.of(groupBy0, groupBy1),
-        logger
-    );
+    singleParams = GroupByParamsFactory
+        .build(SOURCE_SCHEMA, ImmutableList.of(groupBy0), logger, ksqlConfig);
+
+    multiParams = GroupByParamsFactory
+        .build(SOURCE_SCHEMA, ImmutableList.of(groupBy0, groupBy1), logger, ksqlConfig);
 
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(0);
     when(groupBy1.evaluate(any(), any(), any(), any())).thenReturn(0L);
@@ -102,12 +108,13 @@ public class GroupByParamsFactoryTest {
         .setDefault(List.class, ImmutableList.of(groupBy0))
         .setDefault(LogicalSchema.class, SOURCE_SCHEMA)
         .setDefault(SqlType.class, SqlTypes.BIGINT)
+        .setDefault(KsqlConfig.class, ksqlConfig)
         .testStaticMethods(GroupByParamsFactory.class, Visibility.PACKAGE);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnEmptyParam() {
-    GroupByParamsFactory.build(SOURCE_SCHEMA, Collections.emptyList(), logger);
+    GroupByParamsFactory.build(SOURCE_SCHEMA, Collections.emptyList(), logger, ksqlConfig);
   }
 
   @SuppressWarnings("unchecked")
@@ -141,8 +148,8 @@ public class GroupByParamsFactoryTest {
         .collect(Collectors.toList());
 
     assertThat(errorMsgs, contains(
-        "Error calculating group-by column with index 0.",
-        "Error calculating group-by column with index 1."
+        "Error calculating group-by column with index 0. The source row will be excluded from the table.",
+        "Error calculating group-by column with index 1. The source row will be excluded from the table."
     ));
   }
 
@@ -224,7 +231,8 @@ public class GroupByParamsFactoryTest {
     // Then:
     verify(logger).error(
         RecordProcessingError.recordProcessingError(
-            "Group-by column with index 0 resolved to null.",
+            "Group-by column with index 0 resolved to null. "
+                + "The source row will be excluded from the table.",
             value
         )
     );
@@ -240,5 +248,60 @@ public class GroupByParamsFactoryTest {
 
     // Then:
     assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldSetKeyNameFromSingleGroupByColumnName() {
+    // When:
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
+    when(groupBy0.getExpression())
+        .thenReturn(new UnqualifiedColumnReferenceExp(ColumnName.of("Bob")));
+
+    // When:
+    final LogicalSchema schema = GroupByParamsFactory
+        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0), ksqlConfig);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(ColumnName.of("Bob"), SqlTypes.INTEGER)
+        .valueColumns(SOURCE_SCHEMA.value())
+        .build()));
+  }
+
+  @Test
+  public void shouldGenerateKeyNameFromSingleGroupByThatAreNotColumnRefs() {
+    // When:
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
+    when(groupBy0.getExpression())
+        .thenReturn(new LongLiteral(1));
+
+    // When:
+    final LogicalSchema schema = GroupByParamsFactory
+        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0), ksqlConfig);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.INTEGER)
+        .valueColumns(SOURCE_SCHEMA.value())
+        .build()));
+  }
+
+  @Test
+  public void shouldGenerateKeyNameForMultiGroupBys() {
+    // When:
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
+
+    // When:
+    final LogicalSchema schema = GroupByParamsFactory
+        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0, groupBy1), ksqlConfig);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.STRING)
+        .valueColumns(SOURCE_SCHEMA.value())
+        .build()));
   }
 }

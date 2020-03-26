@@ -51,6 +51,7 @@ public class StreamGroupByTest {
     expression2 = ImmutableList.of(mock(Expression.class));
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()

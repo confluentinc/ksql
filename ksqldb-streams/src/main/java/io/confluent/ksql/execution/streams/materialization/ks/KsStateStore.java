@@ -28,6 +28,8 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StoreQueryParameters;
 import org.apache.kafka.streams.state.QueryableStoreType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper around Kafka Streams state store.
@@ -39,6 +41,7 @@ class KsStateStore {
   private final LogicalSchema schema;
   private final KsqlConfig ksqlConfig;
   private final Supplier<Long> clock;
+  private static final Logger LOG = LoggerFactory.getLogger(KsStateStore.class);
 
   KsStateStore(
       final String stateStoreName,
@@ -69,8 +72,6 @@ class KsStateStore {
   }
 
   <T> T store(final QueryableStoreType<T> queryableStoreType) {
-    awaitRunning();
-
     try {
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
         // True flag allows queries on standby and replica state stores
@@ -78,6 +79,7 @@ class KsStateStore {
             StoreQueryParameters.fromNameAndType(stateStoreName, queryableStoreType)
                 .enableStaleStores());
       } else {
+        awaitRunning();
         // False flag allows queries only on active state store
         return kafkaStreams.store(
             StoreQueryParameters.fromNameAndType(stateStoreName, queryableStoreType));
@@ -93,6 +95,7 @@ class KsStateStore {
   }
 
   private void awaitRunning() {
+    LOG.debug("Waiting for streams thread to be in RUNNING state");
     final long timeoutMs =
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG);
     final long threshold = clock.get() + timeoutMs;

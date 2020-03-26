@@ -625,7 +625,7 @@ public class RecoveryTest {
                 "CREATE STREAM B (COLUMN STRING) "
                     + "WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
                 Collections.emptyMap(),
-                null,
+                Collections.emptyMap(),
                 Optional.empty()
             ),
             Optional.empty(),

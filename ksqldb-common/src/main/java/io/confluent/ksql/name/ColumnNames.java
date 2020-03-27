@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.OptionalInt;
@@ -87,6 +88,20 @@ public final class ColumnNames {
       final ColumnName ref
   ) {
     return ColumnName.of(sourceName.text() + "_" + ref.text());
+  }
+
+  /**
+   * Used to generate the column name of an unaliased Struct Field, i.e. a `DereferenceExpression`.
+   *
+   * @param dereferenceExp the `DereferenceExpression` instance.
+   * @return the column name.
+   */
+  public static ColumnName generatedStructFieldColumnName(final Object dereferenceExp) {
+    final String text = dereferenceExp.toString();
+    final String name = text.substring(text.indexOf(KsqlConstants.DOT) + 1)
+        .replace(KsqlConstants.DOT, "_")
+        .replace(KsqlConstants.STRUCT_FIELD_REF, "__");
+    return ColumnName.of(name);
   }
 
   public static boolean isAggregate(final ColumnName name) {

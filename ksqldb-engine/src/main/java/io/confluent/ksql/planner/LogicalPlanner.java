@@ -540,7 +540,7 @@ public class LogicalPlanner {
         if (expression instanceof ColumnReferenceExp) {
           keyName = ((ColumnReferenceExp) expression).getColumnName();
         } else if (expression instanceof DereferenceExpression) {
-          keyName = ColumnName.of(((DereferenceExpression) expression).getFieldName());
+          keyName = ColumnNames.generatedStructFieldColumnName(expression);
         } else {
           keyName = keyColNameGen.get();
         }

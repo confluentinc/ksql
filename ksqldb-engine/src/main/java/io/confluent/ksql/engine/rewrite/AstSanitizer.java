@@ -38,7 +38,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -148,14 +147,9 @@ public final class AstSanitizer {
           alias = name;
         }
       } else if (expression instanceof UnqualifiedColumnReferenceExp) {
-        final ColumnName name = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
-        alias = name;
+        alias = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
       } else if (expression instanceof DereferenceExpression) {
-        final DereferenceExpression dereferenceExp = (DereferenceExpression) expression;
-        final String dereferenceExpressionString = dereferenceExp.toString();
-        alias = ColumnName.of(replaceColumnAndFieldRefs(
-            dereferenceExpressionString.substring(
-                dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
+        alias = ColumnNames.generatedStructFieldColumnName(expression);
       } else {
         alias = aliasGenerator.get();
       }
@@ -163,12 +157,6 @@ public final class AstSanitizer {
       return Optional.of(
           new SingleColumn(singleColumn.getLocation(), expression, Optional.of(alias))
       );
-    }
-
-    private static String replaceColumnAndFieldRefs(final String input) {
-      return input
-          .replace(KsqlConstants.DOT, "_")
-          .replace(KsqlConstants.STRUCT_FIELD_REF, "__");
     }
 
     private DataSource getSource(

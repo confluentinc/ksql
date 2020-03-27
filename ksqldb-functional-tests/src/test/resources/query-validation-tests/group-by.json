@@ -113,7 +113,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "TOWN STRING KEY, COUNT BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "ADDRESS__TOWN STRING KEY, COUNT BIGINT"}
         ]
       }
     },

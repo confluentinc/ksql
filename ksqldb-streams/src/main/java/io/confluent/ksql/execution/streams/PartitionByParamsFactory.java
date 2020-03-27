@@ -146,8 +146,7 @@ public final class PartitionByParamsFactory {
 
     if (partitionBy instanceof DereferenceExpression) {
       // PARTITION BY struct field:
-      final String fieldName = ((DereferenceExpression) partitionBy).getFieldName();
-      return Optional.of(ColumnName.of(fieldName));
+      return Optional.of(ColumnNames.generatedStructFieldColumnName(partitionBy));
     }
 
     return Optional.empty();

@@ -100,8 +100,7 @@ final class GroupByParamsFactory {
       if (groupByExp instanceof ColumnReferenceExp) {
         singleColumnName = Optional.of(((ColumnReferenceExp) groupByExp).getColumnName());
       } else if (groupByExp instanceof DereferenceExpression) {
-        singleColumnName = Optional
-            .of(ColumnName.of(((DereferenceExpression) groupByExp).getFieldName()));
+        singleColumnName = Optional.of(ColumnNames.generatedStructFieldColumnName(groupByExp));
       } else {
         singleColumnName = Optional.empty();
       }

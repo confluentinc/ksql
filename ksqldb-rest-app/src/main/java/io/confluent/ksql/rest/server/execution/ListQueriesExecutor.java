@@ -46,6 +46,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.state.HostInfo;
 
 @SuppressFBWarnings("SE_BAD_FIELD")
@@ -88,54 +90,57 @@ public final class ListQueriesExecutor {
             query -> query));
 
     if (!sessionProperties.getInternalRequest()) {
-      final Set<HostInfo> hosts =
+      final Set<HostInfo> remoteHosts =
           DiscoverRemoteHostsUtil.getRemoteHosts(
               executionContext.getPersistentQueries(),
               sessionProperties.getKsqlHostInfo());
-
-      final ExecutorService executorService = Executors.newFixedThreadPool(hosts.size());
-      final List<Future<List<RunningQuery>>> futureRunningQueries = new ArrayList<>();
-      hosts.forEach(host -> {
-        futureRunningQueries.add(executorService.submit(() -> {
-          final KsqlEntityList response = serviceContext.getKsqlClient()
-              .makeKsqlRequestWithRequestProperties(
-                  ServerUtil.buildRemoteUri(
-                      sessionProperties.getLocalUrl(),
-                      host.host(),
-                      host.port()
-                  ),
-                  statement.getStatementText(),
-                  Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true))
-              .getResponse();
-          return ((Queries) response.get(0)).getQueries();
-        }));
-      });
-
-      final ConcurrentLinkedQueue<RunningQuery> remoteRunningQueries =
-          new ConcurrentLinkedQueue<>();
-      futureRunningQueries.forEach(future -> {
-        try {
-          remoteRunningQueries.addAll(future.get());
-        } catch (final Exception e) {
-          // If the future fails from a server, that result won't be included in the output
+      
+      if (remoteHosts.size() != 0) {
+        final ExecutorService executorService = Executors.newFixedThreadPool(remoteHosts.size());
+        final List<Future<List<RunningQuery>>> futureRunningQueries = new ArrayList<>();
+        for (HostInfo host : remoteHosts) {
+          futureRunningQueries.add(executorService.submit(() -> {
+            final KsqlEntityList response = serviceContext.getKsqlClient()
+                .makeKsqlRequestWithRequestProperties(
+                    ServerUtil.buildRemoteUri(
+                        sessionProperties.getLocalUrl(),
+                        host.host(),
+                        host.port()
+                    ),
+                    statement.getStatementText(),
+                    Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true))
+                .getResponse();
+            return ((Queries) response.get(0)).getQueries();
+          }));
         }
-      });
 
-      remoteRunningQueries.forEach(q -> {
-        final String queryId = q.getId().toString();
+        final ConcurrentLinkedQueue<RunningQuery> remoteRunningQueries =
+                new ConcurrentLinkedQueue<>();
+        futureRunningQueries.forEach(future -> {
+          try {
+            remoteRunningQueries.addAll(future.get());
+          } catch (final Exception e) {
+            // If the future fails from a server, that result won't be included in the output
+          }
+        });
 
-        // If the query has already been discovered, update the KafkaStreamsStateCount object
-        if (queryToRunningQuery.containsKey(queryId)) {
-          q.getState().getState()
-              .forEach((state, count) ->
-                  queryToRunningQuery
-                      .get(queryId)
-                      .getState()
-                      .updateStateCount(state, count));
-        } else {
-          queryToRunningQuery.put(queryId, q);
+        for (RunningQuery q : remoteRunningQueries) {
+          final String queryId = q.getId().toString();
+
+          // If the query has already been discovered, update the KafkaStreamsStateCount object
+          if (queryToRunningQuery.containsKey(queryId)) {
+            for (Map.Entry<KafkaStreams.State, Integer> entry :
+                q.getState().getState().entrySet()) {
+              queryToRunningQuery
+                  .get(queryId)
+                  .getState()
+                  .updateStateCount(entry.getKey(), entry.getValue());
+            }
+          } else {
+            queryToRunningQuery.put(queryId, q);
+          }
         }
-      });
+      }
     }
 
     return Optional.of(new io.confluent.ksql.rest.entity.Queries(
@@ -166,54 +171,57 @@ public final class ListQueriesExecutor {
                 query -> query));
 
     if (!sessionProperties.getInternalRequest()) {
-      final Set<HostInfo> hosts =
+      final Set<HostInfo> remoteHosts =
           DiscoverRemoteHostsUtil.getRemoteHosts(
               executionContext.getPersistentQueries(),
               sessionProperties.getKsqlHostInfo());
 
-      final ExecutorService executorService = Executors.newFixedThreadPool(hosts.size());
-      final List<Future<List<QueryDescription>>> futureQueryDescriptions = new ArrayList<>();
-      hosts.forEach(host -> {
-        futureQueryDescriptions.add(executorService.submit(() -> {
-          final KsqlEntityList response = serviceContext.getKsqlClient()
-              .makeKsqlRequestWithRequestProperties(
-                  ServerUtil.buildRemoteUri(
-                      sessionProperties.getLocalUrl(),
-                      host.host(),
-                      host.port()
-                  ),
-                  statement.getStatementText(),
-                  Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true))
-              .getResponse();
-          return ((QueryDescriptionList) response.get(0)).getQueryDescriptions();
-        }));
-      });
-
-      final ConcurrentLinkedQueue<QueryDescription> remoteQueryDescriptions =
-          new ConcurrentLinkedQueue<>();
-      futureQueryDescriptions.forEach(future -> {
-        try {
-          remoteQueryDescriptions.addAll(future.get());
-        } catch (final Exception e) {
-          // If the future fails from a server, that result won't be included in the output
+      if (remoteHosts.size() != 0) {
+        final ExecutorService executorService = Executors.newFixedThreadPool(remoteHosts.size());
+        final List<Future<List<QueryDescription>>> futureQueryDescriptions = new ArrayList<>();
+        for (HostInfo host : remoteHosts) {
+          futureQueryDescriptions.add(executorService.submit(() -> {
+            final KsqlEntityList response = serviceContext.getKsqlClient()
+                .makeKsqlRequestWithRequestProperties(
+                    ServerUtil.buildRemoteUri(
+                        sessionProperties.getLocalUrl(),
+                        host.host(),
+                        host.port()
+                    ),
+                    statement.getStatementText(),
+                    Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true))
+                .getResponse();
+            return ((QueryDescriptionList) response.get(0)).getQueryDescriptions();
+          }));
         }
-      });
 
-      remoteQueryDescriptions.forEach(q -> {
-        final String queryId = q.getId().toString();
+        final ConcurrentLinkedQueue<QueryDescription> remoteQueryDescriptions =
+                new ConcurrentLinkedQueue<>();
+        futureQueryDescriptions.forEach(future -> {
+          try {
+            remoteQueryDescriptions.addAll(future.get());
+          } catch (final Exception e) {
+            // If the future fails from a server, that result won't be included in the output
+          }
+        });
 
-        // If the query has already been discovered, add to the ksqlQueryHostState mapping
-        if (queryToQueryDescription.containsKey(queryId)) {
-          q.getKsqlHostQueryState()
-              .forEach((host, state) ->
-                  queryToQueryDescription
-                      .get(queryId)
-                      .getKsqlHostQueryState()
-                      .put(host, state));
-        } else {
-          queryToQueryDescription.put(queryId, q);
+        for (QueryDescription q : remoteQueryDescriptions) {
+          final String queryId = q.getId().toString();
+
+          // If the query has already been discovered, add to the ksqlQueryHostState mapping
+          if (queryToQueryDescription.containsKey(queryId)) {
+            for (Map.Entry<KsqlHostInfoEntity, String> entry :
+                q.getKsqlHostQueryState().entrySet()) {
+              queryToQueryDescription
+                  .get(queryId)
+                  .getKsqlHostQueryState()
+                  .put(entry.getKey(), entry.getValue());
+            }
+          } else {
+            queryToQueryDescription.put(queryId, q);
+          }
         }
-      });
+      }
     }
 
     return Optional.of(new QueryDescriptionList(

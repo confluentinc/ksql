@@ -34,6 +34,13 @@ public interface SimpleKsqlClient {
       String sql
   );
 
+  /**
+   * Send a request to remote Ksql server.
+   * @param serverEndPoint the remote destination
+   * @param sql the sql statement
+   * @param requestProperties the request metadata provided by the server
+   * @return the result of sql statement execution
+   */
   RestResponse<KsqlEntityList> makeKsqlRequestWithRequestProperties(
       URI serverEndPoint,
       String sql,

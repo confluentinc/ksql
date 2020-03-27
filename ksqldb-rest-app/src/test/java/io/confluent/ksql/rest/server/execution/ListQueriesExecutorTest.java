@@ -69,7 +69,7 @@ public class ListQueriesExecutorTest {
 
   @Before
   public void setup() {
-    when(sessionProperties.getInternalRequest()).thenReturn(false);
+    when(sessionProperties.getInternalRequest()).thenReturn(true);
     when(sessionProperties.getKsqlHostInfo()).thenReturn(LOCAL_HOST.toKsqlHost());
     kafkaStreamsStateCount = new KafkaStreamsStateCount();
   }

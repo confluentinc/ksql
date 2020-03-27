@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.entity;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -24,7 +23,6 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @SuppressWarnings("SameParameterValue")
@@ -58,7 +56,7 @@ public class KafkaStreamsStateCountTest {
     kafkaStreamsStateCount.updateStateCount(KafkaStreams.State.NOT_RUNNING, 1);
     assertThat(
         kafkaStreamsStateCount.toString(),
-        is("NOT_RUNNING:1, RUNNING:2"));
+        is("RUNNING:2, NOT_RUNNING:1"));
   }
 
   @Test
@@ -69,7 +67,7 @@ public class KafkaStreamsStateCountTest {
     assertThat(state.get(KafkaStreams.State.REBALANCING), is(4));
     assertThat(state.get(KafkaStreams.State.ERROR), is(1));
     assertThat(state.get(KafkaStreams.State.RUNNING), is(2));
-    assertThat(kafkaStreamsStateCount.toString(), is("ERROR:1, REBALANCING:4, RUNNING:2"));
+    assertThat(kafkaStreamsStateCount.toString(), is("REBALANCING:4, RUNNING:2, ERROR:1"));
   }
 
   @Test(expected = KsqlException.class)

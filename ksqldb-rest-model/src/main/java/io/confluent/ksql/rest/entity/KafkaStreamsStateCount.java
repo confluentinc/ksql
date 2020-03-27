@@ -18,13 +18,11 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 
-import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.TreeMap;
 
 import org.apache.kafka.streams.KafkaStreams;
 
@@ -35,17 +33,17 @@ import org.apache.kafka.streams.KafkaStreams;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class KafkaStreamsStateCount {
   
-  // Use a TreeMap so toString() will always return the same string
-  private final TreeMap<KafkaStreams.State, Integer> state;
+  // Use a EnumMap so toString() will always return the same string
+  private final EnumMap<KafkaStreams.State, Integer> state;
 
   public KafkaStreamsStateCount() {
-    this.state = returnTreeMap();
+    this.state = returnEnumMap();
   }
 
   @JsonCreator
   public KafkaStreamsStateCount(final String serializedPair) {
     final String [] parts = serializedPair.split(",");
-    final TreeMap<KafkaStreams.State, Integer> deserializedKafkaStreamsStateCount = returnTreeMap();
+    final EnumMap<KafkaStreams.State, Integer> deserializedKafkaStreamsStateCount = returnEnumMap();
     for (String stateCount : parts) {
       final String[] split = stateCount.split(":");
       if (split.length != 2) {
@@ -55,14 +53,11 @@ public class KafkaStreamsStateCount {
       }
 
       final String currentState = split[0].trim();
-      if (!KsqlConstants.STRING_TO_KAFKA_STREAMS_STATE_MAPPING.containsKey(currentState)) {
-        throw new KsqlException("Invalid KafkaStreams State present: " + currentState);
-      }
 
       try {
         final int count = Integer.parseInt(split[1]);
         deserializedKafkaStreamsStateCount.put(
-            KsqlConstants.STRING_TO_KAFKA_STREAMS_STATE_MAPPING.get(currentState), count);
+            KafkaStreams.State.valueOf(currentState), count);
       } catch (final Exception e) {
         throw new KsqlException(
             "Invalid count. Expected format: <KafkaStreams.State>:<count>, but was "
@@ -73,15 +68,8 @@ public class KafkaStreamsStateCount {
     this.state = deserializedKafkaStreamsStateCount;
   }
 
-  private void checkValidState(final String stringState) {
-    if (!KsqlConstants.STRING_TO_KAFKA_STREAMS_STATE_MAPPING.containsKey(stringState)) {
-      throw new KsqlException("Invalid KafkaStreams.State: " + stringState);
-    }
-  }
-
   public void updateStateCount(final String state, final int change) {
-    checkValidState(state);
-    updateStateCount(KsqlConstants.STRING_TO_KAFKA_STREAMS_STATE_MAPPING.get(state), change);
+    updateStateCount(KafkaStreams.State.valueOf(state), change);
   }
 
   public void updateStateCount(final KafkaStreams.State state, final int change) {
@@ -124,7 +112,7 @@ public class KafkaStreamsStateCount {
     return output.toString();
   }
   
-  private static TreeMap<KafkaStreams.State, Integer> returnTreeMap() {
-    return new TreeMap<>(Comparator.comparing(Enum<KafkaStreams.State>::toString));
+  private static EnumMap<KafkaStreams.State, Integer> returnEnumMap() {
+    return new EnumMap<>(KafkaStreams.State.class);
   }
 }

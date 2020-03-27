@@ -319,7 +319,7 @@ public class ConsoleTest {
           + "    \"sinks\" : [ \"Test\" ]," + NEWLINE
           + "    \"sinkKafkaTopics\" : [ \"Test topic\" ]," + NEWLINE
           + "    \"id\" : \"0\"," + NEWLINE
-          + "    \"state\" : \"ERROR:2, RUNNING:1\"" + NEWLINE
+          + "    \"state\" : \"RUNNING:1, ERROR:2\"" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -327,7 +327,7 @@ public class ConsoleTest {
       assertThat(output, is("" + NEWLINE
           + " Query ID | Status             | Sink Name | Sink Kafka Topic | Query String     " + NEWLINE
           + "---------------------------------------------------------------------------------" + NEWLINE
-          + " 0        | ERROR:2, RUNNING:1 | Test      | Test topic       | select * from t1 " + NEWLINE
+          + " 0        | RUNNING:1, ERROR:2 | Test      | Test topic       | select * from t1 " + NEWLINE
           + "---------------------------------------------------------------------------------" + NEWLINE
           + "For detailed information on a Query run: EXPLAIN <Query ID>;" + NEWLINE));
     }
@@ -399,14 +399,14 @@ public class ConsoleTest {
           + "      \"sinks\" : [ \"sink1\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ]," + NEWLINE
           + "      \"id\" : \"readId\"," + NEWLINE
-          + "      \"state\" : \"ERROR:2, RUNNING:1\"" + NEWLINE
+          + "      \"state\" : \"RUNNING:1, ERROR:2\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
           + "      \"queryString\" : \"write query\"," + NEWLINE
           + "      \"sinks\" : [ \"sink2\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ]," + NEWLINE
           + "      \"id\" : \"writeId\"," + NEWLINE
-          + "      \"state\" : \"ERROR:2, RUNNING:1\"" + NEWLINE
+          + "      \"state\" : \"RUNNING:1, ERROR:2\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
           + "      \"name\" : \"ROWTIME\"," + NEWLINE
@@ -1058,14 +1058,14 @@ public class ConsoleTest {
           + "      \"sinks\" : [ \"sink1\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ]," + NEWLINE
           + "      \"id\" : \"readId\"," + NEWLINE
-          + "      \"state\" : \"ERROR:2, RUNNING:1\"" + NEWLINE
+          + "      \"state\" : \"RUNNING:1, ERROR:2\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
           + "      \"queryString\" : \"write query\"," + NEWLINE
           + "      \"sinks\" : [ \"sink2\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ]," + NEWLINE
           + "      \"id\" : \"writeId\"," + NEWLINE
-          + "      \"state\" : \"ERROR:2, RUNNING:1\"" + NEWLINE
+          + "      \"state\" : \"RUNNING:1, ERROR:2\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
           + "      \"name\" : \"ROWTIME\"," + NEWLINE
@@ -1126,13 +1126,13 @@ public class ConsoleTest {
           + "" + NEWLINE
           + "Queries that read from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE
-          + "readId (ERROR:2, RUNNING:1) : read query" + NEWLINE
+          + "readId (RUNNING:1, ERROR:2) : read query" + NEWLINE
           + "\n"
           + "For query topology and execution plan please run: EXPLAIN <QueryId>" + NEWLINE
           + "" + NEWLINE
           + "Queries that write from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE
-          + "writeId (ERROR:2, RUNNING:1) : write query" + NEWLINE
+          + "writeId (RUNNING:1, ERROR:2) : write query" + NEWLINE
           + "\n"
           + "For query topology and execution plan please run: EXPLAIN <QueryId>" + NEWLINE
           + "" + NEWLINE

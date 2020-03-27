@@ -295,7 +295,7 @@ public class GroupByParamsFactoryTest {
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(ColumnName.of("someField"), SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("COL3__someField"), SqlTypes.INTEGER)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));
   }

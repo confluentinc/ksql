@@ -41,14 +41,14 @@ import java.util.function.BiFunction;
 import javax.ws.rs.core.MediaType;
 import org.apache.http.HttpStatus;
 
-public class PortedEndpoints {
+class PortedEndpoints {
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet.of("/ksql");
 
   private final Endpoints endpoints;
   private final Server server;
 
-  public PortedEndpoints(final Endpoints endpoints, final Server server) {
+  PortedEndpoints(final Endpoints endpoints, final Server server) {
     this.endpoints = endpoints;
     this.server = server;
   }
@@ -128,7 +128,7 @@ public class PortedEndpoints {
     });
   }
 
-  public static void oldApiFailureHandler(final RoutingContext routingContext) {
+  private static void oldApiFailureHandler(final RoutingContext routingContext) {
     final int statusCode = routingContext.statusCode();
     final KsqlErrorMessage ksqlErrorMessage = new KsqlErrorMessage(
         toErrorCode(statusCode),

@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_PARAM;
 
 import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
@@ -62,14 +64,14 @@ public final class ServerUtils {
     public void onExtraParam(final String paramName) {
       routingContext
           .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("Unknown arg " + paramName,
-              ErrorCodes.ERROR_CODE_UNKNOWN_PARAM));
+              ERROR_CODE_UNKNOWN_PARAM));
     }
 
     @Override
     public void onInvalidJson() {
       routingContext
           .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("Malformed JSON in request",
-              ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
+              ERROR_CODE_MALFORMED_REQUEST));
     }
   }
 

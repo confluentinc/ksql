@@ -207,8 +207,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   Please note that the old KSQL properties are the ones that should be used to configure the
   server for now, not the new ones.
    */
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static KsqlRestConfig convertToApiServerConfig(final KsqlRestConfig config) {
+    // CHECKSTYLE_RULES.ON: NPathComplexity
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
 
     final List<String> listeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);

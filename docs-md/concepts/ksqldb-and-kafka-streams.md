@@ -81,10 +81,7 @@ There are different workflows for ksqlDB and {{ site.kstreams }} when you
 develop streaming applications.
 
 - ksqlDB: You write SQL queries interactively and view the results in
-real-time, either in the ksqlDB CLI or in {{ site.c3 }}. You can save
-a .sql file and deploy it to production as a "headless"
-application, which runs without a GUI, CLI, or REST interface on
-ksqlDB servers.
+real-time, either in the ksqlDB CLI or in {{ site.c3 }}.
 - {{ site.kstreams }}: You write code in Java or Scala, recompile, and run
 and test the application in an IDE, like IntelliJ. You deploy the
 application to production as a jar file that runs in a {{ site.ak }} cluster.

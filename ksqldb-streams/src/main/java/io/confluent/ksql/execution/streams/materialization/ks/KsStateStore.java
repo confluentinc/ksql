@@ -19,17 +19,13 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
-import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.NotRunningException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StoreQueryParameters;
 import org.apache.kafka.streams.state.QueryableStoreType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper around Kafka Streams state store.
@@ -40,31 +36,18 @@ class KsStateStore {
   private final KafkaStreams kafkaStreams;
   private final LogicalSchema schema;
   private final KsqlConfig ksqlConfig;
-  private final Supplier<Long> clock;
-  private static final Logger LOG = LoggerFactory.getLogger(KsStateStore.class);
-
-  KsStateStore(
-      final String stateStoreName,
-      final KafkaStreams kafkaStreams,
-      final LogicalSchema schema,
-      final KsqlConfig ksqlConfig
-  ) {
-    this(stateStoreName, kafkaStreams, schema, ksqlConfig, System::currentTimeMillis);
-  }
 
   @VisibleForTesting
   KsStateStore(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
       final LogicalSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<Long> clock
+      final KsqlConfig ksqlConfig
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.schema = requireNonNull(schema, "schema");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
-    this.clock = requireNonNull(clock, "clock");
   }
 
   LogicalSchema schema() {
@@ -79,7 +62,6 @@ class KsStateStore {
             StoreQueryParameters.fromNameAndType(stateStoreName, queryableStoreType)
                 .enableStaleStores());
       } else {
-        awaitRunning();
         // False flag allows queries only on active state store
         return kafkaStreams.store(
             StoreQueryParameters.fromNameAndType(stateStoreName, queryableStoreType));
@@ -91,22 +73,6 @@ class KsStateStore {
       }
 
       throw new MaterializationException("State store currently unavailable: " + stateStoreName, e);
-    }
-  }
-
-  private void awaitRunning() {
-    LOG.debug("Waiting for streams thread to be in RUNNING state");
-    final long timeoutMs =
-        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG);
-    final long threshold = clock.get() + timeoutMs;
-    while (kafkaStreams.state() == State.REBALANCING) {
-      if (clock.get() > threshold) {
-        throw new MaterializationTimeOutException("Store failed to rebalance within the configured "
-            + "timeout. timeout: " + timeoutMs + "ms, config: "
-            + KsqlConfig.KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG);
-      }
-
-      Thread.yield();
     }
   }
 }

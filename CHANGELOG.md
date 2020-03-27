@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.8.1](https://github.com/confluentinc/ksql/releases/tag/v0.8.1-ksqldb) (2020-03-30)
+
+### Bug Fixes
+
+* Don't wait for streams thread to be in running state ([#4908](https://github.com/confluentinc/ksql/pull/4908)) ([2f83119](https://github.com/confluentinc/ksql/commit/2f83119))
+* Infer TLS based on scheme of server string ([#4893](https://github.com/confluentinc/ksql/pull/4893)) ([a519ed3](https://github.com/confluentinc/ksql/commit/a519ed3))
+
 ## [0.8.0](https://github.com/confluentinc/ksql/releases/tag/v0.8.0-ksqldb) (2020-03-18)
 
 ### Features

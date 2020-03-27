@@ -124,10 +124,7 @@ For more information, see
 ksqlDB Deployment Modes
 -----------------------
 
-You can use these modes to deploy your ksqlDB streaming applications:
-
-- **Interactive:** data exploration and pipeline development
-- **Headless:** long-running production environments
+You can use deploy your ksqlDB streaming applications using either **Interactive** or **Headless** mode. We recommend using interactive mode when possible.
 
 In both deployment modes, ksqlDB enables distributing the processing load
 for your ksqlDB applications across all ksqlDB Server instances, and you can
@@ -138,16 +135,16 @@ add more ksqlDB Server instances without restarting your applications.
 
 ### Interactive Deployment
 
-Use the interactive mode to develop your ksqlDB applications. When you
-deploy a ksqlDB server in interactive mode, the REST interface is
-available for the ksqlDB CLI and {{ site.c3 }} to connect to.
+When you deploy a ksqlDB server in interactive mode, the REST interface is
+available for the ksqlDB CLI and {{ site.c3 }} to connect to. This allows you
+to add and remove persistent queries without restarting the servers.
 
 ![Diagram showing interactive ksqlDB deployment](../img/ksqldb-client-server-interactive-mode.png)
 
 In interactive mode, you can:
 
 -   Write statements and queries on the fly
--   Start any number of server nodes:
+-   Start any number of server nodes dynamically:
     `<path-to-confluent>/bin/ksql-server-start`
 -   Start one or more CLIs or REST Clients and point them to a server:
     `<path-to-confluent>/bin/ksql https://<ksql-server-ip-address>:8090`
@@ -167,12 +164,12 @@ this makes the topic name easier to read.
 
 ### Headless Deployment
 
-Use headless mode to deploy your ksqlDB application to a production
-environment. When you deploy a ksqlDB Server in headless mode, the REST
+When you deploy a ksqlDB Server in headless mode, the REST
 interface isn't available, so you assign workloads to ksqlDB clusters by
-using a SQL file. The SQL file contains the SQL statements and queries
-that define your application. Headless mode is ideal for streaming ETL
-application deployments.
+using a SQL file. This can be useful if you want to completely lock down
+the set of persistent queries that ksqlDB will run.
+The SQL file contains the SQL statements and queries
+that define your application.
 
 ![Diagram showing headless ksqlDB deployment](../img/ksqldb-standalone-headless.png)
 
@@ -181,7 +178,6 @@ In headless mode you can:
 -   Start any number of server nodes
 -   Pass a SQL file with SQL statements to execute:
     `<path-to-confluent>bin/ksql-node query-file=path/to/myquery.sql`
--   Version-control your queries and transformations as code
 -   Ensure resource isolation
 -   Leave resource management to dedicated systems, like Kubernetes
 

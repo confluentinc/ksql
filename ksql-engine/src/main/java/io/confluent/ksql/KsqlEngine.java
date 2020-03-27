@@ -535,8 +535,9 @@ public class KsqlEngine implements Closeable {
     for (final QueryMetadata queryMetadata : allLiveQueries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         queryMetadata.stop();
+      } else {
+        queryMetadata.close();
       }
-      queryMetadata.close();
     }
     adminClient.close();
     engineMetrics.close();

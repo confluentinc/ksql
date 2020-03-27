@@ -333,7 +333,7 @@ By default, ksqlDB Servers is configured for interactive use, which means
 you can use the ksqlDB CLI to interact with a ksqlDB cluster in order to,
 for example, execute new queries. Interactive ksqlDB usage allows for easy
 and quick iterative development and testing of your SQL queries via the
-ksqlDB CLI.
+ksqlDB CLI. This mode is recommended for production.
 
 You can also
 [configure the servers for headless, non-interactive operation](installation/server-config/index.md#non-interactive-headless-ksqldb-usage),
@@ -343,24 +343,12 @@ processing application that communicates to the outside world by reading
 from and writing to {{ site.ak }} topics. Sizing, deploying, and managing in
 this scenario is similar to a
 [Kafka Streams application](https://docs.confluent.io/current/streams/index.html).
-You should integrate ksqlDB deployments with your own CI/CD pipeline, for
-example, to version-control the .sql file.
+You can integrate ksqlDB deployments with your own CI/CD pipeline, for
+example, to version-control the .sql file. This can be desirable if you
+want to lock down the set of persistent queries that ksqlDB's servers can run.
 
-Here are some guidelines for choosing between the configuration types:
-
--   For production deployments, headless, non-interactive ksqlDB clusters
-    are recommended. This configuration provides the best isolation and,
-    unlike interactive ksqlDB clusters, minimizes the likelihood of
-    operator error and human mistakes.
--   For exploring and experimenting with your data, interactive ksqlDB
-    clusters are recommended. With this method you can quickly create
-    queries for your use case that will function as a streaming
-    "application" to produce meaningful results. You can then run this
-    "application" with headless, non-interactive ksqlDB clusters in
-    production.
--   For interactive ksqlDB usage, you should deploy an interactive ksqlDB
-    cluster per project or per team instead of a single, large ksqlDB
-    cluster for your organization.
+We recommend deploying a ksqlDB cluster per project, use case, or team instead
+of a single, large ksqlDB cluster to share across your organization.
 
 ### Scaling ksqlDB
 

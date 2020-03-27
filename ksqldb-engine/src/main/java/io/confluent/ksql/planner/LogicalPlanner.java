@@ -73,6 +73,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -512,29 +513,45 @@ public class LogicalPlanner {
   ) {
     final LogicalSchema sourceSchema = sourcePlanNode.getSchema();
 
+    final LogicalSchema projectionSchema = buildProjectionSchema(
+        sourceSchema
+            .withMetaAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
+        projectionExpressions
+    );
+
+    final Supplier<ColumnName> keyColNameGen = ColumnNames
+        .columnAliasGenerator(Stream.of(sourceSchema, projectionSchema));
+
     final ColumnName keyName;
     final SqlType keyType;
+
     if (groupByExps.size() != 1) {
-      keyName = SchemaUtil.ROWKEY_NAME;
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
+        keyName = keyColNameGen.get();
+      } else {
+        keyName = SchemaUtil.ROWKEY_NAME;
+      }
       keyType = SqlTypes.STRING;
     } else {
       final Expression expression = groupByExps.get(0);
 
-      keyName = exactlyMatchesKeyColumns(expression, sourceSchema)
-          ? ((ColumnReferenceExp) expression).getColumnName()
-          : SchemaUtil.ROWKEY_NAME;
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
+        if (expression instanceof ColumnReferenceExp) {
+          keyName = ((ColumnReferenceExp) expression).getColumnName();
+        } else {
+          keyName = keyColNameGen.get();
+        }
+      } else {
+        keyName = exactlyMatchesKeyColumns(expression, sourceSchema)
+            ? ((ColumnReferenceExp) expression).getColumnName()
+            : SchemaUtil.ROWKEY_NAME;
+      }
 
       final ExpressionTypeManager typeManager =
           new ExpressionTypeManager(sourceSchema, functionRegistry);
 
       keyType = typeManager.getExpressionSqlType(expression);
     }
-
-    final LogicalSchema projectionSchema = buildProjectionSchema(
-        sourceSchema
-            .withMetaAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
-        projectionExpressions
-    );
 
     return LogicalSchema.builder()
         .withRowTime()

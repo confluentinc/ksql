@@ -1,0 +1,64 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585182024448,
+  "schemas" : {
+    "CTAS_SUM_ID_BY_REGION_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, REGION VARCHAR> NOT NULL",
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.GroupBy" : "STRUCT<REGION VARCHAR, ID BIGINT> NOT NULL",
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.Aggregate.Materialize" : "STRUCT<REGION VARCHAR, ID BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_SUM_ID_BY_REGION_0.SUM_ID_BY_REGION" : "STRUCT<REGION VARCHAR, KSQL_COL_0 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : "0,alice,east"
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : "1,bob,east"
+  }, {
+    "topic" : "test_topic",
+    "key" : 2,
+    "value" : "2,carol,west"
+  }, {
+    "topic" : "test_topic",
+    "key" : 3,
+    "value" : "3,dave,west"
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : "1,bob,west"
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : null
+  } ],
+  "outputs" : [ {
+    "topic" : "SUM_ID_BY_REGION",
+    "key" : "east",
+    "value" : "east,0"
+  }, {
+    "topic" : "SUM_ID_BY_REGION",
+    "key" : "east",
+    "value" : "east,1"
+  }, {
+    "topic" : "SUM_ID_BY_REGION",
+    "key" : "west",
+    "value" : "west,2"
+  }, {
+    "topic" : "SUM_ID_BY_REGION",
+    "key" : "west",
+    "value" : "west,5"
+  }, {
+    "topic" : "SUM_ID_BY_REGION",
+    "key" : "east",
+    "value" : "east,0"
+  }, {
+    "topic" : "SUM_ID_BY_REGION",
+    "key" : "west",
+    "value" : "west,6"
+  }, {
+    "topic" : "SUM_ID_BY_REGION",
+    "key" : "west",
+    "value" : "west,5"
+  } ]
+}

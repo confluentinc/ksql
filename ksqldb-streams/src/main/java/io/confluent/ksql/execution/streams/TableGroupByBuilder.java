@@ -61,7 +61,8 @@ public final class TableGroupByBuilder {
 
     final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
 
-    final GroupByParams params = GroupByParamsFactory.build(sourceSchema, groupBy, logger);
+    final GroupByParams params = GroupByParamsFactory
+        .build(sourceSchema, groupBy, logger, queryBuilder.getKsqlConfig());
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         params.getSchema(),

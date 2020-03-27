@@ -1,0 +1,43 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585182006659,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F1 INT, F2 INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<F1 INT, F2 INT, ROWTIME BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<F1 INT, F2 INT, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 INT, KSQL_COL_1 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "4,2"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "9,3"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "9,3"
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "4|+|2",
+    "value" : "2,1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "9|+|3",
+    "value" : "3,1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "9|+|3",
+    "value" : "3,2"
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "ROWKEY STRING KEY, KSQL_COL_0 INTEGER, KSQL_COL_1 BIGINT"
+    } ]
+  }
+}

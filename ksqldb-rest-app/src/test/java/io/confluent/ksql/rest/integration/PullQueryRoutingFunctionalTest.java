@@ -332,7 +332,9 @@ public class PullQueryRoutingFunctionalTest {
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(clusterFormation.router.right,
         sql, LAG_FILTER_25);
     Assert.assertEquals(40001, errorMessage.getErrorCode());
-    Assert.assertEquals("All nodes are dead or exceed max allowed lag.", errorMessage.getMessage());
+    Assert.assertEquals("Unable to execute pull query SELECT * FROM ID_1 WHERE ROWKEY = 'USER_0';. "
+                            + "All nodes are dead or exceed max allowed lag.",
+                        errorMessage.getMessage());
   }
 
   private void sendLagReportingMessages(

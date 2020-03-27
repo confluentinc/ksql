@@ -262,9 +262,8 @@ public final class PullQueryExecutor {
       LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
                 statement.getStatementText());
       throw new MaterializationException(String.format(
-          "Unable to execute pull query %s at timestamp %d. All nodes are dead or exceed max "
-              + "allowed lag.",
-          statement.getStatementText(), System.currentTimeMillis()));
+          "Unable to execute pull query %s. All nodes are dead or exceed max allowed lag.",
+          statement.getStatementText()));
     }
 
     // Nodes are ordered by preference: active is first if alive then standby nodes in

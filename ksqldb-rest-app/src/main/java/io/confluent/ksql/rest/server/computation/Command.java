@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -36,18 +39,30 @@ public class Command {
   @JsonCreator
   public Command(
       @JsonProperty(value = "statement", required = true) final String statement,
-      @JsonProperty(value = "streamsProperties", required = true)
+      @JsonProperty("streamsProperties") final Optional<Map<String, Object>> overwriteProperties,
+      @JsonProperty("originalProperties") final Optional<Map<String, String>> originalProperties,
+      @JsonProperty("plan") final Optional<KsqlPlan> plan
+  ) {
+    this(
+        statement,
+        overwriteProperties.orElseGet(ImmutableMap::of),
+        originalProperties.orElseGet(ImmutableMap::of),
+        plan
+    );
+  }
+
+  public Command(
+      final String statement,
       final Map<String, Object> overwriteProperties,
-      @JsonProperty(value = "originalProperties", required = true)
       final Map<String, String> originalProperties,
-      @JsonProperty("plan")
       final Optional<KsqlPlan> plan
   ) {
-    this.statement = statement;
-    this.overwriteProperties = Collections.unmodifiableMap(overwriteProperties);
-    this.originalProperties =
-        originalProperties == null ? Collections.emptyMap() : originalProperties;
-    this.plan = Objects.requireNonNull(plan, "plan");
+    this.statement = requireNonNull(statement, "statement");
+    this.overwriteProperties = Collections.unmodifiableMap(
+        requireNonNull(overwriteProperties, "overwriteProperties"));
+    this.originalProperties = Collections.unmodifiableMap(
+        requireNonNull(originalProperties, "originalProperties"));
+    this.plan = requireNonNull(plan, "plan");
   }
 
   public String getStatement() {

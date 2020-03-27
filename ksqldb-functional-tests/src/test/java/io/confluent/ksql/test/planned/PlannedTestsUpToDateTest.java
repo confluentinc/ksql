@@ -13,15 +13,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test;
+package io.confluent.ksql.test.planned;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
-import io.confluent.ksql.test.planned.PlannedTestUtils;
-import io.confluent.ksql.test.planned.TestCasePlan;
-import io.confluent.ksql.test.planned.TestCasePlanLoader;
+import io.confluent.ksql.test.QueryTranslationTest;
 import io.confluent.ksql.test.tools.TestCase;
 import java.io.IOException;
 import java.util.Collection;
@@ -113,7 +111,8 @@ public class PlannedTestsUpToDateTest {
 
   private static String planText(final TestCasePlan plan) {
     try {
-      return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(plan.getPlan());
+      return MAPPER.writerWithDefaultPrettyPrinter()
+          .writeValueAsString(plan.getPlanNode().getPlan());
     } catch (final IOException e) {
       throw new RuntimeException(e);
     }

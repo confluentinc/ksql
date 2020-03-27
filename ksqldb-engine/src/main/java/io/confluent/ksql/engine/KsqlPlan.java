@@ -18,18 +18,15 @@ package io.confluent.ksql.engine;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import java.util.Optional;
 
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    include = As.PROPERTY
-)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
 @JsonSubTypes({
     @Type(value = KsqlPlanV1.class, name = "ksqlPlanV1")
 })
 public interface KsqlPlan {
+
   Optional<DdlCommand> getDdlCommand();
 
   Optional<QueryPlan> getQueryPlan();

@@ -13,9 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test;
+package io.confluent.ksql.test.planned;
 
-import io.confluent.ksql.test.planned.PlannedTestRewriter;
+import io.confluent.ksql.test.QueryTranslationTest;
 import org.junit.Ignore;
 import org.junit.Test;
 

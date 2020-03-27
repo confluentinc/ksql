@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -60,6 +60,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KafkaConfigStoreTest {
+
   private final static String TOPIC_NAME = "topic";
 
   private final KsqlConfig currentConfig = new KsqlConfig(
@@ -305,7 +306,6 @@ public class KafkaConfigStoreTest {
     verifyDrainLog(consumerBefore, 0);
     verifyProduce();
   }
-
 
   @Test
   public void shouldUseFirstPolledConfig() {

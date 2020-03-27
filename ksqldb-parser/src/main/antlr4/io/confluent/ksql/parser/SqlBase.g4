@@ -180,8 +180,12 @@ selectItem
     ;
 
 relation
-    : left=aliasedRelation joinType JOIN right=aliasedRelation joinWindow? joinCriteria #joinRelation
-    | aliasedRelation                                                                   #relationDefault
+    : left=aliasedRelation joinedSource+  #joinRelation
+    | aliasedRelation                     #relationDefault
+    ;
+
+joinedSource
+    : joinType JOIN aliasedRelation joinWindow? joinCriteria
     ;
 
 joinType

@@ -56,7 +56,9 @@ public interface ImmutableAnalysis {
 
   OptionalInt getLimitClause();
 
-  Optional<JoinInfo> getJoin();
+  boolean isJoin();
+
+  List<JoinInfo> getJoin();
 
   List<AliasedDataSource> getFromDataSources();
 

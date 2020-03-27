@@ -28,11 +28,12 @@ import java.util.List;
 public class ArrayLength {
 
   @Udf
-  public <T> int calcArrayLength(
+  public <T> Integer calcArrayLength(
       @UdfParameter(description = "The array") final List<T> array
   ) {
-    return array == null
-        ? 0
-        : array.size();
+    if (array == null) {
+      return null;
+    }
+    return array.size();
   }
 }

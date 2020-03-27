@@ -423,36 +423,37 @@ public class LogicalPlanner {
 
     final List<AliasedDataSource> sources = analysis.getFromDataSources();
 
-    final Optional<JoinInfo> joinInfo = analysis.getOriginal().getJoin();
-    if (!joinInfo.isPresent()) {
+    if (!analysis.isJoin()) {
       return buildNonJoinNode(sources);
     }
 
-    if (sources.size() != 2) {
-      throw new IllegalStateException("Expected 2 sources. Got " + sources.size());
+    if (sources.size() == 1) {
+      throw new IllegalStateException("Expected more than one source. Got " + sources.size());
     }
 
     final AliasedDataSource left = sources.get(0);
     final AliasedDataSource right = sources.get(1);
 
+    final List<JoinInfo> joinInfo = analysis.getOriginal().getJoin();
+
     final PlanNode leftSourceNode = buildSourceForJoin(
         left,
         "Left",
-        joinInfo.get().getLeftJoinExpression()
+        joinInfo.get(0).getLeftJoinExpression()
     );
 
     final PlanNode rightSourceNode = buildSourceForJoin(
         right,
         "Right",
-        joinInfo.get().getRightJoinExpression()
+        joinInfo.get(0).getRightJoinExpression()
     );
 
     return new JoinNode(
         new PlanNodeId("Join"),
-        joinInfo.get().getType(),
+        joinInfo.get(0).getType(),
         leftSourceNode,
         rightSourceNode,
-        joinInfo.get().getWithinExpression()
+        joinInfo.get(0).getWithinExpression()
     );
   }
 

@@ -17,6 +17,7 @@ package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.Iterables;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 
@@ -48,7 +49,7 @@ public final class JoinMatchers {
         (relationship, "right relationship", "right") {
       @Override
       protected Relation featureValueOf(final Join actual) {
-        return actual.getRight();
+        return Iterables.getOnlyElement(actual.getRights()).getRelation();
       }
     };
   }

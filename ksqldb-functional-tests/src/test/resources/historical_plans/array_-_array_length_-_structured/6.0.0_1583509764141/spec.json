@@ -30,9 +30,9 @@
     "topic" : "OUTPUT",
     "key" : "",
     "value" : {
-      "ARRAY_LEN" : 0,
-      "MAP_LEN" : 0,
-      "STRUCT_LEN" : 0
+      "ARRAY_LEN" : null,
+      "MAP_LEN" : null,
+      "STRUCT_LEN" : null
     }
   } ]
 }

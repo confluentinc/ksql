@@ -74,6 +74,7 @@ import io.confluent.ksql.parser.SqlBaseParser.GracePeriodClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.IdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
+import io.confluent.ksql.parser.SqlBaseParser.JoinedSourceContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
@@ -107,6 +108,7 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.parser.tree.ListFunctions;
@@ -735,7 +737,14 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitJoinRelation(final SqlBaseParser.JoinRelationContext context) {
+    public Node visitJoinRelation(final SqlBaseParser.JoinRelationContext joinRelationContext) {
+      if (joinRelationContext.joinedSource().size() > 1) {
+        throw new KsqlException(
+            "Invalid join criteria specified; KSQL does not support multi-way joins."
+        );
+      }
+
+      final JoinedSourceContext context = joinRelationContext.joinedSource(0);
       if (context.joinCriteria().ON() == null) {
         throw new KsqlException("Invalid join criteria specified. KSQL only supports joining on "
             + "column values. For example `... left JOIN right on left.col = "
@@ -746,14 +755,14 @@ public class AstBuilder {
 
       final JoinCriteria criteria =
           new JoinOn((Expression) visit(context.joinCriteria().booleanExpression()));
-      final Join.Type joinType;
+      final JoinedSource.Type joinType;
       final SqlBaseParser.JoinTypeContext joinTypeContext = context.joinType();
       if (joinTypeContext instanceof SqlBaseParser.LeftJoinContext) {
-        joinType = Join.Type.LEFT;
+        joinType = JoinedSource.Type.LEFT;
       } else if (joinTypeContext instanceof SqlBaseParser.OuterJoinContext) {
-        joinType = Join.Type.OUTER;
+        joinType = JoinedSource.Type.OUTER;
       } else {
-        joinType = Join.Type.INNER;
+        joinType = JoinedSource.Type.INNER;
       }
 
       WithinExpression withinExpression = null;
@@ -761,10 +770,18 @@ public class AstBuilder {
         withinExpression = (WithinExpression) visitWithinExpression(
             context.joinWindow().withinExpression());
       }
-      final AliasedRelation left = (AliasedRelation) visit(context.left);
-      final AliasedRelation right = (AliasedRelation) visit(context.right);
-      return new Join(getLocation(context), joinType, left, right, criteria,
-          Optional.ofNullable(withinExpression));
+      final AliasedRelation left = (AliasedRelation) visit(joinRelationContext.left);
+      final AliasedRelation right = (AliasedRelation) visit(context.aliasedRelation());
+
+      final JoinedSource joinedSource = new JoinedSource(
+          getLocation(context),
+          right,
+          joinType,
+          criteria,
+          Optional.ofNullable(withinExpression)
+      );
+
+      return new Join(getLocation(joinRelationContext), left, ImmutableList.of(joinedSource));
     }
 
     @Override

@@ -45,8 +45,9 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
-import io.confluent.ksql.parser.tree.Join.Type;
 import io.confluent.ksql.parser.tree.JoinCriteria;
+import io.confluent.ksql.parser.tree.JoinedSource;
+import io.confluent.ksql.parser.tree.JoinedSource.Type;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
@@ -417,7 +418,7 @@ public class StatementRewriterTest {
   private Join givenJoin(final Optional<WithinExpression> within) {
     when(mockRewriter.apply(relation, context)).thenReturn(rewrittenRelation);
     when(mockRewriter.apply(rightRelation, context)).thenReturn(rewrittenRightRelation);
-    return new Join(location, Type.LEFT, relation, rightRelation, joinCriteria, within);
+    return new Join(location, relation, ImmutableList.of(new JoinedSource(Optional.empty(), rightRelation, Type.LEFT, joinCriteria, within)));
   }
 
   @Test
@@ -434,11 +435,13 @@ public class StatementRewriterTest {
         equalTo(
             new Join(
                 location,
-                Type.LEFT,
                 rewrittenRelation,
-                rewrittenRightRelation,
-                joinCriteria,
-                Optional.empty()))
+                ImmutableList.of(new JoinedSource(
+                    Optional.empty(),
+                    rewrittenRightRelation,
+                    Type.LEFT,
+                    joinCriteria,
+                    Optional.empty()))))
     );
   }
 
@@ -459,11 +462,13 @@ public class StatementRewriterTest {
         equalTo(
             new Join(
                 location,
-                Type.LEFT,
                 rewrittenRelation,
-                rewrittenRightRelation,
-                joinCriteria,
-                Optional.of(rewrittenWithinExpression)))
+                ImmutableList.of(new JoinedSource(
+                    Optional.empty(),
+                    rewrittenRightRelation,
+                    Type.LEFT,
+                    joinCriteria,
+                    Optional.of(rewrittenWithinExpression)))))
     );
   }
 

@@ -124,6 +124,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -180,11 +181,16 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Optional<LagReportingAgent> lagReportingAgent;
   private final RoutingFilterFactory routingFilterFactory;
   private final PullQueryExecutor pullQueryExecutor;
+  private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
   // We embed this in here for now
   private Vertx vertx = null;
   private Server apiServer = null;
   private ApiServerConfig apiServerConfig;
+
+  // The startup thread that can be interrupted if necessary during shutdown.  This should only
+  // happen if startup hangs.
+  private volatile Thread startAsyncThread;
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -339,25 +345,32 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
   @Override
   public void startAsync() {
-    startApiServer(ksqlConfigNoPort);
+    startAsyncThread = Thread.currentThread();
+    try {
+      startApiServer(ksqlConfigNoPort);
 
-    final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
-    configurables.forEach(c -> c.configure(ksqlConfigWithPort));
-    startKsql(ksqlConfigWithPort);
-    final Properties metricsProperties = new Properties();
-    metricsProperties.putAll(getConfiguration().getOriginals());
-    if (versionCheckerAgent != null) {
-      versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
+      final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
+      configurables.forEach(c -> c.configure(ksqlConfigWithPort));
+      startKsql(ksqlConfigWithPort);
+      final Properties metricsProperties = new Properties();
+      metricsProperties.putAll(getConfiguration().getOriginals());
+      if (versionCheckerAgent != null) {
+        versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
+      }
+
+      apiServer.setJettyPort(getJettyPort());
+
+      log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
+      displayWelcomeMessage();
+    } catch (AbortApplicationStartException e) {
+      log.error("Aborting application start", e);
+    } finally {
+      startAsyncThread = null;
     }
-
-    apiServer.setJettyPort(getJettyPort());
-
-    log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
-    displayWelcomeMessage();
   }
 
   @VisibleForTesting
-  void startKsql(final KsqlConfig ksqlConfigWithPort) {
+  void startKsql(final KsqlConfig ksqlConfigWithPort) throws AbortApplicationStartException {
     waitForPreconditions();
     initialize(ksqlConfigWithPort);
   }
@@ -391,6 +404,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     }
   }
 
+  static final class AbortApplicationStartException extends Exception {
+
+    private AbortApplicationStartException(final String message) {
+      super(message);
+    }
+  }
+
   private void checkPreconditions() {
     for (final KsqlServerPrecondition precondition : preconditions) {
       final Optional<KsqlErrorMessage> error = precondition.checkPrecondition(
@@ -404,17 +424,27 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     }
   }
 
-  private void waitForPreconditions() {
+  private void waitForPreconditions() throws AbortApplicationStartException {
     final List<Predicate<Exception>> predicates = ImmutableList.of(
         e -> !(e instanceof KsqlFailedPrecondition)
     );
-    RetryUtil.retryWithBackoff(
-        Integer.MAX_VALUE,
-        1000,
-        30000,
-        this::checkPreconditions,
-        predicates
-    );
+    try {
+      RetryUtil.retryWithBackoff(
+          Integer.MAX_VALUE,
+          1000,
+          30000,
+          this::checkPreconditions,
+          shuttingDown,
+          predicates
+      );
+    } catch (KsqlFailedPrecondition e) {
+      log.error("Finished Precondition retrying", e);
+    }
+
+    if (shuttingDown.get()) {
+      throw new AbortApplicationStartException(
+          "Shutting down application during waitForPreconditions");
+    }
   }
 
   private void initialize(final KsqlConfig configWithApplicationServer) {
@@ -456,6 +486,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   @SuppressWarnings("checkstyle:NPathComplexity")
   @Override
   public void triggerShutdown() {
+    // First, make sure the server wasn't stuck in startup.  Set the shutdown flag and interrupt the
+    // startup thread if it's been hanging.
+    shuttingDown.set(true);
+    if (startAsyncThread != null) {
+      startAsyncThread.interrupt();
+    }
+
     try {
       streamedQueryResource.closeMetrics();
     } catch (final Exception e) {

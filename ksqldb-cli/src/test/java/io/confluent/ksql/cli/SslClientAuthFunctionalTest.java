@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.internal.matchers.ThrowableCauseMatcher.hasCause;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -36,7 +37,6 @@ import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.rest.RestConfig;
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -108,8 +108,7 @@ public class SslClientAuthFunctionalTest {
 
   @Before
   public void setUp() {
-    clientProps = new HashMap<>();
-    clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
+    clientProps = ImmutableMap.of(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
     sslContextFactory = new Server();
   }
 
@@ -171,14 +170,12 @@ public class SslClientAuthFunctionalTest {
         .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
     // HTTP:
-    clientProps = new HashMap<>();
-    clientProps.putAll(ClientTrustStore.trustStoreProps());
-
-    clientProps.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, clientCertPath);
-    clientProps.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, clientCertPassword);
-
-    clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
-    clientProps.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
+    clientProps = ImmutableMap.<String, String>builder()
+        .putAll(ClientTrustStore.trustStoreProps())
+        .put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, clientCertPath)
+        .put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, clientCertPassword)
+        .put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true")
+        .build();
 
     // WS:
     sslContextFactory.setTrustStorePath(ClientTrustStore.trustStorePath());
@@ -191,11 +188,10 @@ public class SslClientAuthFunctionalTest {
   private void givenClientConfiguredWithoutCertificate() {
 
     // HTTP:
-    clientProps = new HashMap<>();
-    clientProps.putAll(ClientTrustStore.trustStoreProps());
-
-    clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
-    clientProps.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
+    clientProps = ImmutableMap.<String, String>builder()
+        .putAll(ClientTrustStore.trustStoreProps())
+        .put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true")
+        .build();
 
     // WS:
     sslContextFactory.setTrustStorePath(ClientTrustStore.trustStorePath());

@@ -4,6 +4,7 @@ def baseConfig = {
     ksql_db_version = "0.8.0-SNAPSHOT"
     cp_version = "6.0.0-beta200320180305"  // must be a beta version from the packaging build
     packaging_build_number = "1"
+    default_git_revision = 'refs/heads/master'
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
     dockerArtifacts = ['confluentinc/ksqldb-docker', 'confluentinc/ksqldb-docker']
     dockerRepos = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
@@ -84,7 +85,7 @@ def job = {
     }
     
     // Use revision param if provided, otherwise default to master
-    config.revision = params.GIT_REVISION ?: 'refs/heads/master'
+    config.revision = params.GIT_REVISION ?: config.default_git_revision
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"

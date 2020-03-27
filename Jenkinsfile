@@ -1,7 +1,7 @@
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
-    ksql_db_version = "0.8.0-SNAPSHOT"
+    ksql_db_version = "0.8.1-SNAPSHOT"
     cp_version = "6.0.0-beta200320180305"
     packaging_build_number = "1"
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'

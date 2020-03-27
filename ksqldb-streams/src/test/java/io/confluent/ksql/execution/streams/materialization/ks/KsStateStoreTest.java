@@ -87,7 +87,7 @@ public class KsStateStoreTest {
   }
 
   @Test
-  public void shouldAwaitRunning() {
+  public void shouldNotAwaitRunning() {
     // Given:
     final QueryableStoreType<ReadOnlySessionStore<String, Long>> storeType =
         QueryableStoreTypes.sessionStore();

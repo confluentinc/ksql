@@ -19,8 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,13 +28,10 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
-import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
-import io.confluent.ksql.execution.streams.materialization.NotRunningException;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StoreQueryParameters;
@@ -47,7 +44,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -59,7 +55,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsStateStoreTest {
 
   private static final String STORE_NAME = "someStore";
-  private static final Long TIMEOUT_MS = 10L;
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .noImplicitColumns()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
@@ -67,15 +62,10 @@ public class KsStateStoreTest {
       .build();
 
   @Rule
-  public final Timeout timeout = Timeout.seconds(10);
-
-  @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KafkaStreams kafkaStreams;
-  @Mock
-  private Supplier<Long> clock;
   @Mock
   private KsqlConfig ksqlConfig;
 
@@ -83,12 +73,8 @@ public class KsStateStoreTest {
 
   @Before
   public void setUp() {
-    store = new KsStateStore(STORE_NAME, kafkaStreams, SCHEMA, ksqlConfig, clock);
-
-    when(clock.get()).thenReturn(0L);
+    store = new KsStateStore(STORE_NAME, kafkaStreams, SCHEMA, ksqlConfig);
     when(kafkaStreams.state()).thenReturn(State.RUNNING);
-    when(ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG))
-        .thenReturn(TIMEOUT_MS);
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -97,43 +83,21 @@ public class KsStateStoreTest {
     new NullPointerTester()
         .setDefault(KafkaStreams.class, kafkaStreams)
         .setDefault(LogicalSchema.class, SCHEMA)
-        .setDefault(Supplier.class, clock)
         .setDefault(KsqlConfig.class, ksqlConfig)
         .testConstructors(KsStateStore.class, Visibility.PACKAGE);
   }
 
   @Test
-  public void shouldAwaitRunning() {
+  public void shouldNotAwaitRunning() {
     // Given:
-    when(kafkaStreams.state())
-        .thenReturn(State.REBALANCING)
-        .thenReturn(State.REBALANCING)
-        .thenReturn(State.RUNNING);
-
     final QueryableStoreType<ReadOnlySessionStore<String, Long>> storeType =
         QueryableStoreTypes.sessionStore();
 
     // When:
-
     store.store(storeType);
 
     // Then:
-    verify(kafkaStreams, atLeast(3)).state();
-  }
-
-  @Test
-  public void shouldThrowIfDoesNotFinishRebalanceBeforeTimeout() {
-    // Given:
-    when(kafkaStreams.state()).thenReturn(State.REBALANCING);
-    when(clock.get()).thenReturn(0L, 5L, TIMEOUT_MS + 1);
-
-    // When:
-    expectedException.expect(MaterializationTimeOutException.class);
-    expectedException.expectMessage(
-        "Store failed to rebalance within the configured timeout. timeout: 10ms");
-
-    // When:
-    store.store(QueryableStoreTypes.sessionStore());
+    verify(kafkaStreams, never()).state();
   }
 
   @Test
@@ -145,8 +109,8 @@ public class KsStateStoreTest {
     when(kafkaStreams.store(any())).thenThrow(new IllegalStateException());
 
     // When:
-    expectedException.expect(NotRunningException.class);
-    expectedException.expectMessage("The query was not in a running state. state: NOT_RUNNING");
+    expectedException.expect(MaterializationException.class);
+    expectedException.expectMessage("State store currently unavailable: someStore");
 
     // When:
     store.store(QueryableStoreTypes.sessionStore());
@@ -154,15 +118,11 @@ public class KsStateStoreTest {
 
   @Test
   public void shouldGetStoreOnceRunning() {
-    // Given:
-    when(kafkaStreams.state()).thenReturn(State.RUNNING);
-
     // When:
     store.store(QueryableStoreTypes.<String, Long>sessionStore());
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(kafkaStreams);
-    inOrder.verify(kafkaStreams, atLeast(1)).state();
     inOrder.verify(kafkaStreams).store(any());
   }
 

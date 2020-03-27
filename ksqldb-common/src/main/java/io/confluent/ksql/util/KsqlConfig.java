@@ -192,13 +192,7 @@ public class KsqlConfig extends AbstractConfig {
           + "hosts storing it, both active and standbys included. This can be overridden per query "
           + "or set in the CLI. It's only enabled when lag.reporting.enable is true. "
           + "By default, any amount of lag is is allowed.";
-
-  public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG =
-      "ksql.query.pull.streamsstore.rebalancing.timeout.ms";
-  public static final Long KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DEFAULT = 10000L;
-  public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DOC = "Timeout in "
-      + "milliseconds when waiting for rebalancing of the stream store during a pull query";
-
+  
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of();
 
@@ -551,12 +545,6 @@ public class KsqlConfig extends AbstractConfig {
             zeroOrPositive(),
             Importance.MEDIUM,
             KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC
-        ).define(
-            KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG,
-            ConfigDef.Type.LONG,
-            KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DOC
         ).define(
             KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
             Type.STRING,

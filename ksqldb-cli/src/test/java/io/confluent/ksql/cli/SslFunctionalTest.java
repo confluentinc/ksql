@@ -42,7 +42,6 @@ import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.rest.RestConfig;
 import java.io.EOFException;
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;

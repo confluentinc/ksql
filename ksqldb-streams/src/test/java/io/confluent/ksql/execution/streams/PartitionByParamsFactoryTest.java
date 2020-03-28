@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -40,6 +41,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
@@ -61,11 +63,17 @@ public class PartitionByParamsFactoryTest {
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
   private static final ColumnName COL2 = ColumnName.of("KSQL_COL_3");
+  private static final ColumnName COL3 = ColumnName.of("COL3");
+
+  private static final SqlStruct COL3_TYPE = SqlTypes.struct()
+      .field("someField", SqlTypes.BIGINT)
+      .build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(COL0, SqlTypes.STRING)
       .valueColumn(COL1, SqlTypes.INTEGER)
       .valueColumn(COL2, SqlTypes.INTEGER)
+      .valueColumn(COL3, COL3_TYPE)
       .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
       .valueColumn(COL0, SqlTypes.STRING)
       .build();
@@ -139,6 +147,35 @@ public class PartitionByParamsFactoryTest {
         .keyColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)
+        .valueColumn(COL3, COL3_TYPE)
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(COL0, SqlTypes.STRING)
+        .build()));
+  }
+
+  @Test
+  public void shouldBuildResultSchemaWhenPartitioningByStructField() {
+    // Given:
+      final Expression partitionBy = new DereferenceExpression(
+        Optional.empty(),
+        new UnqualifiedColumnReferenceExp(COL3),
+        "someField"
+    );
+
+    // When:
+    final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
+        SCHEMA,
+        partitionBy,
+        functionRegistry
+    );
+
+    // Then:
+    assertThat(resultSchema, is(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(ColumnName.of("COL3__someField"), SqlTypes.BIGINT)
+        .valueColumn(COL1, SqlTypes.INTEGER)
+        .valueColumn(COL2, SqlTypes.INTEGER)
+        .valueColumn(COL3, COL3_TYPE)
         .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(COL0, SqlTypes.STRING)
         .build()));
@@ -166,6 +203,7 @@ public class PartitionByParamsFactoryTest {
         .keyColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER)
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)
+        .valueColumn(COL3, COL3_TYPE)
         .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(COL0, SqlTypes.STRING)
         .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER)

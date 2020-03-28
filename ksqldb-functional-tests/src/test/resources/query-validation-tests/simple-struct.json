@@ -1832,6 +1832,19 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Can't find any functions with the name 'FETCH_FIELD_FROM_STRUCT'"
       }
+    },
+    {
+      "name": "generated name",
+      "statements": [
+        "CREATE STREAM INPUT (A STRUCT<B MAP<STRING, STRUCT<C ARRAY<STRUCT<D INT>>>>>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE STREAM OUTPUT as SELECT A->B['key$Name[]']->C[1]->D FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"A": {"B": {"key$Name[]": {"C": [{"D": 1}]}}}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT",  "value": {"A__B['key$Name[]']__C[1]__D": 1}}
+      ]
     }
   ]
 }

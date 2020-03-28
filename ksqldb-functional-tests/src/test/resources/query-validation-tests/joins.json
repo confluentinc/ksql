@@ -1782,7 +1782,7 @@
             "name": "OUTPUT",
             "type": "stream",
             "keyFormat": {"format": "KAFKA"},
-            "schema": "C INTEGER KEY, S1_ROWTIME BIGINT, S1_ID INTEGER, S1_A BIGINT, S1_B STRUCT<C INTEGER>, S2_ROWTIME BIGINT, S2_ID INTEGER, S2_X BIGINT, S2_Y STRUCT<Z INTEGER>"
+            "schema": "B__C INTEGER KEY, S1_ROWTIME BIGINT, S1_ID INTEGER, S1_A BIGINT, S1_B STRUCT<C INTEGER>, S2_ROWTIME BIGINT, S2_ID INTEGER, S2_X BIGINT, S2_Y STRUCT<Z INTEGER>"
           }
         ]
       }

@@ -152,14 +152,6 @@ public class RestApiTest {
                   NORMAL_USER,
                   resource(TRANSACTIONAL_ID, "default_"),
                   ops(DESCRIBE)
-              ).withAcl(
-                  NORMAL_USER,
-                  resource(TOPIC, "__consumer_offsets"),
-                  ops(DESCRIBE)
-              ).withAcl(
-                  NORMAL_USER,
-                  resource(TOPIC, "__transaction_state"),
-                  ops(DESCRIBE)
               )
       )
       .build();

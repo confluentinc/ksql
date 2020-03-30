@@ -17,6 +17,7 @@ package io.confluent.ksql.properties;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -62,9 +63,9 @@ public final class PropertyOverrider {
   }
 
   private static void throwIfInvalidProperty(final String propertyName, final String text) {
-    if (!LocalPropertyValidator.CONFIG_PROPERTY_WHITELIST.contains(propertyName)) {
-      throw new KsqlStatementException("Unknown property: " + propertyName, text);
-    }
+    new KsqlConfigResolver()
+        .resolve(propertyName, true)
+        .orElseThrow(() -> new KsqlStatementException("Unknown property: " + propertyName, text));
   }
 
 }

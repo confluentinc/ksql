@@ -93,7 +93,7 @@ Your output should resemble:
      Field        | Type
     ------------------------------------------
      ROWTIME      | BIGINT           (system)
-     ROWKEY       | VARCHAR(STRING)  (system)
+     ROWKEY       | VARCHAR(STRING)  (key)
      REGISTERTIME | BIGINT
      USERID       | VARCHAR(STRING)
      GENDER       | VARCHAR(STRING)

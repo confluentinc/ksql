@@ -133,7 +133,7 @@ Your output should resemble:
     Field     | Type                                                                 
    ----------------------------------------------------------------------------------
     ROWTIME   | BIGINT           (system)                                            
-    ROWKEY    | VARCHAR(STRING)  (system)                                            
+    ROWKEY    | VARCHAR(STRING)  (key)
     ITEMID    | VARCHAR(STRING)                                                      
     PRICE     | DOUBLE                                                               
     LOCATION  | STRUCT<CITY VARCHAR(STRING), STATE VARCHAR(STRING), ZIPCODE INTEGER> 
@@ -188,7 +188,7 @@ Your output should resemble:
     Field        | Type                      
    ------------------------------------------
     ROWTIME      | BIGINT           (system) 
-    ROWKEY       | VARCHAR(STRING)  (system) 
+    ROWKEY       | VARCHAR(STRING)  (key)
     REGISTERTIME | BIGINT                    
     GENDER       | VARCHAR(STRING)           
     REGIONID     | VARCHAR(STRING)           
@@ -243,7 +243,7 @@ Your output should resemble:
     Field        | Type                         
    ---------------------------------------------
     ROWTIME      | BIGINT           (system)    
-    ROWKEY       | VARCHAR(STRING)  (system)    
+    ROWKEY       | VARCHAR(STRING)  (key)
     REGISTERTIME | BIGINT                       
     GENDER       | VARCHAR(STRING)              
     REGIONID     | VARCHAR(STRING)              
@@ -295,7 +295,7 @@ Your output should resemble:
     Field    | Type                      
    --------------------------------------
     ROWTIME  | BIGINT           (system) 
-    ROWKEY   | VARCHAR(STRING)  (system) 
+    ROWKEY   | VARCHAR(STRING)  (key)
     VIEWTIME | BIGINT                    
     USERID   | VARCHAR(STRING)           
     PAGEID   | VARCHAR(STRING)           

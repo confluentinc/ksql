@@ -17,26 +17,36 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
+@JsonInclude(Include.NON_ABSENT)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FieldInfo {
+
+  public enum FieldType {
+    SYSTEM, KEY
+  }
+
   private final String name;
   private final SchemaInfo schema;
+  private final Optional<FieldType> type;
 
   @JsonCreator
   public FieldInfo(
-      @JsonProperty("name") final String name,
-      @JsonProperty("schema") final SchemaInfo schema) {
-    Objects.requireNonNull(name);
-    Objects.requireNonNull(schema);
-    this.name = name;
-    this.schema = schema;
+      @JsonProperty(value = "name", required = true) final String name,
+      @JsonProperty(value = "schema", required = true) final SchemaInfo schema,
+      @JsonProperty("fieldType") final Optional<FieldType> type
+  ) {
+    this.name = Objects.requireNonNull(name, "name");
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.type = Objects.requireNonNull(type, "type");
   }
-
 
   public String getName() {
     return this.name;
@@ -46,16 +56,21 @@ public class FieldInfo {
     return schema;
   }
 
+  public Optional<FieldType> getType() {
+    return type;
+  }
+
   @Override
   public boolean equals(final Object other) {
     return other instanceof FieldInfo
-        && Objects.equals(name, ((FieldInfo)other).name)
-        && Objects.equals(schema, ((FieldInfo)other).schema);
+        && Objects.equals(name, ((FieldInfo) other).name)
+        && Objects.equals(schema, ((FieldInfo) other).schema)
+        && Objects.equals(type, ((FieldInfo) other).type);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, schema);
+    return Objects.hash(name, schema, type);
   }
 
   @Override
@@ -63,6 +78,7 @@ public class FieldInfo {
     return "FieldInfo{"
         + "name='" + name + '\''
         + ", schema=" + schema
+        + ", type=" + type
         + '}';
   }
 }

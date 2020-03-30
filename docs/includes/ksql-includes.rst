@@ -436,7 +436,7 @@ the latest offset.
         Field    | Type
         --------------------------------------
         ROWTIME  | BIGINT           (system)
-        ROWKEY   | VARCHAR(STRING)  (system)
+        ROWKEY   | VARCHAR(STRING)  (key)
         GENDER   | VARCHAR(STRING)
         REGIONID | VARCHAR(STRING)
         NUMUSERS | BIGINT
@@ -563,7 +563,7 @@ Your output should resemble:
      Field      | Type
     ----------------------------------------------------------------------------------
      ROWTIME    | BIGINT           (system)
-     ROWKEY     | VARCHAR(STRING)  (system)
+     ROWKEY     | VARCHAR(STRING)  (key)
      ORDERTIME  | BIGINT
      ORDERID    | INTEGER
      ITEMID     | VARCHAR(STRING)
@@ -869,7 +869,7 @@ Your output should resemble:
      Field      | Type
     ----------------------------------------------------------------------------------
      ROWTIME    | BIGINT           (system)
-     ROWKEY     | VARCHAR(STRING)  (system)
+     ROWKEY     | VARCHAR(STRING)  (key)
      SRC        | VARCHAR(STRING)
      ORDERTIME  | BIGINT
      ORDERID    | INTEGER

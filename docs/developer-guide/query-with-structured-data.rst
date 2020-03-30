@@ -269,7 +269,7 @@ Your output should resemble:
      Field         | Type
     -------------------------------------------
      ROWTIME       | BIGINT           (system)
-     ROWKEY        | VARCHAR(STRING)  (system)
+     ROWKEY        | VARCHAR(STRING)  (key)
      DATA__field-a | INTEGER
      DATA__field-b | VARCHAR(STRING)
     -------------------------------------------
@@ -289,7 +289,7 @@ Your output should resemble:
      Field         | Type
     -------------------------------------------
      ROWTIME       | BIGINT           (system)
-     ROWKEY        | VARCHAR(STRING)  (system)
+     ROWKEY        | VARCHAR(STRING)  (key)
      DATA__field-a | INTEGER
      DATA__field-c | INTEGER
      DATA__field-d | VARCHAR(STRING)

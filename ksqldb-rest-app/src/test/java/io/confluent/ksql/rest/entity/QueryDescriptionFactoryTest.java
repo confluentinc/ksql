@@ -28,6 +28,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -184,17 +185,17 @@ public class QueryDescriptionFactoryTest {
   @Test
   public void shouldExposeValueFieldsForTransientQueries() {
     assertThat(transientQueryDescription.getFields(), contains(
-        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null)),
-        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null))));
+        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty()),
+        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())));
   }
 
   @Test
   public void shouldExposeAllFieldsForPersistentQueries() {
     assertThat(persistentQueryDescription.getFields(), contains(
-        new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null)),
-        new FieldInfo("k0", new SchemaInfo(SqlBaseType.STRING, null, null)),
-        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null)),
-        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null))));
+        new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null), Optional.of(FieldType.SYSTEM)),
+        new FieldInfo("k0", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.of(FieldType.KEY)),
+        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty()),
+        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())));
   }
 
   @Test
@@ -235,9 +236,9 @@ public class QueryDescriptionFactoryTest {
 
     // Then:
     assertThat(transientQueryDescription.getFields(), contains(
-        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null)),
-        new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null)),
-        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null))));
+        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty()),
+        new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null), Optional.empty()),
+        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())));
   }
 
   @Test
@@ -268,8 +269,8 @@ public class QueryDescriptionFactoryTest {
 
     // Then:
     assertThat(transientQueryDescription.getFields(), contains(
-        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null)),
-        new FieldInfo("ROWKEY", new SchemaInfo(SqlBaseType.STRING, null, null)),
-        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null))));
+        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty()),
+        new FieldInfo("ROWKEY", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty()),
+        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())));
   }
 }

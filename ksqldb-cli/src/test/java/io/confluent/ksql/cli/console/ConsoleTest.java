@@ -404,14 +404,16 @@ public class ConsoleTest {
           + "        \"type\" : \"BIGINT\"," + NEWLINE
           + "        \"fields\" : null," + NEWLINE
           + "        \"memberSchema\" : null" + NEWLINE
-          + "      }" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"type\" : \"SYSTEM\"" + NEWLINE
           + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
           + "        \"fields\" : null," + NEWLINE
           + "        \"memberSchema\" : null" + NEWLINE
-          + "      }" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"type\" : \"KEY\"" + NEWLINE
           + "    }, {" + NEWLINE
           + "      \"name\" : \"f_0\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
@@ -505,7 +507,7 @@ public class ConsoleTest {
           + " Field   | Type                      " + NEWLINE
           + "-------------------------------------" + NEWLINE
           + " ROWTIME | BIGINT           (system) " + NEWLINE
-          + " ROWKEY  | VARCHAR(STRING)  (system) " + NEWLINE
+          + " ROWKEY  | VARCHAR(STRING)  (key)    " + NEWLINE
           + " f_0     | BOOLEAN                   " + NEWLINE
           + " f_1     | INTEGER                   " + NEWLINE
           + " f_2     | BIGINT                    " + NEWLINE
@@ -607,14 +609,16 @@ public class ConsoleTest {
           + "        \"type\" : \"BIGINT\"," + NEWLINE
           + "        \"fields\" : null," + NEWLINE
           + "        \"memberSchema\" : null" + NEWLINE
-          + "      }" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"type\" : \"SYSTEM\"" + NEWLINE
           + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
           + "        \"fields\" : null," + NEWLINE
           + "        \"memberSchema\" : null" + NEWLINE
-          + "      }" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"type\" : \"KEY\"" + NEWLINE
           + "    }, {" + NEWLINE
           + "      \"name\" : \"f_0\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
@@ -915,7 +919,7 @@ public class ConsoleTest {
             "typeA", new SchemaInfo(
                 SqlBaseType.STRUCT,
                 ImmutableList.of(
-                    new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null))),
+                    new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())),
                 null)
         ))
     ));
@@ -1059,14 +1063,16 @@ public class ConsoleTest {
           + "        \"type\" : \"BIGINT\"," + NEWLINE
           + "        \"fields\" : null," + NEWLINE
           + "        \"memberSchema\" : null" + NEWLINE
-          + "      }" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"type\" : \"SYSTEM\"" + NEWLINE
           + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
           + "        \"fields\" : null," + NEWLINE
           + "        \"memberSchema\" : null" + NEWLINE
-          + "      }" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"type\" : \"KEY\"" + NEWLINE
           + "    }, {" + NEWLINE
           + "      \"name\" : \"f_0\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
@@ -1104,7 +1110,7 @@ public class ConsoleTest {
           + " Field   | Type                      " + NEWLINE
           + "-------------------------------------" + NEWLINE
           + " ROWTIME | BIGINT           (system) " + NEWLINE
-          + " ROWKEY  | VARCHAR(STRING)  (system) " + NEWLINE
+          + " ROWKEY  | VARCHAR(STRING)  (key)    " + NEWLINE
           + " f_0     | VARCHAR(STRING)           " + NEWLINE
           + "-------------------------------------" + NEWLINE
           + "" + NEWLINE

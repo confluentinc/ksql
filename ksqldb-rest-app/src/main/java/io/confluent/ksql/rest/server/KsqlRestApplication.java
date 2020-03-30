@@ -138,6 +138,7 @@ import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.streams.StreamsConfig;
@@ -322,6 +323,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
     this.routingFilterFactory = initializeRoutingFilterFactory(
         ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
+
+    sanityCheckPluginConfig(ksqlConfig.originals());
   }
 
   @Override
@@ -1110,4 +1113,27 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     return new KsqlRestConfig(restConfigs);
   }
+
+  /*
+  Temporary sanity check to prevent broken security configuration until we have migrated the full
+  API from Jetty to Vert.x
+   */
+  private static void sanityCheckPluginConfig(final Map<String, ?> config) {
+    final Object ksqlAuthPluginClass = config.get(KsqlConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS);
+    final Object restServletInitializors = config
+        .get(RestConfig.REST_SERVLET_INITIALIZERS_CLASSES_CONFIG);
+    final Object wsServletInitializors = config
+        .get(RestConfig.WEBSOCKET_SERVLET_INITIALIZERS_CLASSES_CONFIG);
+    final boolean hasKsqlPluginConfig = ksqlAuthPluginClass != null;
+    final boolean hasJettyPluginConfig =
+        restServletInitializors != null || wsServletInitializors != null;
+
+    if (hasKsqlPluginConfig != hasJettyPluginConfig) {
+      throw new ConfigException(
+          KsqlConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS + " must be specified together with "
+              + RestConfig.REST_SERVLET_INITIALIZERS_CLASSES_CONFIG + " / "
+              + RestConfig.WEBSOCKET_SERVLET_INITIALIZERS_CLASSES_CONFIG);
+    }
+  }
+
 }

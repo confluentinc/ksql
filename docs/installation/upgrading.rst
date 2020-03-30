@@ -6,26 +6,80 @@ Upgrading KSQL
 Upgrade one KSQL server at a time (i.e. rolling restart). The remaining KSQL servers should have sufficient spare
 capacity to take over temporarily for unavailable, restarting servers.
 
+Upgrading to ksqlDB 5.5 from KSQL 5.4
+-------------------------------------
+
+#. Prepare a list of SQL statements for migration. One way is to dump the command
+   topic.
+
+   ```bash
+   ./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic _confluent-ksql-default__command_topic --from-beginning | jq ".statement" 
+   ```
+
+#. List your application's streams, tables, and types. Don't use the EXTENDED
+   option. Go through each list, and find the the last CREATE statement for each
+   stream/table/type name. Order the CREATE statements so they show the correct
+   dependencies.
+   
+#. Make other compatibility-related changes, as shown in the
+   `upgrade guide <https://docs.ksqldb.io/en/latest/operate-and-deploy/installation/upgrading/#how-to-upgrade>`__.
+
+#. Stop the ``ksql`` service.
+
+#. Uninstall the v5.4 ksql rpm package.
+
+#. Install the v5.5 ksqldb rpm package.
+
+#. Copy the v5.4 configuration file to the v5.5 ksqldb configuration
+   folder, which is located at ``${CONFLUENT_HOME}/etc/ksqldb``:
+
+   ```bash
+   cp /etc/ksql/ksql-server.properties /etc/ksqldb/ksql-server.properties
+   ```
+
+#. Change the ``ksql.service.id`` in the property file, for example, from
+   ``default_`` to ``ksqldb_``.
+
+#. Create role bindings for the ``ksql`` service principal. For more information,
+   see :ref:`ksql-rbac`.
+
+#. Create three new role bindings:
+
+   - Topic: ``__consumer_offsets``
+   - Topic: ``__transaction_state``
+   - TransactionalId: ``ksqldb_``. Use the value that you set in the
+     configuration file.
+
+#. Start the ``ksqldb`` service.
+
+#. Run the file that you prepared previously.
+
+.. note::
+
+    In addition to copying the properties file from ``ksql`` to ``ksqldb``, you may
+    need to copy other configs, like log4j and systemd overrides, depending on how
+    you have customized your deployment.
+
 Upgrading to KSQL 5.4
------------------------------------
+---------------------
 
 Notable changes in 5.4:
 
 * KSQL Server
 
-    * Query Id generation
+  * Query Id generation
 
-        * This version of KSQL includes a change to how query ids are generated for Persistent Queries
-          (INSERT INTO/CREATE STREAM AS SELECT/CREATE TABLE AS SELECT). Previously, query ids would be incremented
-          on every successful Persistent Query created. New query ids use the Kafka record offset of the query
-          creating command in the KSQL command topic.
+    * This version of KSQL includes a change to how query ids are generated for Persistent Queries
+      (INSERT INTO/CREATE STREAM AS SELECT/CREATE TABLE AS SELECT). Previously, query ids would be incremented
+      on every successful Persistent Query created. New query ids use the Kafka record offset of the query
+      creating command in the KSQL command topic.
 
 
-          In order to prevent inconsistent query ids, don't create new Persistent Queries while
-          upgrading your KSQL servers (5.3 or lower). Old running queries will retain their original id on restart,
-          while new queries will utilize the new id convention.
+      In order to prevent inconsistent query ids, don't create new Persistent Queries while
+      upgrading your KSQL servers (5.3 or lower). Old running queries will retain their original id on restart,
+      while new queries will utilize the new id convention.
 
-          See `Github PR #3354 <https://github.com/confluentinc/ksql/pull/3354>`_ for more info.
+      See `Github PR #3354 <https://github.com/confluentinc/ksql/pull/3354>`_ for more info.
 
 
 Upgrading from KSQL 5.2 to KSQL 5.3
@@ -35,31 +89,31 @@ Notable changes in 5.3:
 
 * KSQL Server
 
-    * Avro schema compatibility
+  * Avro schema compatibility
 
-        * This version of KSQL fixes a bug where the schemas returned by UDF and UDAFs might
-          not be marked as nullable. This can cause serialization issues in the presence of ``null``
-          values, as might be encountered if the UDF fails.
+    * This version of KSQL fixes a bug where the schemas returned by UDF and UDAFs might
+      not be marked as nullable. This can cause serialization issues in the presence of ``null``
+      values, as might be encountered if the UDF fails.
 
-          With the bug fix all fields are now optional.
+      With the bug fix all fields are now optional.
 
-          This is a forward compatible change in Avro, i.e. after upgrading, KSQL will be able to
-          read old values using the new schema. However, it is important to ensure downstream
-          consumers of the data are using the updated schema before upgrading KSQL, as otherwise
-          deserialization may fail. The updated schema is best obtained from running the query in
-          another KSQL cluster, running version 5.3.
+      This is a forward compatible change in Avro, i.e. after upgrading, KSQL will be able to
+      read old values using the new schema. However, it is important to ensure downstream
+      consumers of the data are using the updated schema before upgrading KSQL, as otherwise
+      deserialization may fail. The updated schema is best obtained from running the query in
+      another KSQL cluster, running version 5.3.
 
-          See `Github issue #2769 <https://github.com/confluentinc/ksql/pull/2769>`_ for more info.
+      See `Github issue #2769 <https://github.com/confluentinc/ksql/pull/2769>`_ for more info.
 
 * Configuration:
 
-    * ``ksql.sink.partitions`` and ``ksql.sink.replicas`` are deprecated. All
-      new queries will use the source topic partition count and replica count
-      for the sink topic instead unless partitions and replicas are set in the
-      WITH clause.
+  * ``ksql.sink.partitions`` and ``ksql.sink.replicas`` are deprecated. All
+    new queries will use the source topic partition count and replica count
+    for the sink topic instead unless partitions and replicas are set in the
+    WITH clause.
 
-    * A new config variable, ``ksql.internal.topic.replicas``, was introduced to set the replica count for
-      the internal topics created by KSQL Server. The internal topics include command topic or config topic.
+  * A new config variable, ``ksql.internal.topic.replicas``, was introduced to set the replica count for
+    the internal topics created by KSQL Server. The internal topics include command topic or config topic.
 
 
 Upgrading from KSQL 5.1 to KSQL 5.2
@@ -69,24 +123,24 @@ Upgrading from KSQL 5.1 to KSQL 5.2
 
 * KSQL Server
 
-    * Interactive mode:
+  * Interactive mode:
 
-        * The use of the ``RUN SCRIPT`` statement via the REST API is now deprecated and will be
-          removed in the next major release.
-          (`Github issue 2179 <https://github.com/confluentinc/ksql/issues/2179>`_).
-          The feature circumnavigates certain correctness checks and is unnecessary,
-          given the script content can be supplied in the main body of the request.
-          If you are using the ``RUN SCRIPT`` functionality from the KSQL CLI you will not be
-          affected, as this will continue to be supported.
-          If you are using the ``RUN SCRIPT`` functionality directly against the REST API your
-          requests will work with the 5.2 server, but will be rejected after the next major version
-          release.
-          Instead, include the contents of the script in the main body of your request.
+    * The use of the ``RUN SCRIPT`` statement via the REST API is now deprecated and will be
+      removed in the next major release.
+      (`Github issue 2179 <https://github.com/confluentinc/ksql/issues/2179>`_).
+      The feature circumnavigates certain correctness checks and is unnecessary,
+      given the script content can be supplied in the main body of the request.
+      If you are using the ``RUN SCRIPT`` functionality from the KSQL CLI you will not be
+      affected, as this will continue to be supported.
+      If you are using the ``RUN SCRIPT`` functionality directly against the REST API your
+      requests will work with the 5.2 server, but will be rejected after the next major version
+      release.
+      Instead, include the contents of the script in the main body of your request.
 
 * Configuration:
 
-    * When upgrading your headless (non-interactive) mode application from version 5.0.0 and below, you must include the configs specified in the :ref:`5.1 upgrade instructions <5-1-upgrade>`.
-    * When upgrading your headless (non-interactive) mode application, you must include the following properties in your properties file:
+  * When upgrading your headless (non-interactive) mode application from version 5.0.0 and below, you must include the configs specified in the :ref:`5.1 upgrade instructions <5-1-upgrade>`.
+  * When upgrading your headless (non-interactive) mode application, you must include the following properties in your properties file:
 
 ::
 
@@ -101,13 +155,13 @@ Upgrading from KSQL 5.0.0 and below to KSQL 5.1
 
 * KSQL server:
 
-    * The KSQL engine metrics are now prefixed with the ``ksql.service.id``. If you have been using any metric monitoring
-      tool you need to update your metric names.
-      For instance, assuming ``ksql.service.id`` is set to ``default_``, ``messages-produced-per-sec`` will be changed to ``_confluent-ksql-default_messages-consumed-per-sec``.
+  * The KSQL engine metrics are now prefixed with the ``ksql.service.id``. If you have been using any metric monitoring
+    tool you need to update your metric names.
+    For instance, assuming ``ksql.service.id`` is set to ``default_``, ``messages-produced-per-sec`` will be changed to ``_confluent-ksql-default_messages-consumed-per-sec``.
 
 * Configuration:
 
-    * When upgrading your headless (non-interactive) mode application, you must either update your queries to use the new SUBSTRING indexing semantics, or set ``ksql.functions.substring.legacy.args`` to ``true``. If possible, we recommend that you update your queries accordingly, instead of enabling this configuration setting. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details on how to do so. Note that this is NOT required for interactive mode KSQL.
+  * When upgrading your headless (non-interactive) mode application, you must either update your queries to use the new SUBSTRING indexing semantics, or set ``ksql.functions.substring.legacy.args`` to ``true``. If possible, we recommend that you update your queries accordingly, instead of enabling this configuration setting. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details on how to do so. Note that this is NOT required for interactive mode KSQL.
 
 Upgrading from KSQL 0.x (Developer Preview) to KSQL 4.1
 -------------------------------------------------------
@@ -120,20 +174,20 @@ Notable changes in 4.1:
 
 * KSQL CLI:
 
-    * The ``ksql-cli`` command was renamed to ``ksql``.
-    * The CLI no longer supports what was formerly called "standalone" or "local" mode, where ``ksql-cli`` would run
-      both the CLI and also a KSQL server process inside the same JVM.  In 4.1, ``ksql`` will only run the CLI.  For
-      local development and testing, you can now run ``confluent start`` (which will also launch a KSQL server),
-      followed by ``ksql`` to start the CLI. This setup is used for the
-      :ref:`Confluent Platform quickstart <quickstart>`.  Alternatively, you can start the KSQL server directly as
-      described in :ref:`start_ksql-server`, followed by ``ksql`` to start the CLI.
+  * The ``ksql-cli`` command was renamed to ``ksql``.
+  * The CLI no longer supports what was formerly called "standalone" or "local" mode, where ``ksql-cli`` would run
+    both the CLI and also a KSQL server process inside the same JVM.  In 4.1, ``ksql`` will only run the CLI.  For
+    local development and testing, you can now run ``confluent start`` (which will also launch a KSQL server),
+    followed by ``ksql`` to start the CLI. This setup is used for the
+    :ref:`Confluent Platform quickstart <quickstart>`.  Alternatively, you can start the KSQL server directly as
+    described in :ref:`start_ksql-server`, followed by ``ksql`` to start the CLI.
 
 * KSQL server:
 
-    * The default ``listeners`` address was changed to ``http://localhost:8088`` (KSQL 0.x used
-      ``http://localhost:8080``).
-    * Assigning KSQL servers to a specific KSQL cluster has been simplified and is now done with the
-      ``ksql.service.id`` setting.  See :ref:`ksql-server-config` for details.
+  * The default ``listeners`` address was changed to ``http://localhost:8088`` (KSQL 0.x used
+    ``http://localhost:8080``).
+  * Assigning KSQL servers to a specific KSQL cluster has been simplified and is now done with the
+    ``ksql.service.id`` setting.  See :ref:`ksql-server-config` for details.
 
 * Executing ``.sql`` files: To run pre-defined KSQL queries stored in a ``.sql`` file, see
   :ref:`restrict-ksql-interactive`.

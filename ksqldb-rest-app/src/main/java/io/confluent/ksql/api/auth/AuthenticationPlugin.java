@@ -30,9 +30,8 @@ public interface AuthenticationPlugin {
   void configure(Map<String, ?> map);
 
   /**
-   * Handle authentication for the request. Please note that in the case of failure to authenticate
-   * the plugin should end the response. This behaviour makes it compatible with existing auth
-   * plugins which it wraps.
+   * Handle authentication for the request. The plugin implementation should not end the response in
+   * case of failure. ksqlDB will end the response appropriately in case of failure.
    *
    * @param routingContext The routing context
    * @param workerExecutor The worker executor

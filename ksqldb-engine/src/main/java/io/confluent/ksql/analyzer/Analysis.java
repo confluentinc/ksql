@@ -129,7 +129,7 @@ public class Analysis implements ImmutableAnalysis {
     return ImmutableList.copyOf(groupByExpressions);
   }
 
-  void addGroupByExpressions(final Set<Expression> expressions) {
+  void addGroupByExpressions(final Collection<Expression> expressions) {
     groupByExpressions.addAll(expressions);
   }
 

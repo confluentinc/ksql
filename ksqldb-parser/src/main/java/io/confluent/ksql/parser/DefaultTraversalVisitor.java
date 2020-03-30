@@ -21,13 +21,11 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
-import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statements;
 
@@ -80,22 +78,6 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
   @Override
   protected R visitGroupBy(final GroupBy node, final C context) {
-    for (final GroupingElement groupingElement : node.getGroupingElements()) {
-      process(groupingElement, context);
-    }
-
-    return null;
-  }
-
-  @Override
-  protected R visitGroupingElement(final GroupingElement node, final C context) {
-    return null;
-  }
-
-  @Override
-  protected R visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
-    visitGroupingElement(node, context);
-
     return null;
   }
 

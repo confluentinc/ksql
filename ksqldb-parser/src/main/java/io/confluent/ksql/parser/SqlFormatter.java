@@ -111,27 +111,28 @@ public final class SqlFormatter {
       if (node.getWhere().isPresent()) {
         append(
             indent,
-            "WHERE " + ExpressionFormatterUtil.formatExpression(node.getWhere().get())
+            "WHERE " + formatExpression(node.getWhere().get())
         ).append('\n');
       }
 
       if (node.getGroupBy().isPresent()) {
-        append(indent, "GROUP BY "
-            + ExpressionFormatterUtil
-            .formatGroupBy(node.getGroupBy().get().getGroupingElements()))
+        final String expressions = node.getGroupBy().get().getGroupingExpressions().stream()
+            .map(SqlFormatter::formatExpression)
+            .collect(Collectors.joining(", "));
+
+        append(indent, "GROUP BY " + expressions)
             .append('\n');
       }
 
       if (node.getPartitionBy().isPresent()) {
         append(indent, "PARTITION BY "
-            + ExpressionFormatterUtil
-            .formatExpression(node.getPartitionBy().get()))
+            + formatExpression(node.getPartitionBy().get()))
             .append('\n');
       }
 
       if (node.getHaving().isPresent()) {
         append(indent, "HAVING "
-            + ExpressionFormatterUtil.formatExpression(node.getHaving().get()))
+            + formatExpression(node.getHaving().get()))
             .append('\n');
       }
 
@@ -177,7 +178,7 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitSingleColumn(final SingleColumn node, final Integer indent) {
-      builder.append(ExpressionFormatterUtil.formatExpression(node.getExpression()));
+      builder.append(formatExpression(node.getExpression()));
       if (node.getAlias().isPresent()) {
         builder.append(' ')
             // for backwards compatibility, we always quote with `""` here
@@ -221,7 +222,7 @@ public final class SqlFormatter {
       node.getWithinExpression().map((e) -> builder.append(e.toString()));
       final JoinOn on = (JoinOn) criteria;
       builder.append(" ON (")
-          .append(ExpressionFormatterUtil.formatExpression(on.getExpression()))
+          .append(formatExpression(on.getExpression()))
           .append(")");
 
       return null;
@@ -331,7 +332,7 @@ public final class SqlFormatter {
       builder.append(
           node.getValues()
               .stream()
-              .map(ExpressionFormatterUtil::formatExpression)
+              .map(SqlFormatter::formatExpression)
               .collect(Collectors.joining(", ")));
       builder.append(")");
 
@@ -398,7 +399,7 @@ public final class SqlFormatter {
       builder.append("CREATE TYPE ");
       builder.append(FORMAT_OPTIONS.escape(node.getName()));
       builder.append(" AS ");
-      builder.append(ExpressionFormatterUtil.formatExpression(node.getType()));
+      builder.append(formatExpression(node.getType()));
       builder.append(";");
       return null;
     }
@@ -431,7 +432,7 @@ public final class SqlFormatter {
         final Integer indent
     ) {
       partitionByColumn.ifPresent(partitionBy -> append(indent, "PARTITION BY "
-              + ExpressionFormatterUtil.formatExpression(partitionBy))
+              + formatExpression(partitionBy))
           .append('\n'));
     }
 
@@ -500,6 +501,13 @@ public final class SqlFormatter {
               e.getType(), FormatOptions.of(IdentifierUtil::needsQuotes))
           + (e.getNamespace() == Namespace.KEY ? " KEY" : "");
     }
+  }
+
+  private static String formatExpression(final Expression expression) {
+    return ExpressionFormatter.formatExpression(
+        expression,
+        FormatOptions.of(IdentifierUtil::needsQuotes)
+    );
   }
 
   private static String escapedName(final Name name) {

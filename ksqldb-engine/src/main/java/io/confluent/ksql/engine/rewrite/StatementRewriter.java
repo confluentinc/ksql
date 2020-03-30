@@ -30,7 +30,6 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
-import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
@@ -41,7 +40,6 @@ import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
@@ -441,28 +439,11 @@ public final class StatementRewriter<C> {
         return result.get();
       }
 
-      final List<GroupingElement> rewrittenGroupings = node.getGroupingElements().stream()
-          .map(groupingElement -> (GroupingElement) rewriter.apply(groupingElement, context))
+      final List<Expression> rewrittenGroupings = node.getGroupingExpressions().stream()
+          .map(exp -> processExpression(exp, context))
           .collect(Collectors.toList());
 
       return new GroupBy(node.getLocation(), rewrittenGroupings);
-    }
-
-    @Override
-    protected AstNode visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
-      final Optional<AstNode> result = plugin.apply(node, new Context<>(context, this));
-      if (result.isPresent()) {
-        return result.get();
-      }
-
-      final List<Expression> columns = node.getColumns().stream()
-          .map(ce -> processExpression(ce, context))
-          .collect(Collectors.toList());
-
-      return new SimpleGroupBy(
-          node.getLocation(),
-          columns
-      );
     }
 
     @Override

@@ -42,7 +42,6 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.GroupBy;
-import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
@@ -482,22 +481,13 @@ class Analyzer {
       return null;
     }
 
-    @Override
-    protected AstNode visitGroupBy(final GroupBy node, final Void context) {
-      return null;
-    }
-
     private void analyzeWhere(final Expression node) {
       analysis.setWhereExpression(node);
     }
 
     private void analyzeGroupBy(final GroupBy groupBy) {
       isGroupBy = true;
-
-      for (final GroupingElement groupingElement : groupBy.getGroupingElements()) {
-        final Set<Expression> groupingSet = groupingElement.enumerateGroupingSets().get(0);
-        analysis.addGroupByExpressions(groupingSet);
-      }
+      analysis.addGroupByExpressions(groupBy.getGroupingExpressions());
     }
 
     private void analyzePartitionBy(final Expression partitionBy) {

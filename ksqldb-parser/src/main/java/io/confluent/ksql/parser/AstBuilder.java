@@ -102,7 +102,6 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
-import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
@@ -127,7 +126,6 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
-import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
@@ -563,15 +561,7 @@ public class AstBuilder {
     public Node visitGroupBy(final SqlBaseParser.GroupByContext context) {
       return new GroupBy(
           getLocation(context),
-          visit(context.groupingElement(), GroupingElement.class)
-      );
-    }
-
-    @Override
-    public Node visitSingleGroupingSet(final SqlBaseParser.SingleGroupingSetContext context) {
-      return new SimpleGroupBy(
-          getLocation(context),
-          visit(context.groupingExpressions().valueExpression(), Expression.class)
+          visit(context.valueExpression(), Expression.class)
       );
     }
 

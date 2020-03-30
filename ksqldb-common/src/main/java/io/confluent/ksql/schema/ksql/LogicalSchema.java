@@ -51,9 +51,6 @@ public final class LogicalSchema {
   private static final Column IMPLICIT_TIME_COLUMN = Column
       .of(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT, Column.Namespace.META, 0);
 
-  private static final Column IMPLICIT_KEY_COLUMN = Column
-      .of(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING, Column.Namespace.KEY, 0);
-
   private final ImmutableList<Column> columns;
 
   public static Builder builder() {

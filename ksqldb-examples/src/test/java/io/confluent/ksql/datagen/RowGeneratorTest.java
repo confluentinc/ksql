@@ -44,7 +44,7 @@ public class RowGeneratorTest {
 
     final Struct key = rowPair.getLeft();
     assertThat(key, is(notNullValue()));
-    assertThat(key.get("ROWKEY"), is(instanceOf(Integer.class)));
+    assertThat(key.get("Key"), is(instanceOf(Integer.class)));
 
     assertThat(rowPair.getRight().values(), hasSize(5));
     assertThat(rowPair.getRight().get(4), instanceOf(Struct.class));
@@ -67,8 +67,8 @@ public class RowGeneratorTest {
     final Struct key = rowPair.getLeft();
     final GenericRow value = rowPair.getRight();
     assertThat(key, is(notNullValue()));
-    assertThat(key.get("ROWKEY"), is(instanceOf(Long.class)));
+    assertThat(key.get("Key"), is(instanceOf(Long.class)));
 
-    assertThat("must match copy of key in value", key.get("ROWKEY"), is(value.get(0)));
+    assertThat("must match copy of key in value", key.get("Key"), is(value.get(0)));
   }
 }

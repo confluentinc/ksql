@@ -25,7 +25,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -43,13 +42,14 @@ import org.apache.kafka.connect.data.Struct;
 
 public class RowGenerator {
 
+  private static final ColumnName KEY_COL_NAME = ColumnName.of("Key");
+
   private final Set<String> allTokens = new HashSet<>();
   private final Map<String, Integer> sessionMap = new HashMap<>();
   private final Set<Integer> allocatedIds = new HashSet<>();
   private final Generator generator;
   private final AvroData avroData;
   private final SessionManager sessionManager = new SessionManager();
-  private final String keyFieldName;
   private final ConnectSchema keySchema;
   private final ConnectSchema valueSchema;
   private final int keyFieldIndex;
@@ -57,7 +57,6 @@ public class RowGenerator {
   public RowGenerator(final Generator generator, final String keyFieldName) {
     this.generator = Objects.requireNonNull(generator, "generator");
     this.avroData = new AvroData(1);
-    this.keyFieldName = Objects.requireNonNull(keyFieldName, "keyFieldName");
     final LogicalSchema ksqlSchema = buildLogicalSchema(generator, avroData, keyFieldName);
     this.keySchema = ksqlSchema.keyConnectSchema();
     this.valueSchema = ksqlSchema.valueConnectSchema();
@@ -142,7 +141,7 @@ public class RowGenerator {
     }
 
     final Struct keyStruct = new Struct(keySchema);
-    keyStruct.put(SchemaUtil.ROWKEY_NAME.text(), row.get(keyFieldIndex));
+    keyStruct.put(KEY_COL_NAME.text(), row.get(keyFieldIndex));
 
     return Pair.of(keyStruct, row);
   }
@@ -234,8 +233,8 @@ public class RowGenerator {
     if (!sessionMap.containsKey(sessionisationValue)) {
 
       final LinkedHashMap<?, ?> properties =
-          (LinkedHashMap) field.schema().getObjectProps().get("arg.properties");
-      final Integer max = (Integer) ((LinkedHashMap) properties.get("range")).get("max");
+          (LinkedHashMap<?, ?>) field.schema().getObjectProps().get("arg.properties");
+      final Integer max = (Integer) ((LinkedHashMap<?, ?>) properties.get("range")).get("max");
 
       int vvalue = Math.abs(sessionisationValue.hashCode() % max);
 
@@ -283,7 +282,7 @@ public class RowGenerator {
     final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
     schemaBuilder
-        .keyColumn(SchemaUtil.ROWKEY_NAME, converter.toSqlType(keyField.schema()));
+        .keyColumn(KEY_COL_NAME, converter.toSqlType(keyField.schema()));
 
     connectSchema.fields()
         .forEach(f -> schemaBuilder.valueColumn(

@@ -571,7 +571,7 @@ public class AstBuilder {
     public Node visitSingleGroupingSet(final SqlBaseParser.SingleGroupingSetContext context) {
       return new SimpleGroupBy(
           getLocation(context),
-          visit(context.groupingExpressions().expression(), Expression.class)
+          visit(context.groupingExpressions().valueExpression(), Expression.class)
       );
     }
 

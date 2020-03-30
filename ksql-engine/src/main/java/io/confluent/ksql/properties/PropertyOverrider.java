@@ -17,6 +17,7 @@ package io.confluent.ksql.properties;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -32,6 +33,7 @@ public final class PropertyOverrider {
       final Map<String, Object> mutableProperties
   ) {
     final SetProperty setProperty = statement.getStatement();
+    throwIfInvalidProperty(setProperty.getPropertyName(), statement.getStatementText());
     throwIfInvalidPropertyValues(setProperty, statement);
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
@@ -41,6 +43,7 @@ public final class PropertyOverrider {
       final Map<String, Object> mutableProperties
   ) {
     final UnsetProperty unsetProperty = statement.getStatement();
+    throwIfInvalidProperty(unsetProperty.getPropertyName(), statement.getStatementText());
     mutableProperties.remove(unsetProperty.getPropertyName());
   }
 
@@ -57,6 +60,12 @@ public final class PropertyOverrider {
       throw new KsqlStatementException(
           e.getMessage(), statement.getStatementText(), e.getCause());
     }
+  }
+
+  private static void throwIfInvalidProperty(final String propertyName, final String text) {
+    new KsqlConfigResolver()
+        .resolve(propertyName, true)
+        .orElseThrow(() -> new KsqlStatementException("Unknown property: " + propertyName, text));
   }
 
 }

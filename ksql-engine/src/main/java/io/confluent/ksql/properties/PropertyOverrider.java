@@ -32,7 +32,6 @@ public final class PropertyOverrider {
       final Map<String, Object> mutableProperties
   ) {
     final SetProperty setProperty = statement.getStatement();
-    throwIfInvalidProperty(setProperty.getPropertyName(), statement.getStatementText());
     throwIfInvalidPropertyValues(setProperty, statement);
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
@@ -42,7 +41,6 @@ public final class PropertyOverrider {
       final Map<String, Object> mutableProperties
   ) {
     final UnsetProperty unsetProperty = statement.getStatement();
-    throwIfInvalidProperty(unsetProperty.getPropertyName(), statement.getStatementText());
     mutableProperties.remove(unsetProperty.getPropertyName());
   }
 
@@ -58,12 +56,6 @@ public final class PropertyOverrider {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           e.getMessage(), statement.getStatementText(), e.getCause());
-    }
-  }
-
-  private static void throwIfInvalidProperty(final String propertyName, final String text) {
-    if (!LocalPropertyValidator.CONFIG_PROPERTY_WHITELIST.contains(propertyName)) {
-      throw new KsqlStatementException("Unknown property: " + propertyName, text);
     }
   }
 

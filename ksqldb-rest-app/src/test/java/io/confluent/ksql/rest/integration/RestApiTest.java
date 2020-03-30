@@ -265,7 +265,7 @@ public class RestApiTest {
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
-            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"},"
             + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
             + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
             + "]"));
@@ -290,7 +290,7 @@ public class RestApiTest {
     assertThat(messages.get(0),
         is("["
             + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
-            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"}"
             + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[1,\"USER_1\"]}}"));
@@ -310,7 +310,7 @@ public class RestApiTest {
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
-            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"}"
             + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[\"USER_1\"]}}"));

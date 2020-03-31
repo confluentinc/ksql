@@ -727,6 +727,28 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldThrowIfColumnDoesNotExistInSchema() {
+    // Given:
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOption.none(), Optional.empty());
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(
+            K0,
+            ColumnName.of("NONEXISTENT")),
+        ImmutableList.of(
+            new StringLiteral("foo"),
+            new StringLiteral("bar"))
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectCause(hasMessage(containsString("Column name `NONEXISTENT` does not exist.")));
+
+    // When:
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+  }
+
+  @Test
   public void shouldFailOnDowncast() {
     // Given:
     givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOption.none(), Optional.of(COL0));

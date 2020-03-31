@@ -45,6 +45,7 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -487,11 +488,11 @@ class Analyzer {
 
     private void analyzeGroupBy(final GroupBy groupBy) {
       isGroupBy = true;
-      analysis.setGroupByExpressions(groupBy.getGroupingExpressions());
+      analysis.setGroupByExpressions(groupBy.getGroupingExpressions()); // Todo(ac): Alias
     }
 
-    private void analyzePartitionBy(final Expression partitionBy) {
-      analysis.setPartitionBy(partitionBy);
+    private void analyzePartitionBy(final PartitionBy partitionBy) {
+      analysis.setPartitionBy(partitionBy.getExpression()); // Todo(ac): Alias
     }
 
     private void analyzeWindowExpression(final WindowExpression windowExpression) {

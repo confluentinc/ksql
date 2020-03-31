@@ -79,6 +79,7 @@ import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
+import io.confluent.ksql.parser.SqlBaseParser.PartitionByContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.RetentionClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
@@ -117,6 +118,7 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
@@ -415,7 +417,7 @@ public class AstBuilder {
           visitIfPresent(context.windowExpression(), WindowExpression.class),
           visitIfPresent(context.where, Expression.class),
           visitIfPresent(context.groupBy(), GroupBy.class),
-          visitIfPresent(context.partitionBy, Expression.class),
+          visitIfPresent(context.partitionBy(), PartitionBy.class),
           visitIfPresent(context.having, Expression.class),
           resultMaterialization,
           pullQuery,
@@ -558,10 +560,18 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitPartitionBy(final PartitionByContext ctx) {
+      return new PartitionBy(
+          getLocation(ctx),
+          (Expression) visit(ctx.valueExpression())
+      ); // Todo(ac): Use alias
+    }
+
+    @Override
     public Node visitGroupBy(final SqlBaseParser.GroupByContext context) {
       return new GroupBy(
           getLocation(context),
-          visit(context.valueExpression(), Expression.class)
+          visit(context.valueExpression(), Expression.class) // Todo(ac): Use alias
       );
     }
 

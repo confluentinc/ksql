@@ -63,7 +63,6 @@ import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
@@ -120,13 +119,13 @@ public final class SqlFormatter {
             .map(SqlFormatter::formatExpression)
             .collect(Collectors.joining(", "));
 
-        append(indent, "GROUP BY " + expressions)
+        append(indent, "GROUP BY " + expressions) // Todo(ac): Alias!
             .append('\n');
       }
 
       if (node.getPartitionBy().isPresent()) {
         append(indent, "PARTITION BY "
-            + formatExpression(node.getPartitionBy().get()))
+            + formatExpression(node.getPartitionBy().get().getExpression())) // Todo(ac): Alias!
             .append('\n');
       }
 
@@ -427,15 +426,6 @@ public final class SqlFormatter {
       }
     }
 
-    private void processPartitionBy(
-        final Optional<Expression> partitionByColumn,
-        final Integer indent
-    ) {
-      partitionByColumn.ifPresent(partitionBy -> append(indent, "PARTITION BY "
-              + formatExpression(partitionBy))
-          .append('\n'));
-    }
-
     private StringBuilder append(final int indent, final String value) {
       return builder.append(indentString(indent))
               .append(value);
@@ -510,7 +500,7 @@ public final class SqlFormatter {
     );
   }
 
-  private static String escapedName(final Name name) {
+  private static String escapedName(final Name<?> name) {
     return name.toString(FORMAT_OPTIONS);
   }
 }

@@ -487,7 +487,7 @@ class Analyzer {
 
     private void analyzeGroupBy(final GroupBy groupBy) {
       isGroupBy = true;
-      analysis.addGroupByExpressions(groupBy.getGroupingExpressions());
+      analysis.setGroupByExpressions(groupBy.getGroupingExpressions());
     }
 
     private void analyzePartitionBy(final Expression partitionBy) {

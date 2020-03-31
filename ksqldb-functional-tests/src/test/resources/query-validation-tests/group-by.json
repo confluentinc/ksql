@@ -509,6 +509,20 @@
       }
     },
     {
+      "name": "duplicate expressions",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY DATA, DATA;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Duplicate GROUP BY expression: TEST.DATA"
+      }
+    },
+    {
       "name": "with single grouping set (stream->table)",
       "statements": [
         "CREATE STREAM TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR, f3 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",

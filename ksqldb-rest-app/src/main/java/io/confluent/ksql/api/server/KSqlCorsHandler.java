@@ -20,8 +20,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.CorsHandler;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,11 +31,7 @@ public class KSqlCorsHandler implements Handler<RoutingContext> {
   private static final List<String> DEFAULT_ALLOWED_METHODS = Arrays.asList("GET", "POST", "HEAD");
   private static final List<String> DEFAULT_ALLOWED_HEADERS = Arrays
       .asList("X-Requested-With", "Content-Type", "Accept", "Origin");
-  public static final List<String> EXCLUDED_PATH_PREFIXES = new ArrayList<>();
-
-  static {
-    EXCLUDED_PATH_PREFIXES.add("/ws/");
-  }
+  private static final List<String> EXCLUDED_PATH_PREFIXES = Collections.singletonList("/ws/");
 
   static void setupCorsHandler(final Server server, final Router router) {
     final ApiServerConfig apiServerConfig = server.getConfig();

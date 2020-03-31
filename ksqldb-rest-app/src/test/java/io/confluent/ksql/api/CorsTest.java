@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.ksql.api.server.ApiServerConfig;
-import io.confluent.ksql.api.server.KSqlCorsHandler;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -89,19 +88,16 @@ public class CorsTest extends BaseApiTest {
     // Given:
     init();
     config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, "wibble.com");
-    KSqlCorsHandler.EXCLUDED_PATH_PREFIXES.add("/query-stream");
 
     // When
-    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, "wibble.com");
+    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, "/ws/foo", "wibble.com");
 
     // Then:
-    assertThat(response.statusCode(), is(200));
+    // We should get a 404 as the security checks will be bypassed but the resource doesn't exist
+    assertThat(response.statusCode(), is(404));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_ORIGIN_HEADER), is(nullValue()));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_METHODS_HEADER), is(nullValue()));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_HEADERS_HEADER), is(nullValue()));
-
-    KSqlCorsHandler.EXCLUDED_PATH_PREFIXES
-        .remove(KSqlCorsHandler.EXCLUDED_PATH_PREFIXES.size() - 1);
   }
 
   @Test
@@ -256,6 +252,7 @@ public class CorsTest extends BaseApiTest {
         MultiMap.caseInsensitiveMultiMap().add("origin", origin)
             .add(ACCESS_CONTROL_REQUEST_METHOD_HEADER, "POST"));
 
+    assertThat(response.statusCode(), is(200));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_ORIGIN_HEADER),
         is(origin));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS_HEADER), is("true"));
@@ -273,9 +270,15 @@ public class CorsTest extends BaseApiTest {
 
   private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod, final MultiMap headers)
       throws Exception {
+    return sendCorsRequest(httpMethod, "/query-stream", headers);
+  }
+
+  private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod, final String uri,
+      final MultiMap headers)
+      throws Exception {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .request(httpMethod, "/query-stream")
+        .request(httpMethod, uri)
         .putHeaders(headers)
         .sendJsonObject(new JsonObject().put("sql", DEFAULT_PULL_QUERY), requestFuture);
     return requestFuture.get();
@@ -284,6 +287,14 @@ public class CorsTest extends BaseApiTest {
   private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod,
       final String origin)
       throws Exception {
-    return sendCorsRequest(httpMethod, MultiMap.caseInsensitiveMultiMap().add("origin", origin));
+    return sendCorsRequest(httpMethod, "/query-stream", origin);
+  }
+
+  private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod,
+      final String uri,
+      final String origin)
+      throws Exception {
+    return sendCorsRequest(httpMethod, uri,
+        MultiMap.caseInsensitiveMultiMap().add("origin", origin));
   }
 }

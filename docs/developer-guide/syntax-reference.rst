@@ -1064,7 +1064,7 @@ Your output should resemble:
      Field   | Type
     -------------------------------------
      ROWTIME | BIGINT           (system)
-     ROWKEY  | VARCHAR(STRING)  (system)
+     ROWKEY  | VARCHAR(STRING)  (key)
      IP      | VARCHAR(STRING)  (key)
      KBYTES  | BIGINT
     -------------------------------------
@@ -1090,7 +1090,7 @@ Your output should resemble:
      Field   | Type
     -------------------------------------
      ROWTIME | BIGINT           (system)
-     ROWKEY  | VARCHAR(STRING)  (system)
+     ROWKEY  | VARCHAR(STRING)  (key)
      IP      | VARCHAR(STRING)  (key)
      KBYTES  | BIGINT
     -------------------------------------

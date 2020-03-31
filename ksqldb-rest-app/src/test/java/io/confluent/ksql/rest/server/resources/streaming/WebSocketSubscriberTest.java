@@ -133,8 +133,8 @@ public class WebSocketSubscriberTest {
     assertThat(
         schema.getValue(),
         is("["
-            + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
-            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null},\"type\":\"SYSTEM\"},"
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"},"
             + "{\"name\":\"currency\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
             + "{\"name\":\"amount\",\"schema\":{\"type\":\"DOUBLE\",\"fields\":null,\"memberSchema\":null}}"
             + "]"

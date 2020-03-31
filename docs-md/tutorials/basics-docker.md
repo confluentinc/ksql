@@ -725,7 +725,7 @@ EMIT CHANGES;
  Field    | Type                                              
 --------------------------------------------------------------
  ROWTIME  | BIGINT           (system)                         
- ROWKEY   | VARCHAR(STRING)  (system) (Window type: TUMBLING) 
+ ROWKEY   | VARCHAR(STRING)  (key) (Window type: TUMBLING)
  GENDER   | VARCHAR(STRING)                                   
  REGIONID | VARCHAR(STRING)                                   
  NUMUSERS | BIGINT                                            

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -113,6 +114,7 @@ public class EntityUtilTest {
     assertThat(fields.get(0).getSchema().getFields().get().size(), equalTo(1));
     final FieldInfo inner = fields.get(0).getSchema().getFields().get().get(0);
     assertThat(inner.getSchema().getTypeName(), equalTo("STRING"));
+    assertThat(inner.getType(), equalTo(Optional.empty()));
     assertThat(fields.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
   }
 
@@ -150,7 +152,9 @@ public class EntityUtilTest {
     // Then:
     assertThat(fields, hasSize(3));
     assertThat(fields.get(0).getName(), equalTo("ROWKEY"));
+    assertThat(fields.get(0).getType(), equalTo(Optional.empty()));
     assertThat(fields.get(1).getName(), equalTo("ROWTIME"));
+    assertThat(fields.get(1).getType(), equalTo(Optional.empty()));
   }
 
   @Test
@@ -167,6 +171,7 @@ public class EntityUtilTest {
     assertThat(fields, hasSize(1));
     assertThat(fields.get(0).getName(), equalTo("ROWTIME"));
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo("BIGINT"));
+    assertThat(fields.get(0).getType(), equalTo(Optional.of(FieldType.SYSTEM)));
   }
 
   @Test
@@ -183,6 +188,7 @@ public class EntityUtilTest {
     assertThat(fields, hasSize(1));
     assertThat(fields.get(0).getName(), equalTo("field1"));
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo("INTEGER"));
+    assertThat(fields.get(0).getType(), equalTo(Optional.of(FieldType.KEY)));
   }
 
   @Test
@@ -221,6 +227,7 @@ public class EntityUtilTest {
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo(schemaName));
     assertThat(fields.get(0).getSchema().getFields(), equalTo(Optional.empty()));
     assertThat(fields.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
+    assertThat(fields.get(0).getType(), equalTo(Optional.empty()));
   }
 }
 

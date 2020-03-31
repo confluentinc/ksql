@@ -276,7 +276,7 @@ Name                 : TYPE_1
  Field         | Type
 -------------------------------------------
  ROWTIME       | BIGINT           (system)
- ROWKEY        | VARCHAR(STRING)  (system)
+ ROWKEY        | VARCHAR(STRING)  (key)
  DATA__field-a | INTEGER
  DATA__field-b | VARCHAR(STRING)
 -------------------------------------------
@@ -296,7 +296,7 @@ Name                 : TYPE_2
  Field         | Type
 -------------------------------------------
  ROWTIME       | BIGINT           (system)
- ROWKEY        | VARCHAR(STRING)  (system)
+ ROWKEY        | VARCHAR(STRING)  (key)
  DATA__field-a | INTEGER
  DATA__field-c | INTEGER
  DATA__field-d | VARCHAR(STRING)

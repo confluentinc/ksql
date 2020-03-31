@@ -55,12 +55,12 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
     this.securityContext = requireNonNull(securityContext, "securityContext");
   }
 
+
   @Override
-  public RestResponse<KsqlEntityList> makeKsqlRequestWithRequestProperties(
-      final URI serverEndPoint,
+  public RestResponse<KsqlEntityList> makeKsqlRequest(
+      final URI serverEndpoint,
       final String sql,
-      final Map<String, ?> requestProperties
-  ) {
+      final Map<String, ?> requestProperties) {
     final KsqlRequest request = new KsqlRequest(
         sql, Collections.emptyMap(), requestProperties, null);
 
@@ -73,14 +73,6 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
     }
 
     return RestResponse.successful(statusCode, (KsqlEntityList) response.getEntity());
-  }
-
-  @Override
-  public RestResponse<KsqlEntityList> makeKsqlRequest(
-      final URI serverEndpoint,
-      final String sql
-  ) {
-    return makeKsqlRequestWithRequestProperties(serverEndpoint, sql, Collections.emptyMap());
   }
 
   @Override

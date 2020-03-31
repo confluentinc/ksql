@@ -44,6 +44,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.Optional;
 
+import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,13 +56,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ExplainExecutorTest {
 
+  private static final KafkaStreams.State STATE = KafkaStreams.State.RUNNING;
   private static final KsqlHostInfo LOCAL_HOST = new KsqlHostInfo("host", 8080);
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
   @Mock
-  SessionProperties sessionProperties;
+  private SessionProperties sessionProperties;
 
   @Before
   public void setup() {
@@ -89,7 +91,7 @@ public class ExplainExecutorTest {
     assertThat(
         query.getQueryDescription(),
         equalTo(QueryDescriptionFactory.forQueryMetadata(
-            metadata, Collections.singletonMap(new KsqlHostInfoEntity(LOCAL_HOST), "Running"))));
+            metadata, Collections.singletonMap(new KsqlHostInfoEntity(LOCAL_HOST), STATE.toString()))));
   }
 
   @Test
@@ -111,6 +113,7 @@ public class ExplainExecutorTest {
     assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
     assertThat(query.getQueryDescription().getSources(), containsInAnyOrder("Y"));
     assertThat("No side effects should happen", engine.getEngine().getPersistentQueries(), is(empty()));
+    assertThat(query.getQueryDescription().getKsqlHostQueryState(), equalTo(Collections.emptyMap()));
   }
 
   @Test
@@ -131,6 +134,7 @@ public class ExplainExecutorTest {
     // Then:
     assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
     assertThat(query.getQueryDescription().getSources(), containsInAnyOrder("Y"));
+    assertThat(query.getQueryDescription().getKsqlHostQueryState(), equalTo(Collections.emptyMap()));
   }
 
   @Test
@@ -174,7 +178,7 @@ public class ExplainExecutorTest {
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
-    when(metadata.getState()).thenReturn("Running");
+    when(metadata.getState()).thenReturn(STATE.toString());
     when(metadata.getTopologyDescription()).thenReturn("topology");
     when(metadata.getExecutionPlan()).thenReturn("plan");
     when(metadata.getStatementString()).thenReturn("sql");

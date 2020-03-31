@@ -30,7 +30,7 @@ public class RunningQuery {
   private final Set<String> sinks;
   private final Set<String> sinkKafkaTopics;
   private final QueryId id;
-  private final KafkaStreamsStateCount state;
+  private final QueryStateCount state;
 
   @JsonCreator
   public RunningQuery(
@@ -38,7 +38,7 @@ public class RunningQuery {
       @JsonProperty("sinks") final Set<String> sinks,
       @JsonProperty("sinkKafkaTopics") final Set<String> sinkKafkaTopics,
       @JsonProperty("id") final QueryId id,
-      @JsonProperty("state") final KafkaStreamsStateCount state
+      @JsonProperty("state") final QueryStateCount state
   ) {
     this.queryString = Objects.requireNonNull(queryString, "queryString");
     this.sinkKafkaTopics = Objects.requireNonNull(sinkKafkaTopics, "sinkKafkaTopics");
@@ -68,7 +68,7 @@ public class RunningQuery {
     return id;
   }
 
-  public KafkaStreamsStateCount getState() {
+  public QueryStateCount getState() {
     return state;
   }
 

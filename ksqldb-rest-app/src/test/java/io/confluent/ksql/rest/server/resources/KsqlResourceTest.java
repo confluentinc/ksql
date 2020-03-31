@@ -97,7 +97,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.KafkaStreamsStateCount;
+import io.confluent.ksql.rest.entity.QueryStateCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -150,6 +150,7 @@ import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -257,7 +258,10 @@ public class KsqlResourceTest {
       .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
       .build();
 
-  private static final String APPLICATION_SERVER = "http://localhost:9099";
+  private static final String APPLICATION_HOST = "localhost";
+  private static final int APPLICATION_PORT = 9099;
+  private static final String APPLICATION_SERVER = "http://" + APPLICATION_HOST + ":" + APPLICATION_PORT;
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -544,14 +548,8 @@ public class KsqlResourceTest {
     final QueryDescriptionList descriptionList = makeSingleRequest(
         "SHOW QUERIES EXTENDED;", QueryDescriptionList.class);
 
-    final HostInfo hostInfo = ServerUtil.parseHostInfo(APPLICATION_SERVER);
-    final HashMap<KsqlHostInfoEntity, String> queryHostState = 
-        new HashMap<KsqlHostInfoEntity, String>(){{ 
-          put(
-              new KsqlHostInfoEntity(hostInfo.host(), hostInfo.port()),
-              "CREATED"
-          );
-    }};
+    final Map<KsqlHostInfoEntity, String> queryHostState =
+        ImmutableMap.of(new KsqlHostInfoEntity(APPLICATION_HOST, APPLICATION_PORT), "CREATED");
     // Then:
     assertThat(descriptionList.getQueryDescriptions(), containsInAnyOrder(
         QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0), queryHostState),
@@ -1995,14 +1993,14 @@ public class KsqlResourceTest {
     return createQueries(sql, overriddenProperties)
         .stream()
         .map(md -> {
-          final KafkaStreamsStateCount kafkaStreamsStateCount = new KafkaStreamsStateCount();
-          kafkaStreamsStateCount.updateStateCount(md.getState(), 1);
+          final QueryStateCount queryStateCount = new QueryStateCount();
+          queryStateCount.updateStateCount(md.getState(), 1);
           return new RunningQuery(
             md.getStatementString(),
             ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
-            kafkaStreamsStateCount
+                  queryStateCount
           );
         }).collect(Collectors.toList());
   }

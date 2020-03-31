@@ -69,20 +69,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @Override
   public RestResponse<KsqlEntityList> makeKsqlRequest(
       final URI serverEndPoint,
-      final String sql
-  ) {
-    final KsqlTarget target = sharedClient
-        .target(serverEndPoint);
-
-    return getTarget(target, authHeader).postKsqlRequest(sql, Optional.empty());
-  }
-
-  @Override
-  public RestResponse<KsqlEntityList> makeKsqlRequestWithRequestProperties(
-      final URI serverEndPoint,
       final String sql,
-      final Map<String, ?> requestProperties
-  ) {
+      final Map<String, ?> requestProperties) {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 

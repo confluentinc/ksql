@@ -15,10 +15,8 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
@@ -33,11 +31,13 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.util.PageViewDataProvider;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.BeforeClass;
@@ -59,15 +59,11 @@ public class ShowQueriesMultiNodeFunctionalTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
-      .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
-      .withProperties(ClientTrustStore.trustStoreProps())
       .build();
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
-      .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
-      .withProperties(ClientTrustStore.trustStoreProps())
       .build();
 
   @ClassRule
@@ -78,7 +74,7 @@ public class ShowQueriesMultiNodeFunctionalTest {
       .around(REST_APP_1);
 
   @BeforeClass
-  public static void setUpClass() throws InterruptedException {
+  public static void setUpClass() {
     TEST_HARNESS.ensureTopics(2, PAGE_VIEW_TOPIC);
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
@@ -86,46 +82,79 @@ public class ShowQueriesMultiNodeFunctionalTest {
         REST_APP_0,
         "CREATE STREAM S AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
     );
-    waitForClusterToBeDiscovered(REST_APP_0, 2);
   }
 
   @Test
   public void shouldShowAllQueries() {
-    final List<KsqlEntity> allEntities0 = RestIntegrationTestUtil.makeKsqlRequest(
-        REST_APP_0,
+    // When:
+    final Supplier<String> app0Response = () -> getShowQueriesResult(REST_APP_0);
+    final Supplier<String> app1Response = () -> getShowQueriesResult(REST_APP_1);
+
+    // Then:
+    assertThatEventually("App0", app0Response, is("RUNNING:2"));
+    assertThatEventually("App1", app1Response, is("RUNNING:2"));
+  }
+
+  private static String getShowQueriesResult(final TestKsqlRestApp restApp) {
+    final List<KsqlEntity> results = RestIntegrationTestUtil.makeKsqlRequest(
+        restApp,
         "Show Queries;"
     );
 
-    final List<RunningQuery> allRunningQueries0 = ((Queries) allEntities0.get(0)).getQueries();
-    assertThat(allRunningQueries0.size(), equalTo(1));
-    assertThat(allRunningQueries0.get(0).getState().toString(), is("RUNNING:2"));
+    if (results.size() != 1) {
+      return "Expected 1 response, got " + results.size();
+    }
 
-    final List<KsqlEntity> allEntities1 = RestIntegrationTestUtil.makeKsqlRequest(
-        REST_APP_1,
-        "Show Queries;"
-    );
+    final KsqlEntity result = results.get(0);
 
-    final List<RunningQuery> allRunningQueries1 = ((Queries) allEntities1.get(0)).getQueries();
-    assertThat(allRunningQueries1.size(), equalTo(1));
-    assertThat(allRunningQueries0.get(0).getState().toString(), is("RUNNING:2"));
+    if (!(result instanceof Queries)) {
+      return "Expected Queries, got " + result;
+    }
+
+    final List<RunningQuery> runningQueries = ((Queries) result)
+        .getQueries();
+
+    if (runningQueries.size() != 1) {
+      return "Expected 1 running query, got " + runningQueries.size();
+    }
+
+    return runningQueries.get(0).getState().toString();
   }
 
   @Test
   public void shouldShowAllQueriesExtended() {
-    final List<KsqlEntity> clusterEntities0 = RestIntegrationTestUtil.makeKsqlRequest(
-        REST_APP_0,
-        "Show Queries Extended;");
+    // When:
+    final Supplier<Set<KsqlHostInfoEntity>> app0Response = () -> getShowQueriesExtendedResult(REST_APP_0);
+    final Supplier<Set<KsqlHostInfoEntity>> app1Response = () -> getShowQueriesExtendedResult(REST_APP_1);
 
-    final List<QueryDescription> clusterQueryDescriptions0 = ((QueryDescriptionList) clusterEntities0.get(0)).getQueryDescriptions();
-    assertThat(clusterQueryDescriptions0.size(), equalTo(1));
-    assertThat(clusterQueryDescriptions0.get(0).getKsqlHostQueryState().keySet(), containsInAnyOrder(host0, host1));
+    // Then:
+    assertThatEventually("App0", app0Response, containsInAnyOrder(host0, host1));
+    assertThatEventually("App1", app1Response, containsInAnyOrder(host0, host1));
+  }
 
-    final List<KsqlEntity> clusterEntities1 = RestIntegrationTestUtil.makeKsqlRequest(
-        REST_APP_0,
-        "Show Queries Extended;");
+  private static Set<KsqlHostInfoEntity> getShowQueriesExtendedResult(final TestKsqlRestApp restApp) {
+    final List<KsqlEntity> results = RestIntegrationTestUtil.makeKsqlRequest(
+        restApp,
+        "Show Queries Extended;"
+    );
 
-    final List<QueryDescription> clusterQueryDescriptions1 = ((QueryDescriptionList) clusterEntities1.get(0)).getQueryDescriptions();
-    assertThat(clusterQueryDescriptions1.size(), equalTo(1));
-    assertThat(clusterQueryDescriptions0.get(0).getKsqlHostQueryState().keySet(), containsInAnyOrder(host0, host1));
+    if (results.size() != 1) {
+      return Collections.emptySet();
+    }
+
+    final KsqlEntity result = results.get(0);
+
+    if (!(result instanceof QueryDescriptionList)) {
+      return Collections.emptySet();
+    }
+
+    final List<QueryDescription> queryDescriptions = ((QueryDescriptionList) result)
+        .getQueryDescriptions();
+
+    if (queryDescriptions.size() != 1) {
+      return Collections.emptySet();
+    }
+    
+    return queryDescriptions.get(0).getKsqlHostQueryState().keySet();
   }
 }

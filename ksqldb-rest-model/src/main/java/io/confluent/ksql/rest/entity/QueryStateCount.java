@@ -18,11 +18,13 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
-import io.confluent.ksql.util.KsqlException;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.streams.KafkaStreams;
 
@@ -31,41 +33,27 @@ import org.apache.kafka.streams.KafkaStreams;
  * across multiple servers. Used in {@link RunningQuery}.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class KafkaStreamsStateCount {
+public class QueryStateCount {
   
   // Use a EnumMap so toString() will always return the same string
   private final EnumMap<KafkaStreams.State, Integer> state;
 
-  public KafkaStreamsStateCount() {
+  public QueryStateCount() {
     this.state = returnEnumMap();
   }
 
   @JsonCreator
-  public KafkaStreamsStateCount(final String serializedPair) {
-    final String [] parts = serializedPair.split(",");
-    final EnumMap<KafkaStreams.State, Integer> deserializedKafkaStreamsStateCount = returnEnumMap();
-    for (String stateCount : parts) {
-      final String[] split = stateCount.split(":");
-      if (split.length != 2) {
-        throw new KsqlException(
-            "Invalid state count info. Expected format: <KafkaStreams.State>:<count>, but was "
-                + serializedPair);
-      }
-
-      final String currentState = split[0].trim();
-
-      try {
-        final int count = Integer.parseInt(split[1]);
-        deserializedKafkaStreamsStateCount.put(
-            KafkaStreams.State.valueOf(currentState), count);
-      } catch (final Exception e) {
-        throw new KsqlException(
-            "Invalid count. Expected format: <KafkaStreams.State>:<count>, but was "
-                + serializedPair, e);
-      }
-    }
-
-    this.state = deserializedKafkaStreamsStateCount;
+  public QueryStateCount(final String serializedPair) {
+    final Map<String, String> pairs =
+        Splitter.on(",").withKeyValueSeparator(":").split(serializedPair);
+    this.state = pairs.entrySet().stream().collect(
+        Collectors.toMap(
+            e -> KafkaStreams.State.valueOf(e.getKey().trim()),
+            e -> Integer.parseInt(e.getValue()),
+            (k1, k2) -> {
+              throw new IllegalArgumentException("Duplicate key " + k2);
+            },
+            () -> new EnumMap<>(KafkaStreams.State.class)));
   }
 
   public void updateStateCount(final String state, final int change) {
@@ -92,24 +80,19 @@ public class KafkaStreamsStateCount {
       return false;
     }
 
-    final KafkaStreamsStateCount that = (KafkaStreamsStateCount) o;
+    final QueryStateCount that = (QueryStateCount) o;
     return Objects.equals(state, that.state);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(state, state);
+    return Objects.hash(state);
   }
 
   @JsonValue
   @Override
   public String toString() {
-    final StringBuilder output = new StringBuilder();
-    this.state.forEach((kafkaStreamsState, count) -> {
-      output.append(kafkaStreamsState.toString()).append(":").append(count).append(", ");
-    });
-    output.delete(output.length() - 2, output.length());
-    return output.toString();
+    return Joiner.on(",").withKeyValueSeparator(":").join(this.state);
   }
   
   private static EnumMap<KafkaStreams.State, Integer> returnEnumMap() {

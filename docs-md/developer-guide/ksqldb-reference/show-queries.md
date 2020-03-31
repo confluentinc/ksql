@@ -26,5 +26,68 @@ Description
 Example
 -------
 
-TODO: example
+```sql
+ksql> show queries;
 
+ Query ID    | Status    | Sink Name | Sink Kafka Topic | Query String                                                                                                                                
+------------------------------------------------------------------------------------------------------------
+ CSAS_TEST_0 | RUNNING:2 | TEST      | TEST             | CREATE STREAM TEST WITH (KAFKA_TOPIC='TEST', PARTITIONS=1, REPLICAS=1) AS SELECT *FROM KSQL_PROCESSING_LOG KSQL_PROCESSING_LOG EMIT CHANGES; 
+------------------------------------------------------------------------------------------------------------
+For detailed information on a Query run: EXPLAIN <Query ID>;
+```
+
+
+```sql
+ksql> show queries extended;
+
+ID                   : CSAS_TEST_0
+SQL                  : CREATE STREAM TEST WITH (KAFKA_TOPIC='TEST', PARTITIONS=1, REPLICAS=1) AS SELECT *
+FROM KSQL_PROCESSING_LOG KSQL_PROCESSING_LOG
+EMIT CHANGES;
+Status               : RUNNING
+Host Query Status    : {192.168.1.6:8088=RUNNING, 192.168.1.6:8089=RUNNING}
+
+ Field   | Type                                                                                                                                                                                                                                                                                                                                    
+-------------------------------------------------------------------------------------
+ ROWTIME | BIGINT           (system)                                                                                                                                                                                                                                                                                                               
+ ROWKEY  | VARCHAR(STRING)  (key)                                                                                                                                                                                                                                                                                                                  
+ LOGGER  | VARCHAR(STRING)                                                                                                                                                                                                                                                                                                                         
+ LEVEL   | VARCHAR(STRING)                                                                                                                                                                                                                                                                                                                         
+ TIME    | BIGINT                                                                                                                                                                                                                                                                                                                                  
+ MESSAGE | STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE VARCHAR(STRING), RECORDB64 VARCHAR(STRING), CAUSE ARRAY<VARCHAR(STRING)>, topic VARCHAR(STRING)>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE VARCHAR(STRING), RECORD VARCHAR(STRING), CAUSE ARRAY<VARCHAR(STRING)>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE VARCHAR(STRING)>> 
+-------------------------------------------------------------------------------------
+
+Sources that this query reads from: 
+-----------------------------------
+KSQL_PROCESSING_LOG
+
+For source description please run: DESCRIBE [EXTENDED] <SourceId>
+
+Sinks that this query writes to: 
+-----------------------------------
+TEST
+
+For sink description please run: DESCRIBE [EXTENDED] <SinkId>
+
+Execution plan      
+--------------      
+ > [ SINK ] | Schema: ROWKEY STRING KEY, LOGGER STRING, LEVEL STRING, TIME BIGINT, MESSAGE STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE STRING, RECORDB64 STRING, CAUSE ARRAY<STRING>, `topic` STRING>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE STRING, RECORD STRING, CAUSE ARRAY<STRING>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE STRING>> | Logger: CSAS_TEST_0.TEST
+                 > [ PROJECT ] | Schema: ROWKEY STRING KEY, LOGGER STRING, LEVEL STRING, TIME BIGINT, MESSAGE STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE STRING, RECORDB64 STRING, CAUSE ARRAY<STRING>, `topic` STRING>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE STRING, RECORD STRING, CAUSE ARRAY<STRING>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE STRING>> | Logger: CSAS_TEST_0.Project
+                                 > [ SOURCE ] | Schema: ROWKEY STRING KEY, LOGGER STRING, LEVEL STRING, TIME BIGINT, MESSAGE STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE STRING, RECORDB64 STRING, CAUSE ARRAY<STRING>, `topic` STRING>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE STRING, RECORD STRING, CAUSE ARRAY<STRING>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE STRING>>, ROWTIME BIGINT, ROWKEY STRING | Logger: CSAS_TEST_0.KsqlTopic.Source
+
+
+Processing topology 
+------------------- 
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [default_ksql_processing_log])
+      --> KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> Project
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000003
+      <-- KSTREAM-TRANSFORMVALUES-0000000001
+    Sink: KSTREAM-SINK-0000000003 (topic: TEST)
+      <-- Project
+```

@@ -78,7 +78,7 @@ public final class ExplainExecutor {
       final QueryDescription queryDescription = queryId
           .map(s -> explainQuery(s, executionContext, sessionProperties))
           .orElseGet(() -> explainStatement(
-              statement, executionContext, serviceContext, sessionProperties));
+              statement, executionContext, serviceContext));
 
       return new QueryDescriptionEntity(statement.getStatementText(), queryDescription);
     } catch (final KsqlException e) {
@@ -89,8 +89,7 @@ public final class ExplainExecutor {
   private static QueryDescription explainStatement(
       final ConfiguredStatement<Explain> explain,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final SessionProperties sessionProperties
+      final ServiceContext serviceContext
   ) {
     final Statement statement = explain.getStatement()
         .getStatement()
@@ -127,9 +126,7 @@ public final class ExplainExecutor {
 
     return QueryDescriptionFactory.forQueryMetadata(
         metadata,
-        Collections.singletonMap(
-            new KsqlHostInfoEntity(sessionProperties.getKsqlHostInfo()),
-            metadata.getState()));
+        Collections.emptyMap());
   }
 
   private static QueryDescription explainQuery(

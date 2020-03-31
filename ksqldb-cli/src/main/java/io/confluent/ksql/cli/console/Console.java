@@ -532,7 +532,7 @@ public class Console implements Closeable {
       ));
       for (final RunningQuery writeQuery : queries) {
         writer().println(writeQuery.getId().getId()
-            + " (" + writeQuery.getState().toString()
+            + " (" + writeQuery.getState()
             + ") : " + writeQuery.getQuerySingleLine());
       }
       writer().println("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");

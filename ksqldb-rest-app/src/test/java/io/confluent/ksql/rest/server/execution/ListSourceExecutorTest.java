@@ -39,7 +39,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KafkaStreamsStateCount;
+import io.confluent.ksql.rest.entity.QueryStateCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -58,7 +58,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -252,8 +251,8 @@ public class ListSourceExecutorTest {
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    final KafkaStreamsStateCount kafkaStreamsStateCount = new KafkaStreamsStateCount();
-    kafkaStreamsStateCount.updateStateCount(metadata.getState(), 1);
+    final QueryStateCount queryStateCount = new QueryStateCount();
+    queryStateCount.updateStateCount(metadata.getState(), 1);
 
     assertThat(sourceDescription.getSourceDescription(),
         equalTo(SourceDescriptionFactory.create(
@@ -265,7 +264,7 @@ public class ListSourceExecutorTest {
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
                 ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
                 metadata.getQueryId(),
-                kafkaStreamsStateCount
+                    queryStateCount
             )),
             Optional.empty())));
   }

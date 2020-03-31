@@ -1026,8 +1026,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
             ProcessingLogServerUtils.processingLogStreamCreateStatement(
                 processingLogConfig,
                 ksqlConfig
-            )
-        );
+            ),
+            ImmutableMap.of());
 
         if (response.isSuccessful()) {
           log.info("Successfully created processing log stream.");
@@ -1046,8 +1046,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   ) {
     final RestResponse<KsqlEntityList> listStreamsResponse = internalClient.makeKsqlRequest(
         serverEndpoint,
-        "list streams;"
-    );
+        "list streams;",
+            ImmutableMap.of());
 
     final List<SourceInfo.Stream> streams =
         ((StreamsList) listStreamsResponse.getResponse().get(0)).getStreams();

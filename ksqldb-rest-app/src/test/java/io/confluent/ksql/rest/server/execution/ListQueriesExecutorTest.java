@@ -29,7 +29,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KafkaStreamsStateCount;
+import io.confluent.ksql.rest.entity.QueryStateCount;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
@@ -44,7 +44,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
@@ -63,15 +62,16 @@ public class ListQueriesExecutorTest {
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
 
   @Mock
-  SessionProperties sessionProperties;
-
-  KafkaStreamsStateCount kafkaStreamsStateCount;
+  private SessionProperties sessionProperties;
+  
+  private QueryStateCount queryStateCount;
 
   @Before
   public void setup() {
+    // set to true so the tests don't perform the scatter gather by default
     when(sessionProperties.getInternalRequest()).thenReturn(true);
     when(sessionProperties.getKsqlHostInfo()).thenReturn(LOCAL_HOST.toKsqlHost());
-    kafkaStreamsStateCount = new KafkaStreamsStateCount();
+    queryStateCount = new QueryStateCount();
   }
 
   @Test
@@ -95,7 +95,7 @@ public class ListQueriesExecutorTest {
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
-    kafkaStreamsStateCount.updateStateCount(QUERY_STATE, 1);
+    queryStateCount.updateStateCount(QUERY_STATE, 1);
 
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
@@ -111,7 +111,7 @@ public class ListQueriesExecutorTest {
             ImmutableSet.of(metadata.getSinkName().text()),
             ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
             metadata.getQueryId(),
-            kafkaStreamsStateCount
+                queryStateCount
         )));
   }
 

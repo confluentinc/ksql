@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.entity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,62 +25,72 @@ import org.junit.Test;
 import java.util.Map;
 
 @SuppressWarnings("SameParameterValue")
-public class KafkaStreamsStateCountTest {
+public class QueryStateCountTest {
 
-  KafkaStreamsStateCount kafkaStreamsStateCount;
+  QueryStateCount queryStateCount;
   
   @Before
   public void setup() {
-    kafkaStreamsStateCount = new KafkaStreamsStateCount();
+    queryStateCount = new QueryStateCount();
   }
 
   @Test
   public void shouldUpdateExistingStateCount() {
-    kafkaStreamsStateCount.updateStateCount(KafkaStreams.State.RUNNING, 2);
+    queryStateCount.updateStateCount(KafkaStreams.State.RUNNING, 2);
     assertThat(
-        kafkaStreamsStateCount.getState().get(KafkaStreams.State.RUNNING),
+        queryStateCount.getState().get(KafkaStreams.State.RUNNING),
         is(2));
-    kafkaStreamsStateCount.updateStateCount(KafkaStreams.State.RUNNING, 4);
+    queryStateCount.updateStateCount(KafkaStreams.State.RUNNING, 4);
     assertThat(
-        kafkaStreamsStateCount.getState().get(KafkaStreams.State.RUNNING),
+        queryStateCount.getState().get(KafkaStreams.State.RUNNING),
         is(6));
   }
 
   @Test
   public void shouldToString() {
-    kafkaStreamsStateCount.updateStateCount(KafkaStreams.State.RUNNING, 2);
+    queryStateCount.updateStateCount(KafkaStreams.State.RUNNING, 2);
     assertThat(
-        kafkaStreamsStateCount.toString(),
+        queryStateCount.toString(),
         is("RUNNING:2"));
-    kafkaStreamsStateCount.updateStateCount(KafkaStreams.State.NOT_RUNNING, 1);
+    queryStateCount.updateStateCount(KafkaStreams.State.NOT_RUNNING, 1);
     assertThat(
-        kafkaStreamsStateCount.toString(),
-        is("RUNNING:2, NOT_RUNNING:1"));
+        queryStateCount.toString(),
+        is("RUNNING:2,NOT_RUNNING:1"));
   }
 
   @Test
   public void shouldConvertStringToKafkaStreamsStateCount() {
+    // Given:
     final String testString = "REBALANCING:4, ERROR:1,    RUNNING:2";
-    kafkaStreamsStateCount = new KafkaStreamsStateCount(testString);
-    final Map<KafkaStreams.State, Integer> state = kafkaStreamsStateCount.getState();
+    
+    // When:
+    queryStateCount = new QueryStateCount(testString);
+    
+    // Then:
+    final Map<KafkaStreams.State, Integer> state = queryStateCount.getState();
     assertThat(state.get(KafkaStreams.State.REBALANCING), is(4));
     assertThat(state.get(KafkaStreams.State.ERROR), is(1));
     assertThat(state.get(KafkaStreams.State.RUNNING), is(2));
-    assertThat(kafkaStreamsStateCount.toString(), is("REBALANCING:4, RUNNING:2, ERROR:1"));
+    assertThat(queryStateCount.toString(), is("REBALANCING:4,RUNNING:2,ERROR:1"));
   }
 
-  @Test(expected = KsqlException.class)
+  @Test(expected = Exception.class)
   public void shouldThrowExceptionIfInvalidFormat() {
-    kafkaStreamsStateCount = new KafkaStreamsStateCount("RUNNING:2:2");
+    queryStateCount = new QueryStateCount("RUNNING:2:2");
   }
 
-  @Test(expected = KsqlException.class)
+  @Test(expected = Exception.class)
   public void shouldThrowExceptionIfInvalidCount() {
-    kafkaStreamsStateCount = new KafkaStreamsStateCount("RUNNING:q");
+    queryStateCount = new QueryStateCount("RUNNING:q");
   }
 
-  @Test(expected = KsqlException.class)
+  @Test(expected = Exception.class)
   public void shouldThrowExceptionIfInvalidState() {
-    kafkaStreamsStateCount = new KafkaStreamsStateCount("other state:2");
+    queryStateCount = new QueryStateCount("other state:2");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIllegalArgumentExceptionIfDuplicateState() {
+    queryStateCount = new QueryStateCount("RUNNING:4,RUNNING:2,");
   }
 }

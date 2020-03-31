@@ -447,7 +447,7 @@ Confluent Cloud Settings
 ------------------------
 
 You can connect ksqlDB Server to {{ site.ccloud }}. For more information,
-see [Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html).
+see [Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html).
 
 ksqlDB Server Log Settings
 --------------------------

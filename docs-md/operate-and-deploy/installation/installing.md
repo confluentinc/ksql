@@ -375,7 +375,7 @@ Next steps
 
 You can use ksqlDB with a {{ site.ak }} cluster hosted in {{ site.ccloud }}.
 For more information, see
-[Connect ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html).
+[Connect ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html).
 
 ### Experiment with other stacks
 

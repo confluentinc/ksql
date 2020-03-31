@@ -221,7 +221,7 @@ Configure ksqlDB for Confluent Cloud
 
 You can use ksqlDB with a {{ site.ak }} cluster in {{ site.ccloud }}. For more
 information, see
-[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html).
+[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html).
 
 Configure ksqlDB for Confluent Control Center
 -------------------------------------------

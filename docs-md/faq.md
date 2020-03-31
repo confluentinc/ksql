@@ -220,7 +220,7 @@ Will ksqlDB work with Confluent Cloud?
 
 Yes. Running ksqlDB against a {{ site.ak }} cluster running in the cloud
 is pretty straightforward. For more information, see
-[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html).
+[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html).
 
 Will ksqlDB work with a Kafka cluster secured using Kafka ACLs?
 ---------------------------------------------------------------

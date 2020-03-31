@@ -26,7 +26,7 @@ public final class NoopProcessingLogContext implements ProcessingLogContext {
 
   private static final ProcessingLogConfig NOOP_CONFIG = new ProcessingLogConfig(ImmutableMap.of());
 
-  private static final ProcessingLogger NOOP_LOGGER = msgFactory -> { };
+  public static final ProcessingLogger NOOP_LOGGER = msgFactory -> { };
 
   private static final ProcessingLoggerFactory NOOP_FACTORY = new ProcessingLoggerFactory() {
     @Override

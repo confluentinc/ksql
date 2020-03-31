@@ -45,6 +45,28 @@ public final class ServerUtils {
     return PojoCodec.deserialiseObject(buffer, new HttpResponseErrorHandler(routingContext), clazz);
   }
 
+  /*
+  Converts a list of patterns that can include asterisk (E.g. "/ws/*,/foo,/bar/wibble")
+  wildcard to a regex pattern
+  */
+  public static String convertCommaSeparatedWilcardsToRegex(final String csv) {
+    final String[] parts = csv.split(",");
+    final StringBuilder out = new StringBuilder();
+    for (int i = 0; i < parts.length; i++) {
+      String part = parts[i].trim();
+      part = part.replace(".", "\\.")
+          .replace("+", "\\+")
+          .replace("?", "\\?")
+          .replace("-", "\\-")
+          .replace("*", ".*");
+      out.append(part);
+      if (i != parts.length - 1) {
+        out.append('|');
+      }
+    }
+    return out.toString();
+  }
+
   private static class HttpResponseErrorHandler implements PojoDeserializerErrorHandler {
 
     private final RoutingContext routingContext;

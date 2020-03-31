@@ -28,7 +28,7 @@ In this tutorial, we'll show you how to create and query a set of materialized v
 To get started, we'll need to download the Debezium connector to a fresh directory. You can either get that using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html), or by running the following one-off Docker command that wraps it:
 
 ```
-docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.8.0 confluent-hub install --no-prompt debezium/debezium-connector-mysql:1.0.0
+docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.8.0 confluent-hub install --no-prompt debezium/debezium-connector-mysql:1.1.0
 ```
 
 After running this, you should have a folder named `confluent-hub-components` with some jar files in it.

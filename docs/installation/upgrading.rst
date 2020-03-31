@@ -1,13 +1,23 @@
 .. _upgrading-ksql:
 
-Upgrading KSQL
-==============
+Upgrading ksqlDB
+================
 
-Upgrade one KSQL server at a time (i.e. rolling restart). The remaining KSQL servers should have sufficient spare
-capacity to take over temporarily for unavailable, restarting servers.
+Upgrade one server at a time in a "rolling restart". The remaining servers
+should have sufficient spare capacity to take over temporarily for unavailable,
+restarting servers.
+
+For general guidance on upgrading, see
+[Upgrade ksqlDB](https://docs.ksqldb.io/en/latest/operate-and-deploy/installation/upgrading/).
 
 Upgrading to ksqlDB 5.5 from KSQL 5.4
 -------------------------------------
+
+.. important::
+
+   The upgrade from KSQL 5.4 to ksqlDB 5.5 is not a rolling restart. You must
+   shut down all KSQL instances and then start up all ksqlDB instances, so there
+   will be downtime.
 
 #. Prepare a list of SQL statements for migration. One way is to dump the command
    topic.
@@ -26,11 +36,11 @@ Upgrading to ksqlDB 5.5 from KSQL 5.4
 
 #. Stop the ``ksql`` service.
 
-#. Uninstall the v5.4 ksql rpm package.
+#. Uninstall the ksql 5.4 DEB or RPM package.
 
-#. Install the v5.5 ksqldb rpm package.
+#. Install the ksqldb 5.5 DEB or RPM package.
 
-#. Copy the v5.4 configuration file to the v5.5 ksqldb configuration
+#. Copy the version 5.4 configuration file to the ksqldb 5.5 configuration
    folder, which is located at ``${CONFLUENT_HOME}/etc/ksqldb``:
 
    ```bash
@@ -40,10 +50,12 @@ Upgrading to ksqlDB 5.5 from KSQL 5.4
 #. Change the ``ksql.service.id`` in the property file, for example, from
    ``default_`` to ``ksqldb_``.
 
-#. Create role bindings for the ``ksql`` service principal. For more information,
-   see :ref:`ksql-rbac`.
+#. Set up security for your ksqlDB app. ksqlDB supports using
+   :ref:`role-based access control (RBAC) <ksql-rbac>`,
+   :ref:`ACLs <config-security-ksql-acl>`, and no authorization.
 
-#. Create three new role bindings:
+#. Create three new role bindings or assign ACLs for the ``ksql`` service
+   principal:
 
    - Topic: ``__consumer_offsets``
    - Topic: ``__transaction_state``

@@ -19,11 +19,9 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
-import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.NotRunningException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StoreQueryParameters;
@@ -38,30 +36,18 @@ class KsStateStore {
   private final KafkaStreams kafkaStreams;
   private final LogicalSchema schema;
   private final KsqlConfig ksqlConfig;
-  private final Supplier<Long> clock;
-
-  KsStateStore(
-      final String stateStoreName,
-      final KafkaStreams kafkaStreams,
-      final LogicalSchema schema,
-      final KsqlConfig ksqlConfig
-  ) {
-    this(stateStoreName, kafkaStreams, schema, ksqlConfig, System::currentTimeMillis);
-  }
 
   @VisibleForTesting
   KsStateStore(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
       final LogicalSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<Long> clock
+      final KsqlConfig ksqlConfig
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.schema = requireNonNull(schema, "schema");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
-    this.clock = requireNonNull(clock, "clock");
   }
 
   LogicalSchema schema() {
@@ -69,8 +55,6 @@ class KsStateStore {
   }
 
   <T> T store(final QueryableStoreType<T> queryableStoreType) {
-    awaitRunning();
-
     try {
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
         // True flag allows queries on standby and replica state stores
@@ -89,21 +73,6 @@ class KsStateStore {
       }
 
       throw new MaterializationException("State store currently unavailable: " + stateStoreName, e);
-    }
-  }
-
-  private void awaitRunning() {
-    final long timeoutMs =
-        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG);
-    final long threshold = clock.get() + timeoutMs;
-    while (kafkaStreams.state() == State.REBALANCING) {
-      if (clock.get() > threshold) {
-        throw new MaterializationTimeOutException("Store failed to rebalance within the configured "
-            + "timeout. timeout: " + timeoutMs + "ms, config: "
-            + KsqlConfig.KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG);
-      }
-
-      Thread.yield();
     }
   }
 }

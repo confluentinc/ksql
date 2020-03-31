@@ -11,6 +11,6 @@ Installation and Configuration
     check-ksql-server-health
     server-config/index
     cli-config
-    ../../../cloud/connect/ksql-cloud-config
+    ../../../cloud/cp-component/ksql-cloud-config
     upgrading
     cloud-ksql-migration-guide

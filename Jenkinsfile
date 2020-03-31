@@ -1,7 +1,7 @@
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
-    ksql_db_version = "0.9.0-SNAPSHOT"
+    ksql_db_version = "0.9.0"  // next version to be released
     cp_version = "6.0.0-beta200320180305"  // must be a beta version from the packaging build
     packaging_build_number = "1"
     default_git_revision = 'refs/heads/master'
@@ -73,16 +73,12 @@ def job = {
             error("If you are doing a release build you must provide a git sha.")
         }
 
-        // For a release build we remove the -SNAPSHOT from the version.
-        config.ksql_db_version = config.ksql_db_version.tokenize("-")[0]
-
         config.ksql_db_artifact_version = config.ksql_db_version
-        config.docker_tag = config.ksql_db_version
     } else {
         // For non-release builds, we append the build number to the maven artifacts and docker image tag
-        config.ksql_db_artifact_version = config.ksql_db_version.tokenize("-")[0] + '-rc' + env.BUILD_NUMBER
-        config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-rc' + env.BUILD_NUMBER
+        config.ksql_db_artifact_version = config.ksql_db_version + '-rc' + env.BUILD_NUMBER
     }
+    config.docker_tag = config.ksql_db_artifact_version
     
     // Use revision param if provided, otherwise default to master
     config.revision = params.GIT_REVISION ?: config.default_git_revision

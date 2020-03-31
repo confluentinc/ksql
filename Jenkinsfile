@@ -80,8 +80,8 @@ def job = {
         config.docker_tag = config.ksql_db_version
     } else {
         // For non-release builds, we append the build number to the maven artifacts and docker image tag
-        config.ksql_db_artifact_version = config.ksql_db_version.tokenize("-")[0] + '-' + env.BUILD_NUMBER
-        config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-beta' + env.BUILD_NUMBER
+        config.ksql_db_artifact_version = config.ksql_db_version.tokenize("-")[0] + '-rc' + env.BUILD_NUMBER
+        config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-rc' + env.BUILD_NUMBER
     }
     
     // Use revision param if provided, otherwise default to master
@@ -326,8 +326,8 @@ def job = {
                     if (config.release) {
                         // docker_tag for release builds does not include the build number
                         // here we add it back so an image version with the build number always exists
-                        sh "docker tag ${config.dockerRegistry}${dockerRepo}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-beta${env.BUILD_NUMBER}"
-                        sh "docker push ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-beta${env.BUILD_NUMBER}"
+                        sh "docker tag ${config.dockerRegistry}${dockerRepo}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-rc${env.BUILD_NUMBER}"
+                        sh "docker push ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-rc${env.BUILD_NUMBER}"
                     }
                 }
             }

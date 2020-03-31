@@ -489,7 +489,7 @@ public class CliTest {
         "describe " + ORDER_DATA_PROVIDER.kstreamName() + ";",
         containsRows(
             row("ROWTIME", "BIGINT           (system)"),
-            row("ROWKEY", "BIGINT           (system)"),
+            row("ROWKEY", "BIGINT           (key)"),
             row("ORDERTIME", "BIGINT"),
             row("ORDERID", "VARCHAR(STRING)"),
             row("ITEMID", "VARCHAR(STRING)"),

@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
@@ -129,6 +130,7 @@ public final class PullQueryExecutor {
 
   private final KsqlExecutionContext executionContext;
   private final RoutingFilterFactory routingFilterFactory;
+  private final RateLimiter rateLimiter;
 
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
@@ -138,6 +140,8 @@ public final class PullQueryExecutor {
     this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
+    this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
+        KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED));
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -166,6 +170,11 @@ public final class PullQueryExecutor {
               + System.lineSeparator()
               + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
               + "this feature.");
+    }
+
+    if (!rateLimiter.tryAcquire()) {
+      throw new KsqlException("Host is at rate limit for pull queries. Currently set to "
+          + rateLimiter.getRate() + " qps.");
     }
 
     try {

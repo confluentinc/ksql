@@ -262,6 +262,16 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       origs.put(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
     }
 
+    final String corsAllowedOrigin = config
+        .getString(RestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG);
+    origs.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, corsAllowedOrigin);
+    final String corsAllowedHeaders = config
+        .getString(RestConfig.ACCESS_CONTROL_ALLOW_HEADERS);
+    origs.put(ApiServerConfig.CORS_ALLOWED_HEADERS, corsAllowedHeaders);
+    final String corsAllowedMethods = config
+        .getString(RestConfig.ACCESS_CONTROL_ALLOW_METHODS);
+    origs.put(ApiServerConfig.CORS_ALLOWED_METHODS, corsAllowedMethods);
+
     return new KsqlRestConfig(origs);
   }
 

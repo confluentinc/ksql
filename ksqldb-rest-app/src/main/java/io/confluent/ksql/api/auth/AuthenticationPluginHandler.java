@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.auth;
 
+import static io.confluent.ksql.api.server.ServerUtils.convertCommaSeparatedWilcardsToRegex;
+
 import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.server.KsqlApiException;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 import org.apache.http.HttpStatus;
 
 /**
@@ -40,7 +43,8 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   private final Server server;
   private final AuthenticationPlugin securityHandlerPlugin;
-  private final Set<String> unauthenticatedPaths = new HashSet<>();
+
+  private final Pattern unauthedPathsPattern;
 
   public AuthenticationPluginHandler(final Server server,
       final AuthenticationPlugin securityHandlerPlugin) {
@@ -48,17 +52,29 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     this.securityHandlerPlugin = Objects.requireNonNull(securityHandlerPlugin);
     // We add in all the paths that don't require authorization from
     // KsqlAuthorizationProviderHandler
-    unauthenticatedPaths.addAll(KsqlAuthorizationProviderHandler.PATHS_WITHOUT_AUTHORIZATION);
+    final Set<String> unauthenticatedPaths = new HashSet<>(
+        KsqlAuthorizationProviderHandler.PATHS_WITHOUT_AUTHORIZATION);
     // And then we add anything from the property authentication.skip.paths
     // This preserves the behaviour from the previous Jetty based implementation
     final List<String> unauthed = server.getConfig()
         .getList(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG);
     unauthenticatedPaths.addAll(unauthed);
+    final StringBuilder pathBuilder = new StringBuilder();
+    int i = 0;
+    for (String path : unauthenticatedPaths) {
+      pathBuilder.append(path);
+      if (i != unauthenticatedPaths.size() - 1) {
+        pathBuilder.append(',');
+      }
+      i++;
+    }
+    final String converted = convertCommaSeparatedWilcardsToRegex(pathBuilder.toString());
+    unauthedPathsPattern = Pattern.compile(converted);
   }
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    if (unauthenticatedPaths.contains(routingContext.normalisedPath())) {
+    if (unauthedPathsPattern.matcher(routingContext.normalisedPath()).matches()) {
       routingContext.next();
       return;
     }

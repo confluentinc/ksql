@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.api.server.ServerUtils.convertCommaSeparatedWilcardsToRegex;
+
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
@@ -41,7 +43,7 @@ public class KsqlCorsHandler implements Handler<RoutingContext> {
     if (allowedOrigins.trim().isEmpty()) {
       return;
     }
-    final String convertedPattern = convertAllowedOrigin(allowedOrigins);
+    final String convertedPattern = convertCommaSeparatedWilcardsToRegex(allowedOrigins);
     final CorsHandler corsHandler = CorsHandler.create(convertedPattern);
     final Set<String> allowedMethodsSet = new HashSet<>(apiServerConfig
         .getList(ApiServerConfig.CORS_ALLOWED_METHODS));
@@ -80,24 +82,6 @@ public class KsqlCorsHandler implements Handler<RoutingContext> {
       }
     }
     corsHandler.handle(routingContext);
-  }
-
-  // Convert to regex
-  private static String convertAllowedOrigin(final String allowedOrigins) {
-    final String[] parts = allowedOrigins.split(",");
-    final StringBuilder out = new StringBuilder();
-    for (int i = 0; i < parts.length; i++) {
-      String part = parts[i].trim();
-      part = part.replace(".", "\\.")
-          .replace("+", "\\+")
-          .replace("?", "\\?")
-          .replace("*", ".*");
-      out.append(part);
-      if (i != parts.length - 1) {
-        out.append('|');
-      }
-    }
-    return out.toString();
   }
 
 }

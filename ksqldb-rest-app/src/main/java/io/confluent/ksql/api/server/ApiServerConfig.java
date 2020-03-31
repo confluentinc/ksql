@@ -95,7 +95,7 @@ public class ApiServerConfig extends AbstractConfig {
   public static final String AUTHENTICATION_SKIP_PATHS_CONFIG = propertyName(
       "authentication.skip.paths");
   public static final String AUTHENTICATION_SKIP_PATHS_DOC =
-      "List of paths where authentication is not required.";
+      "Comma separated of paths where authentication is not required. Wildcards are supported.";
   public static final List<String> AUTHENTICATION_SKIP_PATHS_DEFAULT =
       Collections.unmodifiableList(Collections.emptyList());
 

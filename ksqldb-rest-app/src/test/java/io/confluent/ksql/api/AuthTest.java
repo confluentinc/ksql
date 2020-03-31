@@ -302,6 +302,14 @@ public class AuthTest extends ApiTest {
         super::shouldExecutePullQuery, false, false);
   }
 
+  @Test
+  public void shouldAllowQueryWithSecurityPluginRejectingIfInAuthedPathsWithWildcard()
+      throws Exception {
+    unauthedPaths = "/query*";
+    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
+        super::shouldExecutePullQuery, false, false);
+  }
+
   private void shouldFailQuery(final String username, final String password,
       final int expectedStatus, final String expectedMessage, final int expectedErrorCode)
       throws Exception {

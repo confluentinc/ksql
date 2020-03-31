@@ -42,7 +42,6 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
-import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
@@ -52,7 +51,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
-import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
@@ -769,16 +767,16 @@ public class StatementRewriterTest {
   @Test
   public void shouldRewriteGroupBy() {
     // Given:
-    final GroupingElement groupingElement1 = mock(GroupingElement.class);
-    final GroupingElement groupingElement2 = mock(GroupingElement.class);
-    final GroupingElement rewrittenGroupingElement1 = mock(GroupingElement.class);
-    final GroupingElement rewrittenGroupingElement2 = mock(GroupingElement.class);
+    final Expression exp1 = mock(Expression.class);
+    final Expression exp2 = mock(Expression.class);
+    final Expression rewrittenExp1 = mock(Expression.class);
+    final Expression rewrittenExp2 = mock(Expression.class);
     final GroupBy groupBy = new GroupBy(
         location,
-        ImmutableList.of(groupingElement1, groupingElement2)
+        ImmutableList.of(exp1, exp2)
     );
-    when(mockRewriter.apply(groupingElement1, context)).thenReturn(rewrittenGroupingElement1);
-    when(mockRewriter.apply(groupingElement2, context)).thenReturn(rewrittenGroupingElement2);
+    when(expressionRewriter.apply(exp1, context)).thenReturn(rewrittenExp1);
+    when(expressionRewriter.apply(exp2, context)).thenReturn(rewrittenExp2);
 
     // When:
     final AstNode rewritten = rewriter.rewrite(groupBy, context);
@@ -789,32 +787,7 @@ public class StatementRewriterTest {
         equalTo(
             new GroupBy(
                 location,
-                ImmutableList.of(rewrittenGroupingElement1, rewrittenGroupingElement2)
-            )
-        )
-    );
-  }
-
-  @Test
-  public void shouldRewriteSimpleGroupBy() {
-    // Given:
-    final Expression expression2 = mock(Expression.class);
-    final Expression rewrittenExpression2 = mock(Expression.class);
-    final SimpleGroupBy groupBy =
-        new SimpleGroupBy(location, ImmutableList.of(expression, expression2));
-    when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
-    when(expressionRewriter.apply(expression2, context)).thenReturn(rewrittenExpression2);
-
-    // When:
-    final AstNode rewritten = rewriter.rewrite(groupBy, context);
-
-    // Then:
-    assertThat(
-        rewritten,
-        equalTo(
-            new SimpleGroupBy(
-                location,
-                ImmutableList.of(rewrittenExpression, rewrittenExpression2)
+                ImmutableList.of(rewrittenExp1, rewrittenExp2)
             )
         )
     );

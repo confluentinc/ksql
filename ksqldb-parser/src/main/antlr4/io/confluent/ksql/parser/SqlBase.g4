@@ -153,25 +153,13 @@ windowUnit
     ;
 
 groupBy
-    : groupingElement (',' groupingElement)*
-    ;
-
-groupingElement
-    : groupingExpressions                                               #singleGroupingSet
-    ;
-
-groupingExpressions
-    : '(' (valueExpression (',' valueExpression)*)? ')'
-    | valueExpression
+    : valueExpression (',' valueExpression)*
+    | '(' (valueExpression (',' valueExpression)*)? ')'
     ;
 
 values
     : '(' (valueExpression (',' valueExpression)*)? ')'
     ;
-
-/*
- * Dropped `namedQuery` as we don't support them.
- */
 
 selectItem
     : expression (AS? identifier)?  #selectSingle

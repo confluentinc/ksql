@@ -176,10 +176,9 @@ def job = {
                                 set +x
 
                                 LOGIN_CMD=$(aws ecr get-login --no-include-email --region us-west-2)
-
                                 $LOGIN_CMD
-                            '''
-                            sh '''
+
+                                set -x
                                 echo $ARTIFACTORY_PASSWORD | docker login confluent-docker.jfrog.io -u $ARTIFACTORY_USERNAME --password-stdin
                             '''
                             writeFile file:'create-pip-conf-with-jfrog.sh', text:libraryResource('scripts/create-pip-conf-with-jfrog.sh')

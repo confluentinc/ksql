@@ -109,6 +109,18 @@ public class ApiServerConfig extends AbstractConfig {
   public static final String MAX_PUSH_QUERIES_DOC =
       "The maximum number of push queries allowed on the server at any one time";
 
+  public static final String CORS_ALLOWED_ORIGINS = propertyName("cors.allowed.origins");
+  public static final String CORS_ALLOWED_ORIGINS_DOC =
+      "CORS support: Comma separated list of allowed origins, can contain wildcards";
+
+  public static final String CORS_ALLOWED_HEADERS = propertyName("cors.allowed.headers");
+  public static final String CORS_ALLOWED_HEADERS_DOC =
+      "CORS support: Comma separated list of allowed headers";
+
+  public static final String CORS_ALLOWED_METHODS = propertyName("cors.allowed.methods");
+  public static final String CORS_ALLOWED_METHODS_DOC =
+      "CORS support: Comma separated list of allowed methods";
+
   private static String propertyName(final String name) {
     return KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + PROPERTY_PREFIX + name;
   }
@@ -196,7 +208,28 @@ public class ApiServerConfig extends AbstractConfig {
           DEFAULT_MAX_PUSH_QUERIES,
           zeroOrPositive(),
           Importance.MEDIUM,
-          MAX_PUSH_QUERIES_DOC);
+          MAX_PUSH_QUERIES_DOC)
+      .define(
+          CORS_ALLOWED_ORIGINS,
+          Type.STRING,
+          "",
+          Importance.MEDIUM,
+          CORS_ALLOWED_ORIGINS_DOC
+      )
+      .define(
+          CORS_ALLOWED_HEADERS,
+          Type.LIST,
+          "",
+          Importance.MEDIUM,
+          CORS_ALLOWED_HEADERS_DOC
+      )
+      .define(
+          CORS_ALLOWED_METHODS,
+          Type.LIST,
+          "",
+          Importance.MEDIUM,
+          CORS_ALLOWED_METHODS_DOC
+      );
 
   public ApiServerConfig(final Map<?, ?> map) {
     super(CONFIG_DEF, map);

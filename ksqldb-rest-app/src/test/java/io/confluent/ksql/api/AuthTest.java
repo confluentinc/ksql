@@ -296,14 +296,14 @@ public class AuthTest extends ApiTest {
   }
 
   @Test
-  public void shouldAllowQueryWithSecurityPluginRejectingIfInAuthedPaths() throws Exception {
+  public void shouldAllowQueryWithSecurityPluginRejectingIfInUnAuthedPaths() throws Exception {
     unauthedPaths = "/query-stream";
     shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
         super::shouldExecutePullQuery, false, false);
   }
 
   @Test
-  public void shouldAllowQueryWithSecurityPluginRejectingIfInAuthedPathsWithWildcard()
+  public void shouldAllowQueryWithSecurityPluginRejectingIfInUnAuthedPathsWithWildcard()
       throws Exception {
     unauthedPaths = "/query*";
     shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,

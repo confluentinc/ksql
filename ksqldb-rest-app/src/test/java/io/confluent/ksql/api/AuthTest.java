@@ -337,6 +337,17 @@ public class AuthTest extends ApiTest {
         }, true, true, true);
   }
 
+  @Test
+  public void shouldRejectRequestIfJaasConfiguredWIthNoSecurityPluginAndNotBasicAuth()
+      throws Exception {
+
+    HttpResponse<Buffer> response = sendRequestWithNonBasicCredentials(client,
+        "/query-stream", new JsonObject().put("sql", DEFAULT_PULL_QUERY).toBuffer(),
+        "BEARER quydwquywdg");
+    assertThat(response.statusCode(), is(401));
+
+  }
+
   private void shouldFailQuery(final String username, final String password,
       final int expectedStatus, final String expectedMessage, final int expectedErrorCode)
       throws Exception {

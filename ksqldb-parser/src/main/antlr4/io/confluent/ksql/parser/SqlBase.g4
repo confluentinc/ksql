@@ -157,7 +157,8 @@ partitionBy
     ;
 
 groupBy
-    : valueExpression (',' valueExpression)*
+    : valueExpression (AS? identifier)?
+    | valueExpression (',' valueExpression)*
     | '(' (valueExpression (',' valueExpression)*)? ')' (AS? identifier)?
     ;
 

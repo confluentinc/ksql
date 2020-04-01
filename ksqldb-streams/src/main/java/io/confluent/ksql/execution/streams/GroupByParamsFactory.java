@@ -55,30 +55,45 @@ final class GroupByParamsFactory {
   public static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
       final List<ExpressionMetadata> groupBys,
+      final Optional<ColumnName> alias,
       final KsqlConfig ksqlConfig
   ) {
+    Objects.requireNonNull(alias, "alias");
+
     final ProcessingLogger logger = NoopProcessingLogContext.NOOP_LOGGER;
 
-    return groupBys.size() == 1
-        ? new SingleExpressionGrouper(sourceSchema, groupBys.get(0), logger, ksqlConfig).getSchema()
-        : new MultiExpressionGrouper(sourceSchema, groupBys, logger, ksqlConfig).getSchema();
+    return buildGrouper(sourceSchema, groupBys, alias, logger, ksqlConfig)
+        .getSchema();
   }
 
   public static GroupByParams build(
       final LogicalSchema sourceSchema,
       final List<ExpressionMetadata> groupBys,
+      final Optional<ColumnName> alias,
       final ProcessingLogger logger,
       final KsqlConfig ksqlConfig
   ) {
+    Objects.requireNonNull(alias, "alias");
+
     if (groupBys.isEmpty()) {
       throw new IllegalArgumentException("No GROUP BY groupBys");
     }
 
-    final Grouper grouper = groupBys.size() == 1
-        ? new SingleExpressionGrouper(sourceSchema, groupBys.get(0), logger, ksqlConfig)
-        : new MultiExpressionGrouper(sourceSchema, groupBys, logger, ksqlConfig);
+    final Grouper grouper = buildGrouper(sourceSchema, groupBys, alias, logger, ksqlConfig);
 
     return new GroupByParams(grouper.getSchema(), grouper::apply);
+  }
+
+  private static Grouper buildGrouper(
+      final LogicalSchema sourceSchema,
+      final List<ExpressionMetadata> groupBys,
+      final Optional<ColumnName> alias,
+      final ProcessingLogger logger,
+      final KsqlConfig ksqlConfig
+  ) {
+    return groupBys.size() == 1
+        ? new SingleExpressionGrouper(sourceSchema, groupBys.get(0), alias, logger, ksqlConfig)
+        : new MultiExpressionGrouper(sourceSchema, groupBys, alias, logger, ksqlConfig);
   }
 
   private static LogicalSchema buildSchemaWithKeyType(
@@ -150,10 +165,11 @@ final class GroupByParamsFactory {
     SingleExpressionGrouper(
         final LogicalSchema sourceSchema,
         final ExpressionMetadata groupBy,
+        final Optional<ColumnName> alias,
         final ProcessingLogger logger,
         final KsqlConfig ksqlConfig
     ) {
-      this.schema = singleExpressionSchema(sourceSchema, groupBy, ksqlConfig);
+      this.schema = singleExpressionSchema(sourceSchema, groupBy, alias, ksqlConfig);
       this.groupBy = requireNonNull(groupBy, "groupBy");
       this.keyBuilder = keyBuilder(schema);
       this.logger = Objects.requireNonNull(logger, "logger");
@@ -176,6 +192,7 @@ final class GroupByParamsFactory {
     private static LogicalSchema singleExpressionSchema(
         final LogicalSchema sourceSchema,
         final ExpressionMetadata groupBy,
+        final Optional<ColumnName> alias,
         final KsqlConfig ksqlConfig
     ) {
       final SqlType keyType = groupBy.getExpressionType();
@@ -184,7 +201,9 @@ final class GroupByParamsFactory {
       final Optional<ColumnName> singleColumnName;
 
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-        if (groupByExp instanceof ColumnReferenceExp) {
+        if (alias.isPresent()) {
+          singleColumnName = alias;
+        } else if (groupByExp instanceof ColumnReferenceExp) {
           singleColumnName = Optional.of(((ColumnReferenceExp) groupByExp).getColumnName());
         } else if (groupByExp instanceof DereferenceExpression) {
           singleColumnName = Optional.of(ColumnNames.generatedStructFieldColumnName(groupByExp));
@@ -209,10 +228,11 @@ final class GroupByParamsFactory {
     MultiExpressionGrouper(
         final LogicalSchema sourceSchema,
         final List<ExpressionMetadata> groupBys,
+        final Optional<ColumnName> alias,
         final ProcessingLogger logger,
         final KsqlConfig ksqlConfig
     ) {
-      this.schema = multiExpressionSchema(sourceSchema, ksqlConfig);
+      this.schema = multiExpressionSchema(sourceSchema, alias, ksqlConfig);
       this.groupBys = ImmutableList.copyOf(requireNonNull(groupBys, "groupBys"));
       this.keyBuilder = keyBuilder(schema);
       this.logger = Objects.requireNonNull(logger, "logger");
@@ -249,8 +269,9 @@ final class GroupByParamsFactory {
 
   private static LogicalSchema multiExpressionSchema(
       final LogicalSchema sourceSchema,
+      final Optional<ColumnName> alias,
       final KsqlConfig ksqlConfig
   ) {
-    return buildSchemaWithKeyType(sourceSchema, Optional.empty(), SqlTypes.STRING, ksqlConfig);
+    return buildSchemaWithKeyType(sourceSchema, alias, SqlTypes.STRING, ksqlConfig);
   }
 }

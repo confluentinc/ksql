@@ -21,9 +21,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
 public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
@@ -31,19 +33,22 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   private final ExecutionStep<KTableHolder<K>> source;
   private final Formats internalFormats;
   private final ImmutableList<Expression> groupByExpressions;
+  private final Optional<ColumnName> alias;
 
   public TableGroupBy(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
-      @JsonProperty(value = "groupByExpressions", required = true) final
-      List<Expression> groupByExpressions
+      @JsonProperty(value = "groupByExpressions", required = true)
+      final List<Expression> groupByExpressions,
+      @JsonProperty(value = "alias") final Optional<ColumnName> alias
   ) {
     this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
     this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.groupByExpressions = ImmutableList
         .copyOf(requireNonNull(groupByExpressions, "groupByExpressions"));
+    this.alias = requireNonNull(alias, "alias");
   }
 
   @Override
@@ -63,6 +68,10 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
 
   public List<Expression> getGroupByExpressions() {
     return groupByExpressions;
+  }
+
+  public Optional<ColumnName> getAlias() {
+    return alias;
   }
 
   public ExecutionStep<KTableHolder<K>> getSource() {

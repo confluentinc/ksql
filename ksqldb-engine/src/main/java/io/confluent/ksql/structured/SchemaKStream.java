@@ -17,10 +17,12 @@ package io.confluent.ksql.structured;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -324,9 +326,10 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<Struct> selectKey(
       final Expression keyExpression,
-      final QueryContext.Stacker contextStacker
+      final Optional<ColumnName> alias,
+      final Stacker contextStacker
   ) {
-    if (repartitionNotNeeded(keyExpression)) {
+    if (repartitionNotNeeded(ImmutableList.of(keyExpression), alias)) {
       return (SchemaKStream<Struct>) this;
     }
 
@@ -337,7 +340,7 @@ public class SchemaKStream<K> {
 
     final ExecutionStep<KStreamHolder<Struct>> step = ksqlConfig
         .getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
-        ? ExecutionStepFactory.streamSelectKey(contextStacker, sourceStep, keyExpression)
+        ? ExecutionStepFactory.streamSelectKey(contextStacker, sourceStep, keyExpression, alias)
         : ExecutionStepFactory.streamSelectKeyV1(contextStacker, sourceStep, keyExpression);
 
     return new SchemaKStream<>(
@@ -360,26 +363,48 @@ public class SchemaKStream<K> {
     return getSchema().isMetaColumn(columnName) ? KeyField.none() : newKeyField;
   }
 
-  protected boolean repartitionNotNeeded(final Expression expression) {
-    if (!(expression instanceof UnqualifiedColumnReferenceExp)) {
+  boolean repartitionNotNeeded(
+      final List<Expression> expressions,
+      final Optional<ColumnName> alias
+  ) {
+    // Note: A repartition is only not required if partitioning by the existing key column, or
+    // the existing keyField.
+
+    if (schema.key().size() != 1) {
+      throw new UnsupportedOperationException("logic only supports single key column");
+    }
+
+    if (expressions.size() != 1) {
+      // Currently only support single key column,
+      // so a repartition on multiple expressions _must_ require a re-key
       return false;
     }
 
-    final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
-    final Optional<Column> existingKey = keyField.resolve(getSchema());
+    final Expression expression = expressions.get(0);
+    if (!(expression instanceof ColumnReferenceExp)) {
+      // If expression is not a column reference then the key will be changing
+      return false;
+    }
 
-    final Column proposedKey = getSchema()
-        .findValueColumn(columnName)
+    final ColumnName newKeyColName = ((ColumnReferenceExp) expression).getColumnName();
+
+    getSchema()
+        .findValueColumn(newKeyColName)
         .orElseThrow(() -> new KsqlException("Invalid identifier for PARTITION BY clause: '"
-            + columnName.toString(FormatOptions.noEscape()) + "' Only columns from the "
+            + newKeyColName.toString(FormatOptions.noEscape()) + "' Only columns from the "
             + "source schema can be referenced in the PARTITION BY clause."));
 
 
-    final boolean namesMatch = existingKey
-        .map(kf -> kf.name().equals(proposedKey.name()))
+    if (alias.isPresent() && !alias.get().equals(newKeyColName)) {
+      // Aliasing the new key to a different name, so re-key must be required.
+      return false;
+    }
+
+    final boolean matchesKeyField = keyField.resolve(getSchema())
+        .map(kf -> kf.name().equals(newKeyColName))
         .orElse(false);
 
-    return namesMatch || isKeyColumn(columnName);
+    return matchesKeyField || isKeyColumn(newKeyColName);
   }
 
   private boolean isKeyColumn(final ColumnName fieldName) {
@@ -389,49 +414,15 @@ public class SchemaKStream<K> {
     return fieldName.equals(schema.key().get(0).name());
   }
 
-  private static ColumnName fieldNameFromExpression(final Expression expression) {
-    if (expression instanceof UnqualifiedColumnReferenceExp) {
-      final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) expression;
-      return nameRef.getColumnName();
-    }
-    return null;
-  }
-
-  private boolean rekeyRequired(final List<Expression> groupByExpressions) {
-    if (groupByExpressions.size() != 1) {
-      return true;
-    }
-
-    if (schema.key().size() != 1) {
-      return true;
-    }
-
-    final ColumnName groupByField = fieldNameFromExpression(groupByExpressions.get(0));
-    if (groupByField == null) {
-      return true;
-    }
-
-    if (groupByField.equals(schema.key().get(0).name())) {
-      return false;
-    }
-
-    final Optional<Column> keyColumn = getKeyField().resolve(getSchema());
-    if (!keyColumn.isPresent()) {
-      return true;
-    }
-
-    final ColumnName keyFieldName = keyColumn.get().name();
-    return !groupByField.equals(keyFieldName);
-  }
-
   public SchemaKGroupedStream groupBy(
       final ValueFormat valueFormat,
       final List<Expression> groupByExpressions,
-      final QueryContext.Stacker contextStacker
+      final Optional<ColumnName> alias,
+      final Stacker contextStacker
   ) {
-    final boolean rekey = rekeyRequired(groupByExpressions);
     final KeyFormat rekeyedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
-    if (!rekey) {
+
+    if (repartitionNotNeeded(groupByExpressions, alias)) {
       return groupByKey(rekeyedKeyFormat, valueFormat, contextStacker);
     }
 
@@ -445,8 +436,10 @@ public class SchemaKStream<K> {
         contextStacker,
         sourceStep,
         Formats.of(rekeyedKeyFormat, valueFormat, SerdeOption.none()),
-        groupByExpressions
+        groupByExpressions,
+        alias
     );
+
     return new SchemaKGroupedStream(
         source,
         resolveSchema(source),

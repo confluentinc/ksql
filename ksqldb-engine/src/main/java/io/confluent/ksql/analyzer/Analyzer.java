@@ -264,7 +264,9 @@ class Analyzer {
       analysis.getWhereExpression()
           .ifPresent(columnValidator::analyzeExpression);
 
-      analysis.getGroupByExpressions()
+      analysis.getGroupBy()
+          .map(GroupBy::getGroupingExpressions)
+          .orElseGet(ImmutableList::of)
           .forEach(columnValidator::analyzeExpression);
 
       analysis.getHavingExpression()
@@ -488,11 +490,11 @@ class Analyzer {
 
     private void analyzeGroupBy(final GroupBy groupBy) {
       isGroupBy = true;
-      analysis.setGroupByExpressions(groupBy.getGroupingExpressions()); // Todo(ac): Alias
+      analysis.setGroupBy(groupBy);
     }
 
     private void analyzePartitionBy(final PartitionBy partitionBy) {
-      analysis.setPartitionBy(partitionBy.getExpression()); // Todo(ac): Alias
+      analysis.setPartitionBy(partitionBy);
     }
 
     private void analyzeWindowExpression(final WindowExpression windowExpression) {
@@ -514,7 +516,7 @@ class Analyzer {
         }
       }
 
-      if (analysis.getGroupByExpressions().isEmpty()) {
+      if (!analysis.getGroupBy().isPresent()) {
         throwOnUdafs(column.getExpression());
       }
     }
@@ -608,7 +610,7 @@ class Analyzer {
 
           tableFunctionName = Optional.of(functionName);
 
-          if (!analysis.getGroupByExpressions().isEmpty()) {
+          if (analysis.getGroupBy().isPresent()) {
             throw new KsqlException("Table functions cannot be used with aggregations.");
           }
 

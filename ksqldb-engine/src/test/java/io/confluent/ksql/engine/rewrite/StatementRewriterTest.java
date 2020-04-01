@@ -73,6 +73,8 @@ import org.mockito.junit.MockitoRule;
 
 public class StatementRewriterTest {
 
+  private static final ColumnName COL2 = ColumnName.of("Bob");
+
   @Mock
   private BiFunction<Expression, Object, Expression> expressionRewriter;
   @Mock
@@ -779,7 +781,8 @@ public class StatementRewriterTest {
     final Expression rewrittenExp2 = mock(Expression.class);
     final GroupBy groupBy = new GroupBy(
         location,
-        ImmutableList.of(exp1, exp2)
+        ImmutableList.of(exp1, exp2),
+        Optional.of(COL2)
     );
     when(expressionRewriter.apply(exp1, context)).thenReturn(rewrittenExp1);
     when(expressionRewriter.apply(exp2, context)).thenReturn(rewrittenExp2);
@@ -793,7 +796,8 @@ public class StatementRewriterTest {
         equalTo(
             new GroupBy(
                 location,
-                ImmutableList.of(rewrittenExp1, rewrittenExp2)
+                ImmutableList.of(rewrittenExp1, rewrittenExp2),
+                Optional.of(COL2)
             )
         )
     );
@@ -804,7 +808,8 @@ public class StatementRewriterTest {
     // Given:
     final PartitionBy partitionBy = new PartitionBy(
         location,
-        expression
+        expression,
+        Optional.of(COL2)
     );
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
@@ -812,7 +817,11 @@ public class StatementRewriterTest {
     final AstNode rewritten = rewriter.rewrite(partitionBy, context);
 
     // Then:
-    assertThat(rewritten, equalTo(new PartitionBy(location, rewrittenExpression)));
+    assertThat(rewritten, equalTo(new PartitionBy(
+        location,
+        rewrittenExpression,
+        Optional.of(COL2)
+    )));
   }
 
   @Test

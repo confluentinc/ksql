@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
@@ -26,26 +29,47 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 
 public final class StreamGroupByBuilder {
-  private StreamGroupByBuilder() {
-  }
 
-  public static KGroupedStreamHolder build(
-      final KStreamHolder<Struct> stream,
-      final StreamGroupByKey step,
+  private final KsqlQueryBuilder queryBuilder;
+  private final GroupedFactory groupedFactory;
+  private final ParamsFactory paramsFactory;
+
+  public StreamGroupByBuilder(
       final KsqlQueryBuilder queryBuilder,
       final GroupedFactory groupedFactory
   ) {
+    this(queryBuilder, groupedFactory, GroupByParamsFactory::build);
+  }
+
+  @VisibleForTesting
+  StreamGroupByBuilder(
+      final KsqlQueryBuilder queryBuilder,
+      final GroupedFactory groupedFactory,
+      final ParamsFactory paramsFactory
+  ) {
+    this.queryBuilder = requireNonNull(queryBuilder, "queryBuilder");
+    this.groupedFactory = requireNonNull(groupedFactory, "groupedFactory");
+    this.paramsFactory = requireNonNull(paramsFactory, "paramsFactory");
+  }
+
+  public KGroupedStreamHolder build(
+      final KStreamHolder<Struct> stream,
+      final StreamGroupByKey step
+  ) {
     final LogicalSchema sourceSchema = stream.getSchema();
-    final QueryContext queryContext =  step.getProperties().getQueryContext();
+    final QueryContext queryContext = step.getProperties().getQueryContext();
     final Formats formats = step.getInternalFormats();
     final Grouped<Struct, GenericRow> grouped = buildGrouped(
         formats,
@@ -57,14 +81,12 @@ public final class StreamGroupByBuilder {
     return KGroupedStreamHolder.of(stream.getStream().groupByKey(grouped), stream.getSchema());
   }
 
-  public static <K> KGroupedStreamHolder build(
+  public <K> KGroupedStreamHolder build(
       final KStreamHolder<K> stream,
-      final StreamGroupBy<K> step,
-      final KsqlQueryBuilder queryBuilder,
-      final GroupedFactory groupedFactory
+      final StreamGroupBy<K> step
   ) {
     final LogicalSchema sourceSchema = stream.getSchema();
-    final QueryContext queryContext =  step.getProperties().getQueryContext();
+    final QueryContext queryContext = step.getProperties().getQueryContext();
     final Formats formats = step.getInternalFormats();
 
     final List<ExpressionMetadata> groupBy = CodeGenRunner.compileExpressions(
@@ -77,8 +99,8 @@ public final class StreamGroupByBuilder {
 
     final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
 
-    final GroupByParams params = GroupByParamsFactory
-        .build(sourceSchema, groupBy, logger, queryBuilder.getKsqlConfig());
+    final GroupByParams params = paramsFactory
+        .build(sourceSchema, groupBy, step.getAlias(), logger, queryBuilder.getKsqlConfig());
 
     final Grouped<Struct, GenericRow> grouped = buildGrouped(
         formats,
@@ -117,5 +139,16 @@ public final class StreamGroupByBuilder {
         queryContext
     );
     return groupedFactory.create(StreamsUtil.buildOpName(queryContext), keySerde, valSerde);
+  }
+
+  interface ParamsFactory {
+
+    GroupByParams build(
+        LogicalSchema sourceSchema,
+        List<ExpressionMetadata> groupBys,
+        Optional<ColumnName> alias,
+        ProcessingLogger logger,
+        KsqlConfig ksqlConfig
+    );
   }
 }

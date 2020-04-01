@@ -88,11 +88,12 @@ public final class KSPlanBuilder implements PlanBuilder {
   public <K> KGroupedStreamHolder visitStreamGroupBy(
       final StreamGroupBy<K> streamGroupBy) {
     final KStreamHolder<K> source = streamGroupBy.getSource().build(this);
-    return StreamGroupByBuilder.build(
-        source,
-        streamGroupBy,
+    return new StreamGroupByBuilder(
         queryBuilder,
         streamsFactories.getGroupedFactory()
+    ).build(
+        source,
+        streamGroupBy
     );
   }
 
@@ -100,11 +101,12 @@ public final class KSPlanBuilder implements PlanBuilder {
   public KGroupedStreamHolder visitStreamGroupByKey(
       final StreamGroupByKey streamGroupByKey) {
     final KStreamHolder<Struct> source = streamGroupByKey.getSource().build(this);
-    return StreamGroupByBuilder.build(
-        source,
-        streamGroupByKey,
+    return new StreamGroupByBuilder(
         queryBuilder,
         streamsFactories.getGroupedFactory()
+    ).build(
+        source,
+        streamGroupByKey
     );
   }
 
@@ -259,11 +261,12 @@ public final class KSPlanBuilder implements PlanBuilder {
   public <K> KGroupedTableHolder visitTableGroupBy(
       final TableGroupBy<K> tableGroupBy) {
     final KTableHolder<K> source = tableGroupBy.getSource().build(this);
-    return TableGroupByBuilder.build(
-        source,
-        tableGroupBy,
+    return new TableGroupByBuilder(
         queryBuilder,
         streamsFactories.getGroupedFactory()
+    ).build(
+        source,
+        tableGroupBy
     );
   }
 

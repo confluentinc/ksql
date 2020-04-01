@@ -561,18 +561,24 @@ public class AstBuilder {
 
     @Override
     public Node visitPartitionBy(final PartitionByContext ctx) {
-      return new PartitionBy(
-          getLocation(ctx),
-          (Expression) visit(ctx.valueExpression())
-      ); // Todo(ac): Use alias
+      final Optional<ColumnName> alias = Optional.ofNullable(ctx.identifier())
+          .map(ParserUtil::getIdentifierText)
+          .map(ColumnName::of);
+
+      final Expression expression = (Expression) visit(ctx.valueExpression());
+
+      return new PartitionBy(getLocation(ctx), expression, alias);
     }
 
     @Override
-    public Node visitGroupBy(final SqlBaseParser.GroupByContext context) {
-      return new GroupBy(
-          getLocation(context),
-          visit(context.valueExpression(), Expression.class) // Todo(ac): Use alias
-      );
+    public Node visitGroupBy(final SqlBaseParser.GroupByContext ctx) {
+      final Optional<ColumnName> alias = Optional.ofNullable(ctx.identifier())
+          .map(ParserUtil::getIdentifierText)
+          .map(ColumnName::of);
+
+      final List<Expression> expressions = visit(ctx.valueExpression(), Expression.class);
+
+      return new GroupBy(getLocation(ctx), expressions, alias);
     }
 
     @Override

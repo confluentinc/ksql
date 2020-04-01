@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,17 +28,24 @@ import java.util.Optional;
 public class PartitionBy extends AstNode {
 
   private final Expression expression;
+  private final Optional<ColumnName> alias;
 
   public PartitionBy(
       final Optional<NodeLocation> location,
-      final Expression partitionBy
+      final Expression partitionBy,
+      final Optional<ColumnName> alias
   ) {
     super(location);
     this.expression = requireNonNull(partitionBy, "partitionBy");
+    this.alias = requireNonNull(alias, "alias");
   }
 
   public Expression getExpression() {
     return expression;
+  }
+
+  public Optional<ColumnName> getAlias() {
+    return alias;
   }
 
   @Override
@@ -54,18 +62,20 @@ public class PartitionBy extends AstNode {
       return false;
     }
     final PartitionBy groupBy = (PartitionBy) o;
-    return Objects.equals(expression, groupBy.expression);
+    return Objects.equals(expression, groupBy.expression)
+        && Objects.equals(alias, groupBy.alias);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(expression);
+    return Objects.hash(expression, alias);
   }
 
   @Override
   public String toString() {
     return "PartitionBy{"
         + "expression=" + expression
+        + ", alias=" + alias
         + '}';
   }
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -141,7 +142,7 @@ public final class PullQueryExecutor {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
-        KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED));
+        KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -172,12 +173,9 @@ public final class PullQueryExecutor {
               + "this feature.");
     }
 
-    if (!rateLimiter.tryAcquire()) {
-      throw new KsqlException("Host is at rate limit for pull queries. Currently set to "
-          + rateLimiter.getRate() + " qps.");
-    }
-
     try {
+      checkRateLimit();
+
       final ImmutableAnalysis analysis = new RewrittenAnalysis(
           analyze(statement, executionContext),
           new ColumnReferenceRewriter()::process
@@ -219,6 +217,14 @@ public final class PullQueryExecutor {
           statement.getStatementText(),
           e
       );
+    }
+  }
+
+  @VisibleForTesting
+  void checkRateLimit() {
+    if (!rateLimiter.tryAcquire()) {
+      throw new KsqlException("Host is at rate limit for pull queries. Currently set to "
+          + rateLimiter.getRate() + " qps.");
     }
   }
 

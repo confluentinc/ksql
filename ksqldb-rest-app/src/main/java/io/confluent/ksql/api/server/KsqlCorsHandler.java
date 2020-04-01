@@ -22,11 +22,12 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.CorsHandler;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class KSqlCorsHandler implements Handler<RoutingContext> {
+public class KsqlCorsHandler implements Handler<RoutingContext> {
 
   private static final List<String> DEFAULT_ALLOWED_METHODS = Arrays.asList("GET", "POST", "HEAD");
   private static final List<String> DEFAULT_ALLOWED_HEADERS = Arrays
@@ -42,29 +43,30 @@ public class KSqlCorsHandler implements Handler<RoutingContext> {
     }
     final String convertedPattern = convertAllowedOrigin(allowedOrigins);
     final CorsHandler corsHandler = CorsHandler.create(convertedPattern);
-    final List<String> allowedMethods = apiServerConfig
-        .getList(ApiServerConfig.CORS_ALLOWED_METHODS);
-    final Set<String> allowedMethodsSet = new LinkedHashSet<>(allowedMethods);
-    allowedMethodsSet.addAll(DEFAULT_ALLOWED_METHODS);
-    for (String allowedMethod : allowedMethodsSet) {
-      corsHandler.allowedMethod(HttpMethod.valueOf(allowedMethod.toUpperCase()));
+    final Set<String> allowedMethodsSet = new HashSet<>(apiServerConfig
+        .getList(ApiServerConfig.CORS_ALLOWED_METHODS));
+    if (allowedMethodsSet.isEmpty()) {
+      allowedMethodsSet.addAll(DEFAULT_ALLOWED_METHODS);
     }
+    corsHandler.allowedMethods(
+        allowedMethodsSet.stream().map(sMethod -> HttpMethod.valueOf(sMethod.toUpperCase()))
+            .collect(Collectors.toSet()));
 
-    final List<String> allowedHeaders = apiServerConfig
-        .getList(ApiServerConfig.CORS_ALLOWED_HEADERS);
-    final Set<String> allowedHeadersSet = new LinkedHashSet<>(allowedHeaders);
-    allowedHeadersSet.addAll(DEFAULT_ALLOWED_HEADERS);
-    for (String allowedHeader : allowedHeadersSet) {
-      corsHandler.allowedHeader(allowedHeader);
+    final Set<String> allowedHeadersSet = new HashSet<>(apiServerConfig
+        .getList(ApiServerConfig.CORS_ALLOWED_HEADERS));
+    if (allowedHeadersSet.isEmpty()) {
+      allowedHeadersSet.addAll(DEFAULT_ALLOWED_HEADERS);
     }
+    corsHandler.allowedHeaders(allowedHeadersSet);
+
     corsHandler.allowCredentials(true);
 
-    router.route().handler(new KSqlCorsHandler(corsHandler));
+    router.route().handler(new KsqlCorsHandler(corsHandler));
   }
 
   private final CorsHandler corsHandler;
 
-  public KSqlCorsHandler(final CorsHandler corsHandler) {
+  public KsqlCorsHandler(final CorsHandler corsHandler) {
     this.corsHandler = corsHandler;
   }
 

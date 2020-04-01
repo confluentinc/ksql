@@ -27,9 +27,11 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import org.junit.After;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,6 +49,9 @@ public class CorsTest extends BaseApiTest {
   private static final String DEFAULT_ACCESS_CONTROL_ALLOW_HEADERS = "X-Requested-With,Content-Type,Accept,Origin";
   private static final String DEFAULT_ACCESS_CONTROL_ALLOW_METHODS = "GET,POST,HEAD";
 
+  private static final String URI = "/query-stream";
+  private static final String ORIGIN = "wibble.com";
+
   @Before
   public void setUp() {
 
@@ -57,15 +62,6 @@ public class CorsTest extends BaseApiTest {
     setDefaultRowGenerator();
   }
 
-  @After
-  public void tearDown() {
-    stopClient();
-    stopServer();
-    if (vertx != null) {
-      vertx.close();
-    }
-  }
-
   @Test
   public void shouldNotBeCorsResponseIfNoCorsConfigured() throws Exception {
 
@@ -73,7 +69,7 @@ public class CorsTest extends BaseApiTest {
     init();
 
     // When
-    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, "wibble.com");
+    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, ORIGIN);
 
     // Then:
     assertThat(response.statusCode(), is(200));
@@ -87,10 +83,10 @@ public class CorsTest extends BaseApiTest {
 
     // Given:
     init();
-    config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, "wibble.com");
+    config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, ORIGIN);
 
     // When
-    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, "/ws/foo", "wibble.com");
+    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, "/ws/foo", ORIGIN);
 
     // Then:
     // We should get a 404 as the security checks will be bypassed but the resource doesn't exist
@@ -105,12 +101,12 @@ public class CorsTest extends BaseApiTest {
 
     // Given:
     init();
-    config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, "wibble.com");
+    config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, ORIGIN);
 
     // When
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .request(HttpMethod.POST, "/query-stream")
+        .request(HttpMethod.POST, URI)
         .sendJsonObject(new JsonObject().put("sql", DEFAULT_PULL_QUERY), requestFuture);
     HttpResponse<Buffer> response = requestFuture.get();
 
@@ -123,17 +119,17 @@ public class CorsTest extends BaseApiTest {
 
   @Test
   public void shouldAcceptCorsRequestOriginExactMatch() throws Exception {
-    shouldAcceptCorsRequest("wibble.com", "wibble.com");
+    shouldAcceptCorsRequest(ORIGIN, ORIGIN);
   }
 
   @Test
   public void shouldRejectCorsRequestOriginExactMatch() throws Exception {
-    shouldRejectCorsRequest("foo.com", "wibble.com");
+    shouldRejectCorsRequest("foo.com", ORIGIN);
   }
 
   @Test
   public void shouldAcceptCorsRequestOriginExactMatchOneOfList() throws Exception {
-    shouldAcceptCorsRequest("wibble.com", "foo.com,wibble.com");
+    shouldAcceptCorsRequest(ORIGIN, "foo.com,wibble.com");
   }
 
   @Test
@@ -143,7 +139,7 @@ public class CorsTest extends BaseApiTest {
 
   @Test
   public void shouldAcceptCorsRequestAcceptAll() throws Exception {
-    shouldAcceptCorsRequest("wibble.com", "*");
+    shouldAcceptCorsRequest(ORIGIN, "*");
   }
 
   @Test
@@ -168,29 +164,29 @@ public class CorsTest extends BaseApiTest {
 
   @Test
   public void shouldAcceptPreflightRequestOriginExactMatchDefaultHeaders() throws Exception {
-    shouldAcceptPreflightRequest("wibble.com", "wibble.com", DEFAULT_ACCESS_CONTROL_ALLOW_HEADERS,
+    shouldAcceptPreflightRequest(ORIGIN, ORIGIN, DEFAULT_ACCESS_CONTROL_ALLOW_HEADERS,
         DEFAULT_ACCESS_CONTROL_ALLOW_METHODS);
   }
 
   @Test
   public void shouldRejectPreflightRequestOriginExactMatchDefaultHeaders() throws Exception {
-    shouldRejectPreflightRequest("wibble.com", "flibble.com");
+    shouldRejectPreflightRequest(ORIGIN, "flibble.com");
   }
 
   @Test
   public void shouldAcceptPreflightRequestOriginExactMatchSpecifiedHeaders() throws Exception {
     config.put(ApiServerConfig.CORS_ALLOWED_HEADERS, "foo-header,bar-header");
-    shouldAcceptPreflightRequest("wibble.com", "wibble.com",
-        "foo-header,bar-header,X-Requested-With,Content-Type,Accept,Origin",
+    shouldAcceptPreflightRequest(ORIGIN, ORIGIN,
+        "foo-header,bar-header",
         DEFAULT_ACCESS_CONTROL_ALLOW_METHODS);
   }
 
   @Test
   public void shouldAcceptPreflightRequestOriginExactMatchSpecifiedMethods() throws Exception {
     config.put(ApiServerConfig.CORS_ALLOWED_METHODS, "DELETE,PATCH");
-    shouldAcceptPreflightRequest("wibble.com", "wibble.com",
+    shouldAcceptPreflightRequest(ORIGIN, ORIGIN,
         DEFAULT_ACCESS_CONTROL_ALLOW_HEADERS,
-        "DELETE,PATCH,GET,POST,HEAD");
+        "DELETE,PATCH");
   }
 
   private void shouldAcceptCorsRequest(final String origin, final String allowedOrigins)
@@ -256,10 +252,16 @@ public class CorsTest extends BaseApiTest {
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_ORIGIN_HEADER),
         is(origin));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS_HEADER), is("true"));
-    assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_HEADERS_HEADER),
-        is(accessControlAllowHeaders));
-    assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_METHODS_HEADER),
-        is(accessControlAllowMethods));
+    assertListsInAnyOrder(response.getHeader(ACCESS_CONTROL_ALLOW_HEADERS_HEADER),
+        accessControlAllowHeaders);
+    assertListsInAnyOrder(response.getHeader(ACCESS_CONTROL_ALLOW_METHODS_HEADER),
+        accessControlAllowMethods);
+  }
+
+  private void assertListsInAnyOrder(String str1, String str2) {
+    Set<String> set1 = new HashSet<>(Arrays.asList(str1.split(",")));
+    Set<String> set2 = new HashSet<>(Arrays.asList(str2.split(",")));
+    assertThat(set1, is(set2));
   }
 
   private void init() {
@@ -270,7 +272,7 @@ public class CorsTest extends BaseApiTest {
 
   private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod, final MultiMap headers)
       throws Exception {
-    return sendCorsRequest(httpMethod, "/query-stream", headers);
+    return sendCorsRequest(httpMethod, URI, headers);
   }
 
   private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod, final String uri,
@@ -287,7 +289,7 @@ public class CorsTest extends BaseApiTest {
   private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod,
       final String origin)
       throws Exception {
-    return sendCorsRequest(httpMethod, "/query-stream", origin);
+    return sendCorsRequest(httpMethod, URI, origin);
   }
 
   private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod,

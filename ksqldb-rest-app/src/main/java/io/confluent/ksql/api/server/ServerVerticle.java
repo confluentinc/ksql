@@ -116,7 +116,7 @@ public class ServerVerticle extends AbstractVerticle {
       PortedEndpoints.setupFailureHandler(router);
     }
 
-    KSqlCorsHandler.setupCorsHandler(server, router);
+    KsqlCorsHandler.setupCorsHandler(server, router);
 
     setUpFailureHandler(router);
 

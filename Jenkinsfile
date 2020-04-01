@@ -169,6 +169,10 @@ def job = {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                            writeFile file:'create-pip-conf-with-jfrog.sh', text:libraryResource('scripts/create-pip-conf-with-jfrog.sh')
+                            writeFile file:'create-pypirc-with-jfrog.sh', text:libraryResource('scripts/create-pypirc-with-jfrog.sh')
+                            writeFile file:'setup-credential-store.sh', text:libraryResource('scripts/setup-credential-store.sh')
+                            writeFile file:'set-global-user.sh', text:libraryResource('scripts/set-global-user.sh')
                             sh '''
                                 bash extract-iam-credential.sh
 
@@ -180,12 +184,7 @@ def job = {
 
                                 set -x
                                 echo $ARTIFACTORY_PASSWORD | docker login confluent-docker.jfrog.io -u $ARTIFACTORY_USERNAME --password-stdin
-                            '''
-                            writeFile file:'create-pip-conf-with-jfrog.sh', text:libraryResource('scripts/create-pip-conf-with-jfrog.sh')
-                            writeFile file:'create-pypirc-with-jfrog.sh', text:libraryResource('scripts/create-pypirc-with-jfrog.sh')
-                            writeFile file:'setup-credential-store.sh', text:libraryResource('scripts/setup-credential-store.sh')
-                            writeFile file:'set-global-user.sh', text:libraryResource('scripts/set-global-user.sh')
-                            sh '''
+
                                 bash create-pip-conf-with-jfrog.sh
                                 bash create-pypirc-with-jfrog.sh
                                 bash setup-credential-store.sh
@@ -218,9 +217,9 @@ def job = {
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
 
                             if (!config.isPrJob) {
-                                def git_tag = "v${config.docker_tag}-ksqldb"
+                                def git_tag = "v${config.ksql_db_artifact_version}-ksqldb"
                                 sh "git add ."
-                                sh "git commit -m \"build: Setting project version ${config.ksql_db_artifact_version} and parent version ${config. cp_version}.\""
+                                sh "git commit -m \"build: Setting project version ${config.ksql_db_artifact_version} and parent version ${config.cp_version}.\""
                                 sh "git tag ${git_tag}"
                                 sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
                                     sh "git push origin ${git_tag}"
@@ -348,7 +347,7 @@ def job = {
 
 def post = {
     withDockerServer([uri: dockerHost()]) {
-        repos = config.dockerArtifacts + config.dockerRepos
+        repos = config.dockerArtifacts + config.dockerRepos + config.dockerPullDeps
         repos.reverse().each { dockerRepo ->
             if (params.PROMOTE_TO_PRODUCTION) {
                 sh """#!/usr/bin/env bash \n

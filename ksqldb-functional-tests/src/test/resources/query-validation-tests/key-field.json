@@ -92,7 +92,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid identifier for PARTITION BY clause: 'ALIASED'"
+        "message": "Line: 5, Col: 14: PARTITION BY column 'INPUT.ALIASED' cannot be resolved."
       }
     },
     {
@@ -282,7 +282,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid identifier for PARTITION BY clause: 'ALIASED'"
+        "message": "Line: 5, Col: 14: PARTITION BY column 'INPUT.ALIASED' cannot be resolved"
       }
     },
     {
@@ -334,7 +334,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid identifier for PARTITION BY clause: 'ALIASED'"
+        "message": "Line: 5, Col: 14: PARTITION BY column 'INPUT.ALIASED' cannot be resolved."
       }
     },
     {

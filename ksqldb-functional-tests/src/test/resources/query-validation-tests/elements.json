@@ -811,7 +811,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Column 'INPUT.UNKNOWN' cannot be resolved."
+        "message": "Line: 1, Col: 32: SELECT column 'INPUT.UNKNOWN' cannot be resolved."
       }
     },
     {

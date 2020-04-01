@@ -48,7 +48,7 @@ public final class ParserUtil {
    *
    * @see org.apache.kafka.streams.state.StoreBuilder#name
    */
-  private static final Pattern VALID_SOURCE_NAMES = Pattern.compile("[a-zA-Z0-9_-]*");
+  private static final Pattern VALID_SOURCE_NAMES = Pattern.compile("[a-zA-Z0-9_\.-]*");
 
   private ParserUtil() {
   }

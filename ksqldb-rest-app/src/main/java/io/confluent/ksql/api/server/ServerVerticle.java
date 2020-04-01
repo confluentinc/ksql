@@ -197,7 +197,7 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void setupAuthHandlers(final Router router) {
-    final Optional<Handler<RoutingContext>> jaasAuthHandler = getJaasAuthHandler(server);
+    final Optional<AuthHandler> jaasAuthHandler = getJaasAuthHandler(server);
     final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
     final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
     final Optional<Handler<RoutingContext>> pluginHandler =
@@ -219,23 +219,31 @@ public class ServerVerticle extends AbstractVerticle {
     }
   }
 
-  // If we have a Jaas handler configured and we have Basic credentials then we should auth
-  // with that
   private static void wrappedAuthHandler(final RoutingContext routingContext,
-      final Optional<Handler<RoutingContext>> jaasAuthHandler,
+      final Optional<AuthHandler> jaasAuthHandler,
       final Optional<Handler<RoutingContext>> pluginHandler) {
     if (jaasAuthHandler.isPresent()) {
+      // If we have a Jaas handler configured and we have Basic credentials then we should auth
+      // with that
       final String authHeader = routingContext.request().getHeader("Authorization");
-      if (authHeader == null || authHeader.toLowerCase().startsWith("basic ")) {
+      if (authHeader != null && authHeader.toLowerCase().startsWith("basic ")) {
         jaasAuthHandler.get().handle(routingContext);
         return;
       }
     }
-    pluginHandler
-        .ifPresent(routingContextHandler -> routingContextHandler.handle(routingContext));
+    // Fall through to authing with any authentication plugin
+    if (pluginHandler.isPresent()) {
+      pluginHandler.get().handle(routingContext);
+    } else {
+      // Fail the request as unauthorized - this will occur if no auth plugin but Jaas handler
+      // is configured, but auth header is not basic auth
+      routingContext
+          .fail(HttpStatus.SC_UNAUTHORIZED,
+              new KsqlApiException("Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION));
+    }
   }
 
-  private static Optional<Handler<RoutingContext>> getJaasAuthHandler(final Server server) {
+  private static Optional<AuthHandler> getJaasAuthHandler(final Server server) {
     final String authMethod = server.getConfig()
         .getString(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG);
     switch (authMethod) {

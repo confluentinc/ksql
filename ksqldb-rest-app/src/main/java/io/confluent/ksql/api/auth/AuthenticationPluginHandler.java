@@ -59,16 +59,8 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     final List<String> unauthed = server.getConfig()
         .getList(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG);
     unauthenticatedPaths.addAll(unauthed);
-    final StringBuilder pathBuilder = new StringBuilder();
-    int i = 0;
-    for (String path : unauthenticatedPaths) {
-      pathBuilder.append(path);
-      if (i != unauthenticatedPaths.size() - 1) {
-        pathBuilder.append(',');
-      }
-      i++;
-    }
-    final String converted = convertCommaSeparatedWilcardsToRegex(pathBuilder.toString());
+    final String paths = String.join(",", unauthenticatedPaths);
+    final String converted = convertCommaSeparatedWilcardsToRegex(paths);
     unauthedPathsPattern = Pattern.compile(converted);
   }
 

@@ -53,16 +53,16 @@ public class PullQueryExecutorMetrics implements Closeable {
       final Map<String, String> customMetricsTags
   ) {
 
+    this.customMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
     this.metrics = MetricCollectors.getMetrics();
+    this.ksqlServiceId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+        + ksqlServiceId;
     this.sensors = new ArrayList<>();
     this.localRequestsSensor = configureLocalRequestsSensor();
     this.remoteRequestsSensor = configureRemoteRequestsSensor();
     this.latencySensor = configureRequestSensor();
     this.requestRateSensor = configureRateSensor();
     this.errorRateSensor = configureErrorRateSensor();
-    this.customMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
-    this.ksqlServiceId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-        + ksqlServiceId;
   }
 
   @Override
@@ -88,6 +88,14 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordErrorRate(final double value) {
     this.errorRateSensor.record(value);
+  }
+
+  List<Sensor> getSensors() {
+    return sensors;
+  }
+
+  Metrics getMetrics() {
+    return metrics;
   }
 
   private Sensor configureLocalRequestsSensor() {

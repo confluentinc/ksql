@@ -174,7 +174,14 @@ public final class PullQueryExecutor {
     }
 
     try {
-      checkRateLimit();
+      final RoutingOptions routingOptions = new ConfigRoutingOptions(
+          statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
+      final boolean isAlreadyForwarded = routingOptions.skipForwardRequest();
+
+      // Only check the rate limit at the forwarding host
+      if (!isAlreadyForwarded) {
+        checkRateLimit();
+      }
 
       final ImmutableAnalysis analysis = new RewrittenAnalysis(
           analyze(statement, executionContext),
@@ -208,7 +215,8 @@ public final class PullQueryExecutor {
           statement,
           executionContext,
           serviceContext,
-          pullQueryContext
+          pullQueryContext,
+          routingOptions
       );
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
@@ -232,11 +240,9 @@ public final class PullQueryExecutor {
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
-      final PullQueryContext pullQueryContext
+      final PullQueryContext pullQueryContext,
+      final RoutingOptions routingOptions
   ) {
-    final RoutingOptions routingOptions = new ConfigRoutingOptions(
-        statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
-
     // Get active and standby nodes for this key
     final Locator locator = pullQueryContext.mat.locator();
     final List<KsqlNode> filteredAndOrderedNodes = locator.locate(

@@ -149,12 +149,12 @@ public final class KsqlTarget {
 
   public RestResponse<List<StreamedRow>> postQueryRequest(
       final String ksql,
-      final Map<String, ?> serverProperties,
+      final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum
   ) {
     return post(
         QUERY_PATH,
-        createKsqlRequest(ksql, Collections.emptyMap(), previousCommandSeqNum),
+        createKsqlRequest(ksql, requestProperties, previousCommandSeqNum),
         KsqlTarget::toRows
     );
   }
@@ -176,13 +176,13 @@ public final class KsqlTarget {
 
   private KsqlRequest createKsqlRequest(
       final String ksql,
-      final Map<String, ?> serverProperties,
+      final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum
   ) {
     return new KsqlRequest(
         ksql,
         localProperties.toMap(),
-        serverProperties,
+        requestProperties,
         previousCommandSeqNum.orElse(null)
     );
   }

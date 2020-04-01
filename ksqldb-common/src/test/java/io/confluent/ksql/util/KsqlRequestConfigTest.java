@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import java.util.Collections;
 import org.junit.Test;
 
-public class KsqlRestConfigTest {
+public class KsqlRequestConfigTest {
   
   @Test
   public void shouldUseDefaultValuesWhenConfigNotPresent() {

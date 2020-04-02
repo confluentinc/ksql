@@ -310,7 +310,7 @@ public class KsqlRestConfigTest {
   @Test
   public void shouldThrowIfOnGetInterNodeListenerIfFirstListenerSetToUnresolvableHost() {
     // Given:
-    final URL expected = url("https://unresolvable.host:12345");
+    final URL expected = url("https://unresolvable_host:12345");
 
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
@@ -321,7 +321,7 @@ public class KsqlRestConfigTest {
     // Expect:
     expectedException.expect(ConfigException.class);
     expectedException.expectMessage("Invalid value "
-        + "[https://unresolvable.host:12345, http://localhost:2589] for configuration "
+        + "[https://unresolvable_host:12345, http://localhost:2589] for configuration "
         + LISTENERS_CONFIG
         + ": Could not resolve first host"
     );

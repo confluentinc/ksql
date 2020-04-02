@@ -177,7 +177,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
   }
 
   public void closeMetrics() {
-    pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
+    if (pullQueryMetrics != null) {
+      pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
+    }
   }
 
   private void throwIfNotConfigured() {

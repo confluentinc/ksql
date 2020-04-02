@@ -203,6 +203,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_METRICS_ENABLED_DOC =
       "Config to enable/disable collecting JMX metrics for pull queries.";
 
+  public static final String KSQL_QUERY_PULL_MAX_QPS_CONFIG = "ksql.query.pull.max.qps";
+  public static final Integer KSQL_QUERY_PULL_MAX_QPS_DEFAULT = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
+      + "queries. Once the limit is hit, queries will fail immediately";
+
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of();
 
@@ -631,6 +636,13 @@ public class KsqlConfig extends AbstractConfig {
             false,
             Importance.LOW,
             KSQL_QUERY_PULL_METRICS_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_MAX_QPS_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_MAX_QPS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_MAX_QPS_DOC
         )
         .withClientSslSupport();
 

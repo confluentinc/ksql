@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -23,6 +24,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
@@ -129,6 +131,7 @@ public final class PullQueryExecutor {
 
   private final KsqlExecutionContext executionContext;
   private final RoutingFilterFactory routingFilterFactory;
+  private final RateLimiter rateLimiter;
 
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
@@ -138,6 +141,8 @@ public final class PullQueryExecutor {
     this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
+    this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
+        KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -169,6 +174,15 @@ public final class PullQueryExecutor {
     }
 
     try {
+      final RoutingOptions routingOptions = new ConfigRoutingOptions(
+          statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
+      final boolean isAlreadyForwarded = routingOptions.skipForwardRequest();
+
+      // Only check the rate limit at the forwarding host
+      if (!isAlreadyForwarded) {
+        checkRateLimit();
+      }
+
       final ImmutableAnalysis analysis = new RewrittenAnalysis(
           analyze(statement, executionContext),
           new ColumnReferenceRewriter()::process
@@ -201,7 +215,8 @@ public final class PullQueryExecutor {
           statement,
           executionContext,
           serviceContext,
-          pullQueryContext
+          pullQueryContext,
+          routingOptions
       );
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
@@ -213,15 +228,21 @@ public final class PullQueryExecutor {
     }
   }
 
+  @VisibleForTesting
+  void checkRateLimit() {
+    if (!rateLimiter.tryAcquire()) {
+      throw new KsqlException("Host is at rate limit for pull queries. Currently set to "
+          + rateLimiter.getRate() + " qps.");
+    }
+  }
+
   private TableRowsEntity handlePullQuery(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
-      final PullQueryContext pullQueryContext
+      final PullQueryContext pullQueryContext,
+      final RoutingOptions routingOptions
   ) {
-    final RoutingOptions routingOptions = new ConfigRoutingOptions(
-        statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
-
     // Get active and standby nodes for this key
     final Locator locator = pullQueryContext.mat.locator();
     final List<KsqlNode> filteredAndOrderedNodes = locator.locate(

@@ -212,7 +212,6 @@ public final class LagReportingAgent implements HostStatusListener {
       final Map<QueryStateStoreId, Map<Integer, LagInfo>> localLagMap
           = currentQueries.stream()
           .map(qm -> Pair.of(qm, qm.getAllLocalStorePartitionLags()))
-          .filter(pair -> pair.getRight() != null)
           .map(pair -> pair.getRight().entrySet().stream()
               .collect(Collectors.toMap(
                   e -> QueryStateStoreId.of(pair.getLeft().getQueryApplicationId(), e.getKey()),

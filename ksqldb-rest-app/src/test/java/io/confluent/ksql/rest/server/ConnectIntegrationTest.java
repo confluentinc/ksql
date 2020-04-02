@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.storage.StringConverter;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -108,7 +110,12 @@ public class ConnectIntegrationTest {
   public void afterRun() {
     Iterators.consumingIterator(connectNames.iterator())
         .forEachRemaining(
-            name -> ksqlRestClient.makeKsqlRequest("DROP CONNECTOR " + name + ";"));
+            name -> ksqlRestClient.makeKsqlRequest("DROP CONNECTOR `" + name + "`;"));
+
+    assertThatEventually(
+        () -> ((ConnectorList) ksqlRestClient.makeKsqlRequest("SHOW CONNECTORS;").getResponse().get(0)).getConnectors(),
+        Matchers.empty()
+    );
   }
 
   @Test
@@ -130,8 +137,10 @@ public class ConnectIntegrationTest {
     assertThat(
         ((ConnectorList) response.getResponse().get(0)).getConnectors().get(0).getName(),
         is("mock-connector"));
-    assertThat(
-        ((ConnectorList) response.getResponse().get(0)).getConnectors().get(0).getState(),
+
+    assertThatEventually(
+        () -> ((ConnectorList) ksqlRestClient.makeKsqlRequest("SHOW CONNECTORS;").getResponse()
+            .get(0)).getConnectors().get(0).getState(),
         is("RUNNING (1/1 tasks RUNNING)"));
   }
 

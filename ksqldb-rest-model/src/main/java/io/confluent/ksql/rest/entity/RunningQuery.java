@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -30,7 +31,8 @@ public class RunningQuery {
   private final Set<String> sinks;
   private final Set<String> sinkKafkaTopics;
   private final QueryId id;
-  private final QueryStateCount state;
+  private final Optional<String> state;
+  private final QueryStateCount stateCount;
 
   @JsonCreator
   public RunningQuery(
@@ -38,13 +40,15 @@ public class RunningQuery {
       @JsonProperty("sinks") final Set<String> sinks,
       @JsonProperty("sinkKafkaTopics") final Set<String> sinkKafkaTopics,
       @JsonProperty("id") final QueryId id,
-      @JsonProperty("state") final QueryStateCount state
+      @JsonProperty("state") final Optional<String> state, // Kept for backwards compatibility.
+      @JsonProperty("stateCount") final QueryStateCount stateCount
   ) {
     this.queryString = Objects.requireNonNull(queryString, "queryString");
     this.sinkKafkaTopics = Objects.requireNonNull(sinkKafkaTopics, "sinkKafkaTopics");
     this.sinks = Objects.requireNonNull(sinks, "sinks");
     this.id = Objects.requireNonNull(id, "id");
     this.state = Objects.requireNonNull(state, "state");
+    this.stateCount = Objects.requireNonNull(stateCount, "stateCount");
   }
 
   public String getQueryString() {
@@ -68,8 +72,12 @@ public class RunningQuery {
     return id;
   }
 
-  public QueryStateCount getState() {
+  public Optional<String> getState() {
     return state;
+  }
+  
+  public QueryStateCount getStateCount() {
+    return stateCount;
   }
 
   @Override
@@ -85,11 +93,11 @@ public class RunningQuery {
         && Objects.equals(queryString, that.queryString)
         && Objects.equals(sinks, that.sinks)
         && Objects.equals(sinkKafkaTopics, that.sinkKafkaTopics)
-        && Objects.equals(state, that.state);
+        && Objects.equals(stateCount, that.stateCount);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, queryString, sinks, sinkKafkaTopics, state);
+    return Objects.hash(id, queryString, sinks, sinkKafkaTopics, stateCount);
   }
 }

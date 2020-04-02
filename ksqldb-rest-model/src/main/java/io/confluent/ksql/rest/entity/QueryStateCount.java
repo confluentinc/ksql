@@ -19,12 +19,10 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.apache.kafka.streams.KafkaStreams;
 
@@ -36,38 +34,34 @@ import org.apache.kafka.streams.KafkaStreams;
 public class QueryStateCount {
   
   // Use a EnumMap so toString() will always return the same string
-  private final EnumMap<KafkaStreams.State, Integer> state;
+  private final EnumMap<KafkaStreams.State, Integer> states;
 
   public QueryStateCount() {
-    this.state = returnEnumMap();
+    this.states = returnEnumMap();
   }
 
+  @SuppressWarnings("unused") // Invoked by reflection
   @JsonCreator
-  public QueryStateCount(final String serializedPair) {
-    final Map<String, String> pairs =
-        Splitter.on(",").withKeyValueSeparator(":").split(serializedPair);
-    this.state = pairs.entrySet().stream().collect(
-        Collectors.toMap(
-            e -> KafkaStreams.State.valueOf(e.getKey().trim()),
-            e -> Integer.parseInt(e.getValue()),
-            (k1, k2) -> {
-              throw new IllegalArgumentException("Duplicate key " + k2);
-            },
-            () -> new EnumMap<>(KafkaStreams.State.class)));
+  public QueryStateCount(final Map<KafkaStreams.State, Integer> states) {
+    this.states = states.isEmpty() ? returnEnumMap() : new EnumMap<>(states);
   }
 
+  
   public void updateStateCount(final String state, final int change) {
     updateStateCount(KafkaStreams.State.valueOf(state), change);
   }
 
   public void updateStateCount(final KafkaStreams.State state, final int change) {
-    final int newCount = this.state.getOrDefault(state, 0) + change;
-    this.state.put(state, newCount);
+    this.states.compute(state, (key, existing) ->
+        existing == null
+            ? change
+            : existing + change);
     
   }
 
-  public Map<KafkaStreams.State, Integer> getState() {
-    return state;
+  @JsonValue
+  public Map<KafkaStreams.State, Integer> getStates() {
+    return states;
   }
 
   @Override
@@ -81,18 +75,17 @@ public class QueryStateCount {
     }
 
     final QueryStateCount that = (QueryStateCount) o;
-    return Objects.equals(state, that.state);
+    return Objects.equals(states, that.states);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(state);
+    return Objects.hash(states);
   }
 
-  @JsonValue
   @Override
   public String toString() {
-    return Joiner.on(",").withKeyValueSeparator(":").join(this.state);
+    return Joiner.on(",").withKeyValueSeparator(":").join(this.states);
   }
   
   private static EnumMap<KafkaStreams.State, Integer> returnEnumMap() {

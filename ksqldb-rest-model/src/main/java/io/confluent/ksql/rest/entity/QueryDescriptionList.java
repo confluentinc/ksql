@@ -18,6 +18,9 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
@@ -28,10 +31,10 @@ public class QueryDescriptionList extends KsqlEntity {
   @JsonCreator
   public QueryDescriptionList(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("queryDescriptions") final List<QueryDescription> queryDescriptions
+      @JsonProperty("queryDescriptions") final Collection<QueryDescription> queryDescriptions
   ) {
     super(statementText);
-    this.queryDescriptions = queryDescriptions;
+    this.queryDescriptions = ImmutableList.copyOf(queryDescriptions);
   }
 
   public List<QueryDescription> getQueryDescriptions() {

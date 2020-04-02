@@ -57,7 +57,7 @@ public class QueryDescription {
       @JsonProperty("topology") final String topology,
       @JsonProperty("executionPlan") final String executionPlan,
       @JsonProperty("overriddenProperties") final Map<String, Object> overriddenProperties,
-      @JsonProperty("state") final Optional<String> state,
+      @JsonProperty("state") final Optional<String> state, // Kept for backwards compatibility.
       @JsonProperty("ksqlHostQueryState") final Map<KsqlHostInfoEntity, String> ksqlHostQueryState
   ) {
     this.id = Objects.requireNonNull(id, "id");

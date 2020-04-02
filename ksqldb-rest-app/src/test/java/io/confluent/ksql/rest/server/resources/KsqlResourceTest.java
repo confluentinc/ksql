@@ -121,7 +121,6 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -150,7 +149,6 @@ import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -176,8 +174,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.state.HostInfo;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
@@ -1992,17 +1990,15 @@ public class KsqlResourceTest {
 
     return createQueries(sql, overriddenProperties)
         .stream()
-        .map(md -> {
-          final QueryStateCount queryStateCount = new QueryStateCount();
-          queryStateCount.updateStateCount(md.getState(), 1);
-          return new RunningQuery(
+        .map(md -> new RunningQuery(
             md.getStatementString(),
             ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
-                  queryStateCount
-          );
-        }).collect(Collectors.toList());
+            Optional.empty(),
+            new QueryStateCount(
+                Collections.singletonMap(KafkaStreams.State.valueOf(md.getState()), 1)))
+        ).collect(Collectors.toList());
   }
 
   private KsqlErrorMessage makeFailingRequest(final String ksql, final Code errorCode) {

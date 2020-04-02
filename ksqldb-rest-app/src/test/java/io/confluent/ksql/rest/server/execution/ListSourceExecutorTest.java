@@ -39,9 +39,9 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.QueryStateCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
+import io.confluent.ksql.rest.entity.QueryStateCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
@@ -58,11 +58,13 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -251,8 +253,8 @@ public class ListSourceExecutorTest {
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    final QueryStateCount queryStateCount = new QueryStateCount();
-    queryStateCount.updateStateCount(metadata.getState(), 1);
+    final QueryStateCount queryStateCount = new QueryStateCount(
+        Collections.singletonMap(KafkaStreams.State.valueOf(metadata.getState()), 1));
 
     assertThat(sourceDescription.getSourceDescription(),
         equalTo(SourceDescriptionFactory.create(
@@ -264,8 +266,8 @@ public class ListSourceExecutorTest {
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
                 ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
                 metadata.getQueryId(),
-                    queryStateCount
-            )),
+                Optional.of(queryStateCount.toString()),
+                queryStateCount)),
             Optional.empty())));
   }
 

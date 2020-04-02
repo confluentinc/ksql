@@ -147,13 +147,6 @@ public final class KsqlTarget {
         r -> deserialize(r.getBody(), KsqlEntityList.class)
     );
   }
-  
-  public RestResponse<KsqlEntityList> postKsqlRequest(
-      final String ksql,
-      final Optional<Long> previousCommandSeqNum
-  ) {
-    return postKsqlRequest(ksql, Collections.emptyMap(), previousCommandSeqNum);
-  }
 
   public RestResponse<List<StreamedRow>> postQueryRequest(
       final String ksql,

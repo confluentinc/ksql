@@ -29,11 +29,11 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.QueryStateCount;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.QueryStateCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.serde.FormatFactory;
@@ -44,6 +44,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
@@ -111,8 +112,8 @@ public class ListQueriesExecutorTest {
             ImmutableSet.of(metadata.getSinkName().text()),
             ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
             metadata.getQueryId(),
-                queryStateCount
-        )));
+            Optional.of(queryStateCount.toString()),
+            queryStateCount)));
   }
 
   @Test

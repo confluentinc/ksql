@@ -347,7 +347,7 @@ def job = {
 
 def post = {
     withDockerServer([uri: dockerHost()]) {
-        repos = config.dockerArtifacts + config.dockerRepos + config.dockerPullDeps
+        repos = config.dockerArtifacts + config.dockerRepos
         repos.reverse().each { dockerRepo ->
             if (params.PROMOTE_TO_PRODUCTION) {
                 sh """#!/usr/bin/env bash \n

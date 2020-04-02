@@ -108,7 +108,7 @@ Start the KSQL CLI:
 .. codewithvars:: bash
 
   docker run --network tutorials_default --rm --interactive --tty \
-      confluentinc/cp-ksql-cli:|release| \
+      confluentinc/cp-ksqldb-cli:|release| \
       http://ksql-server:8088
 
 In the KSQL CLI, ensure that ``raw-topic`` is available: 

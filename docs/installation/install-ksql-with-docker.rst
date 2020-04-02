@@ -5,8 +5,8 @@ Install KSQL with Docker
 
 You can deploy KSQL by using Docker containers. Starting with |cp| 4.1.2,
 Confluent maintains images at `Docker Hub <https://hub.docker.com/u/confluentinc>`__
-for `KSQL Server <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ and
-the `KSQL command-line interface (CLI) <https://hub.docker.com/r/confluentinc/cp-ksql-cli/>`__.
+for `KSQL Server <https://hub.docker.com/r/confluentinc/cp-ksqldb-server/>`__ and
+the `KSQL command-line interface (CLI) <https://hub.docker.com/r/confluentinc/cp-ksqldb-cli/>`__.
 
 KSQL runs separately from your |ak-tm| cluster, so you specify the IP addresses
 of the cluster's bootstrap servers when you start a container for KSQL Server.
@@ -98,7 +98,7 @@ a container:
     -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
     -e KSQL_KSQL_SERVICE_ID=ksql_standalone_1_ \
     -e KSQL_KSQL_QUERIES_FILE=/path/in/container/queries.sql \
-    confluentinc/cp-ksql-server:|release|
+    confluentinc/cp-ksqldb-server:|release|
 
 ``KSQL_BOOTSTRAP_SERVERS``
     A list of hosts for establishing the initial connection to the Kafka
@@ -134,7 +134,7 @@ the specified interceptor classes in a container:
     -e KSQL_PRODUCER_INTERCEPTOR_CLASSES=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor \
     -e KSQL_CONSUMER_INTERCEPTOR_CLASSES=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor \
     -e KSQL_KSQL_QUERIES_FILE=/path/in/container/queries.sql \
-    confluentinc/cp-ksql-server:|release|
+    confluentinc/cp-ksqldb-server:|release|
 
 ``KSQL_BOOTSTRAP_SERVERS``
     A list of hosts for establishing the initial connection to the Kafka
@@ -170,7 +170,7 @@ Run a KSQL Server that enables manual interaction by using the KSQL CLI:
     -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
     -e KSQL_LISTENERS=http://0.0.0.0:8088/ \
     -e KSQL_KSQL_SERVICE_ID=ksql_service_2_ \
-    confluentinc/cp-ksql-server:|release|
+    confluentinc/cp-ksqldb-server:|release|
 
 ``KSQL_BOOTSTRAP_SERVERS``
     A list of hosts for establishing the initial connection to the Kafka
@@ -204,7 +204,7 @@ the KSQL CLI:
     -e KSQL_KSQL_SERVICE_ID=ksql_service_3_ \
     -e KSQL_PRODUCER_INTERCEPTOR_CLASSES=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor \
     -e KSQL_CONSUMER_INTERCEPTOR_CLASSES=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor \
-    confluentinc/cp-ksql-server:|release|
+    confluentinc/cp-ksqldb-server:|release|
 
 ``KSQL_BOOTSTRAP_SERVERS``
     A list of hosts for establishing the initial connection to the Kafka
@@ -253,7 +253,7 @@ Run a KSQL Server that uses a secure connection to a Kafka cluster:
     -e KSQL_SECURITY_PROTOCOL=SASL_SSL \
     -e KSQL_SASL_MECHANISM=PLAIN \
     -e KSQL_SASL_JAAS_CONFIG="org.apache.kafka.common.security.plain.PlainLoginModule required username=\"<username>\" password=\"<strong-password>\";" \
-    confluentinc/cp-ksql-server:|release|
+    confluentinc/cp-ksqldb-server:|release|
 
 ``KSQL_BOOTSTRAP_SERVERS``
     A list of hosts for establishing the initial connection to the Kafka
@@ -312,7 +312,7 @@ Run a KSQL Server with a configuration that's defined by Java properties:
     -v /path/on/host:/path/in/container/ \
     -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
     -e KSQL_OPTS="-Dksql.service.id=ksql_service_3_  -Dksql.queries.file=/path/in/container/queries.sql" \
-    confluentinc/cp-ksql-server:|release|
+    confluentinc/cp-ksqldb-server:|release|
 
 ``KSQL_BOOTSTRAP_SERVERS``
     A list of hosts for establishing the initial connection to the Kafka
@@ -389,10 +389,10 @@ running in a different container.
   docker run -d -p 10.0.0.11:8088:8088 \
     -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
     -e KSQL_OPTS="-Dksql.service.id=ksql_service_3_  -Dlisteners=http://0.0.0.0:8088/" \  
-    confluentinc/cp-ksql-server:|release|
+    confluentinc/cp-ksqldb-server:|release|
 
   # Connect the KSQL CLI to the server.
-  docker run -it confluentinc/cp-ksql-cli http://10.0.0.11:8088 
+  docker run -it confluentinc/cp-ksqldb-cli http://10.0.0.11:8088 
 
 ``KSQL_BOOTSTRAP_SERVERS``
     A list of hosts for establishing the initial connection to the Kafka
@@ -421,7 +421,7 @@ container:
 
   docker run -it \
     -v /path/on/host/:/path/in/container  \
-    confluentinc/cp-ksql-cli:|release| http://10.0.0.11:8088 \
+    confluentinc/cp-ksqldb-cli:|release| http://10.0.0.11:8088 \
     --config-file /path/in/container/ksql-cli.properties
 
 .. _ksql-cli-connect-to-hosted-server:
@@ -434,7 +434,7 @@ host:
 
 .. codewithvars:: bash
 
-  docker run -it confluentinc/cp-ksql-cli:|release| \
+  docker run -it confluentinc/cp-ksqldb-cli:|release| \
     http://ec2-blah.us-blah.compute.amazonaws.com:8080
 
 Your output should resemble:
@@ -534,8 +534,8 @@ either ``Entrypoint`` or ``Cmd``:
 
 .. codewithvars:: bash
 
-   docker inspect --format='{{.Config.Entrypoint}}' confluentinc/cp-ksql-server:|release|
-   docker inspect --format='{{.Config.Cmd}}' confluentinc/cp-ksql-server:|release|
+   docker inspect --format='{{.Config.Entrypoint}}' confluentinc/cp-ksqldb-server:|release|
+   docker inspect --format='{{.Config.Cmd}}' confluentinc/cp-ksqldb-server:|release|
 
 Your output should resemble:
 
@@ -557,7 +557,7 @@ a tar archive into it.
 .. codewithvars:: yaml
 
    ksql-server:
-     image: confluentinc/cp-ksql-server:|release|
+     image: confluentinc/cp-ksqldb-server:|release|
      depends_on:
        - kafka
      environment:
@@ -574,7 +574,7 @@ a tar archive into it.
 
 
 After the ``mkdir``, ``cd``, ``curl``, and ``tar`` commands run,
-the ``/etc/confluent/docker/run`` command starts the ``cp-ksql-server`` image
+the ``/etc/confluent/docker/run`` command starts the ``cp-ksqldb-server`` image
 with the specified settings.
 
 .. note::
@@ -598,7 +598,7 @@ state.
 .. codewithvars:: yaml
 
    ksql-cli:
-     image: confluentinc/cp-ksql-cli:|release|
+     image: confluentinc/cp-ksqldb-cli:|release|
      depends_on:
        - ksql-server
      volumes:

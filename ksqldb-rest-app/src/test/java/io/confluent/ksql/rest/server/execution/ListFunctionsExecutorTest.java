@@ -15,10 +15,8 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.rest.SessionProperties;
@@ -57,11 +55,5 @@ public class ListFunctionsExecutorTest {
         new SimpleFunctionInfo("TEST_UDTF1", FunctionType.TABLE),
         new SimpleFunctionInfo("TEST_UDTF2", FunctionType.TABLE)
     ));
-
-    assertThat("shouldn't contain internal functions", functionList.getFunctions(),
-        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.SCALAR)))
-    );
   }
-
-
 }

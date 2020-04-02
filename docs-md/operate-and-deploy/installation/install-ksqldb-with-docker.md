@@ -331,7 +331,7 @@ Your output should resemble:
 
 ```
 ... 
-Copyright 2017-2019 Confluent Inc.
+Copyright 2017-2020 Confluent Inc.
 
 CLI v{{ site.release }}, Server v{{ site.release }} located at http://ec2-blah.us-blah.compute.amazonaws.com:8080
 

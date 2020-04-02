@@ -192,7 +192,7 @@ You should now be in the KSQL CLI.
                 =        for stream processing apps       =
                 ===========================================
 
-Copyright 2017-2019 Confluent Inc.
+Copyright 2017-2020 Confluent Inc.
 
 CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksql-server:8088
 

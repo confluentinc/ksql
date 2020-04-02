@@ -53,7 +53,7 @@
       "outputs": [{"topic": "OUTPUT", "key": "Oxford", "value": {"ID": 10, "ADDRESS": {"STREET": "1st Steet", "TOWN": "Oxford"}, "AGE": 22}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ADDRESS__TOWN STRING KEY, ADDRESS STRUCT<STREET STRING, TOWN STRING>, AGE INT, ID INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "TOWN STRING KEY, ADDRESS STRUCT<STREET STRING, TOWN STRING>, AGE INT, ID INT"}
         ]
       }
     },
@@ -68,7 +68,7 @@
       },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Value column name(s) `ADDRESS__TOWN` clashes with key column name(s)"
+        "message": "Value column name(s) `TOWN` clashes with key column name(s)"
       }
     },
     {

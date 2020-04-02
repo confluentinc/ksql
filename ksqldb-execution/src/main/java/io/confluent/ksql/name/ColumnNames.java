@@ -17,28 +17,30 @@ package io.confluent.ksql.name;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashMap;
 import java.util.List;
-import java.util.OptionalInt;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public final class ColumnNames {
 
   private static final String AGGREGATE_COLUMN_PREFIX = "KSQL_AGG_VARIABLE_";
-  private static final String GENERATED_ALIAS_PREFIX = "KSQL_COL_";
+  private static final String GENERATED_ALIAS_PREFIX = "KSQL_COL";
   private static final String SYNTHESISED_COLUMN_PREFIX = "KSQL_SYNTH_";
 
-  private static final Pattern GENERATED_ALIAS_PATTERN = Pattern
-      .compile(GENERATED_ALIAS_PREFIX + "(\\d+)");
+  private static final Pattern NUMBERED_COLUMN_PATTERN = Pattern.compile("(.*?)?(?:_(\\d+))?");
 
   private ColumnNames() {
   }
@@ -61,14 +63,26 @@ public final class ColumnNames {
    * @param sourceSchemas the stream of source schemas.
    * @return a generator of unique column names.
    */
-  public static Supplier<ColumnName> columnAliasGenerator(
+  public static ColumnAliasGenerator columnAliasGenerator(
       final Stream<LogicalSchema> sourceSchemas
   ) {
-    final Set<Integer> used = generatedAliasIndexes(sourceSchemas)
-        .boxed()
-        .collect(Collectors.toSet());
+    final Map<String, AliasGenerator> used = buildAliasGenerators(sourceSchemas);
 
-    return new AliasGenerator(0, used)::next;
+    return new ColumnAliasGenerator() {
+      final StructFieldAliasGenerator generator = new StructFieldAliasGenerator(used);
+
+      @Override
+      public ColumnName nextKsqlColAlias() {
+        return used.get(GENERATED_ALIAS_PREFIX).next();
+      }
+
+      @Override
+      public ColumnName uniqueAliasFor(final Expression expression) {
+        return expression instanceof DereferenceExpression
+            ? generator.next((DereferenceExpression) expression)
+            : nextKsqlColAlias();
+      }
+    };
   }
 
   /**
@@ -90,54 +104,84 @@ public final class ColumnNames {
     return ColumnName.of(sourceName.text() + "_" + ref.text());
   }
 
-  /**
-   * Used to generate the column name of an unaliased Struct Field, i.e. a `DereferenceExpression`.
-   *
-   * @param dereferenceExp the `DereferenceExpression` instance.
-   * @return the column name.
-   */
-  public static ColumnName generatedStructFieldColumnName(final Object dereferenceExp) {
-    final String text = dereferenceExp.toString();
-    final String name = text.substring(text.indexOf(KsqlConstants.DOT) + 1)
-        .replace(KsqlConstants.DOT, "_")
-        .replace(KsqlConstants.STRUCT_FIELD_REF, "__");
-    return ColumnName.of(name);
-  }
-
   public static boolean isAggregate(final ColumnName name) {
     return name.text().startsWith(AGGREGATE_COLUMN_PREFIX);
   }
 
-  private static OptionalInt extractGeneratedAliasIndex(final ColumnName columnName) {
-    final Matcher matcher = GENERATED_ALIAS_PATTERN.matcher(columnName.text());
-    return matcher.matches()
-        ? OptionalInt.of(Integer.parseInt(matcher.group(1)))
-        : OptionalInt.empty();
-  }
-
-  private static IntStream generatedAliasIndexes(final Stream<LogicalSchema> sourceSchema) {
-    return sourceSchema
+  private static Map<String, AliasGenerator> buildAliasGenerators(
+      final Stream<LogicalSchema> sourceSchema
+  ) {
+    final Map<String, Set<Integer>> used = sourceSchema
         .map(LogicalSchema::columns)
         .flatMap(List::stream)
         .map(Column::name)
-        .map(ColumnNames::extractGeneratedAliasIndex)
-        .filter(OptionalInt::isPresent)
-        .mapToInt(OptionalInt::getAsInt);
+        .map(ColumnName::text)
+        .map(NUMBERED_COLUMN_PATTERN::matcher)
+        .collect(Collectors.toMap(
+            ColumnNames::columnNameWithoutNumber,
+            ColumnNames::extractNumber,
+            Sets::union
+        ));
+
+    final Map<String, AliasGenerator> generators = used.entrySet().stream()
+        .collect(Collectors.toMap(
+            Entry::getKey,
+            e -> new AliasGenerator(
+                0, e.getKey(),
+                e.getValue()
+            )
+        ));
+
+    generators.computeIfAbsent(
+        GENERATED_ALIAS_PREFIX,
+        k -> new AliasGenerator(0, k, ImmutableSet.of())
+    );
+
+    return generators;
+  }
+
+  private static String columnNameWithoutNumber(final Matcher matcher) {
+    if (!matcher.matches()) {
+      throw new IllegalStateException();
+    }
+
+    return matcher.group(1);
+  }
+
+  private static Set<Integer> extractNumber(final Matcher matcher) {
+    if (!matcher.matches()) {
+      throw new IllegalStateException();
+    }
+
+    return matcher.group(2) == null
+        ? ImmutableSet.of(0)
+        : ImmutableSet.of(Integer.parseInt(matcher.group(2)));
   }
 
   @VisibleForTesting
   static final class AliasGenerator {
 
     private final Set<Integer> used;
+    private final String prefix;
+    private final boolean dropZero;
     private int next;
 
-    AliasGenerator(final int initial, final Set<Integer> used) {
+    AliasGenerator(
+        final int initial,
+        final String prefix,
+        final Set<Integer> used
+    ) {
       this.used = ImmutableSet.copyOf(used);
       this.next = initial;
+      this.prefix = Objects.requireNonNull(prefix, "prefix");
+      this.dropZero = !prefix.equals(GENERATED_ALIAS_PREFIX);
     }
 
     ColumnName next() {
-      return ColumnName.of(GENERATED_ALIAS_PREFIX + nextIndex());
+      final int idx = nextIndex();
+      return idx == 0 && dropZero
+          ? ColumnName.of(prefix)
+          : ColumnName.of(prefix + "_" + idx);
     }
 
     private int nextIndex() {
@@ -154,6 +198,23 @@ public final class ColumnNames {
       } while (used.contains(idx));
 
       return idx;
+    }
+  }
+
+  private static final class StructFieldAliasGenerator {
+
+    private final Map<String, AliasGenerator> usedFieldNames;
+
+    StructFieldAliasGenerator(final Map<String, AliasGenerator> used) {
+      this.usedFieldNames = new HashMap<>(used);
+    }
+
+    ColumnName next(final DereferenceExpression e) {
+      final String key = columnNameWithoutNumber(NUMBERED_COLUMN_PATTERN.matcher(e.getFieldName()));
+      final AliasGenerator generator = usedFieldNames
+          .computeIfAbsent(key, k -> new AliasGenerator(0, k, ImmutableSet.of()));
+
+      return generator.next();
     }
   }
 }

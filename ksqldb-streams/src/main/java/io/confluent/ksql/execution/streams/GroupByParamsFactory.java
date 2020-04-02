@@ -22,13 +22,13 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
+import io.confluent.ksql.name.ColumnAliasGenerator;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
@@ -39,7 +39,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
@@ -83,17 +82,9 @@ final class GroupByParamsFactory {
 
   private static LogicalSchema buildSchemaWithKeyType(
       final LogicalSchema sourceSchema,
-      final Optional<ColumnName> keyColName,
-      final SqlType keyType,
-      final KsqlConfig ksqlConfig
+      final ColumnName keyName,
+      final SqlType keyType
   ) {
-    final ColumnName keyName = keyColName
-        .orElseGet(() ->
-            ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
-                ? ColumnNames.columnAliasGenerator(Stream.of(sourceSchema)).get()
-                : SchemaUtil.ROWKEY_NAME
-        );
-
     return LogicalSchema.builder()
         .withRowTime()
         .keyColumn(keyName, keyType)
@@ -181,21 +172,22 @@ final class GroupByParamsFactory {
       final SqlType keyType = groupBy.getExpressionType();
       final Expression groupByExp = groupBy.getExpression();
 
-      final Optional<ColumnName> singleColumnName;
+      final ColumnAliasGenerator keyAliasGenerator = ColumnNames
+          .columnAliasGenerator(Stream.of(sourceSchema));
+
+      final ColumnName singleColumnName;
 
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
         if (groupByExp instanceof ColumnReferenceExp) {
-          singleColumnName = Optional.of(((ColumnReferenceExp) groupByExp).getColumnName());
-        } else if (groupByExp instanceof DereferenceExpression) {
-          singleColumnName = Optional.of(ColumnNames.generatedStructFieldColumnName(groupByExp));
+          singleColumnName = ((ColumnReferenceExp) groupByExp).getColumnName();
         } else {
-          singleColumnName = Optional.empty();
+          singleColumnName = keyAliasGenerator.uniqueAliasFor(groupByExp);
         }
       } else {
-        singleColumnName = Optional.empty();
+        singleColumnName = SchemaUtil.ROWKEY_NAME;
       }
 
-      return buildSchemaWithKeyType(sourceSchema, singleColumnName, keyType, ksqlConfig);
+      return buildSchemaWithKeyType(sourceSchema, singleColumnName, keyType);
     }
   }
 
@@ -251,6 +243,10 @@ final class GroupByParamsFactory {
       final LogicalSchema sourceSchema,
       final KsqlConfig ksqlConfig
   ) {
-    return buildSchemaWithKeyType(sourceSchema, Optional.empty(), SqlTypes.STRING, ksqlConfig);
+    final ColumnName keyName = ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
+        ? ColumnNames.columnAliasGenerator(Stream.of(sourceSchema)).nextKsqlColAlias()
+        : SchemaUtil.ROWKEY_NAME;
+
+    return buildSchemaWithKeyType(sourceSchema, keyName, SqlTypes.STRING);
   }
 }

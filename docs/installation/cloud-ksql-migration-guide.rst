@@ -1,13 +1,13 @@
 .. _cloud-ksql-migration-guide:
 
-Migrate |ccloud| KSQL to the production-available version
-#########################################################
+Migrate |ccloud| KSQL applications
+##################################
 
 To deliver the benefits of new features and improvements as soon as they become
 available, new versions of |ccloud| KSQL are deployed frequently. Most of these
 deployments are invisible to you as a user, requiring no action on your part.
 
-The production-available version of |ccloud| KSQL is not backward-compatible 
+The production-available (PA) version of |ccloud| KSQL is not backward-compatible 
 with earlier versions, but after the release of the production-available
 version, we're committed to preserving backward compatibility.
 

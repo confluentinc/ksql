@@ -26,19 +26,21 @@ Upgrading to ksqlDB 5.5 from KSQL 5.4
    ./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic _confluent-ksql-default__command_topic --from-beginning | jq ".statement" 
    ```
 
-#. List your application's streams, tables, and types. Don't use the EXTENDED
-   option. Go through each list, and find the the last CREATE statement for each
-   stream/table/type name. Order the CREATE statements so they show the correct
-   dependencies.
+#. Use the DESCRIBE statement to list your application's streams, tables, and
+   types. Don't use the EXTENDED option. Go through each list and re-create the
+   corresponding CREATE statements based on the displayed schemas.
    
 #. Make other compatibility-related changes, as shown in the
    `upgrade guide <https://docs.ksqldb.io/en/latest/operate-and-deploy/installation/upgrading/#how-to-upgrade>`__.
 
+#. Save your statements as an SQL file. 
+
 #. Stop the ``ksql`` service.
 
-#. Uninstall the ksql 5.4 DEB or RPM package.
+#. Uninstall the ksql 5.4 DEB or RPM package. For RPM, you can use the
+   ``yum swap`` command.
 
-#. Install the ksqldb 5.5 DEB or RPM package.
+#. Install the ksqldb 5.5 DEB or RPM package. 
 
 #. Copy the version 5.4 configuration file to the ksqldb 5.5 configuration
    folder, which is located at ``${CONFLUENT_HOME}/etc/ksqldb``:
@@ -54,7 +56,7 @@ Upgrading to ksqlDB 5.5 from KSQL 5.4
    :ref:`role-based access control (RBAC) <ksql-rbac>`,
    :ref:`ACLs <config-security-ksql-acl>`, and no authorization.
 
-#. Create three new role bindings or assign ACLs for the ``ksql`` service
+   Create three new role bindings or assign ACLs for the ``ksql`` service
    principal:
 
    - Topic: ``__consumer_offsets``
@@ -64,7 +66,7 @@ Upgrading to ksqlDB 5.5 from KSQL 5.4
 
 #. Start the ``ksqldb`` service.
 
-#. Run the file that you prepared previously.
+#. Run the SQL file that you prepared previously.
 
 .. note::
 

@@ -109,6 +109,14 @@ public class CmdLineUtilTest {
   }
 
   @Test
+  public void shouldCheckSplitIgnoreCommentedQuote() {
+    assertSplit("-- '\nSHOW TABLES;", "-- '", "SHOW", "TABLES;");
+
+    assertSplit("COMMAND -- '\nSHOW TABLES;", "COMMAND", "-- '", "SHOW", "TABLES;");
+    assertSplit("COMMAND-- '\nSHOW TABLES;", "COMMAND-- '", "SHOW", "TABLES;");
+  }
+
+  @Test
   public void shouldRemoveQuotesFromUnQuotedString() {
     assertMatchedQuotesRemoved(" some input ", " some input ");
   }

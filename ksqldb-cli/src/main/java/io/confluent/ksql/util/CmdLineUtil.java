@@ -70,6 +70,8 @@ public final class CmdLineUtil {
 
     private boolean inQuotes;
     private boolean inWhitespace;
+    private boolean inComment;
+    private char prevChar;
     private String input;
     private ImmutableList.Builder<String> output;
     private final StringBuilder currentToken = new StringBuilder();
@@ -77,6 +79,8 @@ public final class CmdLineUtil {
     private List<String> parse(final String s) {
       inQuotes = false;
       inWhitespace = false;
+      inComment = false;
+      prevChar = '\0';
       input = s.trim();
       currentToken.setLength(0);
       output = ImmutableList.builder();
@@ -99,8 +103,9 @@ public final class CmdLineUtil {
 
       if (!Character.isWhitespace(c)) {
         inWhitespace = false;
-      } else if (!inQuotes && !inWhitespace) {
+      } else if (!inQuotes && !inWhitespace && !(inComment && c != '\n')) {
         inWhitespace = true;
+        inComment = false;
 
         output.add(currentToken.toString());
         currentToken.setLength(0);
@@ -109,8 +114,11 @@ public final class CmdLineUtil {
       if (!inWhitespace) {
         currentToken.append(c);
       }
+      if (isLineComment(prevChar, c)) {
+        inComment = true;
+      }
 
-      if (c == '\'') {
+      if (c == '\'' && !inComment) {
         if (!inQuotes) {
           inQuotes = true;
         } else if (isEscapedChar(input, pos)) {
@@ -120,8 +128,13 @@ public final class CmdLineUtil {
           inQuotes = false;
         }
       }
+      prevChar = c;
       return returnPos;
     }
+  }
+
+  private static boolean isLineComment(char prevChar, char current) {
+    return prevChar == '-' && current == '-';
   }
 
   private static final class QuoteRemover {

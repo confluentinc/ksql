@@ -327,7 +327,7 @@ Also, you can output a struct from a query by using a SELECT statement.
 The following example creates a struct from a stream named `s1`.
 
 ```sql
-SELECT {f1 v1, f2 v2} FROM s1 EMIT CHANGES;
+SELECT STRUCT(f1 := v1, f2 := v2) FROM s1 EMIT CHANGES;
 ```
 
 ### Decimal

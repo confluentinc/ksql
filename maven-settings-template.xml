@@ -22,17 +22,6 @@
 
         <pluginRepository>
           <id>confluent-artifactory-central</id>
-          <url>PACKAGES_MAVEN_URL</url>
-          <snapshots>
-            <enabled>true</enabled>
-          </snapshots>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-        </pluginRepository>
-
-        <pluginRepository>
-          <id>confluent-artifactory-central</id>
           <name>Confluent Plugin Repository</name>
           <url>PACKAGES_MAVEN_URL</url>
           <layout>default</layout>

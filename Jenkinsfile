@@ -1,9 +1,10 @@
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
-    ksql_db_version = "0.8.1-SNAPSHOT"
-    cp_version = "6.0.0-beta200320180305"
+    ksql_db_version = "0.9.0"  // next version to be released
+    cp_version = "6.0.0-beta200320180305"  // must be a beta version from the packaging build
     packaging_build_number = "1"
+    default_git_revision = 'refs/heads/master'
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
     dockerArtifacts = ['confluentinc/ksqldb-docker', 'confluentinc/ksqldb-docker']
     dockerRepos = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
@@ -16,10 +17,10 @@ def baseConfig = {
 
 def defaultParams = [
     booleanParam(name: 'RELEASE_BUILD',
-        description: 'Is this a release build.',
+        description: 'Is this a release build. If so, GIT_REVISION must be specified, and the downstream CCloud job will not be triggered.',
         defaultValue: false),
     string(name: 'GIT_REVISION',
-        description: 'The git SHA to create the release build from.',
+        description: 'The git SHA to build ksqlDB from.',
         defaultValue: ''),
     booleanParam(name: 'PROMOTE_TO_PRODUCTION',
         defaultValue: false,
@@ -29,7 +30,7 @@ def defaultParams = [
         description: 'KSQLDB version to promote to production.'),
     booleanParam(name: 'UPDATE_LATEST_TAG',
         defaultValue: false,
-        description: 'Should the latest tag on docker hub be updated to point at this new image version.')
+        description: 'Should the latest tag on docker hub be updated to point at this new image version. Only relevant if PROMOTE_TO_PRODUCTION is true.')
 ]
 
 def updateConfig = { c ->
@@ -72,15 +73,15 @@ def job = {
             error("If you are doing a release build you must provide a git sha.")
         }
 
-        // For a release build we remove the -SNAPSHOT from the version.
-        config.ksql_db_version = config.ksql_db_version.tokenize("-")[0]
-        config.docker_tag = config.ksql_db_version
+        config.ksql_db_artifact_version = config.ksql_db_version
     } else {
-        config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-' + env.BUILD_NUMBER
+        // For non-release builds, we append the build number to the maven artifacts and docker image tag
+        config.ksql_db_artifact_version = config.ksql_db_version + '-rc' + env.BUILD_NUMBER
     }
+    config.docker_tag = config.ksql_db_artifact_version
     
     // Use revision param if provided, otherwise default to master
-    config.revision = params.GIT_REVISION ?: 'refs/heads/master'
+    config.revision = params.GIT_REVISION ?: config.default_git_revision
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"
@@ -168,6 +169,10 @@ def job = {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                            writeFile file:'create-pip-conf-with-jfrog.sh', text:libraryResource('scripts/create-pip-conf-with-jfrog.sh')
+                            writeFile file:'create-pypirc-with-jfrog.sh', text:libraryResource('scripts/create-pypirc-with-jfrog.sh')
+                            writeFile file:'setup-credential-store.sh', text:libraryResource('scripts/setup-credential-store.sh')
+                            writeFile file:'set-global-user.sh', text:libraryResource('scripts/set-global-user.sh')
                             sh '''
                                 bash extract-iam-credential.sh
 
@@ -175,17 +180,11 @@ def job = {
                                 set +x
 
                                 LOGIN_CMD=$(aws ecr get-login --no-include-email --region us-west-2)
-
                                 $LOGIN_CMD
-                            '''
-                            sh '''
+
+                                set -x
                                 echo $ARTIFACTORY_PASSWORD | docker login confluent-docker.jfrog.io -u $ARTIFACTORY_USERNAME --password-stdin
-                            '''
-                            writeFile file:'create-pip-conf-with-jfrog.sh', text:libraryResource('scripts/create-pip-conf-with-jfrog.sh')
-                            writeFile file:'create-pypirc-with-jfrog.sh', text:libraryResource('scripts/create-pypirc-with-jfrog.sh')
-                            writeFile file:'setup-credential-store.sh', text:libraryResource('scripts/setup-credential-store.sh')
-                            writeFile file:'set-global-user.sh', text:libraryResource('scripts/set-global-user.sh')
-                            sh '''
+
                                 bash create-pip-conf-with-jfrog.sh
                                 bash create-pypirc-with-jfrog.sh
                                 bash setup-credential-store.sh
@@ -198,20 +197,10 @@ def job = {
 
                             // Set the project versions in the pom files
                             sh "set -x"
-                            sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_version} -DgenerateBackupPoms=false"
+                            sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_artifact_version} -DgenerateBackupPoms=false"
 
                             // Set the version of the parent project to use.
                             sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
-
-                            if (config.release) {
-                                def git_tag = "v${config.ksql_db_version}-ksqldb"
-                                sh "git add ."
-                                sh "git commit -m \"build: Setting project version ${config.ksql_db_version} and parent version ${config. cp_version}.\""
-                                sh "git tag ${git_tag}"
-                                sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
-                                    sh "git push origin ${git_tag}"
-                                }
-                            }
 
                             cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
                             cmd += "-DskipTests "
@@ -226,13 +215,23 @@ def job = {
                                 sh cmd
                             }
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
+
+                            if (!config.isPrJob) {
+                                def git_tag = "v${config.ksql_db_artifact_version}-ksqldb"
+                                sh "git add ."
+                                sh "git commit -m \"build: Setting project version ${config.ksql_db_artifact_version} and parent version ${config.cp_version}.\""
+                                sh "git tag ${git_tag}"
+                                sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
+                                    sh "git push origin ${git_tag}"
+                                }
+                            }
                         }
                     }
                 }
         }
     }
 
-    if (!config.isPrJob && config.release) {
+    if (!config.isPrJob) {
         stage('Publish Maven Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
@@ -258,15 +257,15 @@ def job = {
     }
 
     if (!config.isPrJob) {
-            stage('Rename Maven Docker Images') {
-                withDockerServer([uri: dockerHost()]) {
-                    config.dockerRepos.eachWithIndex { dockerRepo, index ->
-                        dockerArtifact = config.dockerArtifacts[index]
-                        sh "docker tag ${config.dockerRegistry}${dockerArtifact}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}"
-                    }
+        stage('Rename ksqlDB Docker Images') {
+            withDockerServer([uri: dockerHost()]) {
+                config.dockerRepos.eachWithIndex { dockerRepo, index ->
+                    dockerArtifact = config.dockerArtifacts[index]
+                    sh "docker tag ${config.dockerRegistry}${dockerArtifact}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}"
                 }
             }
         }
+    }
 
     if(config.dockerScan && !config.isPrJob){
         stage('Twistloc scan') {
@@ -319,11 +318,29 @@ def job = {
                     sh "docker push ${config.dockerRegistry}${dockerRepo}:master-latest"
 
                     if (config.release) {
-                        sh "docker tag ${config.dockerRegistry}${dockerRepo}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-${env.BUILD_NUMBER}"
-                        sh "docker push ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-${env.BUILD_NUMBER}"
+                        // docker_tag for release builds does not include the build number
+                        // here we add it back so an image version with the build number always exists
+                        sh "docker tag ${config.dockerRegistry}${dockerRepo}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-rc${env.BUILD_NUMBER}"
+                        sh "docker push ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}-rc${env.BUILD_NUMBER}"
                     }
                 }
             }
+        }
+    }
+
+    // Build CCloud ksqlDB image
+
+    if (!config.release && !config.isPrJob) {
+        stage('Trigger CCloud ksqlDB Docker image job') {
+            build job: "confluentinc/cc-docker-ksql/master",
+                wait: false,
+                parameters: [
+                    booleanParam(name: "NIGHTLY_BUILD", value: true),
+                    string(name: "NIGHTLY_BUILD_NUMBER", value: "${env.BUILD_NUMBER}"),
+                    string(name: "CP_BETA_VERSION", value: "${config.cp_version}"),
+                    string(name: "CP_BETA_BUILD_NUMBER", value: "${config.packaging_build_number}"),
+                    string(name: "KSQLDB_ARTIFACT_VERSION", value: "${config.ksql_db_artifact_version}")
+                ]
         }
     }
 }

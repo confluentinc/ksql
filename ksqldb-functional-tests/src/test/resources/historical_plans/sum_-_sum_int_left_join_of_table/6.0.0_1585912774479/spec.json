@@ -1,0 +1,122 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585912774479,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, TOTAL INT> NOT NULL",
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, TOTAL INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<T1_ID BIGINT, T2_TOTAL INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<T1_ID BIGINT, T2_TOTAL INT, KSQL_AGG_VARIABLE_0 INT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, SUM INT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "T1",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "total" : 100
+    }
+  }, {
+    "topic" : "T1",
+    "key" : 1,
+    "value" : {
+      "id" : 1,
+      "total" : 101
+    }
+  }, {
+    "topic" : "T2",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "total" : 5
+    }
+  }, {
+    "topic" : "T2",
+    "key" : 1,
+    "value" : {
+      "id" : 1,
+      "total" : 10
+    }
+  }, {
+    "topic" : "T2",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "total" : 20
+    }
+  }, {
+    "topic" : "T2",
+    "key" : 0,
+    "value" : null
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "SUM" : 0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : {
+      "ID" : 1,
+      "SUM" : 0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "SUM" : 0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "SUM" : 5
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : {
+      "ID" : 1,
+      "SUM" : 0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : {
+      "ID" : 1,
+      "SUM" : 10
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "SUM" : 0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "SUM" : 20
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "SUM" : 0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "SUM" : 0
+    }
+  } ]
+}

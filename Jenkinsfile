@@ -336,6 +336,7 @@ def job = {
                 wait: false,
                 parameters: [
                     booleanParam(name: "NIGHTLY_BUILD", value: true),
+                    string(name: "NIGHTLY_BUILD_NUMBER", value: "${env.BUILD_NUMBER}"),
                     string(name: "CP_BETA_VERSION", value: "${config.cp_version}"),
                     string(name: "CP_BETA_BUILD_NUMBER", value: "${config.packaging_build_number}"),
                     string(name: "KSQLDB_ARTIFACT_VERSION", value: "${config.ksql_db_artifact_version}")

@@ -538,7 +538,7 @@
     {
       "name": "table | initially set | no key change | key in value | no aliasing",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [
@@ -557,7 +557,7 @@
     {
       "name": "table | initially set | no key change | key in value | aliasing",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo AS aliased, bar FROM INPUT;"
       ],
       "inputs": [
@@ -576,7 +576,7 @@
     {
       "name": "table | initially set | no key change | key not in value | -",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bar FROM INPUT;"
       ],
       "inputs": [
@@ -594,7 +594,7 @@
     {
       "name": "table | initially set | group by (same) | key in value | no aliasing",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
@@ -612,7 +612,7 @@
     {
       "name": "table | initially set | group by (same) | key in value | aliasing",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
@@ -630,7 +630,7 @@
     {
       "name": "table | initially set | group by (same) | key not in value | -",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
@@ -648,7 +648,7 @@
     {
       "name": "table | initially set | group by (different) | key in value | no aliasing",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;"
       ],
       "inputs": [
@@ -666,7 +666,7 @@
     {
       "name": "table | initially set | group by (different) | key in value | aliasing",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;"
       ],
       "inputs": [
@@ -684,7 +684,7 @@
     {
       "name": "table | initially set | group by (different) | key not in value | -",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;"
       ],
       "inputs": [

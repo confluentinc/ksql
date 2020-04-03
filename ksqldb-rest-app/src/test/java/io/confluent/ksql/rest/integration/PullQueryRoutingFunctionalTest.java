@@ -210,7 +210,7 @@ public class PullQueryRoutingFunctionalTest {
     makeAdminRequest(
         REST_APP_0,
         "CREATE STREAM " + USERS_STREAM
-            + " (" + USER_PROVIDER.ksqlSchemaString() + ")"
+            + " (" + USER_PROVIDER.ksqlSchemaString(false) + ")"
             + " WITH ("
             + "   kafka_topic='" + USER_TOPIC + "', "
             + "   key='" + USER_PROVIDER.key() + "', "

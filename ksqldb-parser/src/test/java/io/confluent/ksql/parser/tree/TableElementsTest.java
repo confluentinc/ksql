@@ -47,6 +47,7 @@ public class TableElementsTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     final List<TableElement> someElements = ImmutableList.of(

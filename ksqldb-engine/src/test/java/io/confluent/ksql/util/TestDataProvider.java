@@ -16,9 +16,11 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public abstract class TestDataProvider<K> {
 
@@ -45,8 +47,11 @@ public abstract class TestDataProvider<K> {
     return topicName;
   }
 
-  public String ksqlSchemaString() {
-    return schema.logicalSchema().toString();
+  public String ksqlSchemaString(final boolean asTable) {
+    return schema.logicalSchema().columns().stream()
+        .filter(col -> col.namespace() != Namespace.META)
+        .map(col -> col.name() + " " + col.type() + namespace(col.namespace(), asTable))
+        .collect(Collectors.joining(", "));
   }
 
   public String key() {
@@ -63,5 +68,15 @@ public abstract class TestDataProvider<K> {
 
   public String kstreamName() {
     return kstreamName;
+  }
+
+  private static String namespace(final Namespace namespace, final boolean asTable) {
+    if (namespace != Namespace.KEY) {
+      return "";
+    }
+
+    return asTable
+        ? " PRIMARY KEY"
+        : " KEY";
   }
 }

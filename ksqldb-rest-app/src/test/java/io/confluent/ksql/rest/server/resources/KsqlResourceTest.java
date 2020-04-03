@@ -457,10 +457,6 @@ public class KsqlResourceTest {
         new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
         new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE)
     ));
-
-    assertThat("shouldn't contain internal functions", functionList.getFunctions(),
-        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.SCALAR)))
-    );
   }
 
   @Test

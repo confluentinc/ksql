@@ -140,8 +140,8 @@ nav:
   - Troubleshooting: troubleshoot-ksqldb.md
   - Frequently Asked Questions: faq.md
   - Tutorials:
-      - Streaming ETL pipeline: app/etl.md
       - Materialized view/cache: app/materialized.md
+      - Streaming ETL pipeline: app/etl.md
       - Event-driven microservice: app/microservice.md
       - Frontend application: app/frontend.md
 

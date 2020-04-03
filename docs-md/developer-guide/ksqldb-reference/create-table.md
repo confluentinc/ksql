@@ -28,14 +28,9 @@ a later timestamp / `ROWTIME`. The table below contrasts this to a [ksqlDB STREA
 |                          |  STREAM                                                       | TABLE                                                             |
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
 | Key column type          | `KEY`                                                         | `PRIMARY KEY`                                                     |
-| NON NULL key constraint  | No                                                            | Yes                                                               |
-:                          :                                                               : Messages in the Kafka topic with a NULL `PRIMARY KEY` are ignored :
-| Unique key constraint    | No                                                            | Yes                                                               |
-:                          : Messages with the same key as another have no special meaning : Later messages with the same key _replace_ earlier                :
-| Tombstones               | No                                                            | Yes                                                               |
-:                          : Messages with NULL values are ignored                         : NULL message values are treated as a _tombstone_                  :
-:                          :                                                               : Any existing row with a matching key is deleted                   :
-| ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
+| NON NULL key constraint  | No                                                            | Yes <br> Messages in the Kafka topic with a NULL `PRIMARY KEY` are ignored |
+| Unique key constraint    | No <br> Messages with the same key as another have no special meaning | Yes <br> Later messages with the same key _replace_ earlier |
+| Tombstones               | No <br> Messages with NULL values are ignored                 | Yes <br> NULL message values are treated as a _tombstone_ <br> Any existing row with a matching key is deleted |
 
 Each column is defined by:
  * `column_name`: the name of the column. If unquoted the name must be a valid

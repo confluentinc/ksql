@@ -97,7 +97,9 @@ public final class CmdLineUtil {
       return output.build();
     }
 
+    // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
     private int processCharAt(final int pos) {
+      // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       final char c = input.charAt(pos);
       int returnPos = pos;
 
@@ -133,7 +135,7 @@ public final class CmdLineUtil {
     }
   }
 
-  private static boolean isLineComment(char prevChar, char current) {
+  private static boolean isLineComment(final char prevChar, final char current) {
     return prevChar == '-' && current == '-';
   }
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
@@ -31,6 +32,7 @@ import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -40,6 +42,7 @@ import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.api.server.ServerVerticle;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.Versions;
@@ -54,7 +57,8 @@ import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonObject;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -387,9 +391,32 @@ public class RestApiTest {
     assertThat("Expected topic X to be deleted", !topicExists("X"));
   }
 
-  // See https://github.com/confluentinc/ksql/issues/4760
   @Test
-  public void shouldExecuteStatementWithConnectionCloseHeader() throws Exception {
+  public void shouldExecuteStatementWithConnectionCloseHeaderHTTP1_1() throws Exception {
+    HttpResponse<Buffer> response = shouldExecuteStatementWithConnectionCloseHeader(
+        HttpVersion.HTTP_1_1);
+    String transferEncodingHeader = response.getHeader(HttpHeaders.TRANSFER_ENCODING.toString());
+    assertThat(transferEncodingHeader, is("chunked"));
+  }
+
+  @Test
+  public void shouldExecuteStatementWithConnectionCloseHeaderHTTP2() throws Exception {
+    HttpResponse<Buffer> response = shouldExecuteStatementWithConnectionCloseHeader(
+        HttpVersion.HTTP_2);
+    // Chunked transfer encoding header is illegal in HTTP2
+    String transferEncodingHeader = response.getHeader(HttpHeaders.TRANSFER_ENCODING.toString());
+    if (transferEncodingHeader != null) {
+      assertThat(transferEncodingHeader.toLowerCase(), is(not("chunked")));
+    }
+  }
+
+  // See https://github.com/confluentinc/ksql/issues/4760
+  private HttpResponse<Buffer> shouldExecuteStatementWithConnectionCloseHeader(
+      final HttpVersion version)
+      throws Exception {
+
+    String uri = "/v1/metadata/id";
+    assertThat(ServerVerticle.NON_PROXIED_ENDPOINTS.contains(uri), is(false));
 
     Vertx vertx = Vertx.vertx();
     WebClient webClient = null;
@@ -400,22 +427,24 @@ public class RestApiTest {
           .setDefaultHost(REST_APP.getHttpListener().getHost())
           .setDefaultPort(REST_APP.getHttpListener().getPort());
 
+      if (version == HttpVersion.HTTP_2) {
+        webClientOptions.setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
+      }
+
       webClient = WebClient.create(vertx, webClientOptions);
-      
+
       // When:
-      JsonObject requestBody = new JsonObject();
-      requestBody.put("ksql", "SHOW STREAMS;");
       VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
       webClient
-          .post("/ksql")
+          .get(uri)
           .putHeader("connection", "close")
-          .sendJsonObject(requestBody, requestFuture);
+          .send(requestFuture);
       HttpResponse<Buffer> resp = requestFuture.get();
 
       // Then
       assertThat(resp.statusCode(), is(200));
-      assertThat(resp.bodyAsString(),
-          startsWith("[{\"@type\":\"streams\",\"statementText\":\"SHOW STREAMS;\""));
+
+      return resp;
     } finally {
       if (webClient != null) {
         webClient.close();

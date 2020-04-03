@@ -54,7 +54,7 @@ public class ServerVerticle extends AbstractVerticle {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final Logger log = LoggerFactory.getLogger(ServerVerticle.class);
 
-  private static final Set<String> NON_PROXIED_ENDPOINTS = ImmutableSet
+  public static final Set<String> NON_PROXIED_ENDPOINTS = ImmutableSet
       .of("/query-stream", "/inserts-stream", "/close-query", "/ksql");
 
   // Quick switch so we can easily revert to not serving ported endpoints directly

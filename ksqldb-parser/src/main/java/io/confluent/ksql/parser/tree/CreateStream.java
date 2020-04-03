@@ -21,7 +21,10 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Immutable
 public class CreateStream extends CreateSource implements ExecutableDdlStatement {
@@ -43,6 +46,8 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
       final CreateSourceProperties properties
   ) {
     super(location, name, elements, notExists, properties);
+
+    throwOnPrimaryKeys(elements);
   }
 
   @Override
@@ -82,5 +87,26 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
         .add("notExists", isNotExists())
         .add("properties", getProperties())
         .toString();
+  }
+
+  private static void throwOnPrimaryKeys(final TableElements elements) {
+    final String badEs = elements.stream()
+        .filter(e -> e.getNamespace().isKey() && e.getNamespace() != Namespace.KEY)
+        .map(badE ->
+            badE.getLocation().map(NodeLocation::asPrefix).orElse("") + badE.getName())
+        .collect(Collectors.joining(System.lineSeparator()));
+
+    if (!badEs.isEmpty()) {
+      throw new KsqlException("The following columns are defined as PRIMARY KEY columns. "
+          + "Streams do not support PRIMARY KEY columns, only KEY columns."
+          + " Please remove the `PRIMARY` key word. Columns:"
+          + System.lineSeparator()
+          + badEs
+          + System.lineSeparator()
+          + "Streams have KEYs, which have no uniqueness or NON NULL constraints."
+          + System.lineSeparator()
+          + "Tables have PRIMARY KEYs, which are unique and NON NULL."
+      );
+    }
   }
 }

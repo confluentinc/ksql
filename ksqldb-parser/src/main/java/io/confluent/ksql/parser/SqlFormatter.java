@@ -55,7 +55,6 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
@@ -495,11 +494,24 @@ public final class SqlFormatter {
     }
 
     private static String formatTableElement(final TableElement e) {
+      final String postFix;
+      switch (e.getNamespace()) {
+        case PRIMARY_KEY:
+          postFix = " PRIMARY KEY";
+          break;
+        case KEY:
+          postFix = " KEY";
+          break;
+        default:
+          postFix = "";
+          break;
+      }
+
       return escapedName(e.getName())
           + " "
           + ExpressionFormatter.formatExpression(
-              e.getType(), FormatOptions.of(IdentifierUtil::needsQuotes))
-          + (e.getNamespace() == Namespace.KEY ? " KEY" : "");
+          e.getType(), FormatOptions.of(IdentifierUtil::needsQuotes))
+          + postFix;
     }
   }
 

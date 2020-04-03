@@ -91,7 +91,7 @@ tableElements
     ;
 
 tableElement
-    : identifier type (KEY)?
+    : identifier type ((PRIMARY)? KEY)?
     ;
 
 tableProperties
@@ -332,7 +332,7 @@ nonReserved
     | SET | RESET
     | IF
     | SOURCE | SINK
-    | KEY
+    | PRIMARY | KEY
     | EMIT
     | CHANGES
     ;

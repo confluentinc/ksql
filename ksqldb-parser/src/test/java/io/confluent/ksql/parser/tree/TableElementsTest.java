@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.PRIMARY_KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -79,7 +80,7 @@ public class TableElementsTest {
         tableElement(KEY, "k0", STRING_TYPE),
         tableElement(KEY, "k0", STRING_TYPE),
         tableElement(KEY, "k1", STRING_TYPE),
-        tableElement(KEY, "k1", STRING_TYPE)
+        tableElement(PRIMARY_KEY, "k1", STRING_TYPE)
     );
 
     // Then:
@@ -118,7 +119,7 @@ public class TableElementsTest {
     final List<TableElement> elements = ImmutableList.of(
         tableElement(KEY, "v0", INT_TYPE),
         tableElement(VALUE, "v0", INT_TYPE),
-        tableElement(KEY, "v1", INT_TYPE),
+        tableElement(PRIMARY_KEY, "v1", INT_TYPE),
         tableElement(VALUE, "v1", INT_TYPE)
     );
 
@@ -244,6 +245,26 @@ public class TableElementsTest {
   }
 
   @Test
+  public void shouldBuildLogicalSchemaWithImplicitsAndExplicitPrimaryKey() {
+    // Given:
+    final TableElements tableElements = TableElements.of(
+        tableElement(VALUE, "v0", INT_TYPE),
+        tableElement(PRIMARY_KEY, "k0", INT_TYPE)
+    );
+
+    // When:
+    final LogicalSchema schema = tableElements.toLogicalSchema(true);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .withRowTime()
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .build()
+    ));
+  }
+
+  @Test
   public void shouldBuildLogicalSchemaWithOutImplicits() {
     // Given:
     final TableElements tableElements = TableElements.of(
@@ -256,6 +277,25 @@ public class TableElementsTest {
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldBuildLogicalSchemaWithOutImplicitsWithPrimaryKey() {
+    // Given:
+    final TableElements tableElements = TableElements.of(
+        tableElement(VALUE, "v0", INT_TYPE),
+        tableElement(PRIMARY_KEY, "k0", INT_TYPE)
+    );
+
+    // When:
+    final LogicalSchema schema = tableElements.toLogicalSchema(false);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
         .build()
     ));
   }

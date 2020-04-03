@@ -21,10 +21,10 @@ query results from other streams.
 Create a Stream from an existing Kafka topic
 --------------------------------------------
 
-Use the CREATE STREAM statement to create a stream from an existing underlying
-Kafka topic. The Kafka topic must exist already in your Kafka cluster.
+Use the [CREATE STREAM](./create-stream) statement to create a stream from an existing underlying
+Kafka topic.
 
-The following examples show how to create streams from a Kafka topic,
+The following examples show how to create streams from an existing Kafka topic,
 named `pageviews`. To see these examples in action, create the
 `pageviews` topic by following the procedure in
 [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).

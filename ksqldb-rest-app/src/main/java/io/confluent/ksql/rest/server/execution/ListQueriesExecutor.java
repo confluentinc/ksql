@@ -159,7 +159,21 @@ public final class ListQueriesExecutor {
 
     return Optional.of(new QueryDescriptionList(
         statement.getStatementText(),
-        new ArrayList<>(queryDescriptions.values())));
+        queryDescriptions.values().stream().map(queryDescription -> 
+            new QueryDescription(
+                queryDescription.getId(),
+                queryDescription.getStatementText(),
+                queryDescription.getWindowType(),
+                queryDescription.getFields(),
+                queryDescription.getSources(),
+                queryDescription.getSinks(),
+                queryDescription.getTopology(),
+                queryDescription.getExecutionPlan(),
+                queryDescription.getOverriddenProperties(),
+                Optional.of(queryDescription.getKsqlHostQueryState().toString()),
+                queryDescription.getKsqlHostQueryState()
+            )
+        ).collect(Collectors.toList())));
   }
 
   private static Map<QueryId, QueryDescription> getLocalExtended(
@@ -251,7 +265,7 @@ public final class ListQueriesExecutor {
         try {
           final RestResponse<KsqlEntityList> response = e.getValue().get();
           if (response.isErroneous()) {
-            LOG.warn("Failed to retrieve query info from host. host: {}, cause: {}",
+            LOG.warn("Error response from host. host: {}, cause: {}",
                 e.getKey(), response.getErrorMessage().getMessage());
           } else {
             results.add(response.getResponse().get(0));

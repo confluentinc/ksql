@@ -44,7 +44,6 @@ ID                   : CSAS_TEST_0
 SQL                  : CREATE STREAM TEST WITH (KAFKA_TOPIC='TEST', PARTITIONS=1, REPLICAS=1) AS SELECT *
 FROM KSQL_PROCESSING_LOG KSQL_PROCESSING_LOG
 EMIT CHANGES;
-Status               : RUNNING
 Host Query Status    : {192.168.1.6:8088=RUNNING, 192.168.1.6:8089=RUNNING}
 
  Field   | Type                                                                                                                                                                                                                                                                                                                                    

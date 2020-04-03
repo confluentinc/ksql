@@ -61,6 +61,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryDescriptionFactoryTest {
 
+  private static final Map<KsqlHostInfoEntity, String> STATE_MAP =
+      Collections.singletonMap(new KsqlHostInfoEntity("host", 8080), "RUNNING");
   private static final LogicalSchema TRANSIENT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
@@ -100,7 +102,6 @@ public class QueryDescriptionFactoryTest {
   @Before
   public void setUp() {
     when(topology.describe()).thenReturn(topologyDescription);
-    when(queryStreams.state()).thenReturn(State.RUNNING);
 
     when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
 
@@ -139,7 +140,7 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout);
 
-    persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, Collections.emptyMap());
+    persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATE_MAP);
   }
 
   @Test
@@ -200,12 +201,12 @@ public class QueryDescriptionFactoryTest {
 
   @Test
   public void shouldReportPersistentQueriesStatus() {
-    assertThat(persistentQueryDescription.getState(), is(Optional.of("RUNNING")));
+    assertThat(persistentQueryDescription.getState(), is(Optional.of("{host:8080=RUNNING}")));
   }
 
   @Test
   public void shouldNotReportTransientQueriesStatus() {
-    assertThat(transientQueryDescription.getState(), is(Optional.empty()));
+    assertThat(transientQueryDescription.getState(), is(Optional.of("{}")));
   }
 
   @Test

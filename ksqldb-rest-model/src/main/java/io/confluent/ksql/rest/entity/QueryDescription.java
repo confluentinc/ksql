@@ -24,12 +24,13 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
 
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryDescription {
@@ -44,7 +45,7 @@ public class QueryDescription {
   private final String executionPlan;
   private final Map<String, Object> overriddenProperties;
   private final Optional<String> state;
-  private final Map<KsqlHostInfoEntity, String> ksqlHostQueryState;
+  private final TreeMap<KsqlHostInfoEntity, String> ksqlHostQueryState;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
@@ -73,8 +74,11 @@ public class QueryDescription {
     this.overriddenProperties = ImmutableMap.copyOf(Objects
         .requireNonNull(overriddenProperties, "overriddenProperties"));
     this.state = Objects.requireNonNull(state, "state");
+    
     this.ksqlHostQueryState =
-        new HashMap<>(Objects.requireNonNull(ksqlHostQueryState, "ksqlHostQueryState"));
+        new TreeMap<>(Comparator.comparing(KsqlHostInfoEntity::toString));
+    this.ksqlHostQueryState
+        .putAll(Objects.requireNonNull(ksqlHostQueryState, "ksqlHostQueryState"));
   }
 
   public QueryId getId() {

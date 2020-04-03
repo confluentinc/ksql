@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
@@ -33,6 +35,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.util.DiscoverRemoteHostsUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -50,9 +53,13 @@ import java.util.stream.Collectors;
 
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.state.HostInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressFBWarnings("SE_BAD_FIELD")
 public final class ListQueriesExecutor {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ListQueriesExecutor.class);
 
   private ListQueriesExecutor() { }
 
@@ -62,16 +69,40 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final ListQueries listQueries = statement.getStatement();
-    if (listQueries.getShowExtended()) {
-      return executeExtended(
-          statement,
-          sessionProperties,
-          executionContext,
-          serviceContext);
-    }
+    final List<KsqlEntity> remoteResults =
+        scatterGather(statement, sessionProperties, executionContext, serviceContext);
 
-    final Map<QueryId, RunningQuery> queryToRunningQuery = executionContext
+    return statement.getStatement().getShowExtended()
+        ? executeExtended(remoteResults, sessionProperties, statement, executionContext)
+        : executeSimple(remoteResults, statement, executionContext);
+  }
+
+  private static Optional<KsqlEntity> executeSimple(
+      final List<KsqlEntity> remoteResults,
+      final ConfiguredStatement<ListQueries> statement,
+      final KsqlExecutionContext executionContext
+  ) {
+    final Map<QueryId, RunningQuery> runningQueries = getLocalSimple(executionContext);
+
+    mergeSimple(remoteResults, runningQueries);
+
+    return Optional.of(new Queries(
+        statement.getStatementText(),
+        runningQueries.values().stream().map(runningQuery -> new RunningQuery(
+            runningQuery.getQueryString(),
+            runningQuery.getSinks(),
+            runningQuery.getSinkKafkaTopics(),
+            runningQuery.getId(),
+            Optional.of(runningQuery.getStateCount().toString()),
+            runningQuery.getStateCount()
+        ))
+        .collect(Collectors.toList())));
+  }
+
+  private static Map<QueryId, RunningQuery> getLocalSimple(
+      final KsqlExecutionContext executionContext
+  ) {
+    return executionContext
         .getPersistentQueries()
         .stream()
         .collect(Collectors.toMap(
@@ -85,152 +116,154 @@ public final class ListQueriesExecutor {
                 new QueryStateCount(
                     Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)))
         ));
-    
-
-    if (!sessionProperties.getInternalRequest()) {
-      final Set<HostInfo> remoteHosts =
-          DiscoverRemoteHostsUtil.getRemoteHosts(
-              executionContext.getPersistentQueries(),
-              sessionProperties.getKsqlHostInfo());
-      
-      if (!remoteHosts.isEmpty()) {
-        final ExecutorService executorService = Executors.newFixedThreadPool(remoteHosts.size());
-        final List<Future<List<RunningQuery>>> futureRunningQueries = new ArrayList<>();
-        for (HostInfo host : remoteHosts) {
-          futureRunningQueries.add(executorService.submit(() -> {
-            final KsqlEntityList response = serviceContext.getKsqlClient()
-                .makeKsqlRequest(
-                    ServerUtil.buildRemoteUri(
-                        sessionProperties.getLocalUrl(),
-                        host.host(),
-                        host.port()
-                    ),
-                    statement.getStatementText(),
-                    Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true))
-                .getResponse();
-            return ((Queries) response.get(0)).getQueries();
-          }));
-        }
-
-        final ArrayList<RunningQuery> remoteRunningQueries =
-            new ArrayList<>();
-        futureRunningQueries.forEach(future -> {
-          try {
-            remoteRunningQueries.addAll(future.get());
-          } catch (final Exception e) {
-            // If the future fails from a server, that result won't be included in the output
-          }
-        });
-
-        executorService.shutdown();
-        for (RunningQuery q : remoteRunningQueries) {
-          final QueryId queryId = q.getId();
-
-          // If the query has already been discovered, update the KafkaStreamsStateCount object
-          if (queryToRunningQuery.containsKey(queryId)) {
-            for (Map.Entry<KafkaStreams.State, Integer> entry :
-                q.getStateCount().getStates().entrySet()) {
-              queryToRunningQuery
-                  .get(queryId)
-                  .getStateCount()
-                  .updateStateCount(entry.getKey(), entry.getValue());
-            }
-          } else {
-            queryToRunningQuery.put(queryId, q);
-          }
-        }
-      }
-    }
-
-    return Optional.of(new Queries(
-        statement.getStatementText(),
-        new ArrayList<>(queryToRunningQuery.values().stream().map(runningQuery -> new RunningQuery(
-            runningQuery.getQueryString(),
-            runningQuery.getSinks(),
-            runningQuery.getSinkKafkaTopics(),
-            runningQuery.getId(),
-            Optional.of(runningQuery.getStateCount().toString()),
-            runningQuery.getStateCount()
-        ))
-        .collect(Collectors.toList()))));
   }
 
+  private static void mergeSimple(
+      final List<KsqlEntity> remoteResults,
+      final Map<QueryId, RunningQuery> allResults
+  ) {
+    final List<RunningQuery> remoteRunningQueries = remoteResults.stream()
+        .map(Queries.class::cast)
+        .map(Queries::getQueries)
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
+    
+    for (RunningQuery q : remoteRunningQueries) {
+      final QueryId queryId = q.getId();
+
+      // If the query has already been discovered, update the QueryStateCount object
+      if (allResults.containsKey(queryId)) {
+        for (Map.Entry<KafkaStreams.State, Integer> entry :
+            q.getStateCount().getStates().entrySet()) {
+          allResults
+              .get(queryId)
+              .getStateCount()
+              .updateStateCount(entry.getKey(), entry.getValue());
+        }
+      } else {
+        allResults.put(queryId, q);
+      }
+    }
+  }
+  
   private static Optional<KsqlEntity> executeExtended(
+      final List<KsqlEntity> remoteResults,
+      final SessionProperties sessionProperties,
+      final ConfiguredStatement<ListQueries> statement,
+      final KsqlExecutionContext executionContext
+  ) {
+    final Map<QueryId, QueryDescription> queryDescriptions =
+        getLocalExtended(sessionProperties, executionContext);
+
+    mergeExtended(remoteResults, queryDescriptions);
+
+    return Optional.of(new QueryDescriptionList(
+        statement.getStatementText(),
+        new ArrayList<>(queryDescriptions.values())));
+  }
+
+  private static Map<QueryId, QueryDescription> getLocalExtended(
+      final SessionProperties sessionProperties,
+      final KsqlExecutionContext executionContext
+  ) {
+    return executionContext
+        .getPersistentQueries()
+        .stream()
+        .collect(Collectors.toMap(
+            PersistentQueryMetadata::getQueryId,
+            query -> QueryDescriptionFactory.forQueryMetadata(
+                query,
+                Collections.singletonMap(
+                    new KsqlHostInfoEntity(sessionProperties.getKsqlHostInfo()),
+                    query.getState()))));
+  }
+
+  private static void mergeExtended(
+      final List<KsqlEntity> remoteResults,
+      final Map<QueryId, QueryDescription> allResults
+  ) {
+    final List<QueryDescription> remoteQueryDescriptions = remoteResults.stream()
+        .map(QueryDescriptionList.class::cast)
+        .map(QueryDescriptionList::getQueryDescriptions)
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
+    for (QueryDescription q : remoteQueryDescriptions) {
+      final QueryId queryId = q.getId();
+
+      // If the query has already been discovered, add to the ksqlQueryHostState mapping
+      if (allResults.containsKey(queryId)) {
+        for (Map.Entry<KsqlHostInfoEntity, String> entry :
+            q.getKsqlHostQueryState().entrySet()) {
+          allResults
+              .get(queryId)
+              .getKsqlHostQueryState()
+              .put(entry.getKey(), entry.getValue());
+        }
+      } else {
+        allResults.put(queryId, q);
+      }
+    }
+  }
+
+  private static List<KsqlEntity> scatterGather(
       final ConfiguredStatement<ListQueries> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final Map<QueryId, QueryDescription> queryToQueryDescription = executionContext
-        .getPersistentQueries()
-        .stream()
-        .collect(Collectors.toMap(
-            PersistentQueryMetadata::getQueryId,
-            query -> {
-                final HashMap<KsqlHostInfoEntity, String> ksqlHostQueryState = new HashMap<>();
-                ksqlHostQueryState.put(
-                    new KsqlHostInfoEntity(sessionProperties.getKsqlHostInfo()),
-                    query.getState());
-                return QueryDescriptionFactory.forQueryMetadata(query, ksqlHostQueryState);
-            }));
-
-    if (!sessionProperties.getInternalRequest()) {
-      final Set<HostInfo> remoteHosts =
-          DiscoverRemoteHostsUtil.getRemoteHosts(
-              executionContext.getPersistentQueries(),
-              sessionProperties.getKsqlHostInfo());
-
-      if (!remoteHosts.isEmpty()) {
-        final ExecutorService executorService = Executors.newFixedThreadPool(remoteHosts.size());
-        final List<Future<List<QueryDescription>>> futureQueryDescriptions = new ArrayList<>();
-        for (HostInfo host : remoteHosts) {
-          futureQueryDescriptions.add(executorService.submit(() -> {
-            final KsqlEntityList response = serviceContext.getKsqlClient()
-                .makeKsqlRequest(
-                    ServerUtil.buildRemoteUri(
-                        sessionProperties.getLocalUrl(),
-                        host.host(),
-                        host.port()
-                    ),
-                    statement.getStatementText(),
-                    Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true))
-                .getResponse();
-            return ((QueryDescriptionList) response.get(0)).getQueryDescriptions();
-          }));
-        }
-
-        final ArrayList<QueryDescription> remoteQueryDescriptions =
-            new ArrayList<>();
-        futureQueryDescriptions.forEach(future -> {
-          try {
-            remoteQueryDescriptions.addAll(future.get());
-          } catch (final Exception e) {
-            // If the future fails from a server, that result won't be included in the output
-          }
-        });
-
-        executorService.shutdown();
-        for (QueryDescription q : remoteQueryDescriptions) {
-          final QueryId queryId = q.getId();
-
-          // If the query has already been discovered, add to the ksqlQueryHostState mapping
-          if (queryToQueryDescription.containsKey(queryId)) {
-            for (Map.Entry<KsqlHostInfoEntity, String> entry :
-                q.getKsqlHostQueryState().entrySet()) {
-              queryToQueryDescription
-                  .get(queryId)
-                  .getKsqlHostQueryState()
-                  .put(entry.getKey(), entry.getValue());
-            }
-          } else {
-            queryToQueryDescription.put(queryId, q);
-          }
-        }
-      }
+    if (sessionProperties.getInternalRequest()) {
+      return ImmutableList.of();
     }
 
-    return Optional.of(new QueryDescriptionList(
-        statement.getStatementText(),
-        queryToQueryDescription.values()));
+    final Set<HostInfo> remoteHosts = DiscoverRemoteHostsUtil.getRemoteHosts(
+        executionContext.getPersistentQueries(),
+        sessionProperties.getKsqlHostInfo()
+    );
+
+    if (remoteHosts.isEmpty()) {
+      return ImmutableList.of();
+    }
+
+    final ExecutorService executorService = Executors.newFixedThreadPool(remoteHosts.size());
+
+    try {
+      final SimpleKsqlClient ksqlClient = serviceContext.getKsqlClient();
+
+      final Map<HostInfo, Future<RestResponse<KsqlEntityList>>> futureResponses = new HashMap<>();
+      for (HostInfo host : remoteHosts) {
+        final Future<RestResponse<KsqlEntityList>> future = executorService.submit(() -> ksqlClient
+            .makeKsqlRequest(
+                ServerUtil.buildRemoteUri(
+                    sessionProperties.getLocalUrl(),
+                    host.host(),
+                    host.port()
+                ),
+                statement.getStatementText(),
+                Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true))
+        );
+
+        futureResponses.put(host, future);
+      }
+      
+      final List<KsqlEntity> results = new ArrayList<>();
+      for (final Map.Entry<HostInfo, Future<RestResponse<KsqlEntityList>>> e
+          : futureResponses.entrySet()) {
+        try {
+          final RestResponse<KsqlEntityList> response = e.getValue().get();
+          if (response.isErroneous()) {
+            LOG.warn("Failed to retrieve query info from host. host: {}, cause: {}",
+                e.getKey(), response.getErrorMessage().getMessage());
+          } else {
+            results.add(response.getResponse().get(0));
+          }
+        } catch (final Exception cause) {
+          LOG.warn("Failed to retrieve query info from host. host: " + e.getKey(), cause);
+        }
+      }
+
+      return results;
+    } finally {
+      executorService.shutdown();
+    }
   }
 }

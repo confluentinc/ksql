@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -71,7 +73,8 @@ public class QueryDescription {
     this.overriddenProperties = ImmutableMap.copyOf(Objects
         .requireNonNull(overriddenProperties, "overriddenProperties"));
     this.state = Objects.requireNonNull(state, "state");
-    this.ksqlHostQueryState = Objects.requireNonNull(ksqlHostQueryState, "ksqlHostQueryState");
+    this.ksqlHostQueryState =
+        new HashMap<>(Objects.requireNonNull(ksqlHostQueryState, "ksqlHostQueryState"));
   }
 
   public QueryId getId() {

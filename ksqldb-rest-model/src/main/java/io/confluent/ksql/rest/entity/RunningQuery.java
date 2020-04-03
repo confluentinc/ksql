@@ -93,11 +93,12 @@ public class RunningQuery {
         && Objects.equals(queryString, that.queryString)
         && Objects.equals(sinks, that.sinks)
         && Objects.equals(sinkKafkaTopics, that.sinkKafkaTopics)
+        && Objects.equals(state, that.state)
         && Objects.equals(stateCount, that.stateCount);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, queryString, sinks, sinkKafkaTopics, stateCount);
+    return Objects.hash(id, queryString, sinks, sinkKafkaTopics, state, stateCount);
   }
 }

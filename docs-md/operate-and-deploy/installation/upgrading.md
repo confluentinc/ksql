@@ -46,35 +46,34 @@ to [dump the schema](https://github.com/confluentinc/ksql/issues/4529).
 
 The recommended process it to:
 
-**Note: you can use the [`SPOOL`]
-(https://github.com/confluentinc/ksql/blob/master/docs-md/developer-guide/ksqldb-reference/spool.md)
+**Note: you can use the [SPOOL](../../developer-guide/ksqldb-reference/spool.md)
 command to capture the output of the commands you run in the CLI to a file.**
 
 1. Capture streams SQL:
   1. Run `list streams extended;` to list all of the streams.
-  1. Grab the SQL statement that created each stream from the output, ignoring `KSQL_PROCESSING_LOG`.
-1. Capture tables SQL:
-  1. Run `list tables extended;` to list all of the tables.
-  1. Grab the SQL statement that created each table from the output.
-1. Capture custom types SQL:
-  1. Run `list types;` to list all of the custom types.
-  1. Convert the output into `CREATE TYPE <name> AS <schema>` syntax by grabbing the name from the
+  2. Grab the SQL statement that created each stream from the output, ignoring `KSQL_PROCESSING_LOG`.
+2. Capture tables SQL:
+  3. Run `list tables extended;` to list all of the tables.
+  4. Grab the SQL statement that created each table from the output.
+3. Capture custom types SQL:
+  5. Run `list types;` to list all of the custom types.
+  6. Convert the output into `CREATE TYPE <name> AS <schema>` syntax by grabbing the name from the
      first column and the schema from the second column of the output.
-1. Order by dependency:  you'll now have the list of SQL statements to rebuild the schema, but they
+4. Order by dependency:  you'll now have the list of SQL statements to rebuild the schema, but they
    are not yet ordered in terms of dependencies. You will need to reorder the statements to ensure
    each statement come after any other statements it depends on.
-1. Update the script to take into account any changes in syntax or functionality between the old
+5. Update the script to take into account any changes in syntax or functionality between the old
    and new clusters. The release notes can help here.  It can also be useful to have a test ksqlDB
    cluster, pointing to a different test Kafka cluster, where you can try running the script to get
    feedback on any errors.  Note: you may want to temporarily add `PARTITIONS=1` to the `WITH`
    clause of any `CREATE TABLE` or `CREATE STREAM` command, so that the command will run without
    requiring you to first create the necessary topics in the test Kafka cluster.
-1. Stop the old cluster: if you do not do so then both the old and new cluster will be publishing
-   to sink topics, resulting in undefined behaviour.
-1. Build the schema in the new instance. Now you have the SQL file you can run this against the
-   new cluster to build a copy of the schema.  This is best achieved with the [`RUN SCRIPT`]
-   (https://github.com/confluentinc/ksql/blob/master/docs-md/developer-guide/ksqldb-reference/run-script.md)
-   command, which takes a SQL file as an input.
+6. Stop the old cluster: if you do not do so then both the old and new cluster will be publishing
+   to sink topics, resulting in undefined behavior.
+7. Build the schema in the new instance. Now you have the SQL file you can run this against the
+   new cluster to build a copy of the schema.  This is best achieved with the
+   [RUN SCRIPT](../../developer-guide/ksqldb-reference/run-script.md) command, which takes a SQL
+   file as an input.
 
 ### Rebuild state
 

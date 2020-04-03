@@ -23,7 +23,7 @@ public class UnclosedQuoteCheckerTest {
   @Test
   public void shouldFindUnclosedQuote() {
     // Given:
-    final String line = "some line 'this is in a comment";
+    final String line = "some line 'this is in a quote";
 
     // Then:
     Assert.assertTrue(UnclosedQuoteChecker.isUnclosedQuote(line));
@@ -32,7 +32,7 @@ public class UnclosedQuoteCheckerTest {
   @Test
   public void shouldFindUnclosedQuote_escaped() {
     // Given:
-    final String line = "some line 'this is in a comment\\'";
+    final String line = "some line 'this is in a quote\\'";
 
     // Then:
     Assert.assertTrue(UnclosedQuoteChecker.isUnclosedQuote(line));
@@ -59,7 +59,7 @@ public class UnclosedQuoteCheckerTest {
   @Test
   public void shouldNotFindUnclosedQuote_inComment() {
     // Given:
-    final String line = "some line -- 'this is in a quote";
+    final String line = "some line -- 'this is in a comment";
 
     // Then:
     Assert.assertFalse(UnclosedQuoteChecker.isUnclosedQuote(line));

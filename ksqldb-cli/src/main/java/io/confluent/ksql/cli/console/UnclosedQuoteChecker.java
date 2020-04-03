@@ -32,8 +32,7 @@ public final class UnclosedQuoteChecker {
     for (int i = 0; line != null && i < line.length(); ++i) {
       if (quoteStart < 0 && isQuoteChar(line, i)) {
         quoteStart = i;
-      } else if (quoteStart >= 0 && line.charAt(quoteStart) == line.charAt(i)
-          && !isEscaped(line, i)) {
+      } else if (quoteStart >= 0 && isQuoteChar(line, i) && !isEscaped(line, i)) {
         quoteStart = -1;
       }
     }

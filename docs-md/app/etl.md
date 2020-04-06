@@ -3,14 +3,14 @@ What is it?
 
 A streaming ETL pipeline (sometimes called a “streaming data pipeline”) is a set of software services that ingests events, transforms them, and loads them into destination storage systems. It’s often the case that you have data in one place and want to move it to another as soon as you receive it, but you need to make some changes to the data as you transfer it. Maybe you need to do something simple, like transform the events to strip out any personally identifiable information. Sometimes you may need to do something more complex, like enrich the events by joining it with data from another system. Or perhaps you want to pre-aggregate the events to reduce how much data you send to the downstream systems. A streaming ETL pipeline lets you stream events between arbitrary sources and sinks helps you make changes to the data while it’s in-flight.
 
-<< img >>
+![hard](../img/etl-hard.png){: style="width:90%;"}
 
 Why ksqlDB
 ----------
 
 One way you might do this would be to capture the changelogs of upstream Postgres and MongoDB databases. The changelog can be stored in Kafka where a series of deployed programs transform, aggregate, and join the data together. The data can finally be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
 
-<< img >>
+![easy](../img/etl-easy.png){: style="width:60%;"}
 
 Using ksqlDB, you can run any Kafka Connect connector by embedding them in ksqlDB's servers. You can transform, join, and aggregate all of your streams together using a coherent, powerful SQL language. This gives you a slender architecture for managing the end-to-end flow of your data pipeline.
 

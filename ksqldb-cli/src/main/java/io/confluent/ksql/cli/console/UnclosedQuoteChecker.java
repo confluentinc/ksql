@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.cli.console;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Checks to see if the line is in the middle of a quote.  Unlike
  * org.jline.reader.impl.DefaultParser, this is comment aware.
@@ -27,11 +25,14 @@ public final class UnclosedQuoteChecker {
   private UnclosedQuoteChecker() {}
 
   public static boolean isUnclosedQuote(final String line) {
-    requireNonNull(line, "line");
     int quoteStart = -1;
-    for (int i = 0; line != null && i < line.length(); ++i) {
+    for (int i = 0; i < line.length(); ++i) {
       if (quoteStart < 0 && isQuoteChar(line, i)) {
         quoteStart = i;
+      } else if (quoteStart >= 0 && isTwoQuoteStart(line, i) && !isEscaped(line, i)) {
+        // Together, two quotes are effectively an escaped quote and don't act as a quote character.
+        // Skip the next quote char, since it's coupled with the first.
+        i++;
       } else if (quoteStart >= 0 && isQuoteChar(line, i) && !isEscaped(line, i)) {
         quoteStart = -1;
       }
@@ -59,9 +60,20 @@ public final class UnclosedQuoteChecker {
       return false;
     }
     final char c = line.charAt(ind - 1);
-    if (c == '\\') {
+    if (c == '\\' && !isEscaped(line, ind - 1)) {
       return true;
     }
     return false;
+  }
+
+  // Technically, it is sufficient to ensure that quotes are paired up to answer the "unclosed"
+  // question.  It's still clearer to differentiate between the two-quote escaped quote and two
+  // back-to-back strings (e.g. 'ab''cd' is really evaluated as "ab'cd" rather than 'ab' and 'cd'),
+  // so we explicitly check for that case here.
+  private static boolean isTwoQuoteStart(final String line, final int ind) {
+    if (ind + 1 >= line.length()) {
+      return false;
+    }
+    return isQuoteChar(line, ind) && isQuoteChar(line, ind + 1);
   }
 }

@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.cli.console;
 
-import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 import org.junit.Test;
 
 public class UnclosedQuoteCheckerTest {
@@ -26,7 +28,25 @@ public class UnclosedQuoteCheckerTest {
     final String line = "some line 'this is in a quote";
 
     // Then:
-    Assert.assertTrue(UnclosedQuoteChecker.isUnclosedQuote(line));
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(true));
+  }
+
+  @Test
+  public void shouldFindUnclosedQuote_commentCharsInside() {
+    // Given:
+    final String line = "some line 'this is in a quote -- not a comment";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(true));
+  }
+
+  @Test
+  public void shouldNotFindUnclosedQuote_commentCharsInside() {
+    // Given:
+    final String line = "some line 'this is in a quote -- not a comment'";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
   }
 
   @Test
@@ -35,7 +55,25 @@ public class UnclosedQuoteCheckerTest {
     final String line = "some line 'this is in a quote\\'";
 
     // Then:
-    Assert.assertTrue(UnclosedQuoteChecker.isUnclosedQuote(line));
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(true));
+  }
+
+  @Test
+  public void shouldFindUnclosedQuote_escapedEscape() {
+    // Given:
+    final String line = "some line 'this is in a quote\\\\'";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
+  }
+
+  @Test
+  public void shouldFindUnclosedQuote_twoQuote() {
+    // Given:
+    final String line = "some line 'this is in a quote''";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(true));
   }
 
   @Test
@@ -44,7 +82,7 @@ public class UnclosedQuoteCheckerTest {
     final String line = "some line 'this is in a quote'";
 
     // Then:
-    Assert.assertFalse(UnclosedQuoteChecker.isUnclosedQuote(line));
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
   }
 
   @Test
@@ -53,7 +91,70 @@ public class UnclosedQuoteCheckerTest {
     final String line = "some line 'this is in a quote' more";
 
     // Then:
-    Assert.assertFalse(UnclosedQuoteChecker.isUnclosedQuote(line));
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
+  }
+
+  @Test
+  public void shouldNotFindUnclosedQuote_containsDoubleQuote() {
+    // Given:
+    final String line = "some line 'this is \"in\" a quote'";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
+  }
+
+  @Test
+  public void shouldNotFindUnclosedQuote_containsUnclosedDoubleQuote() {
+    // Given:
+    final String line = "some line 'this is \"in a quote'";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
+  }
+
+  @Test
+  public void shouldNotFindUnclosedQuote_escaped() {
+    // Given:
+    final String line = "some line 'this is in a quote\\''";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
+  }
+
+  @Test
+  public void shouldNotFindUnclosedQuote_twoQuote() {
+    // Given:
+    final String line = "some line 'this is in a quote'''";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
+  }
+
+  @Test
+  public void shouldFindUnclosedQuote_manyQuote() {
+    // Given:
+    final String line = "some line 'this is in a quote''''";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(true));
+  }
+
+  @Test
+  public void shouldNotFindUnclosedQuote_manyQuote() {
+    // Given:
+    final String line = "some line 'this is in a quote'''''";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
+  }
+
+  @Test
+  public void shouldNotFindUnclosedQuote_escapedAndMultipleQuotes() {
+    // Given:
+    final String line = "some line 'this is in a quote\\''''";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
   }
 
   @Test
@@ -62,7 +163,7 @@ public class UnclosedQuoteCheckerTest {
     final String line = "some line -- 'this is in a comment";
 
     // Then:
-    Assert.assertFalse(UnclosedQuoteChecker.isUnclosedQuote(line));
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
   }
 
   @Test
@@ -71,6 +172,15 @@ public class UnclosedQuoteCheckerTest {
     final String line = "some line -- this is a comment";
 
     // Then:
-    Assert.assertFalse(UnclosedQuoteChecker.isUnclosedQuote(line));
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
+  }
+
+  @Test
+  public void shouldNotFindUnclosedQuote_commentAfterQuote() {
+    // Given:
+    final String line = "some line 'quoted text' -- this is a comment";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(false));
   }
 }

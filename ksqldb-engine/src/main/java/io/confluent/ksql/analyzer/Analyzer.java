@@ -261,19 +261,22 @@ class Analyzer {
           new ColumnReferenceValidator(analysis.getFromSourceSchemas(true));
 
       analysis.getWhereExpression()
-          .ifPresent(columnValidator::analyzeExpression);
+          .ifPresent(expression -> columnValidator.analyzeExpression(expression, "WHERE"));
 
       analysis.getGroupByExpressions()
-          .forEach(columnValidator::analyzeExpression);
+          .forEach(expression -> columnValidator.analyzeExpression(expression, "GROUP BY"));
+
+      analysis.getPartitionBy()
+          .ifPresent(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
 
       analysis.getHavingExpression()
-          .ifPresent(columnValidator::analyzeExpression);
+          .ifPresent(expression -> columnValidator.analyzeExpression(expression, "HAVING"));
 
       analysis.getSelectItems().stream()
           .filter(si -> si instanceof SingleColumn)
           .map(SingleColumn.class::cast)
           .map(SingleColumn::getExpression)
-          .forEach(columnValidator::analyzeExpression);
+          .forEach(expression -> columnValidator.analyzeExpression(expression, "SELECT"));
     }
 
     @Override
@@ -301,10 +304,10 @@ class Analyzer {
           new ColumnReferenceValidator(analysis.getFromSourceSchemas(false));
 
       final Set<SourceName> srcsUsedInLeft = columnValidator
-          .analyzeExpression(comparisonExpression.getLeft());
+          .analyzeExpression(comparisonExpression.getLeft(), "JOIN ON");
 
       final Set<SourceName> srcsUsedInRight = columnValidator
-          .analyzeExpression(comparisonExpression.getRight());
+          .analyzeExpression(comparisonExpression.getRight(), "JOIN ON");
 
       final SourceName leftSourceName = getOnlySourceForJoin(
           comparisonExpression.getLeft(), comparisonExpression, srcsUsedInLeft);

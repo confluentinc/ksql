@@ -31,7 +31,7 @@ public class QueriesTableBuilder implements TableBuilder<Queries> {
   public Table buildTable(final Queries entity) {
     final Stream<List<String>> rows = entity.getQueries().stream()
         .map(r -> ImmutableList.of(
-            r.getId().getId(),
+            r.getId().toString(),
             r.getState().orElse("N/A"),
             String.join(",", r.getSinks()),
             String.join(",", r.getSinkKafkaTopics()),

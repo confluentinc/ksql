@@ -65,7 +65,7 @@ Download the Tutorial and Start KSQL
    .. codewithvars:: bash
 
        docker run --network tutorials_default --rm --interactive --tty \
-          confluentinc/cp-ksql-cli:|release| \
+          confluentinc/cp-ksqldb-cli:|release| \
           http://ksql-server:8088
 
    .. include:: ../includes/ksql-includes.rst

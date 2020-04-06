@@ -35,23 +35,12 @@ public abstract class Name<T extends Name<?>> {
     this.name = Identifiers.ensureTrimmed(Objects.requireNonNull(name, "name"), "name");
   }
 
-  // we should remove this getter after all code has
-  // migrated to use Name instead of Strings to make
-  // sure that we never lose type safety
+  /**
+   * @return the unquoted raw text.
+   */
   @JsonValue
   public String text() {
     return name;
-  }
-
-  public boolean startsWith(final T o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-
-    return name.startsWith(o.text());
   }
 
   @Override

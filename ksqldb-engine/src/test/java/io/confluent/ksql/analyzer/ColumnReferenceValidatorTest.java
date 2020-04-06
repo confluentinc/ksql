@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.Optional;
@@ -43,6 +44,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ColumnReferenceValidatorTest {
+
+  private static final String CLAUSE_TYPE = "PARTITION BY";
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -68,7 +71,7 @@ public class ColumnReferenceValidatorTest {
     when(sourceSchemas.sourcesWithField(any(), any())).thenReturn(sourceNames("something"));
 
     // When:
-    analyzer.analyzeExpression(expression);
+    analyzer.analyzeExpression(expression, CLAUSE_TYPE);
 
     // Then:
     verify(sourceSchemas).sourcesWithField(Optional.of(SourceName.of("fully")), column);
@@ -87,10 +90,10 @@ public class ColumnReferenceValidatorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Column 'just-name' is ambiguous. Could be any of: multiple.just-name, sources.just-name");
+        CLAUSE_TYPE + " column 'just-name' is ambiguous. Could be any of: multiple.just-name, sources.just-name");
 
     // When:
-    analyzer.analyzeExpression(expression);
+    analyzer.analyzeExpression(expression, CLAUSE_TYPE);
   }
 
   @Test
@@ -105,7 +108,7 @@ public class ColumnReferenceValidatorTest {
         .thenReturn(ImmutableSet.of(SourceName.of("something")));
 
     // When:
-    final Set<SourceName> columnRefs = analyzer.analyzeExpression(expression);
+    final Set<SourceName> columnRefs = analyzer.analyzeExpression(expression, CLAUSE_TYPE);
 
     // Then:
     verify(sourceSchemas).sourcesWithField(
@@ -130,10 +133,29 @@ public class ColumnReferenceValidatorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Column 'just-name' cannot be resolved.");
+        CLAUSE_TYPE + " column 'just-name' cannot be resolved.");
 
     // When:
-    analyzer.analyzeExpression(expression);
+    analyzer.analyzeExpression(expression, CLAUSE_TYPE);
+  }
+
+  @Test
+  public void shouldIncludeLocationInErrorIfKnown() {
+    // Given:
+    final Expression expression = new UnqualifiedColumnReferenceExp(
+        Optional.of(new NodeLocation(10, 23)),
+        ColumnName.of("just-name")
+    );
+
+    when(sourceSchemas.sourcesWithField(any(), any()))
+        .thenReturn(ImmutableSet.of());
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Line: 10, Col: 24: " + CLAUSE_TYPE);
+
+    // When:
+    analyzer.analyzeExpression(expression, CLAUSE_TYPE);
   }
 
   private static Set<SourceName> sourceNames(final String... names) {

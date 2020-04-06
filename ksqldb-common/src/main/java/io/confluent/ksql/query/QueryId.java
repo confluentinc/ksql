@@ -43,10 +43,6 @@ public class QueryId {
     this.cachedUpperCase = id.toUpperCase();
   }
 
-  public String getId() {
-    return id;
-  }
-
   @JsonValue
   public String toString() {
     return id;

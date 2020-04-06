@@ -543,7 +543,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldConfigureProducerErrorHandler() {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
-    when(processingLoggerFactory.getLogger(QUERY_ID.getId())).thenReturn(logger);
+    when(processingLoggerFactory.getLogger(QUERY_ID.toString())).thenReturn(logger);
 
     // When:
     queryBuilder.buildQuery(

@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessag
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static junit.framework.TestCase.fail;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -39,6 +40,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.eclipse.jetty.http.HttpStatus.Code;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -116,6 +118,24 @@ public class PullQueryExecutorTest {
           engine.getEngine(),
           engine.getServiceContext()
       );
+    }
+  }
+
+  @RunWith(MockitoJUnitRunner.class)
+  public static class RateLimit {
+
+    @Rule
+    public final TemporaryEngine engine = new TemporaryEngine()
+        .withConfigs(ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG, 2));
+
+    @Test
+    public void shouldRateLimit() {
+      PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
+          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig());
+
+      // When:
+      pullQueryExecutor.checkRateLimit();
+      Assert.assertThrows(KsqlException.class, pullQueryExecutor::checkRateLimit);
     }
   }
 }

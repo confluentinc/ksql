@@ -5,9 +5,9 @@
 **Status**: In Discussion |
 **Discussion**: TBD
 
-**tl;dr:** Tables in SQL have `PRIMARY KEY`s. Tables, like Streams, in ksqlDB currently have only
+**tl;dr:** Tables in SQL have `PRIMARY KEY`s. In ksqlDB, Tables, like Streams currently have only
 `KEY` columns, i.e. columns that come from the Kafka message key. We should introduce `PRIMARY KEY`
-syntax for tables in ksqlDB as this is SQL syntax and to differentiate the semantics are different
+syntax for tables as this is standard SQL syntax and will help highlight the difference in semantics
 for a table's primary key vs a stream's key column.
            
 ## Background
@@ -22,37 +22,35 @@ A release or two ago ksqlDB introduced the `KEY` keyword to allow users to speci
 CREATE TABLE USER (ROWKEY BIGINT KEY, NAME STRING, ID BIGINT) WITH (...);
 
 -- stream with string key
-CREATE STREAM CLICKS (ROWKEY STRING KEY, AGENT STRING) WITH (...);
+CREATE STREAM CLICKS (ROWKEY VARCHAR KEY, AGENT VARCHAR) WITH (...);
 ```
 
 ### ksqlDB 'any key-name' enhancement
 
 There is currently [work afoot](https://github.com/confluentinc/ksql/issues/3536) to remove the
 restriction that the key column must be named `ROWKEY`. This work is mostly complete, but is
-currently disabled by a feature flag.
+currently disabled by a feature flag, waiting on reviews.
 
 With this change a table, or stream, can give any name to its key column. This effectively makes the
 `WITH(KEY)` syntax redundant.  For example:
 
 ```sql
 -- old style statement (where the ID value column is an alias for ROWKEY)
-CREATE TABLE USER (ROWKEY BIGINT KEY, NAME STRING, ID BIGINT) WITH (KEY='ID', ...);
+CREATE TABLE USER (ROWKEY BIGINT KEY, NAME VARCHAR, ID BIGINT) WITH (KEY='ID', ...);
 
 -- new style statement:
-CREATE TABLE USER (ID BIGINT KEY, NAME STRING, ID BIGINT) WITH (...);
+CREATE TABLE USER (ID BIGINT KEY, NAME VARCHAR, ID BIGINT) WITH (...);
 ```
+
+Removal of the `WITH(KEY)` syntax is benefical as it removes the need for users to duplicate the key
+into a value column, which can require pre-processing of data.
 
 ## Motivation
 
 ### SQL Tables have PRIMARY KEYs
 
-The existing `KEY` keyword can currently be used in `CREATE STREAM` and `CREATE TABLE` statements.
-For example:
-
-```sql
-CREATE TABLE FOO (ID INT KEY, NAME STRING) ...
-CREATE STREAM FOO (ID INT KEY, NAME STRING) ...
-```
+The existing `KEY` keyword can currently be used in `CREATE STREAM` and `CREATE TABLE` statements,
+as shown above.
 
 The keyword informs ksqlDB that the column should be loaded from the Kafka message's key, rather
 than its value.
@@ -66,19 +64,21 @@ CREATE TABLE FOO (ID INT PRIMARY KEY, NAME STRING) ...
 
 Streams, which by definition do not have a primary key, should not use `PRIMARY KEY`.
 
-The semantics of how stream and tables keys are processed by ksqlDB is different:
+This change should also make it clearer to users that a table's `PRIMARY` KEY is not the same as a
+stream's `KEY`. The semantics of how stream and tables keys are processed by ksqlDB are different:
 
 1. The SQL standard says the columns in a table's primary key must be NON NULL. Any NULL key is
-dropped by ksqlDB. No such constraint exists for a stream's key column(s).
+dropped by ksqlDB. No such constraint exists for a stream's key column(s), which are treated much
+like any value column.
 
 2. The SQL standard also says that the combination of the columns in the primary key must be unique.
 This is why ksqlDB can use a table's primary key to 'upsert' a table's changelog into a materialized
-table.
+table. KsqlDB does not materialize streams.
 
 ## What is in scope
 
-* A syntax only change requiring tables to be defined with `PRIMARY KEY`, instead of `KEY`.
-* Only single key column, which is what KSQL currently supports.
+* A syntax only change, requiring tables to be defined with `PRIMARY KEY`, instead of `KEY`.
+* Only syntax for a single PRIMARY KEY.
 
 ## What is not in scope
 
@@ -88,11 +88,16 @@ and will be introduced with the work to support multiple key columns.
 
 ## Value/Return
 
-Two main gains:
+Main gains:
 
 1. More standard SQL: `PRIMARY KEY` is standard sql syntax, where as `KEY` is not.
 2. Should help differentiate the difference between a stream's key column and a table's primary key
 to users.
+
+There is also some discussion going on about how ksqlDB should model streams: should they continue
+to be their own collection type, or should they be modelled as tables without primary keys? If we
+do go the latter route it will be crucial that we differentiate `PRIMARY KEY`s from non-primary key
+columns.
 
 ## Public APIS
 
@@ -111,8 +116,10 @@ Note: `CREATE STREAM` statements will not be affected.
 
 ## Design
 
-This is purely a syntax change.  All that is needed is to add an optional `PRIMARY` keyword to
-create statements and have the parser reject any `CREATE TABLE` key columns _without_ the `PRIMARY`
+This is purely a syntax change.  All that is needed is:
+
+ 1. add an optional `PRIMARY` keyword to be added to the syntax of create statements, and
+ 1. to have the parser reject any `CREATE TABLE` key columns _without_ the `PRIMARY`
 keyword, and reject any `CREATE STREAM` key column _with_ the new keyword.
 
 ## Test plan

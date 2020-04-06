@@ -5,10 +5,12 @@ A streaming ETL pipeline (sometimes called a “streaming data pipeline”) is a
 
 ![hard](../img/etl-hard.png){: style="width:90%;"}
 
+One way you might do this would be to capture the changelogs of upstream Postgres and MongoDB databases. The changelog can be stored in Kafka where a series of deployed programs transform, aggregate, and join the data together. The data can finally be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
+
 Why ksqlDB
 ----------
 
-One way you might do this would be to capture the changelogs of upstream Postgres and MongoDB databases. The changelog can be stored in Kafka where a series of deployed programs transform, aggregate, and join the data together. The data can finally be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
+Gluing all of the above services together is certainly a challenge. Along with your original databases and target analytical data store, you end up managing clusters for Kafka, connectors, your stream processors. It's hard to operate the entire stack as one. ksqlDB helps streamline how you write and deploy streaming data pipelines by boiling it down to just two things: storage (Kafka) and compute (ksqlDB).
 
 ![easy](../img/etl-easy.png){: style="width:60%;"}
 

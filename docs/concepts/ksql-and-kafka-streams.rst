@@ -31,9 +31,9 @@ For example, to implement simple fraud-detection logic on a Kafka topic named
      WHERE fraudProbability(data) > 0.8
      EMIT CHANGES;
 
-The equivalent Java code on Kafka Streams might resemble: 
+The equivalent Scala code on Kafka Streams might resemble: 
 
-.. code:: java
+.. code:: scala
 
     // Example fraud-detection logic using the Kafka Streams API.
     object FraudFilteringApplication extends App {

@@ -1218,7 +1218,7 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
-        "Unknown queryId: unknown_query_id"))));
+        "Unknown queryId: UNKNOWN_QUERY_ID"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
         "TERMINATE unknown_query_id;"))));
 

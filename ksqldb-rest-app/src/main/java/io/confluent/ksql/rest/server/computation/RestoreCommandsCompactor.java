@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -101,12 +102,21 @@ public final class RestoreCommandsCompactor {
         continue;
       }
 
-      it.set(buildNewCmdWithoutQuery(cmd));
+      final Optional<QueuedCommand> replacement = buildNewCmdWithoutQuery(cmd);
+      if (replacement.isPresent()) {
+        it.set(replacement.get());
+      } else {
+        it.remove();
+      }
     }
   }
 
-  private static QueuedCommand buildNewCmdWithoutQuery(final QueuedCommand cmd) {
+  private static Optional<QueuedCommand> buildNewCmdWithoutQuery(final QueuedCommand cmd) {
     final Command command = cmd.getCommand();
+    if (!command.getPlan().isPresent() || !command.getPlan().get().getDdlCommand().isPresent()) {
+      // No DDL command, so no command at all if we remove the query plan. (Likely INSERT INTO cmd).
+      return Optional.empty();
+    }
 
     final Command newCommand = new Command(
         command.getStatement(),
@@ -115,11 +125,11 @@ public final class RestoreCommandsCompactor {
         command.getPlan().map(KsqlPlan::withoutQuery)
     );
 
-    return new QueuedCommand(
+    return Optional.of(new QueuedCommand(
         cmd.getCommandId(),
         newCommand,
         cmd.getStatus(),
         cmd.getOffset()
-    );
+    ));
   }
 }

@@ -576,11 +576,35 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldRecoverInsertIntos() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "INSERT INTO B SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldRecoverInsertIntosRecreates() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "INSERT INTO B SELECT * FROM A;",
+        "TERMINATE InsertQuery_0;",
+        "INSERT INTO B SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
   public void shouldRecoverTerminates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;"
+        "INSERT INTO B SELECT * FROM A;",
+        "TERMINATE CSAS_B_0;",
+        "TERMINATE InsertQuery_2;"
     );
     shouldRecover(commands);
   }

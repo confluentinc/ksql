@@ -21,28 +21,29 @@ Create a new table with the specified columns and properties.
 
 A ksqlDB TABLE works much like tables in other SQL systems. A table has zero or more rows. Each
 row is identified by its `PRIMARY KEY`. `PRIMARY KEY` values can not be NULL. A message in the
-underlying Kafka topic with the same key as an existing row will _replace_ the earlier row in the
+underlying Kafka topic that has the same key as an existing row will _replace_ the earlier row in the
 table, or _delete_ the row if the message's value is NULL, as long as the earlier row does not have
-a later timestamp / `ROWTIME`. The table below contrasts this to a [ksqlDB STREAM](./create-stream):
+a later timestamp / `ROWTIME`. This situation is handled differently by
+[ksqlDB STREAM](./create-stream), as shown in the following table.
 
 |                          |  STREAM                                                       | TABLE                                                             |
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
 | Key column type          | `KEY`                                                         | `PRIMARY KEY`                                                     |
-| NON NULL key constraint  | No                                                            | Yes <br> Messages in the Kafka topic with a NULL `PRIMARY KEY` are ignored |
-| Unique key constraint    | No <br> Messages with the same key as another have no special meaning | Yes <br> Later messages with the same key _replace_ earlier |
-| Tombstones               | No <br> Messages with NULL values are ignored                 | Yes <br> NULL message values are treated as a _tombstone_ <br> Any existing row with a matching key is deleted |
+| NON NULL key constraint  | No                                                            | Yes <br> Messages in the Kafka topic with a NULL `PRIMARY KEY` are ignored. |
+| Unique key constraint    | No <br> Messages with the same key as another have no special meaning. | Yes <br> Later messages with the same key _replace_ earlier. |
+| Tombstones               | No <br> Messages with NULL values are ignored.                | Yes <br> NULL message values are treated as a _tombstone_ <br> Any existing row with a matching key is deleted. |
 
 Each column is defined by:
- * `column_name`: the name of the column. If unquoted the name must be a valid
-   [SQL identifier](../../concepts/schemas#valid-identifiers) and will be converted to uppercase.
+ * `column_name`: the name of the column. If unquoted, the name must be a valid
+   [SQL identifier](../../concepts/schemas#valid-identifiers) and ksqlDB converts it to uppercase.
    The name can be quoted if case needs to be preserved or if the name is not a valid SQL
-   identifier, for example ``` `mixedCaseId` ``` or ``` `$with@invalid!chars`.
+   identifier, for example ``` `mixedCaseId` ``` or ``` `$with@invalid!chars` ```.
  * `data_type`: the SQL type of the column. Columns can be any of the
    [data types](../syntax-reference.md#ksqldb-data-types) supported by ksqlDB.
  * `PRIMARY KEY`: columns that are stored in the Kafka message's key should be marked as
-   `PRIMARY KEY` columns. If a column is not marked as a `PRIMARY KEY` column ksqlDB will load it
-   from the Kafka message's value. Unlike a stream's `KEY` column, a table's `PRIMARY KEY` column
-   are NON NULL. Any records in the Kafka topic with NULL key columns will be dropped.
+   `PRIMARY KEY` columns. If a column is not marked as a `PRIMARY KEY` column ksqlDB loads it
+   from the Kafka message's value. Unlike a stream's `KEY` column, a table's `PRIMARY KEY` column(s)
+   are NON NULL. Any records in the Kafka topic with NULL key columns are dropped.
 
 ksqlDB adds the implicit columns `ROWTIME` and `ROWKEY` to every stream
 and table, which represent the corresponding Kafka message timestamp and

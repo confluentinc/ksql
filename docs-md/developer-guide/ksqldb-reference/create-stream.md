@@ -22,27 +22,27 @@ Description
 
 Create a new stream with the specified columns and properties.
 
-A ksqlDB STREAM is a stream of _facts_. Each _fact_ is immutable and is unique.
+A ksqlDB STREAM is a stream of _facts_. Each fact is immutable and unique.
 A stream can store its data in either `KEY` or `VALUE` columns.
 Both `KEY` and `VALUE` columns can be NULL. No special processing is done if two rows have the same
-key. The table below contrasts this to a [ksqlDB TABLE](./create-table):
+key. This situation is handled differently by [ksqlDB TABLE](./create-table), as shown in the following table.
 
 |                          |  STREAM                                                       | TABLE                                                             |
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
 | Key column type          | `KEY`                                                         | `PRIMARY KEY`                                                     |
-| NON NULL key constraint  | No                                                            | Yes <br> Messages in the Kafka topic with a NULL `PRIMARY KEY` are ignored |
-| Unique key constraint    | No <br> Messages with the same key as another have no special meaning | Yes <br> Later messages with the same key _replace_ earlier |
-| Tombstones               | No <br> Messages with NULL values are ignored                 | Yes <br> NULL message values are treated as a _tombstone_ <br> Any existing row with a matching key is deleted |
+| NON NULL key constraint  | No                                                            | Yes <br> Messages in the Kafka topic with a NULL `PRIMARY KEY` are ignored. |
+| Unique key constraint    | No <br> Messages with the same key as another have no special meaning. | Yes <br> Later messages with the same key _replace_ earlier. |
+| Tombstones               | No <br> Messages with NULL values are ignored.                | Yes <br> NULL message values are treated as a _tombstone_ <br> Any existing row with a matching key is deleted. |
 
 Each column is defined by:
- * `column_name`: the name of the column. If unquoted the name must be a valid
-   [SQL identifier](../../concepts/schemas#valid-identifiers) and will be converted to uppercase.
+ * `column_name`: the name of the column. If unquoted, the name must be a valid
+   [SQL identifier](../../concepts/schemas#valid-identifiers) and ksqlDB converts it to uppercase.
    The name can be quoted if case needs to be preserved or if the name is not a valid SQL
-   identifier, for example ``` `mixedCaseId` ``` or ``` `$with@invalid!chars`.
+   identifier, for example ``` `mixedCaseId` ``` or ``` `$with@invalid!chars` ```.
  * `data_type`: the SQL type of the column. Columns can be any of the
    [data types](../syntax-reference.md#ksqldb-data-types) supported by ksqlDB.
  * `KEY`: columns that are stored in the Kafka message's key should be marked as `KEY` columns.
-   If a column is not marked as a `KEY` column ksqlDB will load it from the Kafka message's value.
+   If a column is not marked as a `KEY` column, ksqlDB loads it from the Kafka message's value.
    Unlike a table's `PRIMARY KEY`, a stream's keys can be NULL.
 
 ksqlDB adds the implicit columns `ROWTIME` and `ROWKEY` to every stream

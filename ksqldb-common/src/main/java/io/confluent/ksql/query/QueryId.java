@@ -50,11 +50,11 @@ public class QueryId {
       return false;
     }
     final QueryId queryId = (QueryId) o;
-    return Objects.equals(id, queryId.id);
+    return Objects.equals(id.toUpperCase(), queryId.id.toUpperCase());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id);
+    return Objects.hash(id.toUpperCase());
   }
 }

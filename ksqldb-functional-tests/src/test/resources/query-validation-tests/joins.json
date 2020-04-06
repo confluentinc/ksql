@@ -1413,7 +1413,7 @@
       },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Column 'T.IID' cannot be resolved."
+        "message": "Line: 3, Col: 31: JOIN ON column 'T.IID' cannot be resolved."
       }
     },
     {
@@ -1428,7 +1428,7 @@
       },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Column 'TT.IID' cannot be resolved."
+        "message": "Line: 3, Col: 38: JOIN ON column 'TT.IID' cannot be resolved."
       }
     },
     {
@@ -3728,7 +3728,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Column 'T.IID' cannot be resolved."
+        "message": "Line: 3, Col: 31: JOIN ON column 'T.IID' cannot be resolved."
       }
     },
     {
@@ -3740,7 +3740,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Column 'TT.IID' cannot be resolved."
+        "message": "Line: 3, Col: 38: JOIN ON column 'TT.IID' cannot be resolved."
       }
     },
     {

@@ -329,7 +329,7 @@ public class TestKsqlRestApp extends ExternalResource {
     final Queries queries = (Queries) response.getResponse().get(0);
     return queries.getQueries().stream()
         .map(RunningQuery::getId)
-        .map(QueryId::getId)
+        .map(QueryId::toString)
         .collect(Collectors.toSet());
   }
 

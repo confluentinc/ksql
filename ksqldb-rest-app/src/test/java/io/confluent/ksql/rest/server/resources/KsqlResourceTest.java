@@ -1228,8 +1228,7 @@ public class KsqlResourceTest {
     final String queryId = createQuery(
         "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
         emptyMap())
-        .getQueryId()
-        .getId();
+        .getQueryId().toString();
 
     // Then:
     expectedException.expect(KsqlRestException.class);

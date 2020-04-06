@@ -33,10 +33,6 @@ public class QueryId {
   }
 
   @JsonValue
-  public String getId() {
-    return id;
-  }
-
   public String toString() {
     return id;
   }

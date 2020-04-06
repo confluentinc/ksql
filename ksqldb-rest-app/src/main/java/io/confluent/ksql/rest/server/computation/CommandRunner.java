@@ -165,7 +165,9 @@ public class CommandRunner implements Closeable {
         return;
       }
 
-      restoreCommands.forEach(
+      final List<QueuedCommand> compacted = RestoreCommandsCompactor.compact(restoreCommands);
+
+      compacted.forEach(
           command -> {
             currentCommandRef.set(new Pair<>(command, clock.instant()));
             RetryUtil.retryWithBackoff(

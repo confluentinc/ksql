@@ -398,7 +398,7 @@ CREATE SOURCE CONNECTOR logistics_reader WITH (
 
 ### Create the ksqlDB source streams
 
-For ksqlDB to be able to use the topics that Debezium created, we need to declare streams over it. Because we configured Kafka Connect with Schema Registry, we don't need to declare the schema of the data for the streams. It is simply inferred.
+For ksqlDB to be able to use the topics that Debezium created, we need to declare streams over it. Because we configured Kafka Connect with Schema Registry, we don't need to declare the schema of the data for the streams. It is simply inferred the schema that Debezium writes with.
 
 Run the following to create a stream over the `customers` table:
 

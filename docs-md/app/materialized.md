@@ -276,16 +276,10 @@ DESCRIBE CONNECTOR calls_reader;
 
 ### Create the ksqlDB calls stream
 
-For ksqlDB to be able to use the topic that Debezium created, we need to declare a stream over it. Notice that Debezium writes events to the topic in the form of a map with "before" and "after" keys to make it clear what changed in each operation. We'll just model the "after" step in this stream for simplicity. Run the following at the ksqlDB CLI:
+For ksqlDB to be able to use the topic that Debezium created, we need to declare a stream over it. Because we configured Kafka Connect with Schema Registry, we don't need to declare the schema of the data for the streams. It is simply inferred the schema that Debezium writes with. Run the following at the ksqlDB CLI:
 
 ```sql
-CREATE STREAM calls (
-    after STRUCT<
-        name VARCHAR,
-        reason VARCHAR,
-        duration_seconds INT
-    >
-) WITH (
+CREATE STREAM calls WITH (
     kafka_topic = 'call-center-db.call-center.calls',
     value_format = 'avro'
 );
@@ -295,7 +289,12 @@ CREATE STREAM calls (
 
 A pretty common situation in call centers is the need to know what the current caller has called about in the past. Let's create a simple materialized view that keeps track of the distinct number of reasons that a user called for, and what the last reason was that they called for, too. This gives us an idea of how many kinds of inquiries the caller has raised, and also gives us context based on the last time they called.
 
-We do this by declaring a table called `support_view`. Keeping track of the distinct number of reasons a caller raised is as simple as grouping by the user name, then aggregating with `count_distinct` over the `reason` value. Similarly, we can retain the last reason the person called for with the `latest_by_offset` aggregation. Run this statement at the prompt:
+We do this by declaring a table called `support_view`. Keeping track of the distinct number of reasons a caller raised is as simple as grouping by the user name, then aggregating with `count_distinct` over the `reason` value. Similarly, we can retain the last reason the person called for with the `latest_by_offset` aggregation.
+
+Notice that Debezium writes events to the topic in the form of a map with "before" and "after" keys to make it clear what changed in each operation. That is why each column uses arrow syntax to drill into the nested `after` key.
+
+
+Run this statement at the prompt:
 
 ```sql
 CREATE TABLE support_view AS

@@ -531,7 +531,7 @@ public class Console implements Closeable {
           "-----------------------------------"
       ));
       for (final RunningQuery writeQuery : queries) {
-        writer().println(writeQuery.getId().getId()
+        writer().println(writeQuery.getId()
             + " (" + writeQuery.getState().orElse("N/A")
             + ") : " + writeQuery.getQuerySingleLine());
       }
@@ -654,7 +654,7 @@ public class Console implements Closeable {
   }
 
   private void printQueryDescription(final QueryDescription query) {
-    writer().println(String.format("%-20s : %s", "ID", query.getId().getId()));
+    writer().println(String.format("%-20s : %s", "ID", query.getId()));
     if (query.getStatementText().length() > 0) {
       writer().println(String.format("%-20s : %s", "SQL", query.getStatementText()));
     }

@@ -33,7 +33,7 @@ For example, to implement simple fraud-detection logic on a Kafka topic named
 
 The equivalent Scala code on Kafka Streams might resemble: 
 
-.. code:: java
+.. code:: scala
 
     // Example fraud-detection logic using the Kafka Streams API.
     object FraudFilteringApplication extends App {

@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,7 @@ public class CommandRunner implements Closeable {
   private final InteractiveStatementExecutor statementExecutor;
   private final CommandQueue commandStore;
   private final ExecutorService executor;
+  private final Function<List<QueuedCommand>, List<QueuedCommand>> compactor;
   private volatile boolean closed = false;
   private final int maxRetries;
   private final ClusterTerminator clusterTerminator;
@@ -93,10 +95,12 @@ public class CommandRunner implements Closeable {
         ksqlServiceId,
         commandRunnerHealthTimeout,
         metricsGroupPrefix,
-        Clock.systemUTC()
+        Clock.systemUTC(),
+        RestoreCommandsCompactor::compact
     );
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
   CommandRunner(
       final InteractiveStatementExecutor statementExecutor,
@@ -108,8 +112,10 @@ public class CommandRunner implements Closeable {
       final String ksqlServiceId,
       final Duration commandRunnerHealthTimeout,
       final String metricsGroupPrefix,
-      final Clock clock
+      final Clock clock,
+      final Function<List<QueuedCommand>, List<QueuedCommand>> compactor
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
     this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
     this.maxRetries = maxRetries;
@@ -122,7 +128,8 @@ public class CommandRunner implements Closeable {
     this.lastPollTime = new AtomicReference<>(null);
     this.commandRunnerStatusMetric =
         new CommandRunnerStatusMetric(ksqlServiceId, this, metricsGroupPrefix);
-    this.clock = clock;
+    this.clock = Objects.requireNonNull(clock, "clock");
+    this.compactor = Objects.requireNonNull(compactor, "compactor");
   }
 
   /**
@@ -165,7 +172,7 @@ public class CommandRunner implements Closeable {
         return;
       }
 
-      final List<QueuedCommand> compacted = RestoreCommandsCompactor.compact(restoreCommands);
+      final List<QueuedCommand> compacted = compactor.apply(restoreCommands);
 
       compacted.forEach(
           command -> {

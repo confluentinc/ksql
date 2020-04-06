@@ -140,6 +140,13 @@ https://github.com/confluentinc/ksql/issues/4960). The existing examples in the 
 examples repo will need updating with the new syntax,
 (tracked by https://github.com/confluentinc/ksql/issues/4927).
 
+Where out of data examples are used in the new version of ksqlDB, the error message will be very explicit about what needs to be changed, e.g. 
+
+```
+ksql> CREATE TABLE FOO (ROWKEY INT KEY, NAME STRING) WITH (...);
+Error: Line: 1, COL: 18: `KEY` used in table schema. Tables have primary keys. Please replace KEY with PRIMARY KEY in: ROWKEY INT KEY
+```
+
 ## Compatibility Implications
 
 None

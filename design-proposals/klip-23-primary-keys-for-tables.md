@@ -145,6 +145,11 @@ Where out of data examples are used in the new version of ksqlDB, the error mess
 ```
 ksql> CREATE TABLE FOO (ROWKEY INT KEY, NAME STRING) WITH (...);
 Error: Line: 1, COL: 18: `KEY` used in table schema. Tables have primary keys. Please replace KEY with PRIMARY KEY in: ROWKEY INT KEY
+
+The following columns are defined as KEY columns. Tables do not support KEY columns, only PRIMARY KEY columns. Please add the `PRIMARY` key word. Columns:
+ROWKEY
+Tables have PRIMARY KEYs, which are unique and NON NULL.
+Streams have KEYs, which have no uniqueness or NON NULL constraints.
 ```
 
 ## Compatibility Implications

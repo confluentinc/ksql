@@ -33,7 +33,7 @@ To get started, we'll need to download the Debezium connector to a fresh directo
 docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.8.0 confluent-hub install --no-prompt debezium/debezium-connector-mysql:1.1.0
 ```
 
-After running this, you should have a folder named `confluent-hub-components` with some jar files in it.
+After running this, you should have a directory named `confluent-hub-components` with some jar files in it.
 
 ### Start the stack
 

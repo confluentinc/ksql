@@ -105,7 +105,7 @@ public class CreateSourceTest {
 
     @Override
     public String toString() {
-      return null;
+      return "";
     }
   }
 }

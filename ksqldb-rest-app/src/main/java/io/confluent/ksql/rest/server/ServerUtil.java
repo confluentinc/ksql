@@ -52,8 +52,6 @@ public final class ServerUtil {
       return StreamsMetadataState.UNKNOWN_HOST;
     }
 
-    // the getHost/getPort utilities don't handle URLs that end with `/` - since this issue
-    // has come up multiple times for ksqlDB we special case it here
     final String serverId = applicationServerId.endsWith("/")
         ? applicationServerId.substring(0, applicationServerId.lastIndexOf("/"))
         : applicationServerId;

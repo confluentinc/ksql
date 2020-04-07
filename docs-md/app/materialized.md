@@ -1,7 +1,9 @@
 What is it?
 ----------
 
-A materialized view (sometimes called a "[materialized cache](https://www.confluent.io/blog/build-materialized-cache-with-ksqldb/)") is an approach to precomputing the results of a query and storing them for fast read access. By contrast to a regular database query, which does all of its work at read-time, materialized views do nearly all of their work at write-time. This is why materialized views can offer highly performant reads. A pretty standard way to build a materialized cache is to capture the changelog of a database and process it as a stream of events. This lets you create multiple distributed materializations that best suit each application's query patterns.
+A materialized view (sometimes called a "[materialized cache](https://www.confluent.io/blog/build-materialized-cache-with-ksqldb/)") is an approach to precomputing the results of a query and storing them for fast read access. By contrast to a regular database query, which does all of its work at read-time, materialized views do nearly all of their work at write-time. This is why materialized views can offer highly performant reads.
+
+A pretty standard way to build a materialized cache is to capture the changelog of a database and process it as a stream of events. This lets you create multiple distributed materializations that best suit each application's query patterns.
 
 ![hard](../img/mv-hard.png){: style="width:90%;"}
 

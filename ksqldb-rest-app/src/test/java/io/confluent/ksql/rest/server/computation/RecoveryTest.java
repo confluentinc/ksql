@@ -568,7 +568,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT C1 FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CsAs_b_0;",
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT C2 FROM A;"
     );

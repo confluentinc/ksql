@@ -651,8 +651,7 @@ public class AstBuilder {
           ? TerminateQuery.all(location)
           : TerminateQuery.query(
               location,
-              // use case sensitive parsing here to maintain backwards compatibility
-              new QueryId(ParserUtil.getIdentifierText(true, context.identifier()))
+              new QueryId(ParserUtil.getIdentifierText(false, context.identifier()))
           );
     }
 

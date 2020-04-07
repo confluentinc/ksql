@@ -22,14 +22,25 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
+/**
+ * A query id.
+ *
+ * <p>For backwards compatibility reasons query ids must preserve their case, as their text
+ * representation is used, amoung other things, for internal topic naming.
+ *
+ * <p>However, two ids with the same text, with different case, should compare equal. This is needed
+ * so that look ups against query ids are not case-sensitive.
+ */
 @Immutable
 public class QueryId {
 
   private final String id;
+  private final String cachedUpperCase;
 
   @JsonCreator
   public QueryId(final String id) {
     this.id = requireNonNull(id, "id");
+    this.cachedUpperCase = id.toUpperCase();
   }
 
   @JsonValue
@@ -46,11 +57,11 @@ public class QueryId {
       return false;
     }
     final QueryId queryId = (QueryId) o;
-    return Objects.equals(id, queryId.id);
+    return Objects.equals(cachedUpperCase, queryId.cachedUpperCase);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id);
+    return Objects.hash(cachedUpperCase);
   }
 }

@@ -112,7 +112,10 @@ public class CodeGenRunner {
       final SqlType expressionType = expressionTypeManager
           .getExpressionSqlType(expression);
 
-      ee.setExpressionType(SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(expressionType));
+      if (expressionType != null) {
+        // expressionType can be null if expression is NULL.
+        ee.setExpressionType(SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(expressionType));
+      }
 
       ee.cook(javaCode);
 
@@ -123,8 +126,7 @@ public class CodeGenRunner {
           expression
       );
     } catch (KsqlException | CompileException e) {
-      throw new KsqlException("Code generation failed for " + type
-          + ": " + e.getMessage()
+      throw new KsqlException("Invalid " + type + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);
     } catch (final Exception e) {
       throw new RuntimeException("Unexpected error generating code for " + type

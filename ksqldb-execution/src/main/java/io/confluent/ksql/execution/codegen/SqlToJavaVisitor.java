@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
+import io.confluent.ksql.execution.codegen.helpers.MapBuilder;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -124,7 +125,8 @@ public class SqlToJavaVisitor {
       RoundingMode.class.getCanonicalName(),
       SchemaBuilder.class.getCanonicalName(),
       Struct.class.getCanonicalName(),
-      ArrayBuilder.class.getCanonicalName()
+      ArrayBuilder.class.getCanonicalName(),
+      MapBuilder.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -834,7 +836,9 @@ public class SqlToJavaVisitor {
         final CreateMapExpression exp,
         final Void context
     ) {
-      final StringBuilder map = new StringBuilder("ImmutableMap.builder()");
+      final StringBuilder map = new StringBuilder("new MapBuilder(");
+      map.append(exp.getMap().size());
+      map.append((')'));
 
       for (Entry<Expression, Expression> entry: exp.getMap().entrySet()) {
         map.append(".put(");
@@ -925,27 +929,25 @@ public class SqlToJavaVisitor {
     }
 
     static Pair<String, SqlType> getCast(final Pair<String, SqlType> expr, final SqlType sqlType) {
-      if (!sqlType.supportsCast()) {
-        throw new KsqlFunctionException(
-            "Only casts to primitive types and decimal are supported: " + sqlType);
-      }
-
-      final SqlType rightSchema = expr.getRight();
-      if (sqlType.equals(rightSchema) || rightSchema == null) {
+      final SqlType sourceType = expr.getRight();
+      if (sourceType == null || sqlType.equals(sourceType)) {
+        // sourceType is null if source is SQL NULL
         return new Pair<>(expr.getLeft(), sqlType);
       }
 
-      return CASTERS.getOrDefault(
-          sqlType.baseType(),
-          (e, t, r) -> {
-            throw new KsqlException("Invalid cast operation: " + t);
-          }
-      )
-          .cast(expr, sqlType, sqlType);
+      return CASTERS.getOrDefault(sqlType.baseType(), CastVisitor::unsupportedCast)
+          .cast(expr, sqlType);
+    }
+
+    private static Pair<String, SqlType> unsupportedCast(
+        final Pair<String, SqlType> expr, final SqlType returnType
+    ) {
+      throw new KsqlFunctionException("Cast of " + expr.getRight()
+            + " to " + returnType + " is not supported");
     }
 
     private static Pair<String, SqlType> castString(
-        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType
     ) {
       final SqlType schema = expr.getRight();
       final String exprStr;
@@ -961,13 +963,13 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castBoolean(
-        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType
     ) {
       return new Pair<>(getCastToBooleanString(expr.getRight(), expr.getLeft()), returnType);
     }
 
     private static Pair<String, SqlType> castInteger(
-        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType
     ) {
       final String exprStr = getCastString(
           expr.getRight(),
@@ -979,7 +981,7 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castLong(
-        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType
     ) {
       final String exprStr = getCastString(
           expr.getRight(),
@@ -991,7 +993,7 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castDouble(
-        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType
     ) {
       final String exprStr = getCastString(
           expr.getRight(),
@@ -1003,13 +1005,13 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castDecimal(
-        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType
     ) {
-      if (!(sqltype instanceof SqlDecimal)) {
-        throw new KsqlException("Expected decimal type: " + sqltype);
+      if (!(returnType instanceof SqlDecimal)) {
+        throw new KsqlException("Expected decimal type: " + returnType);
       }
 
-      final SqlDecimal sqlDecimal = (SqlDecimal) sqltype;
+      final SqlDecimal sqlDecimal = (SqlDecimal) returnType;
 
       if (expr.getRight().baseType() == SqlBaseType.DECIMAL && expr.right.equals(sqlDecimal)) {
         return expr;
@@ -1049,7 +1051,6 @@ public class SqlToJavaVisitor {
           return "(new Double(" + exprStr + ")." + javaTypeMethod + ")";
         case STRING:
           return javaStringParserMethod + "(" + exprStr + ")";
-
         default:
           throw new KsqlFunctionException(
               "Invalid cast operation: Cannot cast "
@@ -1086,7 +1087,6 @@ public class SqlToJavaVisitor {
 
       Pair<String, SqlType> cast(
           Pair<String, SqlType> expr,
-          SqlType sqltype,
           SqlType returnType
       );
     }
@@ -1104,5 +1104,4 @@ public class SqlToJavaVisitor {
       this.thenProcessResult = thenProcessResult;
     }
   }
-
 }

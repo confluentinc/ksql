@@ -26,6 +26,9 @@ import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import java.util.Optional;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -33,6 +36,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PojoCodecTest {
+
+  private static final Schema STRUCT_SCHEMA = SchemaBuilder.struct()
+      .field("foo", Schema.OPTIONAL_INT32_SCHEMA)
+      .field("bar", Schema.OPTIONAL_STRING_SCHEMA)
+      .optional()
+      .build();
+  private static final Struct STRUCT = new Struct(STRUCT_SCHEMA);
 
   @Mock
   private PojoDeserializerErrorHandler errorHandler;
@@ -72,6 +82,11 @@ public class PojoCodecTest {
     Optional<TestPojo> testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
     assertThat(testPojo.isPresent(), is(false));
     verify(errorHandler).onExtraParam("blah");
+  }
+
+  @Test
+  public void shouldSerializeStruct() {
+    PojoCodec.serializeObject(STRUCT);
   }
 
   public static class TestPojo {

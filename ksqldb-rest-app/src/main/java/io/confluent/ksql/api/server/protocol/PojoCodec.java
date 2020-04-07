@@ -20,8 +20,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import io.confluent.ksql.json.JsonMapper;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.jackson.DatabindCodec;
 import java.io.IOException;
 import java.util.Optional;
 
@@ -31,15 +31,16 @@ import java.util.Optional;
  */
 public final class PojoCodec {
 
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
+
   private PojoCodec() {
   }
 
   public static <T> Optional<T> deserialiseObject(final Buffer buffer,
       final PojoDeserializerErrorHandler errorHandler,
       final Class<T> clazz) {
-    final ObjectMapper objectMapper = DatabindCodec.mapper();
     try {
-      return Optional.of(objectMapper.readValue(buffer.getBytes(), clazz));
+      return Optional.of(OBJECT_MAPPER.readValue(buffer.getBytes(), clazz));
     } catch (UnrecognizedPropertyException e) {
       errorHandler.onExtraParam(e.getPropertyName());
       return Optional.empty();
@@ -59,9 +60,8 @@ public final class PojoCodec {
   }
 
   public static <T> Buffer serializeObject(final T t) {
-    final ObjectMapper objectMapper = DatabindCodec.mapper();
     try {
-      final byte[] bytes = objectMapper.writeValueAsBytes(t);
+      final byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(t);
       return Buffer.buffer(bytes);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize buffer", e);

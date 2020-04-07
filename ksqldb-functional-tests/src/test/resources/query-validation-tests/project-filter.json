@@ -348,8 +348,8 @@
         {"topic": "test_topic", "key": "0", "value": {"S": {"START": "world", "END": "bar"}}}
       ],
       "outputs": [
-        {"topic": "S1", "key": "0", "value": {"S__END": "foo"}},
-        {"topic": "S1", "key": "0", "value": {"S__END": "bar"}}
+        {"topic": "S1", "key": "0", "value": {"END": "foo"}},
+        {"topic": "S1", "key": "0", "value": {"END": "bar"}}
       ]
     },
     {

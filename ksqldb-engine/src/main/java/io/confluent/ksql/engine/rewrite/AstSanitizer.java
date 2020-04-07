@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -27,6 +26,7 @@ import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.name.ColumnAliasGenerator;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.SourceName;
@@ -45,7 +45,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 /**
  * Validate and clean ASTs generated from externally supplied statements
@@ -74,7 +73,7 @@ public final class AstSanitizer {
     final MetaStore metaStore;
     final DataSourceExtractor dataSourceExtractor;
 
-    private final Supplier<ColumnName> aliasGenerator;
+    private final ColumnAliasGenerator aliasGenerator;
 
     RewriterPlugin(final MetaStore metaStore, final DataSourceExtractor dataSourceExtractor) {
       super(Optional.empty());
@@ -152,10 +151,8 @@ public final class AstSanitizer {
         }
       } else if (expression instanceof UnqualifiedColumnReferenceExp) {
         alias = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
-      } else if (expression instanceof DereferenceExpression) {
-        alias = ColumnNames.generatedStructFieldColumnName(expression);
       } else {
-        alias = aliasGenerator.get();
+        alias = aliasGenerator.uniqueAliasFor(expression);
       }
 
       return Optional.of(

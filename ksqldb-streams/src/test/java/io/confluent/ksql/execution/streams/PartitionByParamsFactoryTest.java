@@ -174,7 +174,7 @@ public class PartitionByParamsFactoryTest {
     // Then:
     assertThat(resultSchema, is(LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(ColumnName.of("COL3__someField"), SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("someField"), SqlTypes.BIGINT)
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)
         .valueColumn(COL3, COL3_TYPE)

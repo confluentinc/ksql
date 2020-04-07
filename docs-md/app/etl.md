@@ -190,7 +190,7 @@ services:
     tty: true
 ```
 
-There's a couple things to notice here. The Postgres image mounts the custom configuration file that we wrote. Postgres adds these configuration settings into its system-wide configuration. The environment variables we gave it also set up a blank database called `customers` along with a user named `postgres-user` that can access it.
+There are a couple things to notice here. The Postgres image mounts the custom configuration file that we wrote. Postgres adds these configuration settings into its system-wide configuration. The environment variables we gave it also set up a blank database called `customers` along with a user named `postgres-user` that can access it.
 
 We’ve also set up MongoDB as a replica set named `my-replica-set` Debezium requires that MongoDB run in this configuration to pick up changes from its oplog. In this case, we’re just running a single node replica set.
 

@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
@@ -83,35 +83,20 @@ public class CreateTableTest {
   @Test
   public void shouldThrowOnNonePrimaryKey() {
     // Given:
-    final NodeLocation loc1 = new NodeLocation(2, 3);
-    final ColumnName invalid1 = ColumnName.of("invalid key column!");
-
-    final NodeLocation loc2 = new NodeLocation(4, 5);
-    final ColumnName invalid2 = ColumnName.of("another invalid key column");
+    final NodeLocation loc = new NodeLocation(2, 3);
+    final ColumnName name = ColumnName.of("K");
 
     final TableElements invalidElements = TableElements.of(
         new TableElement(
-            Optional.of(new NodeLocation(1, 2)),
-            Namespace.PRIMARY_KEY,
-            ColumnName.of("primary keys are valid"),
-            new Type(SqlTypes.STRING)
-        ),
-        new TableElement(
-            Optional.of(loc1),
+            Optional.of(loc),
             Namespace.KEY,
-            invalid1,
+            name,
             new Type(SqlTypes.STRING)
         ),
         new TableElement(
             Optional.of(new NodeLocation(3, 4)),
             Namespace.VALUE,
             ColumnName.of("values are always valid"),
-            new Type(SqlTypes.STRING)
-        ),
-        new TableElement(
-            Optional.of(loc2),
-            Namespace.KEY,
-            invalid2,
             new Type(SqlTypes.STRING)
         )
     );
@@ -123,8 +108,9 @@ public class CreateTableTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Tables do not support KEY columns"));
-    assertThat(e.getMessage(), containsString(loc1.asPrefix() + invalid1));
-    assertThat(e.getMessage(), containsString(loc2.asPrefix() + invalid2));
+    assertThat(e.getMessage(), is("Line: 2, Col: 4: Column `K` is a 'KEY' column: "
+        + "please use 'PRIMARY KEY' for tables.\n"
+        + "Tables have PRIMARY KEYs, which are unique and NON NULL.\n"
+        + "Streams have KEYs, which have no uniqueness or NON NULL constraints."));
   }
 }

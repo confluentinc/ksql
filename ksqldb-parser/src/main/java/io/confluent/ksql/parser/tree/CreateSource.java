@@ -21,8 +21,11 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.util.KsqlException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Immutable
 public abstract class CreateSource extends Statement {
@@ -44,6 +47,8 @@ public abstract class CreateSource extends Statement {
     this.elements = requireNonNull(elements, "elements");
     this.notExists = notExists;
     this.properties = requireNonNull(properties, "properties");
+
+    throwOnMultipleKeyColumns(elements);
   }
 
   public CreateSourceProperties getProperties() {
@@ -82,5 +87,22 @@ public abstract class CreateSource extends Statement {
         && Objects.equals(name, that.name)
         && Objects.equals(elements, that.elements)
         && Objects.equals(properties, that.properties);
+  }
+
+  private static void throwOnMultipleKeyColumns(final TableElements elements) {
+    final List<TableElement> keys = elements.stream()
+        .filter(e -> e.getNamespace().isKey())
+        .collect(Collectors.toList());
+
+    if (keys.size() > 1) {
+      final String namesAndLocs = keys.stream()
+          .map(tableElement -> tableElement.getName() + tableElement.getLocation()
+              .map(nl -> " (" + nl + ")")
+              .orElse(""))
+          .collect(Collectors.joining(", "));
+
+      throw new KsqlException("Only single KEY column supported. Multiple KEY columns found: "
+          + namesAndLocs);
+    }
   }
 }

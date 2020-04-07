@@ -15,9 +15,13 @@
 
 package io.confluent.ksql.rest.server;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.streams.state.HostInfo;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,6 +55,15 @@ public class ServerUtilTest {
 
     // Then:
     ServerUtil.getServerAddress(restConfig);
+  }
+
+  @Test
+  public void shouldReturnServerPortWithTrailingSlash() {
+    // When:
+    final HostInfo hostInfo = ServerUtil.parseHostInfo("http://localhost:8088/");
+
+    // Then:
+    assertThat(hostInfo.port(), Matchers.is(8088));
   }
 
 }

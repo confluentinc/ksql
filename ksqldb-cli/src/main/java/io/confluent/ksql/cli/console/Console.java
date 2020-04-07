@@ -54,6 +54,7 @@ import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionNameList;
@@ -85,7 +86,6 @@ import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
 import io.confluent.ksql.util.HandlerMaps.Handler1;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TabularRow;
 import java.io.Closeable;
 import java.io.File;
@@ -455,16 +455,18 @@ public class Console implements Closeable {
       final Optional<WindowType> windowType,
       final String keyField
   ) {
-    if (field.getName().equals(SchemaUtil.ROWTIME_NAME.text())) {
+    final FieldType possibleFieldType = field.getType().orElse(null);
+
+    if (possibleFieldType == FieldType.SYSTEM) {
       return String.format("%-16s %s", field.getSchema().toTypeString(), "(system)");
     }
 
-    if (field.getName().equals(SchemaUtil.ROWKEY_NAME.text())) {
+    if (possibleFieldType == FieldType.KEY) {
       final String wt = windowType
           .map(v -> " (Window type: " + v + ")")
           .orElse("");
 
-      return String.format("%-16s %s%s", field.getSchema().toTypeString(), "(system)", wt);
+      return String.format("%-16s %s%s", field.getSchema().toTypeString(), "(key)", wt);
     }
 
     if (keyField != null && keyField.contains("." + field.getName())) {
@@ -529,7 +531,7 @@ public class Console implements Closeable {
           "-----------------------------------"
       ));
       for (final RunningQuery writeQuery : queries) {
-        writer().println(writeQuery.getId().getId()
+        writer().println(writeQuery.getId()
             + " (" + writeQuery.getState().orElse("N/A")
             + ") : " + writeQuery.getQuerySingleLine());
       }
@@ -652,7 +654,7 @@ public class Console implements Closeable {
   }
 
   private void printQueryDescription(final QueryDescription query) {
-    writer().println(String.format("%-20s : %s", "ID", query.getId().getId()));
+    writer().println(String.format("%-20s : %s", "ID", query.getId()));
     if (query.getStatementText().length() > 0) {
       writer().println(String.format("%-20s : %s", "SQL", query.getStatementText()));
     }

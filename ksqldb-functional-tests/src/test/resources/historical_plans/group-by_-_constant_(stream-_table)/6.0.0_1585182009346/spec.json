@@ -1,0 +1,52 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585182009346,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ROWTIME BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "-"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "-"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "-"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "-"
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : "-"
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : "1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : "2"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : "3"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : "4"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 1,
+    "value" : "5"
+  } ]
+}

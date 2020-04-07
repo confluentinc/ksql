@@ -832,7 +832,7 @@
           "topic": "S2",
           "timestamp": 0,
           "value": {
-            "ITEMID__NAME": "Item_6"
+            "NAME": "Item_6"
           },
           "key": "0"
         },
@@ -840,7 +840,7 @@
           "topic": "S2",
           "timestamp": 0,
           "value": {
-            "ITEMID__NAME": "Item_6"
+            "NAME": "Item_6"
           },
           "key": "100"
         },
@@ -848,7 +848,7 @@
           "topic": "S2",
           "timestamp": 0,
           "value": {
-            "ITEMID__NAME": "Item_6"
+            "NAME": "Item_6"
           },
           "key": "101"
         }
@@ -1053,9 +1053,9 @@
           "topic": "S3",
           "timestamp": 0,
           "value": {
-            "ADDRESS__STREET": "STREET_3",
+            "STREET": "STREET_3",
             "STATE": "STATE_9",
-            "ITEMID__CATEGORY__ID": 2,
+            "ID": 2,
             "ZIPCODE": 287
           },
           "key": "101"
@@ -1261,7 +1261,7 @@
           "topic": "S4",
           "timestamp": 0,
           "value": {
-            "ITEMID__ITEMID": 6,
+            "ITEMID_1": 6,
             "IID": {
               "ITEMID": 6,
               "CATEGORY": {
@@ -1278,7 +1278,7 @@
           "topic": "S4",
           "timestamp": 0,
           "value": {
-            "ITEMID__ITEMID": 6,
+            "ITEMID_1": 6,
             "IID": {
               "ITEMID": 6,
               "CATEGORY": {
@@ -1295,7 +1295,7 @@
           "topic": "S4",
           "timestamp": 0,
           "value": {
-            "ITEMID__ITEMID": 6,
+            "ITEMID_1": 6,
             "IID": {
               "ITEMID": 6,
               "CATEGORY": {
@@ -1312,7 +1312,7 @@
           "topic": "S4",
           "timestamp": 0,
           "value": {
-            "ITEMID__ITEMID": 2,
+            "ITEMID_1": 2,
             "IID": {
               "ITEMID": 2,
               "CATEGORY": {
@@ -1823,14 +1823,52 @@
       ]
     },
     {
-      "name": "direct use of FETCH_FIELD_FROM_STRUCT",
+      "name": "generated name",
       "statements": [
-        "CREATE STREAM input (s STRUCT<f0 BIGINT>) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE STREAM output AS SELECT FETCH_FIELD_FROM_STRUCT(s, 'f0') FROM input;"
+        "CREATE STREAM INPUT (A STRUCT<B MAP<STRING, STRUCT<C ARRAY<STRUCT<D INT>>>>>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE STREAM OUTPUT as SELECT A->B['key$Name[]']->C[1]->D FROM INPUT;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Can't find any functions with the name 'FETCH_FIELD_FROM_STRUCT'"
+      "inputs": [
+        {"topic": "test_topic", "value": {"A": {"B": {"key$Name[]": {"C": [{"D": 1}]}}}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT",  "value": {"D": 1}}
+      ]
+    },
+    {
+      "name": "generated name - quoted identifier",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY STRING KEY, `mixedCase` STRUCT<`moreMixedCase` INT>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE STREAM OUTPUT as SELECT `mixedCase`->`moreMixedCase` FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"mixedCase": {"moreMixedCase": 1}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT",  "value": {"moreMixedCase": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, `moreMixedCase` INT"}
+        ]
+      }
+    },
+    {
+      "name": "clashing field name",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY STRING KEY, B INT, A STRUCT<B INT>, C STRUCT<B INT>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE STREAM OUTPUT as SELECT B, A->B, C->B FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"B": 0, "A": {"B": 1}, "C": {"B": 2}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT",  "value": {"B": 0, "B_1": 1, "B_2": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, B INT, B_1 INT, B_2 INT"}
+        ]
       }
     }
   ]

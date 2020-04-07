@@ -35,7 +35,7 @@
         }
       },
       "title" : "ksqlPlanV1",
-      "required" : [ "@type", "statementText", "ddlCommand", "queryPlan" ]
+      "required" : [ "@type", "statementText" ]
     },
     "CreateStreamCommand" : {
       "type" : "object",
@@ -102,7 +102,7 @@
           }
         }
       },
-      "required" : [ "keyFormat", "valueFormat", "options" ]
+      "required" : [ "keyFormat", "valueFormat" ]
     },
     "FormatInfo" : {
       "type" : "object",
@@ -132,7 +132,7 @@
           "type" : "integer"
         }
       },
-      "required" : [ "type", "size" ]
+      "required" : [ "type" ]
     },
     "CreateTableCommand" : {
       "type" : "object",

@@ -92,7 +92,7 @@ Name                 : PAGEVIEWS
  Field    | Type
 --------------------------------------
  ROWTIME  | BIGINT           (system)
- ROWKEY   | VARCHAR(STRING)  (system)
+ ROWKEY   | VARCHAR(STRING)  (key)
  VIEWTIME | BIGINT
  USERID   | VARCHAR(STRING)
  PAGEID   | VARCHAR(STRING)

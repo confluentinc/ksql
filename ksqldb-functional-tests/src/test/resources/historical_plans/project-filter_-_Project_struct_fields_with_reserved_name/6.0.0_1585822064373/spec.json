@@ -1,0 +1,40 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585822064373,
+  "schemas" : {
+    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<S STRUCT<START VARCHAR, END VARCHAR>> NOT NULL",
+    "CSAS_S1_0.S1" : "STRUCT<END VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "S" : {
+        "START" : "hello",
+        "END" : "foo"
+      }
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "S" : {
+        "START" : "world",
+        "END" : "bar"
+      }
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "S1",
+    "key" : "0",
+    "value" : {
+      "END" : "foo"
+    }
+  }, {
+    "topic" : "S1",
+    "key" : "0",
+    "value" : {
+      "END" : "bar"
+    }
+  } ]
+}

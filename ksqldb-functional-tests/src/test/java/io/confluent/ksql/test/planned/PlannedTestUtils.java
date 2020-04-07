@@ -59,7 +59,8 @@ public final class PlannedTestUtils {
   public static boolean isSamePlan(
       final Optional<TestCasePlan> latest,
       final TestCasePlan current) {
-    return latest.isPresent() && current.getPlan().equals(latest.get().getPlan());
+    return latest.isPresent() && current.getPlanNode().getPlan()
+        .equals(latest.get().getPlanNode().getPlan());
   }
 
   public static Optional<List<String>> loadContents(final String path) {
@@ -88,20 +89,20 @@ public final class PlannedTestUtils {
   ) {
     final Map<String, Topic> topicsByName = testCase.getTopics().stream()
         .collect(Collectors.toMap(Topic::getName, t -> t));
-    final KsqlVersion version = KsqlVersion.parse(planAtVersionNode.getVersion())
-        .withTimestamp(planAtVersionNode.getTimestamp());
+    final KsqlVersion version = KsqlVersion.parse(planAtVersionNode.getSpecNode().getVersion())
+        .withTimestamp(planAtVersionNode.getSpecNode().getTimestamp());
     return testCase.withPlan(
         version,
         new TopologyAndConfigs(
-            Optional.of(planAtVersionNode.getPlan()),
+            Optional.of(planAtVersionNode.getPlanNode().getPlan()),
             planAtVersionNode.getTopology(),
-            planAtVersionNode.getSchemas(),
-            planAtVersionNode.getConfigs()
+            planAtVersionNode.getSpecNode().getSchemas(),
+            planAtVersionNode.getPlanNode().getConfigs()
         ),
-        planAtVersionNode.getInputs().stream()
+        planAtVersionNode.getSpecNode().getInputs().stream()
             .map(n -> n.build(topicsByName))
             .collect(Collectors.toList()),
-        planAtVersionNode.getOutputs().stream()
+        planAtVersionNode.getSpecNode().getOutputs().stream()
             .map(n -> n.build(topicsByName))
             .collect(Collectors.toList()),
         planAtVersionNode.getSpecNode().getPostConditions()

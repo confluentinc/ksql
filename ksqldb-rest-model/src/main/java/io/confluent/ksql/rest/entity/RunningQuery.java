@@ -54,7 +54,7 @@ public class RunningQuery {
 
   @JsonIgnore
   public String getQuerySingleLine() {
-    return queryString.replaceAll(System.lineSeparator(), "");
+    return queryString.replaceAll(System.lineSeparator(), " ");
   }
 
   public Set<String> getSinks() {

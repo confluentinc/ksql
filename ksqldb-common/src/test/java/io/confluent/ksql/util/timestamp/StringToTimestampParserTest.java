@@ -3,6 +3,7 @@ package io.confluent.ksql.util.timestamp;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.util.KsqlException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.hamcrest.Description;
@@ -21,6 +22,9 @@ public class StringToTimestampParserTest {
 
   private static final ZonedDateTime FIFTH_OF_NOVEMBER =
       ZonedDateTime.of(1605, 11, 5, 0, 0, 0, 0, ZID);
+
+  private static final ZonedDateTime NEW_YEARS_EVE_2012 =
+      ZonedDateTime.of(2012, 12, 31, 23, 59, 58, 660000000, ZID);
 
   @Test
   public void shouldParseBasicLocalDate() {
@@ -148,6 +152,29 @@ public class StringToTimestampParserTest {
   }
 
   @Test
+  public void shouldParseLeapDay() {
+    // Given
+    final String format = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+    final String timestamp = "2012-12-31T23:59:58.660";
+
+    // When
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+
+    // Then
+    assertThat(ts, is(sameInstant(NEW_YEARS_EVE_2012)));
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowErrorForLeapDayWithoutYear() {
+    // Given
+    final String format = "DDD";
+    final String timestamp = "366";
+
+    // When
+    new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+  }
+
+  @Test
   public void shouldResolveDefaultsForEmpty() {
     // Given
     final String format = "";
@@ -201,3 +228,4 @@ public class StringToTimestampParserTest {
   }
 
 }
+

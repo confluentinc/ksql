@@ -1,0 +1,31 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585823165807,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<mixedCase STRUCT<moreMixedCase INT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<moreMixedCase INT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "mixedCase" : {
+        "moreMixedCase" : 1
+      }
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "moreMixedCase" : 1
+    }
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "stream",
+      "schema" : "ROWKEY STRING KEY, `moreMixedCase` INT"
+    } ]
+  }
+}

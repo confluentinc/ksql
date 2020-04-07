@@ -404,9 +404,6 @@ The ACLs required are the same for both :ref:`Interactive and non-interactive (h
 KSQL always requires the following ACLs for its internal operations and data management:
 
 - The ``DESCRIBE_CONFIGS`` operation on the ``CLUSTER`` resource type.
-- The ``DESCRIBE`` operation on the ``TOPIC`` with ``LITERAL`` name ``__consumer_offsets``.
-- The ``DESCRIBE`` operation on the ``TOPIC`` with ``LITERAL`` name ``__transaction_state``.
-- The ``DESCRIBE`` and ``WRITE`` operations on the ``TRANSACTIONAL_ID`` with ``LITERAL`` name ``<ksql.service.id>``.
 - The ``ALL`` operation on all internal ``TOPICS`` that are ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
 - The ``ALL`` operation on all internal ``GROUPS`` that are ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
 
@@ -514,8 +511,6 @@ Then the following commands would create the necessary ACLs in the Kafka cluster
     bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
 
     # Allow KSQL to produce to the command topic:
-    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Describe  --topic __transaction_state
-    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Describe --topic __consumer_offsets
     bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --producer --transactional-id ksql-fraud_ --topic _confluent-ksql-fraud__command_topic
 
 The following table shows the necessary ACLs in the Kafka cluster to allow

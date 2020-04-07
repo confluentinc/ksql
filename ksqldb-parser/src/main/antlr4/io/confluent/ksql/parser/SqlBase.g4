@@ -76,7 +76,7 @@ query
       (WINDOW  windowExpression)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
-      (PARTITION BY partitionBy=booleanExpression)?
+      (PARTITION BY partitionBy=valueExpression)?
       (HAVING having=booleanExpression)?
       (EMIT resultMaterialization)?
       limitClause?
@@ -153,25 +153,13 @@ windowUnit
     ;
 
 groupBy
-    : groupingElement (',' groupingElement)*
-    ;
-
-groupingElement
-    : groupingExpressions                                               #singleGroupingSet
-    ;
-
-groupingExpressions
-    : '(' (expression (',' expression)*)? ')'
-    | expression
+    : valueExpression (',' valueExpression)*
+    | '(' (valueExpression (',' valueExpression)*)? ')'
     ;
 
 values
     : '(' (valueExpression (',' valueExpression)*)? ')'
     ;
-
-/*
- * Dropped `namedQuery` as we don't support them.
- */
 
 selectItem
     : expression (AS? identifier)?  #selectSingle
@@ -180,8 +168,12 @@ selectItem
     ;
 
 relation
-    : left=aliasedRelation joinType JOIN right=aliasedRelation joinWindow? joinCriteria #joinRelation
-    | aliasedRelation                                                                   #relationDefault
+    : left=aliasedRelation joinedSource+  #joinRelation
+    | aliasedRelation                     #relationDefault
+    ;
+
+joinedSource
+    : joinType JOIN aliasedRelation joinWindow? joinCriteria
     ;
 
 joinType

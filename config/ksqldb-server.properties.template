@@ -14,6 +14,6 @@
 #
 
 {% set kr_props = env_to_props('KSQL_', '') -%}
-{% for name, value in kr_props.iteritems() -%}
+{% for name, value in kr_props.items() -%}
 {{name}}={{value}}
 {% endfor -%}

@@ -206,7 +206,7 @@ When you start KSQL, you should see the stream in your list of streams:
     Field   | Type
     ---------------------------------------------------------------------------------------------------------------------------
      ROWTIME | BIGINT           (system)
-     ROWKEY  | VARCHAR(STRING)  (system)
+     ROWKEY  | VARCHAR(STRING)  (key)
      LOGGER  | VARCHAR(STRING)
      LEVEL   | VARCHAR(STRING)
      TIME    | BIGINT

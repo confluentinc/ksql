@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 public final class TestCasePlan {
+
   private final TestCaseSpecNode specNode;
   private final TestCasePlanNode planNode;
   private final String topology;
@@ -56,43 +57,15 @@ public final class TestCasePlan {
     this.topology = Objects.requireNonNull(topology, "topology");
   }
 
-  public List<KsqlPlan> getPlan() {
-    return planNode.getPlan();
-  }
-
-  public long getTimestamp() {
-    return specNode.getTimestamp();
-  }
-
-  public Map<String, String> getConfigs() {
-    return planNode.getConfigs();
-  }
-
-  public Map<String, String> getSchemas() {
-    return specNode.getSchemas();
-  }
-
   public String getTopology() {
     return topology;
-  }
-
-  public String getVersion() {
-    return specNode.getVersion();
   }
 
   public TestCaseSpecNode getSpecNode() {
     return specNode;
   }
 
-  TestCasePlanNode getPlanNode() {
+  public TestCasePlanNode getPlanNode() {
     return planNode;
-  }
-
-  public List<RecordNode> getInputs() {
-    return specNode.getInputs();
-  }
-
-  public List<RecordNode> getOutputs() {
-    return specNode.getOutputs();
   }
 }

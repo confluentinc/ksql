@@ -48,7 +48,7 @@ Learn More
                           =  Streaming SQL Engine for Apache Kafka® =
                           ===========================================
 
-        Copyright 2017-2019 Confluent Inc.
+        Copyright 2017-2020 Confluent Inc.
 
         CLI v|release|, Server v|release| located at http://localhost:8088
 
@@ -436,7 +436,7 @@ the latest offset.
         Field    | Type
         --------------------------------------
         ROWTIME  | BIGINT           (system)
-        ROWKEY   | VARCHAR(STRING)  (system)
+        ROWKEY   | VARCHAR(STRING)  (key)
         GENDER   | VARCHAR(STRING)
         REGIONID | VARCHAR(STRING)
         NUMUSERS | BIGINT
@@ -563,7 +563,7 @@ Your output should resemble:
      Field      | Type
     ----------------------------------------------------------------------------------
      ROWTIME    | BIGINT           (system)
-     ROWKEY     | VARCHAR(STRING)  (system)
+     ROWKEY     | VARCHAR(STRING)  (key)
      ORDERTIME  | BIGINT
      ORDERID    | INTEGER
      ITEMID     | VARCHAR(STRING)
@@ -869,7 +869,7 @@ Your output should resemble:
      Field      | Type
     ----------------------------------------------------------------------------------
      ROWTIME    | BIGINT           (system)
-     ROWKEY     | VARCHAR(STRING)  (system)
+     ROWKEY     | VARCHAR(STRING)  (key)
      SRC        | VARCHAR(STRING)
      ORDERTIME  | BIGINT
      ORDERID    | INTEGER
@@ -931,7 +931,7 @@ Your output should resemble:
     Query ID          | Kafka Topic | Query String
     -------------------------------------------------------------------------------------------------------------------
     CSAS_ALL_ORDERS_0 | ALL_ORDERS  | CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL;
-    InsertQuery_1     | ALL_ORDERS  | INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
+    INSERTQUERY_1     | ALL_ORDERS  | INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
     -------------------------------------------------------------------------------------------------------------------
 
 .. insert-into_02_end

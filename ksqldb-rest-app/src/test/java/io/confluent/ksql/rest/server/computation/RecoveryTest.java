@@ -568,7 +568,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT C1 FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CsAs_b_0;",
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT C2 FROM A;"
     );
@@ -625,7 +625,7 @@ public class RecoveryTest {
                 "CREATE STREAM B (COLUMN STRING) "
                     + "WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
                 Collections.emptyMap(),
-                null,
+                Collections.emptyMap(),
                 Optional.empty()
             ),
             Optional.empty(),
@@ -652,7 +652,7 @@ public class RecoveryTest {
                     "CREATE STREAM A (COLUMN STRING) "
                         + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
                     Collections.emptyMap(),
-                    null,
+                    Collections.emptyMap(),
                     Optional.empty()
                 ),
                 Optional.empty(),
@@ -663,7 +663,7 @@ public class RecoveryTest {
                 new Command(
                     "CREATE STREAM C AS SELECT * FROM A;",
                     Collections.emptyMap(),
-                    null,
+                    Collections.emptyMap(),
                     Optional.empty()
                 ),
                 Optional.empty(),

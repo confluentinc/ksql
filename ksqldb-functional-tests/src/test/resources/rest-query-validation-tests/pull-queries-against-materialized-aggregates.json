@@ -932,7 +932,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Column 'AGGREGATE.WINDOWSTART' cannot be resolved",
+        "message": "WHERE column 'AGGREGATE.WINDOWSTART' cannot be resolved",
         "status": 400
       }
     },

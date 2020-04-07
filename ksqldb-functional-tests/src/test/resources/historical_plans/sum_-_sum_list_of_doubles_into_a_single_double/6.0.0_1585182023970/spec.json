@@ -1,0 +1,60 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585182023970,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE ARRAY<DOUBLE>> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<VALUE ARRAY<DOUBLE>, ROWKEY VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<VALUE ARRAY<DOUBLE>, ROWKEY VARCHAR, KSQL_AGG_VARIABLE_0 DOUBLE> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<SUM_VAL DOUBLE> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "value" : [ 1.0, 1.0 ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "value" : [ 2.0, 2.0 ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "value" : [ 922337203685.0, 1.0 ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "value" : [ 1.0, 1.0, null ]
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "SUM_VAL" : 2.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "SUM_VAL" : 6.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "SUM_VAL" : 922337203692
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "SUM_VAL" : 922337203694
+    }
+  } ]
+}

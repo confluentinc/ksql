@@ -18,7 +18,6 @@ package io.confluent.ksql.engine.rewrite;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -26,6 +25,7 @@ import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.name.ColumnAliasGenerator;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.SourceName;
@@ -38,11 +38,9 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 /**
  * Validate and clean ASTs generated from externally supplied statements
@@ -71,7 +69,7 @@ public final class AstSanitizer {
     final MetaStore metaStore;
     final DataSourceExtractor dataSourceExtractor;
 
-    private Supplier<ColumnName> aliasGenerator;
+    private final ColumnAliasGenerator aliasGenerator;
 
     RewriterPlugin(final MetaStore metaStore, final DataSourceExtractor dataSourceExtractor) {
       super(Optional.empty());
@@ -148,27 +146,14 @@ public final class AstSanitizer {
           alias = name;
         }
       } else if (expression instanceof UnqualifiedColumnReferenceExp) {
-        final ColumnName name = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
-        alias = name;
-      } else if (expression instanceof DereferenceExpression) {
-        final DereferenceExpression dereferenceExp = (DereferenceExpression) expression;
-        final String dereferenceExpressionString = dereferenceExp.toString();
-        alias = ColumnName.of(replaceColumnAndFieldRefs(
-            dereferenceExpressionString.substring(
-                dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
+        alias = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
       } else {
-        alias = aliasGenerator.get();
+        alias = aliasGenerator.uniqueAliasFor(expression);
       }
 
       return Optional.of(
           new SingleColumn(singleColumn.getLocation(), expression, Optional.of(alias))
       );
-    }
-
-    private static String replaceColumnAndFieldRefs(final String input) {
-      return input
-          .replace(KsqlConstants.DOT, "_")
-          .replace(KsqlConstants.STRUCT_FIELD_REF, "__");
     }
 
     private DataSource getSource(

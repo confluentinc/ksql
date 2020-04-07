@@ -262,7 +262,7 @@ public class AstSanitizerTest {
 
     // Then:
     final SingleColumn col = (SingleColumn) result.getSelect().getSelectItems().get(0);
-    assertThat(col.getAlias(), equalTo(Optional.of(ColumnName.of("ADDRESS__NUMBER"))));
+    assertThat(col.getAlias(), equalTo(Optional.of(ColumnName.of("NUMBER"))));
   }
 
   @Test

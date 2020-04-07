@@ -19,9 +19,9 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +43,7 @@ public final class RetryUtil {
         initialWaitMs,
         maxWaitMs,
         runnable,
-        new AtomicBoolean(false),
+        () -> false,
         Arrays.stream(passThroughExceptions)
             .map(c -> (Predicate<Exception>) c::isInstance)
             .collect(Collectors.toList())
@@ -55,7 +55,7 @@ public final class RetryUtil {
       final int initialWaitMs,
       final int maxWaitMs,
       final Runnable runnable,
-      final AtomicBoolean stopRetrying,
+      final Supplier<Boolean> stopRetrying,
       final List<Predicate<Exception>> passThroughExceptions) {
     retryWithBackoff(
         maxRetries,
@@ -80,7 +80,7 @@ public final class RetryUtil {
       final int maxWaitMs,
       final Runnable runnable,
       final Consumer<Long> sleep,
-      final AtomicBoolean stopRetrying,
+      final Supplier<Boolean> stopRetrying,
       final List<Predicate<Exception>> passThroughExceptions) {
     long wait = initialWaitMs;
     int i = 0;

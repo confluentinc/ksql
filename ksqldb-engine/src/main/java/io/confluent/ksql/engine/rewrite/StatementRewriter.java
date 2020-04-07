@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.engine.rewrite;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -28,17 +30,16 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
-import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
@@ -294,23 +295,26 @@ public final class StatementRewriter<C> {
       }
 
       final Relation rewrittenLeft = (Relation) rewriter.apply(node.getLeft(), context);
-      final Relation rewrittenRight = (Relation) rewriter.apply(node.getRight(), context);
-      final Optional<WithinExpression> rewrittenWithin = node.getWithinExpression()
+      final JoinedSource rightSource = Iterables.getOnlyElement(node.getRights());
+      final Relation rewrittenRight = (Relation) rewriter.apply(rightSource.getRelation(), context);
+      final Optional<WithinExpression> rewrittenWithin = rightSource.getWithinExpression()
           .map(within -> (WithinExpression) rewriter.apply(within, context));
-      JoinCriteria rewrittenCriteria = node.getCriteria();
-      if (node.getCriteria() instanceof JoinOn) {
+      JoinCriteria rewrittenCriteria = rightSource.getCriteria();
+      if (rightSource.getCriteria() instanceof JoinOn) {
         rewrittenCriteria = new JoinOn(
-            processExpression(((JoinOn) node.getCriteria()).getExpression(), context)
+            processExpression(((JoinOn) rightSource.getCriteria()).getExpression(), context)
         );
       }
 
       return new Join(
           node.getLocation(),
-          node.getType(),
           rewrittenLeft,
-          rewrittenRight,
-          rewrittenCriteria,
-          rewrittenWithin);
+          ImmutableList.of(new JoinedSource(
+              rightSource.getLocation(),
+              rewrittenRight,
+              rightSource.getType(),
+              rewrittenCriteria,
+              rewrittenWithin)));
     }
 
     @Override
@@ -435,28 +439,11 @@ public final class StatementRewriter<C> {
         return result.get();
       }
 
-      final List<GroupingElement> rewrittenGroupings = node.getGroupingElements().stream()
-          .map(groupingElement -> (GroupingElement) rewriter.apply(groupingElement, context))
+      final List<Expression> rewrittenGroupings = node.getGroupingExpressions().stream()
+          .map(exp -> processExpression(exp, context))
           .collect(Collectors.toList());
 
       return new GroupBy(node.getLocation(), rewrittenGroupings);
-    }
-
-    @Override
-    protected AstNode visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
-      final Optional<AstNode> result = plugin.apply(node, new Context<>(context, this));
-      if (result.isPresent()) {
-        return result.get();
-      }
-
-      final List<Expression> columns = node.getColumns().stream()
-          .map(ce -> processExpression(ce, context))
-          .collect(Collectors.toList());
-
-      return new SimpleGroupBy(
-          node.getLocation(),
-          columns
-      );
     }
 
     @Override

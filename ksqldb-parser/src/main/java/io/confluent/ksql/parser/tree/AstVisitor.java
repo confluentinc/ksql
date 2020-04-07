@@ -141,14 +141,6 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
-  protected R visitGroupingElement(final GroupingElement node, final C context) {
-    return visitNode(node, context);
-  }
-
-  protected R visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
-    return visitGroupingElement(node, context);
-  }
-
   protected R visitTerminateQuery(final TerminateQuery node, final C context) {
     return visitStatement(node, context);
   }

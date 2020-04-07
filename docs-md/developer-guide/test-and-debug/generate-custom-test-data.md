@@ -131,7 +131,7 @@ Name                 : ORDERS_RAW
  Field     | Type                                                                 
 ----------------------------------------------------------------------------------
  ROWTIME   | BIGINT           (system)                                            
- ROWKEY    | VARCHAR(STRING)  (system)                                            
+ ROWKEY    | VARCHAR(STRING)  (key)
  ITEMID    | VARCHAR(STRING)                                                      
  PRICE     | DOUBLE                                                               
  LOCATION  | STRUCT<CITY VARCHAR(STRING), STATE VARCHAR(STRING), ZIPCODE INTEGER> 
@@ -187,7 +187,7 @@ Name                 : USERS_ORIGINAL
  Field        | Type                      
 ------------------------------------------
  ROWTIME      | BIGINT           (system) 
- ROWKEY       | VARCHAR(STRING)  (system) 
+ ROWKEY       | VARCHAR(STRING)  (key)
  REGISTERTIME | BIGINT                    
  GENDER       | VARCHAR(STRING)           
  REGIONID     | VARCHAR(STRING)           
@@ -243,7 +243,7 @@ Name                 : USERS_EXTENDED
  Field        | Type                         
 ---------------------------------------------
  ROWTIME      | BIGINT           (system)    
- ROWKEY       | VARCHAR(STRING)  (system)    
+ ROWKEY       | VARCHAR(STRING)  (key)
  REGISTERTIME | BIGINT                       
  GENDER       | VARCHAR(STRING)              
  REGIONID     | VARCHAR(STRING)              
@@ -297,7 +297,7 @@ Name                 : PAGEVIEWS_ORIGINAL
  Field    | Type                      
 --------------------------------------
  ROWTIME  | BIGINT           (system) 
- ROWKEY   | VARCHAR(STRING)  (system) 
+ ROWKEY   | VARCHAR(STRING)  (key)
  VIEWTIME | BIGINT                    
  USERID   | VARCHAR(STRING)           
  PAGEID   | VARCHAR(STRING)           

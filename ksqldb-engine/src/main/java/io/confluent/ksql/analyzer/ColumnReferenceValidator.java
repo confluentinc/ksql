@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.analyzer;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
@@ -22,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -39,22 +42,32 @@ class ColumnReferenceValidator {
   private final SourceSchemas sourceSchemas;
 
   ColumnReferenceValidator(final SourceSchemas sourceSchemas) {
-    this.sourceSchemas = Objects.requireNonNull(sourceSchemas, "sourceSchemas");
+    this.sourceSchemas = requireNonNull(sourceSchemas, "sourceSchemas");
   }
 
-  Set<SourceName> analyzeExpression(final Expression expression) {
-    final Set<SourceName> referencedSources = new HashSet<>();
-    final SourceExtractor extractor = new SourceExtractor(referencedSources);
+  /**
+   * Check the supplied expression and throw if it references any unknown columns.
+   *
+   * @param expression the expression to validate.
+   * @param clauseType the type of clause the expression is part of, e.g. SELECT, GROUP BY, etc.
+   * @return the names of the sources the expression uses.
+   */
+  Set<SourceName> analyzeExpression(
+      final Expression expression,
+      final String clauseType
+  ) {
+    final SourceExtractor extractor = new SourceExtractor(clauseType);
     extractor.process(expression, null);
-    return referencedSources;
+    return extractor.referencedSources;
   }
 
   private final class SourceExtractor extends TraversalExpressionVisitor<Object> {
 
-    private final Set<SourceName> referencedSources;
+    private final String clauseType;
+    private final Set<SourceName> referencedSources = new HashSet<>();
 
-    SourceExtractor(final Set<SourceName> referencedSources) {
-      this.referencedSources = Objects.requireNonNull(referencedSources, "referencedSources");
+    SourceExtractor(final String clauseType) {
+      this.clauseType = requireNonNull(clauseType, "clauseType");
     }
 
     @Override
@@ -63,7 +76,8 @@ class ColumnReferenceValidator {
         final Object context
     ) {
       final ColumnName reference = node.getColumnName();
-      getSource(Optional.empty(), reference).ifPresent(referencedSources::add);
+      getSource(node.getLocation(), Optional.empty(), reference)
+          .ifPresent(referencedSources::add);
       return null;
     }
 
@@ -72,20 +86,21 @@ class ColumnReferenceValidator {
         final QualifiedColumnReferenceExp node,
         final Object context
     ) {
-      getSource(Optional.of(node.getQualifier()), node.getColumnName())
+      getSource(node.getLocation(), Optional.of(node.getQualifier()), node.getColumnName())
           .ifPresent(referencedSources::add);
       return null;
     }
 
     private Optional<SourceName> getSource(
+        final Optional<NodeLocation> location,
         final Optional<SourceName> sourceName,
         final ColumnName name
     ) {
       final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(sourceName, name);
       if (sourcesWithField.isEmpty()) {
-        throw new KsqlException("Column '"
+        throw new KsqlException(errorPrefix(location) + "column '"
             + sourceName.map(n -> n.text() + KsqlConstants.DOT + name.text())
-                .orElse(name.text())
+            .orElse(name.text())
             + "' cannot be resolved.");
       }
 
@@ -95,11 +110,21 @@ class ColumnReferenceValidator {
             .sorted()
             .collect(Collectors.joining(", "));
 
-        throw new KsqlException("Column '" + name.text() + "' is ambiguous. "
+        throw new KsqlException(errorPrefix(location) + "column '"
+            + name.text() + "' is ambiguous. "
             + "Could be any of: " + possibilities);
       }
 
       return Optional.of(Iterables.getOnlyElement(sourcesWithField));
+    }
+
+    private String errorPrefix(final Optional<NodeLocation> location) {
+      final String loc = location
+          .map(Objects::toString)
+          .map(text -> text + ": ")
+          .orElse("");
+
+      return loc + clauseType + " ";
     }
   }
 }

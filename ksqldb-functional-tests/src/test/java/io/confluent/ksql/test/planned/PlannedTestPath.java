@@ -42,8 +42,8 @@ public final class PlannedTestPath {
 
   public static PlannedTestPath forTestCasePlan(final TestCase testCase, final TestCasePlan plan) {
     return new PlannedTestPath(
-        forTestCase(testCase).path().resolve(
-            String.format("%s_%s", plan.getVersion(), plan.getTimestamp()))
+        forTestCase(testCase).path()
+            .resolve(plan.getSpecNode().getVersion() + "_" + plan.getSpecNode().getTimestamp())
     );
   }
 

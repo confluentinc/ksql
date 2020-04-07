@@ -23,6 +23,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @Immutable
@@ -35,10 +36,13 @@ public final class Formats {
   public Formats(
       @JsonProperty(value = "keyFormat", required = true) final FormatInfo keyFormat,
       @JsonProperty(value = "valueFormat", required = true) final FormatInfo valueFormat,
-      @JsonProperty(value = "options", required = true) final Set<SerdeOption> options) {
+      @JsonProperty(value = "options") final Optional<Set<SerdeOption>> options
+  ) {
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
     this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
-    this.options = ImmutableSet.copyOf(Objects.requireNonNull(options, "options"));
+    this.options = Objects.requireNonNull(options, "options")
+        .map(ImmutableSet::copyOf)
+        .orElseGet(ImmutableSet::of);
   }
 
   public FormatInfo getKeyFormat() {
@@ -76,13 +80,13 @@ public final class Formats {
       final FormatInfo keyFormat,
       final FormatInfo valueFormat,
       final Set<SerdeOption> options) {
-    return new Formats(keyFormat, valueFormat, options);
+    return new Formats(keyFormat, valueFormat, Optional.of(options));
   }
 
   public static Formats of(
       final KeyFormat keyFormat,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options) {
-    return new Formats(keyFormat.getFormatInfo(), valueFormat.getFormatInfo(), options);
+    return of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo(), options);
   }
 }

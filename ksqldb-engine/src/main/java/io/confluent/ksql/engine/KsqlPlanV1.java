@@ -27,12 +27,16 @@ final class KsqlPlanV1 implements KsqlPlan {
 
   KsqlPlanV1(
       @JsonProperty(value = "statementText", required = true) final String statementText,
-      @JsonProperty(value = "ddlCommand", required = true) final Optional<DdlCommand> ddlCommand,
-      @JsonProperty(value = "queryPlan", required = true) final Optional<QueryPlan> queryPlan
+      @JsonProperty(value = "ddlCommand") final Optional<DdlCommand> ddlCommand,
+      @JsonProperty(value = "queryPlan") final Optional<QueryPlan> queryPlan
   ) {
     this.statementText = Objects.requireNonNull(statementText, "statementText");
     this.ddlCommand = Objects.requireNonNull(ddlCommand, "ddlCommand");
     this.queryPlan = Objects.requireNonNull(queryPlan, "queryPlan");
+
+    if (!ddlCommand.isPresent() && !queryPlan.isPresent()) {
+      throw new IllegalArgumentException("Plan requires at least a DDL command or queyr plan.");
+    }
   }
 
   public Optional<DdlCommand> getDdlCommand() {

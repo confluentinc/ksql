@@ -77,7 +77,8 @@ public final class StreamGroupByBuilder {
 
     final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
 
-    final GroupByParams params = GroupByParamsFactory.build(sourceSchema, groupBy, logger);
+    final GroupByParams params = GroupByParamsFactory
+        .build(sourceSchema, groupBy, logger, queryBuilder.getKsqlConfig());
 
     final Grouped<Struct, GenericRow> grouped = buildGrouped(
         formats,

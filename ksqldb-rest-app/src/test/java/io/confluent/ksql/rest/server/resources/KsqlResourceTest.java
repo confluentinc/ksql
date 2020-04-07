@@ -457,10 +457,6 @@ public class KsqlResourceTest {
         new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
         new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE)
     ));
-
-    assertThat("shouldn't contain internal functions", functionList.getFunctions(),
-        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.SCALAR)))
-    );
   }
 
   @Test
@@ -1218,7 +1214,7 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
-        "Unknown queryId: unknown_query_id"))));
+        "Unknown queryId: UNKNOWN_QUERY_ID"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
         "TERMINATE unknown_query_id;"))));
 
@@ -1232,8 +1228,7 @@ public class KsqlResourceTest {
     final String queryId = createQuery(
         "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
         emptyMap())
-        .getQueryId()
-        .getId();
+        .getQueryId().toString();
 
     // Then:
     expectedException.expect(KsqlRestException.class);

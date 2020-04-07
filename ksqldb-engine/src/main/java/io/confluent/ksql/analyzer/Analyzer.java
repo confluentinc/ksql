@@ -42,9 +42,9 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.GroupBy;
-import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -261,19 +261,22 @@ class Analyzer {
           new ColumnReferenceValidator(analysis.getFromSourceSchemas(true));
 
       analysis.getWhereExpression()
-          .ifPresent(columnValidator::analyzeExpression);
+          .ifPresent(expression -> columnValidator.analyzeExpression(expression, "WHERE"));
 
       analysis.getGroupByExpressions()
-          .forEach(columnValidator::analyzeExpression);
+          .forEach(expression -> columnValidator.analyzeExpression(expression, "GROUP BY"));
+
+      analysis.getPartitionBy()
+          .ifPresent(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
 
       analysis.getHavingExpression()
-          .ifPresent(columnValidator::analyzeExpression);
+          .ifPresent(expression -> columnValidator.analyzeExpression(expression, "HAVING"));
 
       analysis.getSelectItems().stream()
           .filter(si -> si instanceof SingleColumn)
           .map(SingleColumn.class::cast)
           .map(SingleColumn::getExpression)
-          .forEach(columnValidator::analyzeExpression);
+          .forEach(expression -> columnValidator.analyzeExpression(expression, "SELECT"));
     }
 
     @Override
@@ -281,14 +284,15 @@ class Analyzer {
       isJoin = true;
 
       process(node.getLeft(), context);
-      process(node.getRight(), context);
+      node.getRights().forEach(right -> process(right.getRelation(), context));
 
       final JoinNode.JoinType joinType = getJoinType(node);
 
       final AliasedDataSource left = analysis.getFromDataSources().get(0);
       final AliasedDataSource right = analysis.getFromDataSources().get(1);
 
-      final JoinOn joinOn = (JoinOn) node.getCriteria();
+      final JoinedSource source = Iterables.getOnlyElement(node.getRights());
+      final JoinOn joinOn = (JoinOn) source.getCriteria();
       final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
           .getExpression();
 
@@ -300,10 +304,10 @@ class Analyzer {
           new ColumnReferenceValidator(analysis.getFromSourceSchemas(false));
 
       final Set<SourceName> srcsUsedInLeft = columnValidator
-          .analyzeExpression(comparisonExpression.getLeft());
+          .analyzeExpression(comparisonExpression.getLeft(), "JOIN ON");
 
       final Set<SourceName> srcsUsedInRight = columnValidator
-          .analyzeExpression(comparisonExpression.getRight());
+          .analyzeExpression(comparisonExpression.getRight(), "JOIN ON");
 
       final SourceName leftSourceName = getOnlySourceForJoin(
           comparisonExpression.getLeft(), comparisonExpression, srcsUsedInLeft);
@@ -315,11 +319,11 @@ class Analyzer {
       throwOnIncompatibleSourceWindowing(left, right);
 
       final boolean flipped = leftSourceName.equals(right.getAlias());
-      analysis.setJoin(new JoinInfo(
+      analysis.addJoin(new JoinInfo(
           flipped ? comparisonExpression.getRight() : comparisonExpression.getLeft(),
           flipped ? comparisonExpression.getLeft() : comparisonExpression.getRight(),
           joinType,
-          node.getWithinExpression()
+          source.getWithinExpression()
       ));
 
       return null;
@@ -432,7 +436,8 @@ class Analyzer {
 
     private JoinNode.JoinType getJoinType(final Join node) {
       final JoinNode.JoinType joinType;
-      switch (node.getType()) {
+      final JoinedSource source = Iterables.getOnlyElement(node.getRights());
+      switch (source.getType()) {
         case INNER:
           joinType = JoinNode.JoinType.INNER;
           break;
@@ -443,7 +448,7 @@ class Analyzer {
           joinType = JoinNode.JoinType.OUTER;
           break;
         default:
-          throw new KsqlException("Join type is not supported: " + node.getType().name());
+          throw new KsqlException("Join type is not supported: " + source.getType().name());
       }
       return joinType;
     }
@@ -479,22 +484,13 @@ class Analyzer {
       return null;
     }
 
-    @Override
-    protected AstNode visitGroupBy(final GroupBy node, final Void context) {
-      return null;
-    }
-
     private void analyzeWhere(final Expression node) {
       analysis.setWhereExpression(node);
     }
 
     private void analyzeGroupBy(final GroupBy groupBy) {
       isGroupBy = true;
-
-      for (final GroupingElement groupingElement : groupBy.getGroupingElements()) {
-        final Set<Expression> groupingSet = groupingElement.enumerateGroupingSets().get(0);
-        analysis.addGroupByExpressions(groupingSet);
-      }
+      analysis.setGroupByExpressions(groupBy.getGroupingExpressions());
     }
 
     private void analyzePartitionBy(final Expression partitionBy) {

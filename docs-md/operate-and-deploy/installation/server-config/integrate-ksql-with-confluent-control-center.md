@@ -198,6 +198,6 @@ connections. In the `ksql-server.properties` file, set
 Next Steps
 ----------
 
--   [Connecting KSQL to Confluent Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html)
+-   [Connecting KSQL to Confluent Cloud](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html)
 -   [Configure Security for KSQL](security.md)
 

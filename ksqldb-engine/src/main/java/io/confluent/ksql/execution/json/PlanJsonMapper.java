@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.json;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -45,6 +46,7 @@ public final class PlanJsonMapper {
     mapper.enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
     mapper.enable(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES);
     mapper.enable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE);
+    mapper.setSerializationInclusion(Include.NON_EMPTY);
     return mapper;
   }
 }

@@ -43,7 +43,6 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
-import io.confluent.ksql.rest.server.KsqlRestApplication.AbortApplicationStartException;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
@@ -243,7 +242,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldCreateLogStreamThroughKsqlResource() throws AbortApplicationStartException {
+  public void shouldCreateLogStreamThroughKsqlResource() {
     // When:
     app.startKsql(ksqlConfig);
 
@@ -257,8 +256,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldNotCreateLogStreamIfAutoCreateNotConfigured()
-      throws AbortApplicationStartException {
+  public void shouldNotCreateLogStreamIfAutoCreateNotConfigured() {
     // Given:
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
         .thenReturn(false);
@@ -274,7 +272,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldNotCreateLogStreamIfAlreadyExists() throws AbortApplicationStartException {
+  public void shouldNotCreateLogStreamIfAlreadyExists() {
     // Given:
 
     final StreamsList streamsList =
@@ -299,8 +297,7 @@ public class KsqlRestApplicationTest {
   }
   
   @Test
-  public void shouldStartCommandStoreAndCommandRunnerBeforeCreatingLogStream()
-      throws AbortApplicationStartException {
+  public void shouldStartCommandStoreAndCommandRunnerBeforeCreatingLogStream() {
     // When:
     app.startKsql(ksqlConfig);
 
@@ -318,8 +315,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldCreateLogTopicBeforeSendingCreateStreamRequest()
-      throws AbortApplicationStartException {
+  public void shouldCreateLogTopicBeforeSendingCreateStreamRequest() {
     // When:
     app.startKsql(ksqlConfig);
 
@@ -335,7 +331,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldInitializeCommandStoreCorrectly() throws AbortApplicationStartException {
+  public void shouldInitializeCommandStoreCorrectly() {
     // When:
     app.startKsql(ksqlConfig);
 
@@ -347,7 +343,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldReplayCommandsBeforeSettingReady() throws AbortApplicationStartException {
+  public void shouldReplayCommandsBeforeSettingReady() {
     // When:
     app.startKsql(ksqlConfig);
 
@@ -358,8 +354,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldSendCreateStreamRequestBeforeSettingReady()
-      throws AbortApplicationStartException {
+  public void shouldSendCreateStreamRequestBeforeSettingReady() {
     // When:
     app.startKsql(ksqlConfig);
 
@@ -375,8 +370,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldCheckPreconditionsBeforeUsingServiceContext()
-      throws AbortApplicationStartException {
+  public void shouldCheckPreconditionsBeforeUsingServiceContext() {
     // Given:
     when(precondition2.checkPrecondition(any(), any())).then(a -> {
       verifyZeroInteractions(serviceContext);
@@ -393,7 +387,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldNotInitializeUntilPreconditionsChecked() throws AbortApplicationStartException {
+  public void shouldNotInitializeUntilPreconditionsChecked() {
     // Given:
     final KsqlErrorMessage error1 = new KsqlErrorMessage(50000, "error1");
     final KsqlErrorMessage error2 = new KsqlErrorMessage(50000, "error2");
@@ -421,7 +415,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldConfigureRocksDBConfigSetter() throws AbortApplicationStartException {
+  public void shouldConfigureRocksDBConfigSetter() {
     // When:
     app.startKsql(ksqlConfig);
 

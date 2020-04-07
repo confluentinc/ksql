@@ -39,11 +39,13 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -59,11 +61,11 @@ public class Analysis implements ImmutableAnalysis {
   private final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
-  private Optional<JoinInfo> joinInfo = Optional.empty();
+  private final List<JoinInfo> joinInfo = new ArrayList<>();
   private Optional<Expression> whereExpression = Optional.empty();
   private final List<SelectItem> selectItems = new ArrayList<>();
   private final Set<ColumnName> selectColumnNames = new HashSet<>();
-  private final List<Expression> groupByExpressions = new ArrayList<>();
+  private final Set<Expression> groupByExpressions = new LinkedHashSet<>();
   private Optional<WindowExpression> windowExpression = Optional.empty();
   private Optional<Expression> partitionBy = Optional.empty();
   private Optional<Expression> havingExpression = Optional.empty();
@@ -129,8 +131,12 @@ public class Analysis implements ImmutableAnalysis {
     return ImmutableList.copyOf(groupByExpressions);
   }
 
-  void addGroupByExpressions(final Set<Expression> expressions) {
-    groupByExpressions.addAll(expressions);
+  void setGroupByExpressions(final List<Expression> expressions) {
+    expressions.forEach(exp -> {
+      if (!groupByExpressions.add(exp)) {
+        throw new KsqlException("Duplicate GROUP BY expression: " + exp);
+      }
+    });
   }
 
   @Override
@@ -169,20 +175,21 @@ public class Analysis implements ImmutableAnalysis {
     this.limitClause = OptionalInt.of(limitClause);
   }
 
-  void setJoin(final JoinInfo joinInfo) {
-    if (fromDataSources.size() <= 1) {
+  void addJoin(final JoinInfo joinInfo) {
+    // we cannot add more joins than we have data sources
+    if (fromDataSources.size() < this.joinInfo.size()) {
       throw new IllegalStateException("Join info can only be supplied for joins");
     }
 
-    this.joinInfo = Optional.of(joinInfo);
+    this.joinInfo.add(joinInfo);
   }
 
-  public Optional<JoinInfo> getJoin() {
+  public List<JoinInfo> getJoin() {
     return joinInfo;
   }
 
   public boolean isJoin() {
-    return joinInfo.isPresent();
+    return !joinInfo.isEmpty();
   }
 
   @Override

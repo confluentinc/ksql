@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.List;
 import java.util.Objects;
@@ -28,23 +29,23 @@ import java.util.Optional;
 @Immutable
 public class GroupBy extends AstNode {
 
-  private final ImmutableList<GroupingElement> groupingElements;
+  private final ImmutableList<Expression> groupingExpressions;
 
-  public GroupBy(final List<GroupingElement> groupingElements) {
-    this(Optional.empty(), groupingElements);
+  public GroupBy(final List<Expression> groupingExpressions) {
+    this(Optional.empty(), groupingExpressions);
   }
 
   public GroupBy(
       final Optional<NodeLocation> location,
-      final List<GroupingElement> groupingElements
+      final List<Expression> groupingExpressions
   ) {
     super(location);
-    this.groupingElements = ImmutableList
-        .copyOf(requireNonNull(groupingElements, "groupingElements"));
+    this.groupingExpressions = ImmutableList
+        .copyOf(requireNonNull(groupingExpressions, "groupingElements"));
   }
 
-  public List<GroupingElement> getGroupingElements() {
-    return groupingElements;
+  public List<Expression> getGroupingExpressions() {
+    return groupingExpressions;
   }
 
   @Override
@@ -61,18 +62,18 @@ public class GroupBy extends AstNode {
       return false;
     }
     final GroupBy groupBy = (GroupBy) o;
-    return Objects.equals(groupingElements, groupBy.groupingElements);
+    return Objects.equals(groupingExpressions, groupBy.groupingExpressions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(groupingElements);
+    return Objects.hash(groupingExpressions);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("groupingElements", groupingElements)
+        .add("groupingExpressions", groupingExpressions)
         .toString();
   }
 }

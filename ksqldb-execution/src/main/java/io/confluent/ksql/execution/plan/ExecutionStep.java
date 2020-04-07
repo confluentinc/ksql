@@ -18,14 +18,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    include = As.PROPERTY
-)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
 @JsonSubTypes({
     @Type(value = StreamAggregate.class, name = "streamAggregateV1"),
     @Type(value = StreamFilter.class, name = "streamFilterV1"),

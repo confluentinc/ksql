@@ -19,12 +19,14 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.name.ColumnAliasGenerator;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
@@ -71,7 +73,7 @@ public final class PartitionByParamsFactory {
       final FunctionRegistry functionRegistry,
       final ProcessingLogger logger
   ) {
-    final Optional<Column> partitionByCol = getPartitionByCol(sourceSchema, partitionBy);
+    final Optional<ColumnName> partitionByCol = getPartitionByColumnName(sourceSchema, partitionBy);
 
     final Function<GenericRow, Object> evaluator = buildExpressionEvaluator(
         sourceSchema,
@@ -95,7 +97,7 @@ public final class PartitionByParamsFactory {
       final Expression partitionBy,
       final FunctionRegistry functionRegistry
   ) {
-    final Optional<Column> partitionByCol = getPartitionByCol(sourceSchema, partitionBy);
+    final Optional<ColumnName> partitionByCol = getPartitionByColumnName(sourceSchema, partitionBy);
     return buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCol);
   }
 
@@ -103,7 +105,7 @@ public final class PartitionByParamsFactory {
       final LogicalSchema sourceSchema,
       final Expression partitionBy,
       final FunctionRegistry functionRegistry,
-      final Optional<Column> partitionByCol
+      final Optional<ColumnName> partitionByCol
   ) {
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(sourceSchema, functionRegistry);
@@ -112,8 +114,10 @@ public final class PartitionByParamsFactory {
         .getExpressionSqlType(partitionBy);
 
     final ColumnName newKeyName = partitionByCol
-        .map(Column::name)
-        .orElseGet(() -> ColumnNames.columnAliasGenerator(Stream.of(sourceSchema)).get());
+        .orElseGet(() -> ColumnNames
+            .columnAliasGenerator(Stream.of(sourceSchema))
+            .nextKsqlColAlias()
+        );
 
     final Builder builder = LogicalSchema.builder()
         .withRowTime()
@@ -128,26 +132,36 @@ public final class PartitionByParamsFactory {
     return builder.build();
   }
 
-  private static Optional<Column> getPartitionByCol(
+  private static Optional<ColumnName> getPartitionByColumnName(
       final LogicalSchema sourceSchema,
       final Expression partitionBy
   ) {
-    if (!(partitionBy instanceof ColumnReferenceExp)) {
-      return Optional.empty();
+    if (partitionBy instanceof ColumnReferenceExp) {
+      // PARTITION BY column:
+      final ColumnName columnName = ((ColumnReferenceExp) partitionBy).getColumnName();
+
+      final Column column = sourceSchema
+          .findValueColumn(columnName)
+          .orElseThrow(() ->
+              new IllegalStateException("Unknown partition by column: " + columnName));
+
+      return Optional.of(column.name());
     }
 
-    final ColumnName columnName = ((ColumnReferenceExp) partitionBy).getColumnName();
+    if (partitionBy instanceof DereferenceExpression) {
+      // PARTITION BY struct field:
+      final ColumnAliasGenerator aliasGenerator = ColumnNames
+          .columnAliasGenerator(Stream.of(sourceSchema));
 
-    final Column column = sourceSchema
-        .findValueColumn(columnName)
-        .orElseThrow(() -> new IllegalStateException("Unknown partition by column: " + columnName));
+      return Optional.of(aliasGenerator.uniqueAliasFor(partitionBy));
+    }
 
-    return Optional.of(column);
+    return Optional.empty();
   }
 
   private static BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> buildMapper(
       final LogicalSchema resultSchema,
-      final Optional<Column> partitionByCol,
+      final Optional<ColumnName> partitionByCol,
       final Function<GenericRow, Object> evaluator
   ) {
     // If partitioning by something other than an existing column, then a new key will have

@@ -44,7 +44,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
@@ -370,10 +369,7 @@ public class SchemaKStream<K> {
 
     final Column proposedKey = getSchema()
         .findValueColumn(columnName)
-        .orElseThrow(() -> new KsqlException("Invalid identifier for PARTITION BY clause: '"
-            + columnName.toString(FormatOptions.noEscape()) + "' Only columns from the "
-            + "source schema can be referenced in the PARTITION BY clause."));
-
+        .orElseThrow(IllegalStateException::new);
 
     final boolean namesMatch = existingKey
         .map(kf -> kf.name().equals(proposedKey.name()))

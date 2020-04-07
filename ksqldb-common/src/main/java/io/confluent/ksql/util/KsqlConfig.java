@@ -198,16 +198,15 @@ public class KsqlConfig extends AbstractConfig {
           + "or set in the CLI. It's only enabled when lag.reporting.enable is true. "
           + "By default, any amount of lag is is allowed.";
 
-  public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG =
-      "ksql.query.pull.streamsstore.rebalancing.timeout.ms";
-  public static final Long KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DEFAULT = 10000L;
-  public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DOC = "Timeout in "
-      + "milliseconds when waiting for rebalancing of the stream store during a pull query";
-
   public static final String KSQL_QUERY_PULL_METRICS_ENABLED =
       "ksql.query.pull.metrics.enabled";
   public static final String KSQL_QUERY_PULL_METRICS_ENABLED_DOC =
       "Config to enable/disable collecting JMX metrics for pull queries.";
+
+  public static final String KSQL_QUERY_PULL_MAX_QPS_CONFIG = "ksql.query.pull.max.qps";
+  public static final Integer KSQL_QUERY_PULL_MAX_QPS_DEFAULT = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
+      + "queries. Once the limit is hit, queries will fail immediately";
 
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of();
@@ -573,12 +572,6 @@ public class KsqlConfig extends AbstractConfig {
             Importance.MEDIUM,
             KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC
         ).define(
-            KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG,
-            ConfigDef.Type.LONG,
-            KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DOC
-        ).define(
             KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
             Type.STRING,
             KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
@@ -643,6 +636,13 @@ public class KsqlConfig extends AbstractConfig {
             false,
             Importance.LOW,
             KSQL_QUERY_PULL_METRICS_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_MAX_QPS_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_MAX_QPS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_MAX_QPS_DOC
         )
         .withClientSslSupport();
 

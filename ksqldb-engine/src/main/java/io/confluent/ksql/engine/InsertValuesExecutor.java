@@ -265,6 +265,12 @@ public class InsertValuesExecutor {
 
     final LogicalSchema schema = dataSource.getSchema();
 
+    for (ColumnName col : columns) {
+      if (!schema.findColumn(col).isPresent()) {
+        throw new KsqlException("Column name " + col + " does not exist.");
+      }
+    }
+
     final Map<ColumnName, Object> values = resolveValues(
         insertValues, columns, schema, functionRegistry, config);
 

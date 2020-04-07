@@ -89,7 +89,7 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"BOOLEAN_LEN": 1, "INT_LEN": 2, "BIGINT_LEN": 3, "DOUBLE_LEN": 4, "STRING_LEN": 5, "DECIMAL_LEN": 6}},
-        {"topic": "OUTPUT", "value": {"BOOLEAN_LEN": 0, "INT_LEN": 0, "BIGINT_LEN": 0, "DOUBLE_LEN": 0, "STRING_LEN": 0, "DECIMAL_LEN": 0}}
+        {"topic": "OUTPUT", "value": {"BOOLEAN_LEN": null, "INT_LEN": null, "BIGINT_LEN": null, "DOUBLE_LEN": null, "STRING_LEN": null, "DECIMAL_LEN": null}}
       ]
     },
     {
@@ -104,7 +104,7 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"ARRAY_LEN": 1, "MAP_LEN": 2, "STRUCT_LEN": 3}},
-        {"topic": "OUTPUT", "value": {"ARRAY_LEN": 0, "MAP_LEN": 0, "STRUCT_LEN": 0}}
+        {"topic": "OUTPUT", "value": {"ARRAY_LEN": null, "MAP_LEN": null, "STRUCT_LEN": null}}
       ]
     },
     {

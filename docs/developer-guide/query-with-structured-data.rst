@@ -108,7 +108,7 @@ Start the KSQL CLI:
 .. codewithvars:: bash
 
   docker run --network tutorials_default --rm --interactive --tty \
-      confluentinc/cp-ksql-cli:|release| \
+      confluentinc/cp-ksqldb-cli:|release| \
       http://ksql-server:8088
 
 In the KSQL CLI, ensure that ``raw-topic`` is available: 
@@ -269,7 +269,7 @@ Your output should resemble:
      Field         | Type
     -------------------------------------------
      ROWTIME       | BIGINT           (system)
-     ROWKEY        | VARCHAR(STRING)  (system)
+     ROWKEY        | VARCHAR(STRING)  (key)
      DATA__field-a | INTEGER
      DATA__field-b | VARCHAR(STRING)
     -------------------------------------------
@@ -289,7 +289,7 @@ Your output should resemble:
      Field         | Type
     -------------------------------------------
      ROWTIME       | BIGINT           (system)
-     ROWKEY        | VARCHAR(STRING)  (system)
+     ROWKEY        | VARCHAR(STRING)  (key)
      DATA__field-a | INTEGER
      DATA__field-c | INTEGER
      DATA__field-d | VARCHAR(STRING)

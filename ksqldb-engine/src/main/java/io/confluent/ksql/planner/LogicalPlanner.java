@@ -37,6 +37,7 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnAliasGenerator;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.SourceName;
@@ -57,7 +58,6 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -66,7 +66,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
@@ -339,9 +338,7 @@ public class LogicalPlanner {
 
       final Column proposedKey = sourceSchema
           .findColumn(columnName)
-          .orElseThrow(() -> new KsqlException("Invalid identifier for PARTITION BY clause: '"
-              + columnName.toString(FormatOptions.noEscape()) + "' Only columns from the "
-              + "source schema can be referenced in the PARTITION BY clause."));
+          .orElseThrow(IllegalStateException::new);
 
       switch (proposedKey.namespace()) {
         case KEY:
@@ -421,36 +418,37 @@ public class LogicalPlanner {
 
     final List<AliasedDataSource> sources = analysis.getFromDataSources();
 
-    final Optional<JoinInfo> joinInfo = analysis.getOriginal().getJoin();
-    if (!joinInfo.isPresent()) {
+    if (!analysis.isJoin()) {
       return buildNonJoinNode(sources);
     }
 
-    if (sources.size() != 2) {
-      throw new IllegalStateException("Expected 2 sources. Got " + sources.size());
+    if (sources.size() == 1) {
+      throw new IllegalStateException("Expected more than one source. Got " + sources.size());
     }
 
     final AliasedDataSource left = sources.get(0);
     final AliasedDataSource right = sources.get(1);
 
+    final List<JoinInfo> joinInfo = analysis.getOriginal().getJoin();
+
     final PlanNode leftSourceNode = buildSourceForJoin(
         left,
         "Left",
-        joinInfo.get().getLeftJoinExpression()
+        joinInfo.get(0).getLeftJoinExpression()
     );
 
     final PlanNode rightSourceNode = buildSourceForJoin(
         right,
         "Right",
-        joinInfo.get().getRightJoinExpression()
+        joinInfo.get(0).getRightJoinExpression()
     );
 
     return new JoinNode(
         new PlanNodeId("Join"),
-        joinInfo.get().getType(),
+        joinInfo.get(0).getType(),
         leftSourceNode,
         rightSourceNode,
-        joinInfo.get().getWithinExpression()
+        joinInfo.get(0).getWithinExpression()
     );
   }
 
@@ -511,29 +509,45 @@ public class LogicalPlanner {
   ) {
     final LogicalSchema sourceSchema = sourcePlanNode.getSchema();
 
+    final LogicalSchema projectionSchema = buildProjectionSchema(
+        sourceSchema
+            .withMetaAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
+        projectionExpressions
+    );
+
+    final ColumnAliasGenerator keyColNameGen = ColumnNames
+        .columnAliasGenerator(Stream.of(sourceSchema, projectionSchema));
+
     final ColumnName keyName;
     final SqlType keyType;
+
     if (groupByExps.size() != 1) {
-      keyName = SchemaUtil.ROWKEY_NAME;
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
+        keyName = keyColNameGen.nextKsqlColAlias();
+      } else {
+        keyName = SchemaUtil.ROWKEY_NAME;
+      }
       keyType = SqlTypes.STRING;
     } else {
       final Expression expression = groupByExps.get(0);
 
-      keyName = exactlyMatchesKeyColumns(expression, sourceSchema)
-          ? ((ColumnReferenceExp) expression).getColumnName()
-          : SchemaUtil.ROWKEY_NAME;
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
+        if (expression instanceof ColumnReferenceExp) {
+          keyName = ((ColumnReferenceExp) expression).getColumnName();
+        } else {
+          keyName = keyColNameGen.uniqueAliasFor(expression);
+        }
+      } else {
+        keyName = exactlyMatchesKeyColumns(expression, sourceSchema)
+            ? ((ColumnReferenceExp) expression).getColumnName()
+            : SchemaUtil.ROWKEY_NAME;
+      }
 
       final ExpressionTypeManager typeManager =
           new ExpressionTypeManager(sourceSchema, functionRegistry);
 
       keyType = typeManager.getExpressionSqlType(expression);
     }
-
-    final LogicalSchema projectionSchema = buildProjectionSchema(
-        sourceSchema
-            .withMetaAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
-        projectionExpressions
-    );
 
     return LogicalSchema.builder()
         .withRowTime()

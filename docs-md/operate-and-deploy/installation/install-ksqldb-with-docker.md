@@ -71,7 +71,6 @@ docker run -d \
   -e KSQL_KSQL_QUERIES_FILE=/path/in/container/queries.sql \
   confluentinc/ksqldb-server:{{ site.release }}
 ```
-TODO: Figure out how to style these
 
 `KSQL_BOOTSTRAP_SERVERS`
 
@@ -331,7 +330,7 @@ Your output should resemble:
 
 ```
 ... 
-Copyright 2017-2019 Confluent Inc.
+Copyright 2017-2020 Confluent Inc.
 
 CLI v{{ site.release }}, Server v{{ site.release }} located at http://ec2-blah.us-blah.compute.amazonaws.com:8080
 

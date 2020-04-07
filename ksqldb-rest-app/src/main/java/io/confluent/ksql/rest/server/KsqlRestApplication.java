@@ -98,6 +98,7 @@ import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.Version;
@@ -370,7 +371,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   }
 
   @VisibleForTesting
-  void startKsql(final KsqlConfig ksqlConfigWithPort) throws AbortApplicationStartException {
+  void startKsql(final KsqlConfig ksqlConfigWithPort) {
     waitForPreconditions();
     initialize(ksqlConfigWithPort);
   }
@@ -404,7 +405,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     }
   }
 
-  static final class AbortApplicationStartException extends Exception {
+  static final class AbortApplicationStartException extends KsqlServerException {
 
     private AbortApplicationStartException(final String message) {
       super(message);
@@ -424,7 +425,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     }
   }
 
-  private void waitForPreconditions() throws AbortApplicationStartException {
+  private void waitForPreconditions() {
     final List<Predicate<Exception>> predicates = ImmutableList.of(
         e -> !(e instanceof KsqlFailedPrecondition)
     );
@@ -434,11 +435,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           1000,
           30000,
           this::checkPreconditions,
-          shuttingDown,
+          shuttingDown::get,
           predicates
       );
     } catch (KsqlFailedPrecondition e) {
-      log.error("Finished Precondition retrying", e);
+      log.error("Failed to meet preconditions. Exiting...", e);
     }
 
     if (shuttingDown.get()) {

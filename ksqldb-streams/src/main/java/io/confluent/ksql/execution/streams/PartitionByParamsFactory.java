@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.name.ColumnAliasGenerator;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
@@ -113,7 +114,10 @@ public final class PartitionByParamsFactory {
         .getExpressionSqlType(partitionBy);
 
     final ColumnName newKeyName = partitionByCol
-        .orElseGet(() -> ColumnNames.columnAliasGenerator(Stream.of(sourceSchema)).get());
+        .orElseGet(() -> ColumnNames
+            .columnAliasGenerator(Stream.of(sourceSchema))
+            .nextKsqlColAlias()
+        );
 
     final Builder builder = LogicalSchema.builder()
         .withRowTime()
@@ -146,7 +150,10 @@ public final class PartitionByParamsFactory {
 
     if (partitionBy instanceof DereferenceExpression) {
       // PARTITION BY struct field:
-      return Optional.of(ColumnNames.generatedStructFieldColumnName(partitionBy));
+      final ColumnAliasGenerator aliasGenerator = ColumnNames
+          .columnAliasGenerator(Stream.of(sourceSchema));
+
+      return Optional.of(aliasGenerator.uniqueAliasFor(partitionBy));
     }
 
     return Optional.empty();

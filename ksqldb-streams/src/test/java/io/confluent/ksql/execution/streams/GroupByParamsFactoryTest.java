@@ -320,7 +320,7 @@ public class GroupByParamsFactoryTest {
 
     // Then:
     final ColumnName expectedKeyColName = anyKeyName
-        ? ColumnName.of("COL3__someField")
+        ? ColumnName.of("someField")
         : SchemaUtil.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()

@@ -5,7 +5,7 @@ A materialized view (sometimes called a "[materialized cache](https://www.conflu
 
 A pretty standard way to build a materialized cache is to capture the changelog of a database and process it as a stream of events. This lets you create multiple distributed materializations that best suit each application's query patterns.
 
-![hard](../img/mv-hard.png){: style="width:90%;"}
+![hard](../img/mv-hard.png){: class="centered-img"}
 
 One way you might do this would be to capture the changelog of MySQL using the Debezium Kafka Connector. The changelog is stored in Kafka and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can query the materializations. This can work, but is there a better way?
 
@@ -14,7 +14,7 @@ Why ksqlDB
 
 Running all of the above systems is admittedly a lot to manage. In addition to your database, you end up managing clusters for Kafka, connectors, the stream processor, and another data store. It's challenging to monitor, secure, and scale all of these systems as one. ksqlDB helps to consolidate this complexity by slimming the architecture down to two things: storage (Kafka) and compute (ksqlDB).
 
-![easy](../img/mv-easy.png){: style="width:60%;"}
+![easy](../img/mv-easy.png){: class="centered-img" style="width: 80%"}
 
 Using ksqlDB, you can run any Kafka Connect connector by embedding it in ksqlDB's servers. You can also directly query ksqlDB's tables of state, obviating the need to sink your data to another data store. This gives you one mental model, in SQL, for managing your materialized views end-to-end.
 

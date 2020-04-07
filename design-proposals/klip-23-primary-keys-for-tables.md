@@ -5,10 +5,11 @@
 **Status**: In Discussion |
 **Discussion**: TBD
 
-**tl;dr:** Tables in SQL have `PRIMARY KEY`s. In ksqlDB, Tables, like Streams currently have only
-`KEY` columns, i.e. columns that come from the Kafka message key. We should introduce `PRIMARY KEY`
-syntax for tables as this is standard SQL syntax and will help highlight the difference in semantics
-for a table's primary key vs a stream's key column.
+**tl;dr:** In ksqlDB, Tables and Streams currently use the `KEY` keyword to identify columns that
+come from the Kafka message key, rather than the value. We propose introducing a syntax only change
+to use `PRIMARY KEY` for tables, rather than `KEY`, as this: is standard SQL syntax; the table's
+`KEY` column _is a already_ its primary key; and the change will help highlight the difference in
+semantics between stream and table keys.
            
 ## Background
 
@@ -96,8 +97,8 @@ to users.
 
 There is also some discussion going on about how ksqlDB should model streams: should they continue
 to be their own collection type, or should they be modelled as tables without primary keys? If we
-do go the latter route it will be crucial that we differentiate `PRIMARY KEY`s from non-primary key
-columns.
+do go the latter route it will be crucial that we differentiate `PRIMARY KEY`s from non-primary
+`KEY` columns.
 
 ## Public APIS
 
@@ -140,21 +141,26 @@ https://github.com/confluentinc/ksql/issues/4960). The existing examples in the 
 examples repo will need updating with the new syntax,
 (tracked by https://github.com/confluentinc/ksql/issues/4927).
 
-Where out of data examples are used in the new version of ksqlDB, the error message will be very explicit about what needs to be changed, e.g. 
-
-```
-ksql> CREATE TABLE FOO (ROWKEY INT KEY, NAME STRING) WITH (...);
-Error: Line: 1, COL: 18: `KEY` used in table schema. Tables have primary keys. Please replace KEY with PRIMARY KEY in: ROWKEY INT KEY
-
-The following columns are defined as KEY columns. Tables do not support KEY columns, only PRIMARY KEY columns. Please add the `PRIMARY` key word. Columns:
-ROWKEY
-Tables have PRIMARY KEYs, which are unique and NON NULL.
-Streams have KEYs, which have no uniqueness or NON NULL constraints.
-```
+Where out of data examples are used in the new version of ksqlDB, the error message will be very
+explicit about what needs to be changed. See the example error message in the compatibility section
+below.
 
 ## Compatibility Implications
 
-None
+None for existing queries, i.e. those already in a users cluster. The query plan stored in the
+command topic is agnostic to this change.
+
+For new queries submitted after this change, users will obviously need to use the new syntax.
+However, ksqlDB will return a helpful and descriptive error messages where users use `KEY` for
+tables, or `PRIMARY KEY` for streams. This error message will inform them what they need to do to
+correct their statement.  For example:
+
+```
+ksql> CREATE TABLE FOO (ROWKEY INT KEY, NAME STRING) WITH (...);
+Line: 1, COL: 18: Column `ROWKEY` is a `KEY` column: please use `PRIMARY KEY` for tables.
+Tables have PRIMARY KEYs, which are unique and NON NULL.
+Streams have KEYs, which have no uniqueness or NON NULL constraints.
+```
 
 ## Security Implications
 

@@ -189,7 +189,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(queryIdGenerator, times(1)).getNext();
-    assertThat(queryId, equalTo(new QueryId("InsertQuery_" + QUERY_ID_VALUE)));
+    assertThat(queryId, equalTo(new QueryId("INSERTQUERY_" + QUERY_ID_VALUE)));
   }
 
   @Test

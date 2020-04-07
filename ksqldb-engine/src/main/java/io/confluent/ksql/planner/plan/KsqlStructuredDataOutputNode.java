@@ -101,14 +101,14 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   @Override
   public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
-    final String base = queryIdGenerator.getNext();
+    final String base = queryIdGenerator.getNext().toUpperCase();
     if (!doCreateInto) {
-      return new QueryId("InsertQuery_" + base);
+      return new QueryId("INSERTQUERY_" + base);
     }
     if (getNodeOutputType().equals(DataSourceType.KTABLE)) {
-      return new QueryId("CTAS_" + getId().toString() + "_" + base);
+      return new QueryId("CTAS_" + getId().toString().toUpperCase() + "_" + base);
     }
-    return new QueryId("CSAS_" + getId().toString() + "_" + base);
+    return new QueryId("CSAS_" + getId().toString().toUpperCase() + "_" + base);
   }
 
   @Override

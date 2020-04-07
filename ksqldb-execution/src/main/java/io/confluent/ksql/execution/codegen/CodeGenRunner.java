@@ -112,10 +112,12 @@ public class CodeGenRunner {
       final SqlType expressionType = expressionTypeManager
           .getExpressionSqlType(expression);
 
-      if (expressionType != null) {
+      if (expressionType == null) {
         // expressionType can be null if expression is NULL.
-        ee.setExpressionType(SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(expressionType));
+        throw new KsqlException("NULL expression not supported");
       }
+
+      ee.setExpressionType(SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(expressionType));
 
       ee.cook(javaCode);
 

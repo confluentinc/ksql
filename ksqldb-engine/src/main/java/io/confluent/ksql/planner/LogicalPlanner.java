@@ -25,7 +25,6 @@ import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
@@ -38,6 +37,7 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnAliasGenerator;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.SourceName;
@@ -72,7 +72,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -516,7 +515,7 @@ public class LogicalPlanner {
         projectionExpressions
     );
 
-    final Supplier<ColumnName> keyColNameGen = ColumnNames
+    final ColumnAliasGenerator keyColNameGen = ColumnNames
         .columnAliasGenerator(Stream.of(sourceSchema, projectionSchema));
 
     final ColumnName keyName;
@@ -524,7 +523,7 @@ public class LogicalPlanner {
 
     if (groupByExps.size() != 1) {
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-        keyName = keyColNameGen.get();
+        keyName = keyColNameGen.nextKsqlColAlias();
       } else {
         keyName = SchemaUtil.ROWKEY_NAME;
       }
@@ -535,10 +534,8 @@ public class LogicalPlanner {
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
         if (expression instanceof ColumnReferenceExp) {
           keyName = ((ColumnReferenceExp) expression).getColumnName();
-        } else if (expression instanceof DereferenceExpression) {
-          keyName = ColumnNames.generatedStructFieldColumnName(expression);
         } else {
-          keyName = keyColNameGen.get();
+          keyName = keyColNameGen.uniqueAliasFor(expression);
         }
       } else {
         keyName = exactlyMatchesKeyColumns(expression, sourceSchema)

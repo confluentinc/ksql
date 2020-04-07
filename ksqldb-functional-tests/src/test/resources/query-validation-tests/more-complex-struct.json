@@ -708,12 +708,12 @@
           "topic": "S2",
           "key": "0",
           "value": {
-            "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT__SL3_STRUCT__SL4_DOUBLE_ARRAY": [
+            "SL4_DOUBLE_ARRAY": [
               44.00196898385005,
               20.811629846775816,
               18.106233954153627
             ],
-            "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT_MAP": {
+            "SL2_STRUCT_MAP": {
               "mapkey": {
                 "SL2_3_STRING": "SL2_3_32",
                 "SL2_3_DOUBLE": 62.714783363909
@@ -726,12 +726,12 @@
           "topic": "S2",
           "key": "100",
           "value": {
-            "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT__SL3_STRUCT__SL4_DOUBLE_ARRAY": [
+            "SL4_DOUBLE_ARRAY": [
               14.483946419811055,
               48.09062881637733,
               65.07562628320905
             ],
-            "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT_MAP": {
+            "SL2_STRUCT_MAP": {
               "mapkey": {
                 "SL2_3_STRING": "SL2_3_60",
                 "SL2_3_DOUBLE": 17.481981844681428
@@ -744,12 +744,12 @@
           "topic": "S2",
           "key": "101",
           "value": {
-            "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT__SL3_STRUCT__SL4_DOUBLE_ARRAY": [
+            "SL4_DOUBLE_ARRAY": [
               25.385083987245714,
               86.69430464168514,
               17.705377157838733
             ],
-            "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT_MAP": {
+            "SL2_STRUCT_MAP": {
               "mapkey": {
                 "SL2_3_STRING": "SL2_3_68",
                 "SL2_3_DOUBLE": 39.07228201310673
@@ -762,12 +762,12 @@
           "topic": "S2",
           "key": "101",
           "value": {
-            "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT__SL3_STRUCT__SL4_DOUBLE_ARRAY": [
+            "SL4_DOUBLE_ARRAY": [
               74.68834760950283,
               73.40355939056849,
               72.15630069159221
             ],
-            "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT_MAP": {
+            "SL2_STRUCT_MAP": {
               "mapkey": {
                 "SL2_3_STRING": "SL2_3_95",
                 "SL2_3_DOUBLE": 51.92447078198864
@@ -780,12 +780,12 @@
           "topic": "S2",
           "key": "101",
           "value": {
-            "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT__SL3_STRUCT__SL4_DOUBLE_ARRAY": [
+            "SL4_DOUBLE_ARRAY": [
               32.27711275538546,
               3.7338613605496174,
               52.41743778835066
             ],
-            "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT_MAP": {
+            "SL2_STRUCT_MAP": {
               "mapkey": {
                 "SL2_3_STRING": "SL2_3_1",
                 "SL2_3_DOUBLE": 85.05450978718197

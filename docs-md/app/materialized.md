@@ -16,7 +16,7 @@ Running all of the above systems is admittedly a lot to manage. In addition to y
 
 ![easy](../img/mv-easy.png){: style="width:60%;"}
 
-Using ksqlDB, you can run any Kafka Connect connector by embedding them in ksqlDB's servers. You can also directly query ksqlDB's tables of state, obviating the need to sink your data to another data store. This gives you one mental model, in SQL, for managing your materialized views end-to-end.
+Using ksqlDB, you can run any Kafka Connect connector by embedding it in ksqlDB's servers. You can also directly query ksqlDB's tables of state, obviating the need to sink your data to another data store. This gives you one mental model, in SQL, for managing your materialized views end-to-end.
 
 Implement it
 ------------

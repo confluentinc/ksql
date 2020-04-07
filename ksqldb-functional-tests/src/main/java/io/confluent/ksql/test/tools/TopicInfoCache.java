@@ -56,7 +56,7 @@ public class TopicInfoCache {
 
   private static final Pattern WINDOWED_JOIN_PATTERN = Pattern
       .compile(
-          "CREATE .* JOIN .* WITHIN (\\d+ \\w+) ON .*",
+          ".*\\bSELECT\\b.*\\bJOIN\\b.*\\bWITHIN\\b\\s*(\\d+\\s+\\w+)\\s*\\bON\\b.*",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL
       );
 

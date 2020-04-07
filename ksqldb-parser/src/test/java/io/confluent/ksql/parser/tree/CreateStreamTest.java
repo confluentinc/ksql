@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
@@ -26,11 +26,11 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -102,15 +102,16 @@ public class CreateStreamTest {
     );
 
     // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
         () -> new CreateStream(SOME_NAME, invalidElements, false, SOME_PROPS)
     );
 
     // Then:
-    assertThat(e.getMessage(), is("Line: 2, Col: 4: Column `PK` is a 'PRIMARY KEY' column: "
-        + "please use 'KEY' for streams.\n"
-        + "Tables have PRIMARY KEYs, which are unique and NON NULL.\n"
-        + "Streams have KEYs, which have no uniqueness or NON NULL constraints."));
+    assertThat(e.getMessage(),
+        containsString("Line: 2, Col: 4: Column `PK` is a 'PRIMARY KEY' column: "
+            + "please use 'KEY' for streams.\n"
+            + "Tables have PRIMARY KEYs, which are unique and NON NULL.\n"
+            + "Streams have KEYs, which have no uniqueness or NON NULL constraints."));
   }
 }

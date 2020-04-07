@@ -20,9 +20,9 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 
 @Immutable
@@ -95,7 +95,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
 
     wrongKey.ifPresent(col -> {
       final String loc = col.getLocation().map(NodeLocation::asPrefix).orElse("");
-      throw new KsqlException(
+      throw new ParseFailedException(
           loc + "Column " + col.getName() + " is a 'KEY' column: "
               + "please use 'PRIMARY KEY' for tables."
               + System.lineSeparator()

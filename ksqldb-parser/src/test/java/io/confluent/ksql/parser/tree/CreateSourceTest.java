@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
@@ -25,10 +25,10 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -75,13 +75,13 @@ public class CreateSourceTest {
     );
 
     // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
         () -> new TestCreateSource(Optional.empty(), SOME_NAME, multipleKeys, false, SOME_PROPS)
     );
 
     // Then:
-    assertThat(e.getMessage(), is("Only single KEY column supported. "
+    assertThat(e.getMessage(), containsString("Only single KEY column supported. "
         + "Multiple KEY columns found: `K1` (Line: 2, Col: 4), `K2` (Line: 4, Col: 6)"));
   }
 

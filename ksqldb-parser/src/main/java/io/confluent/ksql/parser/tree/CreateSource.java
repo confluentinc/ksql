@@ -20,8 +20,8 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -101,8 +101,8 @@ public abstract class CreateSource extends Statement {
               .orElse(""))
           .collect(Collectors.joining(", "));
 
-      throw new KsqlException("Only single KEY column supported. Multiple KEY columns found: "
-          + namesAndLocs);
+      throw new ParseFailedException("Only single KEY column supported. "
+          + "Multiple KEY columns found: " + namesAndLocs);
     }
   }
 }

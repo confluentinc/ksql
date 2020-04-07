@@ -461,7 +461,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Invalid identifier for PARTITION BY clause: 'ID_NEW'"
+        "message": "Line: 5, Col: 14: PARTITION BY column 'TEST.ID_NEW' cannot be resolved."
       }
     },
     {

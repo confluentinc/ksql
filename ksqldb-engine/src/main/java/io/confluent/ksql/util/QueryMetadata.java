@@ -135,13 +135,12 @@ public abstract class QueryMetadata {
   }
 
   public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags() {
-    Map<String, Map<Integer, LagInfo>> getLagMap = null;
     try {
-      getLagMap = kafkaStreams.allLocalStorePartitionLags();
+      return kafkaStreams.allLocalStorePartitionLags();
     } catch (IllegalStateException | StreamsException e) {
       LOG.error(e.getMessage());
+      return ImmutableMap.of();
     }
-    return getLagMap;
   }
 
   public Collection<StreamsMetadata> getAllMetadata() {

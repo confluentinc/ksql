@@ -144,12 +144,12 @@ public class QueryDescriptionFactoryTest {
 
   @Test
   public void shouldHaveEmptyQueryIdFromTransientQuery() {
-    assertThat(transientQueryDescription.getId().getId(), is(isEmptyString()));
+    assertThat(transientQueryDescription.getId().toString(), is(isEmptyString()));
   }
 
   @Test
   public void shouldHaveQueryIdForPersistentQuery() {
-    assertThat(persistentQueryDescription.getId().getId(), is(QUERY_ID.getId()));
+    assertThat(persistentQueryDescription.getId().toString(), is(QUERY_ID.toString()));
   }
 
   @Test

@@ -233,7 +233,7 @@ After the ksqlDB CLI starts, your terminal should resemble the following.
                   =        for stream processing apps       =
                   ===========================================
 
-Copyright 2017-2019 Confluent Inc.
+Copyright 2017-2020 Confluent Inc.
 
 CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksql-server:8088
 
@@ -375,7 +375,7 @@ Next steps
 
 You can use ksqlDB with a {{ site.ak }} cluster hosted in {{ site.ccloud }}.
 For more information, see
-[Connect ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html).
+[Connect ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html).
 
 ### Experiment with other stacks
 

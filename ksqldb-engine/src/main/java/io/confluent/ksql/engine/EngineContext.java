@@ -212,7 +212,7 @@ final class EngineContext {
       }
 
       metaStore.updateForPersistentQuery(
-          queryId.getId(),
+          queryId.toString(),
           persistentQuery.getSourceNames(),
           ImmutableSet.of(persistentQuery.getSinkName()));
     }
@@ -222,7 +222,7 @@ final class EngineContext {
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       persistentQueries.remove(persistentQuery.getQueryId());
-      metaStore.removePersistentQuery(persistentQuery.getQueryId().getId());
+      metaStore.removePersistentQuery(persistentQuery.getQueryId().toString());
     }
 
     outerOnQueryCloseCallback.accept(serviceContext, query);

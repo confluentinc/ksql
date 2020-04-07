@@ -60,7 +60,6 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -69,7 +68,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
@@ -352,9 +350,7 @@ public class LogicalPlanner {
 
       final Column proposedKey = sourceSchema
           .findColumn(columnName)
-          .orElseThrow(() -> new KsqlException("Invalid identifier for PARTITION BY clause: '"
-              + columnName.toString(FormatOptions.noEscape()) + "' Only columns from the "
-              + "source schema can be referenced in the PARTITION BY clause."));
+          .orElseThrow(IllegalStateException::new);
 
       switch (proposedKey.namespace()) {
         case KEY:

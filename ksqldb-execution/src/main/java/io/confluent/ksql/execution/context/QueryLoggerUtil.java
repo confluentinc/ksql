@@ -27,7 +27,7 @@ public final class QueryLoggerUtil {
     return String.join(
         ".",
         new ImmutableList.Builder<String>()
-            .add(queryId.getId())
+            .add(queryId.toString())
             .addAll(queryContext.getContext())
             .build()
     );

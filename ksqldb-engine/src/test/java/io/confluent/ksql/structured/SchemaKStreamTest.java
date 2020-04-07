@@ -546,17 +546,6 @@ public class SchemaKStreamTest {
     );
   }
 
-  @Test(expected = KsqlException.class)
-  public void shouldThrowOnSelectKeyIfKeyNotInSchema() {
-    givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
-
-    final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("won't find me")),
-        Optional.empty(), childContextStacker);
-
-    assertThat(rekeyedSchemaKStream.getKeyField(), is(validJoinKeyField));
-  }
-
   @Test
   public void testGroupByKey() {
     // Given:

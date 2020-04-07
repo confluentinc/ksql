@@ -74,6 +74,6 @@ public class QueryIdTest {
     final QueryId deserialized = objectMapper.readValue(serialized, QueryId.class);
 
     // Then:
-    assertThat(deserialized.getId(), is("An-Id"));
+    assertThat(deserialized.toString(), is("An-Id"));
   }
 }

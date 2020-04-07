@@ -18,11 +18,11 @@ package io.confluent.ksql.rest.server.computation;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandId.Type;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -50,7 +50,7 @@ public final class RestoreCommandsCompactor {
    * @return the compacted list of commands.
    */
   static List<QueuedCommand> compact(final List<QueuedCommand> restoreCommands) {
-    final List<QueuedCommand> compacted = new ArrayList<>(restoreCommands);
+    final List<QueuedCommand> compacted = new LinkedList<>(restoreCommands);
 
     final Set<QueuedCommand> terminatedQueries =
         findTerminatedQueriesAndRemoveTerminateCommands(compacted);

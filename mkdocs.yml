@@ -14,11 +14,14 @@ theme:
     name: material
     favicon: img/favicon.ico # should match asset for main ksqldb.io site
     logo: img/logo.png # should match asset for main ksqldb.io site
-    feature: 
+    feature:
       tabs: true
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - js/extra.js
 
 nav:
   - Overview: index.md
@@ -107,7 +110,7 @@ nav:
     - REST API:
       - REST API Index: developer-guide/api.md # old reference topic, rename file to index.md
       - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
-      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md 
+      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
       - Execute a statement: developer-guide/ksqldb-rest-api/ksql-endpoint.md
       - Run a query: developer-guide/ksqldb-rest-api/query-endpoint.md
       - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
@@ -152,7 +155,7 @@ markdown_extensions:
 
 plugins:
     - search
-    - git-revision-date # Must come before the macros plugin    
+    - git-revision-date # Must come before the macros plugin
     - macros
 
 extra:

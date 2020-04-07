@@ -74,7 +74,6 @@ public final class QueryDescriptionFactory {
         queryMetadata.getTopologyDescription(),
         queryMetadata.getExecutionPlan(),
         queryMetadata.getOverriddenProperties(),
-        Optional.of(ksqlHostQueryState.toString()),
         ksqlHostQueryState
     );
   }

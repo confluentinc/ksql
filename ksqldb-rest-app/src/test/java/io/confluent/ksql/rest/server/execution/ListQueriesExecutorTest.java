@@ -405,7 +405,6 @@ public class ListQueriesExecutorTest {
         ImmutableSet.of(md.getSinkName().text()),
         ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
         md.getQueryId(),
-        Optional.of(queryStateCount.toString()),
         queryStateCount);
   }
 }

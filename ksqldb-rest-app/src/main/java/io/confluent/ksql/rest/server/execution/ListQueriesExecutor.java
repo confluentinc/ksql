@@ -49,6 +49,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.streams.KafkaStreams;
@@ -59,6 +60,7 @@ import org.slf4j.LoggerFactory;
 @SuppressFBWarnings("SE_BAD_FIELD")
 public final class ListQueriesExecutor {
 
+  private static int TIMEOUT_SECONDS = 10;
   private static final Logger LOG = LoggerFactory.getLogger(ListQueriesExecutor.class);
 
   private ListQueriesExecutor() { }
@@ -88,15 +90,7 @@ public final class ListQueriesExecutor {
 
     return Optional.of(new Queries(
         statement.getStatementText(),
-        runningQueries.values().stream().map(runningQuery -> new RunningQuery(
-            runningQuery.getQueryString(),
-            runningQuery.getSinks(),
-            runningQuery.getSinkKafkaTopics(),
-            runningQuery.getId(),
-            Optional.of(runningQuery.getStateCount().toString()),
-            runningQuery.getStateCount()
-        ))
-        .collect(Collectors.toList())));
+        runningQueries.values()));
   }
 
   private static Map<QueryId, RunningQuery> getLocalSimple(
@@ -112,7 +106,6 @@ public final class ListQueriesExecutor {
                 ImmutableSet.of(q.getSinkName().text()),
                 ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
                 q.getQueryId(),
-                Optional.empty(),
                 new QueryStateCount(
                     Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)))
         ));
@@ -159,21 +152,7 @@ public final class ListQueriesExecutor {
 
     return Optional.of(new QueryDescriptionList(
         statement.getStatementText(),
-        queryDescriptions.values().stream().map(queryDescription -> 
-            new QueryDescription(
-                queryDescription.getId(),
-                queryDescription.getStatementText(),
-                queryDescription.getWindowType(),
-                queryDescription.getFields(),
-                queryDescription.getSources(),
-                queryDescription.getSinks(),
-                queryDescription.getTopology(),
-                queryDescription.getExecutionPlan(),
-                queryDescription.getOverriddenProperties(),
-                Optional.of(queryDescription.getKsqlHostQueryState().toString()),
-                queryDescription.getKsqlHostQueryState()
-            )
-        ).collect(Collectors.toList())));
+        queryDescriptions.values()));
   }
 
   private static Map<QueryId, QueryDescription> getLocalExtended(
@@ -210,8 +189,7 @@ public final class ListQueriesExecutor {
             q.getKsqlHostQueryState().entrySet()) {
           allResults
               .get(queryId)
-              .getKsqlHostQueryState()
-              .put(entry.getKey(), entry.getValue());
+              .updateKsqlHostQueryState(entry.getKey(), entry.getValue());
         }
       } else {
         allResults.put(queryId, q);
@@ -263,7 +241,8 @@ public final class ListQueriesExecutor {
       for (final Map.Entry<HostInfo, Future<RestResponse<KsqlEntityList>>> e
           : futureResponses.entrySet()) {
         try {
-          final RestResponse<KsqlEntityList> response = e.getValue().get();
+          final RestResponse<KsqlEntityList> response =
+              e.getValue().get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
           if (response.isErroneous()) {
             LOG.warn("Error response from host. host: {}, cause: {}",
                 e.getKey(), response.getErrorMessage().getMessage());
@@ -271,7 +250,8 @@ public final class ListQueriesExecutor {
             results.add(response.getResponse().get(0));
           }
         } catch (final Exception cause) {
-          LOG.warn("Failed to retrieve query info from host. host: " + e.getKey(), cause);
+          LOG.warn("Failed to retrieve query info from host. host: {}, cause: {}",
+              e.getKey(), cause.getMessage());
         }
       }
 

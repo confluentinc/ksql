@@ -312,7 +312,7 @@ public class ConsoleTest {
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), Optional.of(queryStateCount.toString()), queryStateCount));
+            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), queryStateCount));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -332,11 +332,11 @@ public class ConsoleTest {
           + "    \"sinks\" : [ \"Test\" ]," + NEWLINE
           + "    \"sinkKafkaTopics\" : [ \"Test topic\" ]," + NEWLINE
           + "    \"id\" : \"0\"," + NEWLINE
-          + "    \"state\" : \"" + STATE_COUNT_STRING + "\"," + NEWLINE 
           + "    \"stateCount\" : {" + NEWLINE
           + "      \"RUNNING\" : 1," + NEWLINE
           + "      \"ERROR\" : 2" + NEWLINE
-          + "    }" + NEWLINE
+          + "    }," + NEWLINE
+          + "    \"state\" : \"" + STATE_COUNT_STRING +"\"" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -367,10 +367,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of(queryStateCount.toString()), queryStateCount)
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStateCount)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of(queryStateCount.toString()), queryStateCount)
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStateCount)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -416,22 +416,22 @@ public class ConsoleTest {
           + "      \"sinks\" : [ \"sink1\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ]," + NEWLINE
           + "      \"id\" : \"readId\"," + NEWLINE
-          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"," + NEWLINE
           + "      \"stateCount\" : {" + NEWLINE
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
-          + "      }" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
           + "      \"queryString\" : \"write query\"," + NEWLINE
           + "      \"sinks\" : [ \"sink2\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ]," + NEWLINE
           + "      \"id\" : \"writeId\"," + NEWLINE
-          + "      \"state\" : \"" + STATE_COUNT_STRING + "\"," + NEWLINE
           + "      \"stateCount\" : {" + NEWLINE
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
-          + "      }" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
           + "      \"name\" : \"ROWTIME\"," + NEWLINE
@@ -1035,10 +1035,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of(queryStateCount.toString()), queryStateCount)
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStateCount)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of(queryStateCount.toString()), queryStateCount)
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStateCount)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -1083,22 +1083,22 @@ public class ConsoleTest {
           + "      \"sinks\" : [ \"sink1\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ]," + NEWLINE
           + "      \"id\" : \"readId\"," + NEWLINE
-          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"," + NEWLINE
           + "      \"stateCount\" : {" + NEWLINE
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
-          + "      }" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
           + "      \"queryString\" : \"write query\"," + NEWLINE
           + "      \"sinks\" : [ \"sink2\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ]," + NEWLINE
           + "      \"id\" : \"writeId\"," + NEWLINE
-          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"," + NEWLINE
           + "      \"stateCount\" : {" + NEWLINE
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
-          + "      }" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
           + "      \"name\" : \"ROWTIME\"," + NEWLINE

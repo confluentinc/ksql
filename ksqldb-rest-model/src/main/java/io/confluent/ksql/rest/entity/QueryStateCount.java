@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Joiner;
 
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
@@ -61,7 +62,7 @@ public class QueryStateCount {
 
   @JsonValue
   public Map<KafkaStreams.State, Integer> getStates() {
-    return states;
+    return Collections.unmodifiableMap(states);
   }
 
   @Override

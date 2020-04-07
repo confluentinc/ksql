@@ -223,17 +223,14 @@ public final class ListSourceExecutor {
     return ksqlEngine.getPersistentQueries()
         .stream()
         .filter(predicate)
-        .map(q -> {
-          final QueryStateCount queryStateCount = new QueryStateCount(
-              Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1));
-          return new RunningQuery(
-              q.getStatementString(),
-              ImmutableSet.of(q.getSinkName().text()),
-              ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
-              q.getQueryId(),
-              Optional.of(queryStateCount.toString()),
-              queryStateCount);
-        }).collect(Collectors.toList());
+        .map(q -> new RunningQuery(
+            q.getStatementString(),
+            ImmutableSet.of(q.getSinkName().text()),
+            ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
+            q.getQueryId(),
+            new QueryStateCount(
+                Collections.singletonMap(
+                    KafkaStreams.State.valueOf(q.getState()), 1)))).collect(Collectors.toList());
   }
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {

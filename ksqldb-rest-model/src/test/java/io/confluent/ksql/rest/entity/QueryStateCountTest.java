@@ -19,9 +19,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.testing.EqualsTester;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Collections;
 
 @SuppressWarnings("SameParameterValue")
 public class QueryStateCountTest {
@@ -55,6 +59,21 @@ public class QueryStateCountTest {
     assertThat(
         queryStateCount.toString(),
         is("RUNNING:2,NOT_RUNNING:1"));
+  }
+
+  @Test
+  public void shouldImplementHashCodeAndEqualsCorrectly() {
+    final QueryStateCount queryStateCount1 = new QueryStateCount(Collections.singletonMap(KafkaStreams.State.ERROR, 2));
+    final QueryStateCount queryStateCount2 = new QueryStateCount(Collections.singletonMap(KafkaStreams.State.RUNNING, 1));
+    queryStateCount2.updateStateCount(KafkaStreams.State.ERROR, 2);
+    final QueryStateCount queryStateCount3 = new QueryStateCount();
+    queryStateCount3.updateStateCount(KafkaStreams.State.ERROR, 2);
+
+    new EqualsTester()
+        .addEqualityGroup(queryStateCount, queryStateCount)
+        .addEqualityGroup(queryStateCount1, queryStateCount3)
+        .addEqualityGroup(queryStateCount2)
+        .testEquals();
   }
 
   @Test

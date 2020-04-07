@@ -1990,17 +1990,13 @@ public class KsqlResourceTest {
 
     return createQueries(sql, overriddenProperties)
         .stream()
-        .map(md -> {
-            final QueryStateCount queryStateCount = new QueryStateCount(
-                  Collections.singletonMap(KafkaStreams.State.valueOf(md.getState()), 1));
-          return new RunningQuery(
-              md.getStatementString(),
-              ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
-              ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
-              md.getQueryId(),
-              Optional.of(queryStateCount.toString()),
-              queryStateCount);
-            }
+        .map(md -> new RunningQuery(
+            md.getStatementString(),
+            ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
+            ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
+            md.getQueryId(),
+            new QueryStateCount(
+                Collections.singletonMap(KafkaStreams.State.valueOf(md.getState()), 1)))
     ).collect(Collectors.toList());
   }
 

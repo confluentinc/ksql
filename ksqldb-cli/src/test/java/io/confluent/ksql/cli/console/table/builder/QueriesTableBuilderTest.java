@@ -3,6 +3,7 @@ package io.confluent.ksql.cli.console.table.builder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.cli.console.table.Table;
@@ -12,7 +13,8 @@ import io.confluent.ksql.rest.entity.QueryStateCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -26,6 +28,10 @@ public class QueriesTableBuilderTest {
   @Mock
   private QueryStateCount queryStateCount;
   
+  @Before
+  public void setup() {
+    when(queryStateCount.toString()).thenReturn(STATE);
+  }
   @Test
   public void shouldBuildQueriesTable() {
     // Given:
@@ -34,7 +40,6 @@ public class QueriesTableBuilderTest {
         ImmutableSet.of("SINK"),
         ImmutableSet.of("SINK"),
         new QueryId("0"),
-        Optional.of(STATE),
         queryStateCount
     );
 
@@ -55,7 +60,6 @@ public class QueriesTableBuilderTest {
         ImmutableSet.of("S2"),
         ImmutableSet.of("S2"),
         new QueryId("CSAS_S2_0"),
-        Optional.of(STATE),
         queryStateCount
     );
 

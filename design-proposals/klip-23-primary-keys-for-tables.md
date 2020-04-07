@@ -79,7 +79,7 @@ table. KsqlDB does not materialize streams.
 ## What is in scope
 
 * A syntax only change, requiring tables to be defined with `PRIMARY KEY`, instead of `KEY`.
-* Only syntax for a single PRIMARY KEY.
+* Only syntax for a single column PRIMARY KEY.
 
 ## What is not in scope
 

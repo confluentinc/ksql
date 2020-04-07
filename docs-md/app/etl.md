@@ -238,10 +238,10 @@ Now that Postgres is setup, let's configure MongoDB. Start by logging into the c
 docker exec -it mongo /bin/bash
 ```
 
-Log into the Mongo console using the username and password specified in the Docker Compose file:
+Log into the Mongo console using the username specified in the Docker Compose file:
 
 ```
-mongo -u mongo-user -p mongo-pw admin
+mongo -u $MONGO_INITDB_ROOT_USERNAME -p mongo-pw admin
 ```
 
 Because MongoDB has been started as a replica set, it needs to be initiated. Run the following command to kick it off:

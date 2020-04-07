@@ -270,6 +270,7 @@ class Analyzer {
           .forEach(expression -> columnValidator.analyzeExpression(expression, "GROUP BY"));
 
       analysis.getPartitionBy()
+          .map(PartitionBy::getExpression)
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
 
       analysis.getHavingExpression()

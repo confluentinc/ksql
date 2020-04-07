@@ -7,7 +7,7 @@ A pretty standard way to build a materialized cache is to capture the changelog 
 
 ![hard](../img/mv-hard.png){: style="width:90%;"}
 
-One way you might do this would be to capture the changelog of MySQL using the Debezium Kafka Connector. The changelog is stored in Kafka and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can look query the materializations. This can work, but is there a better way?
+One way you might do this would be to capture the changelog of MySQL using the Debezium Kafka Connector. The changelog is stored in Kafka and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can query the materializations. This can work, but is there a better way?
 
 Why ksqlDB
 ----------

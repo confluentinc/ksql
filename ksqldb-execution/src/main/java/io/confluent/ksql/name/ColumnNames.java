@@ -40,7 +40,21 @@ public final class ColumnNames {
   private static final String GENERATED_ALIAS_PREFIX = "KSQL_COL";
   private static final String SYNTHESISED_COLUMN_PREFIX = "KSQL_SYNTH_";
 
-  private static final Pattern NUMBERED_COLUMN_PATTERN = Pattern.compile("(.*?)?(?:_(\\d+))?");
+  private static final String NAME = "name";
+  private static final String NUMBER = "number";
+
+  /**
+   * Pattern to match any column name that ends in an underscore and some number, e.g. COL_1 or
+   * NAME_26.
+   *
+   * <p>The pattern has two named capture groups:
+   * <ul>
+   *   <li><b>name</b>: captures the text before the underscore</li>
+   *   <li><b>number</b>: captures the number after the underscore</li>
+   * </ul>
+   */
+  private static final Pattern NUMBERED_COLUMN_PATTERN = Pattern
+      .compile("(?<" + NAME + ">.*?)?(?:_(?<" + NUMBER + ">\\d+))?");
 
   private ColumnNames() {
   }
@@ -145,7 +159,7 @@ public final class ColumnNames {
       throw new IllegalStateException();
     }
 
-    return matcher.group(1);
+    return matcher.group(NAME);
   }
 
   private static Set<Integer> extractNumber(final Matcher matcher) {
@@ -153,9 +167,10 @@ public final class ColumnNames {
       throw new IllegalStateException();
     }
 
-    return matcher.group(2) == null
+    final String number = matcher.group(NUMBER);
+    return number == null
         ? ImmutableSet.of(0)
-        : ImmutableSet.of(Integer.parseInt(matcher.group(2)));
+        : ImmutableSet.of(Integer.parseInt(number));
   }
 
   @VisibleForTesting

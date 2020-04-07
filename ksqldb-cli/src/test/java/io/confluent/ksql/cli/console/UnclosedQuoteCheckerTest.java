@@ -68,6 +68,15 @@ public class UnclosedQuoteCheckerTest {
   }
 
   @Test
+  public void shouldFindUnclosedQuote_escapedThree() {
+    // Given:
+    final String line = "some line 'this is in a quote\\\'";
+
+    // Then:
+    assertThat(UnclosedQuoteChecker.isUnclosedQuote(line), is(true));
+  }
+
+  @Test
   public void shouldFindUnclosedQuote_twoQuote() {
     // Given:
     final String line = "some line 'this is in a quote''";

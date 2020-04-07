@@ -24,7 +24,9 @@ public final class UnclosedQuoteChecker {
 
   private UnclosedQuoteChecker() {}
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static boolean isUnclosedQuote(final String line) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     int quoteStart = -1;
     for (int i = 0; i < line.length(); ++i) {
       if (quoteStart < 0 && isQuoteChar(line, i)) {

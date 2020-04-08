@@ -88,7 +88,7 @@
     {
       "name": "table explicit KAFKA STRING ROWKEY",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY STRING PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
       ],
       "inputs": [
@@ -142,7 +142,7 @@
     {
       "name": "table explicit KAFKA INT ROWKEY",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
       ],
       "inputs": [
@@ -196,7 +196,7 @@
     {
       "name": "table explicit KAFKA BIGINT ROWKEY",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY BIGINT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY BIGINT PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
       ],
       "inputs": [
@@ -250,7 +250,7 @@
     {
       "name": "table explicit KAFKA DOUBLE ROWKEY",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY DOUBLE KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY DOUBLE PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
       ],
       "inputs": [
@@ -287,7 +287,7 @@
     {
       "name": "create table explicit unsupported ROWKEY type",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY DECIMAL(21,19) KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
+        "CREATE TABLE INPUT (ROWKEY DECIMAL(21,19) PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",

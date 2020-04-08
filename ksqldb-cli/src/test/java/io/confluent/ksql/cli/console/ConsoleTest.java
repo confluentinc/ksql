@@ -539,19 +539,19 @@ public class ConsoleTest {
     } else {
       assertThat(output, is("" + NEWLINE
           + "Name                 : TestSource" + NEWLINE
-          + " Field   | Type                      " + NEWLINE
-          + "-------------------------------------" + NEWLINE
-          + " ROWTIME | BIGINT           (system) " + NEWLINE
-          + " ROWKEY  | VARCHAR(STRING)  (key)    " + NEWLINE
-          + " f_0     | BOOLEAN                   " + NEWLINE
-          + " f_1     | INTEGER                   " + NEWLINE
-          + " f_2     | BIGINT                    " + NEWLINE
-          + " f_3     | DOUBLE                    " + NEWLINE
-          + " f_4     | VARCHAR(STRING)           " + NEWLINE
-          + " f_5     | ARRAY<VARCHAR(STRING)>    " + NEWLINE
-          + " f_6     | MAP<STRING, BIGINT>       " + NEWLINE
-          + " f_7     | STRUCT<a DOUBLE>          " + NEWLINE
-          + "-------------------------------------" + NEWLINE
+          + " Field   | Type                           " + NEWLINE
+          + "------------------------------------------" + NEWLINE
+          + " ROWTIME | BIGINT           (system)      " + NEWLINE
+          + " ROWKEY  | VARCHAR(STRING)  (primary key) " + NEWLINE
+          + " f_0     | BOOLEAN                        " + NEWLINE
+          + " f_1     | INTEGER                        " + NEWLINE
+          + " f_2     | BIGINT                         " + NEWLINE
+          + " f_3     | DOUBLE                         " + NEWLINE
+          + " f_4     | VARCHAR(STRING)                " + NEWLINE
+          + " f_5     | ARRAY<VARCHAR(STRING)>         " + NEWLINE
+          + " f_6     | MAP<STRING, BIGINT>            " + NEWLINE
+          + " f_7     | STRUCT<a DOUBLE>               " + NEWLINE
+          + "------------------------------------------" + NEWLINE
           + "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;"
           + NEWLINE));
     }
@@ -1150,12 +1150,12 @@ public class ConsoleTest {
           + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)" + NEWLINE
           + "Statement            : sql statement text" + NEWLINE
           + "" + NEWLINE
-          + " Field   | Type                      " + NEWLINE
-          + "-------------------------------------" + NEWLINE
-          + " ROWTIME | BIGINT           (system) " + NEWLINE
-          + " ROWKEY  | VARCHAR(STRING)  (key)    " + NEWLINE
-          + " f_0     | VARCHAR(STRING)           " + NEWLINE
-          + "-------------------------------------" + NEWLINE
+          + " Field   | Type                           " + NEWLINE
+          + "------------------------------------------" + NEWLINE
+          + " ROWTIME | BIGINT           (system)      " + NEWLINE
+          + " ROWKEY  | VARCHAR(STRING)  (primary key) " + NEWLINE
+          + " f_0     | VARCHAR(STRING)                " + NEWLINE
+          + "------------------------------------------" + NEWLINE
           + "" + NEWLINE
           + "Queries that read from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE

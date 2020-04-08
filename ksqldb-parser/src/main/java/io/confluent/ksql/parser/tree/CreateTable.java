@@ -20,7 +20,9 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import java.util.Optional;
 
 @Immutable
@@ -43,6 +45,8 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final CreateSourceProperties properties
   ) {
     super(location, name, elements, notExists, properties);
+
+    throwOnNonPrimaryKeys(elements);
   }
 
   @Override
@@ -82,5 +86,23 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
         .add("notExists", isNotExists())
         .add("properties", getProperties())
         .toString();
+  }
+
+  private static void throwOnNonPrimaryKeys(final TableElements elements) {
+    final Optional<TableElement> wrongKey = elements.stream()
+        .filter(e -> e.getNamespace().isKey() && e.getNamespace() != Namespace.PRIMARY_KEY)
+        .findFirst();
+
+    wrongKey.ifPresent(col -> {
+      final String loc = col.getLocation().map(NodeLocation::asPrefix).orElse("");
+      throw new ParseFailedException(
+          loc + "Column " + col.getName() + " is a 'KEY' column: "
+              + "please use 'PRIMARY KEY' for tables."
+              + System.lineSeparator()
+              + "Tables have PRIMARY KEYs, which are unique and NON NULL."
+              + System.lineSeparator()
+              + "Streams have KEYs, which have no uniqueness or NON NULL constraints."
+      );
+    });
   }
 }

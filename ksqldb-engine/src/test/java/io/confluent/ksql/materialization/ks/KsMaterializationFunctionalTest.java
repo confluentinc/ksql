@@ -737,7 +737,7 @@ public class KsMaterializationFunctionalTest {
     ksqlContext.ensureStarted();
 
     ksqlContext.sql("CREATE TABLE " + USER_TABLE
-        + " (" + USER_DATA_PROVIDER.ksqlSchemaString() + ")"
+        + " (" + USER_DATA_PROVIDER.ksqlSchemaString(true) + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
         + "    value_format='" + VALUE_FORMAT.name() + "', "
@@ -746,7 +746,7 @@ public class KsMaterializationFunctionalTest {
     );
 
     ksqlContext.sql("CREATE STREAM " + USER_STREAM + " "
-        + " (" + USER_DATA_PROVIDER.ksqlSchemaString() + ")"
+        + " (" + USER_DATA_PROVIDER.ksqlSchemaString(false) + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
         + "    value_format='" + VALUE_FORMAT.name() + "', "
@@ -755,7 +755,7 @@ public class KsMaterializationFunctionalTest {
     );
 
     ksqlContext.sql("CREATE STREAM " + PAGE_VIEWS_STREAM + " "
-        + " (" + PAGE_VIEW_DATA_PROVIDER.ksqlSchemaString() + ")"
+        + " (" + PAGE_VIEW_DATA_PROVIDER.ksqlSchemaString(false) + ")"
         + " WITH ("
         + "    kafka_topic='" + PAGE_VIEWS_TOPIC + "', "
         + "    value_format='" + VALUE_FORMAT.name() + "', "

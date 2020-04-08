@@ -241,7 +241,7 @@ public class CliTest {
 
   private static void createKStream(final TestDataProvider<?> dataProvider, final Cli cli) {
     run("CREATE STREAM " + dataProvider.kstreamName()
-            + " (" + dataProvider.ksqlSchemaString() + ")"
+            + " (" + dataProvider.ksqlSchemaString(false) + ")"
             + " WITH (value_format = 'json', kafka_topic = '" + dataProvider.topicName() + "');",
         cli);
   }

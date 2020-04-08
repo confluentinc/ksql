@@ -29,7 +29,6 @@ import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -72,21 +71,6 @@ public class SchemaParserTest {
   }
 
   @Test
-  public void shouldParseValidSchemaWithRowKeyField() {
-    // Given:
-    final String schema = "ROWKEY STRING KEY, bar INT";
-
-    // When:
-    final TableElements elements = parser.parse(schema);
-
-    // Then:
-    assertThat(elements, contains(
-        new TableElement(Namespace.KEY, SchemaUtil.ROWKEY_NAME, new Type(SqlTypes.STRING)),
-        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
-    ));
-  }
-
-  @Test
   public void shouldParseValidSchemaWithKeyField() {
     // Given:
     final String schema = "K STRING KEY, bar INT";
@@ -97,6 +81,21 @@ public class SchemaParserTest {
     // Then:
     assertThat(elements, contains(
         new TableElement(Namespace.KEY, ColumnName.of("K"), new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
+    ));
+  }
+
+  @Test
+  public void shouldParseValidSchemaWithPrimaryKeyField() {
+    // Given:
+    final String schema = "K STRING PRIMARY KEY, bar INT";
+
+    // When:
+    final TableElements elements = parser.parse(schema);
+
+    // Then:
+    assertThat(elements, contains(
+        new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("K"), new Type(SqlTypes.STRING)),
         new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
     ));
   }

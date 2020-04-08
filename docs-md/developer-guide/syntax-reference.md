@@ -433,7 +433,7 @@ message key by setting the `KEY` property of the `WITH` clause.
 Example:
 
 ```sql
-CREATE TABLE users (rowkey INT KEY, registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid INT)
+CREATE TABLE users (rowkey INT PRIMARY KEY, registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid INT)
   WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON', KEY = 'userid');
 ```
 
@@ -457,7 +457,7 @@ following conditions are true:
 1.  For every record, the contents of the Kafka message key must be the
     same as the contents of the column set in `KEY` (which is derived
     from a field in the Kafka message value).
-2.  `KEY` must be set to a column of type `VARCHAR` aka `STRING`.
+2.  `KEY` must be set to a value column with the same SQL type as the key column.
 
 If these conditions aren't met, then the results of aggregations and
 joins may be incorrect. However, if your data doesn't meet these
@@ -518,7 +518,7 @@ CREATE STREAM users_with_proper_key
   EMIT CHANGES;
 
 -- Now you can create the table on the properly keyed stream.
-CREATE TABLE users_table (ROWKEY INT KEY, username VARCHAR, email VARCHAR)
+CREATE TABLE users_table (ROWKEY INT PRIMARY KEY, username VARCHAR, email VARCHAR)
   WITH (KAFKA_TOPIC='users-with-proper-key',
         VALUE_FORMAT='JSON');
 
@@ -533,7 +533,7 @@ CREATE STREAM users_with_proper_key_and_user_id
 
 -- Now you can create the table on the properly keyed stream.
 -- queries against the table can use ROWKEY and userid interchangeably
-CREATE TABLE users_table_2 (ROWKEY INT KEY, userid KEY, username VARCHAR, email VARCHAR)
+CREATE TABLE users_table_2 (ROWKEY INT PRIMARY KEY, userid KEY, username VARCHAR, email VARCHAR)
   WITH (KAFKA_TOPIC='users_with_proper_key_and_user_id',
         VALUE_FORMAT='JSON',
         KEY='userid');

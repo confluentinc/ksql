@@ -94,8 +94,11 @@ public class CreateSourceFactoryTest {
 
   private static final SourceName SOME_NAME = SourceName.of("bob");
 
-  private static final TableElement EXPLICIT_ROWKEY =
+  private static final TableElement EXPLICIT_KEY =
       tableElement(Namespace.KEY, ROWKEY_NAME.text(), new Type(SqlTypes.INTEGER));
+
+  private static final TableElement EXPLICIT_PRIMARY_KEY =
+      tableElement(Namespace.PRIMARY_KEY, ROWKEY_NAME.text(), new Type(SqlTypes.INTEGER));
 
   private static final TableElement ELEMENT1 =
       tableElement(VALUE, "bob", new Type(SqlTypes.STRING));
@@ -106,7 +109,10 @@ public class CreateSourceFactoryTest {
   private static final TableElements ONE_ELEMENTS = TableElements.of(ELEMENT1);
 
   private static final TableElements TABLE_ELEMENTS =
-      TableElements.of(EXPLICIT_ROWKEY, ELEMENT1, ELEMENT2);
+      TableElements.of(EXPLICIT_PRIMARY_KEY, ELEMENT1, ELEMENT2);
+
+  private static final TableElements STREAM_ELEMENTS =
+      TableElements.of(EXPLICIT_KEY, ELEMENT1, ELEMENT2);
 
   private static final LogicalSchema EXPECTED_SCHEMA = LogicalSchema.builder()
       .withRowTime()
@@ -175,7 +181,7 @@ public class CreateSourceFactoryTest {
   public void shouldCreateCommandForCreateStream() {
     // Given:
     final CreateStream ddlStatement =
-        new CreateStream(SOME_NAME, TABLE_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, STREAM_ELEMENTS, true, withProperties);
 
     // When:
     final CreateStreamCommand result = createSourceFactory
@@ -476,7 +482,7 @@ public class CreateSourceFactoryTest {
         new StringLiteral(quote(ELEMENT2.getName().text()))
     );
     final CreateStream statement =
-        new CreateStream(SOME_NAME, TABLE_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, STREAM_ELEMENTS, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -528,7 +534,7 @@ public class CreateSourceFactoryTest {
         new StringLiteral("%s")
     ));
     final CreateStream statement =
-        new CreateStream(SOME_NAME, TABLE_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, STREAM_ELEMENTS, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -548,7 +554,7 @@ public class CreateSourceFactoryTest {
   @Test
   public void shouldBuildSchemaWithImplicitKeyFieldForStream() {
     // Given:
-    final CreateStream statement = new CreateStream(SOME_NAME, TABLE_ELEMENTS, true,
+    final CreateStream statement = new CreateStream(SOME_NAME, STREAM_ELEMENTS, true,
         withProperties);
 
     // When:
@@ -595,7 +601,7 @@ public class CreateSourceFactoryTest {
   public void shouldValidateKeyFormatCanHandleKeySchema() {
     // Given:
     givenCommandFactoriesWithMocks();
-    final CreateStream statement = new CreateStream(SOME_NAME, TABLE_ELEMENTS, true,
+    final CreateStream statement = new CreateStream(SOME_NAME, STREAM_ELEMENTS, true,
         withProperties);
 
     when(keySerdeFactory.create(

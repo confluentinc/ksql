@@ -908,6 +908,45 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_2": 2, "KSQL_COL_4": 4, "KSQL_COL_0": 2, "KSQL_COL_1": 2, "KSQL_COL_5": 2}}
       ]
+    },
+    {
+      "name": "multiple key columns",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 INT KEY, ID2 INT KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "Only single KEY column supported. Multiple KEY columns found: `ID1` (Line: 1, Col: 22), `ID2` (Line: 1, Col: 35)"
+      }
+    },
+    {
+      "name": "table with key column",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "Line: 1, Col: 21: Column `ID` is a 'KEY' column: please use 'PRIMARY KEY' for tables."
+      }
+    },
+    {
+      "name": "stream with primary key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT PRIMARY KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "Line: 1, Col: 22: Column `ID` is a 'PRIMARY KEY' column: please use 'KEY' for streams."
+      }
     }
   ]
 }

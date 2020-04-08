@@ -72,7 +72,7 @@ column (`userId`) and assign the key before performing the join.
     -- the primary key of table users is a BIGINT. 
     -- The userId column in the value matches the key, so can be used as an alias for ROWKEY in queries to make them more readable.
     -- the schema of table users is: ROWTIME BIGINT | ROWKEY BIGINT | USERID BIGINT | FULLNAME STRING
-    CREATE TABLE  users  (ROWKEY BIGINT KEY, userId BIGINT, fullName STRING) WITH(kafka_topic='users', value_format='json', key='userId');
+    CREATE TABLE  users (ROWKEY BIGINT PRIMARY KEY, userId BIGINT, fullName STRING) WITH(kafka_topic='users', value_format='json', key='userId');
 
     -- join of users table with clicks stream, joining on the table's primary key alias and the stream's userId column: 
     -- join will automatically repartition clicks stream:
@@ -119,7 +119,7 @@ the `INT` side to a `LONG`:
     CREATE STREAM clicks (userId INT, url STRING) WITH(kafka_topic='clickstream', value_format='json');
 
     -- table with BIGINT userId stored in they key:
-    CREATE TABLE  users  (ROWKEY BIGINT KEY, fullName STRING) WITH(kafka_topic='users', value_format='json');
+    CREATE TABLE  users (ROWKEY BIGINT PRIMARY KEY, fullName STRING) WITH(kafka_topic='users', value_format='json');
     
    -- Join utilising a CAST to convert the left sides join column to match the rights type.
    SELECT clicks.url, users.fullName FROM clicks JOIN users ON CAST(clicks.userId AS BIGINT) = users.ROWKEY;

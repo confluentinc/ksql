@@ -77,6 +77,7 @@ public class KsqlServerMain {
       executable.awaitTerminated();
     } catch (Throwable t) {
       log.error("Unhandled exception in server startup", t);
+      throw t;
     } finally {
       log.info("Server shutting down");
       executable.triggerShutdown();

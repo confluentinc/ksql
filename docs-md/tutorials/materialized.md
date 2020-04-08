@@ -349,7 +349,7 @@ FROM lifetime_view
 WHERE ROWKEY = 'michael';
 ```
 
-You should see:
+Your output should resemble:
 
 ```
 +-----------+---------------+----------------+

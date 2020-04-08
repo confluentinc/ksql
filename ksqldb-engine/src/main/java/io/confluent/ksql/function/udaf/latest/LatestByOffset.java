@@ -126,7 +126,7 @@ public final class LatestByOffset {
 
       @Override
       public Struct initialize() {
-        return null;
+        return createStruct(structSchema, null);
       }
 
       @Override
@@ -156,6 +156,5 @@ public final class LatestByOffset {
       }
     };
   }
-
 
 }

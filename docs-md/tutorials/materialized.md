@@ -226,7 +226,7 @@ INSERT INTO calls (name, reason, duration_seconds) VALUES ("derek", "refund", 32
 
 ### Start the Debezium connector
 
-With MySQL ready to go, connect to ksqlDB's server using its interactive CLI. Run the following from your host:
+With MySQL ready to go, connect to ksqlDB's server using its interactive CLI. Run the following command from your host:
 
 ```
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088

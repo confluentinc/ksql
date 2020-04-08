@@ -232,7 +232,7 @@ With MySQL ready to go, connect to ksqlDB's server using its interactive CLI. Ru
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
-Before we issue more commands, instruct ksqlDB to start all queries from earliest point in each topic:
+Before you issue more commands, tell ksqlDB to start all queries from earliest point in each topic:
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';

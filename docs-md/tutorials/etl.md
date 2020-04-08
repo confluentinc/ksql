@@ -9,7 +9,7 @@ A streaming ETL pipeline enables streaming events between arbitrary sources and 
 
 ![hard](../img/etl-hard.png){: class="centered-img"}
 
-One way you might do this would be to capture the changelogs of upstream Postgres and MongoDB databases. The changelog can be stored in Kafka where a series of deployed programs transform, aggregate, and join the data together. The data can finally be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
+One way you might do this is to capture the changelogs of upstream Postgres and MongoDB databases. The changelog can be stored in {{ site.ak }}, where a series of deployed programs transforms, aggregates, and joins the data together. The processed data can be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
 
 Why ksqlDB
 ----------

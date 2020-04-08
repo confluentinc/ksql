@@ -8,7 +8,7 @@ should have sufficient spare capacity to take over temporarily for unavailable,
 restarting servers.
 
 For general guidance on upgrading, see
-`Upgrade ksqlDB <https://docs.ksqldb.io/en/latest/operate-and-deploy/installation/upgrading>`.
+`Upgrade ksqlDB <https://docs.ksqldb.io/en/latest/operate-and-deploy/installation/upgrading>`__.
 
 Upgrading to ksqlDB 5.5 from KSQL 5.4
 -------------------------------------
@@ -28,10 +28,10 @@ Upgrading to ksqlDB 5.5 from KSQL 5.4
       Another approach is to use a kafka-console-consumer to dump the command
       topic:
 
-      ```bash
-      ./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic _confluent-ksql-default__command_topic --from-beginning | jq ".statement" 
-      ```
-
+      .. code:: bash
+      
+         ./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic _confluent-ksql-default__command_topic --from-beginning | jq ".statement" 
+      
       The following steps show how to use the ksqlDB CLI to get your SQL
       statements. 
 
@@ -71,7 +71,7 @@ Upgrading to ksqlDB 5.5 from KSQL 5.4
 
 #. Update the captured SQL statements to take into account any changes in
    syntax or functionality between the old and new ksqlDB versions. For more
-   information, see the `changelog <https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md`__
+   information, see the `changelog <https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md>`__
    and `upgrade notes <https://docs.ksqldb.io/en/latest/operate-and-deploy/installation/upgrading/#upgrade-notes>`__.
 
 #. Save your statements as a .sql file. 
@@ -86,15 +86,15 @@ Upgrading to ksqlDB 5.5 from KSQL 5.4
 #. Copy the version 5.4 configuration file to the ksqldb 5.5 configuration
    folder, which is located at ``${CONFLUENT_HOME}/etc/ksqldb``:
 
-   ```bash
-   cp /etc/ksql/ksql-server.properties /etc/ksqldb/ksql-server.properties
-   ```
+   .. code:: bash
 
-.. note::
+      cp /etc/ksql/ksql-server.properties /etc/ksqldb/ksql-server.properties
 
-    In addition to copying the properties file from ``ksql`` to ``ksqldb``, you
-    may need to copy other configs, like log4j and systemd overrides, depending
-    on how you have customized your deployment.
+   .. note::
+
+      In addition to copying the properties file from ``ksql`` to ``ksqldb``, you
+      may need to copy other configs, like log4j and systemd overrides, depending
+      on how you have customized your deployment.
 
 #. Change the ``ksql.service.id`` in the property file, for example, from
    ``default_`` to ``ksqldb_``.
@@ -123,12 +123,11 @@ Upgrading to ksqlDB 5.5 from KSQL 5.4
      - ``DeveloperRead`` role on ``__transaction_state`` topic.
      - ``DeveloperWrite`` role on the ``<ksql.service.id>`` TransactionalId.
 
-
 #. Start the ``ksqldb`` service.
 
 #. Build the schema in the new instance by running the SQL file that you
-   prepared previously. Use the [RUN SCRIPT]
-   (https://github.com/confluentinc/ksql/blob/master/docs-md/developer-guide/ksqldb-reference/run-script.md)
+   prepared previously. Use the
+   `RUN SCRIPT <https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/run-script/>`__
    command, which takes a .sql file as an input.
 
 Upgrading to KSQL 5.4

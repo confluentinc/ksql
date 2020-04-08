@@ -37,11 +37,14 @@ import io.confluent.ksql.rest.util.DiscoverRemoteHostsUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryState;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -71,7 +74,7 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final List<KsqlEntity> remoteResults =
+    final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults =
         scatterGather(statement, sessionProperties, executionContext, serviceContext);
 
     return statement.getStatement().getShowExtended()
@@ -80,7 +83,7 @@ public final class ListQueriesExecutor {
   }
 
   private static Optional<KsqlEntity> executeSimple(
-      final List<KsqlEntity> remoteResults,
+      final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults,
       final ConfiguredStatement<ListQueries> statement,
       final KsqlExecutionContext executionContext
   ) {
@@ -112,10 +115,11 @@ public final class ListQueriesExecutor {
   }
 
   private static void mergeSimple(
-      final List<KsqlEntity> remoteResults,
+      final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults,
       final Map<QueryId, RunningQuery> allResults
   ) {
-    final List<RunningQuery> remoteRunningQueries = remoteResults.stream()
+    final List<KsqlEntity> remoteQueries = remoteResults.getLeft();
+    final List<RunningQuery> remoteRunningQueries = remoteQueries.stream()
         .map(Queries.class::cast)
         .map(Queries::getQueries)
         .flatMap(List::stream)
@@ -126,7 +130,7 @@ public final class ListQueriesExecutor {
 
       // If the query has already been discovered, update the QueryStateCount object
       if (allResults.containsKey(queryId)) {
-        for (Map.Entry<KafkaStreams.State, Integer> entry :
+        for (Map.Entry<KsqlQueryState, Integer> entry :
             q.getStateCount().getStates().entrySet()) {
           allResults
               .get(queryId)
@@ -137,10 +141,18 @@ public final class ListQueriesExecutor {
         allResults.put(queryId, q);
       }
     }
+
+    final Set<HostInfo> unresponsiveRemoteHosts = remoteResults.getRight();
+    if (!unresponsiveRemoteHosts.isEmpty()) {
+      for (RunningQuery runningQuery : allResults.values()) {
+        runningQuery.getStateCount()
+            .updateStateCount(KsqlQueryState.UNRESPONSIVE, unresponsiveRemoteHosts.size());
+      }
+    }
   }
   
   private static Optional<KsqlEntity> executeExtended(
-      final List<KsqlEntity> remoteResults,
+      final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults,
       final SessionProperties sessionProperties,
       final ConfiguredStatement<ListQueries> statement,
       final KsqlExecutionContext executionContext
@@ -172,10 +184,11 @@ public final class ListQueriesExecutor {
   }
 
   private static void mergeExtended(
-      final List<KsqlEntity> remoteResults,
+      final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults,
       final Map<QueryId, QueryDescription> allResults
   ) {
-    final List<QueryDescription> remoteQueryDescriptions = remoteResults.stream()
+    final List<KsqlEntity> remoteQueries = remoteResults.getLeft();
+    final List<QueryDescription> remoteQueryDescriptions = remoteQueries.stream()
         .map(QueryDescriptionList.class::cast)
         .map(QueryDescriptionList::getQueryDescriptions)
         .flatMap(List::stream)
@@ -195,16 +208,25 @@ public final class ListQueriesExecutor {
         allResults.put(queryId, q);
       }
     }
+    
+    final Set<HostInfo> unresponsiveRemoteHosts = remoteResults.getRight();
+    for (HostInfo hostInfo: unresponsiveRemoteHosts) {
+      for (QueryDescription queryDescription: allResults.values()) {
+        queryDescription.updateKsqlHostQueryState(
+            new KsqlHostInfoEntity(hostInfo.host(), hostInfo.port()),
+            KsqlQueryState.UNRESPONSIVE.toString());
+      }
+    }
   }
 
-  private static List<KsqlEntity> scatterGather(
+  private static Pair<List<KsqlEntity>, Set<HostInfo>> scatterGather(
       final ConfiguredStatement<ListQueries> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     if (sessionProperties.getInternalRequest()) {
-      return ImmutableList.of();
+      return new Pair<>(ImmutableList.of(), ImmutableSet.of());
     }
 
     final Set<HostInfo> remoteHosts = DiscoverRemoteHostsUtil.getRemoteHosts(
@@ -213,9 +235,10 @@ public final class ListQueriesExecutor {
     );
 
     if (remoteHosts.isEmpty()) {
-      return ImmutableList.of();
+      return new Pair<>(ImmutableList.of(), ImmutableSet.of());
     }
 
+    final Set<HostInfo> unresponsiveHosts = new HashSet<>();
     final ExecutorService executorService = Executors.newFixedThreadPool(remoteHosts.size());
 
     try {
@@ -246,16 +269,18 @@ public final class ListQueriesExecutor {
           if (response.isErroneous()) {
             LOG.warn("Error response from host. host: {}, cause: {}",
                 e.getKey(), response.getErrorMessage().getMessage());
+            unresponsiveHosts.add(e.getKey());
           } else {
             results.add(response.getResponse().get(0));
           }
         } catch (final Exception cause) {
           LOG.warn("Failed to retrieve query info from host. host: {}, cause: {}",
               e.getKey(), cause.getMessage());
+          unresponsiveHosts.add(e.getKey());
         }
       }
 
-      return results;
+      return new Pair<>(results, unresponsiveHosts);
     } finally {
       executorService.shutdown();
     }

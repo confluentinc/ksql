@@ -19,8 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryState;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,12 +41,28 @@ public class QueryStateCountTest {
   public void shouldUpdateExistingStateCount() {
     queryStateCount.updateStateCount(KafkaStreams.State.RUNNING, 2);
     assertThat(
-        queryStateCount.getStates().get(KafkaStreams.State.RUNNING),
+        queryStateCount.getStates().get(KsqlQueryState.RUNNING),
         is(2));
-    queryStateCount.updateStateCount(KafkaStreams.State.RUNNING, 4);
+
+    queryStateCount.updateStateCount(KsqlQueryState.RUNNING, 4);
     assertThat(
-        queryStateCount.getStates().get(KafkaStreams.State.RUNNING),
+        queryStateCount.getStates().get(KsqlQueryState.RUNNING),
         is(6));
+
+    queryStateCount.updateStateCount(KafkaStreams.State.CREATED, 2);
+    assertThat(
+        queryStateCount.getStates().get(KsqlQueryState.RUNNING),
+        is(8));
+
+    queryStateCount.updateStateCount(KafkaStreams.State.ERROR, 1);
+    assertThat(
+        queryStateCount.getStates().get(KsqlQueryState.ERROR),
+        is(1));
+
+    queryStateCount.updateStateCount(KsqlQueryState.ERROR, 3);
+    assertThat(
+        queryStateCount.getStates().get(KsqlQueryState.ERROR),
+        is(4));
   }
 
   @Test
@@ -58,7 +74,7 @@ public class QueryStateCountTest {
     queryStateCount.updateStateCount(KafkaStreams.State.NOT_RUNNING, 1);
     assertThat(
         queryStateCount.toString(),
-        is("RUNNING:2,NOT_RUNNING:1"));
+        is("RUNNING:3"));
   }
 
   @Test
@@ -89,15 +105,15 @@ public class QueryStateCountTest {
   public void shouldRoundTripWhenNotEmpty() {
     // Given:
     queryStateCount.updateStateCount(KafkaStreams.State.RUNNING, 2);
-    queryStateCount.updateStateCount(KafkaStreams.State.CREATED, 10);
+    queryStateCount.updateStateCount(KafkaStreams.State.ERROR, 10);
 
     // When:
     final String json = assertDeserializedToSame(queryStateCount);
 
     // Then:
     assertThat(json, is("{"
-        + "\"CREATED\":10,"
-        + "\"RUNNING\":2"
+        + "\"RUNNING\":2,"
+        + "\"ERROR\":10"
         + "}"));
   }
 

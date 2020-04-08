@@ -15,6 +15,11 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.streams.KafkaStreams;
+
 public final class KsqlConstants {
 
   private KsqlConstants() {
@@ -44,7 +49,24 @@ public final class KsqlConstants {
   public static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
   public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
   public static final String DEFAULT_AVRO_SCHEMA_FULL_NAME =
-          AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
+      AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
+
+  public enum KsqlQueryState {
+    RUNNING,
+    ERROR,
+    UNRESPONSIVE,
+  }
+
+  public static final Map<KafkaStreams.State, KsqlQueryState> STREAMS_STATE_TO_KSQL_QUERY_STATE;
+
+  static {
+    final Map<KafkaStreams.State, KsqlQueryState> stateMapping = new HashMap<>();
+    for (KafkaStreams.State state:KafkaStreams.State.values()) {
+      stateMapping.put(state, KsqlQueryState.RUNNING);
+    }
+    stateMapping.put(KafkaStreams.State.ERROR, KsqlQueryState.ERROR);
+    STREAMS_STATE_TO_KSQL_QUERY_STATE = ImmutableMap.copyOf(stateMapping);
+  }
 
   /**
    * Default time and date patterns

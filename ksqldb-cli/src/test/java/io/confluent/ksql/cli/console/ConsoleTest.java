@@ -76,15 +76,14 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryState;
 import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
@@ -165,9 +164,9 @@ public class ConsoleTest {
   public void setUp() {
     MockitoAnnotations.initMocks(this);
     when(queryStateCount.toString()).thenReturn(STATE_COUNT_STRING);
-    final EnumMap<KafkaStreams.State, Integer> mockStateCount = new EnumMap<>(KafkaStreams.State.class);
-    mockStateCount.put(KafkaStreams.State.RUNNING, 1);
-    mockStateCount.put(KafkaStreams.State.ERROR, 2);
+    final EnumMap<KsqlQueryState, Integer> mockStateCount = new EnumMap<>(KsqlQueryState.class);
+    mockStateCount.put(KsqlQueryState.RUNNING, 1);
+    mockStateCount.put(KsqlQueryState.ERROR, 2);
     when(queryStateCount.getStates()).thenReturn(mockStateCount);
   }
 

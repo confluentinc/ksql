@@ -23,6 +23,15 @@ Description
 
 `SHOW QUERIES EXTENDED` lists queries running in the cluster in more detail.
 
+Query Status
+-----------
+
+`RUNNING`: the query was either just started, or has been running without errors.
+
+`ERROR`: the query has entered an error state.
+
+`UNRESPONSIVE`: the host running the query returned an error when requesting the query status.
+
 Example
 -------
 

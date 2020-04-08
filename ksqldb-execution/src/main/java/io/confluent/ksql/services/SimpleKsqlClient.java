@@ -29,9 +29,17 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public interface SimpleKsqlClient {
 
+  /**
+   * Send a request to remote Ksql server.
+   * @param serverEndPoint the remote destination
+   * @param sql the sql statement
+   * @param requestProperties the request metadata provided by the server
+   * @return the result of sql statement execution
+   */
   RestResponse<KsqlEntityList> makeKsqlRequest(
       URI serverEndPoint,
-      String sql
+      String sql,
+      Map<String, ?> requestProperties
   );
 
   /**

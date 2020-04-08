@@ -97,9 +97,11 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
+import io.confluent.ksql.rest.entity.QueryStateCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.PropertiesList;
@@ -172,6 +174,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.CoreMatchers;
@@ -252,6 +255,10 @@ public class KsqlResourceTest {
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
       .build();
+
+  private static final String APPLICATION_HOST = "localhost";
+  private static final int APPLICATION_PORT = 9099;
+  private static final String APPLICATION_SERVER = "http://" + APPLICATION_HOST + ":" + APPLICATION_PORT;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -535,10 +542,12 @@ public class KsqlResourceTest {
     final QueryDescriptionList descriptionList = makeSingleRequest(
         "SHOW QUERIES EXTENDED;", QueryDescriptionList.class);
 
+    final Map<KsqlHostInfoEntity, String> queryHostState =
+        ImmutableMap.of(new KsqlHostInfoEntity(APPLICATION_HOST, APPLICATION_PORT), "CREATED");
     // Then:
     assertThat(descriptionList.getQueryDescriptions(), containsInAnyOrder(
-        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0)),
-        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(1))));
+        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0), queryHostState),
+        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(1), queryHostState)));
   }
 
   @Test
@@ -1981,9 +1990,9 @@ public class KsqlResourceTest {
             ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
-            Optional.of(md.getState())
-        ))
-        .collect(Collectors.toList());
+            new QueryStateCount(
+                Collections.singletonMap(KafkaStreams.State.valueOf(md.getState()), 1)))
+    ).collect(Collectors.toList());
   }
 
   private KsqlErrorMessage makeFailingRequest(final String ksql, final Code errorCode) {
@@ -2207,7 +2216,7 @@ public class KsqlResourceTest {
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     configMap.put("ksql.command.topic.suffix", "commands");
     configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
-    configMap.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://localhost:9099");
+    configMap.put(StreamsConfig.APPLICATION_SERVER_CONFIG, APPLICATION_SERVER);
 
     final Properties properties = new Properties();
     properties.putAll(configMap);

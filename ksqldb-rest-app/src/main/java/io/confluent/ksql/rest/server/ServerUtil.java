@@ -74,7 +74,10 @@ public final class ServerUtil {
    * @param remotePort The remote port
    * @return uri
    */
-  static URI buildRemoteUri(final URL localHost, final String remoteHost, final int remotePort) {
+  public static URI buildRemoteUri(
+      final URL localHost,
+      final String remoteHost,
+      final int remotePort) {
     try {
       return new URL(localHost.getProtocol(), remoteHost, remotePort, "/").toURI();
     } catch (final Exception e) {

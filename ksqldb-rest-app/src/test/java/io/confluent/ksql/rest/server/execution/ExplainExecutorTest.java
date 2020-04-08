@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -37,21 +38,37 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+
+import java.util.Collections;
 import java.util.Optional;
+
+import org.apache.kafka.streams.KafkaStreams;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ExplainExecutorTest {
 
+  private static final KafkaStreams.State STATE = KafkaStreams.State.RUNNING;
+  private static final KsqlHostInfo LOCAL_HOST = new KsqlHostInfo("host", 8080);
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
+  @Mock
+  private SessionProperties sessionProperties;
+
+  @Before
+  public void setup() {
+    when(sessionProperties.getKsqlHostInfo()).thenReturn(LOCAL_HOST);
+  }
 
   @Test
   public void shouldExplainQueryId() {
@@ -65,13 +82,16 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(query.getQueryDescription(), equalTo(QueryDescriptionFactory.forQueryMetadata(metadata)));
+    assertThat(
+        query.getQueryDescription(),
+        equalTo(QueryDescriptionFactory.forQueryMetadata(
+            metadata, Collections.singletonMap(new KsqlHostInfoEntity(LOCAL_HOST), STATE.toString()))));
   }
 
   @Test
@@ -84,7 +104,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -93,6 +113,7 @@ public class ExplainExecutorTest {
     assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
     assertThat(query.getQueryDescription().getSources(), containsInAnyOrder("Y"));
     assertThat("No side effects should happen", engine.getEngine().getPersistentQueries(), is(empty()));
+    assertThat(query.getQueryDescription().getKsqlHostQueryState(), equalTo(Collections.emptyMap()));
   }
 
   @Test
@@ -105,7 +126,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -113,6 +134,7 @@ public class ExplainExecutorTest {
     // Then:
     assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
     assertThat(query.getQueryDescription().getSources(), containsInAnyOrder("Y"));
+    assertThat(query.getQueryDescription().getKsqlHostQueryState(), equalTo(Collections.emptyMap()));
   }
 
   @Test
@@ -125,7 +147,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -144,7 +166,7 @@ public class ExplainExecutorTest {
     // When:
     CustomExecutors.EXPLAIN.execute(
         engine.configure("Explain SHOW TOPICS;"),
-        mock(SessionProperties.class),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -156,7 +178,7 @@ public class ExplainExecutorTest {
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
-    when(metadata.getState()).thenReturn("Running");
+    when(metadata.getState()).thenReturn(STATE.toString());
     when(metadata.getTopologyDescription()).thenReturn("topology");
     when(metadata.getExecutionPlan()).thenReturn("plan");
     when(metadata.getStatementString()).thenReturn("sql");

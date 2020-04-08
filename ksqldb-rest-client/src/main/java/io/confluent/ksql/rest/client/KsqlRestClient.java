@@ -139,11 +139,12 @@ public final class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
-    return target().postKsqlRequest(ksql, Optional.empty());
+    return target().postKsqlRequest(ksql, Collections.emptyMap(), Optional.empty());
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql, final Long commandSeqNum) {
-    return target().postKsqlRequest(ksql, Optional.ofNullable(commandSeqNum));
+    return target()
+        .postKsqlRequest(ksql, Collections.emptyMap(), Optional.ofNullable(commandSeqNum));
   }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {

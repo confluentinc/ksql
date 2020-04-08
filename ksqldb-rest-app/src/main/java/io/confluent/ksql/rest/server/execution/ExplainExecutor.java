@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
@@ -33,6 +34,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
+import java.util.Collections;
 import java.util.Optional;
 
 /**
@@ -53,7 +56,8 @@ public final class ExplainExecutor {
         .of(ExplainExecutor.explain(
             serviceContext,
             statement,
-            executionContext));
+            executionContext,
+            sessionProperties));
   }
 
   /**
@@ -65,14 +69,16 @@ public final class ExplainExecutor {
   private static QueryDescriptionEntity explain(
       final ServiceContext serviceContext,
       final ConfiguredStatement<Explain> statement,
-      final KsqlExecutionContext executionContext
+      final KsqlExecutionContext executionContext,
+      final SessionProperties sessionProperties
   ) {
     final Optional<String> queryId = statement.getStatement().getQueryId();
 
     try {
       final QueryDescription queryDescription = queryId
-          .map(s -> explainQuery(s, executionContext))
-          .orElseGet(() -> explainStatement(statement, executionContext, serviceContext));
+          .map(s -> explainQuery(s, executionContext, sessionProperties))
+          .orElseGet(() -> explainStatement(
+              statement, executionContext, serviceContext));
 
       return new QueryDescriptionEntity(statement.getStatementText(), queryDescription);
     } catch (final KsqlException e) {
@@ -118,12 +124,15 @@ public final class ExplainExecutor {
               new IllegalStateException("The provided statement did not run a ksql query"));
     }
 
-    return QueryDescriptionFactory.forQueryMetadata(metadata);
+    return QueryDescriptionFactory.forQueryMetadata(
+        metadata,
+        Collections.emptyMap());
   }
 
   private static QueryDescription explainQuery(
       final String queryId,
-      final KsqlExecutionContext executionContext
+      final KsqlExecutionContext executionContext,
+      final SessionProperties sessionProperties
   ) {
     final PersistentQueryMetadata metadata = executionContext
         .getPersistentQuery(new QueryId(queryId))
@@ -131,7 +140,11 @@ public final class ExplainExecutor {
             "Query with id:" + queryId + " does not exist, "
                 + "use SHOW QUERIES to view the full set of queries."));
 
-    return QueryDescriptionFactory.forQueryMetadata(metadata);
+    return QueryDescriptionFactory.forQueryMetadata(
+        metadata,
+        Collections.singletonMap(
+            new KsqlHostInfoEntity(sessionProperties.getKsqlHostInfo()),
+            metadata.getState()));
   }
 
 }

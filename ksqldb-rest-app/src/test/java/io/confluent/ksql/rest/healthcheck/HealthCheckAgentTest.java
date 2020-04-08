@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
@@ -81,7 +82,7 @@ public class HealthCheckAgentTest {
 
   @Before
   public void setUp() {
-    when(ksqlClient.makeKsqlRequest(eq(SERVER_URI), any())).thenReturn(successfulResponse);
+    when(ksqlClient.makeKsqlRequest(eq(SERVER_URI), any(), eq(ImmutableMap.of()))).thenReturn(successfulResponse);
     when(restConfig.getList(RestConfig.LISTENERS_CONFIG))
         .thenReturn(ImmutableList.of(SERVER_ADDRESS));
     when(successfulResponse.isSuccessful()).thenReturn(true);
@@ -106,7 +107,7 @@ public class HealthCheckAgentTest {
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
 
     // Then:
-    verify(ksqlClient, atLeastOnce()).makeKsqlRequest(eq(SERVER_URI), any());
+    verify(ksqlClient, atLeastOnce()).makeKsqlRequest(eq(SERVER_URI), any(), eq(ImmutableMap.of()));
     assertThat(response.getDetails().get(METASTORE_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getIsHealthy(), is(true));
@@ -115,7 +116,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnUnhealthyIfMetastoreCheckFails() {
     // Given:
-    when(ksqlClient.makeKsqlRequest(SERVER_URI, "list streams; list tables; list queries;"))
+    when(ksqlClient.makeKsqlRequest(SERVER_URI, "list streams; list tables; list queries;", ImmutableMap.of()))
         .thenReturn(unSuccessfulResponse);
 
     // When:

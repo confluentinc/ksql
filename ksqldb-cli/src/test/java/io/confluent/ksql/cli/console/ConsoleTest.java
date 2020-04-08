@@ -52,6 +52,7 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
+import io.confluent.ksql.rest.entity.QueryStateCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlWarning;
@@ -80,7 +81,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
@@ -88,10 +92,15 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import org.apache.kafka.streams.KafkaStreams;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Parameterized.class)
 public class ConsoleTest {
@@ -99,6 +108,7 @@ public class ConsoleTest {
   private static final String CLI_CMD_NAME = "some command";
   private static final String WHITE_SPACE = " \t ";
   private static final String NEWLINE = System.lineSeparator();
+  private static final String STATE_COUNT_STRING = "RUNNING:1,ERROR:2";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
@@ -130,6 +140,9 @@ public class ConsoleTest {
       "statement"
   );
 
+  @Mock
+  private QueryStateCount queryStateCount;
+
   @Parameterized.Parameters(name = "{0}")
   public static Collection<OutputFormat> data() {
     return ImmutableList.of(OutputFormat.JSON, OutputFormat.TABULAR);
@@ -146,6 +159,16 @@ public class ConsoleTest {
     when(cliCommand.matches(any()))
         .thenAnswer(i -> ((String) i.getArgument(0)).toLowerCase().startsWith(CLI_CMD_NAME.toLowerCase()));
     console.registerCliSpecificCommand(cliCommand);
+  }
+
+  @Before
+  public void setUp() {
+    MockitoAnnotations.initMocks(this);
+    when(queryStateCount.toString()).thenReturn(STATE_COUNT_STRING);
+    final EnumMap<KafkaStreams.State, Integer> mockStateCount = new EnumMap<>(KafkaStreams.State.class);
+    mockStateCount.put(KafkaStreams.State.RUNNING, 1);
+    mockStateCount.put(KafkaStreams.State.ERROR, 2);
+    when(queryStateCount.getStates()).thenReturn(mockStateCount);
   }
 
   @After
@@ -289,7 +312,7 @@ public class ConsoleTest {
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), Optional.of("Foobar")));
+            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), queryStateCount));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -309,16 +332,20 @@ public class ConsoleTest {
           + "    \"sinks\" : [ \"Test\" ]," + NEWLINE
           + "    \"sinkKafkaTopics\" : [ \"Test topic\" ]," + NEWLINE
           + "    \"id\" : \"0\"," + NEWLINE
-          + "    \"state\" : \"Foobar\"" + NEWLINE
+          + "    \"stateCount\" : {" + NEWLINE
+          + "      \"RUNNING\" : 1," + NEWLINE
+          + "      \"ERROR\" : 2" + NEWLINE
+          + "    }," + NEWLINE
+          + "    \"state\" : \"" + STATE_COUNT_STRING +"\"" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
     } else {
       assertThat(output, is("" + NEWLINE
-          + " Query ID | Status | Sink Name | Sink Kafka Topic | Query String     " + NEWLINE
-          + "---------------------------------------------------------------------" + NEWLINE
-          + " 0        | Foobar | Test      | Test topic       | select * from t1 " + NEWLINE
-          + "---------------------------------------------------------------------" + NEWLINE
+          + " Query ID | Status            | Sink Name | Sink Kafka Topic | Query String     " + NEWLINE
+          + "--------------------------------------------------------------------------------" + NEWLINE
+          + " 0        | " + STATE_COUNT_STRING + " | Test      | Test topic       | select * from t1 " + NEWLINE
+          + "--------------------------------------------------------------------------------" + NEWLINE
           + "For detailed information on a Query run: EXPLAIN <Query ID>;" + NEWLINE));
     }
   }
@@ -340,10 +367,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStateCount)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStateCount)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -389,14 +416,22 @@ public class ConsoleTest {
           + "      \"sinks\" : [ \"sink1\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ]," + NEWLINE
           + "      \"id\" : \"readId\"," + NEWLINE
-          + "      \"state\" : \"Running\"" + NEWLINE
+          + "      \"stateCount\" : {" + NEWLINE
+          + "        \"RUNNING\" : 1," + NEWLINE
+          + "        \"ERROR\" : 2" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
           + "      \"queryString\" : \"write query\"," + NEWLINE
           + "      \"sinks\" : [ \"sink2\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ]," + NEWLINE
           + "      \"id\" : \"writeId\"," + NEWLINE
-          + "      \"state\" : \"Running\"" + NEWLINE
+          + "      \"stateCount\" : {" + NEWLINE
+          + "        \"RUNNING\" : 1," + NEWLINE
+          + "        \"ERROR\" : 2" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
           + "      \"name\" : \"ROWTIME\"," + NEWLINE
@@ -1000,10 +1035,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStateCount)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStateCount)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -1048,14 +1083,22 @@ public class ConsoleTest {
           + "      \"sinks\" : [ \"sink1\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ]," + NEWLINE
           + "      \"id\" : \"readId\"," + NEWLINE
-          + "      \"state\" : \"Running\"" + NEWLINE
+          + "      \"stateCount\" : {" + NEWLINE
+          + "        \"RUNNING\" : 1," + NEWLINE
+          + "        \"ERROR\" : 2" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
           + "      \"queryString\" : \"write query\"," + NEWLINE
           + "      \"sinks\" : [ \"sink2\" ]," + NEWLINE
           + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ]," + NEWLINE
           + "      \"id\" : \"writeId\"," + NEWLINE
-          + "      \"state\" : \"Running\"" + NEWLINE
+          + "      \"stateCount\" : {" + NEWLINE
+          + "        \"RUNNING\" : 1," + NEWLINE
+          + "        \"ERROR\" : 2" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"state\" : \"" + STATE_COUNT_STRING +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
           + "      \"name\" : \"ROWTIME\"," + NEWLINE
@@ -1116,13 +1159,13 @@ public class ConsoleTest {
           + "" + NEWLINE
           + "Queries that read from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE
-          + "readId (Running) : read query" + NEWLINE
+          + "readId (" + STATE_COUNT_STRING +") : read query" + NEWLINE
           + "\n"
           + "For query topology and execution plan please run: EXPLAIN <QueryId>" + NEWLINE
           + "" + NEWLINE
           + "Queries that write from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE
-          + "writeId (Running) : write query" + NEWLINE
+          + "writeId (" + STATE_COUNT_STRING + ") : write query" + NEWLINE
           + "\n"
           + "For query topology and execution plan please run: EXPLAIN <QueryId>" + NEWLINE
           + "" + NEWLINE

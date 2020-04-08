@@ -938,7 +938,7 @@ public class CliTest {
     assertThat(terminal.getOutputString(), containsString(queryId));
     assertThat(terminal.getOutputString(), containsString("Status"));
     assertThat(terminal.getOutputString(),
-        either(containsString(": REBALANCING"))
+        either(containsString("REBALANCING"))
             .or(containsString("RUNNING")));
 
     dropStream(streamName);

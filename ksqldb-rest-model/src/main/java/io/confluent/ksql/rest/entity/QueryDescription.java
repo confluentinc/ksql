@@ -23,6 +23,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
+
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,8 +44,9 @@ public class QueryDescription {
   private final String topology;
   private final String executionPlan;
   private final Map<String, Object> overriddenProperties;
-  private final Optional<String> state;
+  private final Map<KsqlHostInfoEntity, String> ksqlHostQueryState;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
   @JsonCreator
   public QueryDescription(
@@ -55,7 +59,7 @@ public class QueryDescription {
       @JsonProperty("topology") final String topology,
       @JsonProperty("executionPlan") final String executionPlan,
       @JsonProperty("overriddenProperties") final Map<String, Object> overriddenProperties,
-      @JsonProperty("state") final Optional<String> state
+      @JsonProperty("ksqlHostQueryState") final Map<KsqlHostInfoEntity, String> ksqlHostQueryState
   ) {
     this.id = Objects.requireNonNull(id, "id");
     this.statementText = Objects.requireNonNull(statementText, "statementText");
@@ -67,7 +71,8 @@ public class QueryDescription {
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.overriddenProperties = ImmutableMap.copyOf(Objects
         .requireNonNull(overriddenProperties, "overriddenProperties"));
-    this.state = Objects.requireNonNull(state, "state");
+    this.ksqlHostQueryState =
+        new HashMap<>(Objects.requireNonNull(ksqlHostQueryState, "ksqlHostQueryState"));
   }
 
   public QueryId getId() {
@@ -106,8 +111,18 @@ public class QueryDescription {
     return overriddenProperties;
   }
 
+  // kept for backwards compatibility
+  @JsonProperty("state")
   public Optional<String> getState() {
-    return state;
+    return Optional.of(ksqlHostQueryState.toString());
+  }
+
+  public void updateKsqlHostQueryState(final KsqlHostInfoEntity host, final String state) {
+    ksqlHostQueryState.put(host, state);
+  }
+
+  public Map<KsqlHostInfoEntity, String> getKsqlHostQueryState() { 
+    return Collections.unmodifiableMap(ksqlHostQueryState);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -130,7 +145,7 @@ public class QueryDescription {
         && Objects.equals(sources, that.sources)
         && Objects.equals(sinks, that.sinks)
         && Objects.equals(overriddenProperties, that.overriddenProperties)
-        && Objects.equals(state, that.state);
+        && Objects.equals(ksqlHostQueryState, that.ksqlHostQueryState);
   }
 
   @Override
@@ -145,7 +160,7 @@ public class QueryDescription {
         sources,
         sinks,
         overriddenProperties,
-        state
+        ksqlHostQueryState
     );
   }
 }

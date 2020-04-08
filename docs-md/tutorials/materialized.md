@@ -291,7 +291,7 @@ CREATE STREAM calls WITH (
 
 A common situation in call centers is the need to know what the current caller has called about in the past. Create a simple materialized view that keeps track of the distinct number of reasons that a user called for, and what the last reason was that they called for, too. This gives you an idea of how many kinds of inquiries the caller has raised and also gives you context based on the last time they called.
 
-We do this by declaring a table called `support_view`. Keeping track of the distinct number of reasons a caller raised is as simple as grouping by the user name, then aggregating with `count_distinct` over the `reason` value. Similarly, we can retain the last reason the person called for with the `latest_by_offset` aggregation.
+You do this by declaring a table called `support_view`. Keeping track of the distinct number of reasons a caller raised is as simple as grouping by the user name, then aggregating with `count_distinct` over the `reason` value. Similarly, you can retain the last reason the person called for with the `latest_by_offset` aggregation.
 
 Notice that Debezium writes events to the topic in the form of a map with "before" and "after" keys to make it clear what changed in each operation. That is why each column uses arrow syntax to drill into the nested `after` key.
 

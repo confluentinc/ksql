@@ -324,7 +324,7 @@ CREATE TABLE lifetime_view AS
 
 ### Query the materialized views
 
-Now we can query our materialized views to look up the values for keys with low latency. How many reasons has Derek called for, and what was the last thing he called about? Run this at the prompt:
+Now you can query our materialized views to look up the values for keys with low latency. How many reasons has Derek called for, and what was the last thing he called about? In the ksqlDB CLI, run the following statement:
 
 ```sql
 SELECT name, distinct_reasons, last_reason

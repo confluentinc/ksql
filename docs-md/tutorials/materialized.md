@@ -54,7 +54,7 @@ enforce_gtid_consistency = ON
 
 This sets up MySQL's transaction log so that Debezium can watch for changes as they occur.
 
-With that file in place, create a `docker-compose.yml` file that defines the services to launch:
+With this file in place, create a `docker-compose.yml` file that defines the services to launch:
 
 ```yaml
 ---

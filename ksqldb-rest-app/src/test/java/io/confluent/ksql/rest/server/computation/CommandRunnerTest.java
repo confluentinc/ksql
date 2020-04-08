@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -41,9 +42,11 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -87,6 +90,8 @@ public class CommandRunnerTest {
   private QueuedCommand queuedCommand3;
   @Mock
   private ExecutorService executor;
+  @Mock
+  private Function<List<QueuedCommand>, List<QueuedCommand>> compactor;
   @Captor
   private ArgumentCaptor<Runnable> threadTaskCaptor;
   private CommandRunner commandRunner;
@@ -104,6 +109,8 @@ public class CommandRunnerTest {
     when(queuedCommand2.getCommand()).thenReturn(command);
     when(queuedCommand3.getCommand()).thenReturn(command);
 
+    when(compactor.apply(any())).thenAnswer(inv -> inv.getArgument(0));
+
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     commandRunner = new CommandRunner(
@@ -116,7 +123,8 @@ public class CommandRunnerTest {
         "ksql-service-id",
         Duration.ofMillis(COMMAND_RUNNER_HEALTH_TIMEOUT),
         "",
-        clock
+        clock,
+        compactor
     );
   }
 
@@ -164,6 +172,34 @@ public class CommandRunnerTest {
 
     // Then:
     verify(statementExecutor, never()).handleRestore(any());
+  }
+
+  @Test
+  public void shouldCompactOnRestore() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+
+    // When:
+    commandRunner.processPriorCommands();
+
+    // Then:
+    verify(compactor).apply(ImmutableList.of(queuedCommand1, queuedCommand2, queuedCommand3));
+  }
+
+  @Test
+  public void shouldOnlyRestoreCompacted() {
+    // Given:
+    when(compactor.apply(any())).thenReturn(ImmutableList.of(queuedCommand1, queuedCommand3));
+
+    // When:
+    commandRunner.processPriorCommands();
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+
+    verify(statementExecutor, never()).handleRestore(queuedCommand2);
   }
 
   @Test

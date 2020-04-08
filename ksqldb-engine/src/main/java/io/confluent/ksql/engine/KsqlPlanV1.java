@@ -52,6 +52,11 @@ final class KsqlPlanV1 implements KsqlPlan {
   }
 
   @Override
+  public KsqlPlan withoutQuery() {
+    return new KsqlPlanV1(statementText, ddlCommand, Optional.empty());
+  }
+
+  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;
@@ -67,7 +72,6 @@ final class KsqlPlanV1 implements KsqlPlan {
 
   @Override
   public int hashCode() {
-
     return Objects.hash(statementText, ddlCommand, queryPlan);
   }
 }

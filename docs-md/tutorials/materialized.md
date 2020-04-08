@@ -197,7 +197,7 @@ FLUSH PRIVILEGES;
 
 ### Create the calls table in MySQL
 
-Let's seed our blank database with some initial state. In the same MySQL CLI, switch into the `call-center` database:
+Seed your blank database with some initial state. In the same MySQL CLI, switch into the `call-center` database:
 
 ```sql
 USE call-center;

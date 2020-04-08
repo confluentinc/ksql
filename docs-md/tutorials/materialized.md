@@ -258,7 +258,7 @@ CREATE SOURCE CONNECTOR calls_reader WITH (
 );
 ```
 
-After a few seconds, it should create a topic named `call-center-db.call-center.calls`. Print the raw topic contents to make sure it captured the initial rows that we seeded the calls table with:
+After a few seconds, it should create a topic named `call-center-db.call-center.calls`. Print the raw topic contents to make sure it captured the initial rows that you seeded the calls table with:
 
 ```sql
 PRINT 'call-center-db.call-center.calls' FROM BEGINNING;

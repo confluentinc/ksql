@@ -27,19 +27,26 @@ public class LikePredicate extends Expression {
 
   private final Expression value;
   private final Expression pattern;
+  private final Optional<Character> escape;
 
-  public LikePredicate(final Expression value, final Expression pattern) {
-    this(Optional.empty(), value, pattern);
+  public LikePredicate(
+      final Expression value,
+      final Expression pattern,
+      final Optional<Character> escape
+  ) {
+    this(Optional.empty(), value, pattern, escape);
   }
 
   public LikePredicate(
       final Optional<NodeLocation> location,
       final Expression value,
-      final Expression pattern
+      final Expression pattern,
+      final Optional<Character> escape
   ) {
     super(location);
     this.value = requireNonNull(value, "value");
     this.pattern = requireNonNull(pattern, "pattern");
+    this.escape = requireNonNull(escape, "escape");
   }
 
   public Expression getValue() {
@@ -48,6 +55,10 @@ public class LikePredicate extends Expression {
 
   public Expression getPattern() {
     return pattern;
+  }
+
+  public Optional<Character> getEscape() {
+    return escape;
   }
 
   @Override
@@ -66,11 +77,12 @@ public class LikePredicate extends Expression {
 
     final LikePredicate that = (LikePredicate) o;
     return Objects.equals(value, that.value)
-        && Objects.equals(pattern, that.pattern);
+        && Objects.equals(pattern, that.pattern)
+        && Objects.equals(escape, that.escape);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(value, pattern);
+    return Objects.hash(value, pattern, escape);
   }
 }

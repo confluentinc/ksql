@@ -467,7 +467,7 @@ public class ExpressionTreeRewriterTest {
     final Expression rewritten = expressionRewriter.rewrite(parsed, context);
 
     // Then:
-    assertThat(rewritten, equalTo(new LikePredicate(parsed.getLocation(), expr1, expr2)));
+    assertThat(rewritten, equalTo(new LikePredicate(parsed.getLocation(), expr1, expr2, Optional.empty())));
   }
 
   @Test

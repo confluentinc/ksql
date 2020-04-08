@@ -143,6 +143,7 @@ public class CodeGenRunner {
     @Override
     public Void visitLikePredicate(final LikePredicate node, final Void context) {
       process(node.getValue(), null);
+      process(node.getPattern(), null);
       return null;
     }
 

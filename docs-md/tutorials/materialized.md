@@ -37,7 +37,7 @@ After running this, you should have a directory named `confluent-hub-components`
 
 ### Start the stack
 
-We'll need to set up and launch the services in the stack. To do this, we'll need to make a couple of files.
+To set up and launch the services in the stack, a few files need to be created first.
 
 MySQL requires some custom configuration to play well with Debezium, so let's take care of that first. Debezium has a dedicated [tutorial](https://debezium.io/documentation/reference/1.1/assemblies/cdc-mysql-connector/as_setup-the-mysql-server.html) on this if you're interested, but this guide covers just the essentials. Make a new file at `mysql/custom-config.cnf` with the following content:
 

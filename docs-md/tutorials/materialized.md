@@ -238,7 +238,7 @@ Before you issue more commands, tell ksqlDB to start all queries from earliest p
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-Now we can connect ask Debezium to stream MySQL's changelog into Kafka. Invoke the following command in ksqlDB. This creates a Debezium source connector and writes all of its changes to Kafka topics:
+Now you can connect ask Debezium to stream MySQL's changelog into {{ site.ak }}. Invoke the following command in ksqlDB, which creates a Debezium source connector and writes all of its changes to {{ site.ak }} topics:
 
 ```sql
 CREATE SOURCE CONNECTOR calls_reader WITH (

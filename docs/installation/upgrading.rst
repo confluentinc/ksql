@@ -103,13 +103,26 @@ Upgrading to ksqlDB 5.5 from KSQL 5.4
    :ref:`role-based access control (RBAC) <ksql-rbac>`,
    :ref:`ACLs <config-security-ksql-acl>`, and no authorization.
 
-   Create three new role bindings or assign ACLs for the ``ksql`` service
+   Create new role bindings or assign ACLs for the ``ksql`` service
    principal:
 
    - Topic: ``__consumer_offsets``
    - Topic: ``__transaction_state``
    - TransactionalId: ``ksqldb_``. Use the value that you set in the
      configuration file.
+
+     If you're using ACLs for security, these ACLs are required:
+
+     - ``DESCRIBE`` operation on the ``TOPIC`` with ``LITERAL`` name ``__consumer_offsets``.
+     - ``DESCRIBE`` operation on the ``TOPIC`` with ``LITERAL`` name ``__transaction_state``.
+     - ``DESCRIBE`` and ``WRITE`` operations on the ``TRANSACTIONAL_ID`` with ``LITERAL`` name ``<ksql.service.id>``.
+
+     If you're using RBAC for security, these role assignments are required:
+
+     - ``DeveloperRead`` role on the ``__consumer_offsets`` topic.
+     - ``DeveloperRead`` role on ``__transaction_state`` topic.
+     - ``DeveloperWrite`` role on the ``<ksql.service.id>`` TransactionalId.
+
 
 #. Start the ``ksqldb`` service.
 

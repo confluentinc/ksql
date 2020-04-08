@@ -14,46 +14,46 @@ One way you might do this is to capture the changelogs of upstream Postgres and 
 Why ksqlDB?
 -----------
 
-Gluing all of the above services together is certainly a challenge. Along with your original databases and target analytical data store, you end up managing clusters for Kafka, connectors, and your stream processors. It's challenging to operate the entire stack as one.
+Gluing all of the above services together is certainly a challenge. Along with your original databases and target analytical data store, you end up managing clusters for {{ site.ak }}, connectors, and your stream processors. It's challenging to operate the entire stack as one.
 
-ksqlDB helps streamline how you write and deploy streaming data pipelines by boiling it down to just two things: storage (Kafka) and compute (ksqlDB).
+ksqlDB helps streamline how you write and deploy streaming data pipelines by boiling it down to just two things: storage ({{ site.ak }}) and compute (ksqlDB).
 
 ![easy](../img/etl-easy.png){: class="centered-img" style="width: 80%"}
 
-Using ksqlDB, you can run any Kafka Connect connector by embedding them in ksqlDB's servers. You can transform, join, and aggregate all of your streams together using a coherent, powerful SQL language. This gives you a slender architecture for managing the end-to-end flow of your data pipeline.
+Using ksqlDB, you can run any {{ site.kconnectlong }} connector by embedding it in ksqlDB's servers. You can transform, join, and aggregate all of your streams together by using a coherent, powerful SQL language. This gives you a slender architecture for managing the end-to-end flow of your data pipeline.
 
 Implement it
 ------------
 
 Suppose you work at a retail company that sells and ships orders to online customers. You want to analyze the shipment activity of orders as they happen in real-time. Because the company is somewhat large, the data for customers, orders, and shipments are spread across different databases and tables.
 
-In this tutorial, we’ll show you how to create a streaming ETL pipeline that ingests and joins events together to create a cohesive view of orders that shipped. We’ll demonstrate capturing changes from Postgres and MongoDB databases, forwarding them into Kafka, joining them together with ksqlDB, and sinking them out to ElasticSearch for analytics.
+This tutorial shows how to create a streaming ETL pipeline that ingests and joins events together to create a cohesive view of orders that shipped. It demonstrates capturing changes from Postgres and MongoDB databases, forwarding them into {{ site.ak }}, joining them together with ksqlDB, and sinking them out to ElasticSearch for analytics.
 
 ### Get the connectors
 
-To get started, we'll need to download the connectors for Postgres, MongoDB, and Elasticsearch to a fresh directory. You can either get that using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html), or by running the following one-off Docker commands that wrap it.
+To get started, download the connectors for Postgres, MongoDB, and Elasticsearch to a fresh directory. You can either get them by using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html), or by running the following one-off Docker commands that wrap it.
 
 First, acquire the Postgres Debezium connector:
 
 ```
-docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.8.1 confluent-hub install --no-prompt debezium/debezium-connector-postgresql:1.1.0
+docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt debezium/debezium-connector-postgresql:1.1.0
 ```
 
 Likewise for the MongoDB Debezium connector:
 
 ```
-docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.8.1 confluent-hub install --no-prompt debezium/debezium-connector-mongodb:1.1.0
+docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt debezium/debezium-connector-mongodb:1.1.0
 ```
 
 And finally, the Elasticsearch connector:
 
 ```
-docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.8.1 confluent-hub install --no-prompt confluentinc/kafka-connect-elasticsearch:5.4.1
+docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt confluentinc/kafka-connect-elasticsearch:{{ site.cprelease }}
 ```
 
 ### Start the stack
 
-We'll need to set up and launch the services in the stack. But before we bring it up, we’ll need to make a few changes to the way that Postgres launches so that it works well with Debezium.  Debezium has a dedicated [tutorial](https://debezium.io/documentation/reference/1.1/connectors/postgresql.html) on this if you're interested, but this guide covers just the essentials. To simplify some of this, we’ll launch a Postgres Docker container [extended by Debezium](https://hub.docker.com/r/debezium/postgres) to handle some of the customization. Beyond that, we’ll need to make an additional configuration file at `postgres/custom-config.conf` with the following content:
+Next, set up and launch the services in the stack. But before you bring it up, you need to make a few changes to the way that Postgres launches so that it works well with Debezium.  Debezium has a dedicated [tutorial](https://debezium.io/documentation/reference/1.1/connectors/postgresql.html) on this if you're interested, but this guide covers just the essentials. To simplify some of this, you launch a Postgres Docker container [extended by Debezium](https://hub.docker.com/r/debezium/postgres) to handle some of the customization. Also, you must create an additional configuration file at `postgres/custom-config.conf` with the following content:
 
 ```
 listen_addresses = '*'

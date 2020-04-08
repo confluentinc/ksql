@@ -159,7 +159,7 @@ services:
     tty: true
 ```
 
-There's a few things to notice here. The MySQL image mounts the custom configuration file that we wrote. MySQL merges these configuration settings into its system-wide configuration. The environment variables we gave it also set up a blank database called `call-center` along with a user named `example-user` that can access it.
+There are a few things to notice here. The MySQL image mounts the custom configuration file that you wrote. MySQL merges these configuration settings into its system-wide configuration. The environment variables you gave it also set up a blank database called `call-center` along with a user named `example-user` that can access it.
 
 Also note that the ksqlDB server image mounts the `confluent-hub-components` directory, too. The jar files that we downloaded need to be on the classpath of ksqlDB when the server starts up.
 

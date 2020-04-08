@@ -569,6 +569,66 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatPartitionByWithAlias() {
+    // Given:
+    final Statement statement = parseSingle("SELECT * FROM ADDRESS "
+        + "PARTITION BY ADDRESS AS NEW_KEY;");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("SELECT *\n"
+        + "FROM ADDRESS ADDRESS\n"
+        + "PARTITION BY ADDRESS AS NEW_KEY"
+    ));
+  }
+
+  @Test
+  public void shouldFormatGroupByWithAlias() {
+    // Given:
+    final Statement statement = parseSingle("SELECT COUNT(1) FROM ADDRESS "
+        + "GROUP BY ADDRESS AS NEW_KEY;");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, startsWith("SELECT COUNT(1)\n"
+        + "FROM ADDRESS ADDRESS\n"
+        + "GROUP BY ADDRESS AS NEW_KEY"
+    ));
+  }
+
+  @Test
+  public void shouldFormatMultiGroupByWithAlias() {
+    // Given:
+    final Statement statement = parseSingle("SELECT COUNT(1) FROM ADDRESS "
+        + "GROUP BY (ADDRESS, ITEMID) AS NEW_KEY;");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, startsWith("SELECT COUNT(1)\n"
+        + "FROM ADDRESS ADDRESS\n"
+        + "GROUP BY (ADDRESS, ITEMID) AS NEW_KEY"
+    ));
+  }
+
+  @Test
+  public void shouldFormatMultiGroupByWithoutAlias() {
+    // Given:
+    final Statement statement = parseSingle("SELECT COUNT(1) FROM ADDRESS "
+        + "GROUP BY ADDRESS, ITEMID;");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, startsWith("SELECT COUNT(1)\n"
+        + "FROM ADDRESS ADDRESS\n"
+        + "GROUP BY ADDRESS, ITEMID"
+    ));
+  }
+
+  @Test
   public void shouldFormatExplainQuery() {
     final String statementString = "EXPLAIN foo;";
     final Statement statement = parseSingle(statementString);

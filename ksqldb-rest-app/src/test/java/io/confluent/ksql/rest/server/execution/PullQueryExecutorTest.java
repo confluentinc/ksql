@@ -19,7 +19,6 @@ import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessag
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
-import static junit.framework.TestCase.fail;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;

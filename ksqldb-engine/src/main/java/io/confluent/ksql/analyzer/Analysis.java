@@ -31,6 +31,8 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.tree.GroupBy;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -39,13 +41,11 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,9 +65,9 @@ public class Analysis implements ImmutableAnalysis {
   private Optional<Expression> whereExpression = Optional.empty();
   private final List<SelectItem> selectItems = new ArrayList<>();
   private final Set<ColumnName> selectColumnNames = new HashSet<>();
-  private final Set<Expression> groupByExpressions = new LinkedHashSet<>();
+  private Optional<GroupBy> groupBy = Optional.empty();
+  private Optional<PartitionBy> partitionBy = Optional.empty();
   private Optional<WindowExpression> windowExpression = Optional.empty();
-  private Optional<Expression> partitionBy = Optional.empty();
   private Optional<Expression> havingExpression = Optional.empty();
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
@@ -127,19 +127,6 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   @Override
-  public List<Expression> getGroupByExpressions() {
-    return ImmutableList.copyOf(groupByExpressions);
-  }
-
-  void setGroupByExpressions(final List<Expression> expressions) {
-    expressions.forEach(exp -> {
-      if (!groupByExpressions.add(exp)) {
-        throw new KsqlException("Duplicate GROUP BY expression: " + exp);
-      }
-    });
-  }
-
-  @Override
   public Optional<WindowExpression> getWindowExpression() {
     return windowExpression;
   }
@@ -158,11 +145,20 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   @Override
-  public Optional<Expression> getPartitionBy() {
+  public Optional<GroupBy> getGroupBy() {
+    return groupBy;
+  }
+
+  void setGroupBy(final GroupBy groupBy) {
+    this.groupBy = Optional.of(groupBy);
+  }
+
+  @Override
+  public Optional<PartitionBy> getPartitionBy() {
     return partitionBy;
   }
 
-  void setPartitionBy(final Expression partitionBy) {
+  void setPartitionBy(final PartitionBy partitionBy) {
     this.partitionBy = Optional.of(partitionBy);
   }
 

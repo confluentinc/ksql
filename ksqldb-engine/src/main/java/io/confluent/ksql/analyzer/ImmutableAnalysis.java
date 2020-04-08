@@ -23,6 +23,8 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.tree.GroupBy;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -44,15 +46,15 @@ public interface ImmutableAnalysis {
 
   Set<ColumnName> getSelectColumnNames();
 
-  List<Expression> getGroupByExpressions();
-
   Optional<Expression> getHavingExpression();
 
   Optional<WindowExpression> getWindowExpression();
 
   ColumnReferenceExp getDefaultArgument();
 
-  Optional<Expression> getPartitionBy();
+  Optional<GroupBy> getGroupBy();
+
+  Optional<PartitionBy> getPartitionBy();
 
   OptionalInt getLimitClause();
 

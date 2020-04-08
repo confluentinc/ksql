@@ -118,6 +118,127 @@
       }
     },
     {
+      "name": "single expression with alias (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY DATA AS NEW_KEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"data": "d1"}},
+        {"topic": "test_topic", "key": 1, "value": {"data": "d2"}},
+        {"topic": "test_topic", "key": 2, "value": {"data": "d1"}},
+        {"topic": "test_topic", "key": 3, "value": {"data": "d2"}},
+        {"topic": "test_topic", "key": 4, "value": {"data": "d1"}}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 1}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 1}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 2}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 2}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 3}},
+        {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": "d2", "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 2}},
+        {"topic": "OUTPUT", "key": "d2", "value": {"COUNT": 2}},
+        {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "NEW_KEY STRING KEY, COUNT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "single expression with alias (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY DATA AS NEW_KEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"data": "d1"}},
+        {"topic": "test_topic", "key": 1, "value": {"data": "d2"}},
+        {"topic": "test_topic", "key": 2, "value": {"data": "d1"}},
+        {"topic": "test_topic", "key": 3, "value": {"data": "d2"}},
+        {"topic": "test_topic", "key": 4, "value": {"data": "d1"}}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 1}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 1}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 2}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 2}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 3}},
+        {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": "d2", "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 2}},
+        {"topic": "OUTPUT", "key": "d2", "value": {"COUNT": 2}},
+        {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "NEW_KEY STRING KEY, COUNT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "multiple expression and alias",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f2 + f1, COUNT(*) FROM TEST GROUP BY (f1, f2) AS NEW_KEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "2"},
+        {"topic": "test_topic", "key": 2, "value": "4"},
+        {"topic": "test_topic", "key": 1, "value": "2"},
+        {"topic": "test_topic", "key": 2, "value": "4"},
+        {"topic": "test_topic", "key": 2, "value": "1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1|+|2", "value": "3,1"},
+        {"topic": "OUTPUT", "key": "2|+|4", "value": "6,1"},
+        {"topic": "OUTPUT", "key": "1|+|2", "value": "3,2"},
+        {"topic": "OUTPUT", "key": "2|+|4", "value": "6,2"},
+        {"topic": "OUTPUT", "key": "2|+|1", "value": "3,1"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "NEW_KEY STRING KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "with alias that clashes with projection",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY DATA AS COUNT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Value column name(s) `COUNT` clashes with key column name(s)"
+      }
+    },
+    {
       "name": "multiple used in expression in projection",
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -512,7 +633,7 @@
       "name": "duplicate expressions",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY DATA, DATA;"
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY DATA, TEST.DATA;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true

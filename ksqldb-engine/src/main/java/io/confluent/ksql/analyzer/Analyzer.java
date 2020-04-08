@@ -45,6 +45,7 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -263,10 +264,13 @@ class Analyzer {
       analysis.getWhereExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "WHERE"));
 
-      analysis.getGroupByExpressions()
+      analysis.getGroupBy()
+          .map(GroupBy::getGroupingExpressions)
+          .orElseGet(ImmutableList::of)
           .forEach(expression -> columnValidator.analyzeExpression(expression, "GROUP BY"));
 
       analysis.getPartitionBy()
+          .map(PartitionBy::getExpression)
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
 
       analysis.getHavingExpression()
@@ -490,10 +494,10 @@ class Analyzer {
 
     private void analyzeGroupBy(final GroupBy groupBy) {
       isGroupBy = true;
-      analysis.setGroupByExpressions(groupBy.getGroupingExpressions());
+      analysis.setGroupBy(groupBy);
     }
 
-    private void analyzePartitionBy(final Expression partitionBy) {
+    private void analyzePartitionBy(final PartitionBy partitionBy) {
       analysis.setPartitionBy(partitionBy);
     }
 
@@ -516,7 +520,7 @@ class Analyzer {
         }
       }
 
-      if (analysis.getGroupByExpressions().isEmpty()) {
+      if (!analysis.getGroupBy().isPresent()) {
         throwOnUdafs(column.getExpression());
       }
     }
@@ -610,7 +614,7 @@ class Analyzer {
 
           tableFunctionName = Optional.of(functionName);
 
-          if (!analysis.getGroupByExpressions().isEmpty()) {
+          if (analysis.getGroupBy().isPresent()) {
             throw new KsqlException("Table functions cannot be used with aggregations.");
           }
 

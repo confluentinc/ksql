@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -17,48 +17,31 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.util.KsqlException;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class GroupBy extends AstNode {
+public class PartitionBy extends AstNode {
 
-  private final ImmutableList<Expression> groupingExpressions;
+  private final Expression expression;
   private final Optional<ColumnName> alias;
 
-  public GroupBy(
+  public PartitionBy(
       final Optional<NodeLocation> location,
-      final List<Expression> groupingExpressions,
+      final Expression partitionBy,
       final Optional<ColumnName> alias
   ) {
     super(location);
-    this.groupingExpressions = ImmutableList
-        .copyOf(requireNonNull(groupingExpressions, "groupingElements"));
+    this.expression = requireNonNull(partitionBy, "partitionBy");
     this.alias = requireNonNull(alias, "alias");
-
-    final HashSet<Object> groupBys = new HashSet<>(groupingExpressions.size());
-
-    if (groupingExpressions.isEmpty()) {
-      throw new KsqlException("GROUP BY requires at least one expression");
-    }
-
-    groupingExpressions.forEach(exp -> {
-      if (!groupBys.add(exp)) {
-        throw new KsqlException("Duplicate GROUP BY expression: " + exp);
-      }
-    });
   }
 
-  public List<Expression> getGroupingExpressions() {
-    return groupingExpressions;
+  public Expression getExpression() {
+    return expression;
   }
 
   public Optional<ColumnName> getAlias() {
@@ -67,7 +50,7 @@ public class GroupBy extends AstNode {
 
   @Override
   protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-    return visitor.visitGroupBy(this, context);
+    return visitor.visitPartitionBy(this, context);
   }
 
   @Override
@@ -78,20 +61,20 @@ public class GroupBy extends AstNode {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final GroupBy groupBy = (GroupBy) o;
-    return Objects.equals(groupingExpressions, groupBy.groupingExpressions)
+    final PartitionBy groupBy = (PartitionBy) o;
+    return Objects.equals(expression, groupBy.expression)
         && Objects.equals(alias, groupBy.alias);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(groupingExpressions, alias);
+    return Objects.hash(expression, alias);
   }
 
   @Override
   public String toString() {
-    return "GroupBy{"
-        + "groupingExpressions=" + groupingExpressions
+    return "PartitionBy{"
+        + "expression=" + expression
         + ", alias=" + alias
         + '}';
   }

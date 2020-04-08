@@ -15,18 +15,12 @@
 
 package io.confluent.ksql.analyzer;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
@@ -38,9 +32,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -71,10 +63,6 @@ public class AnalysisTest {
   private Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
   @Mock
   private WindowExpression windowExpression;
-  @Mock(name = "anExpression")
-  private Expression exp1;
-  @Mock(name = "anotherExpression")
-  private Expression exp2;
 
   private Analysis analysis;
 
@@ -187,35 +175,6 @@ public class AnalysisTest {
         ALIAS,
         SOURCE_SCHEMA.withMetaAndKeyColsInValue(true)
     ));
-  }
-
-  @Test
-  public void shouldMaintainGroupByOrder() {
-    // Given:
-    final List<Expression> original = ImmutableList.of(exp1, exp2);
-
-    analysis.setGroupByExpressions(original);
-
-    // When:
-    final List<Expression> result = analysis.getGroupByExpressions();
-
-    // Then:
-    assertThat(result, is(original));
-  }
-
-  @Test
-  public void shouldThrowOnDuplicateGroupBy() {
-    // Given:
-    final List<Expression> withDuplicate = ImmutableList.of(exp1, exp1);
-
-    // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
-        () -> analysis.setGroupByExpressions(withDuplicate)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Duplicate GROUP BY expression: anExpression"));
   }
 
   private static void givenNoneWindowedSource(final KsqlStream<?> dataSource) {

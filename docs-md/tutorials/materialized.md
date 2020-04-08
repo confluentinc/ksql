@@ -310,7 +310,7 @@ CREATE TABLE support_view AS
 
 We have our first materialized view in place. Let's create one more.
 
-It's useful to have an idea of the lifetime behavior of each caller. Rather than issuing a query over all the data every time we have a question about a caller, a materialized view makes it easy to incrementally update the answer as new information arrives over time. In this materialized view, we count the total number of times each person has called. We also compute the total number of minutes we've spent on the phone with this person. Run the following:
+It's useful to have an idea of the lifetime behavior of each caller. Rather than issuing a query over all the data every time there is a question about a caller, a materialized view makes it easy to update the answer incrementally as new information arrives over time. The following materialized view counts the total number of times each person has called and computes the total number of minutes spent on the phone with this person.
 
 ```sql
 CREATE TABLE lifetime_view AS

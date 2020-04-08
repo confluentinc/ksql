@@ -72,7 +72,8 @@ public class ComparisonUtilTest {
     for (final SqlType leftType: typesTable) {
       for (final SqlType rightType: typesTable) {
         if (expectedResults.get(i).get(j)) {
-          ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType);
+          ComparisonUtil.assertValidComparison(leftType, ComparisonExpression.Type.EQUAL,
+              rightType);
         }
 
         j++;
@@ -91,7 +92,8 @@ public class ComparisonUtilTest {
       for (final SqlType rightType: typesTable) {
         if (!expectedResults.get(i).get(j)) {
           try {
-            ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType);
+            ComparisonUtil.assertValidComparison(leftType, ComparisonExpression.Type.EQUAL,
+                rightType);
             assertThat("fail", false);
           } catch (final KsqlException e) {
             assertThat(e.getMessage(), is("Operator EQUAL cannot be used to compare "
@@ -117,7 +119,7 @@ public class ComparisonUtilTest {
     expectedException.expectMessage("Comparison with NULL not supported: NULL = STRING");
 
     // When:
-    ComparisonUtil.isValidComparison(null, ComparisonExpression.Type.EQUAL, SqlTypes.STRING);
+    ComparisonUtil.assertValidComparison(null, ComparisonExpression.Type.EQUAL, SqlTypes.STRING);
   }
 
   @SuppressWarnings("ConstantConditions")
@@ -128,6 +130,6 @@ public class ComparisonUtilTest {
     expectedException.expectMessage("Comparison with NULL not supported: STRING = NULL");
 
     // When:
-    ComparisonUtil.isValidComparison(SqlTypes.STRING, ComparisonExpression.Type.EQUAL, null);
+    ComparisonUtil.assertValidComparison(SqlTypes.STRING, ComparisonExpression.Type.EQUAL, null);
   }
 }

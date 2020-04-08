@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.SourceSchemas;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

@@ -504,7 +504,7 @@ class Analyzer {
     private void analyzeWhere(final Expression node) {
       analysis.setWhereExpression(node);
 
-      WhereTypeValidator validator = new WhereTypeValidator(
+      final WhereTypeValidator validator = new WhereTypeValidator(
           analysis.getFromSourceSchemas(false),
           metaStore);
       validator.validateWhereExpression(node);

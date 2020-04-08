@@ -27,6 +27,7 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.SourceSchemas;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
 import java.util.Optional;

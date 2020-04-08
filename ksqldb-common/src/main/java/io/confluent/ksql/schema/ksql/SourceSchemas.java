@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.analyzer;
+package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
@@ -21,8 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -36,7 +35,7 @@ public final class SourceSchemas {
 
   private final ImmutableMap<SourceName, LogicalSchema> sourceSchemas;
 
-  SourceSchemas(final Map<SourceName, LogicalSchema> sourceSchemas) {
+  public SourceSchemas(final Map<SourceName, LogicalSchema> sourceSchemas) {
     this.sourceSchemas = ImmutableMap.copyOf(requireNonNull(sourceSchemas, "sourceSchemas"));
 
     if (sourceSchemas.isEmpty()) {
@@ -83,18 +82,38 @@ public final class SourceSchemas {
   }
 
   /**
-   * Retrieves the schema with the given source name.
+   * Retrieves the column with the given source name and column name
    * @param sourceName The source name to fetch
-   * @return The LogicalSchema if it exists
+   * @param columnName The column name to fetch
+   * @return The column
    */
-  public Optional<LogicalSchema> schemaWithName(
-      final SourceName sourceName
+  public Optional<Column> findValueColumn(
+      final SourceName sourceName,
+      final ColumnName columnName
   ) {
     final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);
     if (sourceSchema == null) {
       return Optional.empty();
     }
-    return Optional.of(sourceSchema);
+    return sourceSchema.findValueColumn(columnName);
+  }
+
+  /**
+   * Retrieves the column with the given column name.  It searches all sources.  If the column is
+   * ambiguous, it throws an error.  Otherwise returns the column, if it's found.
+   * @param columnName The column name to fetch
+   * @return The column
+   */
+  public Optional<Column> findValueColumn(
+      final ColumnName columnName
+  ) {
+    final Set<SourceName> sources = sourcesWithField(Optional.empty(), columnName);
+    if (sources.size() > 1) {
+      throw new KsqlException("Ambiguous field " + columnName.text());
+    }
+    return sources.stream()
+        .findFirst()
+        .flatMap(sn -> sourceSchemas.get(sn).findValueColumn(columnName));
   }
 
   /**
@@ -106,7 +125,7 @@ public final class SourceSchemas {
    * @param column the field name to search for. Can be prefixed by source name.
    * @return true if this the supplied {@code column} matches a non-value field
    */
-  boolean matchesNonValueField(final Optional<SourceName> source, final ColumnName column) {
+  public boolean matchesNonValueField(final Optional<SourceName> source, final ColumnName column) {
     if (!source.isPresent()) {
       return sourceSchemas.values().stream()
           .anyMatch(schema ->

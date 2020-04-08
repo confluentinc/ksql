@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SourceSchemas;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;

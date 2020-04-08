@@ -1,16 +1,16 @@
 What is it?
 ----------
 
-A materialized view (sometimes called a "[materialized cache](https://www.confluent.io/blog/build-materialized-cache-with-ksqldb/)") is an approach to precomputing the results of a query and storing them for fast read access. By contrast to a regular database query, which does all of its work at read-time, materialized views do nearly all of their work at write-time. This is why materialized views can offer highly performant reads.
+A materialized view, sometimes called a "[materialized cache](https://www.confluent.io/blog/build-materialized-cache-with-ksqldb/)", is an approach to precomputing the results of a query and storing them for fast read access. In contrast with a regular database query, which does all of its work at read-time, a materialized view does nearly all of its work at write-time. This is why materialized views can offer highly performant reads.
 
-A pretty standard way to build a materialized cache is to capture the changelog of a database and process it as a stream of events. This lets you create multiple distributed materializations that best suit each application's query patterns.
+A standard way of building a materialized cache is to capture the changelog of a database and process it as a stream of events. This enables creating multiple distributed materializations that best suit each application's query patterns.
 
 ![hard](../img/mv-hard.png){: class="centered-img"}
 
-One way you might do this would be to capture the changelog of MySQL using the Debezium Kafka Connector. The changelog is stored in Kafka and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can query the materializations. This can work, but is there a better way?
+One way you might do this is to capture the changelog of MySQL using the Debezium {{ site.kconnectlong }}. The changelog is stored in {{ site.ak }} and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can query the materializations. This can work, but is there a better way?
 
-Why ksqlDB
-----------
+Why ksqlDB?
+-----------
 
 Running all of the above systems is a lot to manage. In addition to your database, you end up managing clusters for {{ site.ak }}, connectors, the stream processor, and another data store. It's challenging to monitor, secure, and scale all of these systems as one. ksqlDB helps to consolidate this complexity by slimming the architecture down to two things: storage ({{ site.ak }}) and compute (ksqlDB).
 
@@ -209,7 +209,7 @@ Create a table that represents phone calls that were made. Keep this table simpl
 CREATE TABLE calls (name TEXT, reason TEXT, duration_seconds INT);
 ```
 
-And now add some initial data. We'll add more later, but this will suffice for now:
+And now add some initial data. You'll add more later, but this will suffice for now:
 
 ```sql
 INSERT INTO calls (name, reason, duration_seconds) VALUES ("michael", "purchase", 540);
@@ -296,7 +296,7 @@ You do this by declaring a table called `support_view`. Keeping track of the dis
 Notice that Debezium writes events to the topic in the form of a map with "before" and "after" keys to make it clear what changed in each operation. That is why each column uses arrow syntax to drill into the nested `after` key.
 
 
-Run this statement at the prompt:
+In the ksqlDB CLI, run the following statement:
 
 ```sql
 CREATE TABLE support_view AS
@@ -308,7 +308,7 @@ CREATE TABLE support_view AS
     EMIT CHANGES;
 ```
 
-We have our first materialized view in place. Let's create one more.
+You have your first materialized view in place. Now create one more.
 
 It's useful to have an idea of the lifetime behavior of each caller. Rather than issuing a query over all the data every time there is a question about a caller, a materialized view makes it easy to update the answer incrementally as new information arrives over time. The following materialized view counts the total number of times each person has called and computes the total number of minutes spent on the phone with this person.
 

@@ -203,7 +203,7 @@ Seed your blank database with some initial state. In the same MySQL CLI, switch 
 USE call-center;
 ```
 
-Create a table that will represent phone calls that were made. We'll keep this table simple. The columns will represent the name of the person calling, the reason that they called, and the duration in seconds of the call.
+Create a table that represents phone calls that were made. Keep this table simple: the columns represent the name of the person calling, the reason that they called, and the duration in seconds of the call.
 
 ```sql
 CREATE TABLE calls (name TEXT, reason TEXT, duration_seconds INT);

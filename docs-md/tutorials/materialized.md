@@ -30,7 +30,7 @@ This tutorial shows how to create and query a set of materialized views about ph
 To get started, download the Debezium connector to a fresh directory. You can either get that using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html), or by running the following one-off Docker command that wraps it:
 
 ```
-docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:0.8.0 confluent-hub install --no-prompt debezium/debezium-connector-mysql:1.1.0
+docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt debezium/debezium-connector-mysql:1.1.0
 ```
 
 After running this, you should have a directory named `confluent-hub-components` with some jar files in it.

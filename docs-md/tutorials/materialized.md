@@ -12,7 +12,7 @@ One way you might do this would be to capture the changelog of MySQL using the D
 Why ksqlDB
 ----------
 
-Running all of the above systems is admittedly a lot to manage. In addition to your database, you end up managing clusters for Kafka, connectors, the stream processor, and another data store. It's challenging to monitor, secure, and scale all of these systems as one. ksqlDB helps to consolidate this complexity by slimming the architecture down to two things: storage (Kafka) and compute (ksqlDB).
+Running all of the above systems is a lot to manage. In addition to your database, you end up managing clusters for {{ site.ak }}, connectors, the stream processor, and another data store. It's challenging to monitor, secure, and scale all of these systems as one. ksqlDB helps to consolidate this complexity by slimming the architecture down to two things: storage ({{ site.ak }}) and compute (ksqlDB).
 
 ![easy](../img/mv-easy.png){: class="centered-img" style="width: 80%"}
 

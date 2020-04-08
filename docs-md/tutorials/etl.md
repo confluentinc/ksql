@@ -1,5 +1,5 @@
 What is it?
-----------
+-----------
 
 A streaming ETL pipeline (sometimes called a “streaming data pipeline”) is a set of software services that ingests events, transforms them, and loads them into destination storage systems. It’s often the case that you have data in one place and want to move it to another as soon as you receive it, but you need to make some changes to the data as you transfer it.
 

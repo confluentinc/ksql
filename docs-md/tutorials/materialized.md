@@ -23,7 +23,7 @@ Implement it
 
 Imagine that you work at a company with a call center. People frequently call in about purchasing a product, to ask for a refund, and other things. Because the volume of calls is rather high, it isn't practical to run queries over the database storing all the calls every time someone calls in.
 
-In this tutorial, we'll show you how to create and query a set of materialized views about phone calls made to the call center. We'll demonstrate capturing changes from a MySQL database, forwarding them into Kafka, creating materialized views with ksqlDB, and querying them from your applications.
+This tutorial shows how to create and query a set of materialized views about phone calls made to the call center. It demonstrates capturing changes from a MySQL database, forwarding them into {{ site.ak }}, creating materialized views with ksqlDB, and querying them from your applications.
 
 ### Get the Debezium connector
 

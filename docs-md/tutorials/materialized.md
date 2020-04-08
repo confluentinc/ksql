@@ -171,7 +171,7 @@ docker-compose up
 
 ### Configure MySQL for Debezium
 
-MySQL requires just a bit more modification before it can work with Debezium. Debezium needs to connect to MySQL as a user that has a specific set of privileges to replicate its changelog. We already set up the `example-user` by default in the Docker Compose file. Now we just need to give it the right privileges. We can do this by logging into the MySQL container:
+MySQL requires just a bit more modification before it can work with Debezium. Debezium needs to connect to MySQL as a user that has a specific set of privileges to replicate its changelog. You already set up the `example-user` by default in the Docker Compose file. Now you just need to give it the right privileges. You can do this by logging in to the MySQL container:
 
 ```
 docker exec -it mysql /bin/bash

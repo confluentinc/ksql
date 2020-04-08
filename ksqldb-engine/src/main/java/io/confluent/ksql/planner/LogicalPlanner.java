@@ -68,6 +68,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
@@ -431,7 +432,7 @@ public class LogicalPlanner {
 
   private PlanNode buildSourceNode() {
 
-    final List<AliasedDataSource> sources = analysis.getFromDataSources();
+    final List<AliasedDataSource> sources = analysis.getAllDataSources();
 
     if (!analysis.isJoin()) {
       return buildNonJoinNode(sources);
@@ -439,6 +440,9 @@ public class LogicalPlanner {
 
     if (sources.size() == 1) {
       throw new IllegalStateException("Expected more than one source. Got " + sources.size());
+    } else if (sources.size() != 2) {
+      throw new KsqlException(
+          "Invalid join criteria specified; KSQL does not support multi-way joins.");
     }
 
     final AliasedDataSource left = sources.get(0);
@@ -472,7 +476,7 @@ public class LogicalPlanner {
       throw new IllegalStateException("Expected only 1 source, got: " + sources.size());
     }
 
-    final AliasedDataSource dataSource = analysis.getFromDataSources().get(0);
+    final AliasedDataSource dataSource = sources.get(0);
     return new DataSourceNode(
         new PlanNodeId("KsqlTopic"),
         dataSource.getDataSource(),

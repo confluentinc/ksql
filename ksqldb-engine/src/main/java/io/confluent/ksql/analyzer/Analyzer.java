@@ -212,8 +212,7 @@ class Analyzer {
           .map(w -> KeyFormat.windowed(
               FormatInfo.of(FormatFactory.KAFKA.name()), w.getWindowInfo()))
           .orElseGet(() -> analysis
-              .getFromDataSources()
-              .get(0)
+              .getFrom()
               .getDataSource()
               .getKsqlTopic()
               .getKeyFormat());
@@ -226,8 +225,7 @@ class Analyzer {
 
     private FormatInfo getSourceInfo() {
       return analysis
-          .getFromDataSources()
-          .get(0)
+          .getFrom()
           .getDataSource()
           .getKsqlTopic()
           .getValueFormat()
@@ -288,15 +286,17 @@ class Analyzer {
       isJoin = true;
 
       process(node.getLeft(), context);
-      node.getRights().forEach(right -> process(right.getRelation(), context));
+      node.getRights().forEach(right -> process(right, context));
+      return null;
+    }
+
+    @Override
+    protected AstNode visitJoinedSource(final JoinedSource node, final Void context) {
+      process(node.getRelation(), context);
 
       final JoinNode.JoinType joinType = getJoinType(node);
 
-      final AliasedDataSource left = analysis.getFromDataSources().get(0);
-      final AliasedDataSource right = analysis.getFromDataSources().get(1);
-
-      final JoinedSource source = Iterables.getOnlyElement(node.getRights());
-      final JoinOn joinOn = (JoinOn) source.getCriteria();
+      final JoinOn joinOn = (JoinOn) node.getCriteria();
       final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
           .getExpression();
 
@@ -318,29 +318,29 @@ class Analyzer {
       final SourceName rightSourceName = getOnlySourceForJoin(
           comparisonExpression.getRight(), comparisonExpression, srcsUsedInRight);
 
-      throwOnSelfJoin(left, right);
+      final AliasedDataSource left = analysis.getSourceByAlias(leftSourceName)
+          .orElseThrow(() -> new KsqlException("Cannot join on unknown source: " + leftSourceName));
+
+      final AliasedDataSource right = analysis.getSourceByAlias(rightSourceName)
+          .orElseThrow(() -> new KsqlException("Cannot join on unknown source: " + leftSourceName));
+
       throwOnIncompleteJoinCriteria(left, right, leftSourceName, rightSourceName);
       throwOnIncompatibleSourceWindowing(left, right);
 
-      final boolean flipped = leftSourceName.equals(right.getAlias());
+      // we consider this JOIN "flipped" if the left hand side of the expression
+      // is not the source - this will break down when we support multi-way joins
+      // as it is possible that the JOIN will not have the "FROM" source in it at
+      // all (e.g. SELECT * FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id)
+      final boolean flipped = rightSourceName.equals(analysis.getFrom().getAlias());
       analysis.addJoin(new JoinInfo(
+          ImmutableList.of(left, right),
           flipped ? comparisonExpression.getRight() : comparisonExpression.getLeft(),
           flipped ? comparisonExpression.getLeft() : comparisonExpression.getRight(),
           joinType,
-          source.getWithinExpression()
+          node.getWithinExpression()
       ));
 
       return null;
-    }
-
-    private void throwOnSelfJoin(final AliasedDataSource left, final AliasedDataSource right) {
-      if (left.getDataSource().getName().equals(right.getDataSource().getName())) {
-        throw new KsqlException(
-            "Can not join '" + left.getDataSource().getName().toString(FormatOptions.noEscape())
-                + "' to '" + right.getDataSource().getName().toString(FormatOptions.noEscape())
-                + "': self joins are not yet supported."
-        );
-      }
     }
 
     private void throwOnIncompleteJoinCriteria(
@@ -349,8 +349,10 @@ class Analyzer {
         final SourceName leftExpressionSource,
         final SourceName rightExpressionSource
     ) {
-      final boolean valid = ImmutableSet.of(leftExpressionSource, rightExpressionSource)
-          .containsAll(ImmutableList.of(left.getAlias(), right.getAlias()));
+      final ImmutableSet<SourceName> usedSources = ImmutableSet
+          .of(leftExpressionSource, rightExpressionSource);
+      final boolean valid = usedSources.size() == 2
+          && usedSources.containsAll(ImmutableList.of(left.getAlias(), right.getAlias()));
 
       if (!valid) {
         throw new KsqlException(
@@ -438,9 +440,8 @@ class Analyzer {
       }
     }
 
-    private JoinNode.JoinType getJoinType(final Join node) {
+    private JoinNode.JoinType getJoinType(final JoinedSource source) {
       final JoinNode.JoinType joinType;
-      final JoinedSource source = Iterables.getOnlyElement(node.getRights());
       switch (source.getType()) {
         case INNER:
           joinType = JoinNode.JoinType.INNER;
@@ -466,6 +467,16 @@ class Analyzer {
         throw new KsqlException(structuredDataSourceName + " does not exist.");
       }
 
+      final Optional<AliasedDataSource> existing = analysis.getSourceByName(source.getName());
+      if (existing.isPresent()) {
+        throw new KsqlException(
+            "Can not join '"
+                + structuredDataSourceName.toString(FormatOptions.noEscape())
+                + "' to '"
+                + existing.get().getDataSource().getName().toString(FormatOptions.noEscape())
+                + "': self joins are not yet supported."
+        );
+      }
       analysis.addDataSource(node.getAlias(), source);
       return node;
     }
@@ -542,7 +553,7 @@ class Analyzer {
     }
 
     public void validate() {
-      final String kafkaSources = analysis.getFromDataSources().stream()
+      final String kafkaSources = analysis.getAllDataSources().stream()
           .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
               == FormatFactory.KAFKA)
           .map(AliasedDataSource::getAlias)

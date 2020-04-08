@@ -16,7 +16,6 @@
 package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -296,7 +295,19 @@ public final class StatementRewriter<C> {
       }
 
       final Relation rewrittenLeft = (Relation) rewriter.apply(node.getLeft(), context);
-      final JoinedSource rightSource = Iterables.getOnlyElement(node.getRights());
+
+      return new Join(
+          node.getLocation(),
+          rewrittenLeft,
+          node.getRights()
+              .stream()
+              .map(right -> process(right, context))
+              .map(JoinedSource.class::cast)
+              .collect(ImmutableList.toImmutableList()));
+    }
+
+    @Override
+    protected AstNode visitJoinedSource(final JoinedSource rightSource, final C context) {
       final Relation rewrittenRight = (Relation) rewriter.apply(rightSource.getRelation(), context);
       final Optional<WithinExpression> rewrittenWithin = rightSource.getWithinExpression()
           .map(within -> (WithinExpression) rewriter.apply(within, context));
@@ -307,15 +318,12 @@ public final class StatementRewriter<C> {
         );
       }
 
-      return new Join(
-          node.getLocation(),
-          rewrittenLeft,
-          ImmutableList.of(new JoinedSource(
-              rightSource.getLocation(),
-              rewrittenRight,
-              rightSource.getType(),
-              rewrittenCriteria,
-              rewrittenWithin)));
+      return new JoinedSource(
+          rightSource.getLocation(),
+          rewrittenRight,
+          rightSource.getType(),
+          rewrittenCriteria,
+          rewrittenWithin);
     }
 
     @Override

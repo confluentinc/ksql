@@ -150,6 +150,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   public List<JoinInfo> getJoin() {
     return original.getJoin().stream().map(
         j -> new JoinInfo(
+            j.getJoinedSources(),
             rewrite(j.getLeftJoinExpression()),
             rewrite(j.getRightJoinExpression()),
             j.getType(),
@@ -164,8 +165,8 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
-  public List<AliasedDataSource> getFromDataSources() {
-    return original.getFromDataSources();
+  public List<AliasedDataSource> getAllDataSources() {
+    return original.getAllDataSources();
   }
 
   @Override
@@ -176,6 +177,11 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   @Override
   public SourceSchemas getFromSourceSchemas(final boolean postAggregate) {
     return original.getFromSourceSchemas(postAggregate);
+  }
+
+  @Override
+  public AliasedDataSource getFrom() {
+    return original.getFrom();
   }
 
   private <T extends Expression> Optional<T> rewriteOptional(final Optional<T> expression) {

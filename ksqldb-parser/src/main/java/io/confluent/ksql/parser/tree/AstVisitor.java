@@ -93,6 +93,10 @@ public abstract class AstVisitor<R, C> {
     return visitRelation(node, context);
   }
 
+  protected R visitJoinedSource(final JoinedSource joinedSource, final C context) {
+    return visitRelation(joinedSource, context);
+  }
+
   protected R visitWithinExpression(final WithinExpression node, final C context) {
     return visitNode(node, context);
   }

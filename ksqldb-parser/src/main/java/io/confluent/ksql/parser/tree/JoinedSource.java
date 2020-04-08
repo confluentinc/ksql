@@ -59,6 +59,11 @@ public class JoinedSource extends Relation {
   }
 
   @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitJoinedSource(this, context);
+  }
+
+  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;

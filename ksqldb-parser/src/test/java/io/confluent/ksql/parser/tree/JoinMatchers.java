@@ -15,9 +15,16 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 
@@ -40,17 +47,28 @@ public final class JoinMatchers {
     };
   }
 
-  public static Matcher<Join> hasRight(final Relation relationship) {
-    return hasRight(is(relationship));
+  public static Matcher<Join> hasRights(final Relation... relationship) {
+    return hasRightMatchers(
+        Arrays.stream(relationship).map(CoreMatchers::is).collect(Collectors.toList())
+    );
   }
 
-  public static Matcher<Join> hasRight(final Matcher<? super Relation> relationship) {
-    return new FeatureMatcher<Join, Relation>
-        (relationship, "right relationship", "right") {
-      @Override
-      protected Relation featureValueOf(final Join actual) {
-        return Iterables.getOnlyElement(actual.getRights()).getRelation();
-      }
-    };
+  public static Matcher<Join> hasRightMatchers(final List<Matcher<? super Relation>> relationships) {
+    final List<Matcher<? super Join>> rights = new ArrayList<>();
+
+    for (int i = 0; i < relationships.size(); i++) {
+      final int j = i;
+      final Matcher<? super Relation> relationship = relationships.get(i);
+      rights.add(
+          new FeatureMatcher<Join, Relation> (relationship, "right relationship", "right") {
+            @Override
+            protected Relation featureValueOf(final Join actual) {
+              return actual.getRights().get(j).getRelation();
+            }
+          }
+      );
+    }
+
+    return allOf(rights);
   }
 }

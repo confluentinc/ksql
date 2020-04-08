@@ -1,0 +1,62 @@
+{
+  "comments": [
+    "Tests covering comparison expressions"
+  ],
+  "tests": [
+    {
+      "name": "invalid where predicate - type mismatch",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID >= 'not an int' EMIT CHANGES;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Type mismatch in WHERE expression: Cannot compare INPUT.ID (INTEGER) to 'not an int' (STRING)."
+      }
+    },
+    {
+      "name": "invalid where predicate - type mismatch complex expression",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ROWKEY = 'abc' AND ID >= 'not an int' EMIT CHANGES;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Type mismatch in WHERE expression: Cannot compare INPUT.ID (INTEGER) to 'not an int' (STRING)."
+      }
+    },
+    {
+      "name": "invalid where predicate - string literal",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE 'not a boolean' EMIT CHANGES;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Type error in WHERE expression: Should evaluate to boolean but is STRING instead."
+      }
+    },
+    {
+      "name": "invalid where predicate - double expression",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE RANDOM() + 1.5 EMIT CHANGES;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Type error in WHERE expression: Should evaluate to boolean but is DOUBLE instead."
+      }
+    },
+    {
+      "name": "invalid where predicate - illegal expression",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE TRUE + 1.5 EMIT CHANGES;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Unsupported arithmetic types. BOOLEAN DECIMAL"
+      }
+    }
+  ]
+}

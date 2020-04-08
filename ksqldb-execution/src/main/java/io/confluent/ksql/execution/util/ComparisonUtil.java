@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-final class ComparisonUtil {
+public final class ComparisonUtil {
 
   private static final List<Handler> HANDLERS = ImmutableList.<Handler>builder()
       .add(handler(SqlBaseType::isNumber, ComparisonUtil::handleNumber))
@@ -38,18 +38,10 @@ final class ComparisonUtil {
   private ComparisonUtil() {
   }
 
-  static void isValidComparison(
+  public static void assertValidComparison(
       final SqlType left, final ComparisonExpression.Type operator, final SqlType right
   ) {
-    if (left == null || right == null) {
-      throw nullSchemaException(left, operator, right);
-    }
-
-    final boolean valid = HANDLERS.stream()
-        .filter(h -> h.handles.test(left.baseType()))
-        .findFirst()
-        .map(h -> h.validator.test(operator, right))
-        .orElse(false);
+    final boolean valid = isValidComparison(left, operator, right);
 
     if (!valid) {
       throw new KsqlException(
@@ -57,6 +49,20 @@ final class ComparisonUtil {
               + left.baseType() + " and " + right.baseType()
       );
     }
+  }
+
+  public static boolean isValidComparison(
+      final SqlType left, final ComparisonExpression.Type operator, final SqlType right
+  ) {
+    if (left == null || right == null) {
+      throw nullSchemaException(left, operator, right);
+    }
+
+    return HANDLERS.stream()
+        .filter(h -> h.handles.test(left.baseType()))
+        .findFirst()
+        .map(h -> h.validator.test(operator, right))
+        .orElse(false);
   }
 
   private static KsqlException nullSchemaException(

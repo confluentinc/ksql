@@ -157,7 +157,7 @@ public class ExpressionTypeManager {
       final SqlType leftSchema = expressionTypeContext.getSqlType();
       process(node.getRight(), expressionTypeContext);
       final SqlType rightSchema = expressionTypeContext.getSqlType();
-      ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema);
+      ComparisonUtil.assertValidComparison(leftSchema, node.getType(), rightSchema);
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }

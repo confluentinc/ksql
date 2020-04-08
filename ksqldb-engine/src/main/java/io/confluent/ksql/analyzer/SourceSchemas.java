@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -79,6 +80,21 @@ public final class SourceSchemas {
     return sourceSchema.findColumn(target).isPresent()
         ? ImmutableSet.of(sourceName)
         : ImmutableSet.of();
+  }
+
+  /**
+   * Retrieves the schema with the given source name.
+   * @param sourceName The source name to fetch
+   * @return The LogicalSchema if it exists
+   */
+  public Optional<LogicalSchema> schemaWithName(
+      final SourceName sourceName
+  ) {
+    final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);
+    if (sourceSchema == null) {
+      return Optional.empty();
+    }
+    return Optional.of(sourceSchema);
   }
 
   /**

@@ -278,7 +278,7 @@ DESCRIBE CONNECTOR calls_reader;
 
 ### Create the ksqlDB calls stream
 
-For ksqlDB to be able to use the topic that Debezium created, we need to declare a stream over it. Because we configured Kafka Connect with Schema Registry, we don't need to declare the schema of the data for the streams. It is simply inferred from the schema that Debezium writes with. Run the following at the ksqlDB CLI:
+For ksqlDB to be able to use the topic that Debezium created, you must declare a stream over it. Because you configured {{ site.kconnectlong }} with {{ site.sr }}, you don't need to declare the schema of the data for the streams. It is simply inferred from the schema that Debezium writes with. Run the following at the ksqlDB CLI:
 
 ```sql
 CREATE STREAM calls WITH (

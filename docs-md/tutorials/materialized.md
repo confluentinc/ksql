@@ -185,7 +185,7 @@ mysql -u root -p
 
 The root password, as specified in the Docker Compose file, is `mysql-pw`.
 
-For simplicity, this tutorial grants all privileges to `example-user` connecting from any host. In the real world you'd want to manage your permissions much more tightly.
+For simplicity, this tutorial grants all privileges to `example-user` connecting from any host. In the real world, you'd want to manage your permissions much more tightly.
 
 Grant the privileges for replication by executing the following at the MySQL prompt:
 

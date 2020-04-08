@@ -64,7 +64,7 @@ max_replication_slots = 1
 
 This sets up Postgres so that Debezium can watch for changes as they occur.
 
-With that file in place, create a `docker-compose.yml` file that defines the services to launch. You may need to increase the amount of memory that you give to Docker when you launch it:
+With the Postgres configuration file in place, create a `docker-compose.yml` file that defines the services to launch. You may need to increase the amount of memory that you give to Docker when you launch it:
 
 ```yaml
 ---
@@ -190,11 +190,11 @@ services:
     tty: true
 ```
 
-There are a couple things to notice here. The Postgres image mounts the custom configuration file that we wrote. Postgres adds these configuration settings into its system-wide configuration. The environment variables we gave it also set up a blank database called `customers` along with a user named `postgres-user` that can access it.
+There are a couple things to notice here. The Postgres image mounts the custom configuration file that you wrote. Postgres adds these configuration settings into its system-wide configuration. The environment variables you gave it also set up a blank database called `customers`, along with a user named `postgres-user` that can access it.
 
-We’ve also set up MongoDB as a replica set named `my-replica-set`. Debezium requires that MongoDB run in this configuration to pick up changes from its oplog. In this case, we’re just running a single node replica set.
+The compose file also sets up MongoDB as a replica set named `my-replica-set`. Debezium requires that MongoDB runs in this configuration to pick up changes from its oplog. In this case, you're just running a single-node replica set.
 
-Finally, note that the ksqlDB server image mounts the `confluent-hub-components` directory, too. The jar files that we downloaded need to be on the classpath of ksqlDB when the server starts up.
+Finally, note that the ksqlDB server image mounts the `confluent-hub-components` directory, too. The jar files that you downloaded need to be on the classpath of ksqlDB when the server starts up.
 
 Bring up the entire stack by running:
 
@@ -204,7 +204,7 @@ docker-compose up
 
 ### Create the customers table in Postgres
 
-It's pretty common for companies to keep their customer data in a relational database. Let's model that information in a Postgres table. Start by logging into the container:
+It's pretty common for companies to keep their customer data in a relational database. You can model this information in a Postgres table. Start by logging into the container:
 
 ```
 docker exec -it postgres /bin/bash
@@ -216,7 +216,7 @@ Log into Postgres as the user created by default:
 psql -U postgres-user customers
 ```
 
-Create a table that represents the customers. For simplicity's sake, we'll just model this with three columns: an id, a name, and the age of the person:
+Create a table that represents the customers. For simplicity, model a customer with three columns: an id, a name, and the age of the person:
 
 ```sql
 CREATE TABLE customers (id TEXT PRIMARY KEY, name TEXT, age INT);
@@ -232,7 +232,7 @@ INSERT INTO customers (id, name, age) VALUES ('2', 'bill', 51);
 
 ### Configure MongoDB for Debezium
 
-Now that Postgres is setup, let's configure MongoDB. Start by logging into the container:
+Now that Postgres is setup, you can configure MongoDB. Start by logging into the container:
 
 ```
 docker exec -it mongo /bin/bash
@@ -250,13 +250,13 @@ Because MongoDB has been started as a replica set, it needs to be initiated. Run
 rs.initiate()
 ```
 
-Now that this node has become the primary in the replica set, we need to configure access so that Debezium can replicate changes remotely. Switch into the `config` database:
+Now that this node has become the primary in the replica set, you need to configure access so that Debezium can replicate changes remotely. Switch into the `config` database:
 
 ```
 use config
 ```
 
-Create a new role for Debezium. This role will enable the user that we create to access system-level collections, which are normally restricted:
+Create a new role for Debezium. This role enables the user that you will create to access system-level collections, which are normally restricted:
 
 ```javascript
 db.createRole({
@@ -275,7 +275,7 @@ db.createRole({
 })
 ```
 
-Switch into the `admin` database. We need to create our user here so that it can be authenticated:
+Switch into the `admin` database and create the user here so that it can be authenticated:
 
 ```
 use admin
@@ -306,7 +306,7 @@ db.createUser({
 
 ### Create the logistics collections in MongoDB
 
-With our user created, we can create our database for orders and shipments. We'll store both as collections in a database called `logistics`:
+With the user created, you can create the database for orders and shipments, which are stored as collections in a database called `logistics`:
 
 ```
 use logistics
@@ -324,7 +324,7 @@ And likewise the `shipments`:
 db.createCollection("shipments")
 ```
 
-Populate the `orders` collection with some initial data. Notice that the `customer_id` references identifiers that we created in our Postgres customers table:
+Populate the `orders` collection with some initial data. Notice that the `customer_id` references identifiers that you created in your Postgres customers table:
 
 ```javascript
 db.orders.insert({"customer_id": "2", "order_id": "13", "price": 50.50, "currency": "usd", "ts": "2020-04-03T11:20:00"})
@@ -334,7 +334,7 @@ db.orders.insert({"customer_id": "5", "order_id": "15", "price": 13.75, "currenc
 db.orders.insert({"customer_id": "7", "order_id": "22", "price": 29.71, "currency": "aud", "ts": "2020-04-04T00:12:00"})
 ```
 
-Do the same for shipments. Notice that the `order_id` references order ids we created in the previous collection.
+Do the same for shipments. Notice that the `order_id` references order ids you created in the previous collection.
 
 ```javascript
 db.shipments.insert({"order_id": "17", "shipment_id": "75", "origin": "texas", "ts": "2020-04-04T19:20:00"})
@@ -346,19 +346,19 @@ db.shipments.insert({"order_id": "15", "shipment_id": "95", "origin": "florida",
 
 ### Start the Postgres and MongoDB Debezium source connectors
 
-With all of our seed data in place, we can process it with ksqlDB. Connect to ksqlDB's server using its interactive CLI. Run the following from your host:
+With all of the seed data in place, you can process it with ksqlDB. Connect to ksqlDB's server by using its interactive CLI. Run the following command from your host:
 
 ```
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
-Before we issue more commands, instruct ksqlDB to start all queries from earliest point in each topic:
+Before you issue more commands, tell ksqlDB to start all queries from earliest point in each topic:
 
 ```
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-Now we can connect ask Debezium to stream Postgres' changelog into Kafka. Invoke the following command in ksqlDB. This creates a Debezium source connector and writes all of its changes to Kafka topics:
+Now you can ask Debezium to stream the Postgres changelog into {{ site.ak }}. Invoke the following command in ksqlDB, which creates a Debezium source connector and writes all of its changes to {{ site.ak }} topics:
 
 ```sql
 CREATE SOURCE CONNECTOR customers_reader WITH (
@@ -379,9 +379,9 @@ CREATE SOURCE CONNECTOR customers_reader WITH (
 );
 ```
 
-Notice that we specified an `unwrap` transform. By default, Debezium sends all events in an envelop that include many pieces of information about the change captured. Here, we only care about the value after it changed, so we instruct Kafka Connect to simply keep that information and discard the rest.
+Notice that this statement specifies an `unwrap` transform. By default, Debezium sends all events in an envelope that includes many pieces of information about the change captured. For this tutorial, the app only uses the value after it changed, so the command tells {{ site.kconnectlong }} to keep this information and discard the rest.
 
-Run another source connector to ingest the changes from MongoDB. We specify the same behavior for discarding the Debezium envelop:
+Run another source connector to ingest the changes from MongoDB. Specify the same behavior for discarding the Debezium envelope:
 
 ```sql
 CREATE SOURCE CONNECTOR logistics_reader WITH (
@@ -404,9 +404,9 @@ CREATE SOURCE CONNECTOR logistics_reader WITH (
 
 ### Create the ksqlDB source streams
 
-For ksqlDB to be able to use the topics that Debezium created, we need to declare streams over it. Because we configured Kafka Connect with Schema Registry, we don't need to declare the schema of the data for the streams. It is simply inferred the schema that Debezium writes with.
+For ksqlDB to be able to use the topics that Debezium created, you must declare streams over it. Because you configured {{ site.kconnectlong }} with {{ site.sr }}, you don't need to declare the schema of the data for the streams, because it's inferred from the schema that Debezium writes with.
 
-Run the following to create a stream over the `customers` table:
+Run the following statement to create a stream over the `customers` table:
 
 ```sql
 CREATE STREAM customers WITH (
@@ -415,7 +415,7 @@ CREATE STREAM customers WITH (
 );
 ```
 
-Do the same for `orders`. For this stream, we specify that the timestamp of the event should be derived from the data itself. Namely, it will be extracted and parsed from the `ts` field.
+Do the same for `orders`. For this stream, specify that the timestamp of the event is derived from the data itself. Specifically, it's extracted and parsed from the `ts` field.
 
 ```sql
 CREATE STREAM orders WITH (
@@ -426,7 +426,7 @@ CREATE STREAM orders WITH (
 );
 ```
 
-Lastly, repeat the same for `shipments`:
+Finally, repeat the same for `shipments`:
 
 ```sql
 CREATE STREAM shipments WITH (
@@ -439,7 +439,7 @@ CREATE STREAM shipments WITH (
 
 ### Join the streams together
 
-We want to create a unified view of the activity of shipped orders. To do that, we want to include as much customer information on each shipment as possible. Recall that the `orders` collection that we created in MongoDB only had an identifier for each customer, but not their name. We'll use that identifier to look up the rest of the information using a stream/table join. To do that, we need to rekey the stream into a table by `id`:
+The goal is to create a unified view of the activity of shipped orders. To do this, we want to include as much customer information on each shipment as possible. Recall that the `orders` collection that we created in MongoDB only had an identifier for each customer, but not their name. Use this identifier to look up the rest of the information by using a stream/table join. To do this, you must re-key the stream into a table by the `id` field:
 
 ```sql
 CREATE TABLE customers_by_key AS
@@ -451,7 +451,7 @@ CREATE TABLE customers_by_key AS
     EMIT CHANGES;
 ```
 
-Now we can enrich the orders with more customer information. This stream/table join creates a new stream that lifts the customer information into the order event:
+Now you can enrich the orders with more customer information. The following stream/table join creates a new stream that lifts the customer information into the order event:
 
 ```sql
 CREATE STREAM enriched_orders AS
@@ -467,7 +467,7 @@ CREATE STREAM enriched_orders AS
     EMIT CHANGES;
 ```
 
-We can take this further by enriching all shipments with more information about the order and customer. We use a stream/stream join to find orders in the relevant window of time. This creates a new stream called `shipped_orders` that unifies the shipment, order, and customer information:
+You can take this further by enriching all shipments with more information about the order and customer. Use a stream/stream join to find orders in the relevant window of time. This creates a new stream called `shipped_orders` that unifies the shipment, order, and customer information:
 
 ```sql
 CREATE STREAM shipped_orders WITH (
@@ -490,7 +490,7 @@ CREATE STREAM shipped_orders WITH (
 
 ### Start the Elasticsearch sink connector
 
-We want to perform searches and analytics over this unified stream of information. Let's spill the information out to Elasticsearch to make that easy. Simply run the following connector to sink the topic:
+The application must perform searches and analytics over this unified stream of information. To make this easy, spill the information out to Elasticsearch and run the following connector to sink the topic:
 
 ```sql
 CREATE SINK CONNECTOR enriched_writer WITH (
@@ -501,13 +501,13 @@ CREATE SINK CONNECTOR enriched_writer WITH (
 );
 ```
 
-Check that the data arrived in the index by running the following from your host:
+Check that the data arrived in the index by running the following command from your host:
 
 ```
 curl http://localhost:9200/shipped_orders/_search?pretty
 ```
 
-You should see something like the following:
+Your output should resemble:
 
 ```json
 {

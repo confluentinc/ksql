@@ -5,7 +5,7 @@ A streaming ETL pipeline, sometimes called a “streaming data pipeline”, is a
 
 Maybe you need to do something simple, like transform the events to strip out any personally identifiable information. Sometimes, you may need to do something more complex, like enrich the events by joining them with data from another system. Or perhaps you want to pre-aggregate the events to reduce how much data you send to the downstream systems.
 
-A streaming ETL pipeline lets you stream events between arbitrary sources and sinks, and it helps you make changes to the data while it’s in-flight.
+A streaming ETL pipeline enables streaming events between arbitrary sources and sinks, and it helps you make changes to the data while it’s in-flight.
 
 ![hard](../img/etl-hard.png){: class="centered-img"}
 

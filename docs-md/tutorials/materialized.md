@@ -332,7 +332,7 @@ FROM support_view
 WHERE ROWKEY = 'derek';
 ```
 
-Which should result in:
+Your output should resemble:
 
 ```
 +---------+-------------------+------------+

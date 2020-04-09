@@ -665,10 +665,10 @@ public class Console implements Closeable {
     if (query.getStatementText().length() > 0) {
       writer().println(String.format("%-20s : %s", "SQL", query.getStatementText()));
     }
-    if (!query.getKsqlHostQueryState().isEmpty()) {
+    if (!query.getKsqlHostQueryStatus().isEmpty()) {
       writer().println(String.format(
           "%-20s : %s", "Host Query Status",
-          query.getKsqlHostQueryState()));
+          query.getKsqlHostQueryStatus()));
     }
     writer().println();
     printSchema(query.getWindowType(), query.getFields(), "", false);

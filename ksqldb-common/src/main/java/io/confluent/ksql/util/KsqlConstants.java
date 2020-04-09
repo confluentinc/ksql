@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableMap;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.kafka.streams.KafkaStreams;
 
 public final class KsqlConstants {
@@ -51,10 +48,14 @@ public final class KsqlConstants {
   public static final String DEFAULT_AVRO_SCHEMA_FULL_NAME =
       AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
 
-  public enum KsqlQueryState {
+  public enum KsqlQueryStatus {
     RUNNING,
     ERROR,
     UNRESPONSIVE,
+  }
+
+  public static KsqlQueryStatus fromStreamsState(final KafkaStreams.State state) {
+    return state == KafkaStreams.State.ERROR ? KsqlQueryStatus.ERROR : KsqlQueryStatus.RUNNING;
   }
 
   /**

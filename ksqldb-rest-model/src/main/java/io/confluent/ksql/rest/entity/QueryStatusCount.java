@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Joiner;
 
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlConstants.KsqlQueryState;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
@@ -34,44 +34,44 @@ import org.apache.kafka.streams.KafkaStreams;
  * across multiple servers. Used in {@link RunningQuery}.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class QueryStateCount {
+public class QueryStatusCount {
   
   // Use a EnumMap so toString() will always return the same string
-  private final EnumMap<KsqlQueryState, Integer> states;
+  private final EnumMap<KsqlQueryStatus, Integer> statuses;
 
-  public QueryStateCount() {
-    this.states = returnEnumMap();
+  public QueryStatusCount() {
+    this.statuses = returnEnumMap();
   }
 
   @SuppressWarnings("unused") // Invoked by reflection
   @JsonCreator
-  public QueryStateCount(final Map<KafkaStreams.State, Integer> states) {
-    final Map<KsqlQueryState, Integer> ksqlQueryStates = states.entrySet().stream()
+  public QueryStatusCount(final Map<KafkaStreams.State, Integer> states) {
+    final Map<KsqlQueryStatus, Integer> ksqlQueryStatus = states.entrySet().stream()
         .collect(Collectors.toMap(
-            e -> fromStreamsState(e.getKey()),
+            e -> KsqlConstants.fromStreamsState(e.getKey()),
             Map.Entry::getValue));
-    this.states = states.isEmpty() ? returnEnumMap() : new EnumMap<>(ksqlQueryStates);
+    this.statuses = states.isEmpty() ? returnEnumMap() : new EnumMap<>(ksqlQueryStatus);
   }
 
   
-  public void updateStateCount(final String state, final int change) {
-    updateStateCount(KafkaStreams.State.valueOf(state), change);
+  public void updateStatusCount(final String state, final int change) {
+    updateStatusCount(KafkaStreams.State.valueOf(state), change);
   }
 
-  public void updateStateCount(final KafkaStreams.State state, final int change) {
-    updateStateCount(fromStreamsState(state), change);
+  public void updateStatusCount(final KafkaStreams.State state, final int change) {
+    updateStatusCount(KsqlConstants.fromStreamsState(state), change);
   }
 
-  public void updateStateCount(final KsqlQueryState state, final int change) {
-    this.states.compute(state, (key, existing) ->
+  public void updateStatusCount(final KsqlQueryStatus state, final int change) {
+    this.statuses.compute(state, (key, existing) ->
         existing == null
             ? change
             : existing + change);
   }
 
   @JsonValue
-  public Map<KsqlQueryState, Integer> getStates() {
-    return Collections.unmodifiableMap(states);
+  public Map<KsqlQueryStatus, Integer> getStatuses() {
+    return Collections.unmodifiableMap(statuses);
   }
 
   @Override
@@ -84,25 +84,21 @@ public class QueryStateCount {
       return false;
     }
 
-    final QueryStateCount that = (QueryStateCount) o;
-    return Objects.equals(states, that.states);
+    final QueryStatusCount that = (QueryStatusCount) o;
+    return Objects.equals(statuses, that.statuses);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(states);
+    return Objects.hash(statuses);
   }
 
   @Override
   public String toString() {
-    return Joiner.on(",").withKeyValueSeparator(":").join(this.states);
-  }
-
-  public static KsqlQueryState fromStreamsState(final KafkaStreams.State state) {
-    return state == KafkaStreams.State.ERROR ? KsqlQueryState.ERROR : KsqlQueryState.RUNNING;
+    return Joiner.on(",").withKeyValueSeparator(":").join(this.statuses);
   }
   
-  private static EnumMap<KsqlQueryState, Integer> returnEnumMap() {
-    return new EnumMap<>(KsqlQueryState.class);
+  private static EnumMap<KsqlQueryStatus, Integer> returnEnumMap() {
+    return new EnumMap<>(KsqlQueryStatus.class);
   }
 }

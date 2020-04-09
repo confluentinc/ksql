@@ -889,10 +889,24 @@ public class AstBuilder {
 
     @Override
     public Node visitLike(final SqlBaseParser.LikeContext context) {
+
+      final Optional<String> escape = Optional.ofNullable(context.escape)
+          .map(Token::getText)
+          .map(s -> ParserUtil.unquote(s, "'"));
+
+      escape.ifPresent(s -> {
+        if (s.length() != 1) {
+          throw new KsqlException(
+              getLocation(context.escape) + ": Expected single character escape but got: " + s
+          );
+        }
+      });
+
       final Expression result = new LikePredicate(
           getLocation(context),
           (Expression) visit(context.value),
-          (Expression) visit(context.pattern)
+          (Expression) visit(context.pattern),
+          escape.map(s -> s.charAt(0))
       );
 
       if (context.NOT() == null) {

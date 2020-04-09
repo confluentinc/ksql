@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
+import io.confluent.ksql.execution.codegen.helpers.LikeEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -124,7 +125,8 @@ public class SqlToJavaVisitor {
       RoundingMode.class.getCanonicalName(),
       SchemaBuilder.class.getCanonicalName(),
       Struct.class.getCanonicalName(),
-      ArrayBuilder.class.getCanonicalName()
+      ArrayBuilder.class.getCanonicalName(),
+      LikeEvaluator.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -724,46 +726,23 @@ public class SqlToJavaVisitor {
     @Override
     public Pair<String, SqlType> visitLikePredicate(final LikePredicate node, final Void context) {
 
-      // For now we just support simple prefix/suffix cases only.
-      final String patternString = trimQuotes(process(node.getPattern(), context).getLeft());
+      final String patternString = process(node.getPattern(), context).getLeft();
       final String valueString = process(node.getValue(), context).getLeft();
-      if (patternString.startsWith("%")) {
-        if (patternString.endsWith("%")) {
-          return new Pair<>(
-              "(" + valueString + ").contains(\""
-                  + patternString.substring(1, patternString.length() - 1)
-                  + "\")",
-              SqlTypes.STRING
-          );
-        } else {
-          return new Pair<>(
-              "(" + valueString + ").endsWith(\"" + patternString.substring(1) + "\")",
-              SqlTypes.STRING
-          );
-        }
-      }
 
-      if (patternString.endsWith("%")) {
+      if (node.getEscape().isPresent()) {
         return new Pair<>(
-            "(" + valueString + ")"
-                + ".startsWith(\""
-                + patternString.substring(0, patternString.length() - 1) + "\")",
+            "LikeEvaluator.matches("
+                + valueString + ", "
+                + patternString + ", '"
+                + node.getEscape().get() + "')",
+            SqlTypes.STRING
+        );
+      } else {
+        return new Pair<>(
+            "LikeEvaluator.matches(" + valueString + ", " + patternString + ")",
             SqlTypes.STRING
         );
       }
-
-      if (!patternString.contains("%")) {
-        return new Pair<>(
-            "(" + valueString + ")"
-                + ".equals(\""
-                + patternString + "\")",
-            SqlTypes.STRING
-        );
-      }
-
-      throw new UnsupportedOperationException(
-          "KSQL only supports leading and trailing wildcards in LIKE expressions."
-      );
     }
 
     @Override
@@ -902,10 +881,6 @@ public class SqlToJavaVisitor {
     ) {
       return "(" + process(left, context).getLeft() + " " + operator + " "
           + process(right, context).getLeft() + ")";
-    }
-
-    private String trimQuotes(final String s) {
-      return s.substring(1, s.length() - 1);
     }
   }
 

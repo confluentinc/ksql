@@ -22,19 +22,18 @@ import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.analyzer.FilterTypeValidator.FilterType;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.SourceSchemas;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Before;
@@ -46,9 +45,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class WhereTypeValidatorTest {
-  private static final SourceName TABLE1 = SourceName.of("table1");
-  private static final SourceName TABLE2 = SourceName.of("table2");
+public class FilterTypeValidatorTest {
   private static final ColumnName COLUMN1 = ColumnName.of("col1");
   private static final ColumnName COLUMN2 = ColumnName.of("col2");
 
@@ -58,13 +55,13 @@ public class WhereTypeValidatorTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private SourceSchemas sourceSchemas;
+  private LogicalSchema schema;
 
-  private WhereTypeValidator validator;
+  private FilterTypeValidator validator;
 
   @Before
   public void setUp() {
-    validator = new WhereTypeValidator(sourceSchemas, functionRegistry);
+    validator = new FilterTypeValidator(schema, functionRegistry, FilterType.WHERE);
   }
 
 
@@ -76,7 +73,7 @@ public class WhereTypeValidatorTest {
 
     final Expression comparision = new ComparisonExpression(Type.EQUAL, left, right);
 
-    when(sourceSchemas.findValueColumn(any()))
+    when(schema.findValueColumn(any()))
         .thenReturn(Optional.of(Column.of(COLUMN1, STRING, VALUE, 10)));
 
     // Then:
@@ -85,7 +82,7 @@ public class WhereTypeValidatorTest {
         + "Cannot compare col1 (STRING) to 10 (INTEGER).");
 
     // When:
-    validator.validateWhereExpression(comparision);
+    validator.validateFilterExpression(comparision);
   }
 
   @Test
@@ -96,11 +93,11 @@ public class WhereTypeValidatorTest {
 
     final Expression comparision = new ComparisonExpression(Type.EQUAL, left, right);
 
-    when(sourceSchemas.findValueColumn(any()))
+    when(schema.findValueColumn(any()))
         .thenReturn(Optional.of(Column.of(COLUMN1, INTEGER, VALUE, 10)));
 
     // When:
-    validator.validateWhereExpression(comparision);
+    validator.validateFilterExpression(comparision);
   }
 
   @Test
@@ -111,9 +108,9 @@ public class WhereTypeValidatorTest {
 
     final Expression comparision = new ComparisonExpression(Type.EQUAL, left, right);
 
-    when(sourceSchemas.findValueColumn(COLUMN1))
+    when(schema.findValueColumn(COLUMN1))
         .thenReturn(Optional.of(Column.of(COLUMN1, STRING, VALUE, 10)));
-    when(sourceSchemas.findValueColumn(COLUMN2))
+    when(schema.findValueColumn(COLUMN2))
         .thenReturn(Optional.of(Column.of(COLUMN2, INTEGER, VALUE, 10)));
 
     // Then:
@@ -122,7 +119,7 @@ public class WhereTypeValidatorTest {
         + "Cannot compare col1 (STRING) to col2 (INTEGER).");
 
     // When:
-    validator.validateWhereExpression(comparision);
+    validator.validateFilterExpression(comparision);
   }
 
   @Test
@@ -136,7 +133,7 @@ public class WhereTypeValidatorTest {
         + "Should evaluate to boolean but is 10 (INTEGER) instead.");
 
     // When:
-    validator.validateWhereExpression(literal);
+    validator.validateFilterExpression(literal);
   }
 
   @Test
@@ -153,9 +150,9 @@ public class WhereTypeValidatorTest {
     final Expression expression = new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND,
         comparision1, comparision2);
 
-    when(sourceSchemas.findValueColumn(COLUMN1))
+    when(schema.findValueColumn(COLUMN1))
         .thenReturn(Optional.of(Column.of(COLUMN1, STRING, VALUE, 10)));
-    when(sourceSchemas.findValueColumn(COLUMN2))
+    when(schema.findValueColumn(COLUMN2))
         .thenReturn(Optional.of(Column.of(COLUMN2, INTEGER, VALUE, 10)));
 
     // Then:
@@ -164,7 +161,7 @@ public class WhereTypeValidatorTest {
         + "Cannot compare col1 (STRING) to col2 (INTEGER).");
 
     // When:
-    validator.validateWhereExpression(expression);
+    validator.validateFilterExpression(expression);
   }
 
   @Test
@@ -181,9 +178,9 @@ public class WhereTypeValidatorTest {
     final Expression expression = new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND,
         comparision1, comparision2);
 
-    when(sourceSchemas.findValueColumn(COLUMN1))
+    when(schema.findValueColumn(COLUMN1))
         .thenReturn(Optional.of(Column.of(COLUMN1, STRING, VALUE, 10)));
-    when(sourceSchemas.findValueColumn(COLUMN2))
+    when(schema.findValueColumn(COLUMN2))
         .thenReturn(Optional.of(Column.of(COLUMN2, INTEGER, VALUE, 10)));
 
     // Then:
@@ -192,28 +189,6 @@ public class WhereTypeValidatorTest {
         + "Cannot compare col1 (STRING) to col2 (INTEGER).");
 
     // When:
-    validator.validateWhereExpression(expression);
-  }
-
-  @Test
-  public void shouldThrowOnBadTypeComparisonQualified() {
-    // Given:
-    final Expression left = new QualifiedColumnReferenceExp(TABLE1, COLUMN1);
-    final Expression right = new QualifiedColumnReferenceExp(TABLE2, COLUMN2);
-    final Expression comparision = new ComparisonExpression(Type.EQUAL, left, right);
-
-
-    when(sourceSchemas.findValueColumn(TABLE1, COLUMN1))
-        .thenReturn(Optional.of(Column.of(COLUMN1, STRING, VALUE, 10)));
-    when(sourceSchemas.findValueColumn(TABLE2, COLUMN2))
-        .thenReturn(Optional.of(Column.of(COLUMN2, INTEGER, VALUE, 10)));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Type mismatch in WHERE expression: "
-        + "Cannot compare table1.col1 (STRING) to table2.col2 (INTEGER)");
-
-    // When:
-    validator.validateWhereExpression(comparision);
+    validator.validateFilterExpression(expression);
   }
 }

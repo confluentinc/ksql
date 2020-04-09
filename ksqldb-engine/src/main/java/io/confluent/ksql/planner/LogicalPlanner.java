@@ -20,8 +20,10 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.analyzer.FilterTypeValidator.FilterType;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.analyzer.FilterTypeValidator;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -89,26 +91,38 @@ public class LogicalPlanner {
   private final RewrittenAnalysis analysis;
   private final FunctionRegistry functionRegistry;
   private final AggregateAnalyzer aggregateAnalyzer;
+  private final BiFunction<PlanNode, Expression, FilterNode> filterNodeFactory;
   private final ColumnReferenceRewriter refRewriter;
 
   public LogicalPlanner(
       final KsqlConfig ksqlConfig,
       final ImmutableAnalysis analysis,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final BiFunction<PlanNode, Expression, FilterNode> filterNodeFactory
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.refRewriter =
         new ColumnReferenceRewriter(analysis.getFromSourceSchemas(false).isJoin());
     this.analysis = new RewrittenAnalysis(analysis, refRewriter::process);
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.filterNodeFactory = Objects.requireNonNull(filterNodeFactory, "filterNodeFactory");
     this.aggregateAnalyzer = new AggregateAnalyzer(functionRegistry);
+  }
+
+  public LogicalPlanner(
+      final KsqlConfig ksqlConfig,
+      final ImmutableAnalysis analysis,
+      final FunctionRegistry functionRegistry
+  ) {
+    this(ksqlConfig, analysis, functionRegistry,
+        (plan, exp) -> buildFilterNode(functionRegistry, plan, exp));
   }
 
   public OutputNode buildPlan() {
     PlanNode currentNode = buildSourceNode();
 
     if (analysis.getWhereExpression().isPresent()) {
-      currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
+      currentNode = filterNodeFactory.apply(currentNode, analysis.getWhereExpression().get());
     }
 
     if (analysis.getPartitionBy().isPresent()) {
@@ -230,6 +244,15 @@ public class LogicalPlanner {
         refRewriter::process
     );
 
+    if (analysis.getHavingExpression().isPresent()) {
+      final FilterTypeValidator validator = new FilterTypeValidator(
+          sourcePlanNode.getSchema(),
+          functionRegistry,
+          FilterType.HAVING);
+
+      validator.validateFilterExpression(analysis.getHavingExpression().get());
+    }
+
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
@@ -329,9 +352,17 @@ public class LogicalPlanner {
   }
 
   private static FilterNode buildFilterNode(
+      final FunctionRegistry functionRegistry,
       final PlanNode sourcePlanNode,
       final Expression filterExpression
   ) {
+    final FilterTypeValidator validator = new FilterTypeValidator(
+        sourcePlanNode.getSchema(),
+        functionRegistry,
+        FilterType.WHERE);
+
+    validator.validateFilterExpression(filterExpression);
+
     return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
 

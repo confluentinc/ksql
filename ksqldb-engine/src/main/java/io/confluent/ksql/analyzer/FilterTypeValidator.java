@@ -25,37 +25,40 @@ import io.confluent.ksql.execution.util.ComparisonUtil;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.schema.ksql.SourceSchemas;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 
 /**
- * Validates types used in the where statement.
+ * Validates types used in filtering statements.
  */
-public final class WhereTypeValidator {
+public final class FilterTypeValidator {
 
-  private final SourceSchemas sourceSchemas;
+  private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
+  private final FilterType filterType;
 
-  WhereTypeValidator(
-      final SourceSchemas sourceSchemas,
-      final FunctionRegistry functionRegistry
+  public FilterTypeValidator(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final FilterType filterType
   ) {
-    this.sourceSchemas = requireNonNull(sourceSchemas, "sourceSchemas");
+    this.schema = requireNonNull(schema, "schema");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
+    this.filterType = requireNonNull(filterType, "filterType");
   }
 
   /**
-   * Validates the given where expression.
+   * Validates the given filter expression.
    */
-  void validateWhereExpression(final Expression exp) {
+  public void validateFilterExpression(final Expression exp) {
     // Construct an expression type manager to be used when checking types.
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(sourceSchemas,
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
         functionRegistry);
 
     // Traverse the AST and throw errors if necessary
-    final TypeChecker typeChecker = new TypeChecker(expressionTypeManager);
+    final TypeChecker typeChecker = new TypeChecker(filterType, expressionTypeManager);
     typeChecker.process(exp, null);
   }
 
@@ -65,18 +68,20 @@ public final class WhereTypeValidator {
    */
   private static final class TypeChecker extends VisitParentExpressionVisitor<Void, Object> {
 
+    private final FilterType filterType;
     private final ExpressionTypeManager expressionTypeManager;
 
-    TypeChecker(final ExpressionTypeManager expressionTypeManager) {
+    TypeChecker(final FilterType filterType, final ExpressionTypeManager expressionTypeManager) {
+      this.filterType = filterType;
       this.expressionTypeManager = expressionTypeManager;
     }
 
     public Void visitExpression(final Expression exp, final Object context) {
       final SqlType type = expressionTypeManager.getExpressionSqlType(exp);
       if (!SqlTypes.BOOLEAN.equals(type)) {
-        throw new KsqlException("Type error in WHERE expression: Should evaluate to "
-            + "boolean but is " + exp.toString() + " (" + type.toString(FormatOptions.none())
-            + ") instead.");
+        throw new KsqlException("Type error in " + filterType.name() + " expression: "
+            + "Should evaluate to boolean but is " + exp.toString()
+            + " (" + type.toString(FormatOptions.none()) + ") instead.");
       }
       return null;
     }
@@ -90,7 +95,8 @@ public final class WhereTypeValidator {
       final SqlType rightType = expressionTypeManager.getExpressionSqlType(exp.getRight());
 
       if (!ComparisonUtil.isValidComparison(leftType, exp.getType(), rightType)) {
-        throw new KsqlException("Type mismatch in WHERE expression: Cannot compare "
+        throw new KsqlException("Type mismatch in " + filterType.name() + " expression: "
+            + "Cannot compare "
             + exp.getLeft().toString() + " (" + leftType.toString(FormatOptions.none()) + ") to "
             + exp.getRight().toString() + " (" + rightType.toString(FormatOptions.none()) + ").");
       }
@@ -105,5 +111,10 @@ public final class WhereTypeValidator {
       process(exp.getRight(), context);
       return null;
     }
+  }
+
+  public enum FilterType {
+    WHERE,
+    HAVING
   }
 }

@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -58,10 +57,8 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SourceSchemas;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
@@ -81,30 +78,16 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ExpressionTypeManager {
-  private static final SourceName UNQUALIFIED = SourceName.of("_unqualified_");
 
-  //private final LogicalSchema schema;
-  private final SourceSchemas sourceSchemas;
+  private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
-  private final boolean unqualifiedMode;
 
   public ExpressionTypeManager(
       final LogicalSchema schema,
       final FunctionRegistry functionRegistry
   ) {
-    this.sourceSchemas = new SourceSchemas(
-        ImmutableMap.of(UNQUALIFIED, Objects.requireNonNull(schema, "schema")));
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.unqualifiedMode = true;
-  }
-
-  public ExpressionTypeManager(
-      final SourceSchemas sourceSchemas,
-      final FunctionRegistry functionRegistry
-  ) {
-    this.sourceSchemas = Objects.requireNonNull(sourceSchemas, "sourceSchemas");
-    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.unqualifiedMode = false;
   }
 
   public SqlType getExpressionSqlType(final Expression expression) {
@@ -192,7 +175,7 @@ public class ExpressionTypeManager {
     public Void visitColumnReference(
         final UnqualifiedColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
-      final Optional<Column> possibleColumn = sourceSchemas.findValueColumn(node.getColumnName());
+      final Optional<Column> possibleColumn = schema.findValueColumn(node.getColumnName());
 
       final Column schemaColumn = possibleColumn
           .orElseThrow(() -> new KsqlException("Unknown column " + node + "."));
@@ -205,20 +188,9 @@ public class ExpressionTypeManager {
     public Void visitQualifiedColumnReference(
         final QualifiedColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
-      if (unqualifiedMode) {
-        throw new IllegalStateException(
-            "Qualified column references must be resolved to unqualified reference "
-                + "before type can be resolved");
-      }
-
-      final Optional<Column> possibleColumn = sourceSchemas.findValueColumn(
-          node.getQualifier(), node.getColumnName());
-
-      final Column schemaColumn = possibleColumn
-          .orElseThrow(() -> new KsqlException("Unknown column " + node + "."));
-
-      expressionTypeContext.setSqlType(schemaColumn.type());
-      return null;
+      throw new IllegalStateException(
+          "Qualified column references must be resolved to unqualified reference "
+              + "before type can be resolved");
     }
 
     @Override

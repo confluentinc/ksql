@@ -11,7 +11,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Type mismatch in WHERE expression: Cannot compare INPUT.ID (INTEGER) to 'not an int' (STRING)."
+        "message": "Type mismatch in WHERE expression: Cannot compare ID (INTEGER) to 'not an int' (STRING)."
       }
     },
     {
@@ -22,7 +22,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Type mismatch in WHERE expression: Cannot compare INPUT.ID (INTEGER) to 'not an int' (STRING)."
+        "message": "Type mismatch in WHERE expression: Cannot compare ID (INTEGER) to 'not an int' (STRING)."
       }
     },
     {
@@ -34,7 +34,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Type mismatch in WHERE expression: Cannot compare I1.BAR (INTEGER) to I2.BAR (STRING)."
+        "message": "Type mismatch in WHERE expression: Cannot compare I1_BAR (INTEGER) to I2_BAR (STRING)."
       }
     },
     {
@@ -68,6 +68,40 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Unsupported arithmetic types. BOOLEAN DECIMAL"
+      }
+    },
+    {
+      "name": "invalid having predicate - type mismatch",
+      "statements": [
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE T1 as select id, sum(value) as sum from test WINDOW TUMBLING (SIZE 30 SECONDS) group by id HAVING sum(value) > '100';"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Type mismatch in HAVING expression: Cannot compare SUM(VALUE) (BIGINT) to '100' (STRING)."
+      }
+    },
+    {
+      "name": "invalid having predicate - type mismatch complex expression",
+      "statements": [
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE T1 as select id, sum(value) as sum from test WINDOW TUMBLING (SIZE 30 SECONDS) group by id HAVING count(*) > 1 AND sum(value) > '100';"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Type mismatch in HAVING expression: Cannot compare SUM(VALUE) (BIGINT) to '100' (STRING)."
+      }
+    },
+    {
+      "name": "invalid having predicate - type mismatch join",
+      "statements": [
+        "CREATE STREAM INPUT_1 (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='t1', value_format='JSON', KEY='FOO');",
+        "CREATE STREAM INPUT_2 (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='t2', value_format='JSON', KEY='FOO');",
+        "CREATE TABLE OUTPUT AS SELECT SUM(I1.BAR), SUM(I2.BAR) FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 1 MINUTE ON I1.FOO = I2.FOO group by I1.FOO HAVING SUM(I1.BAR) > '100' and SUM(I2.BAR) > 20;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Type mismatch in HAVING expression: Cannot compare SUM(I1_BAR) (INTEGER) to '100' (STRING)"
       }
     }
   ]

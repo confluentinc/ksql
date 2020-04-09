@@ -10,7 +10,7 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID >= 'not an int' EMIT CHANGES;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Type mismatch in WHERE expression: Cannot compare ID (INTEGER) to 'not an int' (STRING)."
       }
     },
@@ -21,7 +21,7 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ROWKEY = 'abc' AND ID >= 'not an int' EMIT CHANGES;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Type mismatch in WHERE expression: Cannot compare ID (INTEGER) to 'not an int' (STRING)."
       }
     },
@@ -33,7 +33,7 @@
         "CREATE STREAM OUTPUT AS SELECT I1.BAR, I2.BAR FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 1 MINUTE ON I1.FOO = I2.FOO WHERE I1.BAR > I2.BAR;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Type mismatch in WHERE expression: Cannot compare I1_BAR (INTEGER) to I2_BAR (STRING)."
       }
     },
@@ -44,7 +44,7 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE 'not a boolean' EMIT CHANGES;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Type error in WHERE expression: Should evaluate to boolean but is 'not a boolean' (STRING) instead."
       }
     },
@@ -55,7 +55,7 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE RANDOM() + 1.5 EMIT CHANGES;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Type error in WHERE expression: Should evaluate to boolean but is (RANDOM() + 1.5) (DOUBLE) instead."
       }
     },
@@ -66,8 +66,8 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE TRUE + 1.5 EMIT CHANGES;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Unsupported arithmetic types. BOOLEAN DECIMAL"
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Error in WHERE expression: Unsupported arithmetic types. BOOLEAN DECIMAL"
       }
     },
     {
@@ -77,7 +77,7 @@
         "CREATE TABLE T1 as select id, sum(value) as sum from test WINDOW TUMBLING (SIZE 30 SECONDS) group by id HAVING sum(value) > '100';"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Type mismatch in HAVING expression: Cannot compare SUM(VALUE) (BIGINT) to '100' (STRING)."
       }
     },
@@ -88,7 +88,7 @@
         "CREATE TABLE T1 as select id, sum(value) as sum from test WINDOW TUMBLING (SIZE 30 SECONDS) group by id HAVING count(*) > 1 AND sum(value) > '100';"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Type mismatch in HAVING expression: Cannot compare SUM(VALUE) (BIGINT) to '100' (STRING)."
       }
     },
@@ -100,7 +100,7 @@
         "CREATE TABLE OUTPUT AS SELECT SUM(I1.BAR), SUM(I2.BAR) FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 1 MINUTE ON I1.FOO = I2.FOO group by I1.FOO HAVING SUM(I1.BAR) > '100' and SUM(I2.BAR) > 20;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Type mismatch in HAVING expression: Cannot compare SUM(I1_BAR) (INTEGER) to '100' (STRING)"
       }
     }

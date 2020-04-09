@@ -29,6 +29,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 
 /**
  * Validates types used in filtering statements.
@@ -77,11 +78,18 @@ public final class FilterTypeValidator {
     }
 
     public Void visitExpression(final Expression exp, final Object context) {
-      final SqlType type = expressionTypeManager.getExpressionSqlType(exp);
+      final SqlType type;
+      try {
+        type = expressionTypeManager.getExpressionSqlType(exp);
+      } catch (KsqlException e) {
+        throw new KsqlStatementException("Error in " + filterType.name() + " expression: " +
+            e.getMessage(), exp.toString());
+      }
       if (!SqlTypes.BOOLEAN.equals(type)) {
-        throw new KsqlException("Type error in " + filterType.name() + " expression: "
+        throw new KsqlStatementException("Type error in " + filterType.name() + " expression: "
             + "Should evaluate to boolean but is " + exp.toString()
-            + " (" + type.toString(FormatOptions.none()) + ") instead.");
+            + " (" + type.toString(FormatOptions.none()) + ") instead.",
+            exp.toString());
       }
       return null;
     }
@@ -91,14 +99,21 @@ public final class FilterTypeValidator {
         final ComparisonExpression exp,
         final Object context
     ) {
-      final SqlType leftType = expressionTypeManager.getExpressionSqlType(exp.getLeft());
-      final SqlType rightType = expressionTypeManager.getExpressionSqlType(exp.getRight());
-
+      final SqlType leftType;
+      final SqlType rightType;
+      try {
+        leftType = expressionTypeManager.getExpressionSqlType(exp.getLeft());
+        rightType = expressionTypeManager.getExpressionSqlType(exp.getRight());
+      } catch (KsqlException e) {
+        throw new KsqlStatementException("Error in " + filterType.name() + " expression: " +
+            e.getMessage(), exp.toString());
+      }
       if (!ComparisonUtil.isValidComparison(leftType, exp.getType(), rightType)) {
-        throw new KsqlException("Type mismatch in " + filterType.name() + " expression: "
+        throw new KsqlStatementException("Type mismatch in " + filterType.name() + " expression: "
             + "Cannot compare "
             + exp.getLeft().toString() + " (" + leftType.toString(FormatOptions.none()) + ") to "
-            + exp.getRight().toString() + " (" + rightType.toString(FormatOptions.none()) + ").");
+            + exp.getRight().toString() + " (" + rightType.toString(FormatOptions.none()) + ").",
+            exp.toString());
       }
       return null;
     }

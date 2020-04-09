@@ -159,7 +159,7 @@
     {
       "name": "single expression with alias (table->table)",
       "statements": [
-        "CREATE TABLE TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE TEST (ID INT PRIMARY KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY DATA AS NEW_KEY;"
       ],
       "properties": {

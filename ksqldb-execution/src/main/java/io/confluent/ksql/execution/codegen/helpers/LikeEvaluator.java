@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.codegen.helpers;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -59,7 +60,8 @@ public final class LikeEvaluator {
     return matches(val, pattern, Optional.of(escape));
   }
 
-  private static boolean matches(
+  @VisibleForTesting
+  static boolean matches(
       final String val,
       final String pattern,
       final Optional<Character> escape

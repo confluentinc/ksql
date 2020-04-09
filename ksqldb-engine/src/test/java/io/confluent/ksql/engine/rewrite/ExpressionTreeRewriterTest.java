@@ -459,7 +459,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteLikePredicate() {
     // Given:
-    final LikePredicate parsed = parseExpression("col1 LIKE '%foo%'");
+    final LikePredicate parsed = parseExpression("col1 LIKE '%foo%' ESCAPE '!'");
     when(processor.apply(parsed.getValue(), context)).thenReturn(expr1);
     when(processor.apply(parsed.getPattern(), context)).thenReturn(expr2);
 
@@ -467,7 +467,7 @@ public class ExpressionTreeRewriterTest {
     final Expression rewritten = expressionRewriter.rewrite(parsed, context);
 
     // Then:
-    assertThat(rewritten, equalTo(new LikePredicate(parsed.getLocation(), expr1, expr2, Optional.empty())));
+    assertThat(rewritten, equalTo(new LikePredicate(parsed.getLocation(), expr1, expr2, Optional.of('!'))));
   }
 
   @Test

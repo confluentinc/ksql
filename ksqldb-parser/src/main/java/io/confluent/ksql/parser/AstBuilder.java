@@ -893,9 +893,12 @@ public class AstBuilder {
       final Optional<String> escape = Optional.ofNullable(context.escape)
           .map(Token::getText)
           .map(s -> ParserUtil.unquote(s, "'"));
+
       escape.ifPresent(s -> {
         if (s.length() != 1) {
-          throw new IllegalStateException("Expected single character escape but got: " + s);
+          throw new KsqlException(
+              getLocation(context.escape) + ": Expected single character escape but got: " + s
+          );
         }
       });
 

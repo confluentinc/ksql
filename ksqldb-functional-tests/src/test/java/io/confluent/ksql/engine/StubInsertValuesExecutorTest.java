@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.StubInsertValuesExecutor.StubProducer;
 import io.confluent.ksql.test.tools.Record;
-import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopicInfoCache;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
@@ -61,13 +60,6 @@ public final class StubInsertValuesExecutorTest {
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
-    when(stubKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
-        SOME_TOPIC,
-        1,
-        1,
-        Optional.empty()
-    ));
-
     when(topicInfoCache.get(SOME_TOPIC)).thenReturn(topicInfo);
     when(topicInfo.getKeyDeserializer()).thenReturn((Deserializer) new StringDeserializer());
     when(topicInfo.getValueDeserializer()).thenReturn((Deserializer) new StringDeserializer());

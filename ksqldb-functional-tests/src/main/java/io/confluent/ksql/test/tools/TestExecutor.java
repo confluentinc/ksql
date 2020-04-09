@@ -142,7 +142,7 @@ public class TestExecutor implements Closeable {
       writeInputIntoTopics(testCase.getInputRecords(), stubKafkaService);
       final Set<String> inputTopics = testCase.getInputRecords()
           .stream()
-          .map(record -> record.getTopic().getName())
+          .map(record -> record.getTopicName())
           .collect(Collectors.toSet());
 
       final Set<String> allTopicNames = new HashSet<>();
@@ -200,7 +200,7 @@ public class TestExecutor implements Closeable {
     final boolean ranWithInsertStatements = testCase.getInputRecords().size() == 0;
 
     final Map<String, List<Record>> expectedByTopic = testCase.getOutputRecords().stream()
-        .collect(Collectors.groupingBy(r -> r.topic().getName()));
+        .collect(Collectors.groupingBy(Record::getTopicName));
 
     final Map<String, List<StubKafkaRecord>> actualByTopic = expectedByTopic.keySet().stream()
         .collect(Collectors.toMap(Function.identity(), stubKafkaService::readRecords));
@@ -291,14 +291,14 @@ public class TestExecutor implements Closeable {
 
     int inputRecordIndex = 0;
     for (final Record record : testCase.getInputRecords()) {
-      if (topologyTestDriverContainer.getSourceTopicNames().contains(record.getTopic().getName())) {
+      if (topologyTestDriverContainer.getSourceTopicNames().contains(record.getTopicName())) {
 
-        final TopicInfo topicInfo = topicInfoCache.get(record.getTopic().getName());
+        final TopicInfo topicInfo = topicInfoCache.get(record.getTopicName());
 
         final Record coerced = topicInfo.coerceRecordKey(record, inputRecordIndex);
 
         processSingleRecord(
-            StubKafkaRecord.of(coerced, null),
+            StubKafkaRecord.of(coerced),
             topologyTestDriverContainer,
             ImmutableSet.copyOf(stubKafkaService.getAllTopics())
         );
@@ -326,7 +326,7 @@ public class TestExecutor implements Closeable {
       final Set<Topic> possibleSinkTopics
   ) {
     final Topic recordTopic = stubKafkaService
-        .getTopic(inputRecord.getTestRecord().getTopic().getName());
+        .getTopic(inputRecord.getTestRecord().getTopicName());
 
     final TopicInfo topicInfo = topicInfoCache.get(recordTopic.getName());
 
@@ -376,7 +376,6 @@ public class TestExecutor implements Closeable {
       stubKafkaService.writeRecord(
           sinkTopic.getName(),
           StubKafkaRecord.of(
-              sinkTopic,
               producerRecord)
       );
     }
@@ -452,8 +451,8 @@ public class TestExecutor implements Closeable {
   ) {
     inputRecords.forEach(
         record -> stubKafkaService.writeRecord(
-            record.getTopic().getName(),
-            StubKafkaRecord.of(record, null))
+            record.getTopicName(),
+            StubKafkaRecord.of(record))
     );
   }
 

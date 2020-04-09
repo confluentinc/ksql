@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.test.tools.stubs;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.test.model.WindowData;
 import io.confluent.ksql.test.tools.Record;
-import io.confluent.ksql.test.tools.Topic;
-import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -29,25 +29,17 @@ public final class StubKafkaRecord {
   private final ProducerRecord<?,?> producerRecord;
 
   private StubKafkaRecord(final Record testRecord, final ProducerRecord<?,?> producerRecord) {
-    this.testRecord = testRecord;
+    this.testRecord = requireNonNull(testRecord, "testRecord");
     this.producerRecord = producerRecord;
   }
 
-  public static StubKafkaRecord of(
-      final Record testRecord,
-      final ProducerRecord<?,?> producerRecord
-  ) {
-    Objects.requireNonNull(testRecord, "testRecord");
-    return new StubKafkaRecord(testRecord, producerRecord);
+  public static StubKafkaRecord of(final Record testRecord) {
+    return new StubKafkaRecord(testRecord, null);
   }
 
-  public static StubKafkaRecord of(
-      final Topic topic,
-      final ProducerRecord<?,?> producerRecord) {
-    Objects.requireNonNull(producerRecord);
-    Objects.requireNonNull(topic, "topic");
+  public static StubKafkaRecord of(final ProducerRecord<?, ?> producerRecord) {
     final Record testRecord = new Record(
-        topic,
+        producerRecord.topic(),
         producerRecord.key(),
         producerRecord.value(),
         null,

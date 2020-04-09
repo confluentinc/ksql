@@ -57,17 +57,6 @@ public final class KsqlConstants {
     UNRESPONSIVE,
   }
 
-  public static final Map<KafkaStreams.State, KsqlQueryState> STREAMS_STATE_TO_KSQL_QUERY_STATE;
-
-  static {
-    final Map<KafkaStreams.State, KsqlQueryState> stateMapping = new HashMap<>();
-    for (KafkaStreams.State state:KafkaStreams.State.values()) {
-      stateMapping.put(state, KsqlQueryState.RUNNING);
-    }
-    stateMapping.put(KafkaStreams.State.ERROR, KsqlQueryState.ERROR);
-    STREAMS_STATE_TO_KSQL_QUERY_STATE = ImmutableMap.copyOf(stateMapping);
-  }
-
   /**
    * Default time and date patterns
    */

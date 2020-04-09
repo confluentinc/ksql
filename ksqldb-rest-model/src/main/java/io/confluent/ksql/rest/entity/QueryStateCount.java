@@ -48,7 +48,7 @@ public class QueryStateCount {
   public QueryStateCount(final Map<KafkaStreams.State, Integer> states) {
     final Map<KsqlQueryState, Integer> ksqlQueryStates = states.entrySet().stream()
         .collect(Collectors.toMap(
-            e -> KsqlConstants.STREAMS_STATE_TO_KSQL_QUERY_STATE.get(e.getKey()),
+            e -> fromStreamsState(e.getKey()),
             Map.Entry::getValue));
     this.states = states.isEmpty() ? returnEnumMap() : new EnumMap<>(ksqlQueryStates);
   }
@@ -59,7 +59,7 @@ public class QueryStateCount {
   }
 
   public void updateStateCount(final KafkaStreams.State state, final int change) {
-    updateStateCount(KsqlConstants.STREAMS_STATE_TO_KSQL_QUERY_STATE.get(state), change);
+    updateStateCount(fromStreamsState(state), change);
   }
 
   public void updateStateCount(final KsqlQueryState state, final int change) {
@@ -96,6 +96,10 @@ public class QueryStateCount {
   @Override
   public String toString() {
     return Joiner.on(",").withKeyValueSeparator(":").join(this.states);
+  }
+
+  public static KsqlQueryState fromStreamsState(final KafkaStreams.State state) {
+    return state == KafkaStreams.State.ERROR ? KsqlQueryState.ERROR : KsqlQueryState.RUNNING;
   }
   
   private static EnumMap<KsqlQueryState, Integer> returnEnumMap() {

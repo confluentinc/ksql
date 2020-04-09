@@ -17,7 +17,7 @@ package io.confluent.ksql.test.tools;
 
 import static com.google.common.io.Files.getNameWithoutExtension;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -41,6 +41,7 @@ import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +88,7 @@ public final class TestCaseBuilderUtil {
         .collect(Collectors.toList());
   }
 
-  public static Map<String, Topic> getTopicsByName(
+  public static Collection<Topic> getTopicsByName(
       final List<String> statements,
       final List<TopicNode> topics,
       final List<RecordNode> outputs,
@@ -110,7 +111,7 @@ public final class TestCaseBuilderUtil {
 
     if (allTopics.isEmpty()) {
       if (expectsException) {
-        return ImmutableMap.of();
+        return ImmutableList.of();
       }
       throw new InvalidFieldException("statements/topics", "The test does not define any topics. "
           + "Topics can be provided explicitly, but are more commonly extracted from the "
@@ -124,7 +125,7 @@ public final class TestCaseBuilderUtil {
         .map(recordNode -> new Topic(recordNode.topicName(), 4, 1, Optional.empty()))
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
-    return allTopics;
+    return allTopics.values();
   }
 
   private static Topic createTopicFromStatement(

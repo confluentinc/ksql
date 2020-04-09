@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.test.tools.Record;
-import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopicInfoCache;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -66,8 +65,6 @@ public final class StubInsertValuesExecutor {
     }
 
     void sendRecord(final ProducerRecord<byte[], byte[]> record) {
-      final Topic topic = stubKafkaService.getTopic(record.topic());
-
       final Object key = deserializeKey(record);
 
       final Object value = deserializeValue(record);
@@ -77,14 +74,14 @@ public final class StubInsertValuesExecutor {
       this.stubKafkaService.writeRecord(record.topic(),
           StubKafkaRecord.of(
               new Record(
-                  topic,
+                  record.topic(),
                   key,
                   value,
                   null,
                   timestamp,
                   null
-              ),
-              null)
+              )
+          )
       );
     }
 

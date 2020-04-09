@@ -30,12 +30,10 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.confluent.ksql.test.tools.Record;
-import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import io.confluent.ksql.test.utils.JsonParsingUtil;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 
 @JsonDeserialize(using = RecordNode.Deserializer.class)
@@ -72,13 +70,11 @@ public final class RecordNode {
     return topicName;
   }
 
-  public Record build(final Map<String, Topic> topics) {
-    final Topic topic = topics.get(topicName);
-
+  public Record build() {
     final Object recordValue = buildValue();
 
     return new Record(
-        topic,
+        topicName,
         key.orElse(null),
         recordValue,
         value,
@@ -89,7 +85,7 @@ public final class RecordNode {
 
   public static RecordNode from(final Record record) {
     return new RecordNode(
-        record.getTopic().getName(),
+        record.getTopicName(),
         Optional.ofNullable(record.rawKey()),
         record.getJsonValue().orElse(NullNode.getInstance()),
         record.timestamp(),

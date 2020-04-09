@@ -84,14 +84,14 @@ class RestTestCase implements Test {
     return statements;
   }
 
-  Map<Topic, List<Record>> getInputsByTopic() {
+  Map<String, List<Record>> getInputsByTopic() {
     return inputRecords.stream()
-        .collect(Collectors.groupingBy(Record::topic));
+        .collect(Collectors.groupingBy(Record::getTopicName));
   }
 
-  Map<Topic, List<Record>> getOutputsByTopic() {
+  Map<String, List<Record>> getOutputsByTopic() {
     return outputRecords.stream()
-        .collect(Collectors.groupingBy(Record::topic));
+        .collect(Collectors.groupingBy(Record::getTopicName));
   }
 
   List<Response> getExpectedResponses() {

@@ -236,7 +236,7 @@ public class TopicInfoCache {
         return record.withKey(coerced);
       } catch (final Exception e) {
         throw new AssertionError(
-            "Topic '" + record.getTopic().getName() + "', message " + msgIndex
+            "Topic '" + record.getTopicName() + "', message " + msgIndex
                 + ": Invalid test-case: could not coerce key in test case to required type. "
                 + e.getMessage(),
             e);

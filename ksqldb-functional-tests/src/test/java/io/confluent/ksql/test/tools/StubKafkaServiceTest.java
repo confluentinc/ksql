@@ -17,6 +17,7 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
@@ -37,9 +38,8 @@ public class StubKafkaServiceTest {
   @Mock
   private ParsedSchema avroSchema;
   @Mock
-  private ProducerRecord<?, ?> producerRecord;
-  @Mock
-  private Record record;
+  private ProducerRecord<String, String> producerRecord;
+
   private StubKafkaRecord stubKafkaRecord;
 
   private StubKafkaService stubKafkaService;
@@ -47,15 +47,19 @@ public class StubKafkaServiceTest {
 
   @Before
   public void setUp() {
-    stubKafkaRecord = StubKafkaRecord.of(record, producerRecord);
+    when(producerRecord.topic()).thenReturn("topic-name");
+    when(producerRecord.key()).thenReturn("key");
+    when(producerRecord.value()).thenReturn("value");
+
+    stubKafkaRecord = StubKafkaRecord.of(producerRecord);
+
     stubKafkaService = StubKafkaService.create();
+
     topic = new Topic("foo", 1, 1, Optional.of(avroSchema));
   }
 
-
   @Test
   public void shouldCreateTopicCorrectly() {
-
     // When:
     stubKafkaService.createTopic(topic);
 
@@ -65,7 +69,7 @@ public class StubKafkaServiceTest {
 
   @Test
   public void shouldWriteSingleRecordToTopic() {
-    // Givien:
+    // Given:
     stubKafkaService.createTopic(topic);
 
     // When:
@@ -75,9 +79,9 @@ public class StubKafkaServiceTest {
     assertThat(stubKafkaService.getTopicData().get("foo").get(0), is(stubKafkaRecord));
   }
 
-
+  @Test
   public void shouldReadRecordFromTopic() {
-    // Givien:
+    // Given:
     stubKafkaService.createTopic(topic);
     stubKafkaService.writeRecord("foo", stubKafkaRecord);
 
@@ -87,8 +91,5 @@ public class StubKafkaServiceTest {
     // Then:
     assertThat(records.size(), CoreMatchers.equalTo(1));
     assertThat(records.get(0), is(stubKafkaRecord));
-
   }
-
-
 }

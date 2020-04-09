@@ -15,9 +15,10 @@
 
 package io.confluent.ksql.test.tools;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.ksql.test.model.WindowData;
-import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -26,7 +27,7 @@ import org.apache.kafka.streams.kstream.internals.TimeWindow;
 
 public class Record {
 
-  private final Topic topic;
+  private final String topicName;
   private final Object key;
   private final Object value;
   private final Optional<Long> timestamp;
@@ -34,23 +35,32 @@ public class Record {
   private final Optional<JsonNode> jsonValue;
 
   public Record(
-      final Topic topic,
+      final String topicName,
       final Object key,
       final Object value,
       final JsonNode jsonValue,
       final Optional<Long> timestamp,
       final WindowData window
   ) {
-    this.topic = topic;
+    this.topicName = requireNonNull(topicName, "topicName");
     this.key = key;
     this.value = value;
     this.jsonValue = Optional.ofNullable(jsonValue);
-    this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
+    this.timestamp = requireNonNull(timestamp, "timestamp");
     this.window = window;
+
+    if (!topicName.trim().equals(topicName)) {
+      throw new IllegalArgumentException("Record topic names must not start or end with whitespace:"
+          + " '" + topicName + "'");
+    }
+
+    if (topicName.isEmpty()) {
+      throw new IllegalArgumentException("Record topic name can not be empty");
+    }
   }
 
-  public Topic getTopic() {
-    return topic;
+  public String getTopicName() {
+    return topicName;
   }
 
   public Object rawKey() {
@@ -83,17 +93,13 @@ public class Record {
     return window;
   }
 
-  public Topic topic() {
-    return topic;
-  }
-
   public Optional<JsonNode> getJsonValue() {
     return jsonValue;
   }
 
   public Record withKey(final Object key) {
     return new Record(
-        topic,
+        topicName,
         key,
         value,
         jsonValue.orElse(null),

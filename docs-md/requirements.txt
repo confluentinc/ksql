@@ -1,4 +1,4 @@
-mkdocs==1.0.4
+mkdocs
 mdx_gh_links>=0.2
 mkdocs-macros-plugin
 mkdocs-git-revision-date-plugin

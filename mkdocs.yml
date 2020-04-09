@@ -14,8 +14,8 @@ theme:
     name: material
     favicon: img/favicon.ico # should match asset for main ksqldb.io site
     logo: img/logo.png # should match asset for main ksqldb.io site
-    feature: 
-      tabs: true
+    features:
+      - tabs
 
 extra_css:
   - stylesheets/extra.css

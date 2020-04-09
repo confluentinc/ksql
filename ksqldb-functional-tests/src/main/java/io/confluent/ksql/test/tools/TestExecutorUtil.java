@@ -158,12 +158,7 @@ public final class TestExecutorUtil {
 
     final Optional<ParsedSchema> schema = getSchema(sinkDataSource, schemaRegistryClient);
 
-    final Topic sinkTopic = new Topic(
-        kafkaTopicName,
-        KsqlConstants.legacyDefaultSinkPartitionCount,
-        KsqlConstants.legacyDefaultSinkReplicaCount,
-        schema
-    );
+    final Topic sinkTopic = new Topic(kafkaTopicName, schema);
 
     stubKafkaService.ensureTopic(sinkTopic);
     return sinkTopic;

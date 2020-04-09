@@ -47,7 +47,7 @@ public class StubKafkaServiceTest {
 
     kafka = StubKafkaService.create();
 
-    topic = new Topic(producerRecord.topic(), 1, 1, Optional.of(avroSchema));
+    topic = new Topic(producerRecord.topic(), Optional.of(avroSchema));
   }
 
   @Test

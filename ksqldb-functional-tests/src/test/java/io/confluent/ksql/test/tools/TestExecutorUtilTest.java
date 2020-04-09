@@ -73,7 +73,7 @@ public class TestExecutorUtilTest {
   @Test
   public void shouldPlanTestCase() {
     // Given:
-    final Topic sourceTopic = new Topic("test_topic", 1, 1, Optional.empty());
+    final Topic sourceTopic = new Topic("test_topic", Optional.empty());
 
     stubKafkaService.ensureTopic(sourceTopic);
 
@@ -106,12 +106,7 @@ public class TestExecutorUtilTest {
   @Test
   public void shouldBuildStreamsTopologyTestDrivers() {
     // Given:
-    final Topic sourceTopic = new Topic(
-        "test_topic",
-        1,
-        1,
-        Optional.empty()
-    );
+    final Topic sourceTopic = new Topic("test_topic", Optional.empty());
 
     stubKafkaService.ensureTopic(sourceTopic);
 

@@ -30,6 +30,13 @@ public class Topic {
 
   public Topic(
       final String name,
+      final Optional<ParsedSchema> schema
+  ) {
+    this(name, 4, 1, schema);
+  }
+
+  public Topic(
+      final String name,
       final int numPartitions,
       final int replicas,
       final Optional<ParsedSchema> schema

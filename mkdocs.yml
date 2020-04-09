@@ -130,22 +130,22 @@ nav:
       - Changelog: operate-and-deploy/changelog.md
   - Tutorials:
       - Tutorials and Examples: tutorials/index.md
-      - Quick start: tutorials/ksqldb-quickstart.md
+      - Materialized view/cache: tutorials/materialized.md
+      - Streaming ETL pipeline: tutorials/etl.md
       - Examples: tutorials/examples.md
-      - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Docker): tutorials/basics-docker.md # Could be the canonical quickstart
-      - Clickstream Data Analysis Pipeline Using ksqlDB (Docker): tutorials/clickstream-docker.md
       - ksqlDB with Embedded Connect: tutorials/embedded-connect.md
       - Integrate with PostgreSQL: tutorials/connect-integration.md
   - Troubleshooting: troubleshoot-ksqldb.md
   - Frequently Asked Questions: faq.md
-
 markdown_extensions:
     - toc:
         permalink: true
     - admonition
     - codehilite:
         guess_lang: false
+        linenums: true
     - def_list
+    - attr_list
     - mdx_gh_links:
         user: confluentinc
         repo: ksqldb

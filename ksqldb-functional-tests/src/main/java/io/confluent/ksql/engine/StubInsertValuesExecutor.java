@@ -19,13 +19,10 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TopicInfoCache;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
-import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
-import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 public final class StubInsertValuesExecutor {
@@ -69,20 +66,16 @@ public final class StubInsertValuesExecutor {
 
       final Object value = deserializeValue(record);
 
-      final Optional<Long> timestamp = Optional.of(record.timestamp());
-
-      this.stubKafkaService.writeRecord(record.topic(),
-          StubKafkaRecord.of(
-              new Record(
-                  record.topic(),
-                  key,
-                  value,
-                  null,
-                  timestamp,
-                  null
-              )
-          )
+      final ProducerRecord<?, ?> deserialzied = new ProducerRecord<>(
+          record.topic(),
+          record.partition(),
+          record.timestamp(),
+          key,
+          value,
+          record.headers()
       );
+
+      this.stubKafkaService.writeRecord(deserialzied);
     }
 
     private Object deserializeKey(final ProducerRecord<byte[], byte[]> record) {

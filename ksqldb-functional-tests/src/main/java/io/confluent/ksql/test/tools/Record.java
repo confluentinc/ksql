@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.Optional;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
@@ -105,6 +106,16 @@ public class Record {
         jsonValue.orElse(null),
         timestamp,
         window
+    );
+  }
+
+  public ProducerRecord<?, ?> asProducerRecord() {
+    return new ProducerRecord<>(
+        topicName,
+        0,
+        timestamp.orElse(0L),
+        key(),
+        value
     );
   }
 }

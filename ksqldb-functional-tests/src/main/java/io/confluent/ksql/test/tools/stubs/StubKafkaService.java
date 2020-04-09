@@ -23,12 +23,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import org.apache.kafka.clients.producer.ProducerRecord;
 
 public final class StubKafkaService {
 
   private final Map<String, Topic> topicMap;
-  private final Map<String, List<StubKafkaRecord>> topicData;
+  private final Map<String, List<ProducerRecord<?, ?>>> producedRecords;
 
   public static StubKafkaService create() {
     return new StubKafkaService();
@@ -36,46 +36,28 @@ public final class StubKafkaService {
 
   private StubKafkaService() {
     this.topicMap = new HashMap<>();
-    this.topicData = new HashMap<>();
+    this.producedRecords = new HashMap<>();
   }
 
-  public void createTopic(final Topic topic) {
-    Objects.requireNonNull(topic, "Topic");
-    if (this.topicMap.containsKey(topic.getName())) {
-      return;
-    }
-    this.topicMap.put(topic.getName(), topic);
-    this.topicData.put(topic.getName(), new ArrayList<>());
+  public void ensureTopic(final Topic topic) {
+    topicMap.put(topic.getName(), topic);
+    producedRecords.putIfAbsent(topic.getName(), new ArrayList<>());
   }
 
-  public void writeRecord(final String topicName, final StubKafkaRecord record) {
-    Objects.requireNonNull(topicName, "Topic");
-    Objects.requireNonNull(record, "Record");
+  public void writeRecord(final ProducerRecord<?, ?> record) {
+    requireTopicExists(record.topic());
+    producedRecords.get(record.topic()).add(record);
+  }
+
+  public List<ProducerRecord<?, ?>> readRecords(final String topicName) {
     requireTopicExists(topicName);
-    this.topicData.get(topicName).add(record);
-  }
-
-  public List<StubKafkaRecord> readRecords(final String topicName) {
-    Objects.requireNonNull(topicName, "Topic");
-    requireTopicExists(topicName);
-    return ImmutableList.copyOf(topicData.get(topicName));
+    return ImmutableList.copyOf(producedRecords.get(topicName));
   }
 
   public void requireTopicExists(final String topicName) {
-    if (!this.topicMap.containsKey(topicName)) {
-      throw new KsqlException("Topic does not exist: " +  topicName);
+    if (!topicMap.containsKey(topicName)) {
+      throw new KsqlException("Topic does not exist: " + topicName);
     }
-  }
-
-  public boolean topicExists(final Topic topic) {
-    return topicMap.containsKey(topic.getName());
-  }
-
-  public void updateTopic(final Topic topic) {
-    if (!topicExists(topic)) {
-      throw new KsqlException("Topic does not exist: " + topic.getName());
-    }
-    topicMap.put(topic.getName(), topic);
   }
 
   public Topic getTopic(final String topicName) {
@@ -84,10 +66,5 @@ public final class StubKafkaService {
 
   public Collection<Topic> getAllTopics() {
     return topicMap.values();
-  }
-
-
-  public Map<String, List<StubKafkaRecord>> getTopicData() {
-    return topicData;
   }
 }

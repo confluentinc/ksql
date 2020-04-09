@@ -75,7 +75,7 @@ public class TestExecutorUtilTest {
     // Given:
     final Topic sourceTopic = new Topic("test_topic", 1, 1, Optional.empty());
 
-    stubKafkaService.createTopic(sourceTopic);
+    stubKafkaService.ensureTopic(sourceTopic);
 
     // When:
     final Iterable<ConfiguredKsqlPlan> plans = TestExecutorUtil.planTestCase(
@@ -113,7 +113,7 @@ public class TestExecutorUtilTest {
         Optional.empty()
     );
 
-    stubKafkaService.createTopic(sourceTopic);
+    stubKafkaService.ensureTopic(sourceTopic);
 
     // When:
     final List<TopologyTestDriverContainer> topologyTestDriverContainerList = TestExecutorUtil.buildStreamsTopologyTestDrivers(

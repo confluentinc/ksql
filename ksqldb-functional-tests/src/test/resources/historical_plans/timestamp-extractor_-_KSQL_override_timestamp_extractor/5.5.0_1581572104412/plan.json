@@ -1,13 +1,15 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM TEST (ID BIGINT, TS BIGINT) WITH (KAFKA_TOPIC='test_topic', TIMESTAMP='ts', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `TS` BIGINT",
       "keyField" : null,
-      "timestampColumn" : null,
+      "timestampColumn" : {
+        "column" : "TS"
+      },
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -76,8 +78,10 @@
               },
               "options" : [ ]
             },
-            "timestampColumn" : null,
-            "sourceSchema" : "`ROWKEY` STRING KEY, `ID` BIGINT"
+            "timestampColumn" : {
+              "column" : "TS"
+            },
+            "sourceSchema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `TS` BIGINT"
           },
           "selectExpressions" : [ "ID AS ID" ]
         },

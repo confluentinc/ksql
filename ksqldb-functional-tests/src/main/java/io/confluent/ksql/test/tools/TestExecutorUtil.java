@@ -165,11 +165,7 @@ public final class TestExecutorUtil {
         schema
     );
 
-    if (stubKafkaService.topicExists(sinkTopic)) {
-      stubKafkaService.updateTopic(sinkTopic);
-    } else {
-      stubKafkaService.createTopic(sinkTopic);
-    }
+    stubKafkaService.ensureTopic(sinkTopic);
     return sinkTopic;
   }
 
@@ -190,19 +186,6 @@ public final class TestExecutorUtil {
       }
     }
     return Optional.empty();
-  }
-
-  public static List<PersistentQueryMetadata> buildQueries(
-      final TestCase testCase,
-      final ServiceContext serviceContext,
-      final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig,
-      final StubKafkaService stubKafkaService
-  ) {
-    return doBuildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, stubKafkaService)
-        .stream()
-        .map(PersistentQueryAndSources::getPersistentQueryMetadata)
-        .collect(Collectors.toList());
   }
 
   private static List<PersistentQueryAndSources> doBuildQueries(
@@ -239,7 +222,7 @@ public final class TestExecutorUtil {
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
     for (final Topic topic : testCase.getTopics()) {
-      stubKafkaService.createTopic(topic);
+      stubKafkaService.ensureTopic(topic);
       topicClient.createTopic(
           topic.getName(),
           topic.getNumPartitions(),

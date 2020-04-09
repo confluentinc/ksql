@@ -17,22 +17,20 @@ package io.confluent.ksql.engine;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.StubInsertValuesExecutor.StubProducer;
-import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TopicInfoCache;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
-import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.LongDeserializer;
+import org.apache.kafka.common.serialization.LongSerializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,7 +42,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public final class StubInsertValuesExecutorTest {
 
-  private static final byte[] KEY_BYTES = "the-key".getBytes(StandardCharsets.UTF_8);
   private static final String SOME_TOPIC = "topic-name";
 
   @Mock
@@ -54,64 +51,49 @@ public final class StubInsertValuesExecutorTest {
   @Mock
   private TopicInfo topicInfo;
   @Captor
-  private ArgumentCaptor<StubKafkaRecord> recordCaptor;
+  private ArgumentCaptor<ProducerRecord<?, ?>> recordCaptor;
   private StubProducer stubProducer;
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
     when(topicInfoCache.get(SOME_TOPIC)).thenReturn(topicInfo);
-    when(topicInfo.getKeyDeserializer()).thenReturn((Deserializer) new StringDeserializer());
+    when(topicInfo.getKeyDeserializer()).thenReturn((Deserializer) new LongDeserializer());
     when(topicInfo.getValueDeserializer()).thenReturn((Deserializer) new StringDeserializer());
 
     stubProducer = new StubProducer(stubKafkaService, topicInfoCache);
   }
 
   @Test
-  public void shouldWriteRecordKeyAndMetadata() {
+  public void shouldProduceRecordWithDeserializedKeyAndObject() {
     // Given:
+    final long key = 1234L;
+    final String value = "the-value";
     final long timestamp = 22L;
     final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(
         SOME_TOPIC,
         null,
         timestamp,
-        KEY_BYTES,
-        new byte[]{0}
+        serialize(key, new LongSerializer()),
+        serialize(value, new StringSerializer())
     );
 
     // When:
     stubProducer.sendRecord(record);
 
     // Then:
-    verify(stubKafkaService).writeRecord(eq(SOME_TOPIC), recordCaptor.capture());
+    verify(stubKafkaService).writeRecord(recordCaptor.capture());
 
-    final Record actual = recordCaptor.getValue().getTestRecord();
-    assertThat(actual.timestamp(), is(Optional.of(timestamp)));
-    assertThat(actual.getWindow(), is(nullValue()));
-    assertThat(actual.key(), is("the-key"));
+    assertThat(recordCaptor.getValue(), is(new ProducerRecord<>(
+      SOME_TOPIC,
+        null,
+        timestamp,
+        key,
+        value
+    )));
   }
 
-  @Test
-  public void shouldWriteRecordStringValue() {
-    // Given:
-    final byte[] value = "the-value".getBytes(StandardCharsets.UTF_8);
-
-    final long timestamp = 22L;
-    final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(
-        SOME_TOPIC,
-        null,
-        timestamp,
-        KEY_BYTES,
-        value
-    );
-
-    // When:
-    stubProducer.sendRecord(record);
-
-    // Then:
-    verify(stubKafkaService).writeRecord(eq(SOME_TOPIC), recordCaptor.capture());
-
-    final Record actual = recordCaptor.getValue().getTestRecord();
-    assertThat(actual.value(), is("the-value"));
+  private static <T> byte[] serialize(final T v, final Serializer<T> serializer) {
+    return serializer.serialize("", v);
   }
 }

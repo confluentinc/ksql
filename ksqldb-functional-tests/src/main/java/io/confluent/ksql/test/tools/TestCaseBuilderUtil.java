@@ -39,7 +39,6 @@ import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.topic.TopicFactory;
-import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
@@ -122,7 +121,7 @@ public final class TestCaseBuilderUtil {
 
     // Get topics from inputs and outputs fields:
     Streams.concat(inputs.stream(), outputs.stream())
-        .map(recordNode -> new Topic(recordNode.topicName(), 4, 1, Optional.empty()))
+        .map(recordNode -> new Topic(recordNode.topicName(), Optional.empty()))
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
     return allTopics.values();
@@ -161,12 +160,7 @@ public final class TestCaseBuilderUtil {
         valueSchema = Optional.empty();
       }
 
-      return new Topic(
-          ksqlTopic.getKafkaTopicName(),
-          KsqlConstants.legacyDefaultSinkPartitionCount,
-          KsqlConstants.legacyDefaultSinkReplicaCount,
-          valueSchema
-      );
+      return new Topic(ksqlTopic.getKafkaTopicName(), valueSchema);
     };
 
     try {

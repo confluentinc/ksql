@@ -27,8 +27,6 @@ public final class KsqlConstants {
 
   public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
 
-  public static final int legacyDefaultSinkPartitionCount = 4;
-  public static final short legacyDefaultSinkReplicaCount = 1;
   public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
   public static final long defaultCommitIntervalMsConfig = 2000;

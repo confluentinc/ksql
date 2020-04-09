@@ -13,10 +13,12 @@ For more information, see
 [Aggregate Streaming Data With ksqlDB](../aggregate-streaming-data.md).
 
   - [AVG](#average)
-  - [COLLECT_LIST](#collectlist)
-  - [COLLECT_SET](#collectset)
+  - [COLLECT_LIST](#collect_list)
+  - [COLLECT_SET](#collect_set)
   - [COUNT](#count)
+  - [COUNT_DISTINCT](#count_distinct)
   - [HISTOGRAM](#histogram)
+  - [LATEST_BY_OFFSET](#latest_by_offset)
   - [MAX](#max)
   - [MIN](#min)
   - [SUM](#sum)
@@ -98,7 +100,7 @@ Stream, Table
 
 Returns the _approximate_ number of unique values of `col1` in a group.
 The function implementation uses [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog)
-to estimate cardinalties of 10^9 with a typical standard error of 2%.
+to estimate cardinalities of 10^9 with a typical standard error of 2%.
 
 
 HISTOGRAM
@@ -128,8 +130,7 @@ LATEST_BY_OFFSET
 Stream
 
 Return the latest value for a given column. Latest here is defined as the value in the partition
-with the greatest offset.
-Note: rows where `col1` is null will be ignored.
+with the greatest offset. Rows that have `col1` set to null are ignored.
 
 MAX
 ---
@@ -139,7 +140,7 @@ MAX
 Stream
 
 Return the maximum value for a given column and window.
-Note: rows where `col1` is null will be ignored.
+Rows that have `col1` set to null are ignored.
 
 MIN
 ---
@@ -149,7 +150,7 @@ MIN
 Stream
 
 Return the minimum value for a given column and window.
-Note: rows where `col1` is null will be ignored.
+Rows that have `col1` set to null are ignored.
 
 SUM
 ---
@@ -159,7 +160,7 @@ SUM
 Stream, Table
 
 Sums the column values.
-Note: rows where `col1` is null will be ignored.
+Rows that have `col1` set to null are ignored.
 
 TOPK
 ----
@@ -169,7 +170,7 @@ TOPK
 Stream
 
 Return the Top *K* values for the given column and window
-Note: rows where `col1` is null will be ignored.
+Rows that have `col1` set to null are ignored.
 
 TOPKDISTINCT
 ------------
@@ -179,4 +180,4 @@ TOPKDISTINCT
 Stream
 
 Return the distinct Top *K* values for the given column and window
-Note: rows where `col1` is null will be ignored.
+Rows that have `col1` set to null are ignored.

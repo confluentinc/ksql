@@ -333,8 +333,9 @@ class Analyzer {
       // all (e.g. SELECT * FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id)
       final boolean flipped = rightSourceName.equals(analysis.getFrom().getAlias());
       analysis.addJoin(new JoinInfo(
-          ImmutableList.of(left, right),
+          flipped ? right : left,
           flipped ? comparisonExpression.getRight() : comparisonExpression.getLeft(),
+          flipped ? left : right,
           flipped ? comparisonExpression.getLeft() : comparisonExpression.getRight(),
           joinType,
           node.getWithinExpression()

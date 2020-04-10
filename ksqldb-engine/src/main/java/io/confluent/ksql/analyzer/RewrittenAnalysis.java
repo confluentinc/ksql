@@ -150,8 +150,9 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   public List<JoinInfo> getJoin() {
     return original.getJoin().stream().map(
         j -> new JoinInfo(
-            j.getJoinedSources(),
+            j.getLeftSource(),
             rewrite(j.getLeftJoinExpression()),
+            j.getRightSource(),
             rewrite(j.getRightJoinExpression()),
             j.getType(),
             j.getWithinExpression()

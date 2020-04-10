@@ -37,6 +37,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -56,7 +57,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ExplainExecutorTest {
 
-  private static final KafkaStreams.State STATE = KafkaStreams.State.RUNNING;
+  private static final KsqlQueryStatus STATE = KsqlQueryStatus.RUNNING;
   private static final KsqlHostInfo LOCAL_HOST = new KsqlHostInfo("host", 8080);
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
@@ -91,7 +92,7 @@ public class ExplainExecutorTest {
     assertThat(
         query.getQueryDescription(),
         equalTo(QueryDescriptionFactory.forQueryMetadata(
-            metadata, Collections.singletonMap(new KsqlHostInfoEntity(LOCAL_HOST), STATE.toString()))));
+            metadata, Collections.singletonMap(new KsqlHostInfoEntity(LOCAL_HOST), STATE))));
   }
 
   @Test
@@ -113,7 +114,7 @@ public class ExplainExecutorTest {
     assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
     assertThat(query.getQueryDescription().getSources(), containsInAnyOrder("Y"));
     assertThat("No side effects should happen", engine.getEngine().getPersistentQueries(), is(empty()));
-    assertThat(query.getQueryDescription().getKsqlHostQueryState(), equalTo(Collections.emptyMap()));
+    assertThat(query.getQueryDescription().getKsqlHostQueryStatus(), equalTo(Collections.emptyMap()));
   }
 
   @Test
@@ -134,7 +135,7 @@ public class ExplainExecutorTest {
     // Then:
     assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
     assertThat(query.getQueryDescription().getSources(), containsInAnyOrder("Y"));
-    assertThat(query.getQueryDescription().getKsqlHostQueryState(), equalTo(Collections.emptyMap()));
+    assertThat(query.getQueryDescription().getKsqlHostQueryStatus(), equalTo(Collections.emptyMap()));
   }
 
   @Test

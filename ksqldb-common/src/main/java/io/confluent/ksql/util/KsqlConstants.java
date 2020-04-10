@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import org.apache.kafka.streams.KafkaStreams;
+
 public final class KsqlConstants {
 
   private KsqlConstants() {
@@ -42,7 +44,17 @@ public final class KsqlConstants {
   public static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
   public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
   public static final String DEFAULT_AVRO_SCHEMA_FULL_NAME =
-          AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
+      AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
+
+  public enum KsqlQueryStatus {
+    RUNNING,
+    ERROR,
+    UNRESPONSIVE,
+  }
+
+  public static KsqlQueryStatus fromStreamsState(final KafkaStreams.State state) {
+    return state == KafkaStreams.State.ERROR ? KsqlQueryStatus.ERROR : KsqlQueryStatus.RUNNING;
+  }
 
   /**
    * Default time and date patterns

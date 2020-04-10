@@ -38,6 +38,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QuerySchemas;
@@ -49,7 +50,6 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
@@ -61,8 +61,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryDescriptionFactoryTest {
 
-  private static final Map<KsqlHostInfoEntity, String> STATE_MAP =
-      Collections.singletonMap(new KsqlHostInfoEntity("host", 8080), "RUNNING");
+  private static final Map<KsqlHostInfoEntity, KsqlQueryStatus> STATUS_MAP =
+      Collections.singletonMap(new KsqlHostInfoEntity("host", 8080), KsqlQueryStatus.RUNNING);
   private static final LogicalSchema TRANSIENT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
@@ -140,7 +140,7 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout);
 
-    persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATE_MAP);
+    persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATUS_MAP);
   }
 
   @Test

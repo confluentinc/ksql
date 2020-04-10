@@ -30,13 +30,15 @@ import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-
 import java.util.Collections;
 import java.util.Optional;
+
+import org.apache.kafka.streams.KafkaStreams;
 
 /**
  * Explains the execution of either an existing persistent query or a statement
@@ -144,7 +146,9 @@ public final class ExplainExecutor {
         metadata,
         Collections.singletonMap(
             new KsqlHostInfoEntity(sessionProperties.getKsqlHostInfo()),
-            metadata.getState()));
+                KsqlConstants.fromStreamsState(
+                    KafkaStreams.State.valueOf(metadata.getState()))
+        ));
   }
 
 }

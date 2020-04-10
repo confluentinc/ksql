@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.FormatOptions;
@@ -60,43 +59,21 @@ public final class FilterTypeValidator {
     final Expression magicTimestampRewrite =
         new StatementRewriteForMagicPseudoTimestamp().rewrite(exp);
 
-    // Traverse the AST and throw errors if necessary
-    final TypeChecker typeChecker = new TypeChecker(filterType, expressionTypeManager);
-    typeChecker.process(magicTimestampRewrite, null);
-  }
-
-  /**
-   * Does the actual type checking, ensuring that the where expression uses the proper types and
-   * then giving a decent error message if there's an issue.
-   */
-  private static final class TypeChecker extends VisitParentExpressionVisitor<Void, Object> {
-
-    private final FilterType filterType;
-    private final ExpressionTypeManager expressionTypeManager;
-
-    TypeChecker(final FilterType filterType, final ExpressionTypeManager expressionTypeManager) {
-      this.filterType = filterType;
-      this.expressionTypeManager = expressionTypeManager;
+    final SqlType type;
+    try {
+      type = expressionTypeManager.getExpressionSqlType(magicTimestampRewrite);
+    } catch (KsqlStatementException e) {
+      throw new KsqlStatementException("Error in " + filterType.name() + " expression: "
+          + e.getRawMessage(), e.getSqlStatement());
+    } catch (KsqlException e) {
+      throw new KsqlStatementException("Error in " + filterType.name() + " expression: "
+          + e.getMessage(), exp.toString());
     }
-
-    public Void visitExpression(final Expression exp, final Object context) {
-      final SqlType type;
-      try {
-        type = expressionTypeManager.getExpressionSqlType(exp);
-      } catch (KsqlStatementException e) {
-        throw new KsqlStatementException("Error in " + filterType.name() + " expression: " +
-            e.getRawMessage(), e.getSqlStatement());
-      } catch (KsqlException e) {
-        throw new KsqlStatementException("Error in " + filterType.name() + " expression: " +
-            e.getMessage(), exp.toString());
-      }
-      if (!SqlTypes.BOOLEAN.equals(type)) {
-        throw new KsqlStatementException("Type error in " + filterType.name() + " expression: "
-            + "Should evaluate to boolean but is " + exp.toString()
-            + " (" + type.toString(FormatOptions.none()) + ") instead.",
-            exp.toString());
-      }
-      return null;
+    if (!SqlTypes.BOOLEAN.equals(type)) {
+      throw new KsqlStatementException("Type error in " + filterType.name() + " expression: "
+          + "Should evaluate to boolean but is " + exp.toString()
+          + " (" + type.toString(FormatOptions.none()) + ") instead.",
+          exp.toString());
     }
   }
 

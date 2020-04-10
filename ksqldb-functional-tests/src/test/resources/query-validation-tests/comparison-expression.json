@@ -11,7 +11,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to 'not an int' (STRING)."
+        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to 'not an int' (STRING) with GREATER_THAN_OR_EQUAL."
       }
     },
     {
@@ -22,7 +22,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to 'not an int' (STRING)."
+        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to 'not an int' (STRING) with GREATER_THAN_OR_EQUAL."
       }
     },
     {
@@ -34,7 +34,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Error in WHERE expression: Cannot compare I1_BAR (INTEGER) to I2_BAR (STRING)."
+        "message": "Error in WHERE expression: Cannot compare I1_BAR (INTEGER) to I2_BAR (STRING) with GREATER_THAN."
       }
     },
     {
@@ -78,7 +78,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Error in HAVING expression: Cannot compare SUM(VALUE) (BIGINT) to '100' (STRING)."
+        "message": "Error in HAVING expression: Cannot compare SUM(VALUE) (BIGINT) to '100' (STRING) with GREATER_THAN."
       }
     },
     {
@@ -89,7 +89,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Error in HAVING expression: Cannot compare SUM(VALUE) (BIGINT) to '100' (STRING)."
+        "message": "Error in HAVING expression: Cannot compare SUM(VALUE) (BIGINT) to '100' (STRING) with GREATER_THAN."
       }
     },
     {
@@ -101,7 +101,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Error in HAVING expression: Cannot compare SUM(I1_BAR) (INTEGER) to '100' (STRING)."
+        "message": "Error in HAVING expression: Cannot compare SUM(I1_BAR) (INTEGER) to '100' (STRING) with GREATER_THAN."
       }
     }
   ]

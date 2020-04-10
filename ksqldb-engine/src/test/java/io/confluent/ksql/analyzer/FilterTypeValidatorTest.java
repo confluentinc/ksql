@@ -79,7 +79,7 @@ public class FilterTypeValidatorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Error in WHERE expression: "
-        + "Cannot compare col1 (STRING) to 10 (INTEGER).");
+        + "Cannot compare col1 (STRING) to 10 (INTEGER) with EQUAL.");
 
     // When:
     validator.validateFilterExpression(comparision);
@@ -116,7 +116,7 @@ public class FilterTypeValidatorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Error in WHERE expression: "
-        + "Cannot compare col1 (STRING) to col2 (INTEGER).");
+        + "Cannot compare col1 (STRING) to col2 (INTEGER) with EQUAL.");
 
     // When:
     validator.validateFilterExpression(comparision);
@@ -158,7 +158,7 @@ public class FilterTypeValidatorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Error in WHERE expression: "
-        + "Cannot compare col1 (STRING) to col2 (INTEGER).");
+        + "Cannot compare col1 (STRING) to col2 (INTEGER) with EQUAL.");
 
     // When:
     validator.validateFilterExpression(expression);
@@ -186,7 +186,7 @@ public class FilterTypeValidatorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Error in WHERE expression: "
-        + "Cannot compare col1 (STRING) to col2 (INTEGER).");
+        + "Cannot compare col1 (STRING) to col2 (INTEGER) with EQUAL.");
 
     // When:
     validator.validateFilterExpression(expression);

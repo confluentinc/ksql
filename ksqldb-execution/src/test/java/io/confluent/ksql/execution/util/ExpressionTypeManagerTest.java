@@ -176,7 +176,7 @@ public class ExpressionTypeManagerTest {
     );
     expectedException.expect(KsqlException.class);
     expectedException
-        .expectMessage("Operator GREATER_THAN cannot be used to compare BIGINT and STRING");
+        .expectMessage("Cannot compare COL0 (BIGINT) to COL1 (STRING) with GREATER_THAN");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expr);
@@ -192,7 +192,8 @@ public class ExpressionTypeManagerTest {
         new BooleanLiteral("false")
     );
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare BOOLEAN");
+    expectedException.expectMessage("Cannot compare true (BOOLEAN) to false (BOOLEAN) with "
+        + "GREATER_THAN");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expr);
@@ -205,7 +206,9 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new ComparisonExpression(Type.GREATER_THAN, MAPCOL, ADDRESS);
     expectedException.expect(KsqlException.class);
     expectedException
-        .expectMessage("Operator GREATER_THAN cannot be used to compare MAP and STRUCT");
+        .expectMessage("Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 (STRUCT<`NUMBER` BIGINT, "
+            + "`STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>) "
+            + "with GREATER_THAN");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -216,7 +219,9 @@ public class ExpressionTypeManagerTest {
     // Given:
     final Expression expression = new ComparisonExpression(Type.EQUAL, MAPCOL, ADDRESS);
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Operator EQUAL cannot be used to compare MAP and STRUCT");
+    expectedException.expectMessage("Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 "
+        + "(STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, "
+        + "`ZIPCODE` BIGINT>) with EQUAL");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);

@@ -58,7 +58,6 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.Field;
@@ -161,8 +160,9 @@ public class ExpressionTypeManager {
       final SqlType rightSchema = expressionTypeContext.getSqlType();
       if (!ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema)) {
         throw new KsqlStatementException("Cannot compare "
-            + node.getLeft().toString() + " (" + leftSchema.toString(FormatOptions.none()) + ") to "
-            + node.getRight().toString() + " (" + rightSchema.toString(FormatOptions.none()) + ").",
+            + node.getLeft().toString() + " (" + leftSchema.toString() + ") to "
+            + node.getRight().toString() + " (" + rightSchema.toString() + ") "
+            + "with " + node.getType() + ".",
             node.toString());
       }
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);

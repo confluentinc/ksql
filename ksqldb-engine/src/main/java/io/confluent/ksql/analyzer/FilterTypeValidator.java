@@ -17,6 +17,7 @@ package io.confluent.ksql.analyzer;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
@@ -58,9 +59,13 @@ public final class FilterTypeValidator {
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
         functionRegistry);
 
+    // Rewrite the expression with magic timestamps, so type checking can pass
+    final Expression magicTimestampRewrite =
+        new StatementRewriteForMagicPseudoTimestamp().rewrite(exp);
+
     // Traverse the AST and throw errors if necessary
     final TypeChecker typeChecker = new TypeChecker(filterType, expressionTypeManager);
-    typeChecker.process(exp, null);
+    typeChecker.process(magicTimestampRewrite, null);
   }
 
   /**

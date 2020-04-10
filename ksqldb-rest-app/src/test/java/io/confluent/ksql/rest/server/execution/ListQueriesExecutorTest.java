@@ -167,7 +167,7 @@ public class ListQueriesExecutorTest {
     
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(queryMetaDataToRunningQuery(
         remoteMetadata,
-        new QueryStatusCount(Collections.singletonMap(ERROR_QUERY_STATE, 1))));
+        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(ERROR_QUERY_STATE, 1))));
     when(remoteQueries.getQueries()).thenReturn(remoteRunningQueries);
     when(ksqlEntityList.get(anyInt())).thenReturn(remoteQueries);
     when(response.getResponse()).thenReturn(ksqlEntityList);
@@ -200,7 +200,7 @@ public class ListQueriesExecutorTest {
     
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(queryMetaDataToRunningQuery(
         remoteMetadata,
-        new QueryStatusCount(Collections.singletonMap(RUNNING_QUERY_STATE, 1))));
+        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(RUNNING_QUERY_STATE, 1))));
     when(remoteQueries.getQueries()).thenReturn(remoteRunningQueries);
     when(ksqlEntityList.get(anyInt())).thenReturn(remoteQueries);
     when(response.getResponse()).thenReturn(ksqlEntityList);

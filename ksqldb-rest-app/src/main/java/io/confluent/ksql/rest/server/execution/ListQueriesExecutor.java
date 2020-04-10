@@ -110,7 +110,7 @@ public final class ListQueriesExecutor {
                 ImmutableSet.of(q.getSinkName().text()),
                 ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
                 q.getQueryId(),
-                new QueryStatusCount(
+                QueryStatusCount.fromStreamsStateCounts(
                     Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)))
         ));
   }

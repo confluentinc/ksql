@@ -253,7 +253,7 @@ public class ListSourceExecutorTest {
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    final QueryStatusCount queryStatusCount = new QueryStatusCount(
+    final QueryStatusCount queryStatusCount = QueryStatusCount.fromStreamsStateCounts(
         Collections.singletonMap(KafkaStreams.State.valueOf(metadata.getState()), 1));
 
     assertThat(sourceDescription.getSourceDescription(),

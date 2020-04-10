@@ -58,6 +58,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.Field;
@@ -69,6 +70,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -157,7 +159,12 @@ public class ExpressionTypeManager {
       final SqlType leftSchema = expressionTypeContext.getSqlType();
       process(node.getRight(), expressionTypeContext);
       final SqlType rightSchema = expressionTypeContext.getSqlType();
-      ComparisonUtil.assertValidComparison(leftSchema, node.getType(), rightSchema);
+      if (!ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema)) {
+        throw new KsqlStatementException("Cannot compare "
+            + node.getLeft().toString() + " (" + leftSchema.toString(FormatOptions.none()) + ") to "
+            + node.getRight().toString() + " (" + rightSchema.toString(FormatOptions.none()) + ").",
+            node.toString());
+      }
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }

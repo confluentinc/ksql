@@ -78,7 +78,7 @@ public class FilterTypeValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Type mismatch in WHERE expression: "
+    expectedException.expectMessage("Error in WHERE expression: "
         + "Cannot compare col1 (STRING) to 10 (INTEGER).");
 
     // When:
@@ -115,7 +115,7 @@ public class FilterTypeValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Type mismatch in WHERE expression: "
+    expectedException.expectMessage("Error in WHERE expression: "
         + "Cannot compare col1 (STRING) to col2 (INTEGER).");
 
     // When:
@@ -157,7 +157,7 @@ public class FilterTypeValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Type mismatch in WHERE expression: "
+    expectedException.expectMessage("Error in WHERE expression: "
         + "Cannot compare col1 (STRING) to col2 (INTEGER).");
 
     // When:
@@ -185,7 +185,7 @@ public class FilterTypeValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Type mismatch in WHERE expression: "
+    expectedException.expectMessage("Error in WHERE expression: "
         + "Cannot compare col1 (STRING) to col2 (INTEGER).");
 
     // When:

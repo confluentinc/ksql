@@ -18,11 +18,8 @@ package io.confluent.ksql.analyzer;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
-import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
-import io.confluent.ksql.execution.util.ComparisonUtil;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.FormatOptions;
@@ -86,6 +83,9 @@ public final class FilterTypeValidator {
       final SqlType type;
       try {
         type = expressionTypeManager.getExpressionSqlType(exp);
+      } catch (KsqlStatementException e) {
+        throw new KsqlStatementException("Error in " + filterType.name() + " expression: " +
+            e.getRawMessage(), e.getSqlStatement());
       } catch (KsqlException e) {
         throw new KsqlStatementException("Error in " + filterType.name() + " expression: " +
             e.getMessage(), exp.toString());
@@ -96,39 +96,6 @@ public final class FilterTypeValidator {
             + " (" + type.toString(FormatOptions.none()) + ") instead.",
             exp.toString());
       }
-      return null;
-    }
-
-    @Override
-    public Void visitComparisonExpression(
-        final ComparisonExpression exp,
-        final Object context
-    ) {
-      final SqlType leftType;
-      final SqlType rightType;
-      try {
-        leftType = expressionTypeManager.getExpressionSqlType(exp.getLeft());
-        rightType = expressionTypeManager.getExpressionSqlType(exp.getRight());
-      } catch (KsqlException e) {
-        throw new KsqlStatementException("Error in " + filterType.name() + " expression: " +
-            e.getMessage(), exp.toString());
-      }
-      if (!ComparisonUtil.isValidComparison(leftType, exp.getType(), rightType)) {
-        throw new KsqlStatementException("Type mismatch in " + filterType.name() + " expression: "
-            + "Cannot compare "
-            + exp.getLeft().toString() + " (" + leftType.toString(FormatOptions.none()) + ") to "
-            + exp.getRight().toString() + " (" + rightType.toString(FormatOptions.none()) + ").",
-            exp.toString());
-      }
-      return null;
-    }
-
-    @Override
-    public Void visitLogicalBinaryExpression(
-        final LogicalBinaryExpression exp,
-        final Object context) {
-      process(exp.getLeft(), context);
-      process(exp.getRight(), context);
       return null;
     }
   }

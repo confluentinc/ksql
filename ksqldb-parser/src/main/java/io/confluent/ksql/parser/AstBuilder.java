@@ -743,13 +743,18 @@ public class AstBuilder {
 
     @Override
     public Node visitJoinRelation(final SqlBaseParser.JoinRelationContext joinRelationContext) {
-      if (joinRelationContext.joinedSource().size() > 1) {
-        throw new KsqlException(
-            "Invalid join criteria specified; KSQL does not support multi-way joins."
-        );
-      }
+      final AliasedRelation left = (AliasedRelation) visit(joinRelationContext.left);
+      final ImmutableList<JoinedSource> rights = joinRelationContext
+          .joinedSource()
+          .stream()
+          .map(this::visitJoinedSource)
+          .collect(ImmutableList.toImmutableList());
 
-      final JoinedSourceContext context = joinRelationContext.joinedSource(0);
+      return new Join(getLocation(joinRelationContext), left, rights);
+    }
+
+    @Override
+    public JoinedSource visitJoinedSource(final JoinedSourceContext context) {
       if (context.joinCriteria().ON() == null) {
         throw new KsqlException("Invalid join criteria specified. KSQL only supports joining on "
             + "column values. For example `... left JOIN right on left.col = "
@@ -775,18 +780,15 @@ public class AstBuilder {
         withinExpression = (WithinExpression) visitWithinExpression(
             context.joinWindow().withinExpression());
       }
-      final AliasedRelation left = (AliasedRelation) visit(joinRelationContext.left);
       final AliasedRelation right = (AliasedRelation) visit(context.aliasedRelation());
 
-      final JoinedSource joinedSource = new JoinedSource(
+      return new JoinedSource(
           getLocation(context),
           right,
           joinType,
           criteria,
           Optional.ofNullable(withinExpression)
       );
-
-      return new Join(getLocation(joinRelationContext), left, ImmutableList.of(joinedSource));
     }
 
     @Override

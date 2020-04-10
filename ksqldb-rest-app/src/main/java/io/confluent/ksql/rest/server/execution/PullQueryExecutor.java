@@ -968,7 +968,7 @@ public final class PullQueryExecutor {
   }
 
   private static SourceName getSourceName(final ImmutableAnalysis analysis) {
-    final DataSource source = analysis.getFromDataSources().get(0).getDataSource();
+    final DataSource source = analysis.getFrom().getDataSource();
     return source.getName();
   }
 

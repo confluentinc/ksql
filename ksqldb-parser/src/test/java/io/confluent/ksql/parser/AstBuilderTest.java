@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser;
 
 import static io.confluent.ksql.parser.tree.JoinMatchers.hasLeft;
-import static io.confluent.ksql.parser.tree.JoinMatchers.hasRight;
+import static io.confluent.ksql.parser.tree.JoinMatchers.hasRights;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
@@ -59,8 +59,10 @@ public class AstBuilderTest {
 
   private static final SourceName TEST1_NAME = SourceName.of("TEST1");
   private static final SourceName TEST2_NAME = SourceName.of("TEST2");
+  private static final SourceName TEST3_NAME = SourceName.of("TEST3");
   private static final Table TEST1 = new Table(TEST1_NAME);
   private static final Table TEST2 = new Table(TEST2_NAME);
+  private static final Table TEST3 = new Table(TEST3_NAME);
 
   private AstBuilder builder;
 
@@ -109,18 +111,6 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void shouldFailOnMultiWayJoin() {
-    // Given:
-    final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1 JOIN TEST2 ON test1.col1 = test2.col2 JOIN TEST3 ON test1.col1 = test3.col0;");
-
-    // When:
-    final KsqlException e= assertThrows(KsqlException.class, () -> builder.buildStatement(stmt));
-
-    // Then:
-    assertThat(e.getMessage(), containsString("KSQL does not support multi-way joins."));
-  }
-
-  @Test
   public void shouldExtractUnaliasedJoinDataSources() {
     // Given:
     final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1 JOIN TEST2"
@@ -132,7 +122,26 @@ public class AstBuilderTest {
     // Then:
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
     assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, TEST1_NAME)));
-    assertThat((Join) result.getFrom(), hasRight(new AliasedRelation(TEST2, TEST2_NAME)));
+    assertThat((Join) result.getFrom(), hasRights(new AliasedRelation(TEST2, TEST2_NAME)));
+  }
+
+  @Test
+  public void shouldExtractMultipleUnaliasedJoinDataSources() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1 "
+        + "JOIN TEST2 ON test1.col1 = test2.col1 "
+        + "JOIN TEST3 ON test1.col1 = test3.col1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getFrom(), is(instanceOf(Join.class)));
+    assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, TEST1_NAME)));
+    assertThat((Join) result.getFrom(), hasRights(
+        new AliasedRelation(TEST2, TEST2_NAME),
+        new AliasedRelation(TEST3, TEST3_NAME)
+    ));
   }
 
   @Test
@@ -147,7 +156,26 @@ public class AstBuilderTest {
     // Then:
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
     assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, SourceName.of("T1"))));
-    assertThat((Join) result.getFrom(), hasRight(new AliasedRelation(TEST2, SourceName.of("T2"))));
+    assertThat((Join) result.getFrom(), hasRights(new AliasedRelation(TEST2, SourceName.of("T2"))));
+  }
+
+  @Test
+  public void shouldHandleMultipleAliasedJoinDataSources() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1 t1 "
+        + "JOIN TEST2 t2 ON t1.col1 = t2.col1 "
+        + "JOIN TEST3 t3 ON t1.col1 = t3.col1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getFrom(), is(instanceOf(Join.class)));
+    assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, SourceName.of("T1"))));
+    assertThat((Join) result.getFrom(), hasRights(
+        new AliasedRelation(TEST2, SourceName.of("T2")),
+        new AliasedRelation(TEST3, SourceName.of("T3"))
+    ));
   }
 
   @Test
@@ -162,7 +190,7 @@ public class AstBuilderTest {
     // Then:
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
     assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, SourceName.of("T1"))));
-    assertThat((Join) result.getFrom(), hasRight(new AliasedRelation(TEST2, SourceName.of("T2"))));
+    assertThat((Join) result.getFrom(), hasRights(new AliasedRelation(TEST2, SourceName.of("T2"))));
   }
 
   @Test

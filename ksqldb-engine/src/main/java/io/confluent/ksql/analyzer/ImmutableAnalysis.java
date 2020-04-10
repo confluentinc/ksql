@@ -62,9 +62,11 @@ public interface ImmutableAnalysis {
 
   List<JoinInfo> getJoin();
 
-  List<AliasedDataSource> getFromDataSources();
+  List<AliasedDataSource> getAllDataSources();
 
   CreateSourceAsProperties getProperties();
 
   SourceSchemas getFromSourceSchemas(boolean postAggregate);
+
+  AliasedDataSource getFrom();
 }

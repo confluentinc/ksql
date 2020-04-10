@@ -17,6 +17,7 @@ package io.confluent.ksql.engine.rewrite;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -81,6 +82,7 @@ public final class AstSanitizer {
       this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
       this.aliasGenerator = ColumnNames.columnAliasGenerator(
           dataSourceExtractor.getAllSources().stream()
+              .map(AliasedDataSource::getDataSource)
               .map(DataSource::getSchema)
       );
     }

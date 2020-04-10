@@ -60,7 +60,7 @@ public class Analysis implements ImmutableAnalysis {
   private final ResultMaterialization resultMaterialization;
   private final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
-  private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
+  private final List<AliasedDataSource> allDataSources = new ArrayList<>();
   private final List<JoinInfo> joinInfo = new ArrayList<>();
   private Optional<Expression> whereExpression = Optional.empty();
   private final List<SelectItem> selectItems = new ArrayList<>();
@@ -172,11 +172,6 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   void addJoin(final JoinInfo joinInfo) {
-    // we cannot add more joins than we have data sources
-    if (fromDataSources.size() < this.joinInfo.size()) {
-      throw new IllegalStateException("Join info can only be supplied for joins");
-    }
-
     this.joinInfo.add(joinInfo);
   }
 
@@ -189,13 +184,13 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   @Override
-  public List<AliasedDataSource> getFromDataSources() {
-    return ImmutableList.copyOf(fromDataSources);
+  public List<AliasedDataSource> getAllDataSources() {
+    return ImmutableList.copyOf(allDataSources);
   }
 
   @Override
   public SourceSchemas getFromSourceSchemas(final boolean postAggregate) {
-    final Map<SourceName, LogicalSchema> schemaBySource = fromDataSources.stream()
+    final Map<SourceName, LogicalSchema> schemaBySource = allDataSources.stream()
         .collect(Collectors.toMap(
             AliasedDataSource::getAlias,
             ads -> buildStreamsSchema(ads, postAggregate)
@@ -204,17 +199,36 @@ public class Analysis implements ImmutableAnalysis {
     return sourceSchemasFactory.apply(schemaBySource);
   }
 
+  Optional<AliasedDataSource> getSourceByAlias(final SourceName name) {
+    return allDataSources.stream()
+        .filter(source -> source.getAlias().equals(name))
+        .findFirst();
+  }
+
+  Optional<AliasedDataSource> getSourceByName(final SourceName name) {
+    return allDataSources.stream()
+        .filter(source -> source.getDataSource().getName().equals(name))
+        .findFirst();
+  }
+
+  @Override
+  public AliasedDataSource getFrom() {
+    // we know that the first data source to be visited in the Analyzer is
+    // the "FROM" data source
+    return allDataSources.get(0);
+  }
+
   void addDataSource(final SourceName alias, final DataSource dataSource) {
     if (!(dataSource instanceof KsqlStream) && !(dataSource instanceof KsqlTable)) {
       throw new IllegalArgumentException("Data source type not supported yet: " + dataSource);
     }
 
-    fromDataSources.add(new AliasedDataSource(alias, dataSource));
+    allDataSources.add(new AliasedDataSource(alias, dataSource));
   }
 
   @Override
   public QualifiedColumnReferenceExp getDefaultArgument() {
-    final SourceName alias = fromDataSources.get(0).getAlias();
+    final SourceName alias = allDataSources.get(0).getAlias();
     return new QualifiedColumnReferenceExp(alias, SchemaUtil.ROWTIME_NAME);
   }
 
@@ -307,7 +321,7 @@ public class Analysis implements ImmutableAnalysis {
     private final SourceName alias;
     private final DataSource dataSource;
 
-    AliasedDataSource(
+    public AliasedDataSource(
         final SourceName alias,
         final DataSource dataSource
     ) {
@@ -331,18 +345,25 @@ public class Analysis implements ImmutableAnalysis {
     private final Expression rightJoinExpression;
     private final JoinNode.JoinType type;
     private final Optional<WithinExpression> withinExpression;
+    private final ImmutableList<AliasedDataSource> joinedSources;
 
     JoinInfo(
+        final ImmutableList<AliasedDataSource> joinedSources,
         final Expression leftJoinExpression,
         final Expression rightJoinExpression,
         final JoinType type,
         final Optional<WithinExpression> withinExpression
 
     ) {
+      this.joinedSources = requireNonNull(joinedSources, "joinedSources");
       this.leftJoinExpression = requireNonNull(leftJoinExpression, "leftJoinExpression");
       this.rightJoinExpression = requireNonNull(rightJoinExpression, "rightJoinExpression");
       this.type = requireNonNull(type, "type");
       this.withinExpression = requireNonNull(withinExpression, "withinExpression");
+    }
+
+    public ImmutableList<AliasedDataSource> getJoinedSources() {
+      return joinedSources;
     }
 
     public Expression getLeftJoinExpression() {

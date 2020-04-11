@@ -1990,7 +1990,7 @@ public class KsqlResourceTest {
             ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
-            new QueryStatusCount(
+            QueryStatusCount.fromStreamsStateCounts(
                 Collections.singletonMap(KafkaStreams.State.valueOf(md.getState()), 1)))
     ).collect(Collectors.toList());
   }

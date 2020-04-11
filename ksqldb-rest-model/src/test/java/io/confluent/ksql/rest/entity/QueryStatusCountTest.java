@@ -79,8 +79,8 @@ public class QueryStatusCountTest {
 
   @Test
   public void shouldImplementHashCodeAndEqualsCorrectly() {
-    final QueryStatusCount queryStatusCount1 = new QueryStatusCount(Collections.singletonMap(KafkaStreams.State.ERROR, 2));
-    final QueryStatusCount queryStatusCount2 = new QueryStatusCount(Collections.singletonMap(KafkaStreams.State.RUNNING, 1));
+    final QueryStatusCount queryStatusCount1 = new QueryStatusCount(Collections.singletonMap(KsqlQueryStatus.ERROR, 2));
+    final QueryStatusCount queryStatusCount2 = new QueryStatusCount(Collections.singletonMap(KsqlQueryStatus.RUNNING, 1));
     queryStatusCount2.updateStatusCount(KafkaStreams.State.ERROR, 2);
     final QueryStatusCount queryStatusCount3 = new QueryStatusCount();
     queryStatusCount3.updateStatusCount(KafkaStreams.State.ERROR, 2);
@@ -106,6 +106,7 @@ public class QueryStatusCountTest {
     // Given:
     queryStatusCount.updateStatusCount(KafkaStreams.State.RUNNING, 2);
     queryStatusCount.updateStatusCount(KafkaStreams.State.ERROR, 10);
+    queryStatusCount.updateStatusCount(KsqlQueryStatus.UNRESPONSIVE, 1);
 
     // When:
     final String json = assertDeserializedToSame(queryStatusCount);
@@ -113,7 +114,8 @@ public class QueryStatusCountTest {
     // Then:
     assertThat(json, is("{"
         + "\"RUNNING\":2,"
-        + "\"ERROR\":10"
+        + "\"ERROR\":10,"
+        + "\"UNRESPONSIVE\":1"
         + "}"));
   }
 

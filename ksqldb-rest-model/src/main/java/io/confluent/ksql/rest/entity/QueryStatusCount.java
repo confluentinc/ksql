@@ -39,21 +39,24 @@ public class QueryStatusCount {
   // Use a EnumMap so toString() will always return the same string
   private final EnumMap<KsqlQueryStatus, Integer> statuses;
 
-  public QueryStatusCount() {
-    this.statuses = returnEnumMap();
-  }
-
-  @SuppressWarnings("unused") // Invoked by reflection
-  @JsonCreator
-  public QueryStatusCount(final Map<KafkaStreams.State, Integer> states) {
+  public static QueryStatusCount fromStreamsStateCounts(
+      final Map<KafkaStreams.State, Integer> states) {
     final Map<KsqlQueryStatus, Integer> ksqlQueryStatus = states.entrySet().stream()
         .collect(Collectors.toMap(
             e -> KsqlConstants.fromStreamsState(e.getKey()),
             Map.Entry::getValue));
-    this.statuses = states.isEmpty() ? returnEnumMap() : new EnumMap<>(ksqlQueryStatus);
+    return new QueryStatusCount(ksqlQueryStatus);
   }
 
-  
+  public QueryStatusCount() {
+    this(Collections.emptyMap());
+  }
+
+  @JsonCreator
+  public QueryStatusCount(final Map<KsqlQueryStatus, Integer> states) {
+    this.statuses = states.isEmpty() ? returnEnumMap() : new EnumMap<>(states);
+  }
+
   public void updateStatusCount(final String state, final int change) {
     updateStatusCount(KafkaStreams.State.valueOf(state), change);
   }

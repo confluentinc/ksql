@@ -63,24 +63,26 @@ public class ServerVerticle extends AbstractVerticle {
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
   private final Server server;
-  private final ProxyHandler proxyHandler;
+  private final boolean proxyEnabled;
+  private ProxyHandler proxyHandler;
   private ConnectionQueryManager connectionQueryManager;
-  private volatile HttpServer httpServer;
+  private HttpServer httpServer;
 
   public ServerVerticle(final Endpoints endpoints, final HttpServerOptions httpServerOptions,
       final Server server, final boolean proxyEnabled) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
     this.server = Objects.requireNonNull(server);
-    if (proxyEnabled) {
-      this.proxyHandler = new ProxyHandler(server);
-    } else {
-      this.proxyHandler = null;
-    }
+    this.proxyEnabled = proxyEnabled;
   }
 
   @Override
   public void start(final Promise<Void> startPromise) {
+    if (proxyEnabled) {
+      this.proxyHandler = new ProxyHandler(server, context);
+    } else {
+      this.proxyHandler = null;
+    }
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ServerVerticle::unhandledExceptionHandler);

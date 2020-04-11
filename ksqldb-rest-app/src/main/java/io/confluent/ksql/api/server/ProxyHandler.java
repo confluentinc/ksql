@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.util.VertxUtils.checkContext;
+
+import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -54,11 +57,13 @@ class ProxyHandler {
   private static final String CONTENT_LENGTH_HEADER = HttpHeaders.CONTENT_LENGTH.toString();
   private static final String CHUNKED_ENCODING = "chunked";
 
+  private final Context context;
   private final HttpClient proxyClient;
   private final Server server;
   private SocketAddress proxyTarget;
 
-  ProxyHandler(final Server server) {
+  ProxyHandler(final Server server, final Context context) {
+    this.context = context;
     this.proxyClient = server.getVertx()
         .createHttpClient(new HttpClientOptions().setMaxPoolSize(10));
     this.server = server;
@@ -92,6 +97,7 @@ class ProxyHandler {
   }
 
   void websocketProxyHandler(final RoutingContext routingContext) {
+    checkContext(context);
     final HttpServerRequest request = routingContext.request();
     final WebSocketConnectOptions options = new WebSocketConnectOptions()
         .setHost(proxyTarget().host())
@@ -100,12 +106,13 @@ class ProxyHandler {
         .setURI(request.uri());
     request.pause();
     proxyClient.webSocket(options, ar -> {
+      checkContext(context);
       request.resume();
       if (ar.succeeded()) {
         final WebSocket webSocket = ar.result();
         final ServerWebSocket serverWebSocket = request.upgrade();
-        WebsocketPipe.pipe(serverWebSocket, webSocket);
-        WebsocketPipe.pipe(webSocket, serverWebSocket);
+        WebsocketPipe.pipe(context, serverWebSocket, webSocket);
+        WebsocketPipe.pipe(context, webSocket, serverWebSocket);
       } else {
         if (ar.cause() instanceof UpgradeRejectedException) {
           final UpgradeRejectedException uge = (UpgradeRejectedException) ar.cause();
@@ -215,28 +222,35 @@ class ProxyHandler {
 
   }
 
-
   private static final class WebsocketPipe {
 
+    private final Context context;
     private final WebSocketBase from;
     private final WebSocketBase to;
     private boolean drainHandlerSet;
 
-    public static void pipe(final WebSocketBase from, final WebSocketBase to) {
-      new WebsocketPipe(from, to);
+    public static void pipe(final Context context, final WebSocketBase from,
+        final WebSocketBase to) {
+      new WebsocketPipe(context, from, to);
     }
 
-    private WebsocketPipe(final WebSocketBase from, final WebSocketBase to) {
+    private WebsocketPipe(final Context context, final WebSocketBase from, final WebSocketBase to) {
+      this.context = context;
       this.from = from;
       this.to = to;
 
       from.frameHandler(this::frameHandler);
       from.exceptionHandler(this::exceptionHandler);
-      // Don't need to close the from websocket on end of to websocket as we proxy
-      // close frames too
+
+      // Proxy any close of the connection too
+      to.closeHandler(v -> {
+        checkContext(context);
+        from.close();
+      });
     }
 
     private void frameHandler(final WebSocketFrame wsf) {
+      checkContext(context);
       if (to.isClosed()) {
         return;
       }
@@ -249,11 +263,13 @@ class ProxyHandler {
     }
 
     private void drainHandler(final Void v) {
+      checkContext(context);
       drainHandlerSet = false;
       from.resume();
     }
 
     private void exceptionHandler(final Throwable t) {
+      checkContext(context);
       log.error("Exception in proxying websocket", t);
       try {
         to.close();

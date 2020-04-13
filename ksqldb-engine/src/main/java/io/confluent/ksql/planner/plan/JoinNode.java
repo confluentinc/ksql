@@ -116,9 +116,11 @@ public class JoinNode extends PlanNode {
   public Stream<ColumnName> resolveSelectStar(
       final Optional<SourceName> sourceName, final boolean valueOnly
   ) {
-    return getSources().stream()
-        .filter(s -> !sourceName.isPresent() || sourceName.equals(s.getSourceName()))
-        .flatMap(s -> s.resolveSelectStar(sourceName, false));
+    return getSources()
+            .stream()
+            .flatMap(s -> s instanceof JoinNode ? s.getSources().stream() : Stream.of(s))
+            .filter(s -> !sourceName.isPresent() || sourceName.equals(s.getSourceName()))
+            .flatMap(s -> s.resolveSelectStar(sourceName, false));
   }
 
   private void ensureMatchingPartitionCounts(final KafkaTopicClient kafkaTopicClient) {

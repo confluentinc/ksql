@@ -17,6 +17,7 @@ package io.confluent.ksql.planner;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -122,6 +123,23 @@ final class JoinTree {
       this.left = left;
       this.right = right;
       this.info = info;
+
+      checkJoinConditions(info.getLeftSource(), info.getLeftJoinExpression());
+      checkJoinConditions(info.getRightSource(), info.getRightJoinExpression());
+    }
+
+    /**
+     * @see <a href="https://github.com/confluentinc/ksql/issues/5062">#5062</a>
+     */
+    private void checkJoinConditions(final AliasedDataSource source, final Expression expression) {
+      final Expression existing = joinForSource(source);
+      if (!Objects.equals(existing, expression)) {
+        throw new KsqlException(
+            "KSQL does not yet support multi-joins with different expressions. "
+                + "A join for " + source.getAlias()
+                + " already exists with the condition `" + existing
+                + "` - cannot additionally join on `" + expression + "`");
+      }
     }
 
     public JoinInfo getInfo() {
@@ -139,6 +157,22 @@ final class JoinTree {
     @Override
     public boolean containsSource(final AliasedDataSource dataSource) {
       return left.containsSource(dataSource) || right.containsSource(dataSource);
+    }
+
+    private Expression joinForSource(final AliasedDataSource dataSource) {
+      if (left.containsSource(dataSource)) {
+        return left instanceof Leaf
+            ? info.getLeftJoinExpression()
+            : ((Join) left).joinForSource(dataSource);
+      }
+
+      if (right.containsSource(dataSource)) {
+        return right instanceof Leaf
+            ? info.getRightJoinExpression()
+            : ((Join) right).joinForSource(dataSource);
+      }
+
+      throw new IllegalStateException("Expected to find a leaf containing " + dataSource);
     }
 
     @Override

@@ -27,9 +27,7 @@ import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TableElementTest {
 
@@ -37,9 +35,6 @@ public class TableElementTest {
       Optional.of(new NodeLocation(2, 4));
   
   private static final ColumnName NAME = ColumnName.of("name");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementEquals() {

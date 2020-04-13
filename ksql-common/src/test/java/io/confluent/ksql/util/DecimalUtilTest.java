@@ -16,24 +16,21 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class DecimalUtilTest {
 
   private static final Schema DECIMAL_SCHEMA = DecimalUtil.builder(2, 1).build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldBuildCorrectSchema() {
@@ -274,141 +271,168 @@ public class DecimalUtilTest {
 
   @Test
   public void shouldFailIfBuilderWithZeroPrecision() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("DECIMAL precision must be >= 1");
-
     // When:
-    DecimalUtil.builder(0, 0);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> DecimalUtil.builder(0, 0)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("DECIMAL precision must be >= 1"));
   }
 
   @Test
   public void shouldFailIfBuilderWithNegativeScale() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("DECIMAL scale must be >= 0");
-
     // When:
-    DecimalUtil.builder(1, -1);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> DecimalUtil.builder(1, -1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("DECIMAL scale must be >= 0"));
   }
 
   @Test
   public void shouldFailIfBuilderWithScaleGTPrecision() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("DECIMAL precision must be >= scale");
-
     // When:
-    DecimalUtil.builder(1, 2);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> DecimalUtil.builder(1, 2)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("DECIMAL precision must be >= scale"));
   }
 
   @Test
   public void shouldFailFitIfNotExactMatchMoreDigits() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Numeric field overflow: A field with precision 2 and "
-        + "scale 1 must round to an absolute value less than 10^1. Got 12");
-
     // When:
-    DecimalUtil.ensureFit(new BigDecimal("12"), DECIMAL_SCHEMA);
+    final ArithmeticException e = assertThrows(
+        ArithmeticException.class,
+        () ->  DecimalUtil.ensureFit(new BigDecimal("12"), DECIMAL_SCHEMA)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Numeric field overflow: A field with "
+        + "precision 2 and scale 1 must round to an absolute value less than 10^1. Got 12"));
   }
 
   @Test
   public void shouldFailFitIfTruncationNecessary() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot fit decimal '1.23' into DECIMAL(2, 1) without rounding.");
-
     // When:
-    DecimalUtil.ensureFit(new BigDecimal("1.23"), DECIMAL_SCHEMA);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () ->  DecimalUtil.ensureFit(new BigDecimal("1.23"), DECIMAL_SCHEMA)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot fit decimal '1.23' into "
+        + "DECIMAL(2, 1) without rounding."));
   }
 
   @Test
   public void shouldNotCastDecimalTooBig() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Numeric field overflow");
-
     // When:
-    DecimalUtil.cast(new BigDecimal(10), 2, 1);
+    final ArithmeticException e = assertThrows(
+        ArithmeticException.class,
+        () ->DecimalUtil.cast(new BigDecimal(10), 2, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Numeric field overflow"));
   }
 
   @Test
   public void shouldNotCastDecimalTooNegative() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Numeric field overflow");
-
     // When:
-    DecimalUtil.cast(new BigDecimal(-10), 2, 1);
+    final ArithmeticException e = assertThrows(
+        ArithmeticException.class,
+        () -> DecimalUtil.cast(new BigDecimal(-10), 2, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Numeric field overflow"));
   }
 
   @Test
   public void shouldNotCastIntTooBig() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Numeric field overflow");
-
     // When:
-    DecimalUtil.cast(10, 2, 1);
+    final ArithmeticException e = assertThrows(
+        ArithmeticException.class,
+        () -> DecimalUtil.cast(10, 2, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Numeric field overflow"));
   }
 
   @Test
   public void shouldNotCastIntTooNegative() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Numeric field overflow");
-
     // When:
-    DecimalUtil.cast(-10, 2, 1);
+    final ArithmeticException e = assertThrows(
+        ArithmeticException.class,
+        () -> DecimalUtil.cast(-10, 2, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Numeric field overflow"));
   }
 
   @Test
   public void shouldNotCastDoubleTooBig() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Numeric field overflow");
-
     // When:
-    DecimalUtil.cast(10.0, 2, 1);
+    final ArithmeticException e = assertThrows(
+        ArithmeticException.class,
+        () -> DecimalUtil.cast(10.0, 2, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Numeric field overflow"));
   }
 
   @Test
   public void shouldNotCastDoubleTooNegative() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Numeric field overflow");
-
     // When:
-    DecimalUtil.cast(-10.0, 2, 1);
+    final ArithmeticException e = assertThrows(
+        ArithmeticException.class,
+        () -> DecimalUtil.cast(-10.0, 2, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Numeric field overflow"));
   }
 
   @Test
   public void shouldNotCastStringTooBig() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Numeric field overflow");
-
     // When:
-    DecimalUtil.cast("10", 2, 1);
+    final ArithmeticException e = assertThrows(
+        ArithmeticException.class,
+        () -> DecimalUtil.cast("10", 2, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Numeric field overflow"));
   }
 
   @Test
   public void shouldNotCastStringTooNegative() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Numeric field overflow");
-
     // When:
-    DecimalUtil.cast("-10", 2, 1);
+    final ArithmeticException e = assertThrows(
+        ArithmeticException.class,
+        () -> DecimalUtil.cast("-10", 2, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Numeric field overflow"));
   }
 
   @Test
   public void shouldNotCastStringNonNumber() {
-    // Expect:
-    expectedException.expect(NumberFormatException.class);
-
     // When:
-    DecimalUtil.cast("abc", 2, 1);
+    assertThrows(
+        NumberFormatException.class,
+        () -> DecimalUtil.cast("abc", 2, 1)
+    );
   }
 }

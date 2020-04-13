@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -96,9 +97,7 @@ import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -120,9 +119,6 @@ public class StreamedQueryResourceTest {
   private static final String PUSH_QUERY_STRING = "SELECT * FROM " + TOPIC_NAME + " EMIT CHANGES;";
   private static final String PULL_QUERY_STRING = "SELECT * FROM " + TOPIC_NAME + " WHERE ROWKEY='null';";
   private static final String PRINT_TOPIC = "Print TEST_TOPIC;";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlEngine mockKsqlEngine;
@@ -189,17 +185,18 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator)
     );
 
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException
-        .expect(exceptionErrorMessage(errorMessage(Matchers.is("Server initializing"))));
-
     // When:
-    testResource.streamQuery(
-        serviceContext,
-        new KsqlRequest("query", Collections.emptyMap(), null)
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest("query", Collections.emptyMap(), null)
+        )
     );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    assertThat(e, exceptionErrorMessage(errorMessage(Matchers.is("Server initializing"))));
   }
 
   @Test
@@ -208,18 +205,19 @@ public class StreamedQueryResourceTest {
     when(mockStatementParser.parseSingleStatement(any()))
         .thenThrow(new IllegalArgumentException("some error message"));
 
-    // Expect
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is("some error message"))));
-    expectedException.expect(
-        exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
-
     // When:
-    testResource.streamQuery(
-        serviceContext,
-        new KsqlRequest("query", Collections.emptyMap(), null)
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest("query", Collections.emptyMap(), null)
+        )
     );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(Matchers.is("some error message"))));
+    assertThat(e, exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
   }
 
   @Test
@@ -253,19 +251,22 @@ public class StreamedQueryResourceTest {
     doThrow(new TimeoutException("whoops"))
         .when(commandQueue).ensureConsumedPast(anyLong(), any());
 
-    // Expect
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(
-        containsString("Timed out while waiting for a previous command to execute"))));
-    expectedException.expect(
-        exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
-
     // When:
-    testResource.streamQuery(
-        serviceContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L)
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L)
+        )
     );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    assertThat(e, exceptionErrorMessage(errorMessage(containsString(
+        "Timed out while waiting for a previous command to execute"
+    ))));
+    assertThat(e, exceptionErrorMessage(errorCode(
+        is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
   }
 
   @SuppressWarnings("unchecked")
@@ -631,31 +632,30 @@ public class StreamedQueryResourceTest {
         "Test_Topic"
     ));
 
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(HttpStatus.Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(
-        errorMessage(containsString(
-            "Could not find topic 'TEST_TOPIC', "
-                + "or the KSQL user does not have permissions to list the topic. "
-                + "Topic names are case-sensitive."
-                + System.lineSeparator()
-                + "Did you mean:"
-        ))));
-
-    expectedException.expect(exceptionErrorMessage(
-        errorMessage(containsString("\tprint test_topic;"
-        ))));
-
-    expectedException.expect(exceptionErrorMessage(
-        errorMessage(containsString("\tprint Test_Topic;"
-        ))));
-
     // When:
-    testResource.streamQuery(
-        serviceContext,
-        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), null)
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), null)
+        )
     );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionErrorMessage(errorMessage(containsString(
+        "Could not find topic 'TEST_TOPIC', "
+            + "or the KSQL user does not have permissions to list the topic. "
+            + "Topic names are case-sensitive."
+            + System.lineSeparator()
+            + "Did you mean:"
+    ))));
+    assertThat(e, exceptionErrorMessage(errorMessage(containsString(
+        "\tprint test_topic;"
+    ))));
+    assertThat(e, exceptionErrorMessage(errorMessage(containsString(
+        "\tprint Test_Topic;"
+    ))));
   }
 
   private static class TestRowQueue implements BlockingRowQueue {

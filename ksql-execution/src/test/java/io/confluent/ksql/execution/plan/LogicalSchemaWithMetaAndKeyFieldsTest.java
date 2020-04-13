@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;

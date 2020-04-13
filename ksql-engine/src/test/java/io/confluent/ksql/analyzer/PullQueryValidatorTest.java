@@ -15,6 +15,13 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.parser.tree.ResultMaterialization.CHANGES;
+import static io.confluent.ksql.schema.ksql.ColumnRef.withoutSource;
+import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
+import static java.util.Optional.of;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,9 +38,7 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -42,9 +47,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class PullQueryValidatorTest {
 
   private static final Expression AN_EXPRESSION = mock(Expression.class);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Analysis analysis;
@@ -65,14 +67,16 @@ public class PullQueryValidatorTest {
   @Test
   public void shouldThrowOnPullQueryThatIsNotFinal() {
     // Given:
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support `EMIT CHANGES`");
+    when(analysis.getResultMaterialization()).thenReturn(CHANGES);
 
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support `EMIT CHANGES`"));
   }
 
   @Test(expected = KsqlException.class)
@@ -89,26 +93,30 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.isJoin()).thenReturn(true);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support JOIN clauses.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support JOIN clauses."));
   }
 
   @Test
   public void shouldThrowOnPullQueryThatIsWindowed() {
     // Given:
 
-    when(analysis.getWindowExpression()).thenReturn(Optional.of(windowExpression));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support WINDOW clauses.");
+    when(analysis.getWindowExpression()).thenReturn(of(windowExpression));
 
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support WINDOW clauses."));
   }
 
   @Test
@@ -116,39 +124,45 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.getGroupByExpressions()).thenReturn(ImmutableList.of(AN_EXPRESSION));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support GROUP BY clauses.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support GROUP BY clauses."));
   }
 
   @Test
   public void shouldThrowOnPartitionBy() {
     // Given:
     when(analysis.getPartitionBy())
-        .thenReturn(Optional.of(ColumnRef.withoutSource(ColumnName.of("Something"))));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support PARTITION BY clauses.");
+        .thenReturn(of(withoutSource(ColumnName.of("Something"))));
 
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support PARTITION BY clauses."));
   }
 
   @Test
   public void shouldThrowOnHavingClause() {
     // Given:
-    when(analysis.getHavingExpression()).thenReturn(Optional.of(AN_EXPRESSION));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support HAVING clauses.");
+    when(analysis.getHavingExpression()).thenReturn(of(AN_EXPRESSION));
 
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support HAVING clauses."));
   }
 
   @Test
@@ -156,25 +170,29 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.getLimitClause()).thenReturn(OptionalInt.of(1));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support LIMIT clauses.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support LIMIT clauses."));
   }
 
   @Test
   public void shouldThrowOnRowTimeInProjection() {
     // Given:
     when(analysis.getSelectColumnRefs())
-        .thenReturn(ImmutableSet.of(ColumnRef.withoutSource(SchemaUtil.ROWTIME_NAME)));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support ROWTIME in select columns.");
+        .thenReturn(ImmutableSet.of(withoutSource(ROWTIME_NAME)));
 
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support ROWTIME in select columns."));
   }
 }

@@ -15,7 +15,12 @@
 
 package io.confluent.ksql.engine;
 
+import static com.google.common.collect.ImmutableList.of;
+import static io.confluent.ksql.serde.SerdeOption.none;
+import static java.util.Optional.empty;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -90,9 +95,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -134,9 +137,6 @@ public class InsertValuesExecutorTest {
   private static final byte[] VALUE = new byte[]{2};
 
   private static final String TOPIC_NAME = "topic";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlEngine engine;
@@ -543,7 +543,7 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(SCHEMA),
-        ImmutableList.of(
+        of(
             new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
@@ -556,11 +556,14 @@ public class InsertValuesExecutorTest {
     doReturn(failure).when(producer).send(any());
 
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to insert values into ");
-
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, ImmutableMap.of(), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to insert values into "));
   }
 
   @Test
@@ -576,12 +579,14 @@ public class InsertValuesExecutorTest {
     );
     when(keySerializer.serialize(any(), any())).thenThrow(new SerializationException("Jibberish!"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Could not serialize key")));
-
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, ImmutableMap.of(), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), hasMessage(containsString("Could not serialize key")));
   }
 
   @Test
@@ -598,12 +603,14 @@ public class InsertValuesExecutorTest {
     when(valueSerializer.serialize(any(), any()))
         .thenThrow(new SerializationException("Jibberish!"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Could not serialize row")));
-
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, ImmutableMap.of(), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), hasMessage(containsString("Could not serialize row")));
   }
 
   @Test
@@ -620,14 +627,15 @@ public class InsertValuesExecutorTest {
     doThrow(new TopicAuthorizationException(Collections.singleton("t1")))
         .when(producer).send(any());
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(
-        containsString("Authorization denied to Write on topic(s): [t1]"))
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, ImmutableMap.of(), engine, serviceContext)
     );
 
-    // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    // Then:
+    assertThat(e.getCause(), hasMessage(containsString(
+        "Authorization denied to Write on topic(s): [t1]")));
   }
 
   @Test
@@ -640,12 +648,15 @@ public class InsertValuesExecutorTest {
             new StringLiteral("bar"))
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Expected ROWKEY and COL0 to match")));
-
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, ImmutableMap.of(), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), hasMessage(containsString(
+        "Expected ROWKEY and COL0 to match")));
   }
 
   @Test
@@ -657,12 +668,15 @@ public class InsertValuesExecutorTest {
             new LongLiteral(1L))
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Expected a value for each column")));
-
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, ImmutableMap.of(), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), hasMessage(containsString(
+        "Expected a value for each column")));
   }
 
   @Test
@@ -677,12 +691,15 @@ public class InsertValuesExecutorTest {
         )
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Expected type INTEGER for field")));
-
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, ImmutableMap.of(), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), hasMessage(containsString(
+        "Expected type INTEGER for field")));
   }
 
   @Test
@@ -753,42 +770,45 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowOnTablesWithNoKeyFieldAndNoRowKeyProvided() {
     // Given:
-    givenSourceTableWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceTableWithSchema(SCHEMA, none(), empty());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL0", "COL1"),
-        ImmutableList.of(
+        of("COL0", "COL1"),
+        of(
             new StringLiteral("str"),
             new LongLiteral(2L))
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables");
-
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
- }
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, ImmutableMap.of(), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables"));
+  }
 
   @Test
   public void shouldThrowOnTablesWithKeyFieldAndNullKeyFieldValueProvided() {
     // Given:
-    givenSourceTableWithSchema(SCHEMA, SerdeOption.none(), Optional.of(COL0));
+    givenSourceTableWithSchema(SCHEMA, none(), Optional.of(COL0));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL1"),
-        ImmutableList.of(
+        of("COL1"),
+        of(
             new LongLiteral(2L))
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables");
-
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, ImmutableMap.of(), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables"));
   }
 
   @Test

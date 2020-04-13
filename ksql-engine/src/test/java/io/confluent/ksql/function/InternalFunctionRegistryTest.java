@@ -19,11 +19,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -43,9 +45,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -78,9 +78,6 @@ public class InternalFunctionRegistryTest {
       Collections.emptyList(),
       FunctionName.of("func"),
       Func1.class);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock(name = "udfFactory")
   private UdfFactory udfFactory;
@@ -129,12 +126,14 @@ public class InternalFunctionRegistryTest {
 
     functionRegistry.addFunction(func);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("a function with the same name exists in a different class");
-
     // When:
-    functionRegistry.addFunction(func2);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> functionRegistry.addFunction(func2)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("a function with the same name exists in a different class"));
   }
 
   @Test
@@ -155,12 +154,14 @@ public class InternalFunctionRegistryTest {
 
     when(udfFactory.matches(udfFactory1)).thenReturn(false);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UdfFactory not compatible with existing factory");
-
     // When:
-    functionRegistry.ensureFunctionFactory(udfFactory1);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> functionRegistry.ensureFunctionFactory(udfFactory1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("UdfFactory not compatible with existing factory"));
   }
 
   @Test
@@ -169,12 +170,14 @@ public class InternalFunctionRegistryTest {
     when(udafFactory.getName()).thenReturn(UDF_NAME);
     functionRegistry.addAggregateFunctionFactory(udafFactory);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UdfFactory already registered as aggregate: SOMEFUNC");
-
     // When:
-    functionRegistry.ensureFunctionFactory(udfFactory);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> functionRegistry.ensureFunctionFactory(udfFactory)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("UdfFactory already registered as aggregate: SOMEFUNC"));
   }
 
   @Test
@@ -182,12 +185,14 @@ public class InternalFunctionRegistryTest {
     // Given:
     functionRegistry.addAggregateFunctionFactory(udafFactory);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Aggregate function already registered: SOMEAGGFUNC");
-
     // When:
-    functionRegistry.addAggregateFunctionFactory(udafFactory);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> functionRegistry.addAggregateFunctionFactory(udafFactory)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Aggregate function already registered: SOMEAGGFUNC"));
   }
 
   @Test
@@ -196,13 +201,16 @@ public class InternalFunctionRegistryTest {
     when(udfFactory.getName()).thenReturn(UDAF_NAME);
     functionRegistry.ensureFunctionFactory(udfFactory);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("Aggregate function already registered as non-aggregate: SOMEAGGFUNC");
-
     // When:
-    functionRegistry.addAggregateFunctionFactory(udafFactory);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> functionRegistry.addAggregateFunctionFactory(udafFactory)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Aggregate function already registered as non-aggregate: SOMEAGGFUNC"));
+
   }
 
   @Test
@@ -210,12 +218,14 @@ public class InternalFunctionRegistryTest {
     // Given:
     when(udfFactory.getName()).thenReturn("i am invalid");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("is not a valid function name");
-
     // When:
-    functionRegistry.ensureFunctionFactory(udfFactory);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> functionRegistry.ensureFunctionFactory(udfFactory)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("is not a valid function name"));
   }
 
   @Test
@@ -223,12 +233,14 @@ public class InternalFunctionRegistryTest {
     // Given:
     when(udafFactory.getName()).thenReturn("i am invalid");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("is not a valid function name");
-
     // When:
-    functionRegistry.addAggregateFunctionFactory(udafFactory);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> functionRegistry.addAggregateFunctionFactory(udafFactory)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("is not a valid function name"));
   }
 
   @Test
@@ -293,9 +305,14 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldThrowExceptionIfNoFunctionsWithNameExist() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'foo_bar'");
-    functionRegistry.getUdfFactory("foo_bar");
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> functionRegistry.getUdfFactory("foo_bar")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("'foo_bar'"));
   }
 
   @Test

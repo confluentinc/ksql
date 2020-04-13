@@ -63,9 +63,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -118,9 +116,6 @@ public class CommandFactoriesTest {
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private final CreateSourceProperties withProperties =
       CreateSourceProperties.from(MINIMIM_PROPS);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   @SuppressWarnings("unchecked")

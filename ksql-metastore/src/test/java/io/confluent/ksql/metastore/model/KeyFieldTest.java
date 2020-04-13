@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.metastore.model;
 
+import static io.confluent.ksql.metastore.model.KeyField.of;
+import static java.util.Optional.empty;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
@@ -29,9 +33,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class KeyFieldTest {
 
@@ -65,9 +67,6 @@ public class KeyFieldTest {
 
   private static final KeyField UNALIASED_KEY_FIELD = KeyField
       .of(OTHER_SCHEMA_COL.ref(), LEGACY_FIELD);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
@@ -130,16 +129,18 @@ public class KeyFieldTest {
   @Test
   public void shouldThrowOnValidateIfKeyNotInSchema() {
     // Given:
-    final KeyField keyField = KeyField.of(
+    final KeyField keyField = of(
         Optional.of("????").map(ColumnName::of).map(ColumnRef::withoutSource),
-        Optional.empty());
+        empty());
+
+    // When
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> keyField.validateKeyExistsIn(SCHEMA)
+    );
 
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Invalid key field, not found in schema: ????");
-
-    // When:
-    keyField.validateKeyExistsIn(SCHEMA);
+    assertThat(e.getMessage(), containsString("Invalid key field, not found in schema: ????"));
   }
 
   @Test
@@ -160,11 +161,11 @@ public class KeyFieldTest {
         Optional.of("not found").map(ColumnName::of).map(ColumnRef::withoutSource),
         Optional.empty());
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-
-    // When:
-    keyField.resolve(SCHEMA, LATEST_CONFIG);
+    // When
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> keyField.resolve(SCHEMA, LATEST_CONFIG)
+    );
   }
 
   @Test

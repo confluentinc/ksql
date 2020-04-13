@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.parser.util;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -27,18 +27,13 @@ import io.confluent.ksql.util.ParserUtil;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ParserUtilTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private DecimalLiteralContext decimalLiteralContext;
@@ -53,12 +48,14 @@ public class ParserUtilTest {
     // Given:
     when(decimalLiteralContext.getText()).thenReturn("NaN");
 
-    // Then:
-    expectedException.expect(ParsingException.class);
-    expectedException.expectMessage("line 1:4: Not a number: NaN");
-
     // When:
-    ParserUtil.parseDecimalLiteral(decimalLiteralContext);
+    final ParsingException e = assertThrows(
+        ParsingException.class,
+        () -> ParserUtil.parseDecimalLiteral(decimalLiteralContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("line 1:4: Not a number: NaN"));
   }
 
   @Test
@@ -66,12 +63,14 @@ public class ParserUtilTest {
     // Given:
     when(decimalLiteralContext.getText()).thenReturn("What?");
 
-    // Then:
-    expectedException.expect(ParsingException.class);
-    expectedException.expectMessage("line 1:4: Invalid numeric literal: What?");
-
     // When:
-    ParserUtil.parseDecimalLiteral(decimalLiteralContext);
+    final ParsingException e = assertThrows(
+        ParsingException.class,
+        () -> ParserUtil.parseDecimalLiteral(decimalLiteralContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("line 1:4: Invalid numeric literal: What?"));
   }
 
   @Test
@@ -79,12 +78,15 @@ public class ParserUtilTest {
     // Given:
     when(decimalLiteralContext.getText()).thenReturn("1.7976931348623159E308");
 
-    // Then:
-    expectedException.expect(ParsingException.class);
-    expectedException.expectMessage("line 1:4: Number overflows DOUBLE: 1.7976931348623159E308");
-
     // When:
-    ParserUtil.parseDecimalLiteral(decimalLiteralContext);
+    final ParsingException e = assertThrows(
+        ParsingException.class,
+        () -> ParserUtil.parseDecimalLiteral(decimalLiteralContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "line 1:4: Number overflows DOUBLE: 1.7976931348623159E308"));
   }
 
   private static void mockLocation(final ParserRuleContext ctx, final int line, final int col) {

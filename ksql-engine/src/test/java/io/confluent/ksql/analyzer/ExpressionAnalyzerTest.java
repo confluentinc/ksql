@@ -15,6 +15,14 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type.EQUAL;
+import static io.confluent.ksql.schema.ksql.ColumnRef.of;
+import static io.confluent.ksql.schema.ksql.ColumnRef.withoutSource;
+import static java.util.Optional.empty;
+import static java.util.stream.Collectors.toSet;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -33,9 +41,7 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -48,9 +54,6 @@ public class ExpressionAnalyzerTest {
   );
 
   private static final Expression OTHER_EXP = new StringLiteral("foo");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SourceSchemas sourceSchemas;
@@ -80,18 +83,19 @@ public class ExpressionAnalyzerTest {
   public void shouldThrowOnWindowStartIfNotAllowed() {
     // Given:
     final Expression expression = new ComparisonExpression(
-        Type.EQUAL,
+        EQUAL,
         WINDOW_START_EXP,
         OTHER_EXP
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Column 'something.WINDOWSTART' cannot be resolved.");
-
     // When:
-    analyzer.analyzeExpression(expression, false);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyzeExpression(expression, false)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Column 'something.WINDOWSTART' cannot be resolved."));
   }
 
   @Test
@@ -114,78 +118,82 @@ public class ExpressionAnalyzerTest {
   public void shouldThrowOnMultipleSourcesIfFullyQualifiedButNoMatch() {
     // Given:
     final Expression expression = new ColumnReferenceExp(
-        ColumnRef.of(SourceName.of("fully"), ColumnName.of("qualified"))
+        of(SourceName.of("fully"), ColumnName.of("qualified"))
     );
 
-    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("qualified"))))
-        .thenReturn(ImmutableSet.of("not-fully", "also-not-fully").stream().map(SourceName::of).collect(Collectors.toSet()));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source 'fully', used in 'fully.qualified' cannot be resolved.");
+    when(sourceSchemas.sourcesWithField(withoutSource(ColumnName.of("qualified"))))
+        .thenReturn(ImmutableSet.of("not-fully", "also-not-fully").stream().map(SourceName::of).collect(toSet()));
 
     // When:
-    analyzer.analyzeExpression(expression, true);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyzeExpression(expression, true)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Source 'fully', used in 'fully.qualified' cannot be resolved."));
   }
 
   @Test
   public void shouldThrowOnMultipleSourcesIfNotFullyQualified() {
     // Given:
     final Expression expression = new ColumnReferenceExp(
-        ColumnRef.withoutSource(ColumnName.of("just-name"))
+        withoutSource(ColumnName.of("just-name"))
     );
 
-    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("just-name"))))
-        .thenReturn(ImmutableSet.of("multiple", "sources").stream().map(SourceName::of).collect(Collectors.toSet()));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Column 'just-name' is ambiguous. Could be any of: multiple.just-name, sources.just-name");
+    when(sourceSchemas.sourcesWithField(withoutSource(ColumnName.of("just-name"))))
+        .thenReturn(ImmutableSet.of("multiple", "sources").stream().map(SourceName::of).collect(toSet()));
 
     // When:
-    analyzer.analyzeExpression(expression, true);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyzeExpression(expression, true)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Column 'just-name' is ambiguous. Could be any of: multiple.just-name, sources.just-name"));
   }
 
   @Test
   public void shouldThrowOnNoSources() {
     // Given:
     final Expression expression = new ColumnReferenceExp(
-        ColumnRef.withoutSource(ColumnName.of("just-name"))
+        withoutSource(ColumnName.of("just-name"))
     );
 
-    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("just-name"))))
+    when(sourceSchemas.sourcesWithField(withoutSource(ColumnName.of("just-name"))))
         .thenReturn(ImmutableSet.of());
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Column 'just-name' cannot be resolved.");
-
     // When:
-    analyzer.analyzeExpression(expression, true);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyzeExpression(expression, true)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Column 'just-name' cannot be resolved."));
   }
 
   @Test
   public void shouldThrowOnUnknownStructColumn() {
     // Given:
     final Expression expression = new DereferenceExpression(
-        Optional.empty(),
+        empty(),
         new ColumnReferenceExp(
-            ColumnRef.withoutSource(ColumnName.of("source-column"))
+            withoutSource(ColumnName.of("source-column"))
         ),
         "theFieldName"
     );
 
     when(sourceSchemas.sourcesWithField(any())).thenReturn(ImmutableSet.of());
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Column 'source-column' cannot be resolved.");
-
     // When:
-    analyzer.analyzeExpression(expression, true);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyzeExpression(expression, true)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Column 'source-column' cannot be resolved."));
   }
 }

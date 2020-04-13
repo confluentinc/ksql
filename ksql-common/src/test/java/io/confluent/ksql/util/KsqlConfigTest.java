@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
@@ -25,6 +26,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
@@ -40,14 +42,9 @@ import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.StreamsConfig;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class KsqlConfigTest {
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void shouldSetInitialValuesCorrectly() {
     final Map<String, Object> initialProps = new HashMap<>();
@@ -637,25 +634,34 @@ public class KsqlConfigTest {
 
   @Test
   public void shouldRaiseIfInternalTopicNamingOffAndStreamsOptimizationsOn() {
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage(
-        "Internal topic naming must be enabled if streams optimizations enabled");
-    new KsqlConfig(
-        ImmutableMap.of(
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF,
-            StreamsConfig.TOPOLOGY_OPTIMIZATION,
-            StreamsConfig.OPTIMIZE)
+    // When:
+    final RuntimeException e = assertThrows(
+        RuntimeException.class,
+        () -> new KsqlConfig(
+            ImmutableMap.of(
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF,
+                StreamsConfig.TOPOLOGY_OPTIMIZATION,
+                StreamsConfig.OPTIMIZE)
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Internal topic naming must be enabled if streams optimizations enabled"
+    ));
   }
 
   @Test
   public void shouldRaiseOnInvalidInternalTopicNamingValue() {
-    expectedException.expect(ConfigException.class);
-    new KsqlConfig(
-        Collections.singletonMap(
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            "foobar"
+    // When:
+    assertThrows(
+        ConfigException.class,
+        () -> new KsqlConfig(
+            Collections.singletonMap(
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+                "foobar"
+            )
         )
     );
   }

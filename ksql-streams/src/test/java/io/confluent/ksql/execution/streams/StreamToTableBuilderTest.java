@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -232,9 +232,9 @@ public class StreamToTableBuilderTest {
     // Then:
     final ArgumentCaptor<ValueMapper> captor = ArgumentCaptor.forClass(ValueMapper.class);
     verify(kStream).mapValues(captor.capture());
-    MatcherAssert.assertThat(captor.getValue().apply(null), equalTo(Optional.empty()));
+    assertThat(captor.getValue().apply(null), equalTo(Optional.empty()));
     final GenericRow nonNull = new GenericRow(1, 2, 3);
-    MatcherAssert.assertThat(captor.getValue().apply(nonNull), equalTo(Optional.of(nonNull)));
+    assertThat(captor.getValue().apply(nonNull), equalTo(Optional.of(nonNull)));
   }
 
   @Test

@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.function;
 
+import static com.google.common.collect.ImmutableList.of;
+import static org.apache.kafka.connect.data.Schema.INT32_SCHEMA;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
@@ -27,18 +31,13 @@ import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlFunctionTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Function<KsqlConfig, Kudf> udfFactory;
@@ -128,13 +127,17 @@ public class KsqlFunctionTest {
 
   @Test
   public void shouldThrowOnNonOptionalReturnType() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("KSQL only supports optional field types");
+    // Given
+    final KsqlScalarFunction function = createFunction(INT32_SCHEMA, of());
 
-    // When:
-    final KsqlScalarFunction function = createFunction(Schema.INT32_SCHEMA, ImmutableList.of());
-    function.getReturnType(ImmutableList.of());
+    // When
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> function.getReturnType(of())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("KSQL only supports optional field types"));
 
   }
 

@@ -30,6 +30,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -86,12 +90,9 @@ import org.easymock.Mock;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.integration.EasyMock2Adapter;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 
 public class StatementExecutorTest extends EasyMockSupport {
@@ -111,9 +112,6 @@ public class StatementExecutorTest extends EasyMockSupport {
       = niceMock(PersistentQueryMetadata.class);
   private StatementExecutor statementExecutorWithMocks;
   private ServiceContext serviceContext;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private QueuedCommand queuedCommand;
@@ -227,7 +225,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     // When:
     try {
       handleStatement(statementExecutorWithMocks, command, commandId, Optional.empty(),0);
-      Assert.fail("handleStatement should throw");
+      fail("handleStatement should throw");
     } catch (final RuntimeException caughtException) {
       // Then:
       assertThat(caughtException, is(exception));
@@ -392,11 +390,11 @@ public class StatementExecutorTest extends EasyMockSupport {
     }
 
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
-    Assert.assertNotNull(statusStore);
-    Assert.assertEquals(3, statusStore.size());
-    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
-    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
-    Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
+    assertNotNull(statusStore);
+    assertEquals(3, statusStore.size());
+    assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
+    assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
+    assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
   }
 
   @Test
@@ -426,7 +424,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final Optional<CommandStatus> dropTableCommandStatus2 =
         statementExecutor.getStatus(dropTableCommandId2);
 
-    Assert.assertTrue(dropTableCommandStatus2.isPresent());
+    assertTrue(dropTableCommandStatus2.isPresent());
     assertThat(dropTableCommandStatus2.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
 
 
@@ -801,7 +799,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final Optional<CommandStatus> dropStreamCommandStatus1 =
         statementExecutor.getStatus(dropStreamCommandId1);
 
-    Assert.assertTrue(dropStreamCommandStatus1.isPresent());
+    assertTrue(dropStreamCommandStatus1.isPresent());
     assertThat(dropStreamCommandStatus1.get().getStatus(),
         CoreMatchers.equalTo(CommandStatus.Status.ERROR));
     assertThat(
@@ -877,7 +875,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         statementExecutor.getStatus(dropTableCommandId1);
 
     // DROP statement should fail since the table is being used.
-    Assert.assertTrue(dropTableCommandStatus1.isPresent());
+    assertTrue(dropTableCommandStatus1.isPresent());
     assertThat(dropTableCommandStatus1.get().getStatus(),
         CoreMatchers.equalTo(CommandStatus.Status.ERROR));
     assertThat(

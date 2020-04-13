@@ -16,7 +16,7 @@
 package io.confluent.ksql.function.udaf.topk;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;

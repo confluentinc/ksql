@@ -24,18 +24,13 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ColumnTest {
 
   private static final SourceName SOME_SOURCE = SourceName.of("SomeSource");
   private static final ColumnName SOME_NAME = ColumnName.of("SomeName");
   private static final ColumnName SOME_OHTER_NAME = ColumnName.of("SOMENAME");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldThrowNPE() {

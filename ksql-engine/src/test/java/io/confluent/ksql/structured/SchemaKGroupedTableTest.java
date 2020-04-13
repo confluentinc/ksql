@@ -16,8 +16,10 @@
 package io.confluent.ksql.structured;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,9 +49,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -83,9 +83,6 @@ public class SchemaKGroupedTableTest {
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Mock
   private KsqlQueryBuilder queryBuilder;
 
@@ -107,21 +104,23 @@ public class SchemaKGroupedTableTest {
 
     final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Windowing not supported for table aggregations.");
-
     // When:
-    groupedTable.aggregate(
-        AGG_SCHEMA,
-        OUT_SCHEMA,
-        1,
-        ImmutableList.of(SUM, COUNT),
-        Optional.of(windowExp),
-        valueFormat,
-        queryContext,
-        queryBuilder
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> groupedTable.aggregate(
+            AGG_SCHEMA,
+            OUT_SCHEMA,
+            1,
+            ImmutableList.of(SUM, COUNT),
+            Optional.of(windowExp),
+            valueFormat,
+            queryContext,
+            queryBuilder
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Windowing not supported for table aggregations."));
   }
 
   @Test
@@ -129,22 +128,24 @@ public class SchemaKGroupedTableTest {
     // Given:
     final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "The aggregation function(s) (MIN, MAX) cannot be applied to a table.");
-
     // When:
-    kGroupedTable.aggregate(
-        AGG_SCHEMA,
-        OUT_SCHEMA,
-        1,
-        ImmutableList.of(MIN, MAX),
-        Optional.empty(),
-        valueFormat,
-        queryContext,
-        queryBuilder
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> kGroupedTable.aggregate(
+            AGG_SCHEMA,
+            OUT_SCHEMA,
+            1,
+            ImmutableList.of(MIN, MAX),
+            Optional.empty(),
+            valueFormat,
+            queryContext,
+            queryBuilder
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The aggregation function(s) (MIN, MAX) cannot be applied to a table."));
   }
 
   private SchemaKGroupedTable buildSchemaKGroupedTable() {

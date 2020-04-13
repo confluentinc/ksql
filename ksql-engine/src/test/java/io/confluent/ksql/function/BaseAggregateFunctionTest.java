@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.function;
 
+import static java.util.Collections.emptyList;
+import static org.apache.kafka.connect.data.Schema.INT32_SCHEMA;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
@@ -26,9 +30,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -36,27 +38,26 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class BaseAggregateFunctionTest {
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Mock
   private Supplier<Integer> initialValueSupplier;
 
   @Test
   public void shouldThrowOnNonOptionalReturnType() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("KSQL only supports optional field types");
-
     // When:
-    new TestAggFunc(
-        "funcName",
-        0,
-        initialValueSupplier,
-        Schema.INT32_SCHEMA, // <-- non-optional return type.
-        Collections.emptyList(),
-        "the description"
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new TestAggFunc(
+            "funcName",
+            0,
+            initialValueSupplier,
+            INT32_SCHEMA, // <-- non-optional return type.
+            emptyList(),
+            "the description"
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("KSQL only supports optional field types"));
   }
 
   @Test

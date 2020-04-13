@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.entity;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;

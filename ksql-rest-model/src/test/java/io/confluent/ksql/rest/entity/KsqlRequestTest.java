@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static com.google.common.collect.ImmutableMap.of;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -35,9 +38,7 @@ import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.TimestampExtractor;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("SameParameterValue")
 public class KsqlRequestTest {
@@ -76,9 +77,6 @@ public class KsqlRequestTest {
   private static final KsqlRequest A_REQUEST = new KsqlRequest("sql", SOME_PROPS, null);
   private static final KsqlRequest A_REQUEST_WITH_COMMAND_NUMBER =
       new KsqlRequest("sql", SOME_PROPS, SOME_COMMAND_NUMBER);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldHandleNullStatement() {
@@ -173,17 +171,20 @@ public class KsqlRequestTest {
     // Given:
     final KsqlRequest request = new KsqlRequest(
         "sql",
-        ImmutableMap.of(
-            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "not-parsable"
+        of(
+            AUTO_OFFSET_RESET_CONFIG, "not-parsable"
         ),
         null);
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
-    expectedException.expectMessage(containsString("not-parsable"));
-
     // When:
-    request.getStreamsProperties();
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> request.getStreamsProperties()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(AUTO_OFFSET_RESET_CONFIG));
+    assertThat(e.getMessage(), containsString("not-parsable"));
   }
 
   @Test

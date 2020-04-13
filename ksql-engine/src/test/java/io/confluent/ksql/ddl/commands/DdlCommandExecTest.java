@@ -2,9 +2,9 @@ package io.confluent.ksql.ddl.commands;
 
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
@@ -35,7 +35,6 @@ import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -68,9 +67,6 @@ public class DdlCommandExecTest {
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Before
   public void setup() {
     //when(metaStore.getSource(STREAM_NAME)).thenReturn(source);
@@ -91,8 +87,8 @@ public class DdlCommandExecTest {
     cmdExec.execute(createStream);
 
     // Then:
-    MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName("F1"));
-    MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName("F1"));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName("F1"));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName("F1"));
   }
 
   @Test
@@ -104,8 +100,8 @@ public class DdlCommandExecTest {
     cmdExec.execute(createStream);
 
     // Then:
-    MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
-    MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName(Optional.empty()));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName(Optional.empty()));
   }
 
   @Test
@@ -117,8 +113,8 @@ public class DdlCommandExecTest {
     cmdExec.execute(createTable);
 
     // Then:
-    MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName("F1"));
-    MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasLegacyName("F1"));
+    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName("F1"));
+    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasLegacyName("F1"));
   }
 
   @Test
@@ -130,8 +126,8 @@ public class DdlCommandExecTest {
     cmdExec.execute(createTable);
 
     // Then:
-    MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName(Optional.empty()));
-    MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasLegacyName(Optional.empty()));
+    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName(Optional.empty()));
+    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasLegacyName(Optional.empty()));
   }
 
   @Test
@@ -174,8 +170,8 @@ public class DdlCommandExecTest {
 
     // Then:
     assertThat(metaStore.resolveType("type").isPresent(), is(false));
-    MatcherAssert.assertThat("Expected successful execution", result.isSuccess());
-    MatcherAssert.assertThat(result.getMessage(), is("Dropped type 'type'"));
+    assertThat("Expected successful execution", result.isSuccess());
+    assertThat(result.getMessage(), is("Dropped type 'type'"));
   }
 
   @Test
@@ -187,8 +183,8 @@ public class DdlCommandExecTest {
     final DdlCommandResult result = cmdExec.execute(dropType);
 
     // Then:
-    MatcherAssert.assertThat("Expected successful execution", result.isSuccess());
-    MatcherAssert.assertThat(result.getMessage(), is("Type 'type' does not exist"));
+    assertThat("Expected successful execution", result.isSuccess());
+    assertThat(result.getMessage(), is("Type 'type' does not exist"));
   }
 
   private void givenDropSourceCommand(final SourceName name) {

@@ -25,6 +25,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -51,11 +55,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -95,9 +96,6 @@ public class PhysicalPlanBuilderTest {
   private static final KsqlConfig INITIAL_CONFIG = KsqlConfigTestUtil.create("what-eva");
   private final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private KsqlEngine ksqlEngine;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private ServiceContext serviceContext;
 
@@ -224,15 +222,15 @@ public class PhysicalPlanBuilderTest {
 
     final List<QueryMetadata> queryMetadataList = execute(
         CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
-    Assert.assertTrue(queryMetadataList.size() == 2);
+    assertTrue(queryMetadataList.size() == 2);
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
-    Assert.assertTrue(lines.length == 3);
-    Assert.assertEquals(lines[0],
+    assertTrue(lines.length == 3);
+    assertEquals(lines[0],
         " > [ SINK ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE] | Logger: InsertQuery_1.S1");
-    Assert.assertEquals(lines[1],
+    assertEquals(lines[1],
         "\t\t > [ PROJECT ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE] | Logger: InsertQuery_1.Project");
-    Assert.assertEquals(lines[2],
+    assertEquals(lines[2],
         "\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 DOUBLE] | Logger: InsertQuery_1.KsqlTopic.source");
     assertThat(queryMetadataList.get(1), instanceOf(PersistentQueryMetadata.class));
     final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
@@ -327,16 +325,19 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test4", "test5");
     execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source table (TEST4) key column (TEST4.ID) is not the column "
-            + "used in the join criteria (TEST4.COL0).");
-
     // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.col0 = test5.id;");
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> execute("CREATE TABLE t1 AS "
+            + "SELECT * FROM test4 JOIN test5 "
+            + "ON test4.col0 = test5.id;")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Source table (TEST4) key column (TEST4.ID) is not the column "
+            + "used in the join criteria (TEST4.COL0)."
+    ));
   }
 
   @Test
@@ -345,16 +346,19 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test4", "test5");
     execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source table (TEST5) key column (TEST5.ID) is not the column "
-            + "used in the join criteria (TEST5.COL0).");
-
     // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.id = test5.col0;");
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> execute("CREATE TABLE t1 AS "
+            + "SELECT * FROM test4 JOIN test5 "
+            + "ON test4.id = test5.col0;")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Source table (TEST5) key column (TEST5.ID) is not the column "
+            + "used in the join criteria (TEST5.COL0)."
+    ));
   }
 
   @Test
@@ -476,16 +480,19 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test4", "test5");
     execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source table (TEST4) key column (ID) is not the column "
-            + "used in the join criteria (TEST4.COL0).");
-
     // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.col0 = test5.id;");
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> execute("CREATE TABLE t1 AS "
+            + "SELECT * FROM test4 JOIN test5 "
+            + "ON test4.col0 = test5.id;")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Source table (TEST4) key column (ID) is not the column "
+            + "used in the join criteria (TEST4.COL0)."
+    ));
   }
 
   @Test
@@ -495,16 +502,19 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test4", "test5");
     execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source table (TEST5) key column (ID) is not the column "
-            + "used in the join criteria (TEST5.COL0).");
-
     // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.id = test5.col0;");
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> execute("CREATE TABLE t1 AS "
+            + "SELECT * FROM test4 JOIN test5 "
+            + "ON test4.id = test5.col0;")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Source table (TEST5) key column (ID) is not the column "
+            + "used in the join criteria (TEST5.COL0)."
+    ));
   }
 
   @Test

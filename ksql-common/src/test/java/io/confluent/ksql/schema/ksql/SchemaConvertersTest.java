@@ -16,8 +16,10 @@
 package io.confluent.ksql.schema.ksql;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -44,9 +46,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SchemaConvertersTest {
 
@@ -117,9 +117,6 @@ public class SchemaConvertersTest {
       .field("MAP", SqlMap.of(STRUCT_SQL_TYPE))
       .field("STRUCT", STRUCT_SQL_TYPE)
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldHaveConnectTestsForAllSqlTypes() {
@@ -214,12 +211,16 @@ public class SchemaConvertersTest {
         .map(CONNECT_BIGINT_SCHEMA, CONNECT_DOUBLE_SCHEMA).optional()
         .build();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unsupported map key type: Schema{INT64}");
-
     // When:
-    SchemaConverters.connectToSqlConverter().toSqlType(mapSchema);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SchemaConverters.connectToSqlConverter().toSqlType(mapSchema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Unsupported map key type: Schema{INT64}"
+    ));
   }
 
   @Test
@@ -227,12 +228,16 @@ public class SchemaConvertersTest {
     // Given:
     final Schema unsupported = SchemaBuilder.int8().build();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unexpected schema type: Schema{INT8}");
-
     // When:
-    SchemaConverters.connectToSqlConverter().toSqlType(unsupported);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SchemaConverters.connectToSqlConverter().toSqlType(unsupported)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Unexpected schema type: Schema{INT8}"
+    ));
   }
 
   @Test
@@ -266,11 +271,15 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldThrowOnUnknownJavaType() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unexpected java type: " + double.class);
-
     // When:
-    SchemaConverters.javaToSqlConverter().toSqlType(double.class);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SchemaConverters.javaToSqlConverter().toSqlType(double.class)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Unexpected java type: " + double.class
+    ));
   }
 }

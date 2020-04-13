@@ -16,8 +16,10 @@
 package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasFullName;
+import static io.confluent.ksql.statement.ConfiguredStatement.of;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
+import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -30,6 +32,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -78,11 +81,8 @@ import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.common.utils.Utils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -92,9 +92,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlEngineTest {
 
   private static final KsqlConfig KSQL_CONFIG = KsqlConfigTestUtil.create("what-eva");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private MutableMetaStore metaStore;
   @Spy
@@ -185,18 +182,23 @@ public class KsqlEngineTest {
             Collections.emptyMap())
         .get(0);
 
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is("Statement not executable")));
-    expectedException.expect(statementText(is("TERMINATE CTAS_BAR_0;")));
-
     // When:
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "TERMINATE " + query.getQueryId() + ";",
-        KSQL_CONFIG,
-        Collections.emptyMap()
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "TERMINATE " + query.getQueryId() + ";",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
     );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
+        "Statement not executable")));
+    assertThat(e, statementText(is(
+        "TERMINATE CTAS_BAR_0;")));
   }
 
   @Test
@@ -228,13 +230,16 @@ public class KsqlEngineTest {
 
     final ParsedStatement parsed = ksqlEngine.parse("insert into bar select * from test2;").get(0);
 
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expect(rawMessage(containsString(
-        "INSERT INTO can only be used to insert into a stream. BAR is a table.")));
-    expectedException.expect(statementText(is("insert into bar select * from test2;")));
-
     // When:
-    prepare(parsed);
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> prepare(parsed)
+    );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
+        "INSERT INTO can only be used to insert into a stream. BAR is a table.")));
+    assertThat(e, statementText(is("insert into bar select * from test2;")));
   }
 
   @Test
@@ -247,22 +252,24 @@ public class KsqlEngineTest {
         Collections.emptyMap()
     );
 
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "insert into bar select itemid, count(*) from orders group by itemid;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
+
     // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
+    assertThat(e, rawMessage(containsString(
         "Incompatible data sink and query result. "
             + "Data sink (BAR) type is KSTREAM but select query result is KTABLE.")));
-    expectedException.expect(statementText(
-        is("insert into bar select itemid, count(*) from orders group by itemid;")));
-
-    // When:
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "insert into bar select itemid, count(*) from orders group by itemid;",
-        KSQL_CONFIG,
-        Collections.emptyMap()
-    );
+    assertThat(e, statementText(is(
+        "insert into bar select itemid, count(*) from orders group by itemid;")));
   }
 
   @Test
@@ -275,23 +282,25 @@ public class KsqlEngineTest {
         Collections.emptyMap()
     );
 
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "insert into bar select * from orders partition by itemid;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
+
     // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
+    assertThat(e, rawMessage(containsString(
         "Incompatible key fields for sink and results. "
             + "Sink key field is ORDERTIME (type: BIGINT) "
             + "while result key field is ITEMID (type: STRING)")));
-    expectedException.expect(statementText(
-        is("insert into bar select * from orders partition by itemid;")));
-
-    // When:
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "insert into bar select * from orders partition by itemid;",
-        KSQL_CONFIG,
-        Collections.emptyMap()
-    );
+    assertThat(e, statementText(is(
+        "insert into bar select * from orders partition by itemid;")));
   }
 
   @Test
@@ -305,20 +314,23 @@ public class KsqlEngineTest {
         Collections.emptyMap()
     );
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
-        "Incompatible schema between results and sink.")));
-    expectedException.expect(statementText(is("insert into bar select itemid from orders;")));
-
     // When:
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "insert into bar select itemid from orders;",
-        KSQL_CONFIG,
-        Collections.emptyMap()
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "insert into bar select itemid from orders;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
     );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
+        "Incompatible schema between results and sink.")));
+    assertThat(e, statementText(is(
+        "insert into bar select itemid from orders;")));
   }
 
   @Test
@@ -413,22 +425,25 @@ public class KsqlEngineTest {
         Collections.emptyMap()
     );
 
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop table foo;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
         "Cannot drop FOO.\n"
             + "The following queries read from this source: [].\n"
             + "The following queries write into this source: [CTAS_FOO_1].\n"
             + "You need to terminate them before dropping FOO.")));
-    expectedException.expect(statementText(is("drop table foo;")));
-
-    // When:
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "drop table foo;",
-        KSQL_CONFIG,
-        Collections.emptyMap()
-    );
+    assertThat(e, statementText(is("drop table foo;")));
   }
 
   @Test
@@ -440,15 +455,17 @@ public class KsqlEngineTest {
 
     final PreparedStatement<?> prepared = prepare(stmt);
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Kafka topic does not exist: S1_NOTEXIST");
-
     // When:
-    sandbox.execute(
-        sandboxServiceContext,
-        ConfiguredStatement.of(prepared,  Collections.emptyMap(), KSQL_CONFIG)
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> sandbox.execute(
+            sandboxServiceContext,
+            of(prepared, emptyMap(), KSQL_CONFIG)
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Kafka topic does not exist: S1_NOTEXIST"));
   }
 
   @Test
@@ -499,19 +516,21 @@ public class KsqlEngineTest {
         "CREATE STREAM S1 (COL1 BIGINT) "
             + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');").get(0));
 
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> sandbox.execute(
+            sandboxServiceContext,
+            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
         "Kafka topic does not exist: i_do_not_exist")));
-    expectedException.expect(statementText(is(
+    assertThat(e, statementText(is(
         "CREATE STREAM S1 (COL1 BIGINT)"
             + " WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');")));
-
-    // When:
-    sandbox.execute(
-        sandboxServiceContext,
-        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
-    );
   }
 
   @Test
@@ -521,15 +540,17 @@ public class KsqlEngineTest {
         "CREATE STREAM S1 (COL1 BIGINT) "
             + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');").get(0));
 
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is("Kafka topic does not exist: i_do_not_exist")));
-
     // When:
-    ksqlEngine.execute(
-        serviceContext,
-        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> ksqlEngine.execute(
+            serviceContext,
+            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+        )
     );
+
+    // Then:
+    assertThat(e, rawMessage(is("Kafka topic does not exist: i_do_not_exist")));
   }
 
   @Test
@@ -549,21 +570,23 @@ public class KsqlEngineTest {
     // Given:
     givenTopicsExist("bar");
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
-        "The statement does not define any columns.")));
-    expectedException.expect(statementText(is(
-        "create stream bar with (value_format='avro', kafka_topic='bar');")));
-
     // When:
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "create stream bar with (value_format='avro', kafka_topic='bar');",
-        KSQL_CONFIG,
-        Collections.emptyMap()
+    final KsqlStatementException e = assertThrows(
+        (KsqlStatementException.class),
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "create stream bar with (value_format='avro', kafka_topic='bar');",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
     );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
+        "The statement does not define any columns.")));
+    assertThat(e, statementText(is(
+        "create stream bar with (value_format='avro', kafka_topic='bar');")));
   }
 
   @Test
@@ -571,8 +594,20 @@ public class KsqlEngineTest {
     // Given:
     givenTopicWithSchema("T", Schema.create(Type.INT));
 
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
         "Cannot register avro schema for T as the schema is incompatible with the current schema version registered for the topic.\n" +
             "KSQL schema: {" +
             "\"type\":\"record\"," +
@@ -587,17 +622,8 @@ public class KsqlEngineTest {
             "],\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"" +
             "}\n" +
             "Registered schema: \"int\"")));
-    expectedException.expect(statementText(is(
+    assertThat(e, statementText(is(
         "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;")));
-
-    // When:
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;",
-        KSQL_CONFIG,
-        Collections.emptyMap()
-    );
   }
 
   @Test
@@ -893,17 +919,20 @@ public class KsqlEngineTest {
 
     final PreparedStatement<?> prepared = prepare(parsed.get(1));
 
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
-        "Cannot add table 'FOO': A table with the same name already exists")));
-    expectedException.expect(statementText(is(
-        "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;")));
-
     // When:
-    ksqlEngine.execute(
-        serviceContext,
-        ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> ksqlEngine.execute(
+            serviceContext,
+            ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+        )
     );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Cannot add table 'FOO': A table with the same name already exists")));
+    assertThat(e, statementText(is(
+        "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;")));
   }
 
   @Test
@@ -912,15 +941,17 @@ public class KsqlEngineTest {
     final ParsedStatement stmt = ksqlEngine.parse(
         "CREATE STREAM FOO AS SELECT * FROM UNKNOWN;").get(0);
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
-        "Failed to prepare statement: UNKNOWN does not exist.")));
-    expectedException.expect(statementText(is(
-        "CREATE STREAM FOO AS SELECT * FROM UNKNOWN;")));
-
     // When:
-    ksqlEngine.prepare(stmt);
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> ksqlEngine.prepare(stmt)
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Failed to prepare statement: UNKNOWN does not exist.")));
+    assertThat(e, statementText(is(
+        "CREATE STREAM FOO AS SELECT * FROM UNKNOWN;")));
   }
 
   @Test
@@ -947,76 +978,86 @@ public class KsqlEngineTest {
 
     final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed.get(1));
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
-        "Cannot add stream 'FOO': A stream with the same name already exists")));
-    expectedException.expect(statementText(is(
-        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
-
     // When:
-    ksqlEngine.execute(
-        serviceContext,
-        ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> ksqlEngine.execute(
+            serviceContext,
+            ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+        )
     );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Cannot add stream 'FOO': A stream with the same name already exists")));
+    assertThat(e, statementText(is(
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
   }
 
   @Test
   public void shouldThrowWhenExecutingQueriesIfCsasCreatesTable() {
-    // Given:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;",
+            KSQL_CONFIG, Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead.")));
-    expectedException.expect(statementText(is(
+    assertThat(e, statementText(is(
         "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
-
-    // When:
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;",
-        KSQL_CONFIG, Collections.emptyMap()
-    );
   }
 
   @Test
   public void shouldThrowWhenExecutingQueriesIfCtasCreatesStream() {
-    // Given:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "CREATE TABLE FOO AS SELECT * FROM ORDERS;",
+            KSQL_CONFIG, Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
         "Invalid result type. Your SELECT query produces a STREAM. "
             + "Please use CREATE STREAM AS SELECT statement instead.")));
-    expectedException.expect(statementText(is(
+    assertThat(e, statementText(is(
         "CREATE TABLE FOO AS SELECT * FROM ORDERS;")));
-
-    // When:
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "CREATE TABLE FOO AS SELECT * FROM ORDERS;",
-        KSQL_CONFIG, Collections.emptyMap()
-    );
   }
 
   @Test
   public void shouldThrowWhenTryExecuteCsasThatCreatesTable() {
+
     // Given:
     final PreparedStatement<?> statement = prepare(parse(
         "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;").get(0));
 
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> sandbox.execute(
+            serviceContext,
+            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead.")));
-    expectedException.expect(statementText(is(
+    assertThat(e, statementText(is(
         "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
-
-    // When:
-    sandbox.execute(
-        serviceContext,
-        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
-    );
   }
 
   @Test
@@ -1025,17 +1066,21 @@ public class KsqlEngineTest {
     final PreparedStatement<?> statement = prepare(parse(
         "CREATE TABLE FOO AS SELECT * FROM ORDERS;").get(0));
 
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(statementText(is("CREATE TABLE FOO AS SELECT * FROM ORDERS;")));
-    expectedException.expect(rawMessage(is(
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> sandbox.execute(
+            serviceContext,
+            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+        )
+    );
+
+    // Then:
+    assertThat(e, statementText(is("CREATE TABLE FOO AS SELECT * FROM ORDERS;")));
+    assertThat(e, rawMessage(is(
         "Invalid result type. Your SELECT query produces a STREAM. "
             + "Please use CREATE STREAM AS SELECT statement instead.")));
-
-    // When:
-    sandbox.execute(
-        serviceContext,
-        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
-    );
+    ;
   }
 
   @Test
@@ -1051,7 +1096,7 @@ public class KsqlEngineTest {
 
       try {
         ksqlEngine.prepare(statement);
-        Assert.fail();
+        fail();
       } catch (final KsqlStatementException e) {
         assertThat(e.getMessage(), containsString(
             "Missing required property \"KAFKA_TOPIC\" which has no default value."));
@@ -1076,7 +1121,7 @@ public class KsqlEngineTest {
         ksqlEngine.prepare(statement);
 
         // Then:
-        Assert.fail();
+        fail();
       } catch (final KsqlStatementException e) {
         assertThat(e.getMessage(), containsString(
             "Missing required property \"VALUE_FORMAT\" which has no default value."));
@@ -1086,19 +1131,21 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldThrowOnNoneExecutableDdlStatement() {
-    // Given:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is("Statement not executable")));
-    expectedException.expect(statementText(is("SHOW STREAMS;")));
-
     // When:
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "SHOW STREAMS;",
-        KSQL_CONFIG,
-        Collections.emptyMap()
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "SHOW STREAMS;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
     );
+
+    // Then:
+    assertThat(e, rawMessage(is("Statement not executable")));
+    assertThat(e, statementText(is("SHOW STREAMS;")));
   }
 
   @Test
@@ -1272,13 +1319,15 @@ public class KsqlEngineTest {
         .parse("CREATE STREAM FOO AS SELECT * FROM I_DO_NOT_EXIST;")
         .get(0);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Failed to prepare statement: I_DO_NOT_EXIST does not exist");
-
     // When:
-    ksqlEngine.prepare(parsed);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> ksqlEngine.prepare(parsed)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to prepare statement: I_DO_NOT_EXIST does not exist"));
   }
 
   @Test

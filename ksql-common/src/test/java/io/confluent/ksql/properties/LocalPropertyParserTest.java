@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.properties;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -31,9 +34,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -43,9 +44,6 @@ public class LocalPropertyParserTest {
 
   private static final Object PARSED_VALUE = new Object();
   private static final String PARSED_PROP_NAME = "PARSED";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private PropertyValidator validator;
@@ -99,15 +97,19 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldThrowIfResolverFailsToResolve() {
     // Given:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage(
-        "Not recognizable as ksql, streams, consumer, or producer property: 'Unknown'");
-
     when(resolver.resolve(anyString(), anyBoolean()))
         .thenReturn(Optional.empty());
 
     // When:
-    parser.parse("Unknown", "100");
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> parser.parse("Unknown", "100")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Not recognizable as ksql, streams, consumer, or producer property: 'Unknown'"
+    ));
   }
 
   @Test

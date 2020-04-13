@@ -18,9 +18,11 @@ package io.confluent.ksql.parser;
 import static io.confluent.ksql.parser.tree.JoinMatchers.hasLeft;
 import static io.confluent.ksql.parser.tree.JoinMatchers.hasRight;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -46,9 +48,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class AstBuilderTest {
 
@@ -61,9 +61,6 @@ public class AstBuilderTest {
   private static final Table TEST2 = new Table(TEST2_NAME);
 
   private AstBuilder builder;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -111,12 +108,14 @@ public class AstBuilderTest {
     // Given:
     final SingleStatementContext stmt = givenQuery("SELECT * FROM UNKNOWN;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
-
     // When:
-    builder.build(stmt);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> builder.build(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("UNKNOWN does not exist."));
   }
 
   @Test
@@ -169,12 +168,15 @@ public class AstBuilderTest {
     // Given:
     final SingleStatementContext stmt = givenQuery("SELECT * FROM UNKNOWN JOIN TEST2"
         + " ON UNKNOWN.col1 = test2.col1;");
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
 
     // When:
-    builder.build(stmt);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> builder.build(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("UNKNOWN does not exist."));
   }
 
   @Test
@@ -183,12 +185,14 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1 JOIN UNKNOWN"
         + " ON test1.col1 = UNKNOWN.col1;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
-
     // When:
-    builder.build(stmt);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> builder.build(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("UNKNOWN does not exist."));
   }
 
   @Test
@@ -235,12 +239,15 @@ public class AstBuilderTest {
     // Given:
     final SingleStatementContext stmt = givenQuery("SELECT unknown.COL0 FROM TEST1;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
-
     // When:
-    builder.build(stmt);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> builder.build(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'UNKNOWN' is not a valid stream/table name or alias."));
   }
 
   @Test
@@ -300,12 +307,15 @@ public class AstBuilderTest {
     // Given:
     final SingleStatementContext stmt = givenQuery("SELECT unknown.* FROM TEST1;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
-
     // When:
-    builder.build(stmt);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> builder.build(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'UNKNOWN' is not a valid stream/table name or alias."));
   }
 
   @Test
@@ -384,12 +394,15 @@ public class AstBuilderTest {
     final SingleStatementContext stmt =
         givenQuery("SELECT unknown.* FROM TEST1 JOIN TEST2 WITHIN 1 SECOND ON TEST1.ID = TEST2.ID;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
-
     // When:
-    builder.build(stmt);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> builder.build(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'UNKNOWN' is not a valid stream/table name or alias."));
   }
 
   @Test
@@ -397,12 +410,15 @@ public class AstBuilderTest {
     // Given:
     final SingleStatementContext stmt = givenQuery("SELECT * FROM Unknown;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist");
-
     // When:
-    builder.build(stmt);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> builder.build(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist"));
   }
 
   @Test
@@ -411,12 +427,15 @@ public class AstBuilderTest {
     final SingleStatementContext stmt =
         givenQuery("SELECT * FROM UNKNOWN JOIN TEST2 T2 WITHIN 1 SECOND ON UNKNOWN.ID = T2.ID;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist");
-
     // When:
-    builder.build(stmt);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> builder.build(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist"));
   }
 
   @Test
@@ -425,12 +444,15 @@ public class AstBuilderTest {
     final SingleStatementContext stmt =
         givenQuery("SELECT * FROM TEST1 T1 JOIN UNKNOWN WITHIN 1 SECOND ON T1.ID = UNKNOWN.ID;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist");
-
     // When:
-    builder.build(stmt);
+    final KsqlException e = assertThrows(
+        (KsqlException.class),
+        () -> builder.build(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist"));
   }
 
   @Test

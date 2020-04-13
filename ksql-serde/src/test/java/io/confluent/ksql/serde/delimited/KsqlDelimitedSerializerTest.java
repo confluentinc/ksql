@@ -16,8 +16,9 @@
 package io.confluent.ksql.serde.delimited;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import io.confluent.ksql.util.DecimalUtil;
@@ -29,9 +30,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class KsqlDelimitedSerializerTest {
 
@@ -43,9 +42,6 @@ public class KsqlDelimitedSerializerTest {
       .optional()
       .build();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   private KsqlDelimitedSerializer serializer;
 
   @Before
@@ -55,12 +51,14 @@ public class KsqlDelimitedSerializerTest {
 
   @Test
   public void shouldThrowIfNotStruct() {
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(is("DELIMITED does not support anonymous fields")));
-
     // When:
-    serializer.serialize("t1", "not a struct");
+    final SerializationException e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize("t1", "not a struct")
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("DELIMITED does not support anonymous fields"))));
   }
 
   @Test
@@ -260,12 +258,14 @@ public class KsqlDelimitedSerializerTest {
     final Struct data = new Struct(schemaWithArray)
         .put("f0", null);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(is("DELIMITED does not support type: ARRAY")));
-
     // When:
-    serializer.serialize("t1", data);
+    final SerializationException e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize("t1", data)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("DELIMITED does not support type: ARRAY"))));
   }
 
   @Test
@@ -282,12 +282,14 @@ public class KsqlDelimitedSerializerTest {
     final Struct data = new Struct(schemaWithMap)
         .put("f0", null);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(is("DELIMITED does not support type: MAP")));
-
     // When:
-    serializer.serialize("t1", data);
+    final SerializationException e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize("t1", data)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("DELIMITED does not support type: MAP"))));
   }
 
   @Test
@@ -305,12 +307,14 @@ public class KsqlDelimitedSerializerTest {
     final Struct data = new Struct(schemaWithStruct)
         .put("f0", null);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(is("DELIMITED does not support type: STRUCT")));
-
     // When:
-    serializer.serialize("t1", data);
+    final SerializationException e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize("t1", data)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("DELIMITED does not support type: STRUCT"))));
   }
 
 }

@@ -15,10 +15,16 @@
 
 package io.confluent.ksql.serde.json;
 
+import static io.confluent.ksql.serde.json.JsonSerdeUtils.validateSchema;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_BOOLEAN_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA;
+import static org.apache.kafka.connect.data.SchemaBuilder.map;
+import static org.apache.kafka.connect.data.SchemaBuilder.struct;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.fasterxml.jackson.databind.node.BooleanNode;
@@ -28,14 +34,9 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class JsonSerdeUtilsTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldConvertToBooleanCorrectly() {
@@ -204,34 +205,35 @@ public class JsonSerdeUtilsTest {
 
   @Test
   public void shouldThrowOnMapWithNoneStringKeys() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Only MAPs with STRING keys are supported");
+    // When:
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> validateSchema(persistenceSchema(
+            map(OPTIONAL_BOOLEAN_SCHEMA, OPTIONAL_STRING_SCHEMA)
+                .build()
+        ))
+    );
 
-    //  When:
-    JsonSerdeUtils.validateSchema(persistenceSchema(
-        SchemaBuilder
-            .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
-            .build()
-    ));
+    // Then:
+    assertThat(e.getMessage(), containsString("Only MAPs with STRING keys are supported"));
   }
 
   @Test
   public void shouldThrowOnNestedMapWithNoneStringKeys() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Only MAPs with STRING keys are supported");
+    // When:
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> validateSchema(persistenceSchema(
+            struct()
+                .field("f0", map(OPTIONAL_BOOLEAN_SCHEMA, OPTIONAL_STRING_SCHEMA)
+                    .optional()
+                    .build())
+                .build()
+        ))
+    );
 
-    //  When:
-    JsonSerdeUtils.validateSchema(persistenceSchema(
-        SchemaBuilder
-            .struct()
-            .field("f0", SchemaBuilder
-                .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
-                .optional()
-                .build())
-            .build()
-    ));
+    // Then:
+    assertThat(e.getMessage(), containsString("Only MAPs with STRING keys are supported"));
   }
 
   private static PersistenceSchema persistenceSchema(final Schema schema) {

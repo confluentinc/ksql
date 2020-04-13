@@ -1,7 +1,8 @@
 package io.confluent.ksql.execution.streams;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -39,9 +40,7 @@ import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -108,9 +107,6 @@ public class StreamTableJoinBuilderTest {
 
   private PlanBuilder planBuilder;
   private StreamTableJoin<Struct> join;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   @SuppressWarnings("unchecked")
@@ -199,11 +195,11 @@ public class StreamTableJoinBuilderTest {
     // Given:
     givenOuterJoin();
 
-    // Then:
-    expectedException.expect(IllegalStateException.class);
-
     // When:
-    join.build(planBuilder);
+    assertThrows(
+        IllegalStateException.class,
+        () -> join.build(planBuilder)
+    );
   }
 
   @Test

@@ -68,9 +68,7 @@ import java.util.function.Consumer;
 import javax.ws.rs.core.Configurable;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -82,9 +80,6 @@ public class KsqlRestApplicationTest {
   private static final String LOG_STREAM_NAME = "log_stream";
   private static final String LOG_TOPIC_NAME = "log_topic";
   private static final String CMD_TOPIC_NAME = "command_topic";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private ServiceContext serviceContext;

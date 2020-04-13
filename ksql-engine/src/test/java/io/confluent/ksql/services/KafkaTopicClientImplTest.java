@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.services;
 
+import static java.lang.String.format;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -24,7 +28,9 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -80,16 +86,11 @@ import org.easymock.EasyMockRunner;
 import org.easymock.IArgumentMatcher;
 import org.easymock.Mock;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
 public class KafkaTopicClientImplTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private static final String topicName1 = "topic1";
   private static final String topicName2 = "topic2";
@@ -154,9 +155,6 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldFailCreateExistingTopic() {
-    expectedException.expect(KafkaTopicExistsException.class);
-    expectedException.expectMessage("and 2 replication factor (topic has 1)");
-
     expect(adminClient.describeCluster()).andReturn(describeClusterResult());
     expect(adminClient.describeConfigs(describeBrokerRequest()))
         .andReturn(describeBrokerResult(Collections.emptyList()));
@@ -166,8 +164,13 @@ public class KafkaTopicClientImplTest {
         .andReturn(getDescribeTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
-    verify(adminClient);
+
+    final KafkaTopicExistsException e = assertThrows(
+        (KafkaTopicExistsException.class),
+        () -> kafkaTopicClient.createTopic(topicName1, 1, (short) 2)
+    );
+
+    assertThat(e.getMessage(), containsString("and 2 replication factor (topic has 1)"));
   }
 
   @Test
@@ -178,15 +181,16 @@ public class KafkaTopicClientImplTest {
         .andReturn(createTopicAuthorizationException());
 
     replay(adminClient);
-
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(
-        String.format("Authorization denied to Create on topic(s): [%s]", topicName1));
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     // When:
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.createTopic(topicName1, 1, (short) 2)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(format("Authorization denied to Create on topic(s): [%s]", topicName1)));
     verify(adminClient);
   }
 
@@ -253,16 +257,17 @@ public class KafkaTopicClientImplTest {
         .andReturn(describeTopicAuthorizationException());
 
     replay(adminClient);
-
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(
-        String.format("Authorization denied to Describe on topic(s): [%s]", topicName1));
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     // When:
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.describeTopics(Collections.singleton(topicName1));
-    verify(adminClient);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.describeTopics(singleton(topicName1))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(format(
+        "Authorization denied to Describe on topic(s): [%s]", topicName1)));
   }
 
   @Test
@@ -356,13 +361,14 @@ public class KafkaTopicClientImplTest {
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(
-        String.format("Authorization denied to Delete on topic(s): [%s]", topicName1));
-
     // When:
-    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.deleteTopics(singletonList(topicName1))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(format("Authorization denied to Delete on topic(s): [%s]", topicName1)));
   }
 
   @Test(expected = KafkaDeleteTopicsException.class)

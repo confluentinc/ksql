@@ -15,7 +15,11 @@
 
 package io.confluent.ksql.rest.client;
 
+import static io.confluent.ksql.rest.client.HttpClientBuilder.buildClient;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -28,18 +32,13 @@ import java.util.Map;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class HttpClientBuilderTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private ClientBuilder clientBuilder;
@@ -73,12 +72,14 @@ public class HttpClientBuilderTest {
     // Given:
     when(clientBuilder.register(any(Object.class))).thenThrow(new RuntimeException("boom"));
 
-    // Then:
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectMessage("Failed to configure rest client");
-    expectedException.expectCause(hasMessage(is("boom")));
-
     // When:
-    HttpClientBuilder.buildClient(clientBuilder, sslClientConfigurer, clientProps);
+    final KsqlRestClientException e = assertThrows(
+        KsqlRestClientException.class,
+        () -> buildClient(clientBuilder, sslClientConfigurer, clientProps)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to configure rest client"));
+    assertThat(e.getCause(), (hasMessage(is("boom"))));
   }
 }

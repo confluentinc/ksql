@@ -15,7 +15,11 @@
 
 package io.confluent.ksql.test.tools;
 
+import static com.fasterxml.jackson.databind.node.TextNode.valueOf;
+import static com.google.common.collect.ImmutableList.of;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -39,9 +43,7 @@ import java.util.function.Function;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -52,9 +54,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TestExecutorTest {
 
   private static final String INTERNAL_TOPIC_0 = "internal";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private StubKafkaService kafkaService;
@@ -158,17 +157,18 @@ public class TestExecutorTest {
     givenExpectedTopology("expected-topology");
     givenActualTopology("actual-topology");
 
-    // Then:
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(
-        "Generated topology differs from that built by previous versions of KSQL "
-            + "- this likely means there is a non-backwards compatible change.\n"
-            + "THIS IS BAD!\n"
-            + "Expected: is \"expected-topology\"\n"
-            + "     but: was \"actual-topology\"");
-
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Generated topology differs from that built by previous versions of KSQL "
+        + "- this likely means there is a non-backwards compatible change.\n"
+        + "THIS IS BAD!\n"
+        + "Expected: is \"expected-topology\"\n"
+        + "     but: was \"actual-topology\""));
   }
 
   @Test
@@ -177,15 +177,16 @@ public class TestExecutorTest {
     givenExpectedTopology("the-topology", "expected-schemas");
     givenActualTopology("the-topology", "actual-schemas");
 
-    // Then:
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(containsString(
-        "Schemas used by topology differ from those used by previous versions of KSQL "
-            + "- this is likely to mean there is a non-backwards compatible change.\n"
-            + "THIS IS BAD!\n"));
-
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Schemas used by topology differ from those used by previous versions of KSQL "
+        + "- this is likely to mean there is a non-backwards compatible change.\n"
+        + "THIS IS BAD!\n"));
   }
 
   @Test
@@ -198,14 +199,16 @@ public class TestExecutorTest {
     final Record expected_1 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected <2> records but it was <1>\n"
-        + "Actual records: \n"
-        + "<k1, \"v1\"> with timestamp=123456719");
-
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected <2> records but it was <1>\n"
+        + "Actual records: \n"
+        + "<k1, \"v1\"> with timestamp=123456719"));
   }
 
   @Test
@@ -218,15 +221,17 @@ public class TestExecutorTest {
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0));
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected <1> records but it was <2>\n"
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected <1> records but it was <2>\n"
         + "Actual records: \n"
         + "<k1, \"v1\"> with timestamp=123456719 \n"
-        + "<k2, \"v2\"> with timestamp=123456789");
-
-    // When:
-    executor.buildAndExecuteQuery(testCase);
+        + "<k2, \"v2\"> with timestamp=123456789"));
   }
 
   @Test
@@ -240,13 +245,15 @@ public class TestExecutorTest {
     final Record expected_1 = new Record(sinkTopic, "k2", "different", TextNode.valueOf("different"), Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
-    // Expect
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(
-        "Expected <k2, \"different\"> with timestamp=123456789 but was <k2, \"v2\"> with timestamp=123456789");
-
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected <k2, \"different\"> "
+        + "with timestamp=123456789 but was <k2, \"v2\"> with timestamp=123456789"));
   }
 
   @Test

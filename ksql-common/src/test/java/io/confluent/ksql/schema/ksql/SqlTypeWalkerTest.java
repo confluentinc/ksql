@@ -16,7 +16,9 @@
 package io.confluent.ksql.schema.ksql;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -37,18 +39,13 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.stream.Stream;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SqlTypeWalkerTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SqlTypeWalker.Visitor<String, Integer> visitor;
@@ -293,12 +290,16 @@ public class SqlTypeWalkerTest {
     final SqlType type = mock(SqlType.class);
     when(type.baseType()).thenReturn(unknownType);
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("Unsupported schema type: bob");
-
     // When:
-    SqlTypeWalker.visit(type, visitor);
+    final UnsupportedOperationException e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> SqlTypeWalker.visit(type, visitor)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Unsupported schema type: bob"
+    ));
   }
 
   @Test

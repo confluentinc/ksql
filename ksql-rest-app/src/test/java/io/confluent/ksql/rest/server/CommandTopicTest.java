@@ -16,8 +16,10 @@
 package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
@@ -44,9 +46,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -85,11 +85,7 @@ public class CommandTopicTest {
   @Captor
   private ArgumentCaptor<Collection<TopicPartition>> topicPartitionsCaptor;
 
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
   private final static TopicPartition TOPIC_PARTITION = new TopicPartition(COMMAND_TOPIC_NAME, 0);
-
 
   @Before
   @SuppressWarnings("unchecked")
@@ -123,11 +119,15 @@ public class CommandTopicTest {
     // Given:
     when(future.get())
         .thenThrow(new ExecutionException(new RuntimeException("Send was unsuccessful!")));
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("Send was unsuccessful!");
 
     // When
-    commandTopic.send(commandId1, command1);
+    final RuntimeException e = assertThrows(
+        RuntimeException.class,
+        () -> commandTopic.send(commandId1, command1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Send was unsuccessful!"));
   }
 
   @Test
@@ -135,23 +135,31 @@ public class CommandTopicTest {
     // Given:
     when(future.get()).thenThrow(new ExecutionException(
         new Exception("Send was unsuccessful because of non RunTime exception!")));
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage(
-        "java.lang.Exception: Send was unsuccessful because of non RunTime exception!");
 
     // When
-    commandTopic.send(commandId1, command1);
+    final RuntimeException e = assertThrows(
+        RuntimeException.class,
+        () -> commandTopic.send(commandId1, command1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "java.lang.Exception: Send was unsuccessful because of non RunTime exception!"));
   }
 
   @Test
   public void shouldThrowRuntimeExceptionIfSendThrowsInterruptedException() throws Exception {
     // Given:
     when(future.get()).thenThrow(new InterruptedException("InterruptedException"));
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("InterruptedException");
 
     // When
-    commandTopic.send(commandId1, command1);
+    final RuntimeException e = assertThrows(
+        RuntimeException.class,
+        () -> commandTopic.send(commandId1, command1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("InterruptedException"));
   }
 
   @Test

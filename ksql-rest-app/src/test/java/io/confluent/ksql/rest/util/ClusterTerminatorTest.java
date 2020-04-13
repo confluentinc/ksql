@@ -16,9 +16,11 @@
 package io.confluent.ksql.rest.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -59,9 +61,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -95,9 +95,6 @@ public class ClusterTerminatorTest {
   private ServiceContext serviceContext;
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   private final Map<SourceName, DataSource<?>> dataSources = new HashMap<>();
 
@@ -333,12 +330,15 @@ public class ClusterTerminatorTest {
         .doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
         .when(kafkaTopicClient).deleteTopics(Collections.singletonList("K_Foo"));
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Exception while deleting topics: K_Foo");
 
     // When:
-    clusterTerminator.terminateCluster(ImmutableList.of("K_Fo*"));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> clusterTerminator.terminateCluster(ImmutableList.of("K_Fo*"))
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("Exception while deleting topics: K_Foo"));
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -367,13 +367,16 @@ public class ClusterTerminatorTest {
         .doThrow(KsqlException.class)
         .when(kafkaTopicClient)
         .deleteTopics(MANAGED_TOPICS);
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Exception while deleting topics: MANAGED_TOPIC_1, MANAGED_TOPIC_2");
 
     // When:
-    clusterTerminator.terminateCluster(Collections.emptyList());
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> clusterTerminator.terminateCluster(Collections.emptyList())
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Exception while deleting topics: MANAGED_TOPIC_1, MANAGED_TOPIC_2"));
   }
 
   @Test

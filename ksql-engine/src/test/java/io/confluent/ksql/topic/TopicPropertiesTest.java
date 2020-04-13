@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.topic;
 
+import static com.google.common.collect.ImmutableMap.of;
 import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.KSQL_CONFIG;
 import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.KSQL_CONFIG_P;
 import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.KSQL_CONFIG_R;
@@ -28,9 +29,13 @@ import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.SOURCE;
 import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.WITH;
 import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.WITH_P;
 import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.WITH_R;
+import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY;
+import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,10 +60,8 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -68,8 +71,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class TopicPropertiesTest {
 
   public static class Tests {
-
-    public @Rule ExpectedException expectedException = ExpectedException.none();
 
     private final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 1,
@@ -123,45 +124,52 @@ public class TopicPropertiesTest {
 
     @Test
     public void shouldFailIfNoNameSupplied() {
-      // Expect:
-      expectedException.expect(NullPointerException.class);
-      expectedException.expectMessage("Was not supplied with any valid source for topic name!");
-
       // When:
-      new TopicProperties.Builder()
-          .withKsqlConfig(config)
-          .build();
+      final Exception e = assertThrows(
+          NullPointerException.class,
+          () -> new TopicProperties.Builder()
+              .withKsqlConfig(config)
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Was not supplied with any valid source for topic name!"));
     }
 
     @Test
     public void shouldFailIfEmptyNameSupplied() {
-      // Expect:
-      expectedException.expect(KsqlException.class);
-      expectedException.expectMessage("Must have non-empty topic name.");
-
       // When:
-      new TopicProperties.Builder()
-          .withName("")
-          .withKsqlConfig(config)
-          .build();
+      final Exception e = assertThrows(
+          KsqlException.class,
+          () -> new TopicProperties.Builder()
+              .withName("")
+              .withKsqlConfig(config)
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Must have non-empty topic name."));
+
     }
 
     @Test
     public void shouldFailIfNoPartitionsSupplied() {
       // Given:
-      final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
-          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 1
+      final KsqlConfig config = new KsqlConfig(of(
+          SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 1
       ));
 
-      // Expect:
-      expectedException.expect(KsqlException.class);
-      expectedException.expectMessage("Cannot determine partitions for creating topic");
-
       // When:
-      new TopicProperties.Builder()
-          .withName("name")
-          .withKsqlConfig(config)
-          .build();
+      final Exception e = assertThrows(
+          KsqlException.class,
+          () -> new TopicProperties.Builder()
+              .withName("name")
+              .withKsqlConfig(config)
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Cannot determine partitions for creating topic"));
     }
 
     @Test
@@ -271,43 +279,45 @@ public class TopicPropertiesTest {
     @Test
     public void shouldThrowOnInvalidPartitionsOverride() {
       // Given:
-      final Map<String, Object> propertyOverrides = ImmutableMap.of(
-          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "I ain't no number",
-          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2"
+      final Map<String, Object> propertyOverrides = of(
+          SINK_NUMBER_OF_PARTITIONS_PROPERTY, "I ain't no number",
+          SINK_NUMBER_OF_REPLICAS_PROPERTY, "2"
+      );
+
+      // When:
+      final Exception e = assertThrows(
+          KsqlException.class,
+          () -> new TopicProperties.Builder()
+              .withName("name")
+              .withOverrides(propertyOverrides)
+              .build()
       );
 
       // Then:
-      expectedException.expect(KsqlException.class);
-      expectedException.expectMessage(
-          "Failed to parse property override 'ksql.sink.partitions': "
-              + "For input string: \"I ain't no number\"");
-
-      // When:
-      new TopicProperties.Builder()
-          .withName("name")
-          .withOverrides(propertyOverrides)
-          .build();
+      assertThat(e.getMessage(), containsString("Failed to parse property override 'ksql.sink.partitions': "
+          + "For input string: \"I ain't no number\""));
     }
 
     @Test
     public void shouldThrowOnInvalidReplicasOverride() {
       // Given:
-      final Map<String, Object> propertyOverrides = ImmutableMap.of(
-          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "1",
-          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "I ain't no number"
+      final Map<String, Object> propertyOverrides = of(
+          SINK_NUMBER_OF_PARTITIONS_PROPERTY, "1",
+          SINK_NUMBER_OF_REPLICAS_PROPERTY, "I ain't no number"
       );
 
-      // Then:
-      expectedException.expect(KsqlException.class);
-      expectedException.expectMessage(
-          "Failed to parse property override 'ksql.sink.replicas': "
-              + "For input string: \"I ain't no number\"");
-
       // When:
-      new TopicProperties.Builder()
-          .withName("name")
-          .withOverrides(propertyOverrides)
-          .build();
+      final Exception e = assertThrows(
+          KsqlException.class,
+          () -> new TopicProperties.Builder()
+              .withName("name")
+              .withOverrides(propertyOverrides)
+              .build()
+      );
+
+    // Then:
+      assertThat(e.getMessage(), containsString("Failed to parse property override 'ksql.sink.replicas': "
+          + "For input string: \"I ain't no number\""));
     }
   }
 

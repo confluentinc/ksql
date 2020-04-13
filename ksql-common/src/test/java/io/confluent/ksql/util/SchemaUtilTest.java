@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -27,9 +29,7 @@ import java.util.Map;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SchemaUtilTest {
 
@@ -68,9 +68,6 @@ public class SchemaUtilTest {
               .field("ss0", STRUCT_SCHEMA))
           .build())
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldGetCorrectJavaClassForBoolean() {
@@ -175,12 +172,14 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldFailForGetJavaTypeOnUnsuppportedConnectType() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unexpected schema type: Schema{INT8}");
+    // Where:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SchemaUtil.getJavaType(Schema.INT8_SCHEMA)
+    );
 
-    // When:
-    SchemaUtil.getJavaType(Schema.INT8_SCHEMA);
+    // Then:
+    assertThat(e.getMessage(), containsString("Unexpected schema type: Schema{INT8}"));
   }
 
   @Test

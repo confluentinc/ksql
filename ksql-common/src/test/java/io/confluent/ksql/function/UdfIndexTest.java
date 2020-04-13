@@ -1,9 +1,19 @@
 package io.confluent.ksql.function;
 
+import static com.google.common.collect.ImmutableList.of;
+import static io.confluent.ksql.function.GenericsUtil.generic;
 import static io.confluent.ksql.function.KsqlScalarFunction.INTERNAL_PATH;
+import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
+import static java.util.Collections.singletonList;
+import static org.apache.kafka.connect.data.Schema.INT32_SCHEMA;
+import static org.apache.kafka.connect.data.SchemaBuilder.array;
+import static org.apache.kafka.connect.data.SchemaBuilder.bytes;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
@@ -17,9 +27,7 @@ import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class UdfIndexTest {
 
@@ -48,9 +56,6 @@ public class UdfIndexTest {
   public void setUp() {
     udfIndex = new UdfIndex<KsqlScalarFunction>("name");
   }
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldFindNoArgs() {
@@ -555,30 +560,34 @@ public class UdfIndexTest {
   public void shouldNotMatchIfParamLengthDiffers() {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{function(OTHER, false, STRING)};
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
-        + "[VARCHAR, VARCHAR]"));
+    // When
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(of(STRING, STRING))
+    );
 
-    // When:
-    udfIndex.getFunction(ImmutableList.of(STRING, STRING));
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept "
+        + "parameters of types:[VARCHAR, VARCHAR]"));
   }
 
   @Test
   public void shouldNotMatchIfNoneFound() {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{function(OTHER, false, STRING)};
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
-        + "[INT]"));
+    // When
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(of(INT))
+    );
 
-    // When:
-    udfIndex.getFunction(ImmutableList.of(INT));
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept " +
+        "parameters of types:[INT]"));
 
   }
 
@@ -586,16 +595,18 @@ public class UdfIndexTest {
   public void shouldNotMatchIfNullAndPrimitive() {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
-        function(OTHER, false, Schema.INT32_SCHEMA)};
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+        function(OTHER, false, INT32_SCHEMA)};
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
-        + "[null]"));
+    // When
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(singletonList(null))
+    );
 
-    // When:
-    udfIndex.getFunction(Collections.singletonList(null));
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept " +
+        "parameters of types:[null]"));
 
   }
 
@@ -603,16 +614,18 @@ public class UdfIndexTest {
   public void shouldNotMatchIfNullAndPrimitiveVararg() {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
-        function(OTHER, true, SchemaBuilder.array(Schema.INT32_SCHEMA))};
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+        function(OTHER, true, array(INT32_SCHEMA))};
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(singletonList(null))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters of types:"
         + "[null]"));
-
-    // When:
-    udfIndex.getFunction(Collections.singletonList(null));
 
   }
 
@@ -621,15 +634,17 @@ public class UdfIndexTest {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(OTHER, false, STRING, INT)};
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(asList(INT, null))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters of types:"
         + "[INT, null]"));
-
-    // When:
-    udfIndex.getFunction(Arrays.asList(INT, null));
 
   }
 
@@ -639,48 +654,52 @@ public class UdfIndexTest {
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(OTHER, false, STRING, INT),
         function("two", true, STRING_VARARGS)};
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(of(STRING, INT, STRING))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters of types:"
         + "[VARCHAR, INT, VARCHAR]"));
-
-    // When:
-    udfIndex.getFunction(ImmutableList.of(STRING, INT, STRING));
-
   }
 
   @Test
   public void shouldNotMatchWhenNullTypeInArgsIfParamLengthDiffers() {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{function(OTHER, false, STRING)};
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(asList(STRING, null))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters of types:"
         + "[VARCHAR, null]"));
-
-    // When:
-    udfIndex.getFunction(Arrays.asList(STRING, null));
-
   }
 
   @Test
   public void shouldNotMatchVarargDifferentStructs() {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
-        function(OTHER, true, SchemaBuilder.array(STRUCT1).build())};
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+        function(OTHER, true, array(STRUCT1).build())};
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(of(STRUCT1, STRUCT2))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters of types:"
         + "[STRUCT<a VARCHAR>, STRUCT<b INT>]"));
-
-    // When:
-    udfIndex.getFunction(ImmutableList.of(STRUCT1, STRUCT2));
   }
 
   @Test
@@ -688,33 +707,37 @@ public class UdfIndexTest {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(OTHER, false, STRUCT3)};
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(of(STRUCT3_PERMUTE))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters of types:"
         + "[STRUCT<d INT, c INT>]"));
-
-    // When:
-    udfIndex.getFunction(ImmutableList.of(STRUCT3_PERMUTE));
   }
 
   @Test
   public void shouldNotMatchGenericMethodWithAlreadyReservedTypes() {
     // Given:
-    final Schema generic = GenericsUtil.generic("A").build();
+    final Schema generic = generic("A").build();
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, generic, generic)
     };
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(of(INT, STRING))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters of types:"
         + "[INT, VARCHAR]"));
-
-    // When:
-    udfIndex.getFunction(ImmutableList.of(INT, STRING));
   }
 
   @Test
@@ -724,15 +747,17 @@ public class UdfIndexTest {
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, generic, generic)
     };
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(of(INT_LIST, STRING_LIST))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters of types:"
         + "[ARRAY<INT>, ARRAY<VARCHAR>]"));
-
-    // When:
-    udfIndex.getFunction(ImmutableList.of(INT_LIST, STRING_LIST));
   }
 
   @Test
@@ -740,15 +765,17 @@ public class UdfIndexTest {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, DECIMAL1)};
-    Arrays.stream(functions).forEach(udfIndex::addFunction);
+    stream(functions).forEach(udfIndex::addFunction);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(of(bytes().build()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters of types:"
         + "[BYTES]"));
-
-    // When:
-    udfIndex.getFunction(ImmutableList.of(SchemaBuilder.bytes().build()));
   }
 
   private static KsqlScalarFunction function(

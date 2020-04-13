@@ -15,9 +15,13 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.rest.server.KsqlServerMain.enforceStreamStateDirAvailability;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -28,9 +32,7 @@ import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
@@ -41,9 +43,6 @@ public class KsqlServerMainTest {
   private Executable executable;
 
   private final File mockStreamsStateDir = mock(File.class);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -98,17 +97,19 @@ public class KsqlServerMainTest {
     when(mockStreamsStateDir.exists()).thenReturn(false);
     when(mockStreamsStateDir.mkdirs()).thenReturn(false);
 
-    expectedException.expect(KsqlServerException.class);
-    expectedException.expectMessage(
-        "Could not create the kafka streams state directory: /var/lib/kafka-streams\n"
-            + " Make sure the directory exists and is writable for KSQL server \n"
-            + " or its parend directory is writbale by KSQL server\n"
-            + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in"
-            + " the properties file.");
-
     // When:
-    KsqlServerMain.enforceStreamStateDirAvailability(mockStreamsStateDir);
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> enforceStreamStateDirAvailability(mockStreamsStateDir)
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not create the kafka streams "
+        + "state directory: /var/lib/kafka-streams\n"
+        + " Make sure the directory exists and is writable for KSQL server \n"
+        + " or its parend directory is writbale by KSQL server\n"
+        + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in"
+        + " the properties file."));
   }
 
   @Test
@@ -116,16 +117,18 @@ public class KsqlServerMainTest {
     // Given:
     when(mockStreamsStateDir.isDirectory()).thenReturn(false);
 
-    expectedException.expect(KsqlServerException.class);
-    expectedException.expectMessage(
-        "/var/lib/kafka-streams is not a directory.\n"
-            + " Make sure the directory exists and is writable for KSQL server \n"
-            + " or its parend directory is writbale by KSQL server\n"
-            + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in"
-            + " the properties file.");
-
     // When:
-    KsqlServerMain.enforceStreamStateDirAvailability(mockStreamsStateDir);
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> enforceStreamStateDirAvailability(mockStreamsStateDir)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("/var/lib/kafka-streams is not a directory.\n"
+        + " Make sure the directory exists and is writable for KSQL server \n"
+        + " or its parend directory is writbale by KSQL server\n"
+        + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in"
+        + " the properties file."));
   }
 
   @Test
@@ -133,14 +136,16 @@ public class KsqlServerMainTest {
     // Given:
     when(mockStreamsStateDir.canWrite()).thenReturn(false);
 
-    expectedException.expect(KsqlServerException.class);
-    expectedException.expectMessage(
-        "The kafka streams state directory is not writable for KSQL server: /var/lib/kafka-streams\n"
-            + " Make sure the directory exists and is writable for KSQL server \n"
-            + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in the properties file.");
-
     // When:
-    KsqlServerMain.enforceStreamStateDirAvailability(mockStreamsStateDir);
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> enforceStreamStateDirAvailability(mockStreamsStateDir)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The kafka streams state directory is not writable for KSQL server: /var/lib/kafka-streams\n"
+        + " Make sure the directory exists and is writable for KSQL server \n"
+        + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in the properties file."));
   }
 
   @Test
@@ -148,13 +153,15 @@ public class KsqlServerMainTest {
     // Given:
     when(mockStreamsStateDir.canExecute()).thenReturn(false);
 
-    expectedException.expect(KsqlServerException.class);
-    expectedException.expectMessage(
-        "The kafka streams state directory is not writable for KSQL server: /var/lib/kafka-streams\n"
-            + " Make sure the directory exists and is writable for KSQL server \n"
-            + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in the properties file.");
-
     // When:
-    KsqlServerMain.enforceStreamStateDirAvailability(mockStreamsStateDir);
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> enforceStreamStateDirAvailability(mockStreamsStateDir)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The kafka streams state directory is not writable for KSQL server: /var/lib/kafka-streams\n"
+        + " Make sure the directory exists and is writable for KSQL server \n"
+        + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in the properties file."));
   }
 }

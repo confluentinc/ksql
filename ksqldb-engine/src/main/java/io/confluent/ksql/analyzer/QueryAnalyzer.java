@@ -70,7 +70,7 @@ public class QueryAnalyzer {
     }
 
     if (!analysis.getTableFunctions().isEmpty()) {
-      final AliasedDataSource ds = analysis.getFromDataSources().get(0);
+      final AliasedDataSource ds = analysis.getFrom();
       if (ds.getDataSource().getDataSourceType() == DataSourceType.KTABLE) {
         throw new KsqlException("Table source is not supported with table functions");
       }

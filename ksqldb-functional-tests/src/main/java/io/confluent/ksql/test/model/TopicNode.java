@@ -52,5 +52,4 @@ public final class TopicNode {
   public Topic build() {
     return new Topic(name, numPartitions, replicas, schema);
   }
-
 }

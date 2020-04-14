@@ -391,7 +391,7 @@ public final class ExpressionTreeRewriter<C> {
       final Expression value = rewriter.apply(node.getValue(), context);
       final Expression pattern = rewriter.apply(node.getPattern(), context);
 
-      return new LikePredicate(node.getLocation(), value, pattern);
+      return new LikePredicate(node.getLocation(), value, pattern, node.getEscape());
     }
 
     @Override

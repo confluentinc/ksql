@@ -1,0 +1,69 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585912768320,
+  "schemas" : {
+    "CTAS_INNER_JOIN_2_1.KafkaTopic_Left.Source" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
+    "CTAS_INNER_JOIN_2_1.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F3 VARCHAR> NOT NULL",
+    "CTAS_INNER_JOIN_2_1.INNER_JOIN_2" : "STRUCT<T_ID BIGINT, NAME VARCHAR, F1 VARCHAR, F3 VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "INNER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "X",
+      "VALUE" : 0,
+      "F1" : "yo dawg",
+      "F2" : 50
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "right_topic_2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "F3" : "I heard you like joins"
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "INNER_JOIN",
+    "key" : 100,
+    "value" : {
+      "T_ID" : 100,
+      "NAME" : "X",
+      "VALUE" : 0,
+      "F1" : "KSQL has table-table joins",
+      "F2" : 50
+    },
+    "timestamp" : 15000
+  }, {
+    "topic" : "right_topic_2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "F3" : "so now you can join your join"
+    },
+    "timestamp" : 20000
+  } ],
+  "outputs" : [ {
+    "topic" : "INNER_JOIN_2",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "X",
+      "F1" : "yo dawg",
+      "F3" : "I heard you like joins"
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "INNER_JOIN_2",
+    "key" : 100,
+    "value" : {
+      "T_ID" : 100,
+      "NAME" : "X",
+      "F1" : "KSQL has table-table joins",
+      "F3" : "so now you can join your join"
+    },
+    "timestamp" : 20000
+  } ]
+}

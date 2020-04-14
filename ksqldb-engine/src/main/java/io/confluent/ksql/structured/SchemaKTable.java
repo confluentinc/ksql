@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.structured;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -143,9 +144,10 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKStream<Struct> selectKey(
       final Expression keyExpression,
+      final Optional<ColumnName> alias,
       final Stacker contextStacker
   ) {
-    if (repartitionNotNeeded(keyExpression)) {
+    if (repartitionNotNeeded(ImmutableList.of(keyExpression), alias)) {
       return (SchemaKStream<Struct>) this;
     }
 
@@ -168,9 +170,9 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKGroupedTable groupBy(
       final ValueFormat valueFormat,
       final List<Expression> groupByExpressions,
-      final QueryContext.Stacker contextStacker
+      final Optional<ColumnName> alias,
+      final Stacker contextStacker
   ) {
-
     final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
 
     final ColumnName aggregateKeyName = groupedKeyNameFor(groupByExpressions);
@@ -182,8 +184,10 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         contextStacker,
         sourceTableStep,
         Formats.of(groupedKeyFormat, valueFormat, SerdeOption.none()),
-        groupByExpressions
+        groupByExpressions,
+        alias
     );
+
     return new SchemaKGroupedTable(
         step,
         resolveSchema(step),

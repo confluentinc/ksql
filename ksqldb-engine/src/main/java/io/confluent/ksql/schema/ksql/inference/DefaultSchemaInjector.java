@@ -163,7 +163,7 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     return preparedStatement.getStatement().getElements().stream()
-        .filter(e -> e.getNamespace() == Namespace.KEY);
+        .filter(e -> e.getNamespace().isKey());
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

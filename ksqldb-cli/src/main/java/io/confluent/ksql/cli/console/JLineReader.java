@@ -91,7 +91,6 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   ) {
     final DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
-    parser.setEofOnUnclosedQuote(true);
     parser.setQuoteChars(new char[]{'\''});
     parser.setEscapeChars(new char[]{'\\'});
 

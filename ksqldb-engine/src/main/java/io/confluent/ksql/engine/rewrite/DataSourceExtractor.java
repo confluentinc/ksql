@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.engine.rewrite;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
@@ -27,28 +29,21 @@ import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Table;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 class DataSourceExtractor {
 
   private final MetaStore metaStore;
 
-  private SourceName fromAlias;
-  private SourceName fromName;
-  private SourceName leftAlias;
-  private SourceName leftName;
-  private SourceName rightAlias;
-  private SourceName rightName;
-
-  private final Set<DataSource> allSources = new HashSet<>();
-  private final Set<ColumnName> commonColumnNames = new HashSet<>();
-  private final Set<ColumnName> leftColumnNames = new HashSet<>();
-  private final Set<ColumnName> rightColumnNames = new HashSet<>();
+  private final Set<AliasedDataSource> allSources = new HashSet<>();
+  private Set<ColumnName> commonColumnNames;
 
   private boolean isJoin = false;
 
@@ -58,39 +53,14 @@ class DataSourceExtractor {
 
   public void extractDataSources(final AstNode node) {
     new Visitor().process(node, null);
-    commonColumnNames.addAll(Sets.intersection(leftColumnNames, rightColumnNames));
   }
 
-  public SourceName getFromAlias() {
-    return fromAlias;
-  }
-
-  public SourceName getLeftAlias() {
-    return leftAlias;
-  }
-
-  public SourceName getRightAlias() {
-    return rightAlias;
-  }
-
-  public Set<DataSource> getAllSources() {
-    return Collections.unmodifiableSet(allSources);
+  public Set<AliasedDataSource> getAllSources() {
+    return ImmutableSet.copyOf(allSources);
   }
 
   public Set<ColumnName> getCommonColumnNames() {
     return Collections.unmodifiableSet(commonColumnNames);
-  }
-
-  public SourceName getFromName() {
-    return fromName;
-  }
-
-  public SourceName getLeftName() {
-    return leftName;
-  }
-
-  public SourceName getRightName() {
-    return rightName;
   }
 
   public boolean isJoin() {
@@ -98,24 +68,22 @@ class DataSourceExtractor {
   }
 
   public SourceName getAliasFor(final ColumnName columnName) {
-    if (isJoin) {
-      if (commonColumnNames.contains(columnName)) {
-        throw new KsqlException("Column '" + columnName.text() + "' is ambiguous.");
-      }
-
-      if (leftColumnNames.contains(columnName)) {
-        return leftAlias;
-      }
-
-      if (rightColumnNames.contains(columnName)) {
-        return rightAlias;
-      }
-
-      throw new KsqlException(
-          "Column '" + columnName.text() + "' cannot be resolved."
-      );
+    if (!isJoin) {
+      return Iterables.getOnlyElement(allSources).getAlias();
     }
-    return fromAlias;
+
+    final List<SourceName> source = allSources.stream()
+        .filter(aliased -> aliased.getDataSource().getSchema().findColumn(columnName).isPresent())
+        .map(AliasedDataSource::getAlias)
+        .collect(Collectors.toList());
+
+    if (source.size() > 1) {
+      throw new KsqlException("Column '" + columnName.text() + "' is ambiguous.");
+    } else if (source.isEmpty()) {
+      throw new KsqlException("Column '" + columnName.text() + "' cannot be resolved.");
+    } else {
+      return Iterables.getOnlyElement(source);
+    }
   }
 
   private final class Visitor extends DefaultTraversalVisitor<Void, Void> {
@@ -126,50 +94,34 @@ class DataSourceExtractor {
 
     @Override
     public Void visitAliasedRelation(final AliasedRelation relation, final Void ctx) {
-      fromAlias = relation.getAlias();
-      fromName = ((Table) relation.getRelation()).getName();
+      final SourceName fromName = ((Table) relation.getRelation()).getName();
       final DataSource source = metaStore.getSource(fromName);
       if (source == null) {
         throw new KsqlException(fromName.text() + " does not exist.");
       }
 
-      allSources.add(source);
+      allSources.add(new AliasedDataSource(relation.getAlias(), source));
+
+      final Set<ColumnName> columns = source
+          .getSchema()
+          .columns()
+          .stream()
+          .map(Column::name)
+          .collect(Collectors.toSet());
+
+      if (commonColumnNames == null) {
+        commonColumnNames = columns;
+      } else {
+        commonColumnNames = Sets.intersection(commonColumnNames, columns);
+      }
+
       return null;
     }
 
     @Override
     public Void visitJoin(final Join join, final Void ctx) {
       isJoin = true;
-      final AliasedRelation left = (AliasedRelation) join.getLeft();
-      leftAlias = left.getAlias();
-      leftName = ((Table) left.getRelation()).getName();
-      final DataSource
-          leftDataSource =
-          metaStore.getSource(((Table) left.getRelation()).getName());
-      if (leftDataSource == null) {
-        throw new KsqlException(((Table) left.getRelation()).getName().text() + " does not "
-            + "exist.");
-      }
-      addFieldNames(leftDataSource.getSchema(), leftColumnNames);
-      final AliasedRelation right =
-          (AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation();
-      rightAlias = right.getAlias();
-      rightName = ((Table) right.getRelation()).getName();
-      final DataSource
-          rightDataSource =
-          metaStore.getSource(((Table) right.getRelation()).getName());
-      if (rightDataSource == null) {
-        throw new KsqlException(((Table) right.getRelation()).getName().text() + " does not "
-            + "exist.");
-      }
-      addFieldNames(rightDataSource.getSchema(), rightColumnNames);
-      allSources.add(leftDataSource);
-      allSources.add(rightDataSource);
-      return null;
+      return super.visitJoin(join, ctx);
     }
-  }
-
-  private static void addFieldNames(final LogicalSchema schema, final Set<ColumnName> collection) {
-    schema.columns().forEach(field -> collection.add(field.name()));
   }
 }

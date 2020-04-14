@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
@@ -25,10 +28,12 @@ import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -38,17 +43,35 @@ import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 public final class TableGroupByBuilder {
-  private TableGroupByBuilder() {
-  }
 
-  public static <K> KGroupedTableHolder build(
-      final KTableHolder<K> table,
-      final TableGroupBy<K> step,
+  private final KsqlQueryBuilder queryBuilder;
+  private final GroupedFactory groupedFactory;
+  private final ParamsFactory paramsFactory;
+
+  public TableGroupByBuilder(
       final KsqlQueryBuilder queryBuilder,
       final GroupedFactory groupedFactory
   ) {
+    this(queryBuilder, groupedFactory, GroupByParamsFactory::build);
+  }
+
+  @VisibleForTesting
+  TableGroupByBuilder(
+      final KsqlQueryBuilder queryBuilder,
+      final GroupedFactory groupedFactory,
+      final ParamsFactory paramsFactory
+  ) {
+    this.queryBuilder = requireNonNull(queryBuilder, "queryBuilder");
+    this.groupedFactory = requireNonNull(groupedFactory, "groupedFactory");
+    this.paramsFactory = requireNonNull(paramsFactory, "paramsFactory");
+  }
+
+  public <K> KGroupedTableHolder build(
+      final KTableHolder<K> table,
+      final TableGroupBy<K> step
+  ) {
     final LogicalSchema sourceSchema = table.getSchema();
-    final QueryContext queryContext =  step.getProperties().getQueryContext();
+    final QueryContext queryContext = step.getProperties().getQueryContext();
     final Formats formats = step.getInternalFormats();
 
     final List<ExpressionMetadata> groupBy = CodeGenRunner.compileExpressions(
@@ -61,8 +84,8 @@ public final class TableGroupByBuilder {
 
     final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
 
-    final GroupByParams params = GroupByParamsFactory
-        .build(sourceSchema, groupBy, logger, queryBuilder.getKsqlConfig());
+    final GroupByParams params = paramsFactory
+        .build(sourceSchema, groupBy, step.getAlias(), logger, queryBuilder.getKsqlConfig());
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         params.getSchema(),
@@ -97,12 +120,23 @@ public final class TableGroupByBuilder {
     private final Function<GenericRow, Struct> groupByMapper;
 
     private TableKeyValueMapper(final Function<GenericRow, Struct> groupByMapper) {
-      this.groupByMapper = Objects.requireNonNull(groupByMapper, "groupByMapper");
+      this.groupByMapper = requireNonNull(groupByMapper, "groupByMapper");
     }
 
     @Override
     public KeyValue<Struct, GenericRow> apply(final K key, final GenericRow value) {
       return new KeyValue<>(groupByMapper.apply(value), value);
     }
+  }
+
+  interface ParamsFactory {
+
+    GroupByParams build(
+        LogicalSchema sourceSchema,
+        List<ExpressionMetadata> groupBys,
+        Optional<ColumnName> alias,
+        ProcessingLogger logger,
+        KsqlConfig ksqlConfig
+    );
   }
 }

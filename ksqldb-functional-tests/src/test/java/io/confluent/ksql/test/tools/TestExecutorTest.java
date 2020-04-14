@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.test.tools;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -43,7 +46,6 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
-import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -225,11 +227,11 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnTwoLittleOutput() {
     // Given:
-    final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
-    when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(actual_0));
+    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
-    final Record expected_1 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", null, Optional.of(1L), null);
+    final Record expected_1 = new Record(SINK_TOPIC_NAME, "k1", "v1", null, Optional.of(1L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // Expect
@@ -245,35 +247,38 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnTwoMuchOutput() {
     // Given:
-    final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
-    final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
-    when(kafkaService.readRecords(SINK_TOPIC_NAME))
-        .thenReturn(ImmutableList.of(actual_0, actual_1));
+    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
+    when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", null, Optional.of(1L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0));
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected <1> records but it was <2>\n"
-        + "Actual records: \n"
-        + "<k1, \"v1\"> with timestamp=123456719 \n"
-        + "<k2, \"v2\"> with timestamp=123456789");
-
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Topic sink_topic. Expected <1> records but it was <2>\n"
+        + "Actual records: \n"
+        + "<k1, \"v1\"> with timestamp=123456719\n"
+        + "<k2, \"v2\"> with timestamp=123456789")
+    );
   }
 
   @Test
   public void shouldFailOnUnexpectedOutput() {
     // Given:
-    final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
-    final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
-    when(kafkaService.readRecords(SINK_TOPIC_NAME))
-        .thenReturn(ImmutableList.of(actual_0, actual_1));
+    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
+    when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", TextNode.valueOf("v1"), Optional.of(123456719L), null);
-    final Record expected_1 = new Record(sinkTopic, "k2", "different", TextNode.valueOf("different"), Optional.of(123456789L), null);
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", TextNode.valueOf("v1"),
+        Optional.of(123456719L), null);
+    final Record expected_1 = new Record(SINK_TOPIC_NAME, "k2", "different",
+        TextNode.valueOf("different"), Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // Expect
@@ -288,13 +293,14 @@ public class TestExecutorTest {
   @Test
   public void shouldPassOnExpectedOutput() {
     // Given:
-    final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
-    final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
-    when(kafkaService.readRecords(SINK_TOPIC_NAME))
-        .thenReturn(ImmutableList.of(actual_0, actual_1));
+    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
+    when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", TextNode.valueOf("v1"), Optional.of(123456719L), null);
-    final Record expected_1 = new Record(sinkTopic, "k2", "v2", TextNode.valueOf("v2"), Optional.of(123456789L), null);
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", TextNode.valueOf("v1"),
+        Optional.of(123456719L), null);
+    final Record expected_1 = new Record(SINK_TOPIC_NAME, "k2", "v2", TextNode.valueOf("v2"),
+        Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // When:
@@ -306,13 +312,14 @@ public class TestExecutorTest {
   @Test
   public void shouldHandleNonStringKeys() {
     // Given:
-    final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, 1, "v1");
-    final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, 1, "v2");
-    when(kafkaService.readRecords(SINK_TOPIC_NAME))
-        .thenReturn(ImmutableList.of(actual_0, actual_1));
+    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, 1, "v1");
+    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, 1, "v2");
+    when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
-    final Record expected_0 = new Record(sinkTopic, 1, "v1", TextNode.valueOf("v1"), Optional.of(123456719L), null);
-    final Record expected_1 = new Record(sinkTopic, 1, "v2", TextNode.valueOf("v2"), Optional.of(123456789L), null);
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, 1, "v1", TextNode.valueOf("v1"),
+        Optional.of(123456719L), null);
+    final Record expected_1 = new Record(SINK_TOPIC_NAME, 1, "v2", TextNode.valueOf("v2"),
+        Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     final LogicalSchema schema = LogicalSchema.builder()
@@ -371,20 +378,18 @@ public class TestExecutorTest {
     allSources.put(SourceName.of(TestExecutorTest.SINK_TOPIC_NAME + "_source"), dataSource);
   }
 
-  private static StubKafkaRecord kafkaRecord(
+  private static ProducerRecord<?, ?> producerRecord(
       final Topic topic,
       final long rowTime,
       final Object key,
       final String value
   ) {
-    final ProducerRecord<Object, String> record = new ProducerRecord<>(
+    return new ProducerRecord<>(
         topic.getName(),
         1,
         rowTime,
         key,
         value
     );
-
-    return StubKafkaRecord.of(topic, record);
   }
 }

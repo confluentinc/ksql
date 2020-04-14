@@ -183,10 +183,10 @@ public class RestTestExecutor implements Closeable {
     });
   }
 
-  private void produceInputs(final Map<Topic, List<Record>> inputs) {
-    inputs.forEach((topic, records) -> {
+  private void produceInputs(final Map<String, List<Record>> inputs) {
+    inputs.forEach((topicName, records) -> {
 
-      final TopicInfo topicInfo = topicInfoCache.get(topic.getName());
+      final TopicInfo topicInfo = topicInfoCache.get(topicName);
 
       try (KafkaProducer<Object, Object> producer = new KafkaProducer<>(
           kafkaCluster.producerConfig(),
@@ -199,7 +199,7 @@ public class RestTestExecutor implements Closeable {
           final Record coerced = topicInfo.coerceRecordKey(record, idx);
 
           producer.send(new ProducerRecord<>(
-              topic.getName(),
+              topicName,
               null,
               coerced.timestamp().orElse(0L),
               coerced.key(),
@@ -207,7 +207,7 @@ public class RestTestExecutor implements Closeable {
           ));
         }
       } catch (final Exception e) {
-        throw new RuntimeException("Failed to send record to " + topic.getName(), e);
+        throw new RuntimeException("Failed to send record to " + topicName, e);
       }
     });
   }
@@ -293,13 +293,13 @@ public class RestTestExecutor implements Closeable {
   }
 
   private void verifyOutput(final RestTestCase testCase) {
-    testCase.getOutputsByTopic().forEach((topic, records) -> {
+    testCase.getOutputsByTopic().forEach((topicName, records) -> {
 
-      final TopicInfo topicInfo = topicInfoCache.get(topic.getName());
+      final TopicInfo topicInfo = topicInfoCache.get(topicName);
 
       final List<? extends ConsumerRecord<?, ?>> received = kafkaCluster
           .verifyAvailableRecords(
-              topic.getName(),
+              topicName,
               records.size(),
               topicInfo.getKeyDeserializer(),
               topicInfo.getValueDeserializer()

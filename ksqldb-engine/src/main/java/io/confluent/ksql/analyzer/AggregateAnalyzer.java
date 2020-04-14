@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ public class AggregateAnalyzer {
       final ImmutableAnalysis analysis,
       final List<SelectExpression> finalProjection
   ) {
-    if (analysis.getGroupByExpressions().isEmpty()) {
+    if (!analysis.getGroupBy().isPresent()) {
       throw new IllegalArgumentException("Not an aggregate query");
     }
 
@@ -96,7 +97,9 @@ public class AggregateAnalyzer {
       analysis.getWhereExpression()
           .ifPresent(this::processWhere);
 
-      analysis.getGroupByExpressions()
+      analysis.getGroupBy()
+          .map(GroupBy::getGroupingExpressions)
+          .orElseGet(ImmutableList::of)
           .forEach(this::processGroupBy);
 
       analysis.getHavingExpression()
@@ -179,8 +182,12 @@ public class AggregateAnalyzer {
     private static Set<Expression> getGroupByExpressions(
         final ImmutableAnalysis analysis
     ) {
+      final List<Expression> groupByExpressions = analysis.getGroupBy()
+          .map(GroupBy::getGroupingExpressions)
+          .orElseGet(ImmutableList::of);
+
       if (!analysis.getWindowExpression().isPresent()) {
-        return ImmutableSet.copyOf(analysis.getGroupByExpressions());
+        return ImmutableSet.copyOf(groupByExpressions);
       }
 
       // Add in window bounds columns as implicit group by columns:
@@ -190,7 +197,7 @@ public class AggregateAnalyzer {
               .collect(Collectors.toSet());
 
       return ImmutableSet.<Expression>builder()
-          .addAll(analysis.getGroupByExpressions())
+          .addAll(groupByExpressions)
           .addAll(windowBoundColumnRefs)
           .build();
     }

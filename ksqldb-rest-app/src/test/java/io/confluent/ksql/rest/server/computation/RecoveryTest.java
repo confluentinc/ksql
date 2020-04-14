@@ -576,11 +576,35 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldRecoverInsertIntos() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "INSERT INTO B SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldRecoverInsertIntosRecreates() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "INSERT INTO B SELECT * FROM A;",
+        "TERMINATE InsertQuery_0;",
+        "INSERT INTO B SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
   public void shouldRecoverTerminates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;"
+        "INSERT INTO B SELECT * FROM A;",
+        "TERMINATE CSAS_B_0;",
+        "TERMINATE InsertQuery_2;"
     );
     shouldRecover(commands);
   }
@@ -593,6 +617,25 @@ public class RecoveryTest {
         "TERMINATE CSAS_B_0;",
         "DROP STREAM B;"
     );
+    shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldRecoverWithDuplicateTerminateAndDrop() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "TERMINATE CSAS_B_0;"
+    );
+
+    addDuplicateOfLastCommand(); // Add duplicate of "TERMINATE CSAS_B_0;"
+
+    server1.submitCommands(
+        "DROP STREAM B;"
+    );
+
+    addDuplicateOfLastCommand(); // Add duplicate of "DROP STREAM B;"
+
     shouldRecover(commands);
   }
 
@@ -679,4 +722,16 @@ public class RecoveryTest {
     assertThat(queryIdNames, contains(new QueryId("CSAS_C_0")));
   }
 
+  // Simulate bad commands that have been introduced due to race condition in logic producing to cmd topic
+  private void addDuplicateOfLastCommand() {
+    final QueuedCommand original = commands.get(commands.size() - 1);
+    final QueuedCommand duplicate = new QueuedCommand(
+        original.getCommandId(),
+        original.getCommand(),
+        Optional.empty(),
+        (long) commands.size()
+    );
+
+    commands.add(duplicate);
+  }
 }

@@ -41,15 +41,16 @@ import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
-import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.Closeable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -82,7 +83,7 @@ public class TestExecutor implements Closeable {
   private final ServiceContext serviceContext;
   private final KsqlEngine ksqlEngine;
   private final Map<String, ?> config = baseConfig();
-  private final StubKafkaService stubKafkaService;
+  private final StubKafkaService kafka;
   private final TopologyBuilder topologyBuilder;
   private final Function<TopologyTestDriver, Set<String>> internalTopicsAccessor;
   private final TopicInfoCache topicInfoCache;
@@ -93,13 +94,13 @@ public class TestExecutor implements Closeable {
 
   @VisibleForTesting
   TestExecutor(
-      final StubKafkaService stubKafkaService,
+      final StubKafkaService kafka,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final TopologyBuilder topologyBuilder,
       final Function<TopologyTestDriver, Set<String>> internalTopicsAccessor
   ) {
-    this.stubKafkaService = requireNonNull(stubKafkaService, "stubKafkaService");
+    this.kafka = requireNonNull(kafka, "stubKafkaService");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.topologyBuilder = requireNonNull(topologyBuilder, "topologyBuilder");
@@ -108,11 +109,11 @@ public class TestExecutor implements Closeable {
   }
 
   private TestExecutor(
-      final StubKafkaService stubKafkaService,
+      final StubKafkaService kafka,
       final ServiceContext serviceContext
   ) {
     this(
-        stubKafkaService,
+        kafka,
         serviceContext,
         getKsqlEngine(serviceContext),
         TestExecutorUtil::buildStreamsTopologyTestDrivers,
@@ -136,13 +137,13 @@ public class TestExecutor implements Closeable {
               serviceContext,
               ksqlEngine,
               ksqlConfig,
-              stubKafkaService
+              kafka
           );
 
-      writeInputIntoTopics(testCase.getInputRecords(), stubKafkaService);
+      writeInputIntoTopics(testCase.getInputRecords(), kafka);
       final Set<String> inputTopics = testCase.getInputRecords()
           .stream()
-          .map(record -> record.getTopic().getName())
+          .map(Record::getTopicName)
           .collect(Collectors.toSet());
 
       final Set<String> allTopicNames = new HashSet<>();
@@ -173,7 +174,7 @@ public class TestExecutor implements Closeable {
       }
       verifyOutput(testCase);
 
-      stubKafkaService.getAllTopics().stream()
+      kafka.getAllTopics().stream()
           .map(Topic::getName)
           .forEach(allTopicNames::add);
 
@@ -200,18 +201,16 @@ public class TestExecutor implements Closeable {
     final boolean ranWithInsertStatements = testCase.getInputRecords().size() == 0;
 
     final Map<String, List<Record>> expectedByTopic = testCase.getOutputRecords().stream()
-        .collect(Collectors.groupingBy(r -> r.topic().getName()));
+        .collect(Collectors.groupingBy(Record::getTopicName));
 
-    final Map<String, List<StubKafkaRecord>> actualByTopic = expectedByTopic.keySet().stream()
-        .collect(Collectors.toMap(Function.identity(), stubKafkaService::readRecords));
+    final Map<String, List<ProducerRecord<?, ?>>> actualByTopic = expectedByTopic.keySet().stream()
+        .collect(Collectors.toMap(Function.identity(), kafka::readRecords));
 
     expectedByTopic.forEach((kafkaTopic, expectedRecords) ->
         validateTopicData(
             kafkaTopic,
             expectedRecords,
-            actualByTopic.getOrDefault(kafkaTopic, ImmutableList.of()).stream()
-                .filter(rec -> rec.getProducerRecord() != null)
-                .collect(Collectors.toList()),
+            actualByTopic.getOrDefault(kafkaTopic, ImmutableList.of()),
             ranWithInsertStatements
         ));
   }
@@ -219,7 +218,7 @@ public class TestExecutor implements Closeable {
   private void validateTopicData(
       final String topicName,
       final List<Record> expected,
-      final List<StubKafkaRecord> actual,
+      final Collection<ProducerRecord<?, ?>> actual,
       final boolean ranWithInsertStatements
   ) {
     if (actual.size() != expected.size()) {
@@ -229,9 +228,13 @@ public class TestExecutor implements Closeable {
 
     final TopicInfo topicInfo = topicInfoCache.get(topicName);
 
-    for (int i = 0; i < expected.size(); i++) {
-      final Record expectedRecord = topicInfo.coerceRecordKey(expected.get(i), i);
-      final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
+    final Iterator<Record> expectedIt = expected.iterator();
+    final Iterator<ProducerRecord<?, ?>> actualIt = actual.iterator();
+
+    int i = 0;
+    while (actualIt.hasNext() && expectedIt.hasNext()) {
+      final Record expectedRecord = topicInfo.coerceRecordKey(expectedIt.next(), i);
+      final ProducerRecord<?, ?> actualProducerRecord = actualIt.next();
 
       validateCreatedMessage(
           topicName,
@@ -240,17 +243,15 @@ public class TestExecutor implements Closeable {
           ranWithInsertStatements,
           i
       );
+
+      i++;
     }
   }
 
-  private static String getActualsForErrorMessage(final List<StubKafkaRecord> actual) {
-    final StringBuilder stringBuilder = new StringBuilder("Actual records: \n");
-    for (final StubKafkaRecord stubKafkaRecord : actual) {
-      final ProducerRecord<?, ?> producerRecord = stubKafkaRecord.getProducerRecord();
-      stringBuilder.append(getProducerRecordInString(producerRecord))
-          .append(" \n");
-    }
-    return stringBuilder.toString();
+  private static String getActualsForErrorMessage(final Collection<ProducerRecord<?, ?>> actual) {
+    return actual.stream()
+        .map(TestExecutor::getProducerRecordInString)
+        .collect(Collectors.joining(System.lineSeparator(), "Actual records: \n", ""));
   }
 
   private static String getProducerRecordInString(final ProducerRecord<?, ?> producerRecord) {
@@ -286,21 +287,20 @@ public class TestExecutor implements Closeable {
 
   private void pipeRecordsFromProvidedInput(
       final TestCase testCase,
-      final TopologyTestDriverContainer topologyTestDriverContainer
+      final TopologyTestDriverContainer testDriver
   ) {
-
     int inputRecordIndex = 0;
     for (final Record record : testCase.getInputRecords()) {
-      if (topologyTestDriverContainer.getSourceTopicNames().contains(record.getTopic().getName())) {
+      if (testDriver.getSourceTopicNames().contains(record.getTopicName())) {
 
-        final TopicInfo topicInfo = topicInfoCache.get(record.getTopic().getName());
+        final TopicInfo topicInfo = topicInfoCache.get(record.getTopicName());
 
         final Record coerced = topicInfo.coerceRecordKey(record, inputRecordIndex);
 
         processSingleRecord(
-            StubKafkaRecord.of(coerced, null),
-            topologyTestDriverContainer,
-            ImmutableSet.copyOf(stubKafkaService.getAllTopics())
+            coerced.asProducerRecord(),
+            testDriver,
+            ImmutableSet.copyOf(kafka.getAllTopics())
         );
       }
       ++inputRecordIndex;
@@ -311,35 +311,31 @@ public class TestExecutor implements Closeable {
       final String kafkaTopicName,
       final TopologyTestDriverContainer topologyTestDriverContainer
   ) {
-    for (final StubKafkaRecord stubKafkaRecord : stubKafkaService.readRecords(kafkaTopicName)) {
-      processSingleRecord(
-          stubKafkaRecord,
-          topologyTestDriverContainer,
-          Collections.emptySet()
-      );
-    }
+    kafka.readRecords(kafkaTopicName)
+        .forEach(rec -> processSingleRecord(
+            rec,
+            topologyTestDriverContainer,
+            ImmutableSet.of()
+        ));
   }
 
   private void processSingleRecord(
-      final StubKafkaRecord inputRecord,
+      final ProducerRecord<?, ?> producedRecord,
       final TopologyTestDriverContainer testDriver,
       final Set<Topic> possibleSinkTopics
   ) {
-    final Topic recordTopic = stubKafkaService
-        .getTopic(inputRecord.getTestRecord().getTopic().getName());
+    final String topicName = producedRecord.topic();
+    final TopicInfo topicInfo = topicInfoCache.get(topicName);
 
-    final TopicInfo topicInfo = topicInfoCache.get(recordTopic.getName());
-
-    final Object key = getKey(inputRecord);
     final ConsumerRecord<byte[], byte[]> consumerRecord =
         new org.apache.kafka.streams.test.ConsumerRecordFactory<>(
             topicInfo.getKeySerializer(),
             topicInfo.getValueSerializer()
         ).create(
-            recordTopic.getName(),
-            key,
-            inputRecord.getTestRecord().value(),
-            inputRecord.getTestRecord().timestamp().orElse(0L)
+            topicName,
+            producedRecord.key(),
+            producedRecord.value(),
+            producedRecord.timestamp()
         );
 
     testDriver.getTopologyTestDriver().pipeInput(consumerRecord);
@@ -373,12 +369,7 @@ public class TestExecutor implements Closeable {
         break;
       }
 
-      stubKafkaService.writeRecord(
-          sinkTopic.getName(),
-          StubKafkaRecord.of(
-              sinkTopic,
-              producerRecord)
-      );
+      kafka.writeRecord(producerRecord);
     }
   }
 
@@ -402,12 +393,6 @@ public class TestExecutor implements Closeable {
           e
       );
     }
-  }
-
-  private static Object getKey(final StubKafkaRecord stubKafkaRecord) {
-    return stubKafkaRecord.getProducerRecord() == null
-        ? stubKafkaRecord.getTestRecord().key()
-        : stubKafkaRecord.getProducerRecord().key();
   }
 
   static ServiceContext getServiceContext() {
@@ -448,13 +433,11 @@ public class TestExecutor implements Closeable {
 
   private static void writeInputIntoTopics(
       final List<Record> inputRecords,
-      final StubKafkaService stubKafkaService
+      final StubKafkaService kafka
   ) {
-    inputRecords.forEach(
-        record -> stubKafkaService.writeRecord(
-            record.getTopic().getName(),
-            StubKafkaRecord.of(record, null))
-    );
+    inputRecords.stream()
+        .map(Record::asProducerRecord)
+        .forEach(kafka::writeRecord);
   }
 
   private static void validateCreatedMessage(

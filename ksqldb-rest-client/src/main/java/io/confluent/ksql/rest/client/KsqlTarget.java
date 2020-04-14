@@ -138,11 +138,12 @@ public final class KsqlTarget {
 
   public RestResponse<KsqlEntityList> postKsqlRequest(
       final String ksql,
+      final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum
   ) {
     return post(
         KSQL_PATH,
-        createKsqlRequest(ksql, Collections.emptyMap(), previousCommandSeqNum),
+        createKsqlRequest(ksql, requestProperties, previousCommandSeqNum),
         r -> deserialize(r.getBody(), KsqlEntityList.class)
     );
   }

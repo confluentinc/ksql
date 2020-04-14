@@ -31,8 +31,22 @@ import java.util.Optional;
 public final class TableElement extends AstNode {
 
   public enum Namespace {
+    /**
+     * Table's have PRIMARY KEYs:
+     */
+    PRIMARY_KEY,
+    /**
+     * Stream's just have KEYs:
+     */
     KEY,
-    VALUE
+    /**
+     * Non-key colunns:
+     */
+    VALUE;
+
+    public boolean isKey() {
+      return this != VALUE;
+    }
   }
 
   private final Namespace namespace;

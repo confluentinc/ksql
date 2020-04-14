@@ -422,7 +422,7 @@ public class StreamsSelectAndProjectIntTest {
   }
 
   private void createOrdersStream() {
-    final String columns = DATA_PROVIDER.ksqlSchemaString();
+    final String columns = DATA_PROVIDER.ksqlSchemaString(false);
 
     ksqlContext.sql("CREATE STREAM " + JSON_STREAM_NAME + " (" + columns + ") WITH "
         + "(kafka_topic='" + jsonTopicName + "', value_format='JSON');");

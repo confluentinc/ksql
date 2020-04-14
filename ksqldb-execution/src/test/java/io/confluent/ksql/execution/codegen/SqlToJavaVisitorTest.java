@@ -396,51 +396,39 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldGenerateCorrectCodeForLikePatternWithLeadingWildcard() {
+  public void shouldGenerateCorrectCodeForLikePattern() {
     // Given:
-    final Expression expression = new LikePredicate(COL1, new StringLiteral("%foo"));
+    final Expression expression = new LikePredicate(COL1, new StringLiteral("%foo"), Optional.empty());
 
     // When:
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, equalTo("(COL1).endsWith(\"foo\")"));
+    assertThat(javaExpression, equalTo("LikeEvaluator.matches(COL1, \"%foo\")"));
   }
 
   @Test
-  public void shouldGenerateCorrectCodeForLikePatternWithTrailingWildcard() {
+  public void shouldGenerateCorrectCodeForLikePatternWithEscape() {
     // Given:
-    final Expression expression = new LikePredicate(COL1, new StringLiteral("foo%"));
+    final Expression expression = new LikePredicate(COL1, new StringLiteral("%foo"), Optional.of('!'));
 
     // When:
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, equalTo("(COL1).startsWith(\"foo\")"));
+    assertThat(javaExpression, equalTo("LikeEvaluator.matches(COL1, \"%foo\", '!')"));
   }
 
   @Test
-  public void shouldGenerateCorrectCodeForLikePatternWithLeadingAndTrailingWildcards() {
+  public void shouldGenerateCorrectCodeForLikePatternWithColRef() {
     // Given:
-    final Expression expression = new LikePredicate(COL1, new StringLiteral("%foo%"));
+    final Expression expression = new LikePredicate(COL1, COL1, Optional.empty());
 
     // When:
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, equalTo("(COL1).contains(\"foo\")"));
-  }
-
-  @Test
-  public void shouldGenerateCorrectCodeForLikePatternWithoutWildcards() {
-    // Given:
-    final Expression expression = new LikePredicate(COL1, new StringLiteral("foo"));
-
-    // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
-
-    // Then:
-    assertThat(javaExpression, equalTo("(COL1).equals(\"foo\")"));
+    assertThat(javaExpression, equalTo("LikeEvaluator.matches(COL1, COL1)"));
   }
 
   @Test

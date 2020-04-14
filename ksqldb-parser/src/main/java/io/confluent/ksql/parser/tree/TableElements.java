@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -91,7 +90,7 @@ public final class TableElements implements Iterable<TableElement> {
     if (withImplicitColumns) {
       builder.withRowTime();
 
-      final boolean noKey = elements.stream().noneMatch(e -> e.getNamespace() == Namespace.KEY);
+      final boolean noKey = elements.stream().noneMatch(e -> e.getNamespace().isKey());
       if (noKey) {
         builder.keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
       }
@@ -101,7 +100,7 @@ public final class TableElements implements Iterable<TableElement> {
       final ColumnName fieldName = tableElement.getName();
       final SqlType fieldType = tableElement.getType().getSqlType();
 
-      if (tableElement.getNamespace() == Namespace.KEY) {
+      if (tableElement.getNamespace().isKey()) {
         builder.keyColumn(fieldName, fieldType);
       } else {
         builder.valueColumn(fieldName, fieldType);

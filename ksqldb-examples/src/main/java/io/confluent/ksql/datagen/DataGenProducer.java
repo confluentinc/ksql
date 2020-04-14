@@ -59,7 +59,7 @@ public class DataGenProducer {
   ) {
     final Schema avroSchema = generator.schema();
     if (avroSchema.getField(key) == null) {
-      throw new IllegalArgumentException("Key field does not exist:" + key);
+      throw new IllegalArgumentException("Key field does not exist: " + key);
     }
 
     final RowGenerator rowGenerator = new RowGenerator(generator, key);

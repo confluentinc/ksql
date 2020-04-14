@@ -56,6 +56,11 @@ public class KsqlHostInfoEntity {
     }
   }
 
+  public KsqlHostInfoEntity(final KsqlHostInfo ksqlHostInfo) {
+    this.host = ksqlHostInfo.host();
+    this.port = ksqlHostInfo.port();
+  }
+
   public String getHost() {
     return host;
   }

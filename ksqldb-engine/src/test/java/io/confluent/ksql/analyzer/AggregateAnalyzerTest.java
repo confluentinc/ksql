@@ -38,6 +38,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -421,8 +422,12 @@ public class AggregateAnalyzerTest {
   }
 
   private void givenGroupByExpressions(final Expression... expressions) {
-    when(analysis.getGroupByExpressions())
-        .thenReturn(ImmutableList.copyOf(expressions));
+    when(analysis.getGroupBy())
+        .thenReturn(Optional.of(new GroupBy(
+            Optional.empty(),
+            ImmutableList.copyOf(expressions),
+            Optional.empty())
+        ));
   }
 
   private void givenHavingExpression(final Expression expression) {

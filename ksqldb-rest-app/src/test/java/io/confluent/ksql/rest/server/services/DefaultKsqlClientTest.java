@@ -23,6 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlTarget;
@@ -57,13 +58,13 @@ public class DefaultKsqlClientTest {
 
     when(sharedClient.target(any())).thenReturn(target);
     when(target.authorizationHeader(any())).thenReturn(target);
-    when(target.postKsqlRequest(any(), any())).thenReturn(response);
+    when(target.postKsqlRequest(any(), any(), any())).thenReturn(response);
   }
 
   @Test
   public void shouldGetRightTraget() {
     // When:
-    client.makeKsqlRequest(SERVER_ENDPOINT, "Sql");
+    client.makeKsqlRequest(SERVER_ENDPOINT, "Sql", ImmutableMap.of());
 
     // Then:
     verify(sharedClient).target(SERVER_ENDPOINT);
@@ -72,7 +73,7 @@ public class DefaultKsqlClientTest {
   @Test
   public void shouldSetAuthHeaderOnTarget() {
     // When:
-    client.makeKsqlRequest(SERVER_ENDPOINT, "Sql");
+    client.makeKsqlRequest(SERVER_ENDPOINT, "Sql", ImmutableMap.of());
 
     // Then:
     verify(target).authorizationHeader(AUTH_HEADER);
@@ -84,7 +85,7 @@ public class DefaultKsqlClientTest {
     client = new DefaultKsqlClient(Optional.empty(), sharedClient);
 
     // When:
-    final RestResponse<KsqlEntityList> result = client.makeKsqlRequest(SERVER_ENDPOINT, "Sql");
+    final RestResponse<KsqlEntityList> result = client.makeKsqlRequest(SERVER_ENDPOINT, "Sql", ImmutableMap.of());
 
     // Then:
     verify(target, never()).authorizationHeader(any());
@@ -94,10 +95,10 @@ public class DefaultKsqlClientTest {
   @Test
   public void shouldPostRequest() {
     // When:
-    final RestResponse<KsqlEntityList> result = client.makeKsqlRequest(SERVER_ENDPOINT, "Sql");
+    final RestResponse<KsqlEntityList> result = client.makeKsqlRequest(SERVER_ENDPOINT, "Sql", ImmutableMap.of());
 
     // Then:
-    verify(target).postKsqlRequest("Sql", Optional.empty());
+    verify(target).postKsqlRequest("Sql", ImmutableMap.of(), Optional.empty());
     assertThat(result, is(response));
   }
 }

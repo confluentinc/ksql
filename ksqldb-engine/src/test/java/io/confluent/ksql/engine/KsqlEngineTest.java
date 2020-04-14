@@ -33,7 +33,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -826,7 +825,7 @@ public class KsqlEngineTest {
         + "CREATE STREAM S0 (a INT, b VARCHAR) "
         + "      WITH (kafka_topic='s0_topic', value_format='DELIMITED');\n"
         + "\n"
-        + "CREATE TABLE T1 (ROWKEY BIGINT KEY, f0 BIGINT, f1 DOUBLE) "
+        + "CREATE TABLE T1 (ROWKEY BIGINT PRIMARY KEY, f0 BIGINT, f1 DOUBLE) "
         + "     WITH (kafka_topic='t1_topic', value_format='JSON', key = 'f0');\n"
         + "\n"
         + "CREATE STREAM S1 AS SELECT * FROM S0;\n"

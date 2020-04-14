@@ -43,6 +43,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
@@ -107,6 +108,8 @@ public class StreamSelectKeyBuilderTest {
   private Struct aKey;
   @Mock
   private GenericRow aValue;
+  @Mock
+  private Optional<ColumnName> alias;
   @Captor
   private ArgumentCaptor<KeyValueMapper<Struct, GenericRow, KeyValue<Struct, GenericRow>>> mapperCaptor;
   @Captor
@@ -124,7 +127,7 @@ public class StreamSelectKeyBuilderTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getKsqlConfig()).thenReturn(CONFIG);
 
-    when(paramBuilder.build(any(), any(), any(), any(), any())).thenReturn(params);
+    when(paramBuilder.build(any(), any(), any(), any(), any(), any())).thenReturn(params);
 
     when(params.getMapper()).thenReturn(mapper);
     when(params.getSchema()).thenReturn(RESULT_SCHEMA);
@@ -137,7 +140,8 @@ public class StreamSelectKeyBuilderTest {
     selectKey = new StreamSelectKey(
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
-        KEY
+        KEY,
+        alias
     );
   }
 
@@ -151,6 +155,7 @@ public class StreamSelectKeyBuilderTest {
     verify(paramBuilder).build(
         SOURCE_SCHEMA,
         KEY,
+        alias,
         CONFIG,
         functionRegistry,
         processingLogger
@@ -218,7 +223,6 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     assertThat(result.getSchema(), is(RESULT_SCHEMA));
   }
-
 
   @Test
   public void shouldReturnCorrectSerdeFactory() {

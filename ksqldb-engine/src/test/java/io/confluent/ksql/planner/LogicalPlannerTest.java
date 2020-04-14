@@ -267,7 +267,6 @@ public class LogicalPlannerTest {
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
     assertThat(aggregateNode.getSchema().value().get(1).type(), equalTo(SqlTypes.DOUBLE));
     assertThat(logicalPlan.getSources().get(0).getSchema().value().size(), equalTo(2));
-
   }
 
   @Test

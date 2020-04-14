@@ -31,7 +31,7 @@
     {
       "name": "test_udaf on a table",
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
         "CREATE TABLE SUM_ID_BY_REGION AS SELECT REGION, test_udaf(id) FROM TEST GROUP BY REGION;"
       ],
       "inputs": [

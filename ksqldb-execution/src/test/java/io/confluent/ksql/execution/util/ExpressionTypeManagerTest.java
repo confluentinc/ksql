@@ -240,7 +240,7 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldEvaluateBooleanSchemaForLikeExpression() {
-    final Expression expression = new LikePredicate(COL1, new StringLiteral("%foo"));
+    final Expression expression = new LikePredicate(COL1, new StringLiteral("%foo"), Optional.empty());
 
     final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(expression);
 
@@ -250,7 +250,7 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldEvaluateBooleanSchemaForNotLikeExpression() {
     final Expression expression =
-        new NotExpression(new LikePredicate(COL1, new StringLiteral("%foo")));
+        new NotExpression(new LikePredicate(COL1, new StringLiteral("%foo"), Optional.empty()));
     final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(expression);
     assertThat(exprType0, is(SqlTypes.BOOLEAN));
   }

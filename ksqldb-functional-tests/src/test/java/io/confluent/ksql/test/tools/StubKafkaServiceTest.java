@@ -17,14 +17,13 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
-import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,58 +36,56 @@ public class StubKafkaServiceTest {
   @Mock
   private ParsedSchema avroSchema;
   @Mock
-  private ProducerRecord<?, ?> producerRecord;
-  @Mock
-  private Record record;
-  private StubKafkaRecord stubKafkaRecord;
+  private ProducerRecord<String, String> producerRecord;
 
-  private StubKafkaService stubKafkaService;
+  private StubKafkaService kafka;
   private Topic topic;
 
   @Before
   public void setUp() {
-    stubKafkaRecord = StubKafkaRecord.of(record, producerRecord);
-    stubKafkaService = StubKafkaService.create();
-    topic = new Topic("foo", 1, 1, Optional.of(avroSchema));
-  }
+    when(producerRecord.topic()).thenReturn("topic-name");
 
+    kafka = StubKafkaService.create();
+
+    topic = new Topic(producerRecord.topic(), Optional.of(avroSchema));
+  }
 
   @Test
   public void shouldCreateTopicCorrectly() {
-
     // When:
-    stubKafkaService.createTopic(topic);
+    kafka.ensureTopic(topic);
 
     // Then:
-    stubKafkaService.requireTopicExists(topic.getName());
+    assertThat(kafka.getTopic(topic.getName()), is(topic));
   }
 
   @Test
-  public void shouldWriteSingleRecordToTopic() {
-    // Givien:
-    stubKafkaService.createTopic(topic);
+  public void shouldUpdateTopic() {
+    // Given:
+    kafka.ensureTopic(topic);
+    final Topic updatedTopic = new Topic(
+        topic.getName(),
+        topic.getNumPartitions() + 1,
+        topic.getReplicas() + 1,
+        topic.getSchema()
+    );
 
     // When:
-    stubKafkaService.writeRecord("foo", stubKafkaRecord);
+    kafka.ensureTopic(updatedTopic);
 
     // Then:
-    assertThat(stubKafkaService.getTopicData().get("foo").get(0), is(stubKafkaRecord));
+    assertThat(kafka.getTopic(topic.getName()), is(updatedTopic));
   }
 
-
-  public void shouldReadRecordFromTopic() {
-    // Givien:
-    stubKafkaService.createTopic(topic);
-    stubKafkaService.writeRecord("foo", stubKafkaRecord);
+  @Test
+  public void shouldWriteReadSingleRecordToTopic() {
+    // Given:
+    kafka.ensureTopic(topic);
 
     // When:
-    final List<StubKafkaRecord> records = stubKafkaService.readRecords(topic.getName());
+    kafka.writeRecord(producerRecord);
 
     // Then:
-    assertThat(records.size(), CoreMatchers.equalTo(1));
-    assertThat(records.get(0), is(stubKafkaRecord));
-
+    assertThat(kafka.readRecords(producerRecord.topic()), contains(producerRecord));
   }
-
-
 }

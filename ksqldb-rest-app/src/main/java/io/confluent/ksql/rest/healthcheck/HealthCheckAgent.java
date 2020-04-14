@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.healthcheck;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -98,7 +99,7 @@ public class HealthCheckAgent {
     public HealthCheckResponseDetail check(final HealthCheckAgent healthCheckAgent) {
       final RestResponse<KsqlEntityList> response =
           healthCheckAgent.ksqlClient
-              .makeKsqlRequest(healthCheckAgent.serverEndpoint, ksqlStatement);
+              .makeKsqlRequest(healthCheckAgent.serverEndpoint, ksqlStatement, ImmutableMap.of());
       return new HealthCheckResponseDetail(response.isSuccessful());
     }
   }

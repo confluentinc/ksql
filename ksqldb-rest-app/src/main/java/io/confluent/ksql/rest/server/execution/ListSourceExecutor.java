@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
+import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
@@ -42,12 +43,15 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.streams.KafkaStreams;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ListSourceExecutor {
@@ -224,9 +228,9 @@ public final class ListSourceExecutor {
             ImmutableSet.of(q.getSinkName().text()),
             ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
             q.getQueryId(),
-            Optional.of(q.getState())
-        ))
-        .collect(Collectors.toList());
+            QueryStatusCount.fromStreamsStateCounts(
+                Collections.singletonMap(
+                    KafkaStreams.State.valueOf(q.getState()), 1)))).collect(Collectors.toList());
   }
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {

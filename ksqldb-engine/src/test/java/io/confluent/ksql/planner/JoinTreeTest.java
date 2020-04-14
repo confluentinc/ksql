@@ -16,16 +16,18 @@
 package io.confluent.ksql.planner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.JoinTree.Join;
 import io.confluent.ksql.planner.JoinTree.Leaf;
@@ -48,6 +50,11 @@ public class JoinTreeTest {
 
   @Mock private JoinInfo j1;
   @Mock private JoinInfo j2;
+
+  @Mock private Expression e1;
+  @Mock private Expression e2;
+  @Mock private Expression e3;
+  @Mock private Expression e4;
 
   @Before
   public void setUp() {
@@ -122,6 +129,48 @@ public class JoinTreeTest {
             j2
         )
     ));
+  }
+
+  @Test
+  public void shouldComputeEquivalenceSetWithOverlap() {
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(e1);
+    when(j1.getRightJoinExpression()).thenReturn(e2);
+    when(j2.getLeftJoinExpression()).thenReturn(e1);
+    when(j2.getRightJoinExpression()).thenReturn(e3);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    // When:
+    final Node root = JoinTree.build(joins);
+
+    // Then:
+    assertThat(root.joinEquivalenceSet(), containsInAnyOrder(e1, e2, e3));
+  }
+
+  @Test
+  public void shouldComputeEquivalenceSetWithoutOverlap() {
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(e1);
+    when(j1.getRightJoinExpression()).thenReturn(e2);
+    when(j2.getLeftJoinExpression()).thenReturn(e3);
+    when(j2.getRightJoinExpression()).thenReturn(e4);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    // When:
+    final Node root = JoinTree.build(joins);
+
+    // Then:
+    assertThat(root.joinEquivalenceSet(), contains(e3, e4));
   }
 
   @Test

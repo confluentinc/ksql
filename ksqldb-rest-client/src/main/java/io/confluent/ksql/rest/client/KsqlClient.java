@@ -95,22 +95,22 @@ public final class KsqlClient implements AutoCloseable {
       final Map<String, String> clientProps,
       final HttpClientOptions httpClientOptions,
       final boolean tls) {
-    httpClientOptions.setVerifyHost(false);
     if (tls) {
+      httpClientOptions.setVerifyHost(false);
       httpClientOptions.setSsl(true);
-    }
-    final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-    if (trustStoreLocation != null) {
-      final String suppliedTruststorePassword = clientProps
-          .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-      httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
-          .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
-      final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-      if (keyStoreLocation != null) {
-        final String suppliedKeyStorePassord = clientProps
-            .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-        httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
-            .setPassword(suppliedTruststorePassword == null ? "" : suppliedKeyStorePassord));
+      final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+      if (trustStoreLocation != null) {
+        final String suppliedTruststorePassword = clientProps
+            .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+        httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
+            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
+        final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+        if (keyStoreLocation != null) {
+          final String suppliedKeyStorePassord = clientProps
+              .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
+              .setPassword(suppliedTruststorePassword == null ? "" : suppliedKeyStorePassord));
+        }
       }
     }
     try {

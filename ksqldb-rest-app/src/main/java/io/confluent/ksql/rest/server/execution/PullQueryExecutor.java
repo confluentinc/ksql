@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -564,8 +565,15 @@ public final class PullQueryExecutor {
     }
 
     final Expression other = getNonColumnRefSide(comparison);
-    final Object right = ((Literal) other).getValue();
+    if (!(other instanceof Literal)) {
+      throw new KsqlException("Ony comparison to literals is currently supported: " + comparison);
+    }
 
+    if (other instanceof NullLiteral) {
+      throw new KsqlException("Primary key columns can not be NULL: " + comparison);
+    }
+
+    final Object right = ((Literal) other).getValue();
     return coerceKey(schema, right, windowed);
   }
 
@@ -582,7 +590,8 @@ public final class PullQueryExecutor {
 
     return DefaultSqlValueCoercer.INSTANCE.coerce(right, keyColumn.type())
         .orElseThrow(() -> new KsqlException("'" + right + "' can not be converted "
-            + "to the type of the key column: " + keyColumn.toString(FormatOptions.noEscape())));
+            + "to the type of the key column: " + keyColumn.toString(FormatOptions.noEscape())))
+        .orElse(null);
   }
 
   private static Range<Instant> extractWhereClauseWindowBounds(

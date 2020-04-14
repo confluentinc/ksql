@@ -16,7 +16,9 @@
 package io.confluent.ksql.schema.ksql;
 
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * Coerces values to {@link SqlBaseType SQL types}.
@@ -26,11 +28,71 @@ public interface SqlValueCoercer {
   /**
    * Coerce the supplied {@code value} to the supplied {@code sqlType}.
    *
-   * <p>Complex SQL types are not supported, (yet).
-   *
    * @param value the value to try to coerce.
    * @param targetSchema the target SQL type.
-   * @return the coerced value if the value could be coerced, {@link Optional#empty()} otherwise.
+   * @return the Result of the coercion.
    */
-  Optional<?> coerce(Object value, SqlType targetSchema);
+  Result coerce(Object value, SqlType targetSchema);
+
+  class Result {
+
+    private final Optional<Optional<?>> result;
+
+    public static Result failure() {
+      return new Result(Optional.empty());
+    }
+
+    public static Result nullResult() {
+      return new Result(Optional.of(Optional.empty()));
+    }
+
+    public static Result of(final Object result) {
+      return new Result(Optional.of(Optional.of(result)));
+    }
+
+    private Result(final Optional<Optional<?>> result) {
+      this.result = result;
+    }
+
+    public boolean failed() {
+      return !result.isPresent();
+    }
+
+    public Optional<?> value() {
+      return result.orElseThrow(IllegalStateException::new);
+    }
+
+    public <X extends Throwable> Optional<?> orElseThrow(
+        final Supplier<? extends X> exceptionSupplier
+    ) throws X {
+      return result.orElseThrow(exceptionSupplier);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final Result result1 = (Result) o;
+      return Objects.equals(result, result1.result);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(result);
+    }
+
+    @Override
+    public String toString() {
+      return "Result("
+          + result
+          .orElse(Optional.of("FAILED"))
+          .map(Objects::toString)
+          .orElse("null")
+          + ')';
+    }
+  }
 }

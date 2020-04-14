@@ -249,24 +249,19 @@ public class TopicInfoCache {
           .get(0)
           .type();
 
-      return key -> {
-        if (key == null) {
-          return null;
-        }
-
-        return DefaultSqlValueCoercer.INSTANCE
-            .coerce(key, keyType)
-            .orElseThrow(() -> new AssertionError("Invalid key value for topic " + topicName + "."
-                + System.lineSeparator()
-                + "Expected KeyType: " + keyType
-                + System.lineSeparator()
-                + "Actual KeyType: " + SchemaConverters.javaToSqlConverter()
-                .toSqlType(key.getClass())
-                + ", key: " + key + "."
-                + System.lineSeparator()
-                + "This is likely caused by the key type in the test-case not matching the schema."
-            ));
-      };
+      return key -> DefaultSqlValueCoercer.INSTANCE
+          .coerce(key, keyType)
+          .orElseThrow(() -> new AssertionError("Invalid key value for topic " + topicName + "."
+              + System.lineSeparator()
+              + "Expected KeyType: " + keyType
+              + System.lineSeparator()
+              + "Actual KeyType: " + SchemaConverters.javaToSqlConverter()
+              .toSqlType(key.getClass())
+              + ", key: " + key + "."
+              + System.lineSeparator()
+              + "This is likely caused by the key type in the test-case not matching the schema."
+          ))
+          .orElse(null);
     }
   }
 }

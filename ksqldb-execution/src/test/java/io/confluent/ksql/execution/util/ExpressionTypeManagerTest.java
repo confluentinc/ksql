@@ -470,7 +470,7 @@ public class ExpressionTypeManagerTest {
 
     // Expect
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot construct MAP with NULL values");
+    expectedException.expectMessage("Cannot construct a map with all NULL values");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);

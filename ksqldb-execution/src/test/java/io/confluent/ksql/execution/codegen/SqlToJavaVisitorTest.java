@@ -187,7 +187,7 @@ public class SqlToJavaVisitorTest {
     String java = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(java, equalTo("((Map)ImmutableMap.builder().put(\"foo\", ((Double) ((java.util.Map)COL5).get(\"key1\"))).put(\"bar\", 1E0).build())"));
+    assertThat(java, equalTo("((Map)new MapBuilder(2).put(\"foo\", ((Double) ((java.util.Map)COL5).get(\"key1\"))).put(\"bar\", 1E0).build())"));
   }
 
   @Test

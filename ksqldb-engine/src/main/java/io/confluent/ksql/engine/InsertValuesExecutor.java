@@ -25,6 +25,7 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -588,8 +589,13 @@ public class InsertValuesExecutor {
                     fieldName,
                     valueSqlType,
                     value));
+          })
+          .orElse(null);
+    }
 
-          });
+    @Override
+    public Object visitNullLiteral(final NullLiteral node, final Void context) {
+      return null;
     }
   }
 }

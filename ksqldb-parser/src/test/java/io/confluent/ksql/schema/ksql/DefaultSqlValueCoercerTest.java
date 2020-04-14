@@ -24,14 +24,14 @@ import static org.hamcrest.Matchers.nullValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.schema.ksql.SqlValueCoercer.Result;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.DecimalUtil;
-import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -88,114 +88,126 @@ public class DefaultSqlValueCoercerTest {
   }
 
   @Test
+  public void shouldCoerceNullToAnything() {
+    TYPES.values().forEach(type ->
+        assertThat(type.toString(), coercer.coerce(null, type), is(Result.nullResult())));
+  }
+
+  @Test
   public void shouldCoerceToBoolean() {
-    assertThat(coercer.coerce(true, SqlTypes.BOOLEAN), is(Optional.of(true)));
+    assertThat(coercer.coerce(true, SqlTypes.BOOLEAN), is(Result.of(true)));
   }
 
   @Test
   public void shouldNotCoerceToBoolean() {
-    assertThat(coercer.coerce("true", SqlTypes.BOOLEAN), is(Optional.empty()));
-    assertThat(coercer.coerce(1, SqlTypes.BOOLEAN), is(Optional.empty()));
-    assertThat(coercer.coerce(1L, SqlTypes.BOOLEAN), is(Optional.empty()));
-    assertThat(coercer.coerce(1.0d, SqlTypes.BOOLEAN), is(Optional.empty()));
-    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.BOOLEAN), is(Optional.empty()));
+    assertThat(coercer.coerce("true", SqlTypes.BOOLEAN), is(Result.failure()));
+    assertThat(coercer.coerce(1, SqlTypes.BOOLEAN), is(Result.failure()));
+    assertThat(coercer.coerce(1L, SqlTypes.BOOLEAN), is(Result.failure()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.BOOLEAN), is(Result.failure()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.BOOLEAN), is(Result.failure()));
   }
 
   @Test
   public void shouldCoerceToInteger() {
-    assertThat(coercer.coerce(1, SqlTypes.INTEGER), is(Optional.of(1)));
+    assertThat(coercer.coerce(1, SqlTypes.INTEGER), is(Result.of(1)));
   }
 
   @Test
   public void shouldNotCoerceToInteger() {
-    assertThat(coercer.coerce(true, SqlTypes.INTEGER), is(Optional.empty()));
-    assertThat(coercer.coerce(1L, SqlTypes.INTEGER), is(Optional.empty()));
-    assertThat(coercer.coerce(1.0d, SqlTypes.INTEGER), is(Optional.empty()));
-    assertThat(coercer.coerce("1", SqlTypes.INTEGER), is(Optional.empty()));
-    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.INTEGER), is(Optional.empty()));
+    assertThat(coercer.coerce(true, SqlTypes.INTEGER), is(Result.failure()));
+    assertThat(coercer.coerce(1L, SqlTypes.INTEGER), is(Result.failure()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.INTEGER), is(Result.failure()));
+    assertThat(coercer.coerce("1", SqlTypes.INTEGER), is(Result.failure()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.INTEGER), is(Result.failure()));
   }
 
   @Test
   public void shouldCoerceToBigInt() {
-    assertThat(coercer.coerce(1, SqlTypes.BIGINT), is(Optional.of(1L)));
-    assertThat(coercer.coerce(1L, SqlTypes.BIGINT), is(Optional.of(1L)));
+    assertThat(coercer.coerce(1, SqlTypes.BIGINT), is(Result.of(1L)));
+    assertThat(coercer.coerce(1L, SqlTypes.BIGINT), is(Result.of(1L)));
   }
 
   @Test
   public void shouldNotCoerceToBigInt() {
-    assertThat(coercer.coerce(true, SqlTypes.BIGINT), is(Optional.empty()));
-    assertThat(coercer.coerce(1.0d, SqlTypes.BIGINT), is(Optional.empty()));
-    assertThat(coercer.coerce("1", SqlTypes.BIGINT), is(Optional.empty()));
-    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.BIGINT), is(Optional.empty()));
+    assertThat(coercer.coerce(true, SqlTypes.BIGINT), is(Result.failure()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.BIGINT), is(Result.failure()));
+    assertThat(coercer.coerce("1", SqlTypes.BIGINT), is(Result.failure()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.BIGINT), is(Result.failure()));
   }
 
   @Test
   public void shouldCoerceToDecimal() {
     final SqlType decimalType = SqlTypes.decimal(2, 1);
-    assertThat(coercer.coerce(1, decimalType), is(Optional.of(new BigDecimal("1.0"))));
-    assertThat(coercer.coerce(1L, decimalType), is(Optional.of(new BigDecimal("1.0"))));
+    assertThat(coercer.coerce(1, decimalType), is(Result.of(new BigDecimal("1.0"))));
+    assertThat(coercer.coerce(1L, decimalType), is(Result.of(new BigDecimal("1.0"))));
     assertThat(coercer.coerce(new BigDecimal("1.0"), decimalType),
-        is(Optional.of(new BigDecimal("1.0"))));
+        is(Result.of(new BigDecimal("1.0"))));
   }
 
   @Test
   public void shouldNotCoerceToDecimal() {
     final SqlType decimalType = SqlTypes.decimal(2, 1);
-    assertThat(coercer.coerce(true, decimalType), is(Optional.empty()));
-    assertThat(coercer.coerce("1.0", decimalType), is(Optional.empty()));
-    assertThat(coercer.coerce(1.0d, decimalType), is(Optional.empty()));
-    assertThat(coercer.coerce(1234L, decimalType), is(Optional.empty()));
+    assertThat(coercer.coerce(true, decimalType), is(Result.failure()));
+    assertThat(coercer.coerce("1.0", decimalType), is(Result.failure()));
+    assertThat(coercer.coerce(1.0d, decimalType), is(Result.failure()));
+    assertThat(coercer.coerce(1234L, decimalType), is(Result.failure()));
   }
 
   @Test
   public void shouldCoerceToDouble() {
-    assertThat(coercer.coerce(1, SqlTypes.DOUBLE), is(Optional.of(1.0d)));
-    assertThat(coercer.coerce(1L, SqlTypes.DOUBLE), is(Optional.of(1.0d)));
-    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.DOUBLE), is(Optional.of(123.0d)));
-    assertThat(coercer.coerce(1.0d, SqlTypes.DOUBLE), is(Optional.of(1.0d)));
+    assertThat(coercer.coerce(1, SqlTypes.DOUBLE), is(Result.of(1.0d)));
+    assertThat(coercer.coerce(1L, SqlTypes.DOUBLE), is(Result.of(1.0d)));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.DOUBLE), is(Result.of(123.0d)));
+    assertThat(coercer.coerce(1.0d, SqlTypes.DOUBLE), is(Result.of(1.0d)));
   }
 
   @Test
   public void shouldNotCoerceToDouble() {
-    assertThat(coercer.coerce(true, SqlTypes.DOUBLE), is(Optional.empty()));
-    assertThat(coercer.coerce("1", SqlTypes.DOUBLE), is(Optional.empty()));
+    assertThat(coercer.coerce(true, SqlTypes.DOUBLE), is(Result.failure()));
+    assertThat(coercer.coerce("1", SqlTypes.DOUBLE), is(Result.failure()));
   }
 
   @Test
   public void shouldCoerceToArray() {
     final SqlType arrayType = SqlTypes.array(SqlTypes.DOUBLE);
-    assertThat(coercer.coerce(ImmutableList.of(1), arrayType), is(Optional.of(ImmutableList.of(1d))));
-    assertThat(coercer.coerce(ImmutableList.of(1L), arrayType), is(Optional.of(ImmutableList.of(1d))));
-    assertThat(coercer.coerce(ImmutableList.of(1.1), arrayType), is(Optional.of(ImmutableList.of(1.1d))));
+    assertThat(coercer.coerce(ImmutableList.of(1), arrayType), is(Result.of(ImmutableList.of(1d))));
+    assertThat(coercer.coerce(ImmutableList.of(1L), arrayType), is(Result.of(ImmutableList.of(1d))));
+    assertThat(coercer.coerce(ImmutableList.of(1.1), arrayType),
+        is(Result.of(ImmutableList.of(1.1d))));
+    assertThat(coercer.coerce(Collections.singletonList(null), arrayType),
+        is(Result.of(Collections.singletonList(null))));
   }
 
   @Test
   public void shouldNotCoerceToArray() {
     final SqlType arrayType = SqlTypes.array(SqlTypes.DOUBLE);
-    assertThat(coercer.coerce(true, arrayType), is(Optional.empty()));
-    assertThat(coercer.coerce(1L, arrayType), is(Optional.empty()));
-    assertThat(coercer.coerce("foo", arrayType), is(Optional.empty()));
-    assertThat(coercer.coerce(ImmutableMap.of("foo", 1), arrayType), is(Optional.empty()));
+    assertThat(coercer.coerce(true, arrayType), is(Result.failure()));
+    assertThat(coercer.coerce(1L, arrayType), is(Result.failure()));
+    assertThat(coercer.coerce("foo", arrayType), is(Result.failure()));
+    assertThat(coercer.coerce(ImmutableMap.of("foo", 1), arrayType), is(Result.failure()));
   }
 
   @Test
   public void shouldCoerceToMap() {
     final SqlType mapType = SqlTypes.map(SqlTypes.DOUBLE);
-    assertThat(coercer.coerce(ImmutableMap.of("foo", 1), mapType), is(Optional.of(ImmutableMap.of("foo", 1d))));
-    assertThat(coercer.coerce(ImmutableMap.of("foo", 1L), mapType), is(Optional.of(ImmutableMap.of("foo", 1d))));
-    assertThat(coercer.coerce(ImmutableMap.of("foo", 1.1), mapType), is(Optional.of(ImmutableMap.of("foo", 1.1d))));
+    assertThat(coercer.coerce(ImmutableMap.of("foo", 1), mapType), is(Result.of(ImmutableMap.of("foo", 1d))));
+    assertThat(coercer.coerce(ImmutableMap.of("foo", 1L), mapType), is(Result.of(ImmutableMap.of("foo", 1d))));
+    assertThat(coercer.coerce(ImmutableMap.of("foo", 1.1), mapType),
+        is(Result.of(ImmutableMap.of("foo", 1.1d))));
+    assertThat(coercer.coerce(Collections.singletonMap("foo", null), mapType),
+        is(Result.of(Collections.singletonMap("foo", null))));
   }
 
   @Test
   public void shouldNotCoerceToMap() {
     final SqlType mapType = SqlTypes.map(SqlTypes.DOUBLE);
-    assertThat(coercer.coerce(true, mapType), is(Optional.empty()));
-    assertThat(coercer.coerce(1L, mapType), is(Optional.empty()));
-    assertThat(coercer.coerce("foo", mapType), is(Optional.empty()));
-    assertThat(coercer.coerce(ImmutableList.of("foo"), mapType), is(Optional.empty()));
+    assertThat(coercer.coerce(true, mapType), is(Result.failure()));
+    assertThat(coercer.coerce(1L, mapType), is(Result.failure()));
+    assertThat(coercer.coerce("foo", mapType), is(Result.failure()));
+    assertThat(coercer.coerce(ImmutableList.of("foo"), mapType), is(Result.failure()));
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
   @Test
   public void shouldCoerceToStruct() {
     // Given:
@@ -204,14 +216,32 @@ public class DefaultSqlValueCoercerTest {
     final SqlType structType = SqlTypes.struct().field("foo", SqlTypes.decimal(2, 1)).build();
 
     // When:
-    final Optional<Struct> coerced = (Optional<Struct>) coercer.coerce(struct, structType);
+    final Result result = coercer.coerce(struct, structType);
 
     // Then:
-    assertThat("", coerced.isPresent());
+    assertThat("", !result.failed());
+    final Optional<Struct> coerced = (Optional<Struct>) result.value();
     assertThat(coerced.get().get("foo"), is(new BigDecimal("2.0")));
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
+  @Test
+  public void shouldCoerceToStructWithNullValues() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("foo", Schema.OPTIONAL_INT64_SCHEMA);
+    final Struct struct = new Struct(schema).put("foo", null);
+    final SqlType structType = SqlTypes.struct().field("foo", SqlTypes.decimal(2, 1)).build();
+
+    // When:
+    final Result result = coercer.coerce(struct, structType);
+
+    // Then:
+    assertThat("", !result.failed());
+    final Optional<Struct> coerced = (Optional<Struct>) result.value();
+    assertThat(coerced.get().get("foo"), is(nullValue()));
+  }
+
+  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
   @Test
   public void shouldSubsetCoerceToStruct() {
     // Given:
@@ -222,26 +252,41 @@ public class DefaultSqlValueCoercerTest {
         .field("bar", SqlTypes.STRING).build();
 
     // When:
-    final Optional<Struct> coerced = (Optional<Struct>) coercer.coerce(struct, structType);
+    final Result result = coercer.coerce(struct, structType);
 
     // Then:
-    assertThat("", coerced.isPresent());
+    assertThat("", !result.failed());
+    final Optional<Struct> coerced = (Optional<Struct>) result.value();
     assertThat(coerced.get().get("foo"), is("val1"));
     assertThat(coerced.get().get("bar"), nullValue());
   }
 
   @Test
+  public void shouldNotCoerceToStructIfAnyFieldFailsToCoerce() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("foo", Schema.INT64_SCHEMA);
+    final Struct struct = new Struct(schema).put("foo", 2L);
+    final SqlType structType = SqlTypes.struct().field("foo", SqlTypes.array(SqlTypes.INTEGER)).build();
+
+    // When:
+    final Result result = coercer.coerce(struct, structType);
+
+    // Then:
+    assertThat(result, is(Result.failure()));
+  }
+
+  @Test
   public void shouldCoerceToString() {
-    assertThat(coercer.coerce("foobar", SqlTypes.STRING), is(Optional.of("foobar")));
+    assertThat(coercer.coerce("foobar", SqlTypes.STRING), is(Result.of("foobar")));
   }
 
   @Test
   public void shouldNotCoerceToString() {
-    assertThat(coercer.coerce(true, SqlTypes.STRING), is(Optional.empty()));
-    assertThat(coercer.coerce(1, SqlTypes.STRING), is(Optional.empty()));
-    assertThat(coercer.coerce(1L, SqlTypes.STRING), is(Optional.empty()));
-    assertThat(coercer.coerce(1.0d, SqlTypes.STRING), is(Optional.empty()));
-    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.STRING), is(Optional.empty()));
+    assertThat(coercer.coerce(true, SqlTypes.STRING), is(Result.failure()));
+    assertThat(coercer.coerce(1, SqlTypes.STRING), is(Result.failure()));
+    assertThat(coercer.coerce(1L, SqlTypes.STRING), is(Result.failure()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.STRING), is(Result.failure()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.STRING), is(Result.failure()));
   }
 
   @Test
@@ -259,13 +304,13 @@ public class DefaultSqlValueCoercerTest {
       shouldUpCast.forEach(toBaseType -> assertThat(
           "should coerce " + fromBaseType + " to " + toBaseType,
           coercer.coerce(getInstance(fromBaseType), getType(toBaseType)),
-          is(not(Optional.empty()))
+          is(not(Result.failure()))
       ));
 
       shouldNotUpCast.forEach(toBaseType -> assertThat(
           "should not coerce " + fromBaseType + " to " + toBaseType,
           coercer.coerce(getInstance(fromBaseType), getType(toBaseType)),
-          is(Optional.empty())
+          is(Result.failure())
       ));
     }
   }

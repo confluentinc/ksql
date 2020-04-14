@@ -8,6 +8,8 @@ ARG ARTIFACT_ID
 
 USER root
 
+RUN useradd -ms /bin/bash appuser
+
 # target directory must be one of the projects that ksql-run-class sets on the KSQL_CLASSPATH,
 # of which the artifact ID (ksqldb-docker) is not one. thus the workaround of using ksqldb-rest-app
 ADD --chown=appuser:appuser target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/share/java/${ARTIFACT_ID}/* /usr/share/java/ksqldb-rest-app/

@@ -48,7 +48,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private final KsqlClient sharedClient;
 
   DefaultKsqlClient(final Optional<String> authHeader) {
-    this(authHeader, (KsqlConfig) null);
+    this(authHeader, new KsqlConfig(ImmutableMap.of()));
   }
 
   DefaultKsqlClient(final Optional<String> authHeader, final KsqlConfig ksqlConfig) {

@@ -388,6 +388,17 @@ public class Analysis implements ImmutableAnalysis {
     public Optional<WithinExpression> getWithinExpression() {
       return withinExpression;
     }
+
+    public JoinInfo flip() {
+      return new JoinInfo(
+          rightSource,
+          rightJoinExpression,
+          leftSource,
+          leftJoinExpression,
+          type,
+          withinExpression
+      );
+    }
   }
 }
 

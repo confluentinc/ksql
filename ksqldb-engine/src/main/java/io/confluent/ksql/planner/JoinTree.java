@@ -32,8 +32,7 @@ import org.apache.commons.lang3.StringUtils;
  * <p>The algorithm is simple: the root is the very first source that
  * we encounter (in the case of a single join, we ensure that the left
  * root is the FROM source). From then on, any join that happens will
- * check if either the left or right source is within the join tree and
- * add the other to the corresponding side of the join tree.</p>
+ * happen on the right, creating a left-deep tree.
  *
  * <p>For example, take the following join statement:
  * <pre>
@@ -51,19 +50,6 @@ import org.apache.commons.lang3.StringUtils;
  *     ⋈   C
  *    / \
  *   A   B
- * }
- * </pre>
- * If the statement was modified so that the final expression was
- * {@code JOIN c ON c.id = a.id} (note that {@code c.id} has moved
- * to the left side of the join), then the resulting join tree would
- * look like:
- * <pre>
- * {@code
- *     ⋈
- *   /   \
- *  C    ⋈
- *      / \
- *     A   B
  * }
  * </pre>
  * </p>
@@ -95,7 +81,7 @@ final class JoinTree {
       } else if (root.containsSource(join.getLeftSource())) {
         root = new Join(root, new Leaf(join.getRightSource()), join);
       } else if (root.containsSource(join.getRightSource())) {
-        root = new Join(new Leaf(join.getLeftSource()), root, join);
+        root = new Join(root, new Leaf(join.getLeftSource()), join.flip());
       } else {
         throw new KsqlException(
             "Cannot build JOIN tree; neither source in the join is the FROM source or included "

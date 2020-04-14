@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -104,6 +105,7 @@ public class JoinTreeTest {
     when(j1.getRightSource()).thenReturn(b);
     when(j2.getLeftSource()).thenReturn(c);
     when(j2.getRightSource()).thenReturn(a);
+    when(j2.flip()).thenReturn(j2);
     final List<JoinInfo> joins = ImmutableList.of(j1, j2);
 
     // When:
@@ -113,10 +115,10 @@ public class JoinTreeTest {
     assertThat(root, instanceOf(Join.class));
     assertThat(root, is(
         new Join(
-            new Leaf(c),
             new Join(
                 new Leaf(a), new Leaf(b), j1
             ),
+            new Leaf(c),
             j2
         )
     ));

@@ -68,7 +68,7 @@ public final class KsqlRestClient implements Closeable {
         localProps,
         clientProps,
         creds,
-        (cProps, credz, lProps) -> new KsqlClient(cProps, credz, lProps, new HttpClientOptions())
+        (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops, new HttpClientOptions())
     );
   }
 

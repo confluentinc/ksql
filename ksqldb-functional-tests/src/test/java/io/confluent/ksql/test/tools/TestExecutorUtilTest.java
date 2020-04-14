@@ -38,6 +38,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -48,6 +49,9 @@ public class TestExecutorUtilTest {
   private KsqlConfig ksqlConfig;
   private TestCase testCase;
   private StubKafkaService stubKafkaService;
+
+  @Mock
+  private TestExecutionListener listener;
 
   @Before
   public void setUp() throws IOException {
@@ -111,13 +115,15 @@ public class TestExecutorUtilTest {
     stubKafkaService.ensureTopic(sourceTopic);
 
     // When:
-    final List<TopologyTestDriverContainer> topologyTestDriverContainerList = TestExecutorUtil.buildStreamsTopologyTestDrivers(
-        testCase,
-        serviceContext,
-        ksqlEngine,
-        ksqlConfig,
-        stubKafkaService
-    );
+    final List<TopologyTestDriverContainer> topologyTestDriverContainerList =
+        TestExecutorUtil.buildStreamsTopologyTestDrivers(
+            testCase,
+            serviceContext,
+            ksqlEngine,
+            ksqlConfig,
+            stubKafkaService,
+            listener
+        );
 
     // Then:
     assertThat(topologyTestDriverContainerList.size(), equalTo(1));

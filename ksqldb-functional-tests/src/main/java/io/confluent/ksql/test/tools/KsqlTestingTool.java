@@ -129,7 +129,7 @@ public final class KsqlTestingTool {
 
     executeTestCase(
         testCase,
-        new TestExecutor());
+        TestExecutor.create());
 
   }
 
@@ -138,7 +138,7 @@ public final class KsqlTestingTool {
       final TestExecutor testExecutor
   ) {
     try {
-      testExecutor.buildAndExecuteQuery(testCase);
+      testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
       System.out.println("\t >>> Test passed!");
     } catch (final Exception | AssertionError e) {
       System.err.println("\t>>>>> Test failed: " + e.getMessage());

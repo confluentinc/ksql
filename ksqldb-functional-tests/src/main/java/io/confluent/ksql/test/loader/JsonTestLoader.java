@@ -22,6 +22,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.confluent.ksql.json.KsqlTypesSerializationModule;
+import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.tools.Test;
 import java.io.BufferedReader;
@@ -52,7 +55,10 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
       .setSerializationInclusion(Include.NON_EMPTY)
-      .registerModule(new Jdk8Module());
+      .registerModule(new Jdk8Module())
+      .registerModule(new JavaTimeModule())
+      .registerModule(new KsqlTypesDeserializationModule(true))
+      .registerModule(new KsqlTypesSerializationModule());
 
   private final Path testDir;
   private final Class<? extends TestFile<T>> testFileType;

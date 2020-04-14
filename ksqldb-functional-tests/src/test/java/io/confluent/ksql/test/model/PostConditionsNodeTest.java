@@ -16,19 +16,44 @@
 package io.confluent.ksql.test.model;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.test.model.PostConditionsNode.TopicsNode;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
+import io.confluent.ksql.test.model.PostConditionsNode.PostTopicsNode;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.junit.Test;
 
 public class PostConditionsNodeTest {
 
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("Bob"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("Jon"), SqlTypes.BIGINT)
+      .build();
+  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of("AVRO"));
+  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of("JSON"));
+  private static final OptionalInt PARTITION_COUNT = OptionalInt.of(14);
+
   @Test
   public void shouldRoundTrip() {
-    ModelTester.assertRoundTrip(
-        new PostConditionsNode(
-            ImmutableList.of(SourceNodeTest.INSTANCE),
-            Optional.of(new TopicsNode(Optional.of(".*repartition")))
-        )
+    // Given:
+    final PostTopicsNode topics = new PostTopicsNode(
+        Optional.of(".*repartition"),
+        Optional.of(ImmutableList.of(
+            new PostTopicNode("t1", SCHEMA, KEY_FORMAT, VALUE_FORMAT, PARTITION_COUNT)
+        ))
     );
+
+    final PostConditionsNode postConditions = new PostConditionsNode(
+        ImmutableList.of(SourceNodeTest.INSTANCE),
+        Optional.of(topics)
+    );
+
+    // Then:
+    ModelTester.assertRoundTrip(postConditions);
   }
 }

@@ -88,6 +88,7 @@ public final class PlannedTestUtils {
   ) {
     final KsqlVersion version = KsqlVersion.parse(planAtVersionNode.getSpecNode().getVersion())
         .withTimestamp(planAtVersionNode.getSpecNode().getTimestamp());
+
     return testCase.withPlan(
         version,
         new TopologyAndConfigs(

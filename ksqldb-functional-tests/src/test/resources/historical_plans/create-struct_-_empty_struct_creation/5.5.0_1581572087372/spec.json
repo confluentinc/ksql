@@ -24,6 +24,33 @@
       "name" : "BIG_STRUCT",
       "type" : "stream",
       "schema" : "ROWKEY STRING KEY, S STRUCT< >"
-    } ]
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "BIG_STRUCT",
+        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT< >",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test",
+        "schema" : "`ROWKEY` STRING KEY, `COL1` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
   }
 }

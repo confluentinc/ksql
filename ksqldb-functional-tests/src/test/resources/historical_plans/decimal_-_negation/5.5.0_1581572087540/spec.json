@@ -18,5 +18,34 @@
     "value" : {
       "NEGATED" : "-10.12345"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "TEST2",
+        "schema" : "`ROWKEY` STRING KEY, `NEGATED` DECIMAL(7, 5)",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(7, 5)",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

@@ -13,5 +13,34 @@
       "EVENT_TS" : "not a timestamp"
     }
   } ],
-  "outputs" : [ ]
+  "outputs" : [ ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "TS",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

@@ -34,5 +34,34 @@
       "MAP_LEN" : null,
       "STRUCT_LEN" : null
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `ARRAY_LEN` INTEGER, `MAP_LEN` INTEGER, `STRUCT_LEN` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ARRAY_ARRAY` ARRAY<ARRAY<BOOLEAN>>, `MAP_ARRAY` ARRAY<MAP<STRING, INTEGER>>, `STRUCT_ARRAY` ARRAY<STRUCT<`V` BIGINT>>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

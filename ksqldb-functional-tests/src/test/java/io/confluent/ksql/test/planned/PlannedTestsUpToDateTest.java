@@ -39,7 +39,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class PlannedTestsUpToDateTest {
 
-  private static final ObjectMapper MAPPER = PlanJsonMapper.create();
+  private static final ObjectMapper MAPPER = PlanJsonMapper.INSTANCE.get();
 
   private final TestCase testCase;
 

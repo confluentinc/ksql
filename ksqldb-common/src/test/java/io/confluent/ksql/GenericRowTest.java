@@ -21,11 +21,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.json.JsonMapper;
 import java.math.BigDecimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -33,8 +31,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
 public class GenericRowTest {
-
-  private static final ObjectMapper MAPPER = JsonMapper.INSTANCE.mapper;
 
   private final Schema addressSchema = SchemaBuilder.struct()
       .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
@@ -187,28 +183,5 @@ public class GenericRowTest {
             genericRow(1.0, 94.9238, 1.2550, 0.13242, -1.0285235)
         )
         .testEquals();
-  }
-
-  @Test
-  public void shouldSerialize() throws Exception {
-    // Given:
-    final GenericRow original = genericRow(1, 2L, 3.0, Long.MAX_VALUE);
-
-    // When:
-    final String json = MAPPER.writeValueAsString(original);
-
-    // Then:
-    assertThat(json, is("{\"columns\":[1,2,3.0,9223372036854775807]}"));
-
-    // When:
-    final GenericRow result = MAPPER.readValue(json, GenericRow.class);
-
-    // Then:
-    assertThat(result, is(genericRow(
-        1,
-        2,                      // Note: int, not long, as JSON doesn't distinguish
-        BigDecimal.valueOf(3.0),// Note: decimal, not double, as Jackson is configured this way
-        Long.MAX_VALUE
-    )));
   }
 }

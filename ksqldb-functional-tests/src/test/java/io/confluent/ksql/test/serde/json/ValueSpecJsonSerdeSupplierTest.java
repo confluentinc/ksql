@@ -20,8 +20,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.serde.json.JsonSerdeUtils;
+import io.confluent.ksql.test.tools.TestJsonMapper;
 import java.math.BigDecimal;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -81,7 +81,7 @@ public class ValueSpecJsonSerdeSupplierTest {
     final byte[] bytes = serializer.serialize("t", new BigDecimal("10.0"));
 
     // Then:
-    assertThat(JsonSerdeUtils.readJsonSR(bytes, JsonMapper.INSTANCE.mapper, String.class), is("10.0"));
+    assertThat(JsonSerdeUtils.readJsonSR(bytes, TestJsonMapper.INSTANCE.get(), String.class), is("10.0"));
   }
 
   @Test

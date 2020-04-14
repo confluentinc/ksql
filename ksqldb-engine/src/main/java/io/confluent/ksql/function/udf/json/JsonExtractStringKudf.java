@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.json.JsonPathTokenizer;
@@ -31,7 +30,7 @@ import java.util.List;
 
 public class JsonExtractStringKudf implements Kudf {
 
-  private static final ObjectReader OBJECT_READER = JsonMapper.INSTANCE.mapper.reader();
+  private static final ObjectReader OBJECT_READER = UdfJsonMapper.INSTANCE.get().reader();
   public static final FunctionName FUNCTION_NAME = FunctionName.of("EXTRACTJSONFIELD");
 
   private List<String> tokens = null;

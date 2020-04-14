@@ -17,13 +17,10 @@ package io.confluent.ksql.test.loader;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.tools.Test;
+import io.confluent.ksql.test.tools.TestJsonMapper;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,11 +45,7 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
   //   mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
   private static final String KSQL_TEST_FILES = "ksql.test.files";
 
-  public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
-      .setSerializationInclusion(Include.NON_EMPTY)
-      .registerModule(new Jdk8Module());
+  public static final ObjectMapper OBJECT_MAPPER = TestJsonMapper.INSTANCE.get();
 
   private final Path testDir;
   private final Class<? extends TestFile<T>> testFileType;

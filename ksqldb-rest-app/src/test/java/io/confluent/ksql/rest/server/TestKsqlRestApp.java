@@ -22,14 +22,13 @@ import static org.easymock.EasyMock.niceMock;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -239,10 +238,10 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public static Client buildClient() {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper.copy();
+    final ObjectMapper objectMapper = ApiJsonMapper.INSTANCE.get().copy();
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);
-    objectMapper.registerModule(new Jdk8Module());
+
     final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     return ClientBuilder.newBuilder().register(jsonProvider).build();
   }

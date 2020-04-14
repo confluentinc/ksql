@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -31,7 +31,7 @@ import org.junit.Test;
 
 @SuppressWarnings("SameParameterValue")
 public class FunctionInfoTest {
-  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
   private static final FunctionInfo FUNC_INFO = new FunctionInfo(
       ImmutableList.of(
           new ArgumentInfo("arg0", "VARCHAR", "first arg", false),

@@ -10,7 +10,8 @@ import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import org.junit.Test;
 
 public class PlanJsonMapperTest {
-  private static final ObjectMapper MAPPER = PlanJsonMapper.create();
+
+  private static final ObjectMapper MAPPER = PlanJsonMapper.INSTANCE.get();
 
   @Test
   public void shouldEnableFailOnUnknownProperties() {

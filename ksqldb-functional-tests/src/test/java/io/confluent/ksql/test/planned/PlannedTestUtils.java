@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 
 public final class PlannedTestUtils {
 
-  static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.create();
+  static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.INSTANCE.get();
 
   private PlannedTestUtils() {
   }

@@ -28,7 +28,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -171,7 +171,7 @@ public final class RecordFormatter {
 
       try {
         // test it parses:
-        JsonMapper.INSTANCE.mapper.readTree(text);
+        KsqlJsonDeserializer.jsonReader().readTree(text);
 
         // but return actual text:
         return text;

@@ -15,11 +15,10 @@
 
 package io.confluent.ksql.rest.client;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
 import io.vertx.core.http.HttpClient;
@@ -38,9 +37,7 @@ import org.apache.kafka.common.config.SslConfigs;
 public final class KsqlClient implements AutoCloseable {
 
   static {
-    JsonMapper.INSTANCE.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    JsonMapper.INSTANCE.mapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
-    JsonMapper.INSTANCE.mapper.registerModule(new KsqlTypesDeserializationModule(false));
+    ApiJsonMapper.INSTANCE.get().registerModule(new KsqlTypesDeserializationModule(false));
   }
 
   public static final String DISABLE_HOSTNAME_VERIFICATION_PROP_NAME

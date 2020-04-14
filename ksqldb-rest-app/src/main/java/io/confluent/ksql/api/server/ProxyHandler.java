@@ -65,7 +65,9 @@ class ProxyHandler {
   ProxyHandler(final Server server, final Context context) {
     this.context = context;
     this.proxyClient = server.getVertx()
-        .createHttpClient(new HttpClientOptions().setMaxPoolSize(10));
+        .createHttpClient(
+            new HttpClientOptions().setMaxPoolSize(10)
+                .setTryUsePerMessageWebSocketCompression(true));
     this.server = server;
   }
 
@@ -105,6 +107,7 @@ class ProxyHandler {
         .setHeaders(request.headers())
         .setURI(request.uri());
     request.pause();
+
     proxyClient.webSocket(options, ar -> {
       checkContext(context);
       request.resume();
@@ -234,7 +237,8 @@ class ProxyHandler {
       new WebsocketPipe(context, from, to);
     }
 
-    private WebsocketPipe(final Context context, final WebSocketBase from, final WebSocketBase to) {
+    private WebsocketPipe(final Context context, final WebSocketBase from,
+        final WebSocketBase to) {
       this.context = context;
       this.from = from;
       this.to = to;
@@ -245,20 +249,31 @@ class ProxyHandler {
       // Proxy any close of the connection too
       to.closeHandler(v -> {
         checkContext(context);
-        from.close();
+        if (!from.isClosed()) {
+          from.close();
+        }
       });
     }
 
     private void frameHandler(final WebSocketFrame wsf) {
       checkContext(context);
+
       if (to.isClosed()) {
         return;
       }
-      to.writeFrame(wsf);
-      if (!drainHandlerSet && to.writeQueueFull()) {
-        drainHandlerSet = true;
-        from.pause();
-        to.drainHandler(this::drainHandler);
+
+      if (wsf.isClose()) {
+        // The close method sends a close frame so we don't want to proxy the existing
+        // close frame - instead call close with the status code and reason from the existing
+        // frame
+        to.close(wsf.closeStatusCode(), wsf.closeReason());
+      } else {
+        to.writeFrame(wsf);
+        if (!drainHandlerSet && to.writeQueueFull()) {
+          drainHandlerSet = true;
+          from.pause();
+          to.drainHandler(this::drainHandler);
+        }
       }
     }
 

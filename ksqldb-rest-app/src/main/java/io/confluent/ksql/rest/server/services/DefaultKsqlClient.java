@@ -29,9 +29,11 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.http.HttpClientOptions;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,10 +48,14 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private final KsqlClient sharedClient;
 
   DefaultKsqlClient(final Optional<String> authHeader) {
+    this(authHeader, (KsqlConfig) null);
+  }
+
+  DefaultKsqlClient(final Optional<String> authHeader, final KsqlConfig ksqlConfig) {
     this(
         authHeader,
         new KsqlClient(
-            ImmutableMap.of(),
+            toClientProps(ksqlConfig),
             Optional.empty(),
             new LocalProperties(ImmutableMap.of()),
             createClientOptions()
@@ -74,7 +80,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    return getTarget(target, authHeader).postKsqlRequest(sql, requestProperties, Optional.empty());
+    return getTarget(target, authHeader)
+        .postKsqlRequest(sql, requestProperties, Optional.empty());
   }
 
   @Override
@@ -153,5 +160,16 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private static HttpClientOptions createClientOptions() {
     return new HttpClientOptions().setMaxPoolSize(100);
   }
+
+  private static Map<String, String> toClientProps(final KsqlConfig ksqlConfig) {
+    final Map<String, String> clientProps = new HashMap<>();
+    for (Map.Entry<String, Object> entry : ksqlConfig.originals().entrySet()) {
+      if (entry.getValue() instanceof String) {
+        clientProps.put(entry.getKey(), (String) entry.getValue());
+      }
+    }
+    return clientProps;
+  }
+
 
 }

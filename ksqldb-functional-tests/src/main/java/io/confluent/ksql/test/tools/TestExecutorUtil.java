@@ -35,6 +35,7 @@ import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -145,7 +146,7 @@ public final class TestExecutorUtil {
       final Optional<SchemaRegistryClient> srClient,
       final StubKafkaService stubKafkaService
   ) {
-    initializeTopics(testCase, engine.getServiceContext(), stubKafkaService);
+    initializeTopics(testCase, engine.getServiceContext(), stubKafkaService, engine.getMetaStore());
     if (testCase.getExpectedTopology().isPresent()
         && testCase.getExpectedTopology().get().getPlan().isPresent()) {
       return testCase.getExpectedTopology().get().getPlan().get()
@@ -220,12 +221,21 @@ public final class TestExecutorUtil {
   private static void initializeTopics(
       final TestCase testCase,
       final ServiceContext serviceContext,
-      final StubKafkaService stubKafkaService
+      final StubKafkaService stubKafkaService,
+      final FunctionRegistry functionRegistry
   ) {
     final KafkaTopicClient topicClient = serviceContext.getTopicClient();
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
-    for (final Topic topic : testCase.getTopics()) {
+    final Collection<Topic> topics = TestCaseBuilderUtil.getAllTopics(
+        testCase.statements(),
+        testCase.getTopics(),
+        testCase.getOutputRecords(),
+        testCase.getInputRecords(),
+        functionRegistry
+    );
+
+    for (final Topic topic : topics) {
       stubKafkaService.ensureTopic(topic);
       topicClient.createTopic(
           topic.getName(),

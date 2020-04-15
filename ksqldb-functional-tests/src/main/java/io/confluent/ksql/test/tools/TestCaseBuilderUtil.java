@@ -17,7 +17,6 @@ package io.confluent.ksql.test.tools;
 
 import static com.google.common.io.Files.getNameWithoutExtension;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -35,9 +34,6 @@ import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.test.model.RecordNode;
-import io.confluent.ksql.test.model.TopicNode;
-import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.topic.TopicFactory;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -87,20 +83,17 @@ public final class TestCaseBuilderUtil {
         .collect(Collectors.toList());
   }
 
-  public static Collection<Topic> getTopicsByName(
-      final List<String> statements,
-      final List<TopicNode> topics,
-      final List<RecordNode> outputs,
-      final List<RecordNode> inputs,
-      final boolean expectsException,
+  public static Collection<Topic> getAllTopics(
+      final Collection<String> statements,
+      final Collection<Topic> topics,
+      final Collection<Record> outputs,
+      final Collection<Record> inputs,
       final FunctionRegistry functionRegistry
   ) {
     final Map<String, Topic> allTopics = new HashMap<>();
 
     // Add all topics from topic nodes to the map:
-    topics.stream()
-        .map(TopicNode::build)
-        .forEach(topic -> allTopics.put(topic.getName(), topic));
+    topics.forEach(topic -> allTopics.put(topic.getName(), topic));
 
     // Infer topics if not added already:
     statements.stream()
@@ -108,20 +101,9 @@ public final class TestCaseBuilderUtil {
         .filter(Objects::nonNull)
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
-    if (allTopics.isEmpty()) {
-      if (expectsException) {
-        return ImmutableList.of();
-      }
-      throw new InvalidFieldException("statements/topics", "The test does not define any topics. "
-          + "Topics can be provided explicitly, but are more commonly extracted from the "
-          + "SQL statements. This error is generally caused by an error in on one of the "
-          + "SQL statements, causing it to fail parsing. "
-          + "Check previous output for such failures.");
-    }
-
     // Get topics from inputs and outputs fields:
     Streams.concat(inputs.stream(), outputs.stream())
-        .map(recordNode -> new Topic(recordNode.topicName(), Optional.empty()))
+        .map(record -> new Topic(record.getTopicName(), Optional.empty()))
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
     return allTopics.values();

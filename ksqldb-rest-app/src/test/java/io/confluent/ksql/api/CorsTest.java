@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -59,6 +60,8 @@ public class CorsTest extends BaseApiTest {
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     testEndpoints = new TestEndpoints();
+    serverState = new ServerState();
+    serverState.setReady();
     setDefaultRowGenerator();
   }
 

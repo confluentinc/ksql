@@ -15,8 +15,13 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.schema.ksql.PhysicalSchema.from;
+import static io.confluent.ksql.serde.SerdeOption.UNWRAP_SINGLE_VALUES;
+import static io.confluent.ksql.serde.SerdeOption.of;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
@@ -25,9 +30,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.ImmutableTester;
 import io.confluent.ksql.util.KsqlException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class PhysicalSchemaTest {
 
@@ -39,9 +42,6 @@ public class PhysicalSchemaTest {
   private static final LogicalSchema SCHEMA_WITH_SINGLE_FIELD = LogicalSchema.builder()
       .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldNPE() {
@@ -87,13 +87,14 @@ public class PhysicalSchemaTest {
   @Test
   public void shouldThrowIfValueWrappingSuppliedForMultiField() {
     // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas");
-
     // When:
-    PhysicalSchema
-        .from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> from(SCHEMA_WITH_MULTIPLE_FIELDS, of(UNWRAP_SINGLE_VALUES))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("'WRAP_SINGLE_VALUE' is only valid for single-field value schemas"));
   }
 
   @Test

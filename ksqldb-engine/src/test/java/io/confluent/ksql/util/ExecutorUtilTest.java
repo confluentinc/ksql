@@ -16,8 +16,10 @@
 package io.confluent.ksql.util;
 
 import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ON_RETRYABLE;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import java.time.Duration;
 import java.util.concurrent.Callable;
@@ -25,16 +27,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.common.errors.RetriableException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ExecutorUtilTest {
 
   private static final Duration SMALL_RETRY_BACKOFF = Duration.ofMillis(1);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldRetryAndEventuallyThrowIfNeverSucceeds() throws Exception {
@@ -43,12 +40,14 @@ public class ExecutorUtilTest {
       throw new ExecutionException(new TestRetriableException("I will never succeed"));
     };
 
-    // Expect:
-    expectedException.expect(ExecutionException.class);
-    expectedException.expectMessage("I will never succeed");
-
     // When:
-    ExecutorUtil.executeWithRetries(neverSucceeds, ON_RETRYABLE, () -> SMALL_RETRY_BACKOFF);
+    final ExecutionException e = assertThrows(
+        ExecutionException.class,
+        () -> ExecutorUtil.executeWithRetries(neverSucceeds, ON_RETRYABLE, () -> SMALL_RETRY_BACKOFF)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("I will never succeed"));
   }
 
   @Test
@@ -93,12 +92,14 @@ public class ExecutorUtilTest {
       }
     };
 
-    // Expect:
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("First non-retry exception");
-
     // When:
-    ExecutorUtil.executeWithRetries(throwsException, ON_RETRYABLE);
+    final RuntimeException e = assertThrows(
+        RuntimeException.class,
+        () -> ExecutorUtil.executeWithRetries(throwsException, ON_RETRYABLE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("First non-retry exception"));
   }
 
   @Test
@@ -113,12 +114,14 @@ public class ExecutorUtilTest {
       throw new RuntimeException("Test should not retry");
     };
 
-    // Expect:
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("First non-retry exception");
-
     // When:
-    ExecutorUtil.executeWithRetries(throwsNonRetriable, ON_RETRYABLE);
+    final RuntimeException e = assertThrows(
+        RuntimeException.class,
+        () -> ExecutorUtil.executeWithRetries(throwsNonRetriable, ON_RETRYABLE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("First non-retry exception"));
   }
 
   @Test

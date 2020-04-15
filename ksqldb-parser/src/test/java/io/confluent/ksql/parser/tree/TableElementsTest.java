@@ -15,11 +15,14 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.collect.ImmutableList.of;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,17 +37,12 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TableElementsTest {
 
   private static final Type INT_TYPE = new Type(SqlTypes.INTEGER);
   private static final Type STRING_TYPE = new Type(SqlTypes.STRING);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
@@ -75,61 +73,67 @@ public class TableElementsTest {
   @Test
   public void shouldThrowOnDuplicateKeyColumns() {
     // Given:
-    final List<TableElement> elements = ImmutableList.of(
+    final List<TableElement> elements = of(
         tableElement(KEY, "k0", STRING_TYPE),
         tableElement(KEY, "k0", STRING_TYPE),
         tableElement(KEY, "k1", STRING_TYPE),
         tableElement(KEY, "k1", STRING_TYPE)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Duplicate column names:");
-    expectedException.expectMessage("k0");
-    expectedException.expectMessage("k1");
-
     // When:
-    TableElements.of(elements);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () ->  TableElements.of(elements)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Duplicate column names:"));
+    assertThat(e.getMessage(), containsString("k0"));
+    assertThat(e.getMessage(), containsString("k1"));
   }
 
   @Test
   public void shouldThrowOnDuplicateValueColumns() {
     // Given:
-    final List<TableElement> elements = ImmutableList.of(
+    final List<TableElement> elements = of(
         tableElement(VALUE, "v0", INT_TYPE),
         tableElement(VALUE, "v0", INT_TYPE),
         tableElement(VALUE, "v1", INT_TYPE),
         tableElement(VALUE, "v1", INT_TYPE)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Duplicate column names:");
-    expectedException.expectMessage("v0");
-    expectedException.expectMessage("v1");
-
     // When:
-    TableElements.of(elements);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> TableElements.of(elements)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Duplicate column names:"));
+    assertThat(e.getMessage(), containsString("v0"));
+    assertThat(e.getMessage(), containsString("v1"));
   }
 
   @Test
   public void shouldThrowOnDuplicateKeyValueColumns() {
     // Given:
-    final List<TableElement> elements = ImmutableList.of(
+    final List<TableElement> elements = of(
         tableElement(KEY, "v0", INT_TYPE),
         tableElement(VALUE, "v0", INT_TYPE),
         tableElement(KEY, "v1", INT_TYPE),
         tableElement(VALUE, "v1", INT_TYPE)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Duplicate column names:");
-    expectedException.expectMessage("v0");
-    expectedException.expectMessage("v1");
-
     // When:
-    TableElements.of(elements);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> TableElements.of(elements)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Duplicate column names:"));
+    assertThat(e.getMessage(), containsString("v0"));
+    assertThat(e.getMessage(), containsString("v1"));
   }
 
   @Test
@@ -196,12 +200,14 @@ public class TableElementsTest {
     // Given:
     final TableElements tableElements = TableElements.of();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("No columns supplied.");
-
     // When:
-    tableElements.toLogicalSchema(true);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> tableElements.toLogicalSchema(true)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("No columns supplied."));
   }
 
   @Test

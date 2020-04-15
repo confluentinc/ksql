@@ -23,14 +23,9 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TestOptionsParserTest {
-
-  @Rule
-  public final ExpectedException expectedException = org.junit.rules.ExpectedException.none();
 
   @Test
   public void shouldParseCommandWithAllFiles() throws IOException {

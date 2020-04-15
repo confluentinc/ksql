@@ -17,6 +17,8 @@ package io.confluent.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.inOrder;
 
 import io.confluent.ksql.schema.ksql.DataException;
@@ -26,9 +28,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.function.BiConsumer;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -41,9 +41,6 @@ public class KsqlStructTest {
       .field("f0", SqlTypes.BIGINT)
       .field(Field.of("v1", SqlTypes.BOOLEAN))
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private BiConsumer<? super Field, ? super Optional<?>> consumer;
@@ -71,24 +68,28 @@ public class KsqlStructTest {
 
   @Test
   public void shouldThrowFieldNotKnown() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unknown field: ??");
-
     // When:
-    KsqlStruct.builder(SCHEMA)
-        .set("??", Optional.empty());
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> KsqlStruct.builder(SCHEMA)
+            .set("??", Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown field: ??"));
   }
 
   @Test
   public void shouldThrowIfValueWrongType() {
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("Expected BIGINT, got STRING");
-
     // When:
-    KsqlStruct.builder(SCHEMA)
-        .set("f0", Optional.of("field is BIGINT, so won't like this"));
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> KsqlStruct.builder(SCHEMA)
+            .set("f0", Optional.of("field is BIGINT, so won't like this"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected BIGINT, got STRING"));
   }
 
   @Test

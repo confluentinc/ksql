@@ -26,14 +26,17 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.array;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.map;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.struct;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 public class KsqlDelimitedSerdeFactoryTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private KsqlDelimitedSerdeFactory factory;
 
@@ -45,43 +48,49 @@ public class KsqlDelimitedSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfArray() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.array(SqlTypes.STRING));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("The 'DELIMITED' format does not support type 'ARRAY'");
+    final PersistenceSchema schema = schemaWithFieldOfType(array(STRING));
 
     // When:
-    factory.validate(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.validate(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The 'DELIMITED' format does not support type 'ARRAY'"));
   }
 
   @Test
   public void shouldThrowOnValidateIfMap() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.map(SqlTypes.STRING));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("The 'DELIMITED' format does not support type 'MAP'");
+    final PersistenceSchema schema = schemaWithFieldOfType(map(STRING));
 
     // When:
-    factory.validate(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.validate(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The 'DELIMITED' format does not support type 'MAP'"));
   }
 
   @Test
   public void shouldThrowOnValidateIfStruct() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.struct()
-        .field("f0", SqlTypes.STRING)
+    final PersistenceSchema schema = schemaWithFieldOfType(struct()
+        .field("f0", STRING)
         .build()
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("The 'DELIMITED' format does not support type 'STRUCT'");
-
     // When:
-    factory.validate(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.validate(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The 'DELIMITED' format does not support type 'STRUCT'"));
   }
 
   private static PersistenceSchema schemaWithFieldOfType(final SqlType fieldSchema) {

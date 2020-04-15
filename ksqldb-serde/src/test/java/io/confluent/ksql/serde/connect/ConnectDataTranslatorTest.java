@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.serde.connect;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
@@ -29,15 +31,10 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("unchecked")
 public class ConnectDataTranslatorTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldTranslateStructCorrectly() {
@@ -165,14 +162,16 @@ public class ConnectDataTranslatorTest {
 
     final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(schema);
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage(Schema.Type.STRING.getName());
-    expectedException.expectMessage(Schema.Type.INT32.getName());
-    expectedException.expectMessage("FIELD");
-
     // When:
-    connectToKsqlTranslator.toKsqlRow(badSchema, badData);
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> connectToKsqlTranslator.toKsqlRow(badSchema, badData)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(Schema.Type.STRING.getName()));
+    assertThat(e.getMessage(), containsString(Schema.Type.INT32.getName()));
+    assertThat(e.getMessage(), containsString("FIELD"));
   }
 
   @Test
@@ -252,14 +251,16 @@ public class ConnectDataTranslatorTest {
 
     final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(rowSchema);
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage(Schema.Type.INT32.getName());
-    expectedException.expectMessage(Schema.Type.STRING.getName());
-    expectedException.expectMessage("STRUCT->INT");
-
     // When:
-    connectToKsqlTranslator.toKsqlRow(dataRowSchema, connectStruct);
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> connectToKsqlTranslator.toKsqlRow(dataRowSchema, connectStruct)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(Schema.Type.INT32.getName()));
+    assertThat(e.getMessage(), containsString(Schema.Type.STRING.getName()));
+    assertThat(e.getMessage(), containsString("STRUCT->INT"));
   }
 
   @Test

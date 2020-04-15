@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.function.udf.math;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
 import org.junit.Before;

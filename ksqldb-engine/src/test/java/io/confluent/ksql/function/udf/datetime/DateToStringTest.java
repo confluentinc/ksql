@@ -16,22 +16,19 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 
 import io.confluent.ksql.function.KsqlFunctionException;
 import java.util.stream.IntStream;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class DateToStringTest {
 
   private DateToString udf;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -71,9 +68,14 @@ public class DateToStringTest {
 
   @Test
   public void shouldThrowIfFormatInvalid() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Failed to format date 44444 with formatter 'invalid'");
-    udf.dateToString(44444, "invalid");
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.dateToString(44444, "invalid")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to format date 44444 with formatter 'invalid'"));
   }
 
   @Test
@@ -86,7 +88,7 @@ public class DateToStringTest {
             final String result = udf.dateToString(18765, pattern);
             assertThat(result, is("2021-05-18X" + idx));
           } catch (final Exception e) {
-            Assert.fail(e.getMessage());
+            fail(e.getMessage());
           }
         });
   }

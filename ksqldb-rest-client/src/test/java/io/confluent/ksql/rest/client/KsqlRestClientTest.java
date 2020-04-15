@@ -16,18 +16,17 @@
 package io.confluent.ksql.rest.client;
 
 import io.confluent.ksql.properties.LocalProperties;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
+
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlRestClientTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlClient client;
@@ -37,10 +36,13 @@ public class KsqlRestClientTest {
   @Test
   public void shouldThrowOnInvalidServerAddress() {
     // Then:
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectMessage("The supplied serverAddress is invalid: timbuktu");
-
     // When:
-    new KsqlRestClient(client, "timbuktu", localProps);
+    final Exception e = assertThrows(
+        KsqlRestClientException.class,
+        () -> new KsqlRestClient(client, "timbuktu", localProps)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The supplied serverAddress is invalid: timbuktu"));
   }
 }

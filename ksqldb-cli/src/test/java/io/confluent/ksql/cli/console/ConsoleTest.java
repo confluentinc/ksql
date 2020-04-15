@@ -106,6 +106,7 @@ public class ConsoleTest {
   private static final String WHITE_SPACE = " \t ";
   private static final String NEWLINE = System.lineSeparator();
   private static final String STATUS_COUNT_STRING = "RUNNING:1,ERROR:2";
+  private static final String AGGREGATE_STATUS = "ERROR";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
@@ -162,6 +163,7 @@ public class ConsoleTest {
   public void setUp() {
     MockitoAnnotations.initMocks(this);
     when(queryStatusCount.toString()).thenReturn(STATUS_COUNT_STRING);
+    when(queryStatusCount.getAggregateStatus()).thenReturn(KsqlQueryStatus.valueOf(AGGREGATE_STATUS));
     final EnumMap<KsqlQueryStatus, Integer> mockStatusCount = new EnumMap<>(KsqlQueryStatus.class);
     mockStatusCount.put(KsqlQueryStatus.RUNNING, 1);
     mockStatusCount.put(KsqlQueryStatus.ERROR, 2);
@@ -333,7 +335,7 @@ public class ConsoleTest {
           + "      \"RUNNING\" : 1," + NEWLINE
           + "      \"ERROR\" : 2" + NEWLINE
           + "    }," + NEWLINE
-          + "    \"state\" : \"" + STATUS_COUNT_STRING +"\"" + NEWLINE
+          + "    \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -417,7 +419,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
-          + "      \"state\" : \"" + STATUS_COUNT_STRING +"\"" + NEWLINE
+          + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
           + "      \"queryString\" : \"write query\"," + NEWLINE
@@ -428,7 +430,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
-          + "      \"state\" : \"" + STATUS_COUNT_STRING +"\"" + NEWLINE
+          + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
           + "      \"name\" : \"ROWTIME\"," + NEWLINE
@@ -1084,7 +1086,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
-          + "      \"state\" : \"" + STATUS_COUNT_STRING +"\"" + NEWLINE
+          + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
           + "      \"queryString\" : \"write query\"," + NEWLINE
@@ -1095,7 +1097,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
-          + "      \"state\" : \"" + STATUS_COUNT_STRING +"\"" + NEWLINE
+          + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
           + "      \"name\" : \"ROWTIME\"," + NEWLINE
@@ -1156,13 +1158,13 @@ public class ConsoleTest {
           + "" + NEWLINE
           + "Queries that read from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE
-          + "readId (" + STATUS_COUNT_STRING +") : read query" + NEWLINE
+          + "readId (" + AGGREGATE_STATUS +") : read query" + NEWLINE
           + "\n"
           + "For query topology and execution plan please run: EXPLAIN <QueryId>" + NEWLINE
           + "" + NEWLINE
           + "Queries that write from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE
-          + "writeId (" + STATUS_COUNT_STRING + ") : write query" + NEWLINE
+          + "writeId (" + AGGREGATE_STATUS + ") : write query" + NEWLINE
           + "\n"
           + "For query topology and execution plan please run: EXPLAIN <QueryId>" + NEWLINE
           + "" + NEWLINE

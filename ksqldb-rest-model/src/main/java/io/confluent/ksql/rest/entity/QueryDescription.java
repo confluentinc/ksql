@@ -116,7 +116,13 @@ public class QueryDescription {
   // kept for backwards compatibility
   @JsonProperty("state")
   public Optional<String> getState() {
-    return Optional.of(ksqlHostQueryStatus.toString());
+    if (ksqlHostQueryStatus.isEmpty()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        (ksqlHostQueryStatus.containsValue(KsqlQueryStatus.ERROR)
+            ? KsqlQueryStatus.ERROR : KsqlQueryStatus. RUNNING).toString());
   }
 
   public void updateKsqlHostQueryStatus(

@@ -77,6 +77,13 @@ public class QueryStatusCount {
     return Collections.unmodifiableMap(statuses);
   }
 
+  public KsqlQueryStatus getAggregateStatus() {
+    if (statuses.getOrDefault(KsqlQueryStatus.ERROR, 0) != 0) {
+      return KsqlQueryStatus.ERROR;
+    }
+    return KsqlQueryStatus.RUNNING;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

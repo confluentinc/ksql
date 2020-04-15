@@ -72,9 +72,9 @@ public class RunningQuery {
   // kept for backwards compatibility
   @JsonProperty("state")
   public Optional<String> getState() {
-    return Optional.of(statusCount.toString());
+    return Optional.of(statusCount.getAggregateStatus().toString());
   }
-  
+
   public QueryStatusCount getStatusCount() {
     return statusCount;
   }

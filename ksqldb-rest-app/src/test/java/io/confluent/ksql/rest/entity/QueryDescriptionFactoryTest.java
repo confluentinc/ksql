@@ -44,6 +44,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QuerySchemas;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -96,6 +97,7 @@ public class QueryDescriptionFactoryTest {
   @Mock
   private KsqlTopic sinkTopic;
   private QueryMetadata transientQuery;
+  private PersistentQueryMetadata persistentQuery;
   private QueryDescription transientQueryDescription;
   private QueryDescription persistentQueryDescription;
 
@@ -121,7 +123,7 @@ public class QueryDescriptionFactoryTest {
 
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
-    final PersistentQueryMetadata persistentQuery = new PersistentQueryMetadata(
+    persistentQuery = new PersistentQueryMetadata(
         SQL_TEXT,
         queryStreams,
         PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeOption.none()),
@@ -201,12 +203,18 @@ public class QueryDescriptionFactoryTest {
 
   @Test
   public void shouldReportPersistentQueriesStatus() {
-    assertThat(persistentQueryDescription.getState(), is(Optional.of("{host:8080=RUNNING}")));
+    assertThat(persistentQueryDescription.getState(), is(Optional.of("RUNNING")));
+
+    final Map<KsqlHostInfoEntity, KsqlQueryStatus> updatedStatusMap = new HashMap<>(STATUS_MAP);
+    updatedStatusMap.put(new KsqlHostInfoEntity("anotherhost", 8080), KsqlQueryStatus.ERROR);
+    final QueryDescription updatedPersistentQueryDescription =
+        QueryDescriptionFactory.forQueryMetadata(persistentQuery, updatedStatusMap);
+    assertThat(updatedPersistentQueryDescription.getState(), is(Optional.of("ERROR")));
   }
 
   @Test
   public void shouldNotReportTransientQueriesStatus() {
-    assertThat(transientQueryDescription.getState(), is(Optional.of("{}")));
+    assertThat(transientQueryDescription.getState(), is(Optional.empty()));
   }
 
   @Test

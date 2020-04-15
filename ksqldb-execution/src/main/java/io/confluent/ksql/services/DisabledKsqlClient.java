@@ -36,7 +36,7 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
 
   private DisabledKsqlClient() {
   }
-
+  
   @Override
   public RestResponse<KsqlEntityList> makeKsqlRequest(
       final URI serverEndPoint,

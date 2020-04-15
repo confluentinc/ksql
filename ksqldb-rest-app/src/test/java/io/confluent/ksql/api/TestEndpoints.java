@@ -18,10 +18,13 @@ package io.confluent.ksql.api;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.reactive.BufferedPublisher;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
@@ -84,6 +87,18 @@ public class TestEndpoints implements Endpoints {
     this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), acksPublisher,
         acksBeforePublisherError);
     return CompletableFuture.completedFuture(insertsSubscriber);
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
+      final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeTerminate(final ClusterTerminateRequest request,
+      final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+    return null;
   }
 
   public synchronized void setRowGeneratorFactory(

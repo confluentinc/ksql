@@ -98,5 +98,45 @@
       "ID" : 0,
       "SUM_VAL" : 50.0
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "S2",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `SUM_VAL` DOUBLE",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `SUM_VAL` DOUBLE",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` MAP<STRING, DOUBLE>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

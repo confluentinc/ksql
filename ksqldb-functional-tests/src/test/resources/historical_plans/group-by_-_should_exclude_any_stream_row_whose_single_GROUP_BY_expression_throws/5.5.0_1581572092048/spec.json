@@ -12,5 +12,34 @@
     "key" : "",
     "value" : "1"
   } ],
-  "outputs" : [ ]
+  "outputs" : [ ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

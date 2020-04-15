@@ -24,29 +24,29 @@ import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.parser.json.KsqlParserSerializationModule;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 
-public final class PlanJsonMapper {
-  private PlanJsonMapper() {
-  }
+/**
+ * The Json mapper used for serializing and deserializing to internal topics such as the command and
+ * config topics.
+ */
+public enum PlanJsonMapper {
 
-  /**
-   * Create an ObjectMapper configured for serializing/deserializing a KSQL physical plan.
-   *
-   * @return ObjectMapper instance
-   */
-  public static ObjectMapper create() {
-    final ObjectMapper mapper = new ObjectMapper();
-    mapper.registerModules(
-        new Jdk8Module(),
-        new JavaTimeModule(),
-        new KsqlParserSerializationModule(),
-        new KsqlTypesSerializationModule(),
-        new KsqlTypesDeserializationModule(true)
-    );
-    mapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-    mapper.enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
-    mapper.enable(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES);
-    mapper.enable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE);
-    mapper.setSerializationInclusion(Include.NON_EMPTY);
+  INSTANCE;
+
+  private final ObjectMapper mapper = new ObjectMapper()
+      .registerModules(
+          new Jdk8Module(),
+          new JavaTimeModule(),
+          new KsqlParserSerializationModule(),
+          new KsqlTypesSerializationModule(),
+          new KsqlTypesDeserializationModule(true)
+      )
+      .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+      .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+      .enable(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES)
+      .enable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE)
+      .setSerializationInclusion(Include.NON_EMPTY);
+
+  public ObjectMapper get() {
     return mapper;
   }
 }

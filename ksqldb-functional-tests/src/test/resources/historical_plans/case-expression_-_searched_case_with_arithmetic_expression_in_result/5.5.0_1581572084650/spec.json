@@ -32,5 +32,34 @@
     "value" : {
       "CASE_RESAULT" : 7
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "S1",
+        "schema" : "`ROWKEY` STRING KEY, `CASE_RESAULT` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ORDERID` BIGINT, `ORDERUNITS` DOUBLE",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

@@ -88,5 +88,46 @@
       "F2" : "foo"
     },
     "timestamp" : 8000
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "S1_JOIN_T1",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "s1",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "t1",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

@@ -117,5 +117,68 @@
       "T_ROWTIME" : 13000
     },
     "timestamp" : 15000
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "INNER_JOIN",
+        "schema" : "`ROWKEY` BIGINT KEY, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_NAME` STRING, `T_VALUE` BIGINT, `F1` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+        "schema" : "`ROWKEY` BIGINT KEY, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_NAME` STRING, `T_VALUE` BIGINT, `F1` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        }
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+        "schema" : "`ROWKEY` BIGINT KEY, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_NAME` STRING, `T_VALUE` BIGINT, `F1` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        }
+      }, {
+        "name" : "left_topic",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "right_topic",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

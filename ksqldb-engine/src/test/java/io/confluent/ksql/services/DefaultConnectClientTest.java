@@ -27,7 +27,6 @@ import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import java.util.List;
@@ -48,7 +47,7 @@ import org.junit.Test;
 
 public class DefaultConnectClientTest {
 
-  private static final ObjectMapper MAPPER = JsonMapper.INSTANCE.mapper;
+  private static final ObjectMapper MAPPER = ConnectJsonMapper.INSTANCE.get();
   private static final ConnectorInfo SAMPLE_INFO = new ConnectorInfo(
       "foo",
       ImmutableMap.of("key", "value"),

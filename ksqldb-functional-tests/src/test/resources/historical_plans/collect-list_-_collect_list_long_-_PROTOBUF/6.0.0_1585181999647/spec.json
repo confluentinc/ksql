@@ -64,5 +64,45 @@
       "ID" : 100,
       "COLLECTED" : [ 500, 100 ]
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "S2",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        }
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

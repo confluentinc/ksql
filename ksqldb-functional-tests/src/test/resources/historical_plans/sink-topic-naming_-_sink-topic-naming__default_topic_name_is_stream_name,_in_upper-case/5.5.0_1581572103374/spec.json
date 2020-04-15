@@ -18,5 +18,34 @@
     "value" : {
       "SOURCE" : "s1"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

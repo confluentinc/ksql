@@ -44,7 +44,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.server.ServerVerticle;
 import io.confluent.ksql.integration.IntegrationTestHarness;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
@@ -474,7 +474,7 @@ public class RestApiTest {
 
   private static List<Map<String, Object>> parseRawRestQueryResponse(final String response) {
     try {
-      return JsonMapper.INSTANCE.mapper.readValue(
+      return ApiJsonMapper.INSTANCE.get().readValue(
           response,
           new TypeReference<List<Map<String, Object>>>() {
           }
@@ -514,7 +514,7 @@ public class RestApiTest {
   private static void assertValidJsonMessages(final Iterable<String> messages) {
     for (final String msg : messages) {
       try {
-        JsonMapper.INSTANCE.mapper.readValue(msg, Object.class);
+        ApiJsonMapper.INSTANCE.get().readValue(msg, Object.class);
       } catch (final Exception e) {
         throw new AssertionError("Invalid JSON message received: " + msg, e);
       }

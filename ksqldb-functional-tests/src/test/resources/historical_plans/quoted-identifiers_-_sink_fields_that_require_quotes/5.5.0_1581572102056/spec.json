@@ -22,5 +22,34 @@
       "*bad!chars*" : "cheetos",
       "SELECT" : "reserved"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING, `*bad!chars*` STRING, `SELECT` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `A` STRING, `B` STRING, `C` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

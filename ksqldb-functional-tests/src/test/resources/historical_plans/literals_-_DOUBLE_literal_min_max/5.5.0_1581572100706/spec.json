@@ -14,5 +14,34 @@
     "topic" : "OUTPUT",
     "key" : "",
     "value" : "0,4.9E-324,-4.9E-324,2.2250738585072014E-308,-2.2250738585072014E-308,1.7976931348623157E308,-1.7976931348623157E308"
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `MIN_VALUE` DOUBLE, `NEG_MIN_VALUE` DOUBLE, `MIN_NORMAL` DOUBLE, `NEG_MIN_NORMAL` DOUBLE, `MAX_VALUE` DOUBLE, `NEG_MAX_VALUE` DOUBLE",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "input",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

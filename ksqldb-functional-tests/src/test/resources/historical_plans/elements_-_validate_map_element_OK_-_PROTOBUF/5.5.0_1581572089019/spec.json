@@ -22,5 +22,34 @@
         "k1" : 1
       }
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `V0` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "input",
+        "schema" : "`ROWKEY` STRING KEY, `V0` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

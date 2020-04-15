@@ -17,6 +17,8 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -104,7 +106,7 @@ public class KsqlTestingToolTest {
         testExecutor);
 
     // Then:
-    verify(testExecutor).buildAndExecuteQuery(testCase);
+    verify(testExecutor).buildAndExecuteQuery(eq(testCase), any());
     verify(testExecutor).close();
 
   }

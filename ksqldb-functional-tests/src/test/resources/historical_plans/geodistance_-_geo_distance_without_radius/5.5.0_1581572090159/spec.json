@@ -57,5 +57,34 @@
       "ID" : 3,
       "CALCULATED_DISTANCE" : 11005.23304055582
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "DISTANCE_STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE, `LAT2` DOUBLE, `LON2` DOUBLE",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

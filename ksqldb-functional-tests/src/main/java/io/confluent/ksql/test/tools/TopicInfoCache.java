@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -37,6 +38,7 @@ import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.List;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
@@ -76,6 +78,10 @@ public class TopicInfoCache {
 
   public TopicInfo get(final String topicName) {
     return cache.getUnchecked(topicName);
+  }
+
+  public List<TopicInfo> all() {
+    return ImmutableList.copyOf(cache.asMap().values());
   }
 
   public void clear() {
@@ -155,6 +161,22 @@ public class TopicInfoCache {
       this.keyFormat = requireNonNull(keyFormat, "keyFormat");
       this.valueFormat = requireNonNull(valueFormat, "valueFormat");
       this.changeLogWindowSize = requireNonNull(changeLogWindowSize, "changeLogWindowSize");
+    }
+
+    public String getTopicName() {
+      return topicName;
+    }
+
+    public LogicalSchema getSchema() {
+      return schema;
+    }
+
+    public KeyFormat getKeyFormat() {
+      return keyFormat;
+    }
+
+    public ValueFormat getValueFormat() {
+      return valueFormat;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

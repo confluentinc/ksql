@@ -28,5 +28,34 @@
         "K2" : "FOO"
       }
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "SINK",
+        "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

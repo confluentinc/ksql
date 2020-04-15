@@ -22,10 +22,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -75,12 +75,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
 
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
+
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
   private final Duration commandQueueCatchupTimeout;
-  private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
@@ -133,7 +134,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.commandQueueCatchupTimeout =
         Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
-    this.objectMapper = JsonMapper.INSTANCE.mapper;
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.authorizationValidator = authorizationValidator;
@@ -302,7 +302,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,
         disconnectCheckInterval.toMillis(),
-        objectMapper);
+        OBJECT_MAPPER);
 
     log.info("Streaming query '{}'", statement.getStatementText());
     return Response.ok().entity(queryStreamWriter).build();
@@ -310,7 +310,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
   private String writeValueAsString(final Object object) {
     try {
-      return objectMapper.writeValueAsString(object);
+      return OBJECT_MAPPER.writeValueAsString(object);
     } catch (final JsonProcessingException e) {
       throw new RuntimeException(e);
     }

@@ -24,7 +24,8 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 
 public final class InternalTopicSerdes {
-  private static final ObjectMapper MAPPER = PlanJsonMapper.create();
+
+  private static final ObjectMapper MAPPER = PlanJsonMapper.INSTANCE.get();
 
   private InternalTopicSerdes() {
   }

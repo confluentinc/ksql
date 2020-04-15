@@ -76,5 +76,34 @@
       "ID" : 5,
       "ARRAY_ITEM" : "item_000_5"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "S3",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

@@ -120,5 +120,56 @@
         "dave" : 1
       }
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "COUNT_BY_REGION",
+        "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `COUNTS` MAP<STRING, BIGINT>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
+        "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `COUNTS` MAP<STRING, BIGINT>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        }
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-GroupBy-repartition",
+        "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `COUNTS` MAP<STRING, BIGINT>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        }
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

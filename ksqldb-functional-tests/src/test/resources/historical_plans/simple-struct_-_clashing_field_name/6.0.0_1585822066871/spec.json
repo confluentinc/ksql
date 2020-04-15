@@ -32,6 +32,33 @@
       "name" : "OUTPUT",
       "type" : "stream",
       "schema" : "ROWKEY STRING KEY, B INT, B_1 INT, B_2 INT"
-    } ]
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `B` INTEGER, `B_1` INTEGER, `B_2` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `B` INTEGER, `A` STRUCT<`B` INTEGER>, `C` STRUCT<`B` INTEGER>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
   }
 }

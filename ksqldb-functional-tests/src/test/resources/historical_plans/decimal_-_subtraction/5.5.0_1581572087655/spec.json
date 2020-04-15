@@ -45,5 +45,34 @@
     "value" : {
       "RESULT" : "10.10"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "TEST2",
+        "schema" : "`ROWKEY` STRING KEY, `RESULT` DECIMAL(5, 2)",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test",
+        "schema" : "`ROWKEY` STRING KEY, `A` DECIMAL(4, 2), `B` DECIMAL(4, 2)",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

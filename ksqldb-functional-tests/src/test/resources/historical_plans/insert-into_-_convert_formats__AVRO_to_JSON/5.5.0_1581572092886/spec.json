@@ -54,5 +54,34 @@
       "B" : "turtle"
     },
     "timestamp" : 0
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "sink",
+        "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "source",
+        "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

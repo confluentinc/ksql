@@ -38,5 +38,34 @@
     "topic" : "T1",
     "key" : "1",
     "value" : null
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "T1",
+        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

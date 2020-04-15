@@ -18,13 +18,13 @@ package io.confluent.ksql.cli.console.table.builder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Splitter;
 import io.confluent.ksql.cli.console.table.Table;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import java.io.IOException;
 
 public class ErrorEntityTableBuilder implements TableBuilder<ErrorEntity> {
 
-  private static final ObjectMapper MAPPER = JsonMapper.INSTANCE.mapper;
+  private static final ObjectMapper MAPPER = ApiJsonMapper.INSTANCE.get();
 
   @Override
   public Table buildTable(final ErrorEntity entity) {

@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ServerClusterId.Scope;
 import java.io.IOException;
 import org.junit.Test;
@@ -33,7 +33,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ServerMetadataTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private static final String JSON = "{"
       + "\"version\":\"1.0.0\","

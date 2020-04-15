@@ -81,5 +81,34 @@
       "ID" : 5,
       "CUSTOM_FORMATTED_START_DATE" : "31-12-1969Sophia"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "DATE_STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CUSTOM_FORMATTED_START_DATE` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `START_DATE` INTEGER, `DATE_FORMAT` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

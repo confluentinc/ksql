@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.test.tools;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.TopologyTestDriver;
 
@@ -27,28 +30,34 @@ public final class TopologyTestDriverContainer {
   private final List<Topic> sourceTopics;
   private final Topic sinkTopic;
   private final Set<String> sourceTopicNames;
+  private final Supplier<Set<String>> outputTopicNamesSupplier;
 
-  private TopologyTestDriverContainer(
+  @VisibleForTesting
+  TopologyTestDriverContainer(
       final TopologyTestDriver topologyTestDriver,
       final List<Topic> sourceTopics,
-      final Topic sinkTopic) {
-    this.topologyTestDriver = topologyTestDriver;
-    this.sourceTopics = sourceTopics;
-    this.sinkTopic = sinkTopic;
+      final Topic sinkTopic,
+      final Supplier<Set<String>> outputTopicNamesSupplier
+  ) {
+    this.topologyTestDriver = requireNonNull(topologyTestDriver, "topologyTestDriver");
+    this.sourceTopics = requireNonNull(sourceTopics, "sourceTopics");
+    this.sinkTopic = requireNonNull(sinkTopic, "sinkTopic");
     this.sourceTopicNames = sourceTopics.stream().map(Topic::getName).collect(Collectors.toSet());
+    this.outputTopicNamesSupplier =
+        requireNonNull(outputTopicNamesSupplier, "outputTopicNamesSupplier");
   }
 
   public static TopologyTestDriverContainer of(
       final TopologyTestDriver topologyTestDriver,
       final List<Topic> sourceTopics,
-      final Topic sinkTopic) {
-    Objects.requireNonNull(topologyTestDriver, "topologyTestDriver");
-    Objects.requireNonNull(sourceTopics, "sourceTopics");
-    Objects.requireNonNull(sinkTopic, "sinkTopic");
+      final Topic sinkTopic
+  ) {
     return new TopologyTestDriverContainer(
         topologyTestDriver,
         sourceTopics,
-        sinkTopic);
+        sinkTopic,
+        () -> KafkaStreamsInternalTopicsAccessor.getOutputTopicNames(topologyTestDriver)
+    );
   }
 
   TopologyTestDriver getTopologyTestDriver() {
@@ -65,5 +74,9 @@ public final class TopologyTestDriverContainer {
 
   public Set<String> getSourceTopicNames() {
     return sourceTopicNames;
+  }
+
+  public Set<String> getOutputTopicNames() {
+    return outputTopicNamesSupplier.get();
   }
 }

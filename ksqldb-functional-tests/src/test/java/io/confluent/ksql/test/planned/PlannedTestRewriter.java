@@ -22,6 +22,9 @@ import java.util.stream.Stream;
 
 /**
  * Tool for rewriting planned test cases
+ *
+ * If, after the running the re-write you want to revert changes to some subset of files, e.g. all
+ * the {@code plan.json} files. Then you can run {@code git checkout '*plan.json'}.
  */
 public class PlannedTestRewriter {
   private final BiFunction<TestCase, TestCasePlan, TestCasePlan> rewriter;

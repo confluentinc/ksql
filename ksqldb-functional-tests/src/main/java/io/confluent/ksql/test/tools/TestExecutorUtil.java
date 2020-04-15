@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -75,7 +76,7 @@ import org.hamcrest.StringDescription;
 public final class TestExecutorUtil {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.create();
+  private static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.INSTANCE.get();
 
   private TestExecutorUtil() {
   }
@@ -85,7 +86,9 @@ public final class TestExecutorUtil {
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
-      final StubKafkaService stubKafkaService) {
+      final StubKafkaService stubKafkaService,
+      final TestExecutionListener listener
+  ) {
     final Map<String, String> persistedConfigs = testCase.persistedProperties();
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
@@ -95,9 +98,12 @@ public final class TestExecutorUtil {
         serviceContext,
         ksqlEngine,
         maybeUpdatedConfigs,
-        stubKafkaService);
+        stubKafkaService,
+        listener
+    );
+
     final List<TopologyTestDriverContainer> topologyTestDrivers = new ArrayList<>();
-    for (final PersistentQueryAndSources persistentQueryAndSources: queryMetadataList) {
+    for (final PersistentQueryAndSources persistentQueryAndSources : queryMetadataList) {
       final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSources
           .getPersistentQueryMetadata();
       final Properties streamsProperties = new Properties();
@@ -131,7 +137,8 @@ public final class TestExecutorUtil {
     return topologyTestDrivers;
   }
 
-  public static Iterable<ConfiguredKsqlPlan> planTestCase(
+  @VisibleForTesting
+  static Iterable<ConfiguredKsqlPlan> planTestCase(
       final KsqlEngine engine,
       final TestCase testCase,
       final KsqlConfig ksqlConfig,
@@ -188,14 +195,16 @@ public final class TestExecutorUtil {
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
-      final StubKafkaService stubKafkaService
+      final StubKafkaService stubKafkaService,
+      final TestExecutionListener listener
   ) {
     final List<PersistentQueryAndSources> queries = execute(
         ksqlEngine,
         testCase,
         ksqlConfig,
         Optional.of(serviceContext.getSchemaRegistryClient()),
-        stubKafkaService
+        stubKafkaService,
+        listener
     );
 
     if (testCase.getInputRecords().isEmpty()) {
@@ -242,19 +251,26 @@ public final class TestExecutorUtil {
       final TestCase testCase,
       final KsqlConfig ksqlConfig,
       final Optional<SchemaRegistryClient> srClient,
-      final StubKafkaService stubKafkaService
+      final StubKafkaService stubKafkaService,
+      final TestExecutionListener listener
   ) {
     final ImmutableList.Builder<PersistentQueryAndSources> queriesBuilder = new Builder<>();
     for (final ConfiguredKsqlPlan plan
         : planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService)) {
+
+      listener.acceptPlan(plan);
+
       final ExecuteResultAndSources result = executePlan(engine, plan);
       if (!result.getSources().isPresent()) {
         continue;
       }
-      queriesBuilder.add(new PersistentQueryAndSources(
-          (PersistentQueryMetadata) result.getExecuteResult().getQuery().get(),
-          result.getSources().get()
-      ));
+
+      final PersistentQueryMetadata query = (PersistentQueryMetadata) result
+          .getExecuteResult().getQuery().get();
+
+      listener.acceptQuery(query);
+
+      queriesBuilder.add(new PersistentQueryAndSources(query, result.getSources().get()));
     }
     return queriesBuilder.build();
   }

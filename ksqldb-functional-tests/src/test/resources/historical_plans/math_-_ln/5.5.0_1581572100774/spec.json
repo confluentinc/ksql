@@ -70,5 +70,34 @@
       "L" : 0.6931471805599453,
       "D" : 1.0986122886681098
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `I` DOUBLE, `L` DOUBLE, `D` DOUBLE",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "input",
+        "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

@@ -30,5 +30,34 @@
     "topic" : "TS",
     "key" : "0",
     "value" : "0,1589234313000"
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "TS",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `TS` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `TIMESTAMP` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

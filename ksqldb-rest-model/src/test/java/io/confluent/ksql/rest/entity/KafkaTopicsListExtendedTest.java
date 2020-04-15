@@ -19,7 +19,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -30,7 +30,7 @@ public class KafkaTopicsListExtendedTest {
   @Test
   public void testSerde() throws Exception {
     // Given:
-    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper mapper = ApiJsonMapper.INSTANCE.get();
     final KafkaTopicsListExtended expected = new KafkaTopicsListExtended(
         "SHOW TOPICS EXTENDED;",
         ImmutableList.of(new KafkaTopicInfoExtended("thetopic", ImmutableList.of(1, 2, 3), 42, 12))

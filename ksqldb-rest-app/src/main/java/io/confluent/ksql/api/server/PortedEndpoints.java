@@ -24,7 +24,7 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -48,6 +48,8 @@ class PortedEndpoints {
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
+
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private final Endpoints endpoints;
   private final Server server;
@@ -99,10 +101,9 @@ class PortedEndpoints {
       final Class<T> requestClass,
       final BiFunction<T, ApiSecurityContext, CompletableFuture<EndpointResponse>> requestor) {
     final HttpServerResponse response = routingContext.response();
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     final T requestObject;
     try {
-      requestObject = objectMapper.readValue(routingContext.getBody().getBytes(), requestClass);
+      requestObject = OBJECT_MAPPER.readValue(routingContext.getBody().getBytes(), requestClass);
     } catch (Exception e) {
       routingContext.fail(HttpStatus.SC_BAD_REQUEST,
           new KsqlApiException("Malformed JSON", ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
@@ -114,7 +115,7 @@ class PortedEndpoints {
 
       final Buffer responseBody;
       try {
-        final byte[] bytes = objectMapper.writeValueAsBytes(endpointResponse.getResponseBody());
+        final byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(endpointResponse.getResponseBody());
         responseBody = Buffer.buffer(bytes);
       } catch (JsonProcessingException e) {
         // This is an internal error as it's a bug in the server
@@ -140,7 +141,7 @@ class PortedEndpoints {
         toErrorCode(statusCode),
         routingContext.failure().getMessage());
     try {
-      final byte[] bytes = JsonMapper.INSTANCE.mapper.writeValueAsBytes(ksqlErrorMessage);
+      final byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(ksqlErrorMessage);
       routingContext.response().setStatusCode(statusCode)
           .end(Buffer.buffer(bytes));
     } catch (JsonProcessingException e) {

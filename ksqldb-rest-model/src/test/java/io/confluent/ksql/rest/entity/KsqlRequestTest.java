@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import java.io.IOException;
@@ -43,7 +43,7 @@ import org.junit.rules.ExpectedException;
 @SuppressWarnings("SameParameterValue")
 public class KsqlRequestTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
   private static final String A_JSON_REQUEST = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"

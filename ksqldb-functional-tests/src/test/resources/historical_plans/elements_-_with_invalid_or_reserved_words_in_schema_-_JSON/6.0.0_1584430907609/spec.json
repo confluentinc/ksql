@@ -26,6 +26,33 @@
       "name" : "OUTPUT",
       "type" : "stream",
       "schema" : "ROWKEY STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT"
-    } ]
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "input",
+        "schema" : "`ROWKEY` STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 1
+      } ]
+    }
   }
 }

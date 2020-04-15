@@ -54,6 +54,33 @@
       "keyFormat" : {
         "format" : "KAFKA"
       }
-    } ]
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `KEY` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "input",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
   }
 }

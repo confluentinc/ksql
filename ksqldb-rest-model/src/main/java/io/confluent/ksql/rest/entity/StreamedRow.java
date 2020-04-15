@@ -25,10 +25,11 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Arrays;
 import java.util.Objects;
@@ -38,6 +39,8 @@ import java.util.Optional;
 @JsonInclude(Include.NON_ABSENT)
 @JsonSubTypes({})
 public final class StreamedRow {
+
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private final Optional<Header> header;
   private final Optional<GenericRow> row;
@@ -139,7 +142,7 @@ public final class StreamedRow {
   @Override
   public String toString() {
     try {
-      return JsonMapper.INSTANCE.mapper.writeValueAsString(this);
+      return OBJECT_MAPPER.writeValueAsString(this);
     } catch (final JsonProcessingException e) {
       return super.toString();
     }
@@ -204,7 +207,7 @@ public final class StreamedRow {
     @Override
     public String toString() {
       try {
-        return JsonMapper.INSTANCE.mapper.writeValueAsString(this);
+        return OBJECT_MAPPER.writeValueAsString(this);
       } catch (final JsonProcessingException e) {
         return super.toString();
       }

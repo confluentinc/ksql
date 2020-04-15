@@ -20,6 +20,33 @@
       "name" : "OUTPUT",
       "type" : "stream",
       "schema" : "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING"
-    } ]
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      } ]
+    }
   }
 }

@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Router;
@@ -44,6 +45,9 @@ import org.apache.http.HttpStatus;
 class PortedEndpoints {
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet.of("/ksql");
+
+  private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
+  private static final String JSON_CONTENT_TYPE = "application/json";
 
   private final Endpoints endpoints;
   private final Server server;
@@ -117,7 +121,9 @@ class PortedEndpoints {
         routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR, e);
         return;
       }
-      
+
+      response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
+
       response.setStatusCode(endpointResponse.getStatusCode())
           .setStatusMessage(endpointResponse.getStatusMessage())
           .end(responseBody);

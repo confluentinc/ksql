@@ -21,8 +21,10 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.json.StructSerializationModule;
+import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 
 /**
  * Json mapper for the test framework.
@@ -34,8 +36,10 @@ public enum TestJsonMapper {
   private final ObjectMapper mapper = new ObjectMapper()
       .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
       .registerModule(new Jdk8Module())
+      .registerModule(new JavaTimeModule())
       .registerModule(new StructSerializationModule())
       .registerModule(new KsqlTypesSerializationModule())
+      .registerModule(new KsqlTypesDeserializationModule(true))
       .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)

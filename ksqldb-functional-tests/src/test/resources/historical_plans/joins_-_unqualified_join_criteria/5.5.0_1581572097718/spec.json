@@ -141,6 +141,67 @@
     "sources" : [ {
       "name" : "LEFT_OUTER_JOIN",
       "type" : "stream"
-    } ]
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "LEFT_OUTER_JOIN",
+        "schema" : "`ROWKEY` BIGINT KEY, `LEFT_ID` BIGINT, `NAME` STRING, `F1` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+        "schema" : "`ROWKEY` BIGINT KEY, `LEFT_ID` BIGINT, `NAME` STRING, `F1` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000009-store-changelog",
+        "schema" : "`ROWKEY` BIGINT KEY, `LEFT_ID` BIGINT, `NAME` STRING, `F1` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }, {
+        "name" : "left_topic",
+        "schema" : "`ROWKEY` BIGINT KEY, `LEFT_ID` BIGINT, `NAME` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "right_topic",
+        "schema" : "`ROWKEY` BIGINT KEY, `RIGHT_ID` BIGINT, `F1` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
   }
 }

@@ -44,6 +44,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
@@ -52,8 +53,7 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
+import java.util.OptionalInt;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Before;
@@ -104,9 +104,9 @@ public class TestExecutorTest {
   @Mock
   private MetaStore metaStore;
   @Mock
-  private Function<TopologyTestDriver, Set<String>> internalTopicsAccessor;
-  @Mock
   private SchemaRegistryClient srClient;
+  @Mock
+  private TestExecutionListener listener;
 
   private TestExecutor executor;
   private final Map<SourceName, DataSource> allSources = new HashMap<>();
@@ -121,20 +121,20 @@ public class TestExecutorTest {
         kafkaService,
         serviceContext,
         ksqlEngine,
-        topologyBuilder,
-        internalTopicsAccessor
+        topologyBuilder
     );
 
     when(sourceTopic.getName()).thenReturn("source_topic");
     when(sinkTopic.getName()).thenReturn(SINK_TOPIC_NAME);
 
-    final TopologyTestDriverContainer container = TopologyTestDriverContainer.of(
+    final TopologyTestDriverContainer container = new TopologyTestDriverContainer(
         topologyTestDriver,
         ImmutableList.of(sourceTopic),
-        sinkTopic
+        sinkTopic,
+        () -> ImmutableSet.of(SINK_TOPIC_NAME)
     );
 
-    when(topologyBuilder.buildStreamsTopologyTestDrivers(any(), any(), any(), any(), any()))
+    when(topologyBuilder.buildStreamsTopologyTestDrivers(any(), any(), any(), any(), any(), any()))
         .thenReturn(ImmutableList.of(container));
 
     when(testCase.getPostConditions()).thenReturn(postConditions);
@@ -142,9 +142,6 @@ public class TestExecutorTest {
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
 
     when(metaStore.getAllDataSources()).thenReturn(allSources);
-
-    when(internalTopicsAccessor.apply(topologyTestDriver))
-        .thenReturn(ImmutableSet.of(INTERNAL_TOPIC_0));
 
     givenDataSourceTopic(SCHEMA);
   }
@@ -155,7 +152,7 @@ public class TestExecutorTest {
     when(testCase.getExpectedTopology()).thenReturn(Optional.empty());
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    executor.buildAndExecuteQuery(testCase, listener);
 
     // Then: did not throw, and
     verify(testCase, never()).getGeneratedTopologies();
@@ -168,7 +165,7 @@ public class TestExecutorTest {
     givenActualTopology("matching-topology");
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    executor.buildAndExecuteQuery(testCase, listener);
 
     // Then: did not throw, and
     verify(testCase).getExpectedTopology();
@@ -182,7 +179,7 @@ public class TestExecutorTest {
     givenActualTopology("a-topology", ImmutableMap.of("matching", "schemas"));
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    executor.buildAndExecuteQuery(testCase, listener);
 
     // Then: did not throw, and
     verify(testCase).getGeneratedSchemas();
@@ -204,7 +201,7 @@ public class TestExecutorTest {
             + "     but: was \"actual-topology\"");
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    executor.buildAndExecuteQuery(testCase, listener);
   }
 
   @Test
@@ -221,7 +218,7 @@ public class TestExecutorTest {
             + "THIS IS BAD!\n"));
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    executor.buildAndExecuteQuery(testCase, listener);
   }
 
   @Test
@@ -241,7 +238,7 @@ public class TestExecutorTest {
         + "<k1, \"v1\"> with timestamp=123456719");
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    executor.buildAndExecuteQuery(testCase, listener);
   }
 
   @Test
@@ -257,7 +254,7 @@ public class TestExecutorTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> executor.buildAndExecuteQuery(testCase)
+        () -> executor.buildAndExecuteQuery(testCase, listener)
     );
 
     // Then:
@@ -287,7 +284,7 @@ public class TestExecutorTest {
         "Expected <k2, \"different\"> with timestamp=123456789 but was <k2, \"v2\"> with timestamp=123456789");
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    executor.buildAndExecuteQuery(testCase, listener);
   }
 
   @Test
@@ -304,7 +301,7 @@ public class TestExecutorTest {
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    executor.buildAndExecuteQuery(testCase, listener);
 
     // Then: no exception.
   }
@@ -331,7 +328,7 @@ public class TestExecutorTest {
     givenDataSourceTopic(schema);
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    executor.buildAndExecuteQuery(testCase, listener);
 
     // Then: no exception.
   }
@@ -339,10 +336,21 @@ public class TestExecutorTest {
   @Test
   public void shouldCheckPostConditions() {
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    executor.buildAndExecuteQuery(testCase, listener);
 
     // Then:
-    verify(postConditions).verify(metaStore, ImmutableSet.of(INTERNAL_TOPIC_0));
+    verify(postConditions).verify(
+        metaStore,
+        ImmutableList.of(
+            new PostTopicNode(
+                sinkTopic.getName(),
+                SCHEMA,
+                KeyFormat.nonWindowed(FormatInfo.of("Kafka")),
+                ValueFormat.of(FormatInfo.of("Json")),
+                OptionalInt.empty()
+            )
+        )
+    );
   }
 
   private void givenExpectedTopology(final String topology) {

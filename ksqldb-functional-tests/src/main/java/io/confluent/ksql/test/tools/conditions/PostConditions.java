@@ -26,9 +26,13 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.test.model.PostConditionsNode;
+import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
+import io.confluent.ksql.test.model.PostConditionsNode.PostTopicsNode;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
@@ -40,37 +44,60 @@ public class PostConditions {
 
   public static final PostConditions NONE = new PostConditions(
       hasItems(anything()),
+      hasItems(anything()),
       Pattern.compile(MATCH_NOTHING),
       new PostConditionsNode(ImmutableList.of(), Optional.empty())
   );
 
   private final Matcher<Iterable<DataSource>> sourcesMatcher;
+  private final Matcher<Iterable<PostTopicNode>> topicsMatcher;
   private final Pattern topicBlackList;
   private final PostConditionsNode sourceNode;
 
   public PostConditions(
       final Matcher<Iterable<DataSource>> sourcesMatcher,
+      final Matcher<Iterable<PostTopicNode>> topicsMatcher,
       final Pattern topicBlackList,
       final PostConditionsNode sourceNode
   ) {
     this.sourcesMatcher = requireNonNull(sourcesMatcher, "sourcesMatcher");
+    this.topicsMatcher = requireNonNull(topicsMatcher, "topicsMatcher");
     this.topicBlackList = requireNonNull(topicBlackList, "topicBlackList");
     this.sourceNode = requireNonNull(sourceNode, "sourceNode");
   }
 
   public void verify(
       final MetaStore metaStore,
-      final Collection<String> topicNames
+      final List<PostTopicNode> knownTopics
   ) {
     verifyMetaStore(metaStore);
-    verifyTopics(topicNames);
+    verifyTopics(knownTopics);
   }
 
-  public Optional<PostConditionsNode> asNode() {
-    if (this == NONE) {
+  public Optional<PostConditionsNode> asNode(
+      final List<PostTopicNode> additional
+  ) {
+    if (this == NONE && additional.isEmpty()) {
       return Optional.empty();
     }
-    return Optional.of(sourceNode);
+
+    final TreeMap<String, PostTopicNode> topics = new TreeMap<>();
+
+    sourceNode.getTopics()
+        .map(PostTopicsNode::getTopics)
+        .orElseGet(ImmutableList::of)
+        .forEach(node -> topics.put(node.getName(), node));
+
+    additional
+        .forEach(node -> topics.put(node.getName(), node));
+
+    return Optional.of(new PostConditionsNode(
+        sourceNode.getSources(),
+        Optional.of(new PostTopicsNode(
+            sourceNode.getTopics().flatMap(PostTopicsNode::getBlackList),
+            Optional.of(ImmutableList.copyOf(topics.values()))
+        ))
+    ));
   }
 
   private void verifyMetaStore(final MetaStore metaStore) {
@@ -90,11 +117,14 @@ public class PostConditions {
         + System.lineSeparator() + text, values, sourcesMatcher);
   }
 
-  private void verifyTopics(final Collection<String> topicNames) {
-    final Set<String> blackListed = topicNames.stream()
+  private void verifyTopics(final List<PostTopicNode> actualTopics) {
+    final Set<String> blackListed = actualTopics.stream()
+        .map(PostTopicNode::getName)
         .filter(topicBlackList.asPredicate())
         .collect(Collectors.toSet());
 
     assertThat("blacklisted topics found", blackListed, is(empty()));
+
+    assertThat(actualTopics, topicsMatcher);
   }
 }

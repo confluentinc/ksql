@@ -50,5 +50,88 @@
       "end" : 1000,
       "type" : "TIME"
     }
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` STRING, `F0` INTEGER, `F1` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "TUMBLING",
+            "size" : 1.000000000
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+        "schema" : "`ROWKEY` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` STRING, `F0` INTEGER, `F1` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "TUMBLING",
+            "size" : 1.000000000
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+        "schema" : "`ROWKEY` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` STRING, `F0` INTEGER, `F1` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "TUMBLING",
+            "size" : 1.000000000
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }, {
+        "name" : "left",
+        "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "TUMBLING",
+            "size" : 1.000000000
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "right",
+        "schema" : "`ROWKEY` STRING KEY, `F1` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "TUMBLING",
+            "size" : 1.000000000
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

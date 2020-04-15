@@ -39,6 +39,7 @@ import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
@@ -49,12 +50,12 @@ import io.confluent.ksql.util.KsqlServerException;
 import java.io.Closeable;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -85,11 +86,19 @@ public class TestExecutor implements Closeable {
   private final Map<String, ?> config = baseConfig();
   private final StubKafkaService kafka;
   private final TopologyBuilder topologyBuilder;
-  private final Function<TopologyTestDriver, Set<String>> internalTopicsAccessor;
   private final TopicInfoCache topicInfoCache;
 
-  public TestExecutor() {
-    this(StubKafkaService.create(), getServiceContext());
+  public static TestExecutor create() {
+    final StubKafkaService kafkaService = StubKafkaService.create();
+    final StubKafkaClientSupplier kafkaClientSupplier = new StubKafkaClientSupplier();
+    final ServiceContext serviceContext = getServiceContext(kafkaClientSupplier);
+
+    return new TestExecutor(
+        kafkaService,
+        serviceContext,
+        getKsqlEngine(serviceContext),
+        TestExecutorUtil::buildStreamsTopologyTestDrivers
+    );
   }
 
   @VisibleForTesting
@@ -97,32 +106,19 @@ public class TestExecutor implements Closeable {
       final StubKafkaService kafka,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final TopologyBuilder topologyBuilder,
-      final Function<TopologyTestDriver, Set<String>> internalTopicsAccessor
+      final TopologyBuilder topologyBuilder
   ) {
     this.kafka = requireNonNull(kafka, "stubKafkaService");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.topologyBuilder = requireNonNull(topologyBuilder, "topologyBuilder");
-    this.internalTopicsAccessor = requireNonNull(internalTopicsAccessor, "internalTopicsAccessor");
     this.topicInfoCache = new TopicInfoCache(ksqlEngine, serviceContext.getSchemaRegistryClient());
   }
 
-  private TestExecutor(
-      final StubKafkaService kafka,
-      final ServiceContext serviceContext
+  public void buildAndExecuteQuery(
+      final TestCase testCase,
+      final TestExecutionListener listener
   ) {
-    this(
-        kafka,
-        serviceContext,
-        getKsqlEngine(serviceContext),
-        TestExecutorUtil::buildStreamsTopologyTestDrivers,
-        KafkaStreamsInternalTopicsAccessor::getInternalTopics
-    );
-  }
-
-  public void buildAndExecuteQuery(final TestCase testCase) {
-
     topicInfoCache.clear();
 
     final KsqlConfig currentConfigs = new KsqlConfig(config);
@@ -137,7 +133,8 @@ public class TestExecutor implements Closeable {
               serviceContext,
               ksqlEngine,
               ksqlConfig,
-              kafka
+              kafka,
+              listener
           );
 
       writeInputIntoTopics(testCase.getInputRecords(), kafka);
@@ -145,8 +142,6 @@ public class TestExecutor implements Closeable {
           .stream()
           .map(Record::getTopicName)
           .collect(Collectors.toSet());
-
-      final Set<String> allTopicNames = new HashSet<>();
 
       for (final TopologyTestDriverContainer topologyTestDriverContainer : topologyTestDrivers) {
         verifyTopology(testCase);
@@ -169,19 +164,42 @@ public class TestExecutor implements Closeable {
           );
         }
 
-        allTopicNames.addAll(
-            internalTopicsAccessor.apply(topologyTestDriverContainer.getTopologyTestDriver()));
+        topologyTestDriverContainer.getOutputTopicNames()
+            .forEach(topicInfoCache::get);
       }
-      verifyOutput(testCase);
 
-      kafka.getAllTopics().stream()
-          .map(Topic::getName)
-          .forEach(allTopicNames::add);
+      verifyOutput(testCase);
 
       testCase.expectedException().map(ee -> {
         throw new AssertionError("Expected test to throw" + StringDescription.toString(ee));
       });
-      testCase.getPostConditions().verify(ksqlEngine.getMetaStore(), allTopicNames);
+
+      kafka.getAllTopics().stream()
+          .map(Topic::getName)
+          .forEach(topicInfoCache::get);
+
+      final List<PostTopicNode> knownTopics = topicInfoCache.all().stream()
+          .map(ti -> {
+            final Topic topic = kafka.getTopic(ti.getTopicName());
+
+            final OptionalInt partitions = topic == null
+                ? OptionalInt.empty()
+                : OptionalInt.of(topic.getNumPartitions());
+
+            return new PostTopicNode(
+                ti.getTopicName(),
+                ti.getSchema(),
+                ti.getKeyFormat(),
+                ti.getValueFormat(),
+                partitions
+            );
+          })
+          .collect(Collectors.toList());
+
+      testCase.getPostConditions().verify(ksqlEngine.getMetaStore(), knownTopics);
+
+      listener.runComplete(knownTopics);
+
     } catch (final RuntimeException e) {
       final Optional<Matcher<Throwable>> expectedExceptionMatcher = testCase.expectedException();
       if (!expectedExceptionMatcher.isPresent()) {
@@ -396,11 +414,18 @@ public class TestExecutor implements Closeable {
   }
 
   static ServiceContext getServiceContext() {
+    final StubKafkaClientSupplier kafkaClientSupplier = new StubKafkaClientSupplier();
+    return getServiceContext(kafkaClientSupplier);
+  }
+
+  private static ServiceContext getServiceContext(
+      final StubKafkaClientSupplier kafkaClientSupplier
+  ) {
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
     return new DefaultServiceContext(
-        new StubKafkaClientSupplier(),
-        () -> new StubKafkaClientSupplier().getAdmin(Collections.emptyMap()),
+        kafkaClientSupplier,
+        () -> kafkaClientSupplier.getAdmin(Collections.emptyMap()),
         new StubKafkaTopicClient(),
         () -> schemaRegistryClient,
         () -> new DefaultConnectClient("http://localhost:8083", Optional.empty()),
@@ -484,7 +509,8 @@ public class TestExecutor implements Closeable {
         ServiceContext serviceContext,
         KsqlEngine ksqlEngine,
         KsqlConfig ksqlConfig,
-        StubKafkaService stubKafkaService
+        StubKafkaService stubKafkaService,
+        TestExecutionListener listener
     );
   }
 }

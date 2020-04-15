@@ -56,6 +56,33 @@
       "name" : "INPUT",
       "type" : "stream",
       "schema" : "ROWKEY STRING KEY, FOO MAP<STRING, INT>"
-    } ]
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "input_topic",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 1
+      } ]
+    }
   }
 }

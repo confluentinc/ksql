@@ -14,5 +14,34 @@
     "topic" : "TEST2",
     "key" : "0",
     "value" : "10.1234512345123451234"
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "TEST2",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

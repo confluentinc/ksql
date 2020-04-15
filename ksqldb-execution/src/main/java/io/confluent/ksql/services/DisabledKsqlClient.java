@@ -34,12 +34,6 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
     return new DisabledKsqlClient();
   }
 
-  private final Exception createStack;
-
-  private DisabledKsqlClient() {
-    this.createStack = new Exception();
-  }
-
   @Override
   public RestResponse<KsqlEntityList> makeKsqlRequest(
       final URI serverEndPoint,
@@ -55,8 +49,6 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
   ) {
-    System.out.println("Created in");
-    createStack.printStackTrace();
     throw new UnsupportedOperationException("KSQL client is disabled");
   }
 

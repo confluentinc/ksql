@@ -16,9 +16,6 @@
 package io.confluent.ksql.test.model;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
@@ -30,10 +27,6 @@ import org.junit.Test;
 
 public class PostConditionsNodeTest {
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("Bob"), SqlTypes.DOUBLE)
-      .valueColumn(ColumnName.of("Jon"), SqlTypes.BIGINT)
-      .build();
   private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of("AVRO"));
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of("JSON"));
   private static final OptionalInt PARTITION_COUNT = OptionalInt.of(14);
@@ -44,7 +37,7 @@ public class PostConditionsNodeTest {
     final PostTopicsNode topics = new PostTopicsNode(
         Optional.of(".*repartition"),
         Optional.of(ImmutableList.of(
-            new PostTopicNode("t1", SCHEMA, KEY_FORMAT, VALUE_FORMAT, PARTITION_COUNT)
+            new PostTopicNode("t1", KEY_FORMAT, VALUE_FORMAT, PARTITION_COUNT)
         ))
     );
 

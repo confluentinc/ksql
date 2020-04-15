@@ -22,7 +22,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
@@ -127,20 +126,17 @@ public final class PostConditionsNode {
   public static final class PostTopicNode {
 
     private final String name;
-    private final LogicalSchema schema;
     private final KeyFormat keyFormat;
     private final ValueFormat valueFormat;
     private final OptionalInt partitions;
 
     public PostTopicNode(
         @JsonProperty(value = "name", required = true) final String name,
-        @JsonProperty(value = "schema", required = true) final LogicalSchema schema,
         @JsonProperty(value = "keyFormat", required = true) final KeyFormat keyFormat,
         @JsonProperty(value = "valueFormat", required = true) final ValueFormat valueFormat,
         @JsonProperty(value = "partitions") final OptionalInt partitions
     ) {
       this.name = requireNonNull(name, "name");
-      this.schema = requireNonNull(schema, "schema");
       this.keyFormat = requireNonNull(keyFormat, "KeyFormat");
       this.valueFormat = requireNonNull(valueFormat, "valueFormat");
       this.partitions = requireNonNull(partitions, "partitions");
@@ -157,10 +153,6 @@ public final class PostConditionsNode {
 
     public String getName() {
       return name;
-    }
-
-    public LogicalSchema getSchema() {
-      return schema;
     }
 
     public KeyFormat getKeyFormat() {
@@ -185,7 +177,6 @@ public final class PostConditionsNode {
       }
       final PostTopicNode that = (PostTopicNode) o;
       return Objects.equals(name, that.name)
-          && Objects.equals(schema, that.schema)
           && Objects.equals(keyFormat, that.keyFormat)
           && Objects.equals(valueFormat, that.valueFormat)
           && Objects.equals(partitions, that.partitions);
@@ -193,14 +184,13 @@ public final class PostConditionsNode {
 
     @Override
     public int hashCode() {
-      return Objects.hash(name, schema, keyFormat, valueFormat, partitions);
+      return Objects.hash(name, keyFormat, valueFormat, partitions);
     }
 
     @Override
     public String toString() {
       return "Topic{"
           + "name='" + name + '\''
-          + ", schema=" + schema
           + ", keyFormat=" + keyFormat
           + ", valueFormat=" + valueFormat
           + ", partitions=" + partitions

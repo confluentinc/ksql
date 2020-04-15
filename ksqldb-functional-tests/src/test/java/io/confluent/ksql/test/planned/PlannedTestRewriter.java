@@ -19,6 +19,8 @@ import io.confluent.ksql.test.tools.TestCase;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tool for rewriting planned test cases
@@ -27,6 +29,9 @@ import java.util.stream.Stream;
  * the {@code plan.json} files. Then you can run {@code git checkout '*plan.json'}.
  */
 public class PlannedTestRewriter {
+
+  private static final Logger LOG = LoggerFactory.getLogger(PlannedTestRewriter.class);
+
   private final BiFunction<TestCase, TestCasePlan, TestCasePlan> rewriter;
 
   public static final BiFunction<TestCase, TestCasePlan, TestCasePlan> FULL
@@ -44,6 +49,8 @@ public class PlannedTestRewriter {
 
   private void rewriteTestCase(final TestCase testCase) {
     for (final TestCasePlan testCasePlan : TestCasePlanLoader.allForTestCase(testCase)) {
+      LOG.info("Rewriting " + testCase.getName() + " - " + testCasePlan.getSpecNode().getVersion());
+
       final TestCasePlan rewritten = rewriter.apply(testCase, testCasePlan);
       TestCasePlanWriter.writeTestCasePlan(testCase, rewritten);
     }

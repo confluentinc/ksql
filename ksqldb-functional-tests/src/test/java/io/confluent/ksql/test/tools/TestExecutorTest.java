@@ -344,7 +344,6 @@ public class TestExecutorTest {
         ImmutableList.of(
             new PostTopicNode(
                 sinkTopic.getName(),
-                SCHEMA,
                 KeyFormat.nonWindowed(FormatInfo.of("Kafka")),
                 ValueFormat.of(FormatInfo.of("Json")),
                 OptionalInt.empty()

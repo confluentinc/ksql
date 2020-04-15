@@ -130,9 +130,18 @@ class PortedEndpoints {
 
   private static void oldApiFailureHandler(final RoutingContext routingContext) {
     final int statusCode = routingContext.statusCode();
-    final KsqlErrorMessage ksqlErrorMessage = new KsqlErrorMessage(
-        toErrorCode(statusCode),
-        routingContext.failure().getMessage());
+
+    final KsqlErrorMessage ksqlErrorMessage;
+    if (routingContext.failure() instanceof KsqlApiException) {
+      final KsqlApiException ksqlApiException = (KsqlApiException) routingContext.failure();
+      ksqlErrorMessage = new KsqlErrorMessage(
+          ksqlApiException.getErrorCode(),
+          ksqlApiException.getMessage());
+    } else {
+      ksqlErrorMessage = new KsqlErrorMessage(
+          toErrorCode(statusCode),
+          routingContext.failure().getMessage());
+    }
     try {
       final byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(ksqlErrorMessage);
       routingContext.response().setStatusCode(statusCode)

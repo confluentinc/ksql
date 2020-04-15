@@ -124,6 +124,8 @@ public class ServerVerticle extends AbstractVerticle {
 
     setupAuthHandlers(router);
 
+    setUpServerStateHandlers(router);
+
     router.route(HttpMethod.POST, "/query-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
         .produces("application/json")
@@ -271,6 +273,13 @@ public class ServerVerticle extends AbstractVerticle {
     // no authorisation will be done
     basicAuthHandler.addAuthority("ksql");
     return basicAuthHandler;
+  }
+
+  private void setUpServerStateHandlers(final Router router) {
+    // This will require special handling when removing the proxy server as only endpoints
+    // defined in this repo (rather than in custom plugins) should reject requests based
+    // on server state
+    routeToNonProxiedEndpoints(router, new ServerStateHandler(server.getServerState()));
   }
 
   private static void pauseHandler(final RoutingContext routingContext) {

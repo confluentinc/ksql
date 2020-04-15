@@ -26,6 +26,7 @@ import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.security.KsqlUserContextProvider;
@@ -131,7 +132,8 @@ public class AuthTest extends ApiTest {
           public void close() {
           }
         },
-        Optional.ofNullable(securityHandlerPlugin));
+        Optional.ofNullable(securityHandlerPlugin),
+        serverState);
     server.start();
   }
 

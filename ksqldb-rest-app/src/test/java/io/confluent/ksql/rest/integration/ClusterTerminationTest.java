@@ -23,7 +23,9 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -100,6 +102,19 @@ public class ClusterTerminationTest {
         TEST_HARNESS.topicExists(PAGE_VIEW_TOPIC),
         is(true)
     );
+
+    // Then:
+    shouldReturn50303WhenTerminating();
+  }
+
+  private void shouldReturn50303WhenTerminating() {
+    // Given: TERMINATE CLUSTER has been issued
+
+    // When:
+    final KsqlErrorMessage error = RestIntegrationTestUtil.makeKsqlRequestWithError(REST_APP, "SHOW STREAMS;");
+
+    // Then:
+    assertThat(error.getErrorCode(), is(Errors.ERROR_CODE_SERVER_SHUTTING_DOWN));
   }
 
   private static void terminateCluster(final List<String> deleteTopicList) {

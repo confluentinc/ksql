@@ -211,7 +211,7 @@ public class BaseApiTest {
   }
 
   @SuppressWarnings("unchecked")
-  private void setDefaultRowGenerator() {
+  protected void setDefaultRowGenerator() {
     List<GenericRow> rows = new ArrayList<>();
     for (JsonArray ja : DEFAULT_ROWS) {
       rows.add(GenericRow.fromList(ja.getList()));

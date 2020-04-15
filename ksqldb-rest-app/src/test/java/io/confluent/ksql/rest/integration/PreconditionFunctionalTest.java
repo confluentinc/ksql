@@ -36,7 +36,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-@SuppressWarnings("unchecked")
 @Category({IntegrationTest.class})
 public class PreconditionFunctionalTest {
 

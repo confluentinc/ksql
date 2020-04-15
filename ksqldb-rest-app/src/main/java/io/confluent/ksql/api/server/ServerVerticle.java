@@ -146,31 +146,6 @@ public class ServerVerticle extends AbstractVerticle {
     return router;
   }
 
-  private void setupAuthHandlers(final Router router) {
-    final Optional<AuthHandler> authHandler = getAuthHandler(server);
-    final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
-    final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
-    
-    if (authHandler.isPresent() || authenticationPlugin.isPresent()) {
-      routeToNonProxiedEndpoints(router, ServerVerticle::pauseHandler);
-      if (authenticationPlugin.isPresent()) {
-        // Authentication plugin has precedence
-        routeToNonProxiedEndpoints(router,
-            new AuthenticationPluginHandler(server, authenticationPlugin.get()));
-      } else {
-        // Otherwise use user-configured JAAS auth handler
-        routeToNonProxiedEndpoints(router, authHandler.get());
-      }
-      // For authorization use auth provider configured via security extension (if any)
-      securityExtension.getAuthorizationProvider()
-          .ifPresent(ksqlAuthorizationProvider -> routeToNonProxiedEndpoints(router,
-              new KsqlAuthorizationProviderHandler(server.getWorkerExecutor(),
-                  ksqlAuthorizationProvider)));
-
-      routeToNonProxiedEndpoints(router, ServerVerticle::resumeHandler);
-    }
-  }
-
   private static void failureHandler(final RoutingContext routingContext) {
 
     log.error(String.format("Failed to handle request %d %s", routingContext.statusCode(),
@@ -221,7 +196,54 @@ public class ServerVerticle extends AbstractVerticle {
     log.error("Unhandled exception", t);
   }
 
-  private static Optional<AuthHandler> getAuthHandler(final Server server) {
+  private void setupAuthHandlers(final Router router) {
+    final Optional<AuthHandler> jaasAuthHandler = getJaasAuthHandler(server);
+    final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
+    final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
+    final Optional<Handler<RoutingContext>> pluginHandler =
+        authenticationPlugin.map(plugin -> new AuthenticationPluginHandler(server, plugin));
+
+    if (jaasAuthHandler.isPresent() || authenticationPlugin.isPresent()) {
+      routeToNonProxiedEndpoints(router, ServerVerticle::pauseHandler);
+
+      routeToNonProxiedEndpoints(router,
+          rc -> wrappedAuthHandler(rc, jaasAuthHandler, pluginHandler));
+
+      // For authorization use auth provider configured via security extension (if any)
+      securityExtension.getAuthorizationProvider()
+          .ifPresent(ksqlAuthorizationProvider -> routeToNonProxiedEndpoints(router,
+              new KsqlAuthorizationProviderHandler(server.getWorkerExecutor(),
+                  ksqlAuthorizationProvider)));
+
+      routeToNonProxiedEndpoints(router, ServerVerticle::resumeHandler);
+    }
+  }
+
+  private static void wrappedAuthHandler(final RoutingContext routingContext,
+      final Optional<AuthHandler> jaasAuthHandler,
+      final Optional<Handler<RoutingContext>> pluginHandler) {
+    if (jaasAuthHandler.isPresent()) {
+      // If we have a Jaas handler configured and we have Basic credentials then we should auth
+      // with that
+      final String authHeader = routingContext.request().getHeader("Authorization");
+      if (authHeader != null && authHeader.toLowerCase().startsWith("basic ")) {
+        jaasAuthHandler.get().handle(routingContext);
+        return;
+      }
+    }
+    // Fall through to authing with any authentication plugin
+    if (pluginHandler.isPresent()) {
+      pluginHandler.get().handle(routingContext);
+    } else {
+      // Fail the request as unauthorized - this will occur if no auth plugin but Jaas handler
+      // is configured, but auth header is not basic auth
+      routingContext
+          .fail(HttpStatus.SC_UNAUTHORIZED,
+              new KsqlApiException("Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION));
+    }
+  }
+
+  private static Optional<AuthHandler> getJaasAuthHandler(final Server server) {
     final String authMethod = server.getConfig()
         .getString(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG);
     switch (authMethod) {

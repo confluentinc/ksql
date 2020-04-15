@@ -100,6 +100,15 @@ public class AuthTest extends ApiTest {
     return new ApiServerConfig(origs);
   }
 
+  protected ApiServerConfig createServerConfigNoBasicAuth() {
+    ApiServerConfig config = super.createServerConfig();
+    Map<String, Object> origs = config.originals();
+    if (unauthedPaths != null) {
+      origs.put(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
+    }
+    return new ApiServerConfig(origs);
+  }
+
   @Override
   protected void createServer(ApiServerConfig serverConfig) {
     server = new Server(vertx, serverConfig, testEndpoints, false,
@@ -125,7 +134,6 @@ public class AuthTest extends ApiTest {
         Optional.ofNullable(securityHandlerPlugin));
     server.start();
   }
-
 
   @Override
   protected HttpResponse<Buffer> sendRequest(final WebClient client, final String uri,
@@ -258,25 +266,25 @@ public class AuthTest extends ApiTest {
 
   @Test
   public void shouldAllowQueryWithSecurityPlugin() throws Exception {
-    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS, super::shouldExecutePullQuery, true);
+    setupSecurityPlugin(USER_WITHOUT_ACCESS, super::shouldExecutePullQuery, true);
   }
 
   @Test
   public void shouldNotAllowQueryWithSecurityPlugin() throws Exception {
-    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
+    setupSecurityPlugin(USER_WITHOUT_ACCESS,
         () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401,
             "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION), false);
   }
 
   @Test
   public void shouldAllowInsertsWithSecurityPlugin() throws Exception {
-    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS, super::shouldInsertWithAcksStream,
+    setupSecurityPlugin(USER_WITHOUT_ACCESS, super::shouldInsertWithAcksStream,
         true);
   }
 
   @Test
   public void shouldNotAllowInsertsWithSecurityPlugin() throws Exception {
-    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
+    setupSecurityPlugin(USER_WITHOUT_ACCESS,
         () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401,
             "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION),
         false);
@@ -284,12 +292,12 @@ public class AuthTest extends ApiTest {
 
   @Test
   public void shouldAllowCloseQueryWithSecurityPlugin() throws Exception {
-    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS, super::shouldCloseQuery, true);
+    setupSecurityPlugin(USER_WITHOUT_ACCESS, super::shouldCloseQuery, true);
   }
 
   @Test
   public void shouldNotAllowCloseQueryWithSecurityPlugin() throws Exception {
-    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
+    setupSecurityPlugin(USER_WITHOUT_ACCESS,
         () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401,
             "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION),
         false);
@@ -298,16 +306,46 @@ public class AuthTest extends ApiTest {
   @Test
   public void shouldAllowQueryWithSecurityPluginRejectingIfInUnAuthedPaths() throws Exception {
     unauthedPaths = "/query-stream";
-    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
-        super::shouldExecutePullQuery, false, false);
+    setupSecurityPlugin(USER_WITHOUT_ACCESS,
+        super::shouldExecutePullQuery, false, false, false);
   }
 
   @Test
   public void shouldAllowQueryWithSecurityPluginRejectingIfInUnAuthedPathsWithWildcard()
       throws Exception {
     unauthedPaths = "/query*";
-    shouldAuthenticateWithSecurityPlugin(USER_WITHOUT_ACCESS,
-        super::shouldExecutePullQuery, false, false);
+    setupSecurityPlugin(USER_WITHOUT_ACCESS,
+        super::shouldExecutePullQuery, false, false, false);
+  }
+
+  @Test
+  public void shouldCallBasicAuthHandlerNotPluginIfBothConfigured()
+      throws Exception {
+    setupSecurityPlugin(USER_WITH_ACCESS,
+        super::shouldExecutePullQuery, false, false, true);
+  }
+
+  @Test
+  public void shouldCallSecurityPluginIfConfiguredWithBasicAuthButNotBasicCredentials()
+      throws Exception {
+    setupSecurityPlugin(USER_WITHOUT_ACCESS,
+        () -> {
+          HttpResponse<Buffer> response = sendRequestWithNonBasicCredentials(client,
+              "/query-stream", new JsonObject().put("sql", DEFAULT_PULL_QUERY).toBuffer(),
+              "BEARER quydwquywdg");
+          assertThat(response.statusCode(), is(200));
+        }, true, true, true);
+  }
+
+  @Test
+  public void shouldRejectRequestIfJaasConfiguredWIthNoSecurityPluginAndNotBasicAuth()
+      throws Exception {
+
+    HttpResponse<Buffer> response = sendRequestWithNonBasicCredentials(client,
+        "/query-stream", new JsonObject().put("sql", DEFAULT_PULL_QUERY).toBuffer(),
+        "BEARER quydwquywdg");
+    assertThat(response.statusCode(), is(401));
+
   }
 
   private void shouldFailQuery(final String username, final String password,
@@ -401,6 +439,18 @@ public class AuthTest extends ApiTest {
     return requestFuture.get();
   }
 
+  private static HttpResponse<Buffer> sendRequestWithNonBasicCredentials(
+      final WebClient client,
+      final String uri,
+      final Buffer requestBody,
+      final String authHeader
+  ) throws Exception {
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    HttpRequest<Buffer> request = client.post(uri).putHeader("Authorization", authHeader);
+    request.sendBuffer(requestBody, requestFuture);
+    return requestFuture.get();
+  }
+
   private void assertAuthorisedSecurityContext(String username) {
     assertThat(testEndpoints.getLastApiSecurityContext(), is(notNullValue()));
     assertThat(testEndpoints.getLastApiSecurityContext().getPrincipal().isPresent(), is(true));
@@ -408,14 +458,15 @@ public class AuthTest extends ApiTest {
         is(username));
   }
 
-  private void shouldAuthenticateWithSecurityPlugin(final String expectedUser,
+  private void setupSecurityPlugin(final String expectedUser,
       final ExceptionThrowingRunnable action, final boolean authenticate) throws Exception {
-    shouldAuthenticateWithSecurityPlugin(expectedUser, action, authenticate, true);
+    setupSecurityPlugin(expectedUser, action, authenticate, true, false);
   }
 
-  private void shouldAuthenticateWithSecurityPlugin(final String expectedUser,
+  private void setupSecurityPlugin(final String expectedUser,
       final ExceptionThrowingRunnable action, final boolean authenticate,
-      final boolean shouldCallHandler) throws Exception {
+      final boolean shouldCallHandler,
+      final boolean enableBasicAuth) throws Exception {
     stopServer();
     stopClient();
 
@@ -440,7 +491,9 @@ public class AuthTest extends ApiTest {
       }
     };
 
-    createServer(createServerConfig());
+    ApiServerConfig apiServerConfig =
+        enableBasicAuth ? createServerConfig() : createServerConfigNoBasicAuth();
+    createServer(apiServerConfig);
     client = createClient();
     action.run();
     assertThat(handlerCalled.get(), is(shouldCallHandler));

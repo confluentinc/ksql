@@ -18,6 +18,7 @@ package io.confluent.ksql.parser;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -83,8 +84,13 @@ public final class SchemaParser {
   }
 
   private List<TableElement> parseToTableElements(final String schema) {
-    final SqlBaseLexer lexer = new SqlBaseLexer(
-        new CaseInsensitiveStream(CharStreams.fromString("(" + schema + ")")));
+    if (schema.trim().isEmpty()) {
+      return ImmutableList.of();
+    }
+
+    final SqlBaseLexer lexer =
+        new SqlBaseLexer(new CaseInsensitiveStream(CharStreams.fromString("(" + schema + ")")));
+
     final CommonTokenStream tokStream = new CommonTokenStream(lexer);
     final SqlBaseParser parser = new SqlBaseParser(tokStream);
 

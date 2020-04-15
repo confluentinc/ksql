@@ -372,14 +372,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
       final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
       configurables.forEach(c -> c.configure(ksqlConfigWithPort));
+
       startKsql(ksqlConfigWithPort);
       final Properties metricsProperties = new Properties();
       metricsProperties.putAll(getConfiguration().getOriginals());
       if (versionCheckerAgent != null) {
         versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
       }
-
-      apiServer.setJettyPort(getJettyPort());
 
       log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
       displayWelcomeMessage();
@@ -410,6 +409,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,
         authenticationPlugin, serverState);
+    apiServer.setJettyPort(getJettyPort());
     apiServer.start();
     log.info("KSQL New API Server started");
   }

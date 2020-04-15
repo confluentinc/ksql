@@ -27,10 +27,13 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
 
   public static DefaultApiSecurityContext create(final RoutingContext routingContext) {
     final User user = routingContext.user();
-    final Principal principal =
-        user == null ? null : new ApiPrincipal(user.principal().getString("username"));
+    if (user != null && !(user instanceof ApiUser)) {
+      throw new IllegalStateException("Not an ApiUser: " + user);
+    }
+    final ApiUser apiUser = (ApiUser) user;
     final String authToken = routingContext.request().getHeader("Authorization");
-    return new DefaultApiSecurityContext(principal, authToken);
+    return new DefaultApiSecurityContext(apiUser != null ? apiUser.getPrincipal() : null,
+        authToken);
   }
 
   private DefaultApiSecurityContext(final Principal principal, final String authToken) {

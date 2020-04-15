@@ -18,10 +18,14 @@ package io.confluent.ksql.api.endpoints;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -42,17 +46,22 @@ public class KsqlServerEndpoints implements Endpoints {
   private final PullQueryExecutor pullQueryExecutor;
   private final ReservedInternalTopics reservedInternalTopics;
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
+  private final KsqlStatementsEndpoint ksqlStatementsEndpoint;
+  private final TerminateEndpoint terminateEndpoint;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final PullQueryExecutor pullQueryExecutor,
-      final KsqlSecurityContextProvider ksqlSecurityContextProvider) {
+      final KsqlSecurityContextProvider ksqlSecurityContextProvider,
+      final KsqlResource ksqlResource) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor);
     this.reservedInternalTopics = new ReservedInternalTopics(ksqlConfig);
     this.ksqlSecurityContextProvider = Objects.requireNonNull(ksqlSecurityContextProvider);
+    this.ksqlStatementsEndpoint = new KsqlStatementsEndpoint(ksqlResource);
+    this.terminateEndpoint = new TerminateEndpoint(ksqlResource);
   }
 
   @Override
@@ -80,6 +89,32 @@ public class KsqlServerEndpoints implements Endpoints {
                 ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext()),
         workerExecutor);
   }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
+      final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext) {
+    return executeOnWorker(
+        () -> ksqlStatementsEndpoint
+            .executeStatements(
+                ksqlSecurityContextProvider.provide(apiSecurityContext),
+                request),
+        workerExecutor);
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeTerminate(
+      final ClusterTerminateRequest request,
+      final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext) {
+    return executeOnWorker(
+        () -> terminateEndpoint
+            .executeTerminate(
+                ksqlSecurityContextProvider.provide(apiSecurityContext),
+                request),
+        workerExecutor);
+  }
+
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,
       final WorkerExecutor workerExecutor) {

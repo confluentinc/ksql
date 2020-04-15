@@ -16,7 +16,6 @@
 package io.confluent.ksql.api.server;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.security.KsqlSecurityExtension;
@@ -208,7 +207,7 @@ public class Server {
     return authenticationPlugin;
   }
 
-  ApiServerConfig getConfig() {
+  public ApiServerConfig getConfig() {
     return config;
   }
 

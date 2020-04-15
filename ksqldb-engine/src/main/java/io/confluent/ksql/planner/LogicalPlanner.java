@@ -46,6 +46,8 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.planner.JoinTree.Join;
+import io.confluent.ksql.planner.JoinTree.Leaf;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -431,52 +433,57 @@ public class LogicalPlanner {
   }
 
   private PlanNode buildSourceNode() {
-
-    final List<AliasedDataSource> sources = analysis.getAllDataSources();
-
     if (!analysis.isJoin()) {
-      return buildNonJoinNode(sources);
+      return buildNonJoinNode(analysis.getFrom());
     }
-
-    if (sources.size() == 1) {
-      throw new IllegalStateException("Expected more than one source. Got " + sources.size());
-    } else if (sources.size() != 2) {
-      throw new KsqlException(
-          "Invalid join criteria specified; KSQL does not support multi-way joins.");
-    }
-
-    final AliasedDataSource left = sources.get(0);
-    final AliasedDataSource right = sources.get(1);
 
     final List<JoinInfo> joinInfo = analysis.getOriginal().getJoin();
+    final JoinTree.Node tree = JoinTree.build(joinInfo);
+    if (tree instanceof JoinTree.Leaf) {
+      throw new IllegalStateException("Expected more than one source:"
+          + analysis.getAllDataSources());
+    }
 
-    final PlanNode leftSourceNode = buildSourceForJoin(
-        left,
-        "Left",
-        joinInfo.get(0).getLeftJoinExpression()
-    );
+    return buildJoin((Join) tree);
+  }
 
-    final PlanNode rightSourceNode = buildSourceForJoin(
-        right,
-        "Right",
-        joinInfo.get(0).getRightJoinExpression()
-    );
+
+  /**
+   * @param root  the root of the Join Tree
+   * @return the PlanNode representing this Join Tree
+   */
+  private PlanNode buildJoin(final Join root) {
+    final PlanNode left;
+    if (root.getLeft() instanceof JoinTree.Join) {
+      throw new KsqlException(
+          "Invalid join criteria specified; KSQL does not support multi-way joins.");
+    } else {
+      final JoinTree.Leaf leaf = (Leaf) root.getLeft();
+      left = buildSourceForJoin(
+          leaf.getSource(), "Left", root.getInfo().getLeftJoinExpression());
+    }
+
+    final PlanNode right;
+    if (root.getRight() instanceof JoinTree.Join) {
+      throw new KsqlException(
+          "Invalid join criteria specified; KSQL does not support multi-way joins.");
+    } else {
+      final JoinTree.Leaf leaf = (Leaf) root.getRight();
+      right = buildSourceForJoin(
+          leaf.getSource(), "Right", root.getInfo().getRightJoinExpression());
+    }
 
     return new JoinNode(
         new PlanNodeId("Join"),
-        joinInfo.get(0).getType(),
-        leftSourceNode,
-        rightSourceNode,
-        joinInfo.get(0).getWithinExpression()
+        root.getInfo().getType(),
+        left,
+        right,
+        root.getInfo().getWithinExpression()
     );
   }
 
-  private DataSourceNode buildNonJoinNode(final List<AliasedDataSource> sources) {
-    if (sources.size() != 1) {
-      throw new IllegalStateException("Expected only 1 source, got: " + sources.size());
-    }
 
-    final AliasedDataSource dataSource = sources.get(0);
+  private DataSourceNode buildNonJoinNode(final AliasedDataSource dataSource) {
     return new DataSourceNode(
         new PlanNodeId("KsqlTopic"),
         dataSource.getDataSource(),

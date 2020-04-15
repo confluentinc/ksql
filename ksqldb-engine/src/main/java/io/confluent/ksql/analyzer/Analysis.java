@@ -345,25 +345,32 @@ public class Analysis implements ImmutableAnalysis {
     private final Expression rightJoinExpression;
     private final JoinNode.JoinType type;
     private final Optional<WithinExpression> withinExpression;
-    private final ImmutableList<AliasedDataSource> joinedSources;
+    private final AliasedDataSource leftSource;
+    private final AliasedDataSource rightSource;
 
     JoinInfo(
-        final ImmutableList<AliasedDataSource> joinedSources,
+        final AliasedDataSource leftSource,
         final Expression leftJoinExpression,
+        final AliasedDataSource rightSource,
         final Expression rightJoinExpression,
         final JoinType type,
         final Optional<WithinExpression> withinExpression
 
     ) {
-      this.joinedSources = requireNonNull(joinedSources, "joinedSources");
+      this.leftSource = requireNonNull(leftSource, "leftSource");
+      this.rightSource = requireNonNull(rightSource, "rightSource");
       this.leftJoinExpression = requireNonNull(leftJoinExpression, "leftJoinExpression");
       this.rightJoinExpression = requireNonNull(rightJoinExpression, "rightJoinExpression");
       this.type = requireNonNull(type, "type");
       this.withinExpression = requireNonNull(withinExpression, "withinExpression");
     }
 
-    public ImmutableList<AliasedDataSource> getJoinedSources() {
-      return joinedSources;
+    public AliasedDataSource getLeftSource() {
+      return leftSource;
+    }
+
+    public AliasedDataSource getRightSource() {
+      return rightSource;
     }
 
     public Expression getLeftJoinExpression() {
@@ -380,6 +387,17 @@ public class Analysis implements ImmutableAnalysis {
 
     public Optional<WithinExpression> getWithinExpression() {
       return withinExpression;
+    }
+
+    public JoinInfo flip() {
+      return new JoinInfo(
+          rightSource,
+          rightJoinExpression,
+          leftSource,
+          leftJoinExpression,
+          type,
+          withinExpression
+      );
     }
   }
 }

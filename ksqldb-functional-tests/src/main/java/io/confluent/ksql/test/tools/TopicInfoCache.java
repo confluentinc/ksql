@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -37,6 +38,7 @@ import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.List;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
@@ -76,6 +78,10 @@ public class TopicInfoCache {
 
   public TopicInfo get(final String topicName) {
     return cache.getUnchecked(topicName);
+  }
+
+  public List<TopicInfo> all() {
+    return ImmutableList.copyOf(cache.asMap().values());
   }
 
   public void clear() {
@@ -157,6 +163,22 @@ public class TopicInfoCache {
       this.changeLogWindowSize = requireNonNull(changeLogWindowSize, "changeLogWindowSize");
     }
 
+    public String getTopicName() {
+      return topicName;
+    }
+
+    public LogicalSchema getSchema() {
+      return schema;
+    }
+
+    public KeyFormat getKeyFormat() {
+      return keyFormat;
+    }
+
+    public ValueFormat getValueFormat() {
+      return valueFormat;
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Serializer<Object> getKeySerializer() {
       final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
@@ -236,7 +258,7 @@ public class TopicInfoCache {
         return record.withKey(coerced);
       } catch (final Exception e) {
         throw new AssertionError(
-            "Topic '" + record.getTopic().getName() + "', message " + msgIndex
+            "Topic '" + record.getTopicName() + "', message " + msgIndex
                 + ": Invalid test-case: could not coerce key in test case to required type. "
                 + e.getMessage(),
             e);
@@ -249,24 +271,19 @@ public class TopicInfoCache {
           .get(0)
           .type();
 
-      return key -> {
-        if (key == null) {
-          return null;
-        }
-
-        return DefaultSqlValueCoercer.INSTANCE
-            .coerce(key, keyType)
-            .orElseThrow(() -> new AssertionError("Invalid key value for topic " + topicName + "."
-                + System.lineSeparator()
-                + "Expected KeyType: " + keyType
-                + System.lineSeparator()
-                + "Actual KeyType: " + SchemaConverters.javaToSqlConverter()
-                .toSqlType(key.getClass())
-                + ", key: " + key + "."
-                + System.lineSeparator()
-                + "This is likely caused by the key type in the test-case not matching the schema."
-            ));
-      };
+      return key -> DefaultSqlValueCoercer.INSTANCE
+          .coerce(key, keyType)
+          .orElseThrow(() -> new AssertionError("Invalid key value for topic " + topicName + "."
+              + System.lineSeparator()
+              + "Expected KeyType: " + keyType
+              + System.lineSeparator()
+              + "Actual KeyType: " + SchemaConverters.javaToSqlConverter()
+              .toSqlType(key.getClass())
+              + ", key: " + key + "."
+              + System.lineSeparator()
+              + "This is likely caused by the key type in the test-case not matching the schema."
+          ))
+          .orElse(null);
     }
   }
 }

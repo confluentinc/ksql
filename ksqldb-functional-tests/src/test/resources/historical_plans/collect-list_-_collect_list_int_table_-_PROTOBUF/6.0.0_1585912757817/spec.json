@@ -1,0 +1,133 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585912757817,
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE INT> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE INT> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE INT, KSQL_AGG_VARIABLE_0 ARRAY<INT>> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, COLLECTED ARRAY<INT>> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : 0
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : 100
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "VALUE" : 500
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "VALUE" : 100
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "COLLECTED" : [ 0 ]
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "COLLECTED" : [ ]
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "COLLECTED" : [ 100 ]
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "COLLECTED" : [ 500 ]
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "COLLECTED" : [ ]
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "COLLECTED" : [ 100 ]
+    }
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "S2",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        }
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        }
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
+}

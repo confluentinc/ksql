@@ -33,6 +33,8 @@ public interface KsqlPlan {
 
   String getStatementText();
 
+  KsqlPlan withoutQuery();
+
   static KsqlPlan ddlPlanCurrent(final String statementText, final DdlCommand ddlCommand) {
     return new KsqlPlanV1(statementText, Optional.of(ddlCommand), Optional.empty());
   }

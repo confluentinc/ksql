@@ -85,6 +85,24 @@
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Duplicate field names found in STRUCT"
       }
+    },
+    {
+      "name": "cast null values",
+      "statements": [
+        "CREATE STREAM INPUT (ignored STRING) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT STRUCT(F1 := CAST(NULL AS INT)) AS s FROM INPUT;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {}}
+      ],
+      "outputs": [
+        { "topic": "OUTPUT", "value": {"S": {"F1": null}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, S STRUCT<F1 INT>"}
+        ]
+      }
     }
   ]
 }

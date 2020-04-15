@@ -18,7 +18,10 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,10 +32,10 @@ public class Queries extends KsqlEntity {
   @JsonCreator
   public Queries(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("queries") final List<RunningQuery> queries
+      @JsonProperty("queries") final Collection<RunningQuery> queries
   ) {
     super(statementText);
-    this.queries = queries;
+    this.queries = ImmutableList.copyOf(queries);
   }
 
   public List<RunningQuery> getQueries() {

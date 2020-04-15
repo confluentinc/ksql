@@ -15,12 +15,17 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_PARAM;
+
 import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import java.util.Objects;
 import java.util.Optional;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,47 +39,61 @@ public final class ServerUtils {
   private ServerUtils() {
   }
 
-  public static void handleError(final HttpServerResponse response, final int statusCode,
-      final int errorCode, final String errMsg) {
-    final ErrorResponse errorResponse = new ErrorResponse(errorCode, errMsg);
-    final Buffer buffer = errorResponse.toBuffer();
-    response.setStatusCode(statusCode).end(buffer);
-  }
-
-  public static void unhandledExceptionHandler(final Throwable t) {
-    log.error("Unhandled exception", t);
-  }
-
   public static <T> Optional<T> deserialiseObject(final Buffer buffer,
-      final HttpServerResponse response,
+      final RoutingContext routingContext,
       final Class<T> clazz) {
-    return PojoCodec.deserialiseObject(buffer, new HttpResponseErrorHandler(response), clazz);
+    return PojoCodec.deserialiseObject(buffer, new HttpResponseErrorHandler(routingContext), clazz);
+  }
+
+  /*
+  Converts a list of patterns that can include asterisk (E.g. "/ws/*,/foo,/bar/wibble")
+  wildcard to a regex pattern
+  */
+  public static String convertCommaSeparatedWilcardsToRegex(final String csv) {
+    final String[] parts = csv.split(",");
+    final StringBuilder out = new StringBuilder();
+    for (int i = 0; i < parts.length; i++) {
+      String part = parts[i].trim();
+      part = part.replace(".", "\\.")
+          .replace("+", "\\+")
+          .replace("?", "\\?")
+          .replace("-", "\\-")
+          .replace("*", ".*");
+      out.append(part);
+      if (i != parts.length - 1) {
+        out.append('|');
+      }
+    }
+    return out.toString();
   }
 
   private static class HttpResponseErrorHandler implements PojoDeserializerErrorHandler {
 
-    private final HttpServerResponse response;
+    private final RoutingContext routingContext;
 
-    HttpResponseErrorHandler(final HttpServerResponse response) {
-      this.response = response;
+    HttpResponseErrorHandler(final RoutingContext routingContext) {
+      this.routingContext = Objects.requireNonNull(routingContext);
     }
 
     @Override
     public void onMissingParam(final String paramName) {
-      handleError(response, 400, ErrorCodes.ERROR_CODE_MISSING_PARAM,
-          "No " + paramName + " in arguments");
+      routingContext
+          .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("No " + paramName + " in arguments",
+              ERROR_CODE_MISSING_PARAM));
     }
 
     @Override
     public void onExtraParam(final String paramName) {
-      handleError(response, 400, ErrorCodes.ERROR_CODE_UNKNOWN_PARAM,
-          "Unknown arg " + paramName);
+      routingContext
+          .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("Unknown arg " + paramName,
+              ERROR_CODE_UNKNOWN_PARAM));
     }
 
     @Override
     public void onInvalidJson() {
-      handleError(response, 400, ErrorCodes.ERROR_CODE_MALFORMED_REQUEST,
-          "Malformed JSON in request");
+      routingContext
+          .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("Malformed JSON in request",
+              ERROR_CODE_MALFORMED_REQUEST));
     }
   }
 

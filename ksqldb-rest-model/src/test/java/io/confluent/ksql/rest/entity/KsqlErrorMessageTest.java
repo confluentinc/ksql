@@ -19,14 +19,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import java.io.IOException;
 import java.util.Collections;
 import org.junit.Test;
 
 public class KsqlErrorMessageTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private static final KsqlErrorMessage MESSAGE =
       new KsqlErrorMessage(40301, "foo", Collections.emptyList());

@@ -68,6 +68,82 @@
         "format" : "KAFKA",
         "windowType" : "SESSION"
       }
-    } ]
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` INTEGER KEY, `S1_ID` BIGINT, `S2_ID` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "SESSION"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+        "schema" : "`ROWKEY` INTEGER KEY, `S1_ID` BIGINT, `S2_ID` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "SESSION"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+        "schema" : "`ROWKEY` INTEGER KEY, `S1_ID` BIGINT, `S2_ID` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "SESSION"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }, {
+        "name" : "left_topic",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "SESSION"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "right_topic",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "SESSION"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
   }
 }

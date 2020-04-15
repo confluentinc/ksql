@@ -18,10 +18,13 @@ package io.confluent.ksql.api.perf;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.reactive.BufferedPublisher;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
@@ -166,6 +169,18 @@ public class InsertsStreamRunner extends BasePerfRunner {
       return CompletableFuture.completedFuture(new InsertsSubscriber(context, acksSubscriber));
     }
 
+    @Override
+    public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
+        final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeTerminate(
+        final ClusterTerminateRequest request,
+        final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
   }
 
   private class InsertsSubscriber extends BaseSubscriber<JsonObject> implements

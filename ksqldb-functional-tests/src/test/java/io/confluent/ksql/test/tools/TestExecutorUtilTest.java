@@ -22,7 +22,6 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
@@ -38,6 +37,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -49,9 +49,12 @@ public class TestExecutorUtilTest {
   private TestCase testCase;
   private StubKafkaService stubKafkaService;
 
+  @Mock
+  private TestExecutionListener listener;
+
   @Before
   public void setUp() throws IOException {
-    final QttTestFile qttTestFile = JsonMapper.INSTANCE.mapper
+    final QttTestFile qttTestFile = TestJsonMapper.INSTANCE.get()
         .readValue(new File("src/test/resources/testing_tool_tests.json"), QttTestFile.class);
     final TestCaseNode testCaseNode = qttTestFile.tests.get(0);
     testCase = new TestCaseBuilder().buildTests(testCaseNode,
@@ -73,9 +76,9 @@ public class TestExecutorUtilTest {
   @Test
   public void shouldPlanTestCase() {
     // Given:
-    final Topic sourceTopic = new Topic("test_topic", 1, 1, Optional.empty());
+    final Topic sourceTopic = new Topic("test_topic", Optional.empty());
 
-    stubKafkaService.createTopic(sourceTopic);
+    stubKafkaService.ensureTopic(sourceTopic);
 
     // When:
     final Iterable<ConfiguredKsqlPlan> plans = TestExecutorUtil.planTestCase(
@@ -106,23 +109,20 @@ public class TestExecutorUtilTest {
   @Test
   public void shouldBuildStreamsTopologyTestDrivers() {
     // Given:
-    final Topic sourceTopic = new Topic(
-        "test_topic",
-        1,
-        1,
-        Optional.empty()
-    );
+    final Topic sourceTopic = new Topic("test_topic", Optional.empty());
 
-    stubKafkaService.createTopic(sourceTopic);
+    stubKafkaService.ensureTopic(sourceTopic);
 
     // When:
-    final List<TopologyTestDriverContainer> topologyTestDriverContainerList = TestExecutorUtil.buildStreamsTopologyTestDrivers(
-        testCase,
-        serviceContext,
-        ksqlEngine,
-        ksqlConfig,
-        stubKafkaService
-    );
+    final List<TopologyTestDriverContainer> topologyTestDriverContainerList =
+        TestExecutorUtil.buildStreamsTopologyTestDrivers(
+            testCase,
+            serviceContext,
+            ksqlEngine,
+            ksqlConfig,
+            stubKafkaService,
+            listener
+        );
 
     // Then:
     assertThat(topologyTestDriverContainerList.size(), equalTo(1));

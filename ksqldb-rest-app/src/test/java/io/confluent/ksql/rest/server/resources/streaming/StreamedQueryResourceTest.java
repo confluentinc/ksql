@@ -44,7 +44,6 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -52,6 +51,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -419,7 +419,7 @@ public class StreamedQueryResourceTest {
     queryWriterThread.start();
 
     final Scanner responseScanner = new Scanner(responseInputStream, "UTF-8");
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper objectMapper = ApiJsonMapper.INSTANCE.get();
     for (int i = 0; i != NUM_ROWS; i++) {
       if (!responseScanner.hasNextLine()) {
         throw new Exception("Response input stream failed to have expected line available");

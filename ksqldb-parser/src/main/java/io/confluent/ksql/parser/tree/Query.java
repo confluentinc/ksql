@@ -34,7 +34,7 @@ public class Query extends Statement {
   private final Optional<WindowExpression> window;
   private final Optional<Expression> where;
   private final Optional<GroupBy> groupBy;
-  private final Optional<Expression> partitionBy;
+  private final Optional<PartitionBy> partitionBy;
   private final Optional<Expression> having;
   private final ResultMaterialization resultMaterialization;
   private final boolean pullQuery;
@@ -49,7 +49,7 @@ public class Query extends Statement {
       final Optional<WindowExpression> window,
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
-      final Optional<Expression> partitionBy,
+      final Optional<PartitionBy> partitionBy,
       final Optional<Expression> having,
       final ResultMaterialization resultMaterialization,
       final boolean pullQuery,
@@ -92,7 +92,7 @@ public class Query extends Statement {
     return groupBy;
   }
 
-  public Optional<Expression> getPartitionBy() {
+  public Optional<PartitionBy> getPartitionBy() {
     return partitionBy;
   }
 

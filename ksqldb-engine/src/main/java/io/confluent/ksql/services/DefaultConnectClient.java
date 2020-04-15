@@ -22,7 +22,6 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.net.URI;
@@ -56,7 +55,8 @@ import org.slf4j.LoggerFactory;
 public class DefaultConnectClient implements ConnectClient {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultConnectClient.class);
-  private static final ObjectMapper MAPPER = JsonMapper.INSTANCE.mapper;
+
+  private static final ObjectMapper MAPPER = ConnectJsonMapper.INSTANCE.get();
 
   private static final String CONNECTORS = "/connectors";
   private static final String STATUS = "/status";

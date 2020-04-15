@@ -26,8 +26,8 @@
       "name": "sum int left join of table",
       "comment": "from https://github.com/confluentinc/ksql/issues/2490",
       "statements": [
-        "CREATE TABLE t1 (ROWKEY BIGINT KEY, ID bigint, TOTAL integer) WITH (kafka_topic='T1', value_format='AVRO', key='ID');",
-        "CREATE TABLE t2 (ROWKEY BIGINT KEY, ID bigint, TOTAL integer) WITH (kafka_topic='T2', value_format='AVRO', key='ID');",
+        "CREATE TABLE t1 (ROWKEY BIGINT PRIMARY KEY, ID bigint, TOTAL integer) WITH (kafka_topic='T1', value_format='AVRO', key='ID');",
+        "CREATE TABLE t2 (ROWKEY BIGINT PRIMARY KEY, ID bigint, TOTAL integer) WITH (kafka_topic='T2', value_format='AVRO', key='ID');",
         "CREATE TABLE OUTPUT AS SELECT t1.id as ID, SUM(t2.total) as SUM FROM T1 LEFT JOIN T2 ON (t1.id = t2.id) GROUP BY t1.id;"
       ],
       "inputs": [

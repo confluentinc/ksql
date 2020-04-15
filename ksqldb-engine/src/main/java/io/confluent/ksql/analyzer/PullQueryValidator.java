@@ -83,7 +83,7 @@ public class PullQueryValidator implements QueryValidator {
           "Pull queries don't support WINDOW clauses."
       ),
       Rule.of(
-          analysis -> analysis.getGroupByExpressions().isEmpty(),
+          analysis -> !analysis.getGroupBy().isPresent(),
           "Pull queries don't support GROUP BY clauses."
       ),
       Rule.of(

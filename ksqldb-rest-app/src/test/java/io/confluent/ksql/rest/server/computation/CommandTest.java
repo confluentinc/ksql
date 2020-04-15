@@ -20,7 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.execution.json.PlanJsonMapper;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -35,7 +35,7 @@ public class CommandTest {
         "\"streamsProperties\": {\"foo\": \"bar\"}, " +
         "\"originalProperties\": {\"biz\": \"baz\"} " +
         "}";
-    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper mapper = PlanJsonMapper.INSTANCE.get();
     final Command command = mapper.readValue(commandStr, Command.class);
     assertThat(command.getStatement(), equalTo("test statement;"));
     final Map<String, Object> expecteOverwriteProperties
@@ -56,7 +56,7 @@ public class CommandTest {
         "test statement;",
         Collections.singletonMap("foo", "bar"), Collections.singletonMap("biz", "baz"),
         Optional.empty());
-    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper mapper = PlanJsonMapper.INSTANCE.get();
     final String serialized = mapper.writeValueAsString(command);
     grep(serialized, ".*\"streamsProperties\" *: *\\{ *\"foo\" *: *\"bar\" *\\}.*");
     grep(serialized, ".*\"statement\" *: *\"test statement;\".*");

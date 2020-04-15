@@ -51,11 +51,6 @@ public final class SqlDecimal extends SqlType {
   }
 
   @Override
-  public boolean supportsCast() {
-    return true;
-  }
-
-  @Override
   public void validateValue(final Object value) {
     if (value == null) {
       return;

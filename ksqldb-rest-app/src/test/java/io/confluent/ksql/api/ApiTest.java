@@ -605,7 +605,7 @@ public class ApiTest extends BaseApiTest {
     validateInsertStreamError(ERROR_CODE_MALFORMED_REQUEST, "Invalid JSON in inserts stream",
         insertsResponse.error, (long) rows.size() - 1);
 
-    assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
   }
 
   @Test

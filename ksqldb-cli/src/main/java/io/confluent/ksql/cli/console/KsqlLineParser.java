@@ -47,6 +47,10 @@ final class KsqlLineParser implements Parser {
       return parsed;
     }
 
+    if (UnclosedQuoteChecker.isUnclosedQuote(line)) {
+      throw new EOFError(-1, -1, "Missing end quote", "end quote char");
+    }
+
     final String bare = CommentStripper.strip(parsed.line());
     if (bare.isEmpty()) {
       return parsed;

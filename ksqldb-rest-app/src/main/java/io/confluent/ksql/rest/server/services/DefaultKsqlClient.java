@@ -32,6 +32,7 @@ import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.http.HttpClientOptions;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,11 +46,11 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
 
-  DefaultKsqlClient(final Optional<String> authHeader) {
+  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps) {
     this(
         authHeader,
         new KsqlClient(
-            ImmutableMap.of(),
+            toClientProps(clientProps),
             Optional.empty(),
             new LocalProperties(ImmutableMap.of()),
             createClientOptions()
@@ -69,12 +70,13 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @Override
   public RestResponse<KsqlEntityList> makeKsqlRequest(
       final URI serverEndPoint,
-      final String sql
-  ) {
+      final String sql,
+      final Map<String, ?> requestProperties) {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    return getTarget(target, authHeader).postKsqlRequest(sql, Optional.empty());
+    return getTarget(target, authHeader)
+        .postKsqlRequest(sql, requestProperties, Optional.empty());
   }
 
   @Override
@@ -153,5 +155,14 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private static HttpClientOptions createClientOptions() {
     return new HttpClientOptions().setMaxPoolSize(100);
   }
+
+  private static Map<String, String> toClientProps(final Map<String, Object> config) {
+    final Map<String, String> clientProps = new HashMap<>();
+    for (Map.Entry<String, Object> entry : config.entrySet()) {
+      clientProps.put(entry.getKey(), entry.getValue().toString());
+    }
+    return clientProps;
+  }
+
 
 }

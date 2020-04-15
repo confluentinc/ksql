@@ -88,6 +88,33 @@
       "name" : "OUTPUT",
       "type" : "stream",
       "schema" : "ROWKEY STRING KEY, DEC DECIMAL(6,4)"
-    } ]
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
   }
 }

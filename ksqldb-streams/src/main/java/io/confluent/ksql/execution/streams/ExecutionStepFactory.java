@@ -239,17 +239,22 @@ public final class ExecutionStepFactory {
       final ExecutionStep<? extends KStreamHolder<?>> source,
       final Expression fieldName
   ) {
-    final QueryContext queryContext = stacker.getQueryContext();
-    return new StreamSelectKeyV1(new ExecutionStepPropertiesV1(queryContext), source, fieldName);
+    final ExecutionStepPropertiesV1 props =
+        new ExecutionStepPropertiesV1(stacker.getQueryContext());
+
+    return new StreamSelectKeyV1(props, source, fieldName);
   }
 
   public static StreamSelectKey streamSelectKey(
       final QueryContext.Stacker stacker,
       final ExecutionStep<? extends KStreamHolder<?>> source,
-      final Expression fieldName
+      final Expression fieldName,
+      final Optional<ColumnName> alias
   ) {
-    final QueryContext queryContext = stacker.getQueryContext();
-    return new StreamSelectKey(new ExecutionStepPropertiesV1(queryContext), source, fieldName);
+    final ExecutionStepPropertiesV1 props =
+        new ExecutionStepPropertiesV1(stacker.getQueryContext());
+
+    return new StreamSelectKey(props, source, fieldName, alias);
   }
 
   public static <K> TableSink<K> tableSink(
@@ -349,17 +354,19 @@ public final class ExecutionStepFactory {
   }
 
   public static <K> StreamGroupBy<K> streamGroupBy(
-      final QueryContext.Stacker stacker,
+      final Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> sourceStep,
       final Formats format,
-      final List<Expression> groupingExpressions
+      final List<Expression> groupingExpressions,
+      final Optional<ColumnName> alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamGroupBy<>(
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         format,
-        groupingExpressions
+        groupingExpressions,
+        alias
     );
   }
 
@@ -393,14 +400,16 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> sourceStep,
       final Formats format,
-      final List<Expression> groupingExpressions
+      final List<Expression> groupingExpressions,
+      final Optional<ColumnName> alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableGroupBy<>(
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         format,
-        groupingExpressions
+        groupingExpressions,
+        alias
     );
   }
 }

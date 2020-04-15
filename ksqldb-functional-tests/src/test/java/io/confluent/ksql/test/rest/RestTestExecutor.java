@@ -29,7 +29,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -41,6 +40,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
+import io.confluent.ksql.test.tools.TestJsonMapper;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopicInfoCache;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
@@ -183,10 +183,10 @@ public class RestTestExecutor implements Closeable {
     });
   }
 
-  private void produceInputs(final Map<Topic, List<Record>> inputs) {
-    inputs.forEach((topic, records) -> {
+  private void produceInputs(final Map<String, List<Record>> inputs) {
+    inputs.forEach((topicName, records) -> {
 
-      final TopicInfo topicInfo = topicInfoCache.get(topic.getName());
+      final TopicInfo topicInfo = topicInfoCache.get(topicName);
 
       try (KafkaProducer<Object, Object> producer = new KafkaProducer<>(
           kafkaCluster.producerConfig(),
@@ -199,7 +199,7 @@ public class RestTestExecutor implements Closeable {
           final Record coerced = topicInfo.coerceRecordKey(record, idx);
 
           producer.send(new ProducerRecord<>(
-              topic.getName(),
+              topicName,
               null,
               coerced.timestamp().orElse(0L),
               coerced.key(),
@@ -207,7 +207,7 @@ public class RestTestExecutor implements Closeable {
           ));
         }
       } catch (final Exception e) {
-        throw new RuntimeException("Failed to send record to " + topic.getName(), e);
+        throw new RuntimeException("Failed to send record to " + topicName, e);
       }
     });
   }
@@ -293,13 +293,13 @@ public class RestTestExecutor implements Closeable {
   }
 
   private void verifyOutput(final RestTestCase testCase) {
-    testCase.getOutputsByTopic().forEach((topic, records) -> {
+    testCase.getOutputsByTopic().forEach((topicName, records) -> {
 
-      final TopicInfo topicInfo = topicInfoCache.get(topic.getName());
+      final TopicInfo topicInfo = topicInfoCache.get(topicName);
 
       final List<? extends ConsumerRecord<?, ?>> received = kafkaCluster
           .verifyAvailableRecords(
-              topic.getName(),
+              topicName,
               records.size(),
               topicInfo.getKeyDeserializer(),
               topicInfo.getValueDeserializer()
@@ -444,8 +444,8 @@ public class RestTestExecutor implements Closeable {
 
   private static <T> T asJson(final Object response, final TypeReference<T> type) {
     try {
-      final String text = JsonMapper.INSTANCE.mapper.writeValueAsString(response);
-      return JsonMapper.INSTANCE.mapper.readValue(text, type);
+      final String text = TestJsonMapper.INSTANCE.get().writeValueAsString(response);
+      return TestJsonMapper.INSTANCE.get().readValue(text, type);
     } catch (final Exception e) {
       throw new AssertionError("Failed to serialize response to JSON: " + response);
     }

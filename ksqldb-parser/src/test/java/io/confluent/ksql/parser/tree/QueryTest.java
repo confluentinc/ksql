@@ -51,14 +51,15 @@ public class QueryTest {
   private static final Optional<GroupBy> SOME_GROUP_BY = Optional.of(
       mock(GroupBy.class)
   );
-  private static final Optional<Expression> SOME_PARTITION_BY = Optional.of(
-      mock(Expression.class)
+  private static final Optional<PartitionBy> SOME_PARTITION_BY = Optional.of(
+      mock(PartitionBy.class)
   );
   private static final Optional<Expression> SOME_HAVING = Optional.of(
       mock(Expression.class)
   );
   private static final OptionalInt SOME_LIMIT = OptionalInt.of(1);
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()

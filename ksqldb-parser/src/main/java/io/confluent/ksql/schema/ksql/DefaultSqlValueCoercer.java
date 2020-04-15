@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.schema.ksql;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -25,6 +24,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,28 +37,33 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
   INSTANCE;
 
-  private static final Map<SqlBaseType, BiFunction<Number, SqlType, Optional<Number>>> UPCASTER =
-      ImmutableMap.<SqlBaseType, BiFunction<Number, SqlType, Optional<Number>>>builder()
-          .put(SqlBaseType.INTEGER, (num, type) -> Optional.of(num.intValue()))
-          .put(SqlBaseType.BIGINT, (num, type) -> Optional.of(num.longValue()))
-          .put(SqlBaseType.DOUBLE, (num, type) -> Optional.of(num.doubleValue()))
+  private static final Map<SqlBaseType, BiFunction<Number, SqlType, Result>> UPCASTER =
+      ImmutableMap.<SqlBaseType, BiFunction<Number, SqlType, Result>>builder()
+          .put(SqlBaseType.INTEGER, (num, type) -> Result.of(num.intValue()))
+          .put(SqlBaseType.BIGINT, (num, type) -> Result.of(num.longValue()))
+          .put(SqlBaseType.DOUBLE, (num, type) -> Result.of(num.doubleValue()))
           .put(SqlBaseType.DECIMAL, (num, type) -> {
             try {
-              return Optional.ofNullable(
+              return Result.of(
                   DecimalUtil.ensureFit(
                       new BigDecimal(String.format("%s", num)),
                       (SqlDecimal) type));
             } catch (final Exception e) {
-              return Optional.empty();
+              return Result.failure();
             }
           }).build();
 
   @Override
-  public Optional<?> coerce(final Object value, final SqlType targetType) {
+  public Result coerce(final Object value, final SqlType targetType) {
     return doCoerce(value, targetType);
   }
 
-  private static Optional<?> doCoerce(final Object value, final SqlType targetType) {
+  private static Result doCoerce(final Object value, final SqlType targetType) {
+    if (value == null) {
+      // NULL can be cast to any type:
+      return Result.nullResult();
+    }
+
     switch (targetType.baseType()) {
       case ARRAY:
         return coerceArray(value, (SqlArray) targetType);
@@ -67,26 +72,29 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
       case STRUCT:
         return coerceStruct(value, (SqlStruct) targetType);
       default:
-        break;
+        return coerceOther(value, targetType);
     }
+  }
 
+  private static Result coerceOther(final Object value, final SqlType targetType) {
     final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
         .toSqlType(value.getClass());
 
     if (valueSqlType.equals(targetType.baseType())) {
-      return Optional.of(value);
+      return Result.of(value);
     }
 
     if (!(value instanceof Number) || !valueSqlType.canImplicitlyCast(targetType.baseType())) {
-      return Optional.empty();
+      return Result.failure();
     }
 
-    return UPCASTER.get(targetType.baseType()).apply((Number) value, targetType);
+    return UPCASTER.get(targetType.baseType())
+        .apply((Number) value, targetType);
   }
 
-  private static Optional<?> coerceStruct(final Object value, final SqlStruct targetType) {
+  private static Result coerceStruct(final Object value, final SqlStruct targetType) {
     if (!(value instanceof Struct)) {
-      return Optional.empty();
+      return Result.failure();
     }
 
     final Struct struct = (Struct) value;
@@ -101,53 +109,61 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
       if (!sqlField.isPresent()) {
         // if there was a field in the struct that wasn't in the schema
         // we cannot coerce
-        return Optional.empty();
-      } else if (struct.schema().field(field.name()) == null) {
+        return Result.failure();
+      }
+
+      if (struct.schema().field(field.name()) == null) {
         // if we cannot find the field in the struct, we can ignore it
         continue;
       }
 
-      final Optional<?> val = doCoerce(struct.get(field), sqlField.get().type());
-      val.ifPresent(v -> coerced.put(field.name(), v));
+      final Result val = doCoerce(struct.get(field), sqlField.get().type());
+      if (val.failed()) {
+        return Result.failure();
+      }
+
+      val.value().ifPresent(v -> coerced.put(field.name(), v));
     }
 
-    return Optional.of(coerced);
+    return Result.of(coerced);
   }
 
-  private static Optional<?> coerceArray(final Object value, final SqlArray targetType) {
+  private static Result coerceArray(final Object value, final SqlArray targetType) {
     if (!(value instanceof List<?>)) {
-      return Optional.empty();
+      return Result.failure();
     }
 
     final List<?> list = (List<?>) value;
-    final ImmutableList.Builder<Object> coerced = ImmutableList.builder();
+    final List<Object> coerced = new ArrayList<>(list.size());
     for (final Object el : list) {
-      final Optional<?> coercedEl = doCoerce(el, targetType.getItemType());
-      if (!coercedEl.isPresent()) {
-        return Optional.empty();
+      final Result result = doCoerce(el, targetType.getItemType());
+      if (result.failed()) {
+        return Result.failure();
       }
-      coerced.add(coercedEl.get());
+
+      coerced.add(result.value().orElse(null));
     }
 
-    return Optional.of(coerced.build());
+    return Result.of(coerced);
   }
 
-  private static Optional<?> coerceMap(final Object value, final SqlMap targetType) {
+  private static Result coerceMap(final Object value, final SqlMap targetType) {
     if (!(value instanceof Map<?, ?>)) {
-      return Optional.empty();
+      return Result.failure();
     }
 
     final Map<?, ?> map = (Map<?, ?>) value;
     final HashMap<Object, Object> coerced = new HashMap<>();
-    for (final Map.Entry entry : map.entrySet()) {
-      final Optional<?> coercedKey = doCoerce(entry.getKey(), SqlTypes.STRING);
-      final Optional<?> coercedValue = doCoerce(entry.getValue(), targetType.getValueType());
-      if (!coercedKey.isPresent() || !coercedValue.isPresent()) {
-        return Optional.empty();
+    for (final Map.Entry<?, ?> entry : map.entrySet()) {
+      final Result coercedKey = doCoerce(entry.getKey(), SqlTypes.STRING);
+      final Result coercedValue = doCoerce(entry.getValue(), targetType.getValueType());
+      if (coercedKey.failed() || coercedValue.failed()) {
+        return Result.failure();
       }
-      coerced.put(coercedKey.get(), coercedValue.get());
+
+      coerced.put(coercedKey.value().orElse(null), coercedValue.value().orElse(null));
     }
 
-    return Optional.of(coerced);
+    return Result.of(coerced);
   }
 }

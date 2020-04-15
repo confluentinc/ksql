@@ -18,6 +18,7 @@ package io.confluent.ksql.test.tools;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import java.util.Objects;
 import java.util.Optional;
 
 public class Topic {
@@ -26,6 +27,13 @@ public class Topic {
   private final int numPartitions;
   private final short replicas;
   private final Optional<ParsedSchema> schema;
+
+  public Topic(
+      final String name,
+      final Optional<ParsedSchema> schema
+  ) {
+    this(name, 4, 1, schema);
+  }
 
   public Topic(
       final String name,
@@ -53,5 +61,26 @@ public class Topic {
 
   public short getReplicas() {
     return replicas;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    final Topic topic = (Topic) o;
+    return numPartitions == topic.numPartitions
+        && replicas == topic.replicas
+        && Objects.equals(name, topic.name)
+        && Objects.equals(schema, topic.schema);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, numPartitions, replicas, schema);
   }
 }

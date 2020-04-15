@@ -15,16 +15,19 @@
 
 package io.confluent.ksql.test.model;
 
-import static io.confluent.ksql.test.loader.JsonTestLoader.OBJECT_MAPPER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.test.tools.TestJsonMapper;
 
 /**
  * Helper for proving model classes (de)serialize properly
  */
 public final class ModelTester {
+
+  private static final ObjectMapper OBJECT_MAPPER = TestJsonMapper.INSTANCE.get();
 
   private ModelTester() {
   }

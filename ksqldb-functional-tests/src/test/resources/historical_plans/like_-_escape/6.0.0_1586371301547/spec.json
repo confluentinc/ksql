@@ -1,0 +1,32 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1586371301547,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID INT, VAL VARCHAR, PATTERN VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID INT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "id" : 1,
+      "val" : "%",
+      "pattern" : "!%"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "id" : -1,
+      "val" : "x",
+      "pattern" : "!%"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "ID" : 1
+    }
+  } ]
+}

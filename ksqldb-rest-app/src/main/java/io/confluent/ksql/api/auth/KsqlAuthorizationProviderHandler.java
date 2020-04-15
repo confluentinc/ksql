@@ -23,12 +23,15 @@ import io.vertx.core.Promise;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
-import java.security.Principal;
 import java.util.Set;
+import org.apache.http.HttpStatus;
 
+/**
+ * Handler that calls a KsqlAuthorizationProvider plugin that can be used for custom authorization
+ */
 public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext> {
 
-  private static final Set<String> PATHS_WITHOUT_AUTHORIZATION = ImmutableSet
+  public static final Set<String> PATHS_WITHOUT_AUTHORIZATION = ImmutableSet
       .of("/v1/metadata", "/healthcheck");
 
   private final WorkerExecutor workerExecutor;
@@ -60,7 +63,7 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
     if (ar.succeeded()) {
       routingContext.next();
     } else {
-      routingContext.fail(403, ar.cause());
+      routingContext.fail(HttpStatus.SC_FORBIDDEN, ar.cause());
     }
   }
 
@@ -71,10 +74,13 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
           new IllegalStateException("Null user in " + KsqlAuthorizationProviderHandler.class));
       return;
     }
-    final Principal principal = new ApiPrincipal(user.principal().getString("username"));
+    if (!(user instanceof ApiUser)) {
+      throw new IllegalStateException("Not an ApiUser: " + user);
+    }
+    final ApiUser apiUser = (ApiUser) user;
     try {
       ksqlAuthorizationProvider
-          .checkEndpointAccess(principal, routingContext.request().method().toString(),
+          .checkEndpointAccess(apiUser.getPrincipal(), routingContext.request().method().toString(),
               routingContext.normalisedPath());
     } catch (Exception e) {
       promise.fail(e);

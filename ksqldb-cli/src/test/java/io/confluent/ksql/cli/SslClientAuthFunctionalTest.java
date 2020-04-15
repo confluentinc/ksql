@@ -27,7 +27,6 @@ import com.google.common.net.UrlEscapers;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -108,7 +107,7 @@ public class SslClientAuthFunctionalTest {
 
   @Before
   public void setUp() {
-    clientProps = ImmutableMap.of(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
+    clientProps = ImmutableMap.of();
     sslContextFactory = new Server();
   }
 
@@ -174,7 +173,6 @@ public class SslClientAuthFunctionalTest {
         .putAll(ClientTrustStore.trustStoreProps())
         .put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, clientCertPath)
         .put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, clientCertPassword)
-        .put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true")
         .build();
 
     // WS:
@@ -190,7 +188,6 @@ public class SslClientAuthFunctionalTest {
     // HTTP:
     clientProps = ImmutableMap.<String, String>builder()
         .putAll(ClientTrustStore.trustStoreProps())
-        .put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true")
         .build();
 
     // WS:

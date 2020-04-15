@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -68,7 +67,7 @@ public final class KsqlRestClient implements Closeable {
         localProps,
         clientProps,
         creds,
-        (cProps, credz, lProps) -> new KsqlClient(cProps, credz, lProps, new HttpClientOptions())
+        (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops, new HttpClientOptions())
     );
   }
 
@@ -81,8 +80,7 @@ public final class KsqlRestClient implements Closeable {
       final KsqlClientSupplier clientSupplier
   ) {
     final LocalProperties localProperties = new LocalProperties(localProps);
-    final Map<String, String> clientPropsWithTls = maybeConfigureTls(serverAddress, clientProps);
-    final KsqlClient client = clientSupplier.get(clientPropsWithTls, creds, localProperties);
+    final KsqlClient client = clientSupplier.get(clientProps, creds, localProperties);
     return new KsqlRestClient(client, serverAddress, localProperties);
   }
 
@@ -139,11 +137,12 @@ public final class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
-    return target().postKsqlRequest(ksql, Optional.empty());
+    return target().postKsqlRequest(ksql, Collections.emptyMap(), Optional.empty());
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql, final Long commandSeqNum) {
-    return target().postKsqlRequest(ksql, Optional.ofNullable(commandSeqNum));
+    return target()
+        .postKsqlRequest(ksql, Collections.emptyMap(), Optional.ofNullable(commandSeqNum));
   }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {
@@ -216,17 +215,4 @@ public final class KsqlRestClient implements Closeable {
     }
   }
 
-  private static Map<String, String> maybeConfigureTls(
-      final String serverAddress,
-      final Map<String, String> clientProps
-  ) {
-    if (serverAddress.toLowerCase().startsWith("https:")) {
-      return ImmutableMap.<String, String>builder()
-          .putAll(clientProps)
-          .put(KsqlClient.TLS_ENABLED_PROP_NAME, "true")
-          .build();
-    } else {
-      return clientProps;
-    }
-  }
 }

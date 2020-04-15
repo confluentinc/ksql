@@ -2,30 +2,30 @@
   "version" : "5.5.0",
   "timestamp" : 1581572104412,
   "schemas" : {
-    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, TS BIGINT> NOT NULL",
     "CSAS_TS_0.TS" : "STRUCT<ID BIGINT> NOT NULL"
   },
   "inputs" : [ {
     "topic" : "test_topic",
     "key" : "",
     "value" : {
-      "ID" : 1
-    },
-    "timestamp" : 1526075913000
+      "ID" : 1,
+      "TS" : 1526075913000
+    }
   }, {
     "topic" : "test_topic",
     "key" : "",
     "value" : {
-      "ID" : 2
-    },
-    "timestamp" : -1
+      "ID" : 2,
+      "TS" : -1
+    }
   }, {
     "topic" : "test_topic",
     "key" : "",
     "value" : {
-      "ID" : 3
-    },
-    "timestamp" : 1589234313000
+      "ID" : 3,
+      "TS" : 1589234313000
+    }
   } ],
   "outputs" : [ {
     "topic" : "TS",
@@ -41,5 +41,34 @@
       "ID" : 3
     },
     "timestamp" : 1589234313000
-  } ]
+  } ],
+  "postConditions" : {
+    "topics" : {
+      "topics" : [ {
+        "name" : "TS",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `TS` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
 }

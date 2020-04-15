@@ -55,6 +55,52 @@
         "windowType" : "TUMBLING",
         "windowSize" : 30000
       }
-    } ]
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `MAX` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "TUMBLING",
+            "size" : 30.000000000
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `MAX` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          },
+          "windowInfo" : {
+            "type" : "TUMBLING",
+            "size" : 30.000000000
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }, {
+        "name" : "input",
+        "schema" : "`ROWKEY` BIGINT KEY, `VALUE` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
   }
 }

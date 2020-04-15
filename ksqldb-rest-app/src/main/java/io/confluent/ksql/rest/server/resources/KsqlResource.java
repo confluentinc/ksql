@@ -159,8 +159,7 @@ public class KsqlResource implements KsqlConfigurable {
       throw new IllegalArgumentException("Need KS application server set");
     }
 
-
-    final String applicationServer = 
+    final String applicationServer =
         (String) config.getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG);
     final HostInfo hostInfo = ServerUtil.parseHostInfo(applicationServer);
     this.localHost = new KsqlHostInfo(hostInfo.host(), hostInfo.port());
@@ -255,7 +254,7 @@ public class KsqlResource implements KsqlConfigurable {
           statements,
           new SessionProperties(
               request.getConfigOverrides(),
-              localHost, 
+              localHost,
               localUrl,
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
           ),
@@ -272,14 +271,20 @@ public class KsqlResource implements KsqlConfigurable {
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
           )
       );
+
+      LOG.info("Processed successfully: " + request);
       return Response.ok(entities).build();
     } catch (final KsqlRestException e) {
+      LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
       throw e;
     } catch (final KsqlStatementException e) {
+      LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
+      LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
+      LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
       return errorHandler.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
     }

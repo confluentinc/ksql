@@ -35,16 +35,19 @@ public class LikePredicateTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new LikePredicate(EXP_0, EXP_1),
-            new LikePredicate(EXP_0, EXP_1),
-            new LikePredicate(Optional.of(SOME_LOCATION), EXP_0, EXP_1),
-            new LikePredicate(Optional.of(OTHER_LOCATION), EXP_0, EXP_1)
+            new LikePredicate(EXP_0, EXP_1, Optional.empty()),
+            new LikePredicate(EXP_0, EXP_1, Optional.empty()),
+            new LikePredicate(Optional.of(SOME_LOCATION), EXP_0, EXP_1, Optional.empty()),
+            new LikePredicate(Optional.of(OTHER_LOCATION), EXP_0, EXP_1, Optional.empty())
         )
         .addEqualityGroup(
-            new LikePredicate(DIFF, EXP_1)
+            new LikePredicate(EXP_0, EXP_1, Optional.of('!'))
         )
         .addEqualityGroup(
-            new LikePredicate(EXP_0, DIFF)
+            new LikePredicate(DIFF, EXP_1, Optional.empty())
+        )
+        .addEqualityGroup(
+            new LikePredicate(EXP_0, DIFF, Optional.empty())
         )
         .testEquals();
   }

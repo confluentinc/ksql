@@ -47,12 +47,7 @@ public class SchemaTranslationTest {
   private static final String DDL_STATEMENT = "CREATE STREAM " + TOPIC_NAME
       + " WITH (KAFKA_TOPIC='" + TOPIC_NAME + "', VALUE_FORMAT='AVRO');";
 
-  private static final Topic OUTPUT_TOPIC = new Topic(
-      OUTPUT_TOPIC_NAME,
-      1,
-      1,
-      Optional.empty()
-  );
+  private static final Topic OUTPUT_TOPIC = new Topic(OUTPUT_TOPIC_NAME, Optional.empty());
 
   private final TestCase testCase;
 
@@ -74,31 +69,34 @@ public class SchemaTranslationTest {
         .collect(Collectors.toList());
   }
 
-  private static List<Record> generateInputRecords(
-      final Topic topic, final org.apache.avro.Schema avroSchema) {
+  private static List<Record> generateInputRecords(final Schema avroSchema) {
     final Generator generator = new Generator(avroSchema, new Random());
+
     final List<Record> list = new ArrayList<>();
     for (int i = 0; i < 100; i++) {
       final Object avro = generator.generate();
+
       final JsonNode spec = avroToJson(avro, avroSchema, true);
+
       final Record record = new Record(
-          topic,
+          TOPIC_NAME,
           "test-key",
           avroToValueSpec(avro, avroSchema, true),
           spec,
           Optional.of(0L),
           null
       );
+
       list.add(record);
     }
     return list;
   }
 
-  private static List<Record> getOutputRecords(final Topic topic, final List<Record> inputRecords) {
+  private static List<Record> getOutputRecords(final List<Record> inputRecords) {
     return inputRecords.stream()
         .map(
             r -> new Record(
-                topic,
+                OUTPUT_TOPIC_NAME,
                 "test-key",
                 r.value(),
                 r.getJsonValue().orElse(null),
@@ -166,15 +164,10 @@ public class SchemaTranslationTest {
       final String testName = buildTestName(testPath, name, "");
 
       try {
-        final Topic srcTopic = new Topic(
-            TOPIC_NAME,
-            1,
-            1,
-            Optional.of(schema)
-        );
+        final Topic srcTopic = new Topic(TOPIC_NAME, Optional.of(schema));
 
-        final List<Record> inputRecords = generateInputRecords(srcTopic, schema.rawSchema());
-        final List<Record> outputRecords = getOutputRecords(OUTPUT_TOPIC, inputRecords);
+        final List<Record> inputRecords = generateInputRecords(schema.rawSchema());
+        final List<Record> outputRecords = getOutputRecords(inputRecords);
 
         final String csasStatement = schema.rawSchema().getFields()
             .stream()

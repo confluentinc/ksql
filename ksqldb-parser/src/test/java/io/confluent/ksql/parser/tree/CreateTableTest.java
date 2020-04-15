@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -22,6 +26,7 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -49,6 +54,7 @@ public class CreateTableTest {
           CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("foo"))
   );
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()
@@ -72,5 +78,39 @@ public class CreateTableTest {
             new CreateTable(SOME_NAME, SOME_ELEMENTS, true, OTHER_PROPS)
         )
         .testEquals();
+  }
+
+  @Test
+  public void shouldThrowOnNonePrimaryKey() {
+    // Given:
+    final NodeLocation loc = new NodeLocation(2, 3);
+    final ColumnName name = ColumnName.of("K");
+
+    final TableElements invalidElements = TableElements.of(
+        new TableElement(
+            Optional.of(loc),
+            Namespace.KEY,
+            name,
+            new Type(SqlTypes.STRING)
+        ),
+        new TableElement(
+            Optional.of(new NodeLocation(3, 4)),
+            Namespace.VALUE,
+            ColumnName.of("values are always valid"),
+            new Type(SqlTypes.STRING)
+        )
+    );
+
+    // When:
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> new CreateTable(SOME_NAME, invalidElements, false, SOME_PROPS)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Line: 2, Col: 4: Column `K` is a 'KEY' column: "
+        + "please use 'PRIMARY KEY' for tables.\n"
+        + "Tables have PRIMARY KEYs, which are unique and NON NULL.\n"
+        + "Streams have KEYs, which have no uniqueness or NON NULL constraints."));
   }
 }

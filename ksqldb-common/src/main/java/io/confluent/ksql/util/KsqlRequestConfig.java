@@ -57,6 +57,6 @@ public class KsqlRequestConfig extends AbstractConfig {
   }
 
   public KsqlRequestConfig(final Map<?, ?> props) {
-    super(CURRENT_DEF, props);
+    super(CURRENT_DEF, props, false);
   }
 }

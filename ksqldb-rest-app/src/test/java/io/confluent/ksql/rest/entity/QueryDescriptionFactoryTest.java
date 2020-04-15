@@ -38,6 +38,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QuerySchemas;
@@ -49,7 +50,6 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
@@ -61,6 +61,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryDescriptionFactoryTest {
 
+  private static final Map<KsqlHostInfoEntity, KsqlQueryStatus> STATUS_MAP =
+      Collections.singletonMap(new KsqlHostInfoEntity("host", 8080), KsqlQueryStatus.RUNNING);
   private static final LogicalSchema TRANSIENT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
@@ -100,7 +102,6 @@ public class QueryDescriptionFactoryTest {
   @Before
   public void setUp() {
     when(topology.describe()).thenReturn(topologyDescription);
-    when(queryStreams.state()).thenReturn(State.RUNNING);
 
     when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
 
@@ -118,7 +119,7 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout);
 
-    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
+    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
     final PersistentQueryMetadata persistentQuery = new PersistentQueryMetadata(
         SQL_TEXT,
@@ -139,7 +140,7 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout);
 
-    persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery);
+    persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATUS_MAP);
   }
 
   @Test
@@ -200,12 +201,12 @@ public class QueryDescriptionFactoryTest {
 
   @Test
   public void shouldReportPersistentQueriesStatus() {
-    assertThat(persistentQueryDescription.getState(), is(Optional.of("RUNNING")));
+    assertThat(persistentQueryDescription.getState(), is(Optional.of("{host:8080=RUNNING}")));
   }
 
   @Test
   public void shouldNotReportTransientQueriesStatus() {
-    assertThat(transientQueryDescription.getState(), is(Optional.empty()));
+    assertThat(transientQueryDescription.getState(), is(Optional.of("{}")));
   }
 
   @Test
@@ -232,7 +233,7 @@ public class QueryDescriptionFactoryTest {
         closeTimeout);
 
     // When:
-    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
+    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
     // Then:
     assertThat(transientQueryDescription.getFields(), contains(
@@ -265,7 +266,7 @@ public class QueryDescriptionFactoryTest {
         closeTimeout);
 
     // When:
-    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
+    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
     // Then:
     assertThat(transientQueryDescription.getFields(), contains(

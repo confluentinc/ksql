@@ -25,26 +25,22 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("rawtypes")
-@RunWith(MockitoJUnitRunner.class)
 public class RecordTest {
 
-  @Mock
-  private Topic topic;
+  private static final String TOPIC_NAME = "bob";
 
   @Test
   public void shouldGetKey() {
     // Given:
-    final Record record = new Record(topic,
+    final Record record = new Record(
+        TOPIC_NAME,
         10,
         "bar",
         null,
         Optional.of(1000L),
-        null);
+        null
+    );
 
     // When:
     final Object key = record.key();
@@ -56,19 +52,21 @@ public class RecordTest {
   @Test
   public void shouldGetTimeWindowKey() {
     // Given:
-    final Record record = new Record(topic,
+    final Record record = new Record(
+        TOPIC_NAME,
         "foo",
         "bar",
         null,
         Optional.of(1000L),
-        new WindowData(100L, 1000L, "TIME"));
+        new WindowData(100L, 1000L, "TIME")
+    );
 
     // When:
     final Object key = record.key();
 
     // Then:
     assertThat(key, instanceOf(Windowed.class));
-    final Windowed windowed = (Windowed) key;
+    final Windowed<?> windowed = (Windowed<?>) key;
     assertThat(windowed.window(), instanceOf(TimeWindow.class));
     assertThat(windowed.window().start(), equalTo(100L));
     assertThat(windowed.window().end(), equalTo(1000L));
@@ -77,19 +75,21 @@ public class RecordTest {
   @Test
   public void shouldGetSessionWindowKey() {
     // Given:
-    final Record record = new Record(topic,
+    final Record record = new Record(
+        TOPIC_NAME,
         "foo",
         "bar",
         null,
         Optional.of(1000L),
-        new WindowData(100L, 1000L, "SESSION"));
+        new WindowData(100L, 1000L, "SESSION")
+    );
 
     // When:
     final Object key = record.key();
 
     // Then:
     assertThat(key, instanceOf(Windowed.class));
-    final Windowed windowed = (Windowed) key;
+    final Windowed<?> windowed = (Windowed<?>) key;
     assertThat(windowed.window(), instanceOf(SessionWindow.class));
     assertThat(windowed.window().start(), equalTo(100L));
     assertThat(windowed.window().end(), equalTo(1000L));

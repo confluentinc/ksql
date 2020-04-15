@@ -1,0 +1,169 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585912768423,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<T_ID BIGINT, NAME VARCHAR, F1 VARCHAR, F2 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "NAME" : "zero",
+      "VALUE" : 0
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "right_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "F1" : "blah",
+      "F2" : 4
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "NAME" : "foo",
+      "VALUE" : 100
+    },
+    "timestamp" : 13000
+  }, {
+    "topic" : "right_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "F1" : "a",
+      "F2" : 10
+    },
+    "timestamp" : 15000
+  }, {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "NAME" : "bar",
+      "VALUE" : 99
+    },
+    "timestamp" : 16000
+  }, {
+    "topic" : "left_topic",
+    "key" : 90,
+    "value" : {
+      "ID" : 90,
+      "NAME" : "ninety",
+      "VALUE" : 90
+    },
+    "timestamp" : 17000
+  }, {
+    "topic" : "right_topic",
+    "key" : 90,
+    "value" : {
+      "ID" : 0,
+      "F1" : "b",
+      "F2" : 10
+    },
+    "timestamp" : 18000
+  }, {
+    "topic" : "right_topic",
+    "key" : 90,
+    "value" : null,
+    "timestamp" : 19000
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : null,
+    "timestamp" : 10000
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : null,
+    "timestamp" : 13000
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "foo",
+      "F1" : "a",
+      "F2" : 10
+    },
+    "timestamp" : 15000
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "NAME" : "bar",
+      "F1" : "a",
+      "F2" : 10
+    },
+    "timestamp" : 16000
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 90,
+    "value" : {
+      "T_ID" : 90,
+      "NAME" : "ninety",
+      "F1" : "b",
+      "F2" : 10
+    },
+    "timestamp" : 18000
+  }, {
+    "topic" : "OUTPUT",
+    "key" : 90,
+    "value" : null,
+    "timestamp" : 19000
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table"
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "left_topic",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "right_topic",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
+}

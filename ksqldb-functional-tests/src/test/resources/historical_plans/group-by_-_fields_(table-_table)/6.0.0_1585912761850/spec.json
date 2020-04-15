@@ -1,0 +1,145 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585912761850,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F1 INT, F2 VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<F1 INT, F2 VARCHAR, ROWTIME BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<F1 INT, F2 VARCHAR, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<F1 INT, F2 VARCHAR, KSQL_COL_0 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : "1,a"
+  }, {
+    "topic" : "test_topic",
+    "key" : 2,
+    "value" : "2,b"
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : "1,b"
+  }, {
+    "topic" : "test_topic",
+    "key" : 2,
+    "value" : null
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : "1,a"
+  } ],
+  "outputs" : [ {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "a|+|1",
+    "value" : "1,a,0,1"
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "b|+|2",
+    "value" : "2,b,0,1"
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "a|+|1",
+    "value" : "1,a,0,0"
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "b|+|1",
+    "value" : "1,b,0,1"
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "b|+|2",
+    "value" : "2,b,0,0"
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "b|+|1",
+    "value" : "1,b,0,0"
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "a|+|1",
+    "value" : "1,a,0,1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "a|+|1",
+    "value" : "1,a,1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "b|+|2",
+    "value" : "2,b,1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "a|+|1",
+    "value" : "1,a,0"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "b|+|1",
+    "value" : "1,b,1"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "b|+|2",
+    "value" : "2,b,0"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "b|+|1",
+    "value" : "1,b,0"
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "a|+|1",
+    "value" : "1,a,1"
+  } ],
+  "postConditions" : {
+    "sources" : [ {
+      "name" : "OUTPUT",
+      "type" : "table",
+      "schema" : "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_0 BIGINT"
+    } ],
+    "topics" : {
+      "topics" : [ {
+        "name" : "OUTPUT",
+        "schema" : "`ROWKEY` STRING KEY, `F1` INTEGER, `F2` STRING, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+        "schema" : "`ROWKEY` STRING KEY, `F1` INTEGER, `F2` STRING, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      }, {
+        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+        "schema" : "`ROWKEY` STRING KEY, `F1` INTEGER, `F2` STRING, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        }
+      }, {
+        "name" : "test_topic",
+        "schema" : "`ROWKEY` INTEGER KEY, `F1` INTEGER, `F2` STRING",
+        "keyFormat" : {
+          "formatInfo" : {
+            "format" : "KAFKA"
+          }
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED"
+        },
+        "partitions" : 4
+      } ]
+    }
+  }
+}

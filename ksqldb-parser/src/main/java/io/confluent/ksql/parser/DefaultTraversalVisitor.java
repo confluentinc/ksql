@@ -23,6 +23,8 @@ import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.JoinedSource;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -73,6 +75,17 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     process(node.getLeft(), context);
     node.getRights().forEach(join -> process(join, context));
 
+    return null;
+  }
+
+  @Override
+  protected R visitJoinedSource(final JoinedSource joinedSource, final C context) {
+    process(joinedSource.getRelation(), context);
+    return null;
+  }
+
+  @Override
+  protected R visitPartitionBy(final PartitionBy node, final C context) {
     return null;
   }
 

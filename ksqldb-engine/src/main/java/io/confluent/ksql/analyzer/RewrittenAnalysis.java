@@ -26,6 +26,8 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.tree.GroupBy;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -98,15 +100,8 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   @Override
   public Set<ColumnName> getSelectColumnNames() {
     return original.getSelectColumnNames().stream()
-        .map(UnqualifiedColumnReferenceExp::new)
         .map(this::rewrite)
-        .map(UnqualifiedColumnReferenceExp::getColumnName)
         .collect(Collectors.toSet());
-  }
-
-  @Override
-  public List<Expression> getGroupByExpressions() {
-    return rewriteList(original.getGroupByExpressions());
   }
 
   @Override
@@ -125,8 +120,25 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
-  public Optional<Expression> getPartitionBy() {
-    return rewriteOptional(original.getPartitionBy());
+  public Optional<PartitionBy> getPartitionBy() {
+    return original.getPartitionBy()
+        .map(partitionBy -> new PartitionBy(
+            partitionBy.getLocation(),
+            rewrite(partitionBy.getExpression()),
+            partitionBy.getAlias()
+                .map(this::rewrite)
+        ));
+  }
+
+  @Override
+  public Optional<GroupBy> getGroupBy() {
+    return original.getGroupBy()
+        .map(groupBy -> new GroupBy(
+            groupBy.getLocation(),
+            rewriteList(groupBy.getGroupingExpressions()),
+            groupBy.getAlias()
+                .map(this::rewrite)
+        ));
   }
 
   @Override
@@ -138,6 +150,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   public List<JoinInfo> getJoin() {
     return original.getJoin().stream().map(
         j -> new JoinInfo(
+            j.getJoinedSources(),
             rewrite(j.getLeftJoinExpression()),
             rewrite(j.getRightJoinExpression()),
             j.getType(),
@@ -152,8 +165,8 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
-  public List<AliasedDataSource> getFromDataSources() {
-    return original.getFromDataSources();
+  public List<AliasedDataSource> getAllDataSources() {
+    return original.getAllDataSources();
   }
 
   @Override
@@ -164,6 +177,11 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   @Override
   public SourceSchemas getFromSourceSchemas(final boolean postAggregate) {
     return original.getFromSourceSchemas(postAggregate);
+  }
+
+  @Override
+  public AliasedDataSource getFrom() {
+    return original.getFrom();
   }
 
   private <T extends Expression> Optional<T> rewriteOptional(final Optional<T> expression) {
@@ -178,5 +196,10 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   private <T extends Expression> T rewrite(final T expression) {
     return ExpressionTreeRewriter.rewriteWith(rewriter, expression);
+  }
+
+  private ColumnName rewrite(final ColumnName name) {
+    final UnqualifiedColumnReferenceExp colRef = new UnqualifiedColumnReferenceExp(name);
+    return ExpressionTreeRewriter.rewriteWith(rewriter, colRef).getColumnName();
   }
 }

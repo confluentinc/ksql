@@ -21,8 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.PostConditionsNode;
+import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.tools.TestCase;
-import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.util.KsqlConfig;
@@ -32,13 +32,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public final class PlannedTestUtils {
 
-  static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.create();
+  static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.INSTANCE.get();
 
   private PlannedTestUtils() {
   }
@@ -87,10 +86,9 @@ public final class PlannedTestUtils {
       final TestCase testCase,
       final TestCasePlan planAtVersionNode
   ) {
-    final Map<String, Topic> topicsByName = testCase.getTopics().stream()
-        .collect(Collectors.toMap(Topic::getName, t -> t));
     final KsqlVersion version = KsqlVersion.parse(planAtVersionNode.getSpecNode().getVersion())
         .withTimestamp(planAtVersionNode.getSpecNode().getTimestamp());
+
     return testCase.withPlan(
         version,
         new TopologyAndConfigs(
@@ -100,10 +98,10 @@ public final class PlannedTestUtils {
             planAtVersionNode.getPlanNode().getConfigs()
         ),
         planAtVersionNode.getSpecNode().getInputs().stream()
-            .map(n -> n.build(topicsByName))
+            .map(RecordNode::build)
             .collect(Collectors.toList()),
         planAtVersionNode.getSpecNode().getOutputs().stream()
-            .map(n -> n.build(topicsByName))
+            .map(RecordNode::build)
             .collect(Collectors.toList()),
         planAtVersionNode.getSpecNode().getPostConditions()
             .map(PostConditionsNode::build)

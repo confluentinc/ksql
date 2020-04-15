@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
+import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
@@ -57,11 +58,13 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -250,6 +253,9 @@ public class ListSourceExecutorTest {
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
+    final QueryStatusCount queryStatusCount = QueryStatusCount.fromStreamsStateCounts(
+        Collections.singletonMap(KafkaStreams.State.valueOf(metadata.getState()), 1));
+
     assertThat(sourceDescription.getSourceDescription(),
         equalTo(SourceDescriptionFactory.create(
             stream,
@@ -260,8 +266,7 @@ public class ListSourceExecutorTest {
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
                 ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
                 metadata.getQueryId(),
-                Optional.of(metadata.getState())
-            )),
+                queryStatusCount)),
             Optional.empty())));
   }
 

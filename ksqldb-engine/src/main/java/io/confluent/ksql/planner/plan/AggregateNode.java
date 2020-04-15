@@ -38,6 +38,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
+import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.ValueFormat;
@@ -69,7 +70,7 @@ public class AggregateNode extends PlanNode {
 
   private final PlanNode source;
   private final KeyField keyField;
-  private final ImmutableList<Expression> groupByExpressions;
+  private final GroupBy groupBy;
   private final Optional<WindowExpression> windowExpression;
   private final ImmutableList<Expression> aggregateFunctionArguments;
   private final ImmutableList<FunctionCall> functionList;
@@ -83,7 +84,7 @@ public class AggregateNode extends PlanNode {
       final PlanNode source,
       final LogicalSchema schema,
       final Optional<ColumnName> keyFieldName,
-      final List<Expression> groupByExpressions,
+      final GroupBy groupBy,
       final FunctionRegistry functionRegistry,
       final ImmutableAnalysis analysis,
       final AggregateAnalysisResult rewrittenAggregateAnalysis,
@@ -92,8 +93,7 @@ public class AggregateNode extends PlanNode {
     super(id, DataSourceType.KTABLE, schema, Optional.empty());
 
     this.source = requireNonNull(source, "source");
-    this.groupByExpressions = ImmutableList
-        .copyOf(requireNonNull(groupByExpressions, "groupByExpressions"));
+    this.groupBy = requireNonNull(groupBy, "groupBy");
     this.windowExpression = requireNonNull(analysis, "analysis").getWindowExpression();
 
     final AggregateExpressionRewriter aggregateExpressionRewriter =
@@ -137,7 +137,7 @@ public class AggregateNode extends PlanNode {
   }
 
   public List<Expression> getGroupByExpressions() {
-    return groupByExpressions;
+    return groupBy.getGroupingExpressions();
   }
 
   public Optional<WindowExpression> getWindowExpression() {
@@ -239,8 +239,12 @@ public class AggregateNode extends PlanNode {
       final Stacker contextStacker,
       final SchemaKStream<?> preSelected
   ) {
-    return preSelected
-        .groupBy(valueFormat, groupByExpressions, contextStacker.push(GROUP_BY_OP_NAME));
+    return preSelected.groupBy(
+        valueFormat,
+        groupBy.getGroupingExpressions(),
+        groupBy.getAlias(),
+        contextStacker.push(GROUP_BY_OP_NAME)
+    );
   }
 
   private static class InternalSchema {

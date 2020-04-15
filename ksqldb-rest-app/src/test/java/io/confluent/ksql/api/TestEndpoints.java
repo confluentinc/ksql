@@ -25,10 +25,12 @@ import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.StreamsList;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -90,9 +92,19 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
-      final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
-    return null;
+  public synchronized CompletableFuture<EndpointResponse> executeKsqlRequest(
+      final KsqlRequest request,
+      final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext) {
+    this.lastSql = request.getKsql();
+    this.lastProperties = new JsonObject(request.getRequestProperties());
+    this.lastApiSecurityContext = apiSecurityContext;
+    if (request.getKsql().toLowerCase().equals("show streams;")) {
+      final StreamsList entity = new StreamsList(request.getKsql(), Collections.emptyList());
+      return CompletableFuture.completedFuture(EndpointResponse.create(200, "OK", entity));
+    } else {
+      return null;
+    }
   }
 
   @Override

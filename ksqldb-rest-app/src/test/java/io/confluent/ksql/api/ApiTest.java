@@ -773,6 +773,20 @@ public class ApiTest extends BaseApiTest {
     }
   }
 
+  @Test
+  public void shouldIncludeContentTypeHeaderInResponse() throws Exception {
+    // When
+    JsonObject requestBody = new JsonObject().put("ksql", "show streams;");
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post("/ksql")
+        .sendBuffer(requestBody.toBuffer(), requestFuture);
+
+    // Then
+    HttpResponse<Buffer> response = requestFuture.get();
+    assertThat(response.getHeader("content-type"), is("application/json"));
+  }
+
   private void shouldRejectMalformedJsonInArgs(String uri) throws Exception {
 
     // Given

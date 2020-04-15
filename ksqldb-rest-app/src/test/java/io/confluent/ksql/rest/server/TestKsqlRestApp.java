@@ -482,7 +482,7 @@ public class TestKsqlRestApp extends ExternalResource {
     public Builder withEnabledKsqlClient() {
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
-              TestDefaultKsqlClientFactory::instance);
+              () -> TestDefaultKsqlClientFactory.instance(additionalProps));
       return this;
     }
 

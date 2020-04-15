@@ -515,7 +515,7 @@ public class KsqlClientTest {
     startClientWithTls();
     expectedEx.expect(KsqlRestClientException.class);
     expectedEx
-        .expectMessage("Cannot make request with scheme http as client is configured with tls");
+        .expectMessage("Error issuing POST to KSQL server. path:/ksql");
 
     // When:
     URI uri = URI.create("http://localhost:" + server.getPort());
@@ -529,7 +529,7 @@ public class KsqlClientTest {
     expectedEx.expect(KsqlRestClientException.class);
     expectedEx
         .expectMessage(
-            "Cannot make request with scheme https as client is configured without tls");
+            "Error issuing POST to KSQL server. path:/ksql");
 
     // When:
     URI uri = URI.create("https://localhost:" + server.getPort());
@@ -708,14 +708,12 @@ public class KsqlClientTest {
   private void startClientWithTls() {
     Map<String, String> props = new HashMap<>();
     props.putAll(ClientTrustStore.trustStoreProps());
-    props.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
     createClient(props);
   }
 
   private void startClientWithTlsAndTruststorePassword(final String password) {
     Map<String, String> props = new HashMap<>();
     props.putAll(ClientTrustStore.trustStoreProps());
-    props.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
     props.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, password);
     createClient(props);
   }

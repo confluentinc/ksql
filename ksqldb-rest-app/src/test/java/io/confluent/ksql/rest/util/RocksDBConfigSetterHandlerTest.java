@@ -15,7 +15,13 @@
 
 package io.confluent.ksql.rest.util;
 
+import static com.google.common.collect.ImmutableMap.of;
+import static io.confluent.ksql.rest.util.RocksDBConfigSetterHandler.maybeConfigureRocksDBConfigSetter;
+import static java.lang.Class.forName;
+import static org.apache.kafka.streams.StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,9 +32,7 @@ import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.RocksDBConfigSetter;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -39,9 +43,6 @@ public class RocksDBConfigSetterHandlerTest {
 
   @Mock
   private KsqlConfig ksqlConfig;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldConfigure() throws Exception {
@@ -79,19 +80,24 @@ public class RocksDBConfigSetterHandlerTest {
   public void shouldThrowIfFailToRocksDBConfigSetter() throws Exception {
     // Given:
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
-        ImmutableMap.of(
-            StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
-            Class.forName("io.confluent.ksql.rest.util.RocksDBConfigSetterHandlerTest$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor"))
+        of(
+            ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
+            forName("io.confluent.ksql.rest.util.RocksDBConfigSetterHandlerTest$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor"))
     );
 
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage(containsString("Failed to configure Configurable RocksDBConfigSetter."));
-    expectedException.expectMessage(containsString(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG));
-    expectedException.expectMessage(containsString("io.confluent.ksql.rest.util.RocksDBConfigSetterHandlerTest$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor"));
+    // When
+    final ConfigException e = assertThrows(
+        ConfigException.class,
+        () -> maybeConfigureRocksDBConfigSetter(ksqlConfig)
+    );
 
-    // When:
-    RocksDBConfigSetterHandler.maybeConfigureRocksDBConfigSetter(ksqlConfig);
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to configure Configurable RocksDBConfigSetter."));
+    assertThat(e.getMessage(), containsString(ROCKSDB_CONFIG_SETTER_CLASS_CONFIG));
+    assertThat(e.getMessage(), containsString(
+        "io.confluent.ksql.rest.util.RocksDBConfigSetterHandlerTest"
+            + "$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor")
+    );
   }
 
   public static class ConfigurableTestRocksDBConfigSetter

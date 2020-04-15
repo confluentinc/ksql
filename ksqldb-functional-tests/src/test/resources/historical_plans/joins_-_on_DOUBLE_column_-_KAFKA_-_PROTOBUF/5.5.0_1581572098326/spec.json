@@ -44,7 +44,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` DOUBLE KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -56,7 +55,6 @@
         "partitions" : 4
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
-        "schema" : "`ROWKEY` DOUBLE KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -67,7 +65,6 @@
         }
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
-        "schema" : "`ROWKEY` DOUBLE KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -78,7 +75,6 @@
         }
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000019-store-changelog",
-        "schema" : "`ROWKEY` DOUBLE KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -89,7 +85,6 @@
         }
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000018-store-changelog",
-        "schema" : "`ROWKEY` DOUBLE KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -100,7 +95,6 @@
         }
       }, {
         "name" : "left_topic",
-        "schema" : "`ROWKEY` STRING KEY, `L0` DOUBLE, `L1` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -112,7 +106,6 @@
         "partitions" : 4
       }, {
         "name" : "right_topic",
-        "schema" : "`ROWKEY` STRING KEY, `R0` DOUBLE, `R1` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

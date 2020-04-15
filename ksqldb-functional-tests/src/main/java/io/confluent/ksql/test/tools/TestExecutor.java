@@ -188,7 +188,6 @@ public class TestExecutor implements Closeable {
 
             return new PostTopicNode(
                 ti.getTopicName(),
-                ti.getSchema(),
                 ti.getKeyFormat(),
                 ti.getValueFormat(),
                 partitions

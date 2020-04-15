@@ -18,6 +18,8 @@ package io.confluent.ksql.ddl.commands;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
@@ -31,9 +33,7 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -51,9 +51,6 @@ public class DropSourceFactoryTest {
   private MetaStore metaStore;
 
   private DropSourceFactory dropSourceFactory;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   @SuppressWarnings("unchecked")
@@ -109,12 +106,14 @@ public class DropSourceFactoryTest {
     final DropStream dropStream = new DropStream(SOME_NAME, false, true);
     when(metaStore.getSource(SOME_NAME)).thenReturn(null);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Source bob does not exist.");
-
     // When:
-    dropSourceFactory.create(dropStream);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceFactory.create(dropStream)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Source bob does not exist."));
   }
 
   @Test
@@ -125,10 +124,13 @@ public class DropSourceFactoryTest {
     when(metaStore.getSource(SOME_NAME)).thenReturn(ksqlTable);
 
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Incompatible data source type is TABLE");
-
     // When:
-    dropSourceFactory.create(dropStream);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceFactory.create(dropStream)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Incompatible data source type is TABLE"));
   }
 }

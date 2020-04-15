@@ -294,6 +294,11 @@ class Analyzer {
     protected AstNode visitJoinedSource(final JoinedSource node, final Void context) {
       process(node.getRelation(), context);
 
+      final AliasedDataSource source = analysis
+              .getSourceByAlias(((AliasedRelation) node.getRelation()).getAlias())
+              .orElseThrow(() -> new IllegalStateException(
+                      "Expected to register source in above process call"));
+
       final JoinNode.JoinType joinType = getJoinType(node);
 
       final JoinOn joinOn = (JoinOn) node.getCriteria();
@@ -326,11 +331,12 @@ class Analyzer {
 
       throwOnIncompleteJoinCriteria(left, right, leftSourceName, rightSourceName);
       throwOnIncompatibleSourceWindowing(left, right);
+      throwOnJoinWithoutSource(source, left, right);
 
       // we consider this JOIN "flipped" if the left hand side of the expression
-      // is not the source - this will break down when we support multi-way joins
-      // as it is possible that the JOIN will not have the "FROM" source in it at
-      // all (e.g. SELECT * FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id)
+      // is not the source - in the case of multi-way joins, the JoinInfo will be
+      // flipped in the JoinTree so that the new source is always on the right and
+      // the result of previous joins is on the left
       final boolean flipped = rightSourceName.equals(analysis.getFrom().getAlias());
       final JoinInfo joinInfo = new JoinInfo(
           left,
@@ -343,6 +349,20 @@ class Analyzer {
       analysis.addJoin(flipped ? joinInfo.flip() : joinInfo);
 
       return null;
+    }
+
+    private void throwOnJoinWithoutSource(
+            final AliasedDataSource source,
+            final AliasedDataSource left,
+            final AliasedDataSource right
+    ) {
+      if (!source.equals(left) && !source.equals(right)) {
+        throw new KsqlException(
+            "A join criteria is expected to reference the source (" + source.getAlias()
+                + ") in the FROM clause, instead the right source references " + right.getAlias()
+                + " and the left source references " + left.getAlias()
+        );
+      }
     }
 
     private void throwOnIncompleteJoinCriteria(

@@ -32,7 +32,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "BIG_STRUCT",
-        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`F1` STRUCT<`C1` STRING>>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -44,7 +43,6 @@
         "partitions" : 4
       }, {
         "name" : "test",
-        "schema" : "`ROWKEY` STRING KEY, `COL1` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

@@ -23,7 +23,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -35,7 +34,6 @@
         "partitions" : 4
       }, {
         "name" : "topic_s",
-        "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

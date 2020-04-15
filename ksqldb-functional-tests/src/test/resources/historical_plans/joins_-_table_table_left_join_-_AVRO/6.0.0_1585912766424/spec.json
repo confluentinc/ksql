@@ -156,7 +156,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "LEFT_OUTER_JOIN",
-        "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -168,7 +167,6 @@
         "partitions" : 4
       }, {
         "name" : "left_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -180,7 +178,6 @@
         "partitions" : 4
       }, {
         "name" : "right_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

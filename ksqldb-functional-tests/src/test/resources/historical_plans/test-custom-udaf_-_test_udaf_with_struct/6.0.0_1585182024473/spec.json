@@ -73,7 +73,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "RESULT",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -85,7 +84,6 @@
         "partitions" : 4
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_RESULT_0-Aggregate-Aggregate-Materialize-changelog",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -96,7 +94,6 @@
         }
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_RESULT_0-Aggregate-GroupBy-repartition",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -107,7 +104,6 @@
         }
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

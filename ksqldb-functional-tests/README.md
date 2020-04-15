@@ -282,7 +282,6 @@ A test can define a set of post conditions that must be met for the test to pass
       "topics": [
         {
           "name" : "OUTPUT",
-          "schema" : "`ROWKEY` STRING KEY, `DATA_1` STRING, `DATA_2` STRING",
           "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
           "valueFormat" : {"format" : "DELIMITED"},
           "partitions" : 4
@@ -329,7 +328,6 @@ A post condition can define a check against the set of topics the case creates
   "topics": [
     {
       "name" : "OUTPUT",
-      "schema" : "`ROWKEY` STRING KEY, `DATA_1` STRING, `DATA_2` STRING",
       "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
       "valueFormat" : {"format" : "DELIMITED"},
       "partitions" : 4
@@ -350,7 +348,6 @@ The topics object can define the following attributes:
 ```json
 {
   "name" : "OUTPUT",
-  "schema" : "`ROWKEY` STRING KEY, `DATA_1` STRING, `DATA_2` STRING",
   "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
   "valueFormat" : {"format" : "DELIMITED"},
   "partitions" : 4
@@ -362,7 +359,6 @@ The topic object can define the following attributes:
 | Attribute   | Description |
 |-------------|:------------|
 | name        | The name of the topic. |
-| schema      | The schema of the data in the topic. |
 | keyFormat   | The key serialization format. |
 | valueFormat | The value serialization format. |
 | partitions  | (Optional) The number of partitions. |

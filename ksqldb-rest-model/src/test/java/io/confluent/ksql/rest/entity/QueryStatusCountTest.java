@@ -66,6 +66,18 @@ public class QueryStatusCountTest {
   }
 
   @Test
+  public void shouldReturnAggregateStatus() {
+    queryStatusCount.updateStatusCount(KafkaStreams.State.RUNNING, 2);
+    assertThat(
+        queryStatusCount.getAggregateStatus(),
+        is(KsqlQueryStatus.RUNNING));
+    queryStatusCount.updateStatusCount(KafkaStreams.State.ERROR, 1);
+    assertThat(
+        queryStatusCount.getAggregateStatus(),
+        is(KsqlQueryStatus.ERROR));
+  }
+
+  @Test
   public void shouldToString() {
     queryStatusCount.updateStatusCount(KafkaStreams.State.RUNNING, 2);
     assertThat(

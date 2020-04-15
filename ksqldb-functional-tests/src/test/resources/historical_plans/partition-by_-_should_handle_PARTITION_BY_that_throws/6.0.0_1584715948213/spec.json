@@ -44,7 +44,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "REPARTITIONED",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -56,7 +55,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

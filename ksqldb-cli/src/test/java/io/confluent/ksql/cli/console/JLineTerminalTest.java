@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.cli.console;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
@@ -36,18 +39,13 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Status;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class JLineTerminalTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Predicate<String> cliLinePredicate;
@@ -139,11 +137,13 @@ public class JLineTerminalTest {
     final Writer spool = mock(Writer.class);
     terminal.setSpool(spool);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot set two spools!");
-
     // When:
-    terminal.setSpool(spool);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> terminal.setSpool(spool)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot set two spools!"));
   }
 }

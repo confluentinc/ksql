@@ -23,7 +23,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "foo-source",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -35,7 +34,6 @@
         "partitions" : 4
       }, {
         "name" : "foo-too",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

@@ -20,6 +20,8 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.analyzer.FilterTypeValidator;
+import io.confluent.ksql.analyzer.FilterTypeValidator.FilterType;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
@@ -70,7 +72,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
@@ -230,6 +231,15 @@ public class LogicalPlanner {
         refRewriter::process
     );
 
+    if (analysis.getHavingExpression().isPresent()) {
+      final FilterTypeValidator validator = new FilterTypeValidator(
+          sourcePlanNode.getSchema(),
+          functionRegistry,
+          FilterType.HAVING);
+
+      validator.validateFilterExpression(analysis.getHavingExpression().get());
+    }
+
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
@@ -328,10 +338,17 @@ public class LogicalPlanner {
         "Unsupported SelectItem type: " + selectItem.getClass().getName());
   }
 
-  private static FilterNode buildFilterNode(
+  private FilterNode buildFilterNode(
       final PlanNode sourcePlanNode,
       final Expression filterExpression
   ) {
+    final FilterTypeValidator validator = new FilterTypeValidator(
+        sourcePlanNode.getSchema(),
+        functionRegistry,
+        FilterType.WHERE);
+
+    validator.validateFilterExpression(filterExpression);
+
     return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
 
@@ -444,44 +461,41 @@ public class LogicalPlanner {
           + analysis.getAllDataSources());
     }
 
-    return buildJoin((Join) tree);
+    return buildJoin((Join) tree, "");
   }
 
-
   /**
-   * @param root  the root of the Join Tree
+   * @param root    the root of the Join Tree
+   * @param prefix  the prefix to uniquely identify the plan node
    * @return the PlanNode representing this Join Tree
    */
-  private PlanNode buildJoin(final Join root) {
+  private PlanNode buildJoin(final Join root, final String prefix) {
     final PlanNode left;
     if (root.getLeft() instanceof JoinTree.Join) {
-      throw new KsqlException(
-          "Invalid join criteria specified; KSQL does not support multi-way joins.");
+      left = buildJoin((Join) root.getLeft(), prefix + "L_");
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getLeft();
       left = buildSourceForJoin(
-          leaf.getSource(), "Left", root.getInfo().getLeftJoinExpression());
+          leaf.getSource(), prefix + "Left", root.getInfo().getLeftJoinExpression());
     }
 
     final PlanNode right;
     if (root.getRight() instanceof JoinTree.Join) {
-      throw new KsqlException(
-          "Invalid join criteria specified; KSQL does not support multi-way joins.");
+      right = buildJoin((Join) root.getRight(), prefix + "R_");
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getRight();
       right = buildSourceForJoin(
-          leaf.getSource(), "Right", root.getInfo().getRightJoinExpression());
+          leaf.getSource(), prefix + "Right", root.getInfo().getRightJoinExpression());
     }
 
     return new JoinNode(
-        new PlanNodeId("Join"),
+        new PlanNodeId(prefix + "Join"),
         root.getInfo().getType(),
         left,
         right,
         root.getInfo().getWithinExpression()
     );
   }
-
 
   private DataSourceNode buildNonJoinNode(final AliasedDataSource dataSource) {
     return new DataSourceNode(

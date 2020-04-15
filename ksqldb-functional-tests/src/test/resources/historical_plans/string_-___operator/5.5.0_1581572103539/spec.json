@@ -72,7 +72,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING, `KSQL_COL_1` BOOLEAN",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -84,7 +83,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

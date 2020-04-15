@@ -16,22 +16,19 @@
 package io.confluent.ksql.util.timestamp;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class PartialStringToTimestampParserTest {
 
   private static final StringToTimestampParser FULL_PARSER =
       new StringToTimestampParser(KsqlConstants.DATE_TIME_PATTERN + "X");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private PartialStringToTimestampParser parser;
 
@@ -95,32 +92,41 @@ public class PartialStringToTimestampParserTest {
 
   @Test
   public void shouldThrowOnIncorrectlyFormattedDateTime() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to parse timestamp '2017-1-1'");
-
     // When:
-    parser.parse("2017-1-1");
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> parser.parse("2017-1-1")
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString("Failed to parse timestamp '2017-1-1'"));
   }
 
   @Test
   public void shouldThrowOnTimezoneParseError() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to parse timestamp '2017-01-01T00:00:00.000+foo'");
-
     // When:
-    parser.parse("2017-01-01T00:00:00.000+foo");
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> parser.parse("2017-01-01T00:00:00.000+foo")
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString(
+        "Failed to parse timestamp '2017-01-01T00:00:00.000+foo'"));
   }
 
   @Test
   public void shouldIncludeRequiredFormatInErrorMessage() {
-    // Expect:
-    expectedException.expectMessage("Required format is: \"yyyy-MM-dd'T'HH:mm:ss.SSS\", "
-        + "with an optional numeric 4-digit timezone");
-
     // When:
-    parser.parse("2017-01-01T00:00:00.000+foo");
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> parser.parse("2017-01-01T00:00:00.000+foo")
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString(
+        "Required format is: \"yyyy-MM-dd'T'HH:mm:ss.SSS\", "
+            + "with an optional numeric 4-digit timezone"));
   }
 
   private static long fullParse(final String text) {

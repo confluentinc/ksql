@@ -115,7 +115,7 @@ public class ShowQueriesMultiNodeWithTlsFunctionalTest {
       return "Expected 1 running query, got " + runningQueries.size();
     }
 
-    return runningQueries.get(0).getState().orElse("N/A");
+    return runningQueries.get(0).getStatusCount().toString();
   }
 
 }

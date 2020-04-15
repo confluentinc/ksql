@@ -84,6 +84,14 @@ class RestTestCase implements Test {
     return statements;
   }
 
+  public ImmutableList<Record> getInputRecords() {
+    return inputRecords;
+  }
+
+  public ImmutableList<Record> getOutputRecords() {
+    return outputRecords;
+  }
+
   Map<String, List<Record>> getInputsByTopic() {
     return inputRecords.stream()
         .collect(Collectors.groupingBy(Record::getTopicName));

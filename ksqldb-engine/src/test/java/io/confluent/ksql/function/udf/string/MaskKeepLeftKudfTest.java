@@ -15,20 +15,18 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.KsqlFunctionException;
-import org.junit.Rule;
+import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class MaskKeepLeftKudfTest {
   private final MaskKeepLeftKudf udf = new MaskKeepLeftKudf();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldNotMaskFirstNChars() {
@@ -44,9 +42,14 @@ public class MaskKeepLeftKudfTest {
 
   @Test
   public void shouldThrowIfLengthIsNegative() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("function mask_keep_left requires a non-negative number");
-    udf.mask("AbCd#$123xy Z", -1);
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.mask("AbCd#$123xy Z", -1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("function mask_keep_left requires a non-negative number"));
  }
 
   @Test

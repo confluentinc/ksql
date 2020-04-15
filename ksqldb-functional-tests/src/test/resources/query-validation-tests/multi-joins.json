@@ -1,0 +1,778 @@
+{
+  "comments": [
+    "NOTE: these tests only attempt to cover multi-join scenarios; ensuring the validity of the ",
+    "sub-join topologies is delegated to joins.json"
+  ],
+  "tests": [
+    {
+      "name": "stream-table-table - inner-inner",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.ROWKEY = T2.ROWKEY JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12},
+        {"topic": "left", "key": 1, "value": {"id": 1}, "timestamp": 14}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  12}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - left-left",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 LEFT JOIN T2 ON S1.ROWKEY = T2.ROWKEY LEFT JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 9},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 10},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 11},
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 12},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 13}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "T2_ID": null, "T3_ID": null}, "timestamp":  9},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": null}, "timestamp":  11},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  13}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - left-inner",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 LEFT JOIN T2 ON S1.ROWKEY = T2.ROWKEY JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 9},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 10},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 11},
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 12},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 13}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  13}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-left",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.ROWKEY = T2.ROWKEY LEFT JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 9},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 10},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 11},
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 12},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 13}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": null}, "timestamp":  11},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  13}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - rekey",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.K = T2.ROWKEY JOIN T3 ON S1.K = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 1, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 1, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"k": 1, "id": 1}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-repartition", "key": 1, "value": {"S1_K": 1, "S1_ID": 1, "S1_ROWTIME": 12, "S1_ROWKEY": 0}, "timestamp": 12},
+        {"topic": "OUTPUT", "key": 1, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  12}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - rekey with expression",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.K + 1 = T2.ROWKEY JOIN T3 ON S1.K + 1 = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 1, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 1, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"k": 0, "id": 1}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-repartition", "key": 1, "value": {"S1_K": 0, "S1_ID": 1, "S1_ROWTIME": 12, "S1_ROWKEY": 0, "S1_KSQL_COL_0": 1}, "timestamp": 12},
+        {"topic": "OUTPUT", "key": 1, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  12}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "KSQL_COL_0 INT KEY, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - select * ",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN T2 ON S1.ROWKEY = T2.ROWKEY JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ROWTIME": 12, "S1_ROWKEY": 0, "S1_ID": 1, "T2_ROWTIME": 12, "T2_ROWKEY": 0, "T2_ID": 2, "T3_ROWTIME": 12, "T3_ROWKEY": 0, "T3_ID": 3}, "timestamp":  12}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ROWTIME BIGINT, S1_ROWKEY INT, S1_ID BIGINT, T2_ROWTIME BIGINT, T2_ROWKEY INT, T2_ID BIGINT, T3_ROWTIME BIGINT, T3_ROWKEY INT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - select left.* only",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.* FROM S1 JOIN T2 ON S1.ROWKEY = T2.ROWKEY JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ROWTIME": 12, "S1_ROWKEY": 0, "S1_ID": 1}, "timestamp":  12}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ROWTIME BIGINT, S1_ROWKEY INT, S1_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - select left.* and specific fields from rights",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.*, t2.id, t3.id FROM S1 JOIN T2 ON S1.ROWKEY = T2.ROWKEY JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ROWTIME": 12, "S1_ROWKEY": 0, "S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  12}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ROWTIME BIGINT, S1_ROWKEY INT, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - select sources.*",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.*, t2.*, t3.* FROM S1 JOIN T2 ON S1.ROWKEY = T2.ROWKEY JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ROWTIME": 12, "S1_ROWKEY": 0, "S1_ID": 1, "T2_ROWTIME": 12, "T2_ROWKEY": 0, "T2_ID": 2, "T3_ROWTIME": 12, "T3_ROWKEY": 0, "T3_ID": 3}, "timestamp":  12}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ROWTIME BIGINT, S1_ROWKEY INT, S1_ID BIGINT, T2_ROWTIME BIGINT, T2_ROWKEY INT, T2_ID BIGINT, T3_ROWTIME BIGINT, T3_ROWKEY INT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - flip join expression",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON T2.ROWKEY = S1.ROWKEY JOIN T3 ON T3.ROWKEY = S1.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12},
+        {"topic": "left", "key": 1, "value": {"id": 1}, "timestamp": 14}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  12}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - rekey and flip join expression",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON T2.ROWKEY = S1.K JOIN T3 ON T3.ROWKEY = S1.K;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 1, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 1, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"k": 1, "id": 1}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-repartition", "key": 1, "value": {"S1_K": 1, "S1_ID": 1, "S1_ROWTIME": 12, "S1_ROWKEY": 0}, "timestamp": 12},
+        {"topic": "OUTPUT", "key": 1, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  12}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - aliasing",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s.ID, t.ID, tt.ID FROM S1 s JOIN T2 t ON S.ROWKEY = T.ROWKEY JOIN T3 tt ON S.ROWKEY = TT.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12},
+        {"topic": "left", "key": 1, "value": {"id": 1}, "timestamp": 14}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S_ID": 1, "T_ID": 2, "TT_ID": 3}, "timestamp":  12}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S_ID BIGINT, T_ID BIGINT, TT_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-stream-table - inner-inner",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, s2.ID, t3.ID FROM S1 JOIN S2 WITHIN 10 seconds ON S1.ROWKEY = S2.ROWKEY JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12},
+        {"topic": "right", "key": 0, "value": {"id": 4}, "timestamp": 13},
+        {"topic": "left", "key": 0, "value": {"id": 5}, "timestamp": 100000},
+        {"topic": "right", "key": 0, "value": {"id": 6}, "timestamp": 100001}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 2, "T3_ID": 3}, "timestamp":  12},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 4, "T3_ID": 3}, "timestamp":  13},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": 6, "T3_ID": 3}, "timestamp":  100001}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, S2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-stream-table - inner-inner - rekey left",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, k int, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, s2.ID, t3.ID FROM S1 JOIN S2 WITHIN 10 seconds ON S1.K = S2.ROWKEY JOIN T3 ON S1.K = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 1, "value": {"k": 0, "id": 1}, "timestamp": 12},
+        {"topic": "right", "key": 0, "value": {"id": 4}, "timestamp": 13},
+        {"topic": "left", "key": 1, "value": {"k": 0, "id": 5}, "timestamp": 100000},
+        {"topic": "right", "key": 0, "value": {"id": 6}, "timestamp": 100001}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 2, "T3_ID": 3}, "timestamp":  12},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 4, "T3_ID": 3}, "timestamp":  13},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": 6, "T3_ID": 3}, "timestamp":  100001}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, S1_ID BIGINT, S2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-stream-table - inner-inner - rekey left and right",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, k int, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, k int, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, s2.ID, t3.ID FROM S1 JOIN S2 WITHIN 10 seconds ON S1.K = S2.K JOIN T3 ON S1.K = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 2, "value": {"k": 0, "id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 1, "value": {"k": 0, "id": 1}, "timestamp": 12},
+        {"topic": "right", "key": 2, "value": {"k":0, "id": 4}, "timestamp": 13},
+        {"topic": "left", "key": 1, "value": {"k": 0, "id": 5}, "timestamp": 100000},
+        {"topic": "right", "key": 2, "value": {"k": 0, "id": 6}, "timestamp": 100001}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-right-repartition", "key": 0, "value": {"S2_K": 0, "S2_ID": 2, "S2_ROWTIME": 11, "S2_ROWKEY": 2}, "timestamp": 11},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-right-repartition", "key": 0, "value": {"S2_K": 0, "S2_ID": 4, "S2_ROWTIME": 13, "S2_ROWKEY": 2}, "timestamp": 13},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-right-repartition", "key": 0, "value": {"S2_K": 0, "S2_ID": 6, "S2_ROWTIME": 100001, "S2_ROWKEY": 2}, "timestamp": 100001},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-left-repartition", "key": 0, "value": {"S1_K": 0, "S1_ID": 1, "S1_ROWTIME": 12, "S1_ROWKEY": 1}, "timestamp": 12},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-left-repartition", "key": 0, "value": {"S1_K": 0, "S1_ID": 5, "S1_ROWTIME": 100000, "S1_ROWKEY": 1}, "timestamp": 100000},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 2, "T3_ID": 3}, "timestamp":  12},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 4, "T3_ID": 3}, "timestamp":  13},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": 6, "T3_ID": 3}, "timestamp":  100001}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, S1_ID BIGINT, S2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-stream-table - inner-inner - cascading join criteria",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, k int, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, k int, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, s2.ID, t3.ID FROM S1 JOIN S2 WITHIN 10 seconds ON S1.K = S2.K JOIN T3 ON S2.K = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 2, "value": {"k": 0, "id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 1, "value": {"k": 0, "id": 1}, "timestamp": 12},
+        {"topic": "right", "key": 2, "value": {"k":0, "id": 4}, "timestamp": 13},
+        {"topic": "left", "key": 1, "value": {"k": 0, "id": 5}, "timestamp": 100000},
+        {"topic": "right", "key": 2, "value": {"k": 0, "id": 6}, "timestamp": 100001}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 2, "T3_ID": 3}, "timestamp":  12},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 4, "T3_ID": 3}, "timestamp":  13},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": 6, "T3_ID": 3}, "timestamp":  100001}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, S1_ID BIGINT, S2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-stream-table - left-inner",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, s2.ID, t3.ID FROM S1 LEFT JOIN S2 WITHIN 10 seconds ON S1.ROWKEY = S2.ROWKEY JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12},
+        {"topic": "right", "key": 0, "value": {"id": 4}, "timestamp": 13},
+        {"topic": "left", "key": 0, "value": {"id": 5}, "timestamp": 100000},
+        {"topic": "right", "key": 0, "value": {"id": 6}, "timestamp": 100001}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 2, "T3_ID": 3}, "timestamp":  12},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 4, "T3_ID": 3}, "timestamp":  13},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": null, "T3_ID": 3}, "timestamp":  100000},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": 6, "T3_ID": 3}, "timestamp":  100001}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, S2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-stream-table - full-inner",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, s2.ID, t3.ID FROM S1 FULL JOIN S2 WITHIN 10 seconds ON S1.ROWKEY = S2.ROWKEY JOIN T3 ON S1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12},
+        {"topic": "right", "key": 0, "value": {"id": 4}, "timestamp": 13},
+        {"topic": "left", "key": 0, "value": {"id": 5}, "timestamp": 100000},
+        {"topic": "right", "key": 0, "value": {"id": 6}, "timestamp": 100001}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": null, "S2_ID": 2, "T3_ID": 3}, "timestamp":  11},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 2, "T3_ID": 3}, "timestamp":  12},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 4, "T3_ID": 3}, "timestamp":  13},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": null, "T3_ID": 3}, "timestamp":  100000},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": 6, "T3_ID": 3}, "timestamp":  100001}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, S2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-stream - inner-inner",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE STREAM S3 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, s3.ID FROM S1 JOIN T2 ON S1.ROWKEY = T2.ROWKEY JOIN S3 WITHIN 10 seconds ON S1.ROWKEY = S3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12},
+        {"topic": "right", "key": 0, "value": {"id": 4}, "timestamp": 13},
+        {"topic": "left", "key": 0, "value": {"id": 5}, "timestamp": 100000},
+        {"topic": "right2", "key": 0, "value": {"id": 6}, "timestamp": 100001}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "T2_ID": 2, "S3_ID": 3}, "timestamp":  12},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "T2_ID": 4, "S3_ID": 6}, "timestamp":  100001}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, T2_ID BIGINT, S3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-stream - left-inner",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE STREAM S3 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, s3.ID FROM S1 LEFT JOIN T2 ON S1.ROWKEY = T2.ROWKEY JOIN S3 WITHIN 10 seconds ON S1.ROWKEY = S3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 12},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "right", "key": 0, "value": {"id": 4}, "timestamp": 13},
+        {"topic": "left", "key": 0, "value": {"id": 5}, "timestamp": 100000},
+        {"topic": "right2", "key": 0, "value": {"id": 6}, "timestamp": 100001}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "T2_ID": null, "S3_ID": 3}, "timestamp":  12},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "T2_ID": 4, "S3_ID": 6}, "timestamp":  100001}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, T2_ID BIGINT, S3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-stream-stream - inner-inner - different windows",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE STREAM S3 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, s2.ID, s3.ID FROM S1 JOIN S2 WITHIN 5 seconds ON S1.ROWKEY = S2.ROWKEY JOIN S3 WITHIN 10 seconds ON S1.ROWKEY = S3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 0},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 1},
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 2},
+        {"topic": "left", "key": 0, "value": {"id": 4}, "timestamp": 3},
+        {"topic": "left", "key": 0, "value": {"id": 5}, "timestamp": 4000},
+        {"topic": "right2", "key": 0, "value": {"id": 6}, "timestamp": 6000},
+        {"topic": "left", "key": 0, "value": {"id": 7}, "timestamp": 6001},
+        {"topic": "right2", "key": 0, "value": {"id": 8}, "timestamp": 7000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 2, "S3_ID": 3}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 4, "S2_ID": 2, "S3_ID": 3}, "timestamp": 3},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": 2, "S3_ID": 3}, "timestamp": 4000},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 2, "S3_ID": 6}, "timestamp": 6000},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 4, "S2_ID": 2, "S3_ID": 6}, "timestamp": 6000},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": 2, "S3_ID": 6}, "timestamp": 6000},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 1, "S2_ID": 2, "S3_ID": 8}, "timestamp": 7000},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 4, "S2_ID": 2, "S3_ID": 8}, "timestamp": 7000},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_ID": 5, "S2_ID": 2, "S3_ID": 8}, "timestamp": 7000}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_ID BIGINT, S2_ID BIGINT, S3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "table-table-table - inner-inner",
+      "statements": [
+        "CREATE TABLE T1 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT T1.ID, T2.ID, T3.ID FROM T1 JOIN T2 ON T1.ROWKEY = T2.ROWKEY JOIN T3 ON T1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 0},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 1},
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 2},
+        {"topic": "left", "key": 0, "value": {"id": 4}, "timestamp": 1000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"T1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 0, "value": {"T1_ID": 4, "T2_ID": 2, "T3_ID": 3}, "timestamp": 1000}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY INT PRIMARY KEY, T1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "table-table-table - inner-full",
+      "statements": [
+        "CREATE TABLE T1 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT T1.ID, T2.ID, T3.ID FROM T1 JOIN T2 ON T1.ROWKEY = T2.ROWKEY FULL JOIN T3 ON T1.ROWKEY = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"id": 1}, "timestamp": 0},
+        {"topic": "right2", "key": 0, "value": {"id": 3}, "timestamp": 2},
+        {"topic": "right", "key": 0, "value": {"id": 2}, "timestamp": 3},
+        {"topic": "left", "key": 0, "value": {"id": 4}, "timestamp": 1000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"T1_ID": null, "T2_ID": null, "T3_ID": 3}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 0, "value": {"T1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp": 3},
+        {"topic": "OUTPUT", "key": 0, "value": {"T1_ID": 4, "T2_ID": 2, "T3_ID": 3}, "timestamp": 1000}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY INT PRIMARY KEY, T1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "self join with multiple sources",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN T2 ON S1.ID = T2.ID JOIN T3 ON S1.ID = S1.ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Each side of the join must reference exactly one source and not the same source. Left side references `S1` and right references `S1`"
+      }
+    },
+    {
+      "name": "criteria that does not use the joined source",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN T2 ON S1.ROWKEY = T2.ROWKEY JOIN T3 ON S1.ROWKEY = T2.ROWKEY;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "A join criteria is expected to reference the source (`T3`) in the FROM clause, instead the right source references `T2` and the left source references `S1`"
+      }
+    },
+    {
+      "name": "TTS - Invalid",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM T2 JOIN T3 ON T2.ROWKEY = T3.ROWKEY JOIN S1 ON S1.ROWKEY = T2.ROWKEY;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Join between invalid operands requested: left type: KTABLE, right type: KSTREAM"
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - rekey on different field",
+      "comments": ["https://github.com/confluentinc/ksql/issues/5062"],
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.ID = T2.ROWKEY JOIN T3 ON S1.K = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "KSQL does not yet support multi-joins with different expressions. A join for `S1` already exists with the condition `S1.ID` - cannot additionally join on `S1.K`"
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - rekey on different expression",
+      "comments": ["https://github.com/confluentinc/ksql/issues/5062"],
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.K - 1 = T2.ROWKEY JOIN T3 ON S1.K = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "KSQL does not yet support multi-joins with different expressions. A join for `S1` already exists with the condition `(S1.K - 1)` - cannot additionally join on `S1.K`"
+      }
+    }
+  ]
+}

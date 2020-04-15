@@ -18,8 +18,10 @@ package io.confluent.ksql.cli.console;
 import static org.easymock.EasyMock.anyInt;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import java.util.function.Predicate;
 import org.easymock.EasyMock;
@@ -30,9 +32,7 @@ import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
 import org.jline.reader.Parser.ParseContext;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
@@ -40,9 +40,6 @@ public class KsqlLineParserTest {
 
   private static final String UNTERMINATED_LINE = "an unterminated line";
   private static final String TERMINATED_LINE = "a terminated line;";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Parser delegate;
@@ -133,13 +130,16 @@ public class KsqlLineParserTest {
   @Test
   public void shouldNotAcceptUnterminatedAcceptLine() {
     // Given:
-    expectedException.expect(EOFError.class);
-    expectedException.expectMessage("Missing termination char");
-
     givenDelegateWillReturn(UNTERMINATED_LINE);
 
     // When:
-    parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);
+    final EOFError e = assertThrows(
+        EOFError.class,
+        () -> parser.parse("what ever", 0, ParseContext.ACCEPT_LINE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Missing termination char"));
   }
 
   @Test
@@ -171,11 +171,14 @@ public class KsqlLineParserTest {
     // Given:
     givenDelegateWillReturn(UNTERMINATED_LINE + " -- this is a comment");
 
-    expectedException.expect(EOFError.class);
-    expectedException.expectMessage("Missing termination char");
-
     // When:
-    parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);
+    final EOFError e = assertThrows(
+        EOFError.class,
+        () -> parser.parse("what ever", 0, ParseContext.ACCEPT_LINE)
+    );
+
+    //Then:
+    assertThat(e.getMessage(), containsString("Missing termination char"));
   }
 
   private void givenDelegateWillReturn(final String line) {

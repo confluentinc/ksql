@@ -115,7 +115,7 @@ public final class KsqlTestingTool {
         true
     );
 
-    final TestCase testCase = new TestCaseBuilder()
+    final TestCase testCase = TestCaseBuilder
         .buildTests(testCaseNode, new File(statementFile).toPath())
         .get(0);
 

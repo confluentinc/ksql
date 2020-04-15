@@ -17,7 +17,6 @@ package io.confluent.ksql.test.tools;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TestCaseNode;
@@ -35,7 +34,8 @@ import org.hamcrest.Matcher;
  */
 public final class TestCaseBuilder {
 
-  private final FunctionRegistry functionRegistry = TestFunctionRegistry.INSTANCE.get();
+  private TestCaseBuilder() {
+  }
 
   public static List<TestCase> buildTests(final TestCaseNode test, final Path testPath) {
     if (!test.isEnabled()) {

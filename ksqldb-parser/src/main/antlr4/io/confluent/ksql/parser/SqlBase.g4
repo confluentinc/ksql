@@ -76,7 +76,7 @@ query
       (WINDOW  windowExpression)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
-      (PARTITION BY partitionBy=valueExpression)?
+      (PARTITION BY partitionBy)?
       (HAVING having=booleanExpression)?
       (EMIT resultMaterialization)?
       limitClause?
@@ -91,7 +91,7 @@ tableElements
     ;
 
 tableElement
-    : identifier type (KEY)?
+    : identifier type ((PRIMARY)? KEY)?
     ;
 
 tableProperties
@@ -152,9 +152,14 @@ windowUnit
     | MILLISECONDS
     ;
 
+partitionBy
+    : valueExpression (AS? identifier)?
+    ;
+
 groupBy
-    : valueExpression (',' valueExpression)*
-    | '(' (valueExpression (',' valueExpression)*)? ')'
+    : valueExpression (AS? identifier)?
+    | valueExpression (',' valueExpression)*
+    | '(' (valueExpression (',' valueExpression)*)? ')' (AS? identifier)?
     ;
 
 values
@@ -233,7 +238,7 @@ predicate[ParserRuleContext value]
     : comparisonOperator right=valueExpression                            #comparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression        #between
     | NOT? IN '(' expression (',' expression)* ')'                        #inList
-    | NOT? LIKE pattern=valueExpression									                  #like
+    | NOT? LIKE pattern=valueExpression	(ESCAPE escape=STRING)?   		    #like
     | IS NOT? NULL                                                        #nullPredicate
     | IS NOT? DISTINCT FROM right=valueExpression                         #distinctFrom
     ;
@@ -332,9 +337,10 @@ nonReserved
     | SET | RESET
     | IF
     | SOURCE | SINK
-    | KEY
+    | PRIMARY | KEY
     | EMIT
     | CHANGES
+    | ESCAPE
     ;
 
 EMIT: 'EMIT';
@@ -359,6 +365,7 @@ NOT: 'NOT';
 EXISTS: 'EXISTS';
 BETWEEN: 'BETWEEN';
 LIKE: 'LIKE';
+ESCAPE: 'ESCAPE';
 IS: 'IS';
 NULL: 'NULL';
 TRUE: 'TRUE';

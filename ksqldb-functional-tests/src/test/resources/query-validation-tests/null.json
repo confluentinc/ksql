@@ -134,6 +134,46 @@
         {"topic": "OUTPUT", "key": null, "value": null},
         {"topic": "OUTPUT", "key": 2, "value": {"A": 2, "B": "not null", "C": [4, 5, 6]}}
       ]
+    },
+    {
+      "name": "NULL column",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, COL0 NULL) WITH (kafka_topic='test_topic', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "mismatched input 'NULL'"
+      }
+    },
+    {
+      "name": "NULL element type",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, COL0 ARRAY<NULL>) WITH (kafka_topic='test_topic', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "mismatched input 'NULL'"
+      }
+    },
+    {
+      "name": "NULL value type",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, COL0 MAP<STRING, NULL>) WITH (kafka_topic='test_topic', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "mismatched input 'NULL'"
+      }
+    },
+    {
+      "name": "NULL field type",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, COL0 STRUCT<fo NULL>) WITH (kafka_topic='test_topic', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "mismatched input 'NULL'"
+      }
     }
   ]
 }

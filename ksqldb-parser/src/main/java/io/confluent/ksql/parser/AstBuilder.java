@@ -79,6 +79,7 @@ import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
+import io.confluent.ksql.parser.SqlBaseParser.PartitionByContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.RetentionClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
@@ -117,6 +118,7 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
@@ -415,7 +417,7 @@ public class AstBuilder {
           visitIfPresent(context.windowExpression(), WindowExpression.class),
           visitIfPresent(context.where, Expression.class),
           visitIfPresent(context.groupBy(), GroupBy.class),
-          visitIfPresent(context.partitionBy, Expression.class),
+          visitIfPresent(context.partitionBy(), PartitionBy.class),
           visitIfPresent(context.having, Expression.class),
           resultMaterialization,
           pullQuery,
@@ -558,11 +560,25 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitGroupBy(final SqlBaseParser.GroupByContext context) {
-      return new GroupBy(
-          getLocation(context),
-          visit(context.valueExpression(), Expression.class)
-      );
+    public Node visitPartitionBy(final PartitionByContext ctx) {
+      final Optional<ColumnName> alias = Optional.ofNullable(ctx.identifier())
+          .map(ParserUtil::getIdentifierText)
+          .map(ColumnName::of);
+
+      final Expression expression = (Expression) visit(ctx.valueExpression());
+
+      return new PartitionBy(getLocation(ctx), expression, alias);
+    }
+
+    @Override
+    public Node visitGroupBy(final SqlBaseParser.GroupByContext ctx) {
+      final Optional<ColumnName> alias = Optional.ofNullable(ctx.identifier())
+          .map(ParserUtil::getIdentifierText)
+          .map(ColumnName::of);
+
+      final List<Expression> expressions = visit(ctx.valueExpression(), Expression.class);
+
+      return new GroupBy(getLocation(ctx), expressions, alias);
     }
 
     @Override
@@ -727,13 +743,18 @@ public class AstBuilder {
 
     @Override
     public Node visitJoinRelation(final SqlBaseParser.JoinRelationContext joinRelationContext) {
-      if (joinRelationContext.joinedSource().size() > 1) {
-        throw new KsqlException(
-            "Invalid join criteria specified; KSQL does not support multi-way joins."
-        );
-      }
+      final AliasedRelation left = (AliasedRelation) visit(joinRelationContext.left);
+      final ImmutableList<JoinedSource> rights = joinRelationContext
+          .joinedSource()
+          .stream()
+          .map(this::visitJoinedSource)
+          .collect(ImmutableList.toImmutableList());
 
-      final JoinedSourceContext context = joinRelationContext.joinedSource(0);
+      return new Join(getLocation(joinRelationContext), left, rights);
+    }
+
+    @Override
+    public JoinedSource visitJoinedSource(final JoinedSourceContext context) {
       if (context.joinCriteria().ON() == null) {
         throw new KsqlException("Invalid join criteria specified. KSQL only supports joining on "
             + "column values. For example `... left JOIN right on left.col = "
@@ -759,18 +780,15 @@ public class AstBuilder {
         withinExpression = (WithinExpression) visitWithinExpression(
             context.joinWindow().withinExpression());
       }
-      final AliasedRelation left = (AliasedRelation) visit(joinRelationContext.left);
       final AliasedRelation right = (AliasedRelation) visit(context.aliasedRelation());
 
-      final JoinedSource joinedSource = new JoinedSource(
+      return new JoinedSource(
           getLocation(context),
           right,
           joinType,
           criteria,
           Optional.ofNullable(withinExpression)
       );
-
-      return new Join(getLocation(joinRelationContext), left, ImmutableList.of(joinedSource));
     }
 
     @Override
@@ -873,10 +891,24 @@ public class AstBuilder {
 
     @Override
     public Node visitLike(final SqlBaseParser.LikeContext context) {
+
+      final Optional<String> escape = Optional.ofNullable(context.escape)
+          .map(Token::getText)
+          .map(s -> ParserUtil.unquote(s, "'"));
+
+      escape.ifPresent(s -> {
+        if (s.length() != 1) {
+          throw new KsqlException(
+              getLocation(context.escape) + ": Expected single character escape but got: " + s
+          );
+        }
+      });
+
       final Expression result = new LikePredicate(
           getLocation(context),
           (Expression) visit(context.value),
-          (Expression) visit(context.pattern)
+          (Expression) visit(context.pattern),
+          escape.map(s -> s.charAt(0))
       );
 
       if (context.NOT() == null) {
@@ -1079,7 +1111,9 @@ public class AstBuilder {
     public Node visitTableElement(final SqlBaseParser.TableElementContext context) {
       return new TableElement(
           getLocation(context),
-          context.KEY() == null ? Namespace.VALUE : Namespace.KEY,
+          context.KEY() == null
+              ? Namespace.VALUE
+              : context.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY,
           ColumnName.of(ParserUtil.getIdentifierText(context.identifier())),
           typeParser.getType(context.type())
       );

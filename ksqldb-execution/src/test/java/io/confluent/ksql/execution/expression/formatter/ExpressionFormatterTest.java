@@ -271,9 +271,16 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatLikePredicate() {
-    final LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"));
+    final LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"), Optional.empty());
     assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('string' LIKE '*')"));
   }
+
+  @Test
+  public void shouldFormatLikePredicateWithEscape() {
+    final LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"), Optional.of('!'));
+    assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('string' LIKE '*' ESCAPE '!')"));
+  }
+
 
   @Test
   public void shouldFormatCast() {

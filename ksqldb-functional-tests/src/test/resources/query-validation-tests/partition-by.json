@@ -111,6 +111,9 @@
         {"topic": "OUTPUT", "key": 11, "value": {"NAME": "c"}}
       ],
       "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
         "sources": [
           {
             "name": "OUTPUT",
@@ -186,6 +189,122 @@
         {"topic": "REPARTITIONED", "key": null, "value": "4"},
         {"topic": "REPARTITIONED", "key": "zero", "value": "5"}
       ]
+    },
+    {
+      "name": "single column - with alias",
+      "comment": [
+        "Note: as the partition by is aliased, it is treated as a new column and the 'select *' ",
+        "expansion still includes 'NAME'. Where as without the alias it would not.",
+        "This can be through of as similar to `SELECT *, NAME as NEW KEY FROM'."
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by NAME AS NEW_KEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob", "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "bob", "value": {"NAME": "bob", "ID": 10, "AGE": 22}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NEW_KEY STRING KEY, NAME STRING, AGE INT, ID INT"}
+        ]
+      }
+    },
+    {
+      "name": "only key column - with alias that matches key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, OTHER INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT NAME FROM INPUT PARTITION BY ID AS ID;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 11, "value": {"name": "a"}},
+        {"topic": "test_topic", "key": 10, "value": {"name": "b"}},
+        {"topic": "test_topic", "key": 11, "value": {"name": "c"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 11, "value": {"NAME": "a"}},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "b"}},
+        {"topic": "OUTPUT", "key": 11, "value": {"NAME": "c"}}
+      ],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ID INT KEY, NAME STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "single non-key column - with alias that matches old key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by NAME AS ID;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob", "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "bob", "value": {"NAME": "bob", "AGE": 22}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, NAME STRING, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "single expression - with alias",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by UCASE(NAME) AS NEW_KEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob", "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "BOB", "value": {"NAME": "bob", "ID": 10, "AGE": 22}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NEW_KEY STRING KEY, NAME STRING, AGE INT, ID INT"}
+        ]
+      }
+    },
+    {
+      "name": "with alias that matches source column",
+      "comment": [
+        "if the alias matches a source column name the new key _replaces_ that column.",
+        "this is preferable to failing, which would stop users performing otherwise value repartitioning"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select NAME, ID from INPUT partition by NAME AS AGE;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob", "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "bob", "value": {"NAME": "bob", "ID": 10}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "AGE STRING KEY, NAME STRING, ID INT"}
+        ]
+      }
     },
     {
       "name": "complex expressions",

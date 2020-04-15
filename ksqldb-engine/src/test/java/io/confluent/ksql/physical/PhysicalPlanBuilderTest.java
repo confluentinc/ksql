@@ -77,11 +77,11 @@ public class PhysicalPlanBuilderTest {
       + " WITH (KAFKA_TOPIC = 'test3', VALUE_FORMAT = 'JSON', KEY='ID3');";
 
   private static final String CREATE_TABLE_TEST4 = "CREATE TABLE TEST4 "
-      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
+      + "(ROWKEY BIGINT PRIMARY KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test4', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_TABLE_TEST5 = "CREATE TABLE TEST5 "
-      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
+      + "(ROWKEY BIGINT PRIMARY KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test5', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_STREAM_TEST6 = "CREATE STREAM TEST6 "

@@ -31,7 +31,7 @@ public class RunningQuery {
   private final Set<String> sinks;
   private final Set<String> sinkKafkaTopics;
   private final QueryId id;
-  private final QueryStateCount stateCount;
+  private final QueryStatusCount statusCount;
 
   @JsonCreator
   public RunningQuery(
@@ -39,13 +39,13 @@ public class RunningQuery {
       @JsonProperty("sinks") final Set<String> sinks,
       @JsonProperty("sinkKafkaTopics") final Set<String> sinkKafkaTopics,
       @JsonProperty("id") final QueryId id,
-      @JsonProperty("stateCount") final QueryStateCount stateCount
+      @JsonProperty("statusCount") final QueryStatusCount statusCount
   ) {
     this.queryString = Objects.requireNonNull(queryString, "queryString");
     this.sinkKafkaTopics = Objects.requireNonNull(sinkKafkaTopics, "sinkKafkaTopics");
     this.sinks = Objects.requireNonNull(sinks, "sinks");
     this.id = Objects.requireNonNull(id, "id");
-    this.stateCount = Objects.requireNonNull(stateCount, "stateCount");
+    this.statusCount = Objects.requireNonNull(statusCount, "statusCount");
   }
 
   public String getQueryString() {
@@ -72,11 +72,11 @@ public class RunningQuery {
   // kept for backwards compatibility
   @JsonProperty("state")
   public Optional<String> getState() {
-    return Optional.of(stateCount.toString());
+    return Optional.of(statusCount.toString());
   }
   
-  public QueryStateCount getStateCount() {
-    return stateCount;
+  public QueryStatusCount getStatusCount() {
+    return statusCount;
   }
 
   @Override
@@ -92,11 +92,11 @@ public class RunningQuery {
         && Objects.equals(queryString, that.queryString)
         && Objects.equals(sinks, that.sinks)
         && Objects.equals(sinkKafkaTopics, that.sinkKafkaTopics)
-        && Objects.equals(stateCount, that.stateCount);
+        && Objects.equals(statusCount, that.statusCount);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, queryString, sinks, sinkKafkaTopics, stateCount);
+    return Objects.hash(id, queryString, sinks, sinkKafkaTopics, statusCount);
   }
 }

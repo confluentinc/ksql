@@ -18,10 +18,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
@@ -31,16 +33,19 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
   private final Expression keyExpression;
   @EffectivelyImmutable
   private final ExecutionStep<? extends KStreamHolder<?>> source;
+  private final Optional<ColumnName> alias;
 
   public StreamSelectKey(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final
       ExecutionStep<? extends KStreamHolder<?>> source,
-      @JsonProperty(value = "keyExpression", required = true) final Expression keyExpression
+      @JsonProperty(value = "keyExpression", required = true) final Expression keyExpression,
+      @JsonProperty(value = "alias") final Optional<ColumnName> alias
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
     this.keyExpression = Objects.requireNonNull(keyExpression, "keyExpression");
+    this.alias = Objects.requireNonNull(alias, "alias");
   }
 
   @Override
@@ -56,6 +61,10 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
 
   public Expression getKeyExpression() {
     return keyExpression;
+  }
+
+  public Optional<ColumnName> getAlias() {
+    return alias;
   }
 
   public ExecutionStep<? extends KStreamHolder<?>> getSource() {
@@ -77,12 +86,12 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
     }
     final StreamSelectKey that = (StreamSelectKey) o;
     return Objects.equals(properties, that.properties)
-        && Objects.equals(source, that.source);
+        && Objects.equals(source, that.source)
+        && Objects.equals(alias, that.alias);
   }
 
   @Override
   public int hashCode() {
-
-    return Objects.hash(properties, source);
+    return Objects.hash(properties, source, alias);
   }
 }

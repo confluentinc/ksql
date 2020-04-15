@@ -55,7 +55,6 @@ import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.ksql.Column;
@@ -146,13 +145,7 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitCast(final Cast node, final ExpressionTypeContext expressionTypeContext) {
-      final SqlType sqlType = node.getType().getSqlType();
-      if (!sqlType.supportsCast()) {
-        throw new KsqlFunctionException("Only casts to primitive types or decimals "
-            + "are supported: " + sqlType);
-      }
-
-      expressionTypeContext.setSqlType(sqlType);
+      expressionTypeContext.setSqlType(node.getType().getSqlType());
       return null;
     }
 
@@ -404,7 +397,11 @@ public class ExpressionTypeManager {
           .collect(Collectors.toList());
 
       if (keyTypes.stream().anyMatch(type -> !SqlTypes.STRING.equals(type))) {
-        throw new KsqlException("Only STRING keys are supported in maps but got: " + keyTypes);
+        final String types = keyTypes.stream()
+            .map(type -> type == null ? "NULL" : type.toString())
+            .collect(Collectors.joining(", ", "[", "]"));
+
+        throw new KsqlException("Only STRING keys are supported in maps but got: " + types);
       }
 
       final List<SqlType> valueTypes = exp.getMap()
@@ -414,8 +411,15 @@ public class ExpressionTypeManager {
             process(val, context);
             return context.getSqlType();
           })
+          .filter(Objects::nonNull)
           .distinct()
           .collect(Collectors.toList());
+
+      if (valueTypes.size() == 0) {
+        throw new KsqlException("Cannot construct a map with all NULL values "
+            + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
+            + "cast a NULL value to the desired type.");
+      }
 
       if (valueTypes.size() != 1) {
         throw new KsqlException(
@@ -423,11 +427,6 @@ public class ExpressionTypeManager {
                 "Cannot construct a map with mismatching value types (%s) from expression %s.",
                 valueTypes,
                 exp));
-      }
-
-      if (valueTypes.get(0) == null) {
-        throw new KsqlException("Cannot construct MAP with NULL values. As a workaround, you "
-            + "may cast a NULL value to the desired type.");
       }
 
       context.setSqlType(SqlMap.of(valueTypes.get(0)));

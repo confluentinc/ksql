@@ -1,0 +1,27 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1586271091940,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<K1 VARCHAR, K2 VARCHAR, V1 INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<M MAP<VARCHAR, INT>> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "k1" : "foo",
+      "k2" : "bar",
+      "v1" : 10
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "M" : {
+        "foo" : 10,
+        "bar" : null
+      }
+    }
+  } ]
+}

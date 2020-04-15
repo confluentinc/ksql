@@ -97,7 +97,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.QueryStateCount;
+import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -542,8 +542,8 @@ public class KsqlResourceTest {
     final QueryDescriptionList descriptionList = makeSingleRequest(
         "SHOW QUERIES EXTENDED;", QueryDescriptionList.class);
 
-    final Map<KsqlHostInfoEntity, String> queryHostState =
-        ImmutableMap.of(new KsqlHostInfoEntity(APPLICATION_HOST, APPLICATION_PORT), "CREATED");
+    final Map<KsqlHostInfoEntity, KsqlConstants.KsqlQueryStatus> queryHostState =
+        ImmutableMap.of(new KsqlHostInfoEntity(APPLICATION_HOST, APPLICATION_PORT), KsqlConstants.KsqlQueryStatus.RUNNING);
     // Then:
     assertThat(descriptionList.getQueryDescriptions(), containsInAnyOrder(
         QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0), queryHostState),
@@ -1990,7 +1990,7 @@ public class KsqlResourceTest {
             ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
-            new QueryStateCount(
+            QueryStatusCount.fromStreamsStateCounts(
                 Collections.singletonMap(KafkaStreams.State.valueOf(md.getState()), 1)))
     ).collect(Collectors.toList());
   }

@@ -21,9 +21,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
 public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
@@ -32,22 +34,28 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
   private final ExecutionStep<KStreamHolder<K>> source;
   private final Formats internalFormats;
   private final ImmutableList<Expression> groupByExpressions;
+  private final Optional<ColumnName> alias;
 
   public StreamGroupBy(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
       @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
-      @JsonProperty(value = "groupByExpressions", required = true) final
-      List<Expression> groupByExpressions) {
+      @JsonProperty(value = "groupByExpressions", required = true) final List<Expression> groupBys,
+      @JsonProperty(value = "alias") final Optional<ColumnName> alias
+  ) {
     this.properties = requireNonNull(props, "props");
     this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.source = requireNonNull(source, "source");
-    this.groupByExpressions = ImmutableList
-        .copyOf(requireNonNull(groupByExpressions, "groupByExpressions"));
+    this.groupByExpressions = ImmutableList.copyOf(requireNonNull(groupBys, "groupBys"));
+    this.alias = requireNonNull(alias, "alias");
   }
 
   public List<Expression> getGroupByExpressions() {
     return groupByExpressions;
+  }
+
+  public Optional<ColumnName> getAlias() {
+    return alias;
   }
 
   @Override
@@ -86,11 +94,12 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats)
-        && Objects.equals(groupByExpressions, that.groupByExpressions);
+        && Objects.equals(groupByExpressions, that.groupByExpressions)
+        && Objects.equals(alias, that.alias);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, source, internalFormats, groupByExpressions);
+    return Objects.hash(properties, source, internalFormats, groupByExpressions, alias);
   }
 }

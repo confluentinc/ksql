@@ -45,6 +45,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
@@ -200,7 +201,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(result, is(initialSchemaKStream));
@@ -215,7 +216,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(result, is(initialSchemaKStream));
@@ -230,7 +231,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -246,7 +247,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -261,7 +262,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -275,7 +276,9 @@ public class SchemaKStreamTest {
     final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
-    initialSchemaKStream.selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+    initialSchemaKStream.selectKey(repartitionNode.getPartitionBy(), Optional.empty(),
+        childContextStacker
+    );
   }
 
   @Test
@@ -383,7 +386,7 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
-    final SchemaKStream result = initialSchemaKStream
+    final SchemaKStream<?> result = initialSchemaKStream
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
@@ -398,11 +401,15 @@ public class SchemaKStreamTest {
         planNode.getId(),
         planNode,
         schemaKTable.schema,
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL2")),
+        new PartitionBy(
+            Optional.empty(),
+            new UnqualifiedColumnReferenceExp(ColumnName.of("COL2")),
+            Optional.empty()
+        ),
         KeyField.none());
 
     // When:
-    schemaKTable.selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+    schemaKTable.selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
   }
 
   @Test
@@ -413,7 +420,7 @@ public class SchemaKStreamTest {
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
     // When:
-    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
+    final SchemaKStream<?> projectedSchemaKStream = initialSchemaKStream.select(
         projectNode.getSelectExpressions(),
         childContextStacker,
         queryBuilder);
@@ -492,7 +499,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        childContextStacker);
+        Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(rekeyedSchemaKStream.getKeyField(), is(expected));
@@ -506,7 +513,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        childContextStacker);
+        Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(
@@ -529,7 +536,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        childContextStacker);
+        Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(
@@ -552,7 +559,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        childContextStacker
+        Optional.empty(), childContextStacker
     );
 
     // Then:
@@ -571,7 +578,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        childContextStacker
+        Optional.empty(), childContextStacker
     );
 
     // Then:
@@ -601,7 +608,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        childContextStacker
+        Optional.empty(), childContextStacker
     );
 
     // Then:
@@ -624,7 +631,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        childContextStacker
+        Optional.empty(), childContextStacker
     );
 
     // Then:
@@ -637,8 +644,8 @@ public class SchemaKStreamTest {
                 initialSchemaKStream.getSourceStep(),
                 io.confluent.ksql.execution.plan.Formats
                     .of(expectedKeyFormat, valueFormat, SerdeOption.none()),
-                groupBy
-            )
+                groupBy,
+                Optional.empty())
         )
     );
   }
@@ -655,7 +662,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        childContextStacker
+        Optional.empty(), childContextStacker
     );
 
     // Then:
@@ -678,7 +685,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        childContextStacker
+        Optional.empty(), childContextStacker
     );
 
     // Then:
@@ -696,7 +703,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         ImmutableList.of(groupBy),
-        childContextStacker
+        Optional.empty(), childContextStacker
     );
 
     // Then:

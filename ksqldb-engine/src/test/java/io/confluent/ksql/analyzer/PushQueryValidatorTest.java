@@ -140,14 +140,14 @@ public class PushQueryValidatorTest {
 
   @SuppressWarnings("unchecked")
   private void givenSourceTable() {
-    when(analysis.getFromDataSources()).thenReturn(ImmutableList.of(aliasedSource));
+    when(analysis.getAllDataSources()).thenReturn(ImmutableList.of(aliasedSource));
     when(aliasedSource.getDataSource()).thenReturn(source);
     when(source.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
   }
 
   @SuppressWarnings("unchecked")
   private void givenSourceStream() {
-    when(analysis.getFromDataSources()).thenReturn(ImmutableList.of(aliasedSource));
+    when(analysis.getAllDataSources()).thenReturn(ImmutableList.of(aliasedSource));
     when(aliasedSource.getDataSource()).thenReturn(source);
     when(source.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
   }

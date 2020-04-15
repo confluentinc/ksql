@@ -93,6 +93,10 @@ public abstract class AstVisitor<R, C> {
     return visitRelation(node, context);
   }
 
+  protected R visitJoinedSource(final JoinedSource joinedSource, final C context) {
+    return visitRelation(joinedSource, context);
+  }
+
   protected R visitWithinExpression(final WithinExpression node, final C context) {
     return visitNode(node, context);
   }
@@ -135,6 +139,10 @@ public abstract class AstVisitor<R, C> {
 
   protected R visitDropTable(final DropTable node, final C context) {
     return visitStatement(node, context);
+  }
+
+  protected R visitPartitionBy(final PartitionBy node, final C context) {
+    return visitNode(node, context);
   }
 
   protected R visitGroupBy(final GroupBy node, final C context) {

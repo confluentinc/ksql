@@ -18,7 +18,6 @@ package io.confluent.ksql.parser;
 import static com.google.common.collect.Iterables.getOnlyElement;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.Name;
@@ -36,6 +35,7 @@ import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
+import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
@@ -45,6 +45,7 @@ import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
@@ -55,7 +56,6 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
@@ -63,7 +63,6 @@ import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
@@ -115,20 +114,11 @@ public final class SqlFormatter {
         ).append('\n');
       }
 
-      if (node.getGroupBy().isPresent()) {
-        final String expressions = node.getGroupBy().get().getGroupingExpressions().stream()
-            .map(SqlFormatter::formatExpression)
-            .collect(Collectors.joining(", "));
+      node.getGroupBy()
+          .ifPresent(groupBy -> process(groupBy, indent));
 
-        append(indent, "GROUP BY " + expressions)
-            .append('\n');
-      }
-
-      if (node.getPartitionBy().isPresent()) {
-        append(indent, "PARTITION BY "
-            + formatExpression(node.getPartitionBy().get()))
-            .append('\n');
-      }
+      node.getPartitionBy()
+          .ifPresent(partitionBy -> process(partitionBy, indent));
 
       if (node.getHaving().isPresent()) {
         append(indent, "HAVING "
@@ -207,10 +197,14 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitJoin(final Join join, final Integer indent) {
-      final JoinedSource node = Iterables.getOnlyElement(join.getRights());
-
-      final String type = node.getType().getFormatted();
       process(join.getLeft(), indent);
+      join.getRights().forEach(node -> process(node, indent));
+      return null;
+    }
+
+    @Override
+    protected Void visitJoinedSource(final JoinedSource node, final Integer indent) {
+      final String type = node.getType().getFormatted();
 
       builder.append('\n');
       append(indent, type).append(" JOIN ");
@@ -417,23 +411,52 @@ public final class SqlFormatter {
       }
     }
 
+    @Override
+    protected Void visitPartitionBy(final PartitionBy node, final Integer indent) {
+      final String expression = formatExpression(node.getExpression());
+
+      final String alias = node.getAlias()
+          .map(SqlFormatter::escapedName)
+          .map(text -> " AS " + text)
+          .orElse("");
+
+      append(indent, "PARTITION BY " + expression + alias)
+          .append('\n');
+
+      return null;
+    }
+
+    @Override
+    protected Void visitGroupBy(final GroupBy node, final Integer indent) {
+      final boolean surroundWithBrackets = node.getAlias().isPresent()
+          && node.getGroupingExpressions().size() > 1;
+
+      final String prefix = surroundWithBrackets ? "(" : "";
+      final String suffix = surroundWithBrackets ? ")" : "";
+
+      final String expressions = node.getGroupingExpressions().stream()
+          .map(SqlFormatter::formatExpression)
+          .collect(Collectors.joining(", ", prefix, suffix));
+
+      final String alias = node.getAlias()
+          .map(SqlFormatter::escapedName)
+          .map(text -> " AS " + text)
+          .orElse("");
+
+      append(indent, "GROUP BY " + expressions + alias)
+          .append('\n');
+
+      return null;
+    }
+
     private void processRelation(final Relation relation, final Integer indent) {
       if (relation instanceof Table) {
         builder.append("TABLE ")
-                .append(escapedName(((Table) relation).getName()))
-                .append('\n');
+            .append(escapedName(((Table) relation).getName()))
+            .append('\n');
       } else {
         process(relation, indent);
       }
-    }
-
-    private void processPartitionBy(
-        final Optional<Expression> partitionByColumn,
-        final Integer indent
-    ) {
-      partitionByColumn.ifPresent(partitionBy -> append(indent, "PARTITION BY "
-              + formatExpression(partitionBy))
-          .append('\n'));
     }
 
     private StringBuilder append(final int indent, final String value) {
@@ -495,11 +518,24 @@ public final class SqlFormatter {
     }
 
     private static String formatTableElement(final TableElement e) {
+      final String postFix;
+      switch (e.getNamespace()) {
+        case PRIMARY_KEY:
+          postFix = " PRIMARY KEY";
+          break;
+        case KEY:
+          postFix = " KEY";
+          break;
+        default:
+          postFix = "";
+          break;
+      }
+
       return escapedName(e.getName())
           + " "
           + ExpressionFormatter.formatExpression(
-              e.getType(), FormatOptions.of(IdentifierUtil::needsQuotes))
-          + (e.getNamespace() == Namespace.KEY ? " KEY" : "");
+          e.getType(), FormatOptions.of(IdentifierUtil::needsQuotes))
+          + postFix;
     }
   }
 
@@ -510,7 +546,7 @@ public final class SqlFormatter {
     );
   }
 
-  private static String escapedName(final Name name) {
+  private static String escapedName(final Name<?> name) {
     return name.toString(FORMAT_OPTIONS);
   }
 }

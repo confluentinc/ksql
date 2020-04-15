@@ -96,8 +96,7 @@ both of the following conditions are true:
 -   For every record, the contents of the message key of the {{
     site.aktm }} message itself must be the same as the contents of
     the column set in KEY.
--   The KEY property must be set to a column of type VARCHAR or
-    STRING.
+-   The KEY property must be set to a value column with the same SQL data type as the key column.
 
 For more information, see [Key Requirements](../syntax-reference.md#key-requirements).
 

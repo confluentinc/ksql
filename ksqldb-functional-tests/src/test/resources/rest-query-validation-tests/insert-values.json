@@ -704,6 +704,66 @@
       "outputs": [
         {"topic": "test_topic", "key": null, "value": {"VAL": {"FOO": null, "bar": null}}}
       ]
+    },
+    {
+      "name": "should insert nulls",
+      "statements": [
+        "CREATE STREAM S (ROWKEY INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO S (ROWKEY, NAME) VALUES (NULL, NULL);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"NAME": null}}
+      ]
+    },
+    {
+      "name": "should insert array with null elements",
+      "statements": [
+        "CREATE STREAM S (ROWKEY INT KEY, V0 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO S (ROWKEY, V0) VALUES (1, ARRAY[CAST(null AS INT)]);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": 1, "value": {"V0": [null]}}
+      ]
+    },
+    {
+      "name": "should insert map with null values",
+      "statements": [
+        "CREATE STREAM S (ROWKEY INT KEY, V0 MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO S (ROWKEY, V0) VALUES (1, MAP('k1' := CAST(null AS INT)));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": 1, "value": {"V0": {"k1": null}}}
+      ]
+    },
+    {
+      "name": "should insert map with null keys",
+      "statements": [
+        "CREATE STREAM S (ROWKEY INT KEY, V0 MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO S (ROWKEY, V0) VALUES (1, MAP(CAST(NULL AS STRING) := 1));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": 1, "value": {"V0": {"null": 1}}}
+      ]
+    },
+    {
+      "name": "should insert struct with null values",
+      "statements": [
+        "CREATE STREAM S (ROWKEY INT KEY, V0 STRUCT<f0 INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO S (ROWKEY, V0) VALUES (1, STRUCT(f0 := CAST(null AS INT)));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": 1, "value": {"V0": {"F0": null}}}
+      ]
     }
   ]
 }

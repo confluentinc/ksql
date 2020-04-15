@@ -69,6 +69,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -83,7 +84,9 @@ public class SqlFormatterTest {
 
   private AliasedRelation leftAlias;
   private AliasedRelation rightAlias;
+  private AliasedRelation right2Alias;
   private JoinCriteria criteria;
+  private JoinCriteria criteria2;
 
   private MutableMetaStore metaStore;
 
@@ -147,6 +150,11 @@ public class SqlFormatterTest {
       new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING))
   );
 
+  private static final TableElements ELEMENTS_WITH_PRIMARY_KEY = TableElements.of(
+      new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("k3"), new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING))
+  );
+
   private static final TableElements ELEMENTS_WITHOUT_KEY = TableElements.of(
       new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING)),
       new TableElement(Namespace.VALUE, ColumnName.of("Bar"), new Type(SqlTypes.STRING))
@@ -156,12 +164,18 @@ public class SqlFormatterTest {
   public void setUp() {
     final Table left = new Table(SourceName.of("left"));
     final Table right = new Table(SourceName.of("right"));
+    final Table right2 = new Table(SourceName.of("right2"));
+
     leftAlias = new AliasedRelation(left, SourceName.of("L"));
     rightAlias = new AliasedRelation(right, SourceName.of("R"));
+    right2Alias = new AliasedRelation(right2, SourceName.of("R2"));
 
     criteria = new JoinOn(new ComparisonExpression(ComparisonExpression.Type.EQUAL,
                                                    new StringLiteral("left.col0"),
                                                    new StringLiteral("right.col0")));
+    criteria2 = new JoinOn(new ComparisonExpression(ComparisonExpression.Type.EQUAL,
+        new StringLiteral("left.col0"),
+        new StringLiteral("right2.col0")));
 
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
 
@@ -262,7 +276,7 @@ public class SqlFormatterTest {
     );
     final CreateTable createTable = new CreateTable(
         TEST,
-        ELEMENTS_WITH_KEY,
+        ELEMENTS_WITH_PRIMARY_KEY,
         false,
         props);
 
@@ -270,7 +284,7 @@ public class SqlFormatterTest {
     final String sql = SqlFormatter.formatSql(createTable);
 
     // Then:
-    assertThat(sql, is("CREATE TABLE TEST (`k3` STRING KEY, `Foo` STRING) "
+    assertThat(sql, is("CREATE TABLE TEST (`k3` STRING PRIMARY KEY, `Foo` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', "
         + "TIMESTAMP='Foo', TIMESTAMP_FORMAT='%s', VALUE_FORMAT='JSON');"));
   }
@@ -280,7 +294,7 @@ public class SqlFormatterTest {
     // Given:
     final CreateTable createTable = new CreateTable(
         TEST,
-        ELEMENTS_WITH_KEY,
+        ELEMENTS_WITH_PRIMARY_KEY,
         false,
         SOME_WITH_PROPS);
 
@@ -288,7 +302,7 @@ public class SqlFormatterTest {
     final String sql = SqlFormatter.formatSql(createTable);
 
     // Then:
-    assertThat(sql, is("CREATE TABLE TEST (`k3` STRING KEY, `Foo` STRING) "
+    assertThat(sql, is("CREATE TABLE TEST (`k3` STRING PRIMARY KEY, `Foo` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 
@@ -414,6 +428,51 @@ public class SqlFormatterTest {
         Optional.empty())));
 
     final String expected = "`left` L\nFULL OUTER JOIN `right` R ON (('left.col0' = 'right.col0'))";
+    assertEquals(expected, SqlFormatter.formatSql(join));
+  }
+
+  @Test
+  public void shouldFormatMultipleLeftJoinWithoutWindow() {
+    final List<JoinedSource> rights = ImmutableList.of(
+        new JoinedSource(Optional.empty(), rightAlias, JoinedSource.Type.LEFT, criteria, Optional.empty()),
+        new JoinedSource(Optional.empty(), right2Alias, JoinedSource.Type.LEFT, criteria2, Optional.empty())
+    );
+
+    final Join join = new Join(leftAlias, rights);
+
+    final String expected = "`left` L"
+        + "\nLEFT OUTER JOIN `right` R ON (('left.col0' = 'right.col0'))"
+        + "\nLEFT OUTER JOIN `right2` R2 ON (('left.col0' = 'right2.col0'))";
+    assertEquals(expected, SqlFormatter.formatSql(join));
+  }
+
+  @Test
+  public void shouldFormatMultipleLeftJoinWithWithin() {
+    final List<JoinedSource> rights = ImmutableList.of(
+        new JoinedSource(Optional.empty(), rightAlias, JoinedSource.Type.LEFT, criteria, Optional.of(new WithinExpression(10, TimeUnit.SECONDS))),
+        new JoinedSource(Optional.empty(), right2Alias, JoinedSource.Type.LEFT, criteria2, Optional.of(new WithinExpression(10, TimeUnit.SECONDS)))
+    );
+
+    final Join join = new Join(leftAlias, rights);
+
+    final String expected = "`left` L"
+        + "\nLEFT OUTER JOIN `right` R WITHIN 10 SECONDS ON (('left.col0' = 'right.col0'))"
+        + "\nLEFT OUTER JOIN `right2` R2 WITHIN 10 SECONDS ON (('left.col0' = 'right2.col0'))";
+    assertEquals(expected, SqlFormatter.formatSql(join));
+  }
+
+  @Test
+  public void shouldFormatMultipleJoinsWithDifferentTypes() {
+    final List<JoinedSource> rights = ImmutableList.of(
+        new JoinedSource(Optional.empty(), rightAlias, JoinedSource.Type.LEFT, criteria, Optional.of(new WithinExpression(10, TimeUnit.SECONDS))),
+        new JoinedSource(Optional.empty(), right2Alias, JoinedSource.Type.INNER, criteria2, Optional.of(new WithinExpression(10, TimeUnit.SECONDS)))
+    );
+
+    final Join join = new Join(leftAlias, rights);
+
+    final String expected = "`left` L"
+        + "\nLEFT OUTER JOIN `right` R WITHIN 10 SECONDS ON (('left.col0' = 'right.col0'))"
+        + "\nINNER JOIN `right2` R2 WITHIN 10 SECONDS ON (('left.col0' = 'right2.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 

@@ -28,7 +28,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
-import io.confluent.ksql.rest.entity.QueryStateCount;
+import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
@@ -228,7 +228,7 @@ public final class ListSourceExecutor {
             ImmutableSet.of(q.getSinkName().text()),
             ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
             q.getQueryId(),
-            new QueryStateCount(
+            QueryStatusCount.fromStreamsStateCounts(
                 Collections.singletonMap(
                     KafkaStreams.State.valueOf(q.getState()), 1)))).collect(Collectors.toList());
   }

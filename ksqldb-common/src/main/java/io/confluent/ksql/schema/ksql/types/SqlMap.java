@@ -46,11 +46,6 @@ public final class SqlMap extends SqlType {
   }
 
   @Override
-  public boolean supportsCast() {
-    return false;
-  }
-
-  @Override
   public void validateValue(final Object value) {
     if (value == null) {
       return;

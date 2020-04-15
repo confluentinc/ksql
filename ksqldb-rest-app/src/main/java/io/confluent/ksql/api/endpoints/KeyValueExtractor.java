@@ -68,8 +68,11 @@ public final class KeyValueExtractor {
     return GenericRow.fromList(vals);
   }
 
-  private static Object coerceObject(final Object value, final SqlType sqlType,
-      final SqlValueCoercer sqlValueCoercer) {
+  private static Object coerceObject(
+      final Object value,
+      final SqlType sqlType,
+      final SqlValueCoercer sqlValueCoercer
+  ) {
     if (sqlType instanceof SqlDecimal) {
       // We have to handle this manually as SqlValueCoercer doesn't seem to do it
       final SqlDecimal decType = (SqlDecimal) sqlType;
@@ -85,10 +88,12 @@ public final class KeyValueExtractor {
       }
     }
     return sqlValueCoercer.coerce(value, sqlType)
+
         .orElseThrow(() -> new KsqlApiException(
             String.format("Can't coerce a field of type %s (%s) into type %s", value.getClass(),
                 value, sqlType),
-            ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD));
+            ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD))
+        .orElse(null);
   }
 
 }

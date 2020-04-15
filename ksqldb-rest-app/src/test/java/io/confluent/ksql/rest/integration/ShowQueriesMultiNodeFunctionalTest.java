@@ -155,6 +155,6 @@ public class ShowQueriesMultiNodeFunctionalTest {
       return Collections.emptySet();
     }
     
-    return queryDescriptions.get(0).getKsqlHostQueryState().keySet();
+    return queryDescriptions.get(0).getKsqlHostQueryStatus().keySet();
   }
 }

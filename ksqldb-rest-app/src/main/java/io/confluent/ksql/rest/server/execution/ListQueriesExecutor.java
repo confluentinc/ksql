@@ -30,18 +30,22 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
-import io.confluent.ksql.rest.entity.QueryStateCount;
+import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.util.DiscoverRemoteHostsUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -71,7 +75,7 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final List<KsqlEntity> remoteResults =
+    final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults =
         scatterGather(statement, sessionProperties, executionContext, serviceContext);
 
     return statement.getStatement().getShowExtended()
@@ -80,7 +84,7 @@ public final class ListQueriesExecutor {
   }
 
   private static Optional<KsqlEntity> executeSimple(
-      final List<KsqlEntity> remoteResults,
+      final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults,
       final ConfiguredStatement<ListQueries> statement,
       final KsqlExecutionContext executionContext
   ) {
@@ -106,16 +110,17 @@ public final class ListQueriesExecutor {
                 ImmutableSet.of(q.getSinkName().text()),
                 ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
                 q.getQueryId(),
-                new QueryStateCount(
+                QueryStatusCount.fromStreamsStateCounts(
                     Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)))
         ));
   }
 
   private static void mergeSimple(
-      final List<KsqlEntity> remoteResults,
+      final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults,
       final Map<QueryId, RunningQuery> allResults
   ) {
-    final List<RunningQuery> remoteRunningQueries = remoteResults.stream()
+    final List<KsqlEntity> remoteQueries = remoteResults.getLeft();
+    final List<RunningQuery> remoteRunningQueries = remoteQueries.stream()
         .map(Queries.class::cast)
         .map(Queries::getQueries)
         .flatMap(List::stream)
@@ -124,23 +129,31 @@ public final class ListQueriesExecutor {
     for (RunningQuery q : remoteRunningQueries) {
       final QueryId queryId = q.getId();
 
-      // If the query has already been discovered, update the QueryStateCount object
+      // If the query has already been discovered, update the QueryStatusCount object
       if (allResults.containsKey(queryId)) {
-        for (Map.Entry<KafkaStreams.State, Integer> entry :
-            q.getStateCount().getStates().entrySet()) {
+        for (Map.Entry<KsqlQueryStatus, Integer> entry :
+            q.getStatusCount().getStatuses().entrySet()) {
           allResults
               .get(queryId)
-              .getStateCount()
-              .updateStateCount(entry.getKey(), entry.getValue());
+              .getStatusCount()
+              .updateStatusCount(entry.getKey(), entry.getValue());
         }
       } else {
         allResults.put(queryId, q);
       }
     }
+
+    final Set<HostInfo> unresponsiveRemoteHosts = remoteResults.getRight();
+    if (!unresponsiveRemoteHosts.isEmpty()) {
+      for (RunningQuery runningQuery : allResults.values()) {
+        runningQuery.getStatusCount()
+            .updateStatusCount(KsqlQueryStatus.UNRESPONSIVE, unresponsiveRemoteHosts.size());
+      }
+    }
   }
   
   private static Optional<KsqlEntity> executeExtended(
-      final List<KsqlEntity> remoteResults,
+      final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults,
       final SessionProperties sessionProperties,
       final ConfiguredStatement<ListQueries> statement,
       final KsqlExecutionContext executionContext
@@ -168,14 +181,17 @@ public final class ListQueriesExecutor {
                 query,
                 Collections.singletonMap(
                     new KsqlHostInfoEntity(sessionProperties.getKsqlHostInfo()),
-                    query.getState()))));
+                    KsqlConstants.fromStreamsState(
+                        KafkaStreams.State.valueOf(query.getState()))
+                ))));
   }
 
   private static void mergeExtended(
-      final List<KsqlEntity> remoteResults,
+      final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults,
       final Map<QueryId, QueryDescription> allResults
   ) {
-    final List<QueryDescription> remoteQueryDescriptions = remoteResults.stream()
+    final List<KsqlEntity> remoteQueries = remoteResults.getLeft();
+    final List<QueryDescription> remoteQueryDescriptions = remoteQueries.stream()
         .map(QueryDescriptionList.class::cast)
         .map(QueryDescriptionList::getQueryDescriptions)
         .flatMap(List::stream)
@@ -183,28 +199,37 @@ public final class ListQueriesExecutor {
     for (QueryDescription q : remoteQueryDescriptions) {
       final QueryId queryId = q.getId();
 
-      // If the query has already been discovered, add to the ksqlQueryHostState mapping
+      // If the query has already been discovered, add to the ksqlQueryHostStatus mapping
       if (allResults.containsKey(queryId)) {
-        for (Map.Entry<KsqlHostInfoEntity, String> entry :
-            q.getKsqlHostQueryState().entrySet()) {
+        for (Map.Entry<KsqlHostInfoEntity, KsqlQueryStatus> entry :
+            q.getKsqlHostQueryStatus().entrySet()) {
           allResults
               .get(queryId)
-              .updateKsqlHostQueryState(entry.getKey(), entry.getValue());
+              .updateKsqlHostQueryStatus(entry.getKey(), entry.getValue());
         }
       } else {
         allResults.put(queryId, q);
       }
     }
+    
+    final Set<HostInfo> unresponsiveRemoteHosts = remoteResults.getRight();
+    for (HostInfo hostInfo: unresponsiveRemoteHosts) {
+      for (QueryDescription queryDescription: allResults.values()) {
+        queryDescription.updateKsqlHostQueryStatus(
+            new KsqlHostInfoEntity(hostInfo.host(), hostInfo.port()),
+            KsqlQueryStatus.UNRESPONSIVE);
+      }
+    }
   }
 
-  private static List<KsqlEntity> scatterGather(
+  private static Pair<List<KsqlEntity>, Set<HostInfo>> scatterGather(
       final ConfiguredStatement<ListQueries> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     if (sessionProperties.getInternalRequest()) {
-      return ImmutableList.of();
+      return new Pair<>(ImmutableList.of(), ImmutableSet.of());
     }
 
     final Set<HostInfo> remoteHosts = DiscoverRemoteHostsUtil.getRemoteHosts(
@@ -213,9 +238,10 @@ public final class ListQueriesExecutor {
     );
 
     if (remoteHosts.isEmpty()) {
-      return ImmutableList.of();
+      return new Pair<>(ImmutableList.of(), ImmutableSet.of());
     }
 
+    final Set<HostInfo> unresponsiveHosts = new HashSet<>();
     final ExecutorService executorService = Executors.newFixedThreadPool(remoteHosts.size());
 
     try {
@@ -246,16 +272,18 @@ public final class ListQueriesExecutor {
           if (response.isErroneous()) {
             LOG.warn("Error response from host. host: {}, cause: {}",
                 e.getKey(), response.getErrorMessage().getMessage());
+            unresponsiveHosts.add(e.getKey());
           } else {
             results.add(response.getResponse().get(0));
           }
         } catch (final Exception cause) {
           LOG.warn("Failed to retrieve query info from host. host: {}, cause: {}",
               e.getKey(), cause.getMessage());
+          unresponsiveHosts.add(e.getKey());
         }
       }
 
-      return results;
+      return new Pair<>(results, unresponsiveHosts);
     } finally {
       executorService.shutdown();
     }

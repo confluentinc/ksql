@@ -16,8 +16,6 @@
 package io.confluent.ksql.util;
 
 import io.vertx.core.Context;
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 
 /**
@@ -27,24 +25,6 @@ import io.vertx.core.Vertx;
 public final class VertxUtils {
 
   private VertxUtils() {
-  }
-
-  /**
-   * Connects promise to the future. I.e. when the future completes it causes the promise to
-   * complete.
-   *
-   * @param future  The future
-   * @param promise The promise
-   * @param <T>     The type of the result
-   */
-  public static <T> void connectPromise(final Future<T> future, final Promise<T> promise) {
-    future.setHandler(ar -> {
-      if (ar.succeeded()) {
-        promise.complete(ar.result());
-      } else {
-        promise.fail(ar.cause());
-      }
-    });
   }
 
   public static void checkIsWorker() {

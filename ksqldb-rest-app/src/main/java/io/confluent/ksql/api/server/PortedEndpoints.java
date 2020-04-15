@@ -117,7 +117,7 @@ class PortedEndpoints {
         routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR, e);
         return;
       }
-
+      
       response.setStatusCode(endpointResponse.getStatusCode())
           .setStatusMessage(endpointResponse.getStatusMessage())
           .end(responseBody);

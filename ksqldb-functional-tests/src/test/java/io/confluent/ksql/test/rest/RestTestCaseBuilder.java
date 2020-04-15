@@ -21,11 +21,11 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.test.model.RecordNode;
+import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCaseBuilderUtil;
 import io.confluent.ksql.test.tools.Topic;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,7 +39,7 @@ final class RestTestCaseBuilder {
 
   private final FunctionRegistry functionRegistry = TestFunctionRegistry.INSTANCE.get();
 
-  List<RestTestCase> buildTests(final RestTestCaseNode test, final Path testPath) {
+  static List<RestTestCase> buildTests(final RestTestCaseNode test, final Path testPath) {
     if (!test.isEnabled()) {
       return ImmutableList.of();
     }
@@ -57,7 +57,7 @@ final class RestTestCaseBuilder {
     }
   }
 
-  private RestTestCase createTest(
+  private static RestTestCase createTest(
       final RestTestCaseNode test,
       final Optional<String> explicitFormat,
       final Path testPath
@@ -77,14 +77,9 @@ final class RestTestCaseBuilder {
       final Optional<Matcher<RestResponse<?>>> ee = test.expectedError()
           .map(een -> een.build(Iterables.getLast(statements)));
 
-      final Collection<Topic> topics = TestCaseBuilderUtil.getTopicsByName(
-          statements,
-          test.topics(),
-          test.outputs(),
-          test.inputs(),
-          ee.isPresent(),
-          functionRegistry
-      );
+      final List<Topic> topics = test.topics().stream()
+          .map(TopicNode::build)
+          .collect(Collectors.toList());
 
       final List<Record> inputRecords = test.inputs().stream()
           .map(RecordNode::build)

@@ -89,7 +89,6 @@ public class QueryTranslationTest {
   static class QttTestFile implements TestFile<TestCase> {
 
     private final List<TestCaseNode> tests;
-    private final TestCaseBuilder builder = new TestCaseBuilder();
 
     QttTestFile(@JsonProperty("tests") final List<TestCaseNode> tests) {
       this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
@@ -103,7 +102,7 @@ public class QueryTranslationTest {
     public Stream<TestCase> buildTests(final Path testPath) {
       return tests
           .stream()
-          .flatMap(node -> builder.buildTests(node, testPath).stream());
+          .flatMap(node -> TestCaseBuilder.buildTests(node, testPath).stream());
     }
   }
 }

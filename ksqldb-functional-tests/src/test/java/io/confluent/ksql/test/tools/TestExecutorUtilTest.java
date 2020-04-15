@@ -57,7 +57,7 @@ public class TestExecutorUtilTest {
     final QttTestFile qttTestFile = TestJsonMapper.INSTANCE.get()
         .readValue(new File("src/test/resources/testing_tool_tests.json"), QttTestFile.class);
     final TestCaseNode testCaseNode = qttTestFile.tests.get(0);
-    testCase = new TestCaseBuilder().buildTests(testCaseNode,
+    testCase = TestCaseBuilder.buildTests(testCaseNode,
         new File("src/test/resources/testing_tool_tests.json").toPath()
     ).get(0);
 

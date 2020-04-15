@@ -29,6 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -40,6 +41,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
+import io.confluent.ksql.test.tools.TestCaseBuilderUtil;
 import io.confluent.ksql.test.tools.TestJsonMapper;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopicInfoCache;
@@ -52,6 +54,7 @@ import java.io.Closeable;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -108,7 +111,7 @@ public class RestTestExecutor implements Closeable {
           + "responsesCount: " + testCase.getExpectedResponses().size());
     }
 
-    initializeTopics(testCase.getTopics());
+    initializeTopics(testCase);
 
     final StatementSplit statements = splitStatements(testCase);
 
@@ -155,7 +158,16 @@ public class RestTestExecutor implements Closeable {
     restClient.close();
   }
 
-  private void initializeTopics(final List<Topic> topics) {
+  private void initializeTopics(final RestTestCase testCase) {
+
+    final Collection<Topic> topics = TestCaseBuilderUtil.getAllTopics(
+        testCase.getStatements(),
+        testCase.getTopics(),
+        testCase.getOutputRecords(),
+        testCase.getInputRecords(),
+        TestFunctionRegistry.INSTANCE.get()
+    );
+
     topics.forEach(topic -> {
       final Runnable createJob = () -> kafkaCluster.createTopic(
           topic.getName(),

@@ -348,7 +348,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
-        "message": "Window bounds column WINDOWSTART can only be used in the SELECT clause of windowed aggregations",
+        "message": "Error in WHERE expression: Unknown column WINDOWSTART.",
         "status": 400
       }
     },

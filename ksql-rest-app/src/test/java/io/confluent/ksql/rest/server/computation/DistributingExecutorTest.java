@@ -14,10 +14,14 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static io.confluent.ksql.parser.KsqlParser.PreparedStatement.of;
+import static java.util.Optional.empty;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -52,9 +56,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -72,9 +74,6 @@ public class DistributingExecutorTest {
           ImmutableMap.of(),
           KSQL_CONFIG
       );
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Mock CommandQueue queue;
   @Mock QueuedCommandStatus status;
@@ -151,7 +150,7 @@ public class DistributingExecutorTest {
     when(queue.enqueueCommand(any())).thenThrow(cause);
 
     final PreparedStatement<Statement> preparedStatement =
-        PreparedStatement.of("x", new ListProperties(Optional.empty()));
+        of("x", new ListProperties(empty()));
 
     final ConfiguredStatement<Statement> configured =
         ConfiguredStatement.of(
@@ -160,30 +159,35 @@ public class DistributingExecutorTest {
             KSQL_CONFIG);
 
     // Expect:
-    expectedException.expect(KsqlServerException.class);
-    expectedException.expectMessage(
-        "Could not write the statement 'x' into the command topic: fail");
-    expectedException.expectCause(is(cause));
-
     // When:
-    distributor.execute(configured, ImmutableMap.of(), executionContext, serviceContext);
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(configured, ImmutableMap.of(), executionContext, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not write the statement 'x' into the command topic: fail"));
+    assertThat(e.getCause(), is(cause));
   }
 
   @Test
   public void shouldThrowFailureIfCannotInferSchema() {
     // Given:
     final PreparedStatement<Statement> preparedStatement =
-        PreparedStatement.of("", new ListProperties(Optional.empty()));
+        of("", new ListProperties(empty()));
     final ConfiguredStatement<Statement> configured =
         ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
     when(schemaInjector.inject(any())).thenThrow(new KsqlException("Could not infer!"));
 
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not infer!");
-
     // When:
-    distributor.execute(configured, ImmutableMap.of(), executionContext, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> distributor.execute(configured, ImmutableMap.of(), executionContext, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not infer!"));
   }
 
   @Test
@@ -197,11 +201,11 @@ public class DistributingExecutorTest {
     doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
         .checkAuthorization(eq(userServiceContext), any(), eq(configured.getStatement()));
 
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-
     // When:
-    distributor.execute(configured, ImmutableMap.of(), executionContext, userServiceContext);
+    assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> distributor.execute(configured, ImmutableMap.of(), executionContext, userServiceContext)
+    );
   }
 
   @Test
@@ -215,11 +219,14 @@ public class DistributingExecutorTest {
     doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
         .checkAuthorization(eq(serviceContext), any(), eq(configured.getStatement()));
 
-    // Expect:
-    expectedException.expect(KsqlServerException.class);
-    expectedException.expectCause(is(instanceOf(KsqlTopicAuthorizationException.class)));
 
     // When:
-    distributor.execute(configured, ImmutableMap.of(), executionContext, userServiceContext);
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(configured, ImmutableMap.of(), executionContext, userServiceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), is(instanceOf(KsqlTopicAuthorizationException.class)));
   }
 }

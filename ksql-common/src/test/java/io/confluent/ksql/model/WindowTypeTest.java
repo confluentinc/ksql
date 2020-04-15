@@ -15,17 +15,15 @@
 
 package io.confluent.ksql.model;
 
+import static io.confluent.ksql.model.WindowType.of;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class WindowTypeTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldParseSession() {
@@ -50,20 +48,26 @@ public class WindowTypeTest {
   @Test
   public void shouldIncludeOriginalTextInExceptionMessage() {
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Unknown window type: 'something'");
-
     // When:
-    WindowType.of("something");
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> of("something")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown window type: 'something'"));
   }
 
   @Test
   public void shouldIncludeValidValuesInExceptionMessage() {
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Valid values are: SESSION, HOPPING, TUMBLING");
-
     // When:
-    WindowType.of("meh");
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> of("meh")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Valid values are: SESSION, HOPPING, TUMBLING"));
   }
 }

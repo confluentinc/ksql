@@ -15,6 +15,14 @@
 
 package io.confluent.ksql.configdef;
 
+import static io.confluent.ksql.configdef.ConfigValidators.ValidCaseInsensitiveString;
+import static io.confluent.ksql.configdef.ConfigValidators.ValidCaseInsensitiveString.in;
+import static io.confluent.ksql.configdef.ConfigValidators.enumValues;
+import static io.confluent.ksql.configdef.ConfigValidators.parses;
+import static io.confluent.ksql.configdef.ConfigValidators.validUrl;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,9 +30,7 @@ import static org.mockito.Mockito.when;
 import java.util.function.Function;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -35,20 +41,19 @@ public class ConfigValidatorsTest {
   @Mock
   private Function<String, ?> parser;
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void shouldFailIfValueNotInEnum() {
     // Given:
-    final Validator validator = ConfigValidators.enumValues(TestEnum.class);
+    final Validator validator = enumValues(TestEnum.class);
+
+    // When
+    final ConfigException e = assertThrows(
+        ConfigException.class,
+        () -> validator.ensureValid("propName", "NotValid")
+    );
 
     // Then:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("String must be one of: FOO, BAR");
-
-    // When:
-    validator.ensureValid("propName", "NotValid");
+    assertThat(e.getMessage(), containsString("String must be one of: FOO, BAR"));
   }
 
   @Test
@@ -98,15 +103,17 @@ public class ConfigValidatorsTest {
   @Test
   public void shouldThrowIfNoMatchForCaseInsensitiveString() {
     // Given:
-    final Validator validator = ConfigValidators.ValidCaseInsensitiveString.in("a", "B");
-
-    // Then:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("Invalid value c for configuration propName: "
-        + "String must be one of: A, B");
+    final Validator validator = in("a", "B");
 
     // When:
-    validator.ensureValid("propName", "c");
+    final ConfigException e = assertThrows(
+        ConfigException.class,
+        () -> validator.ensureValid("propName", "c")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value c for configuration propName: "
+        + "String must be one of: A, B"));
   }
 
   @Test
@@ -123,15 +130,17 @@ public class ConfigValidatorsTest {
   @Test
   public void shouldThrowIfNoMatchForCaseInsensitiveStringNull() {
     // Given:
-    final Validator validator = ConfigValidators.ValidCaseInsensitiveString.in("a", "B");
-
-    // Then:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("Invalid value null for configuration propName: "
-        + "String must be one of: A, B");
+    final Validator validator = in("a", "B");
 
     // When:
-    validator.ensureValid("propName", null);
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> validator.ensureValid("propName", null)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value null for configuration propName: "
+        + "String must be one of: A, B"));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -170,30 +179,32 @@ public class ConfigValidatorsTest {
   @Test
   public void shouldThrowIfParserThrows() {
     // Given:
-    final Validator validator = ConfigValidators.parses(parser);
+    final Validator validator = parses(parser);
     when(parser.apply(any())).thenThrow(new IllegalArgumentException("some error"));
 
-    // Then:
-    expectedException.expect(ConfigException.class);
-    expectedException
-            .expectMessage("Configuration propName is invalid: some error");
-
     // When:
-    validator.ensureValid("propName", "value");
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> validator.ensureValid("propName", "value")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Configuration propName is invalid: some error"));
   }
 
   @Test
   public void shouldThrowOnInvalidURL() {
     // Given:
-    final Validator validator = ConfigValidators.validUrl();
+    final Validator validator = validUrl();
+
+    // When
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> validator.ensureValid("propName", "INVALID")
+    );
 
     // Then:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage(
-            "Invalid value INVALID for configuration propName: Not valid URL: no protocol: INVALID");
-
-    // When:
-    validator.ensureValid("propName", "INVALID");
+    assertThat(e.getMessage(), containsString("Invalid value INVALID for configuration propName: Not valid URL: no protocol: INVALID"));
   }
 
   @Test

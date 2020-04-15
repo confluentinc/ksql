@@ -48,9 +48,7 @@ import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -82,9 +80,6 @@ public class KsqlStructuredDataOutputNodeTest {
           SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get());
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private QueryIdGenerator queryIdGenerator;

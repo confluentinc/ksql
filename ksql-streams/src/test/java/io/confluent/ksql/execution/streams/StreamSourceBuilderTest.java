@@ -15,10 +15,14 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.execution.plan.Formats.of;
+import static io.confluent.ksql.schema.ksql.LogicalSchema.builder;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -80,7 +84,6 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
@@ -156,9 +159,6 @@ public class StreamSourceBuilderTest {
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   @SuppressWarnings("unchecked")
@@ -304,22 +304,22 @@ public class StreamSourceBuilderTest {
     final StreamSource streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
-        Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
+        of(keyFormat, valueFormat, SERDE_OPTIONS),
         extractionPolicy,
         TIMESTAMP_IDX,
         offsetReset,
-        LogicalSchema.builder()
-            .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
-            .keyColumn(ColumnName.of("f2"), SqlTypes.BIGINT)
+        builder()
+            .keyColumn(ColumnName.of("f1"), INTEGER)
+            .keyColumn(ColumnName.of("f2"), BIGINT)
             .valueColumns(SCHEMA.value())
             .build()
     );
 
-    // Then:
-    expectedException.expect(instanceOf(IllegalStateException.class));
-
     // When:
-    streamSource.build(planBuilder);
+    assertThrows(
+        IllegalStateException.class,
+        () -> streamSource.build(planBuilder)
+    );
   }
 
   @Test

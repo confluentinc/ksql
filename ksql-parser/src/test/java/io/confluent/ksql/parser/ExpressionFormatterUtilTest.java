@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.parser;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;

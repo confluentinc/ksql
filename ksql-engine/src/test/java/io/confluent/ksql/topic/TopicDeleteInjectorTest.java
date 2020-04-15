@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.topic;
 
+import static io.confluent.ksql.name.SourceName.of;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -50,9 +53,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -68,9 +69,6 @@ public class TopicDeleteInjectorTest {
   private static final ConfiguredStatement<DropStream> DROP_WITHOUT_DELETE_TOPIC = givenStatement(
       "DROP STREAM SOMETHING",
       new DropStream(SOURCE_NAME, false, false));
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private MutableMetaStore metaStore;
@@ -163,14 +161,16 @@ public class TopicDeleteInjectorTest {
   public void shouldThrowExceptionIfSourceDoesNotExist() {
     // Given:
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
-        "DROP SOMETHING", new DropStream(SourceName.of("SOMETHING_ELSE"), true, true));
-
-    // Expect:
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("Could not find source to delete topic for");
+        "DROP SOMETHING", new DropStream(of("SOMETHING_ELSE"), true, true));
 
     // When:
-    deleteInjector.inject(dropStatement);
+    final Exception e = assertThrows(
+        RuntimeException.class,
+        () -> deleteInjector.inject(dropStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not find source to delete topic for"));
   }
 
   @Test
@@ -201,44 +201,47 @@ public class TopicDeleteInjectorTest {
             true,
             true)
     );
-    final DataSource<?> other1 = givenSource(SourceName.of("OTHER1"), TOPIC_NAME);
-    final DataSource<?> other2 = givenSource(SourceName.of("OTHER2"), TOPIC_NAME);
+    final DataSource<?> other1 = givenSource(of("OTHER1"), TOPIC_NAME);
+    final DataSource<?> other2 = givenSource(of("OTHER2"), TOPIC_NAME);
     final Map<SourceName, DataSource<?>> sources = new HashMap<>();
     sources.put(SOURCE_NAME, source);
-    sources.put(SourceName.of("OTHER1"), other1);
-    sources.put(SourceName.of("OTHER2"), other2);
+    sources.put(of("OTHER1"), other1);
+    sources.put(of("OTHER2"), other2);
     when(metaStore.getAllDataSources()).thenReturn(sources);
 
-    // Expect:
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage(
-        "Refusing to delete topic. "
-            + "Found other data sources (OTHER1, OTHER2) using topic something");
-
     // When:
-    deleteInjector.inject(dropStatement);
+    final Exception e = assertThrows(
+        RuntimeException.class,
+        () -> deleteInjector.inject(dropStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Refusing to delete topic. "
+        + "Found other data sources (OTHER1, OTHER2) using topic something"));
   }
 
   @Test
   public void shouldThrowIfTopicDoesNotExist() {
     // Given:
-    final SourceName STREAM_1 = SourceName.of("stream1");
+    final SourceName STREAM_1 = of("stream1");
     final DataSource<?> other1 = givenSource(STREAM_1, "topicName");
     when(metaStore.getSource(STREAM_1)).thenAnswer(inv -> other1);
     when(other1.getKafkaTopicName()).thenReturn("topicName");
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
         "DROP stream1 DELETE TOPIC;",
-        new DropStream(SourceName.of("stream1"), true, true)
+        new DropStream(of("stream1"), true, true)
     );
     doThrow(RuntimeException.class).when(topicClient).deleteTopics(ImmutableList.of("topicName"));
 
-    // Expect:
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("" +
-        "Could not delete the corresponding kafka topic: topicName");
-
     // When:
-    deleteInjector.inject(dropStatement);
+    final Exception e = assertThrows(
+        RuntimeException.class,
+        () -> deleteInjector.inject(dropStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("" +
+        "Could not delete the corresponding kafka topic: topicName"));
   }
 
   @Test

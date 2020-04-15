@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.rest.client;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -58,9 +59,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -69,9 +68,6 @@ public class KsqlRestClientFunctionalTest {
 
   private MockApplication mockApplication;
   private KsqlRestClient ksqlRestClient;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() throws Exception {
@@ -219,9 +215,16 @@ public class KsqlRestClientFunctionalTest {
 
   @Test
   public void shouldThrowIfAnyServerAddressIsInvalid() {
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectMessage("The supplied serverAddress is invalid: secondBuggyServer.8088");
-    buildClient("http://firstServer:8088,secondBuggyServer.8088");
+    // When:
+    final KsqlRestClientException e = assertThrows(
+        KsqlRestClientException.class,
+        () -> buildClient("http://firstServer:8088,secondBuggyServer.8088")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The supplied serverAddress is invalid: secondBuggyServer.8088"
+    ));
   }
 
   @Test

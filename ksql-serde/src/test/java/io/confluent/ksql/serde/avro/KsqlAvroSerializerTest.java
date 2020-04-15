@@ -15,12 +15,19 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static io.confluent.ksql.util.KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME;
+import static org.apache.kafka.connect.data.Schema.INT32_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT32_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
+import static org.apache.kafka.connect.data.SchemaBuilder.map;
+import static org.apache.kafka.connect.data.SchemaBuilder.struct;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
@@ -62,9 +69,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -150,9 +155,6 @@ public class KsqlAvroSerializerTest {
       .optional()
       .build();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
@@ -219,13 +221,14 @@ public class KsqlAvroSerializerTest {
     // Given:
     givenSerializerForSchema(ORDER_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "java.lang.Integer cannot be cast to org.apache.kafka.connect.data.Struct")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, 10);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, 10)
+    );
+
+    // Then:
+    assertThat(e.getCause(), hasMessage(containsString("java.lang.Integer cannot be cast to org.apache.kafka.connect.data.Struct")));
   }
 
   @Test
@@ -273,7 +276,6 @@ public class KsqlAvroSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, true);
 
     // Then:
-    // Then:
     assertThat(deserialize(bytes), is(true));
     assertThat(avroSchemaStoredInSchemaRegistry(), is(BOOLEAN_AVRO_SCHEMA));
   }
@@ -283,13 +285,14 @@ public class KsqlAvroSerializerTest {
     // Given:
     givenSerializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(is(
-        "Invalid type for BOOLEAN: class java.lang.Integer")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, 10);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, 10)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("Invalid type for BOOLEAN: class java.lang.Integer"))));
   }
 
   @Test
@@ -310,13 +313,14 @@ public class KsqlAvroSerializerTest {
     // Given:
     givenSerializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for INT32: class java.lang.Boolean")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, true);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () ->  serializer.serialize(SOME_TOPIC, true)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("Invalid type for INT32: class java.lang.Boolean"))));
   }
 
   @Test
@@ -337,13 +341,14 @@ public class KsqlAvroSerializerTest {
     // Given:
     givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for INT64: class java.lang.Boolean")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, true);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () ->  serializer.serialize(SOME_TOPIC, true)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("Invalid type for INT64: class java.lang.Boolean"))));
   }
 
   @Test
@@ -364,13 +369,14 @@ public class KsqlAvroSerializerTest {
     // Given:
     givenSerializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for FLOAT64: class org.apache.kafka.connect.data.Struct")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA));
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () ->  serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA))
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("Invalid type for FLOAT64: class org.apache.kafka.connect.data.Struct"))));
   }
 
   @Test
@@ -391,13 +397,14 @@ public class KsqlAvroSerializerTest {
     // Given:
     givenSerializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for STRING: class org.apache.kafka.connect.data.Struct")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA));
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () ->  serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA))
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("Invalid type for STRING: class org.apache.kafka.connect.data.Struct"))));
   }
 
   @Test
@@ -426,13 +433,14 @@ public class KsqlAvroSerializerTest {
         .build()
     );
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "java.lang.Boolean cannot be cast to java.util.List")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, true);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () ->  serializer.serialize(SOME_TOPIC, true)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("java.lang.Boolean cannot be cast to java.util.List"))));
   }
 
   @Test
@@ -443,13 +451,14 @@ public class KsqlAvroSerializerTest {
         .build()
     );
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for BOOLEAN: class java.lang.String")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, ImmutableList.of("not boolean"));
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () ->  serializer.serialize(SOME_TOPIC, ImmutableList.of("not boolean"))
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("Invalid type for BOOLEAN: class java.lang.String"))));
   }
 
   @Test
@@ -559,13 +568,14 @@ public class KsqlAvroSerializerTest {
         .build()
     );
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "java.lang.Boolean cannot be cast to java.util.Map")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, true);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () ->  serializer.serialize(SOME_TOPIC, true)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("java.lang.Boolean cannot be cast to java.util.Map"))));
   }
 
   @Test
@@ -576,13 +586,14 @@ public class KsqlAvroSerializerTest {
         .build()
     );
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for STRING: class java.lang.Integer")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, ImmutableMap.of(1, 2));
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () ->  serializer.serialize(SOME_TOPIC, ImmutableMap.of(1, 2))
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("Invalid type for STRING: class java.lang.Integer"))));
   }
 
   @Test
@@ -593,61 +604,63 @@ public class KsqlAvroSerializerTest {
         .build()
     );
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for INT64: class java.lang.Boolean")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, ImmutableMap.of("a", false));
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () ->  serializer.serialize(SOME_TOPIC, ImmutableMap.of("a", false))
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("Invalid type for INT64: class java.lang.Boolean"))));
   }
 
   @Test
   public void shouldThrowOnMapSchemaWithNonStringKeys() {
     // Given:
     final PersistenceSchema physicalSchema = unwrappedPersistenceSchema(
-        SchemaBuilder
-            .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+        map(OPTIONAL_INT32_SCHEMA, INT32_SCHEMA)
             .build()
     );
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Avro only supports MAPs with STRING keys");
-
     // When:
-    new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
-        .createSerde(
-            physicalSchema,
-            ksqlConfig,
-            () -> schemaRegistryClient
-        );
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new KsqlAvroSerdeFactory(DEFAULT_AVRO_SCHEMA_FULL_NAME)
+            .createSerde(
+                physicalSchema,
+                ksqlConfig,
+                () -> schemaRegistryClient
+            )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Avro only supports MAPs with STRING keys"));
   }
 
   @Test
   public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
     // Given:
     final PersistenceSchema physicalSchema = unwrappedPersistenceSchema(
-        SchemaBuilder
-            .struct()
-            .field("f0", SchemaBuilder
-                .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+        struct()
+            .field("f0", map(OPTIONAL_INT32_SCHEMA, INT32_SCHEMA)
                 .optional()
                 .build())
             .build()
     );
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Avro only supports MAPs with STRING keys");
-
     // When:
-    new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
-        .createSerde(
-            physicalSchema,
-            ksqlConfig,
-            () -> schemaRegistryClient
-        );
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new KsqlAvroSerdeFactory(DEFAULT_AVRO_SCHEMA_FULL_NAME)
+            .createSerde(
+                physicalSchema,
+                ksqlConfig,
+                () -> schemaRegistryClient
+            )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Avro only supports MAPs with STRING keys"));
   }
 
   @Test
@@ -749,13 +762,16 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldIncludeTopicNameInException() {
     // Given:
-    givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
-
-    // Then:
-    expectedException.expectMessage(SOME_TOPIC);
+    givenSerializerForSchema(OPTIONAL_INT64_SCHEMA);
 
     // When:
-    serializer.serialize(SOME_TOPIC, true);
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> serializer.serialize(SOME_TOPIC, true)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(SOME_TOPIC));
   }
 
   @Test

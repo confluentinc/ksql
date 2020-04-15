@@ -16,9 +16,11 @@
 package io.confluent.ksql.schema.ksql;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -38,9 +40,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class DefaultSqlValueCoercerTest {
 
@@ -75,9 +75,6 @@ public class DefaultSqlValueCoercerTest {
       .build();
 
   private DefaultSqlValueCoercer coercer;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -216,12 +213,14 @@ public class DefaultSqlValueCoercerTest {
     // Given:
     final String val = "hello";
 
-    // Expect;
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot coerce value to DECIMAL: hello");
-
     // When:
-    coercer.coerce(val, SqlTypes.decimal(2, 1));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> coercer.coerce(val, SqlTypes.decimal(2, 1))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot coerce value to DECIMAL: hello"));
   }
 
   @Test

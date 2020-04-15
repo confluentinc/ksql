@@ -38,9 +38,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -49,9 +47,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlSerdeFactoriesTest {
 
   private static final Class<SomeType> SOME_TYPE = SomeType.class;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Function<FormatInfo, KsqlSerdeFactory> factoryMethod;

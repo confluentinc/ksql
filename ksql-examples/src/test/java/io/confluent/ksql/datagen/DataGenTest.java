@@ -15,19 +15,17 @@
 
 package io.confluent.ksql.datagen;
 
+import static io.confluent.ksql.datagen.DataGen.run;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Properties;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class DataGenTest {
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test(expected = DataGen.Arguments.ArgumentParseException.class)
   public void shouldThrowOnUnknownFormat() throws Throwable {
@@ -40,14 +38,18 @@ public class DataGenTest {
 
   @Test
   public void shouldThrowIfSchemaFileDoesNotExist() throws Throwable {
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage(containsString("File not found: you/won't/find/me/right?"));
+    // When:
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> run(
+            "schema=you/won't/find/me/right?",
+            "format=avro",
+            "topic=foo",
+            "key=id")
+    );
 
-    DataGen.run(
-        "schema=you/won't/find/me/right?",
-        "format=avro",
-        "topic=foo",
-        "key=id");
+    // Then:
+    assertThat(e.getMessage(), containsString("File not found: you/won't/find/me/right?"));
   }
 
   @Test(expected = IllegalArgumentException.class)

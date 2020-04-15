@@ -27,6 +27,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -71,7 +72,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -82,9 +82,6 @@ public class SqlToJavaVisitorTest {
 
   @Mock
   private FunctionRegistry functionRegistry;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -725,11 +722,11 @@ public class SqlToJavaVisitorTest {
         new InListExpression(ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2)))
     );
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(expression);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(expression)
+    );
   }
 
   @Test
@@ -741,29 +738,29 @@ public class SqlToJavaVisitorTest {
         Optional.empty()
     );
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(expression);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(expression)
+    );
   }
 
   @Test
   public void shouldThrowOnTimeLiteral() {
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(new TimeLiteral("TIME '00:00:00'"));
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(new TimeLiteral("TIME '00:00:00'"))
+    );
   }
 
   @Test
   public void shouldThrowOnTimestampLiteral() {
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(new TimestampLiteral("TIMESTAMP '00:00:00'"));
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(new TimestampLiteral("TIMESTAMP '00:00:00'"))
+    );
   }
 
   private void givenUdf(

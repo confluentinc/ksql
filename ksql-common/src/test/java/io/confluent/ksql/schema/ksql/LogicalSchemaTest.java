@@ -19,10 +19,12 @@ import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
@@ -38,9 +40,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class LogicalSchemaTest {
 
@@ -63,9 +63,6 @@ public class LogicalSchemaTest {
       .build();
 
   private static final LogicalSchema ALIASED_SCHEMA = SOME_SCHEMA.withAlias(BOB);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementEqualsProperly() {
@@ -708,12 +705,16 @@ public class LogicalSchemaTest {
     final Builder builder = LogicalSchema.builder()
         .keyColumn(KEY, SqlTypes.BIGINT);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Duplicate keys found in schema: `key` BIGINT");
-
     // When:
-    builder.keyColumn(KEY, SqlTypes.BIGINT);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> builder.keyColumn(KEY, SqlTypes.BIGINT)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Duplicate keys found in schema: `key` BIGINT"
+    ));
   }
 
   @Test
@@ -722,12 +723,16 @@ public class LogicalSchemaTest {
     final Builder builder = LogicalSchema.builder()
         .valueColumn(VALUE, SqlTypes.BIGINT);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Duplicate values found in schema: `value` BIGINT");
-
     // When:
-    builder.valueColumn(VALUE, SqlTypes.BIGINT);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> builder.valueColumn(VALUE, SqlTypes.BIGINT)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Duplicate values found in schema: `value` BIGINT"
+    ));
   }
 
   @Test

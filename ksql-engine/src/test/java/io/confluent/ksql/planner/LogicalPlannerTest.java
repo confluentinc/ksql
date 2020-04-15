@@ -22,6 +22,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotNull;
 
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -42,7 +43,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import java.util.Optional;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -85,7 +85,7 @@ public class LogicalPlannerTest {
         instanceOf(DataSourceNode.class));
 
     assertThat(logicalPlan.getSchema().value().size(), equalTo( 3));
-    Assert.assertNotNull(((FilterNode) logicalPlan.getSources().get(0).getSources().get(0)).getPredicate());
+    assertNotNull(((FilterNode) logicalPlan.getSources().get(0).getSources().get(0)).getPredicate());
   }
 
   @Test

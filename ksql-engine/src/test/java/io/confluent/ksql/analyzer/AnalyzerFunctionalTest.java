@@ -15,16 +15,20 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.serde.Format.KAFKA;
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
+import static java.util.Optional.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -76,9 +80,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -103,9 +105,6 @@ public class AnalyzerFunctionalTest {
 
   private MutableMetaStore jsonMetaStore;
   private MutableMetaStore avroMetaStore;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SerdeOptionsSupplier serdeOptiponsSupplier;
@@ -364,10 +363,14 @@ public class AnalyzerFunctionalTest {
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Full schema name only supported with AVRO format");
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, of(createStreamAsSelect.getSink()))
+    );
 
-    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+    // Then:
+    assertThat(e.getMessage(), containsString("Full schema name only supported with AVRO format"));
   }
 
   @Test
@@ -381,10 +384,14 @@ public class AnalyzerFunctionalTest {
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema name cannot be empty");
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, of(createStreamAsSelect.getSink()))
+    );
 
-    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+    // Then:
+    assertThat(e.getMessage(), containsString("Schema name cannot be empty"));
   }
 
   @Test
@@ -433,15 +440,17 @@ public class AnalyzerFunctionalTest {
     // Given:
     query = parseSingle("Select COL0 from KAFKA_SOURCE GROUP BY COL0;");
 
-    givenSinkValueFormat(Format.KAFKA);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Source(s) KAFKA_SOURCE are using the 'KAFKA' value format."
-        + " This format does not yet support GROUP BY.");
+    givenSinkValueFormat(KAFKA);
 
     // When:
-    analyzer.analyze(query, Optional.of(sink));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, of(sink))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Source(s) KAFKA_SOURCE are using the 'KAFKA' value format."
+        + " This format does not yet support GROUP BY."));
   }
 
   @Test
@@ -451,15 +460,17 @@ public class AnalyzerFunctionalTest {
         + "WITHIN 1 SECOND ON "
         + "TEST1.COL0 = KAFKA_SOURCE.COL0;");
 
-    givenSinkValueFormat(Format.KAFKA);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Source(s) KAFKA_SOURCE are using the 'KAFKA' value format."
-        + " This format does not yet support JOIN.");
+    givenSinkValueFormat(KAFKA);
 
     // When:
-    analyzer.analyze(query, Optional.of(sink));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, of(sink))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Source(s) KAFKA_SOURCE are using the 'KAFKA' value format."
+        + " This format does not yet support JOIN."));
   }
 
   @Test

@@ -15,22 +15,21 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.parser.tree.ResultMaterialization.FINAL;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PushQueryValidatorTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Analysis analysis;
@@ -45,13 +44,15 @@ public class PushQueryValidatorTest {
   @Test
   public void shouldThrowOnContinuousQueryThatIsFinal() {
     // Given:
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
-
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Push queries don't support `EMIT FINAL`.");
+    when(analysis.getResultMaterialization()).thenReturn(FINAL);
 
     // When:
-    validator.validate(analysis);
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Push queries don't support `EMIT FINAL`."));
   }
 }

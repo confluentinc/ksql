@@ -15,10 +15,20 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import static io.confluent.ksql.schema.ksql.PersistenceSchema.from;
+import static org.apache.commons.csv.CSVFormat.DEFAULT;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT32_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA;
+import static org.apache.kafka.connect.data.SchemaBuilder.array;
+import static org.apache.kafka.connect.data.SchemaBuilder.map;
+import static org.apache.kafka.connect.data.SchemaBuilder.struct;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -34,9 +44,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -52,9 +60,6 @@ public class KsqlDelimitedDeserializerTest {
       .field("COST", DecimalUtil.builder(4, 2).build())
       .build()
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private KsqlDelimitedDeserializer deserializer;
 
@@ -102,13 +107,14 @@ public class KsqlDelimitedDeserializerTest {
     // Given:
     final byte[] bytes = "1511897796092,1,item_1,\r\n".getBytes(StandardCharsets.UTF_8);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException
-        .expectCause(hasMessage(is("Unexpected field count, csvFields:4 schemaFields:5")));
-
     // When:
-    deserializer.deserialize("", bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize("", bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("Unexpected field count, csvFields:4 schemaFields:5"))));
   }
 
   @Test
@@ -116,31 +122,34 @@ public class KsqlDelimitedDeserializerTest {
     // Given:
     final byte[] bytes = "1511897796092,1,item_1,10.0,10.10,extra\r\n".getBytes(StandardCharsets.UTF_8);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException
-        .expectCause(hasMessage(is("Unexpected field count, csvFields:6 schemaFields:5")));
-
     // When:
-    deserializer.deserialize("", bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize("", bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is("Unexpected field count, csvFields:6 schemaFields:5"))));
   }
 
   @Test
   public void shouldThrowIfTopLevelNotStruct() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema.from(
-        (ConnectSchema) SchemaBuilder.struct()
-            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+    final PersistenceSchema schema = from(
+        (ConnectSchema) struct()
+            .field("f0", OPTIONAL_INT64_SCHEMA)
             .build(),
         true
     );
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("DELIMITED expects all top level schemas to be STRUCTs");
-
     // When:
-    new KsqlDelimitedDeserializer(schema, CSVFormat.DEFAULT.withDelimiter(','));
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new KsqlDelimitedDeserializer(schema, DEFAULT.withDelimiter(','))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("DELIMITED expects all top level schemas to be STRUCTs"));
   }
 
   @Test
@@ -238,9 +247,9 @@ public class KsqlDelimitedDeserializerTest {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
         SchemaBuilder.struct()
-        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
-        .build()
+            .field("id", Schema.OPTIONAL_INT32_SCHEMA)
+            .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+            .build()
     );
 
     final KsqlDelimitedDeserializer deserializer =
@@ -248,75 +257,79 @@ public class KsqlDelimitedDeserializerTest {
 
     final byte[] bytes = "10".getBytes(StandardCharsets.UTF_8);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(instanceOf(KsqlException.class));
-    expectedException.expectCause(
-        hasMessage(CoreMatchers.is("Unexpected field count, csvFields:1 schemaFields:2")));
-
     // When:
-    deserializer.deserialize("", bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize("", bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), instanceOf(KsqlException.class));
+    assertThat(e.getCause(), (hasMessage(is("Unexpected field count, csvFields:1 schemaFields:2"))));
   }
 
   @Test
   public void shouldThrowOnArrayTypes() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
-        SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .array(Schema.OPTIONAL_INT32_SCHEMA)
-            .optional()
-            .build())
-        .build()
+        struct()
+            .field("ids", array(OPTIONAL_INT32_SCHEMA)
+                .optional()
+                .build())
+            .build()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> createDeserializer(schema)
     );
 
     // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("DELIMITED does not support type: ARRAY, field: ids");
-
-    // When:
-    createDeserializer(schema);
+    assertThat(e.getMessage(), containsString("DELIMITED does not support type: ARRAY, field: ids"));
   }
 
   @Test
   public void shouldThrowOnMapTypes() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
-        SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build())
-        .build()
+        struct()
+            .field("ids", map(OPTIONAL_STRING_SCHEMA, OPTIONAL_INT64_SCHEMA)
+                .optional()
+                .build())
+            .build()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> createDeserializer(schema)
     );
 
     // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("DELIMITED does not support type: MAP, field: ids");
-
-    // When:
-    createDeserializer(schema);
+    assertThat(e.getMessage(), containsString("DELIMITED does not support type: MAP, field: ids"));
   }
 
   @Test
   public void shouldThrowOnStructTypes() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
-        SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .struct()
-            .field("f0", Schema.OPTIONAL_INT32_SCHEMA)
-            .optional()
-            .build())
-        .build()
+        struct()
+            .field("ids", struct()
+                .field("f0", OPTIONAL_INT32_SCHEMA)
+                .optional()
+                .build())
+            .build()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> createDeserializer(schema)
     );
 
     // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("DELIMITED does not support type: STRUCT, field: ids");
-
-    // When:
-    createDeserializer(schema);
+    assertThat(e.getMessage(), containsString("DELIMITED does not support type: STRUCT, field: ids"));
   }
 
 

@@ -33,9 +33,7 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -62,9 +60,6 @@ public class WindowedRowTest {
   private static final Window A_WINDOW = Window.of(Instant.MIN, Optional.empty());
 
   private static final GenericRow A_VALUE = new GenericRow("v0-v", 1.0d);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Validator validator;

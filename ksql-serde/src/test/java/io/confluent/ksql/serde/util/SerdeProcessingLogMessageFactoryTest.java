@@ -21,10 +21,10 @@ import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DE
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.TYPE;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;

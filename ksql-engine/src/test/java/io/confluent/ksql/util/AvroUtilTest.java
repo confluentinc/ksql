@@ -16,7 +16,9 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -50,9 +52,7 @@ import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -105,9 +105,6 @@ public class AvroUtilTest {
       KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
       ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of(SCHEMA_NAME), Optional.empty())),
       false);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SchemaRegistryClient srClient;
@@ -224,11 +221,18 @@ public class AvroUtilTest {
     // Given:
     when(srClient.testCompatibility(any(), any())).thenReturn(false);
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot register avro schema for actual-name as the schema is incompatible with the current schema version registered for the topic");
-
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand,
+            srClient, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot register avro schema for actual-name as the schema is incompatible "
+            + "with the current schema version registered for the topic"
+    ));
   }
 
   @Test
@@ -247,17 +251,22 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new RestClientException("Unknown subject", 403, 40401));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not connect to Schema Registry service");
-    expectedException.expectMessage(containsString(String.format(
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand,
+            srClient, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not connect to Schema Registry service"
+    ));
+    assertThat(e.getMessage(), containsString(String.format(
         "Not authorized to access Schema Registry subject: [%s]",
         ddlCommand.getTopic().getKafkaTopicName()
             + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
     )));
-
-    // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
   }
 
   @Test
@@ -266,12 +275,17 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new RestClientException("Unknown subject", 500, 40401));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not connect to Schema Registry service");
-
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand,
+            srClient, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not connect to Schema Registry service"
+    ));
   }
 
   @Test
@@ -280,12 +294,17 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new IOException("something"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not check Schema compatibility");
-
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand,
+            srClient, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not check Schema compatibility"
+    ));
   }
 
   private static LogicalSchema toKsqlSchema(final String avroSchemaString) {

@@ -27,9 +27,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ComparisonUtilTest {
 
@@ -61,9 +59,6 @@ public class ComparisonUtilTest {
       ImmutableList.of(false, false, false, false, false, false, false, false, false), // Map
       ImmutableList.of(false, false, false, false, false, false, false, false, false) // Struct
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldAssertTrueForValidComparisons() {

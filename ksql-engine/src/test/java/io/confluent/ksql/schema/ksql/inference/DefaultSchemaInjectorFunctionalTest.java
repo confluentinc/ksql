@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.ksql.inference;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -37,11 +38,8 @@ import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -51,9 +49,6 @@ public class DefaultSchemaInjectorFunctionalTest {
 
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(IdentifierUtil::needsQuotes);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private static final org.apache.avro.Schema DECIMAL_SCHEMA =
       parseAvroSchema(
@@ -516,9 +511,9 @@ public class DefaultSchemaInjectorFunctionalTest {
 
     final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);
 
-    Assert.assertThat(FORMATTER.format(actual),
+    assertThat(FORMATTER.format(actual),
         equalTo(FORMATTER.format(expectedKqlSchema)));
-    Assert.assertThat(actual, equalTo(expectedKqlSchema));
+    assertThat(actual, equalTo(expectedKqlSchema));
   }
 
   private static Schema getSchemaForDdlStatement(final CreateSource statement) {

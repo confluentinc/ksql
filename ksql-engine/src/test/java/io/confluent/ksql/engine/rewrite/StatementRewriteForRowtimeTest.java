@@ -18,6 +18,7 @@ package io.confluent.ksql.engine.rewrite;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -34,9 +35,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -49,9 +48,6 @@ public class StatementRewriteForRowtimeTest {
       new StringToTimestampParser("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
   private static final long A_TIMESTAMP = 1234567890L;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private PartialStringToTimestampParser parser;
@@ -183,12 +179,14 @@ public class StatementRewriteForRowtimeTest {
     final Expression predicate = statement.getWhere().get();
     when(parser.parse(any())).thenThrow(new IllegalArgumentException("it no good"));
 
-    // Expect:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("it no good");
-
     // When:
-    rewritter.rewriteForRowtime(predicate);
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> rewritter.rewriteForRowtime(predicate)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("it no good"));
   }
 
   @SuppressWarnings("unchecked")

@@ -71,15 +71,10 @@ import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class SqlFormatterTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private AliasedRelation leftAlias;
   private AliasedRelation rightAlias;

@@ -1,7 +1,9 @@
 package io.confluent.ksql.schema.ksql;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.expression.tree.Type;
@@ -11,19 +13,13 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SqlTypeParserTest {
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
   @Mock
   private TypeRegistry typeRegistry;
   private SqlTypeParser parser;
@@ -150,12 +146,16 @@ public class SqlTypeParserTest {
     // Given:
     final String schemaString = "DECIMAL(.1, 1)";
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Value must be integer for command: DECIMAL(PRECISION)");
-
     // When:
-    parser.parse(schemaString);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> parser.parse(schemaString)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Value must be integer for command: DECIMAL(PRECISION)"
+    ));
   }
 
   @Test
@@ -163,11 +163,15 @@ public class SqlTypeParserTest {
     // Given:
     final String schemaString = "DECIMAL(1, 1.1)";
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Value must be integer for command: DECIMAL(SCALE)");
-
     // When:
-    parser.parse(schemaString);
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> parser.parse(schemaString)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Value must be integer for command: DECIMAL(SCALE)"
+    ));
   }
 }

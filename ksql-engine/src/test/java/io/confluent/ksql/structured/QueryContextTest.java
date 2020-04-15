@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.structured;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.context.QueryContext;

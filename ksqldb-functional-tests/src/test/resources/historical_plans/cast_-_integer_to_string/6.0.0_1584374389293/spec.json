@@ -24,7 +24,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUT",
-        "schema" : "`ROWKEY` STRING KEY, `VAL` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -36,7 +35,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `COL0` INTEGER, `COL1` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

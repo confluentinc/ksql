@@ -30,7 +30,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` STRING KEY, `DATA_1` STRING, `DATA_2` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -42,7 +41,6 @@
         "partitions" : 4
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_InsertQuery_1-KSTREAM-JOINOTHER-0000000009-store-changelog",
-        "schema" : "`ROWKEY` STRING KEY, `DATA_1` STRING, `DATA_2` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -53,7 +51,6 @@
         }
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_InsertQuery_1-KSTREAM-JOINTHIS-0000000008-store-changelog",
-        "schema" : "`ROWKEY` STRING KEY, `DATA_1` STRING, `DATA_2` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -64,7 +61,6 @@
         }
       }, {
         "name" : "insert-source",
-        "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -76,7 +72,6 @@
         "partitions" : 4
       }, {
         "name" : "stream-source",
-        "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

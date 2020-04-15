@@ -34,7 +34,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "S7",
-        "schema" : "`ROWKEY` STRING KEY, `S1` STRUCT<`S` STRING>, `S2` STRUCT<`S` STRING>, `S3` STRING, `S4` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -46,7 +45,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`S` STRING>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

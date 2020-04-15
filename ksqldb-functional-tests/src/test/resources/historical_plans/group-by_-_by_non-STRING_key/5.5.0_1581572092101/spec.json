@@ -69,7 +69,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` INTEGER KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -81,7 +80,6 @@
         "partitions" : 4
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-        "schema" : "`ROWKEY` INTEGER KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -93,7 +91,6 @@
         "partitions" : 4
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
-        "schema" : "`ROWKEY` INTEGER KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -105,7 +102,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

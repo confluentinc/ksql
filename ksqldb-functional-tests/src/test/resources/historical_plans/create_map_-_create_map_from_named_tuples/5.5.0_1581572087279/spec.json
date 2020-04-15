@@ -28,7 +28,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` STRING KEY, `M` MAP<STRING, INTEGER>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -40,7 +39,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `K1` STRING, `K2` STRING, `V1` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

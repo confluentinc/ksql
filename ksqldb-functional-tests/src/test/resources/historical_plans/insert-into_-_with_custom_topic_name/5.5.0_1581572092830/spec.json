@@ -19,7 +19,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "custom",
-        "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -31,7 +30,6 @@
         "partitions" : 4
       }, {
         "name" : "insert-source",
-        "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -43,7 +41,6 @@
         "partitions" : 4
       }, {
         "name" : "stream-source",
-        "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

@@ -86,7 +86,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "DATE_STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CUSTOM_FORMATTED_START_DATE` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -98,7 +97,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `START_DATE` INTEGER, `DATE_FORMAT` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

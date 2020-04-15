@@ -31,7 +31,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` INTEGER KEY, `FOO0` INTEGER, `FOO1` INTEGER, `FOO2` INTEGER, `FOO3` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -43,7 +42,6 @@
         "partitions" : 4
       }, {
         "name" : "input_topic",
-        "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

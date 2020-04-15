@@ -48,7 +48,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "TS",
-        "schema" : "`ROWKEY` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -60,7 +59,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

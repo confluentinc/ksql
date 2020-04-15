@@ -27,7 +27,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "DISTANCE_STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -39,7 +38,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE, `LAT2` DECIMAL(3, 1)",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

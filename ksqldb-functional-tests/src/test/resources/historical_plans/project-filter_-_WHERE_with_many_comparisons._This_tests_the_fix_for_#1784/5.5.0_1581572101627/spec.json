@@ -26,7 +26,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "EVENTSTEST",
-        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER, `FIELD1` STRING, `FIELD0` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -38,7 +37,6 @@
         "partitions" : 4
       }, {
         "name" : "events",
-        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER, `FIELD0` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

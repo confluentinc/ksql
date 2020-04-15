@@ -92,7 +92,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -104,7 +103,6 @@
         "partitions" : 4
       }, {
         "name" : "test",
-        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

@@ -66,7 +66,8 @@ public final class TestCasePlanLoader {
     return buildStatementsInTestCase(
         testCase,
         CURRENT_VERSION,
-        System.currentTimeMillis()
+        System.currentTimeMillis(),
+        BASE_CONFIG.getAllConfigPropsWithSecretsObfuscated()
     );
   }
 
@@ -82,9 +83,10 @@ public final class TestCasePlanLoader {
       final TestCasePlan original
   ) {
     return buildStatementsInTestCase(
-        testCase,
+        PlannedTestUtils.buildPlannedTestCase(testCase, original),
         original.getSpecNode().getVersion(),
-        original.getSpecNode().getTimestamp()
+        original.getSpecNode().getTimestamp(),
+        original.getPlanNode().getConfigs()
     );
   }
 
@@ -157,7 +159,8 @@ public final class TestCasePlanLoader {
   private static TestCasePlan buildStatementsInTestCase(
       final TestCase testCase,
       final String version,
-      final long timestamp
+      final long timestamp,
+      final Map<String, String> configs
   ) {
     final TestInfoGatherer testInfo = executeTestCaseAndGatherInfo(testCase);
 
@@ -170,10 +173,7 @@ public final class TestCasePlanLoader {
         testCase.getPostConditions().asNode(testInfo.getTopics())
     );
 
-    final TestCasePlanNode plan = new TestCasePlanNode(
-        testInfo.getPlans(),
-        BASE_CONFIG.getAllConfigPropsWithSecretsObfuscated()
-    );
+    final TestCasePlanNode plan = new TestCasePlanNode(testInfo.getPlans(), configs);
 
     return new TestCasePlan(
         spec,

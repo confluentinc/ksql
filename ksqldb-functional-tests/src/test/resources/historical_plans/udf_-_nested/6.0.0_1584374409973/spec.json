@@ -28,7 +28,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -40,7 +39,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

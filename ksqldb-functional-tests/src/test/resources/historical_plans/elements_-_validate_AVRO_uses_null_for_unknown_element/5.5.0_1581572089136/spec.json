@@ -24,7 +24,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "S",
-        "schema" : "`ROWKEY` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -36,7 +35,6 @@
         "partitions" : 4
       }, {
         "name" : "input",
-        "schema" : "`ROWKEY` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

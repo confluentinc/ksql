@@ -71,7 +71,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUT",
-        "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `S` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -83,7 +82,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `VAL` DECIMAL(4, 2)",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

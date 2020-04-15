@@ -53,7 +53,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "AVG",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `AVG` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -65,7 +64,6 @@
         "partitions" : 4
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_AVG_0-Aggregate-Aggregate-Materialize-changelog",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `AVG` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -76,7 +74,6 @@
         }
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

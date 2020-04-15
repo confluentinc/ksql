@@ -95,7 +95,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "S2",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COUNTS` MAP<STRING, BIGINT>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -107,7 +106,6 @@
         "partitions" : 4
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COUNTS` MAP<STRING, BIGINT>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -118,7 +116,6 @@
         }
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

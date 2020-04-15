@@ -35,7 +35,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "S1",
-        "schema" : "`ROWKEY` STRING KEY, `CASE_RESULT` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -47,7 +46,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `ORDERUNITS` DOUBLE",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

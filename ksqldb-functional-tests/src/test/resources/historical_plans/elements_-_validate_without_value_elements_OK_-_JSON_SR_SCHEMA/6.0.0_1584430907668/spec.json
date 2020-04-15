@@ -28,7 +28,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` INTEGER KEY, `C1` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -40,7 +39,6 @@
         "partitions" : 4
       }, {
         "name" : "input",
-        "schema" : "`ROWKEY` INTEGER KEY, `C1` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

@@ -53,7 +53,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`FOO` INTEGER>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -65,7 +64,6 @@
         "partitions" : 4
       }, {
         "name" : "input",
-        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`FOO` INTEGER>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

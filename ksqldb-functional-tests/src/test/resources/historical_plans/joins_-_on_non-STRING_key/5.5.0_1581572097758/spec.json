@@ -61,7 +61,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` BIGINT KEY, `S_ROWTIME` BIGINT, `S_ROWKEY` BIGINT, `S_SF` INTEGER, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_TF` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -73,7 +72,6 @@
         "partitions" : 4
       }, {
         "name" : "stream_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `SF` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -85,7 +83,6 @@
         "partitions" : 4
       }, {
         "name" : "table_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `TF` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

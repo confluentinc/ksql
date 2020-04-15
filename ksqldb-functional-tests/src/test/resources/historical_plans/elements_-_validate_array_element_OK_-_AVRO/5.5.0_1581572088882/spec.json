@@ -23,7 +23,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` STRING KEY, `V0` ARRAY<INTEGER>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -35,7 +34,6 @@
         "partitions" : 4
       }, {
         "name" : "input",
-        "schema" : "`ROWKEY` STRING KEY, `V0` ARRAY<INTEGER>",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

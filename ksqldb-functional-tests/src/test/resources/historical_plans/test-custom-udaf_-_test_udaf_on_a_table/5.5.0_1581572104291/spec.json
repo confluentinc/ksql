@@ -65,7 +65,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "SUM_ID_BY_REGION",
-        "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `KSQL_COL_1` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -77,7 +76,6 @@
         "partitions" : 4
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
-        "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `KSQL_COL_1` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -88,7 +86,6 @@
         }
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-Aggregate-GroupBy-repartition",
-        "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `KSQL_COL_1` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -99,7 +96,6 @@
         }
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

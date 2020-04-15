@@ -64,7 +64,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` BIGINT KEY, `S_ROWTIME` BIGINT, `S_ROWKEY` STRING, `S_SF` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_TF` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -76,7 +75,6 @@
         "partitions" : 4
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
-        "schema" : "`ROWKEY` BIGINT KEY, `S_ROWTIME` BIGINT, `S_ROWKEY` STRING, `S_SF` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_TF` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -87,7 +85,6 @@
         }
       }, {
         "name" : "stream_topic",
-        "schema" : "`ROWKEY` STRING KEY, `SF` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -99,7 +96,6 @@
         "partitions" : 4
       }, {
         "name" : "table_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TF` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

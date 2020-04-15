@@ -178,7 +178,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "LEFT_OUTER_JOIN",
-        "schema" : "`ROWKEY` BIGINT KEY, `TT_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -190,7 +189,6 @@
         "partitions" : 4
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000009-store-changelog",
-        "schema" : "`ROWKEY` BIGINT KEY, `TT_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -201,7 +199,6 @@
         }
       }, {
         "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTERTHIS-0000000008-store-changelog",
-        "schema" : "`ROWKEY` BIGINT KEY, `TT_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -212,7 +209,6 @@
         }
       }, {
         "name" : "left_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -224,7 +220,6 @@
         "partitions" : 4
       }, {
         "name" : "right_topic",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

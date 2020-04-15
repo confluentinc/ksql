@@ -59,7 +59,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "TS",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ETS` BIGINT",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -71,7 +70,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TIMESTAMP` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

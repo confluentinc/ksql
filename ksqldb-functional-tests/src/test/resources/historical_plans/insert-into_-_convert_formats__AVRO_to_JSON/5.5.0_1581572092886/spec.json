@@ -59,7 +59,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "sink",
-        "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -71,7 +70,6 @@
         "partitions" : 4
       }, {
         "name" : "source",
-        "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

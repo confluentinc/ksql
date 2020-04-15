@@ -57,7 +57,6 @@
     "topics" : {
       "topics" : [ {
         "name" : "OUTPUT",
-        "schema" : "`ROWKEY` STRING KEY, `THING` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"
@@ -69,7 +68,6 @@
         "partitions" : 4
       }, {
         "name" : "test_topic",
-        "schema" : "`ROWKEY` STRING KEY, `SOURCE` INTEGER, `AVG` INTEGER",
         "keyFormat" : {
           "formatInfo" : {
             "format" : "KAFKA"

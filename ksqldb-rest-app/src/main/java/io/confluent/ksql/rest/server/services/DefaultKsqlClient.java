@@ -29,7 +29,6 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.http.HttpClientOptions;
 import java.net.URI;
@@ -47,15 +46,11 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
 
-  DefaultKsqlClient(final Optional<String> authHeader) {
-    this(authHeader, new KsqlConfig(ImmutableMap.of()));
-  }
-
-  DefaultKsqlClient(final Optional<String> authHeader, final KsqlConfig ksqlConfig) {
+  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps) {
     this(
         authHeader,
         new KsqlClient(
-            toClientProps(ksqlConfig),
+            toClientProps(clientProps),
             Optional.empty(),
             new LocalProperties(ImmutableMap.of()),
             createClientOptions()
@@ -161,9 +156,9 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     return new HttpClientOptions().setMaxPoolSize(100);
   }
 
-  private static Map<String, String> toClientProps(final KsqlConfig ksqlConfig) {
+  private static Map<String, String> toClientProps(final Map<String, Object> config) {
     final Map<String, String> clientProps = new HashMap<>();
-    for (Map.Entry<String, Object> entry : ksqlConfig.originals().entrySet()) {
+    for (Map.Entry<String, Object> entry : config.entrySet()) {
       clientProps.put(entry.getKey(), entry.getValue().toString());
     }
     return clientProps;

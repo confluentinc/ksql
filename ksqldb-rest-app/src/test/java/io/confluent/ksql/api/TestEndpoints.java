@@ -92,8 +92,10 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
-      final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+  public synchronized CompletableFuture<EndpointResponse> executeKsqlRequest(
+      final KsqlRequest request,
+      final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext) {
     this.lastSql = request.getKsql();
     this.lastProperties = new JsonObject(request.getRequestProperties());
     this.lastApiSecurityContext = apiSecurityContext;

@@ -20,6 +20,8 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.analyzer.FilterTypeValidator;
+import io.confluent.ksql.analyzer.FilterTypeValidator.FilterType;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
@@ -229,6 +231,15 @@ public class LogicalPlanner {
         refRewriter::process
     );
 
+    if (analysis.getHavingExpression().isPresent()) {
+      final FilterTypeValidator validator = new FilterTypeValidator(
+          sourcePlanNode.getSchema(),
+          functionRegistry,
+          FilterType.HAVING);
+
+      validator.validateFilterExpression(analysis.getHavingExpression().get());
+    }
+
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
@@ -327,10 +338,17 @@ public class LogicalPlanner {
         "Unsupported SelectItem type: " + selectItem.getClass().getName());
   }
 
-  private static FilterNode buildFilterNode(
+  private FilterNode buildFilterNode(
       final PlanNode sourcePlanNode,
       final Expression filterExpression
   ) {
+    final FilterTypeValidator validator = new FilterTypeValidator(
+        sourcePlanNode.getSchema(),
+        functionRegistry,
+        FilterType.WHERE);
+
+    validator.validateFilterExpression(filterExpression);
+
     return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
 

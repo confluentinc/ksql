@@ -157,7 +157,12 @@ public class ExpressionTypeManager {
       final SqlType leftSchema = expressionTypeContext.getSqlType();
       process(node.getRight(), expressionTypeContext);
       final SqlType rightSchema = expressionTypeContext.getSqlType();
-      ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema);
+      if (!ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema)) {
+        throw new KsqlException("Cannot compare "
+            + node.getLeft().toString() + " (" + leftSchema.toString() + ") to "
+            + node.getRight().toString() + " (" + rightSchema.toString() + ") "
+            + "with " + node.getType() + ".");
+      }
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }

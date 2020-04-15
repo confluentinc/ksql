@@ -17,8 +17,10 @@ package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.ksql.DataException;
@@ -27,14 +29,9 @@ import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.types.KsqlStruct;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SqlStructTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
@@ -80,15 +77,18 @@ public class SqlStructTest {
 
   @Test
   public void shouldThrowOnDuplicateFieldName() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Duplicate field names found in STRUCT: '`F0` BOOLEAN' and '`F0` INTEGER'");
-
     // When:
-    SqlStruct.builder()
-        .field("F0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
-        .field("F0", SqlPrimitiveType.of(SqlBaseType.INTEGER));
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SqlStruct.builder()
+            .field("F0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
+            .field("F0", SqlPrimitiveType.of(SqlBaseType.INTEGER))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Duplicate field names found in STRUCT: '`F0` BOOLEAN' and '`F0` INTEGER'"
+    ));
   }
 
   @Test
@@ -163,12 +163,16 @@ public class SqlStructTest {
         .field("f0", SqlTypes.BIGINT)
         .build();
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("Expected STRUCT, got BIGINT");
-
     // When:
-    schema.validateValue(10L);
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(10L)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Expected STRUCT, got BIGINT"
+    ));
   }
 
   @Test
@@ -186,12 +190,16 @@ public class SqlStructTest {
         .set("f0", Optional.of(10.0D))
         .build();
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("Expected STRUCT<`f0` BIGINT>, got STRUCT<`f0` DOUBLE>");
-
     // When:
-    schema.validateValue(value);
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(value)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Expected STRUCT<`f0` BIGINT>, got STRUCT<`f0` DOUBLE>"
+    ));
   }
 
   @Test

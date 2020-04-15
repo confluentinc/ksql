@@ -16,7 +16,9 @@
 package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
@@ -24,16 +26,11 @@ import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SqlMapTest {
 
   private static final SqlType SOME_TYPE = SqlPrimitiveType.of(SqlBaseType.DOUBLE);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
@@ -68,12 +65,14 @@ public class SqlMapTest {
     // Given:
     final SqlMap schema = SqlTypes.map(SqlTypes.BIGINT);
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("Expected MAP, got BIGINT");
-
     // When:
-    schema.validateValue(10L);
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(10L)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected MAP, got BIGINT"));
   }
 
   @Test
@@ -81,12 +80,14 @@ public class SqlMapTest {
     // Given:
     final SqlMap schema = SqlTypes.map(SqlTypes.BIGINT);
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("MAP key: Expected STRING, got INT");
-
     // When:
-    schema.validateValue(ImmutableMap.of("first", 9L, 2, 9L));
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(ImmutableMap.of("first", 9L, 2, 9L))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("MAP key: Expected STRING, got INT"));
   }
 
   @Test
@@ -94,12 +95,14 @@ public class SqlMapTest {
     // Given:
     final SqlMap schema = SqlTypes.map(SqlTypes.BIGINT);
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("MAP value for key '2': Expected BIGINT, got INT");
-
     // When:
-    schema.validateValue(ImmutableMap.of("1", 11L, "2", 9));
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(ImmutableMap.of("1", 11L, "2", 9))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("MAP value for key '2': Expected BIGINT, got INT"));
   }
 
   @Test

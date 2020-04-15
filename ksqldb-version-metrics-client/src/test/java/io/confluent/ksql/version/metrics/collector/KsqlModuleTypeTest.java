@@ -16,7 +16,7 @@
 package io.confluent.ksql.version.metrics.collector;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.support.metrics.validate.KSqlValidModuleType;
 import io.confluent.support.metrics.validate.MetricsValidation;

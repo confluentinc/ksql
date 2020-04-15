@@ -15,79 +15,95 @@
 
 package io.confluent.ksql.parser;
 
+import static io.confluent.ksql.parser.DurationParser.parse;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import java.time.Duration;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 
 public class DurationParserTest {
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void shouldThrowOnTooFewTokens() {
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Expected 2 tokens, got: 1");
-
     // When:
-    DurationParser.parse("10");
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> parse("10")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected 2 tokens, got: 1"));
   }
 
   @Test
   public void shouldThrowOnTooManyTokens() {
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Expected 2 tokens, got: 3");
-
     // When:
-    DurationParser.parse("10 Seconds Long");
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> parse("10 Seconds Long")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected 2 tokens, got: 3"));
   }
 
   @Test
   public void shouldThrowOnNonNumericDuration() {
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Not numeric: '10s'");
-
     // When:
-    DurationParser.parse("10s Seconds");
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> parse("10s Seconds")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Not numeric: '10s'"));
   }
 
   @Test
   public void shouldThrowOnUnknownTimeUnit() {
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Unknown time unit: 'GREEN_BOTTLES'");
-
     // When:
-    DurationParser.parse("10 Green_Bottles");
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> parse("10 Green_Bottles")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown time unit: 'GREEN_BOTTLES'"));
   }
 
   @Test
   public void shouldIncludeOriginalInExceptionMessage() {
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Invalid duration: '10 Green_Bottles'. ");
-
     // When:
-    DurationParser.parse("10 Green_Bottles");
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> parse("10 Green_Bottles")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid duration: '10 Green_Bottles'. "));
   }
 
   @Test
   public void shouldIncludeValidTimeUnitsInExceptionMessage() {
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Supported time units are: "
-        + "NANOSECONDS, MICROSECONDS, MILLISECONDS, SECONDS, MINUTES, HOURS, DAYS");
-
     // When:
-    DurationParser.parse("10 Bananas");
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> parse("10 Bananas")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Supported time units are: "
+        + "NANOSECONDS, MICROSECONDS, MILLISECONDS, SECONDS, MINUTES, HOURS, DAYS"));
   }
 
   @Test

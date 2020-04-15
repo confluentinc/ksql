@@ -16,20 +16,17 @@
 package io.confluent.ksql.parser;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.util.KsqlException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class LiteralUtilTest {
-
-  @Rule
-  public final ExpectedException expectedExcetion = ExpectedException.none();
 
   @Test
   public void shouldConvertBooleanToBoolean() {
@@ -45,11 +42,13 @@ public class LiteralUtilTest {
 
   @Test
   public void shouldThrowConvertingOtherLiteralTypesToBoolean() {
-    // Then:
-    expectedExcetion.expect(KsqlException.class);
-    expectedExcetion.expectMessage("Property 'bob' is not a boolean value");
-
     // When:
-    LiteralUtil.toBoolean(new LongLiteral(10), "bob");
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> LiteralUtil.toBoolean(new LongLiteral(10), "bob")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Property 'bob' is not a boolean value"));
   }
 }

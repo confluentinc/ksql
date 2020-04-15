@@ -66,6 +66,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -98,26 +99,26 @@ import org.junit.rules.ExternalResource;
  */
 public class TestKsqlRestApp extends ExternalResource {
 
-  private static final AtomicInteger COUNTER = new AtomicInteger();
+  protected static final AtomicInteger COUNTER = new AtomicInteger();
 
-  private final String metricsPrefix = "app-" + COUNTER.getAndIncrement() + "-";
-  private final Map<String, ?> baseConfig;
-  private final Supplier<String> bootstrapServers;
-  private final Supplier<ServiceContext> serviceContext;
-  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
-  private final KsqlSecurityContextProvider securityContextProvider;
-  private final List<URL> listeners = new ArrayList<>();
-  private final Optional<BasicCredentials> credentials;
-  private ExecutableServer<KsqlRestConfig> restServer;
-  private KsqlExecutionContext ksqlEngine;
-  private KsqlRestApplication ksqlRestApplication;
+  protected final String metricsPrefix = "app-" + COUNTER.getAndIncrement() + "-";
+  protected final Map<String, ?> baseConfig;
+  protected final Supplier<String> bootstrapServers;
+  protected final Supplier<ServiceContext> serviceContext;
+  protected final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
+  protected final KsqlSecurityContextProvider securityContextProvider;
+  protected final List<URL> listeners = new ArrayList<>();
+  protected final Optional<BasicCredentials> credentials;
+  protected ExecutableServer<KsqlRestConfig> restServer;
+  protected KsqlExecutionContext ksqlEngine;
+  protected KsqlRestApplication ksqlRestApplication;
 
   static {
     // Increase the default - it's low (100)
     System.setProperty("sun.net.maxDatagramSockets", "1024");
   }
 
-  private TestKsqlRestApp(
+  protected TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
@@ -252,29 +253,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
   @Override
   protected void before() {
-    if (restServer != null) {
-      after();
-    }
-
-    final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
-
-    try {
-      ksqlRestApplication = KsqlRestApplication.buildApplication(
-          metricsPrefix,
-          convertToApiServerConfig(config),
-          (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
-          3,
-          serviceContext.get(),
-          serviceContextBinderFactory,
-          ksqlSecurityExtension -> securityContextProvider);
-
-      restServer = new ExecutableServer<>(
-          new ApplicationServer<>(convertToLocalListener(config)),
-          ImmutableList.of(ksqlRestApplication)
-      );
-    } catch (final Exception e) {
-      throw new RuntimeException("Failed to initialise", e);
-    }
+    initialize();
 
     try {
       restServer.startAsync();
@@ -299,6 +278,32 @@ public class TestKsqlRestApp extends ExternalResource {
       throw new RuntimeException(e);
     }
     restServer = null;
+  }
+
+  protected void initialize() {
+    if (restServer != null) {
+      after();
+    }
+
+    final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
+
+    try {
+      ksqlRestApplication = KsqlRestApplication.buildApplication(
+          metricsPrefix,
+          convertToApiServerConfig(config),
+          (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
+          3,
+          serviceContext.get(),
+          serviceContextBinderFactory,
+          ksqlSecurityExtension -> securityContextProvider);
+
+      restServer = new ExecutableServer<>(
+          new ApplicationServer<>(convertToLocalListener(config)),
+          ImmutableList.of(ksqlRestApplication)
+      );
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to initialise", e);
+    }
   }
 
   public static Builder builder(final Supplier<String> bootstrapServers) {
@@ -536,6 +541,18 @@ public class TestKsqlRestApp extends ExternalResource {
           securityContextBinder,
           securityContextProvider,
           credentials
+      );
+    }
+
+    public TestKsqlRestAppWaitingOnPrecondition buildWaitingOnPrecondition(final CountDownLatch latch) {
+      return new TestKsqlRestAppWaitingOnPrecondition(
+          bootstrapServers,
+          additionalProps,
+          serviceContext,
+          securityContextBinder,
+          securityContextProvider,
+          credentials,
+          latch
       );
     }
   }

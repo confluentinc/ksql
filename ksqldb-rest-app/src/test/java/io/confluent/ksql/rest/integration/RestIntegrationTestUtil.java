@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.integration;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -139,7 +139,7 @@ public final class RestIntegrationTestUtil {
     final URI listener = restApp.getHttpListener();
 
     final Client httpClient = ClientBuilder.newBuilder()
-        .register(new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper))
+        .register(new JacksonMessageBodyProvider(ApiJsonMapper.INSTANCE.get()))
         .build();
 
     try {

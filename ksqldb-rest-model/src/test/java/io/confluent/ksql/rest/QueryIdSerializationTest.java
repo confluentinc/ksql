@@ -13,40 +13,39 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.query;
+package io.confluent.ksql.rest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.testing.EqualsTester;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.query.QueryId;
 import org.junit.Test;
 
-public class QueryIdTest {
+public class QueryIdSerializationTest {
 
-  @SuppressWarnings("UnstableApiUsage")
+  private final ObjectMapper objectMapper = ApiJsonMapper.INSTANCE.get();
+
   @Test
-  public void shouldImplementEqualsProperly() {
-    new EqualsTester()
-        .addEqualityGroup(new QueryId("matching"), new QueryId("MaTcHiNg"))
-        .addEqualityGroup(new QueryId("different"))
-        .testEquals();
+  public void shouldSerializeMaintainingCase() throws Exception {
+    // Given:
+    final QueryId id = new QueryId("Query-Id");
+
+    // When:
+    final String serialized = objectMapper.writeValueAsString(id);
+
+    assertThat(serialized, is("\"Query-Id\""));
   }
 
   @Test
-  public void shouldBeCaseInsensitiveOnCommparison() {
+  public void shouldDeserializeMaintainingCase() throws Exception {
+    // Given:
+    final String serialized = "\"An-Id\"";
+
     // When:
-    final QueryId id = new QueryId("Mixed-Case-Id");
+    final QueryId deserialized = objectMapper.readValue(serialized, QueryId.class);
 
     // Then:
-    assertThat(id, is(new QueryId("MIXED-CASE-ID")));
-  }
-
-  @Test
-  public void shouldPreserveCase() {
-    // When:
-    final QueryId id = new QueryId("Mixed-Case-Id");
-
-    // Then:
-    assertThat(id.toString(), is("Mixed-Case-Id"));
+    assertThat(deserialized.toString(), is("An-Id"));
   }
 }

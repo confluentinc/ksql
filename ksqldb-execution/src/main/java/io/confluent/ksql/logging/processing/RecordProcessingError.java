@@ -18,7 +18,6 @@ package io.confluent.ksql.logging.processing;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -147,7 +146,7 @@ public final class RecordProcessingError implements ProcessingLogger.ErrorMessag
 
   private static String serializeRow(final GenericRow record) {
     try {
-      return JsonMapper.INSTANCE.mapper.writeValueAsString(record.values());
+      return ProcessingLoggingJsonMapper.INSTANCE.get().writeValueAsString(record.values());
     } catch (final Throwable t) {
       LOGGER.error("error serializing record for processing log", t);
       return null;

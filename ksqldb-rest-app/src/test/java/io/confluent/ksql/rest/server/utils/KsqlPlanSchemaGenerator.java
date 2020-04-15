@@ -44,11 +44,15 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class KsqlPlanSchemaGenerator {
-  private static final ObjectMapper MAPPER = PlanJsonMapper.create();
+
+  private static final ObjectMapper MAPPER = PlanJsonMapper.INSTANCE.get();
 
   private static final Map<Class<?>, JsonNode> POLYMORPHIC_TYPES = ImmutableMap.of(
       ExecutionStep.class, definitionForPolymorphicType(ExecutionStep.class)
   );
+
+  private KsqlPlanSchemaGenerator() {
+  }
 
   private static JsonSchemaConfig configure() {
     final JsonSchemaConfig vanilla = JsonSchemaConfig.vanillaJsonSchemaDraft4();

@@ -29,7 +29,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -41,6 +40,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
+import io.confluent.ksql.test.tools.TestJsonMapper;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopicInfoCache;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
@@ -444,8 +444,8 @@ public class RestTestExecutor implements Closeable {
 
   private static <T> T asJson(final Object response, final TypeReference<T> type) {
     try {
-      final String text = JsonMapper.INSTANCE.mapper.writeValueAsString(response);
-      return JsonMapper.INSTANCE.mapper.readValue(text, type);
+      final String text = TestJsonMapper.INSTANCE.get().writeValueAsString(response);
+      return TestJsonMapper.INSTANCE.get().readValue(text, type);
     } catch (final Exception e) {
       throw new AssertionError("Failed to serialize response to JSON: " + response);
     }

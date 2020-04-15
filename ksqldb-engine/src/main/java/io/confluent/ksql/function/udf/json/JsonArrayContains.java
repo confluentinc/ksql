@@ -32,7 +32,6 @@ import com.fasterxml.jackson.core.JsonToken;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.json.JsonMapper;
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.Objects;
@@ -50,7 +49,7 @@ public class JsonArrayContains {
   private static final JsonFactory PARSER_FACTORY = new JsonFactoryBuilder()
       .disable(CANONICALIZE_FIELD_NAMES)
       .build()
-      .setCodec(JsonMapper.INSTANCE.mapper);
+      .setCodec(UdfJsonMapper.INSTANCE.get());
 
   private static final EnumMap<JsonToken, Predicate<Object>> TOKEN_COMPAT;
 

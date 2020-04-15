@@ -13,27 +13,34 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.json;
+package io.confluent.ksql.logging.processing;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import io.confluent.ksql.json.KsqlTypesSerializationModule;
+import io.confluent.ksql.json.StructSerializationModule;
 
-public enum JsonMapper {
+/**
+ * Object mapper used for the processing logger.
+ */
+public enum ProcessingLoggingJsonMapper {
+
   INSTANCE;
 
-  public final ObjectMapper mapper =
-      new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+  private final ObjectMapper mapper = new ObjectMapper()
+      .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
+      .registerModule(new Jdk8Module())
+      .registerModule(new StructSerializationModule())
+      .registerModule(new KsqlTypesSerializationModule())
+      .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+      .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
-  JsonMapper() {
-    mapper.registerModule(new Jdk8Module());
-    mapper.registerModule(new StructSerializationModule());
-    mapper.registerModule(new KsqlTypesSerializationModule());
-    mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-    mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
-    mapper.enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN);
-    mapper.setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
+  public ObjectMapper get() {
+    return mapper;
   }
 }

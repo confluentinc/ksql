@@ -43,8 +43,8 @@ import io.confluent.ksql.cli.console.table.builder.TableRowsTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TypeListTableBuilder;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
@@ -122,6 +122,7 @@ public class Console implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private static final ClassHandlerMap1<KsqlEntity, Console> PRINT_HANDLERS =
       HandlerMaps.forClass(KsqlEntity.class).withArgType(Console.class)
@@ -189,7 +190,6 @@ public class Console implements Closeable {
     }
   }
 
-  private final ObjectMapper objectMapper;
   private final Map<String, CliSpecificCommand> cliSpecificCommands;
   private final KsqlTerminal terminal;
   private final RowCaptor rowCaptor;
@@ -234,7 +234,6 @@ public class Console implements Closeable {
     this.terminal = Objects.requireNonNull(terminal, "terminal");
     this.rowCaptor = Objects.requireNonNull(rowCaptor, "rowCaptor");
     this.cliSpecificCommands = Maps.newLinkedHashMap();
-    this.objectMapper = JsonMapper.INSTANCE.mapper;
     this.config = new CliConfig(ImmutableMap.of());
   }
 
@@ -826,7 +825,7 @@ public class Console implements Closeable {
     }
 
     try {
-      objectMapper.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
+      OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
       writer().println();
       flush();
     } catch (final IOException e) {

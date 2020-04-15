@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,37 +13,33 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.json;
+package io.confluent.ksql.test.tools;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
-import io.confluent.ksql.parser.json.KsqlParserSerializationModule;
-import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
+import io.confluent.ksql.json.StructSerializationModule;
 
 /**
- * The Json mapper used for serializing and deserializing to internal topics such as the command and
- * config topics.
+ * Json mapper for the test framework.
  */
-public enum PlanJsonMapper {
+public enum TestJsonMapper {
 
   INSTANCE;
 
   private final ObjectMapper mapper = new ObjectMapper()
-      .registerModules(
-          new Jdk8Module(),
-          new JavaTimeModule(),
-          new KsqlParserSerializationModule(),
-          new KsqlTypesSerializationModule(),
-          new KsqlTypesDeserializationModule(true)
-      )
-      .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-      .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-      .enable(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES)
-      .enable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE)
+      .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
+      .registerModule(new Jdk8Module())
+      .registerModule(new StructSerializationModule())
+      .registerModule(new KsqlTypesSerializationModule())
+      .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+      .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
       .setSerializationInclusion(Include.NON_EMPTY);
 
   public ObjectMapper get() {

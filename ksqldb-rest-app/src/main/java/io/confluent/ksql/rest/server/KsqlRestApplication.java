@@ -42,7 +42,6 @@ import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
@@ -51,6 +50,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -609,7 +609,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     // super.configureBaseApplication(config, metricTags);
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
     final JacksonMessageBodyProvider jsonProvider =
-        new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper);
+        new JacksonMessageBodyProvider(ApiJsonMapper.INSTANCE.get());
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
     config.register(serviceContextBinderFactory.apply(ksqlConfigNoPort, securityExtension));
@@ -658,7 +658,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
                 public <T> T getEndpointInstance(final Class<T> endpointClass) {
                   return (T) new WSQueryEndpoint(
                       buildConfigWithPort(),
-                      JsonMapper.INSTANCE.mapper,
+                      ApiJsonMapper.INSTANCE.get(),
                       statementParser,
                       ksqlEngine,
                       commandStore,

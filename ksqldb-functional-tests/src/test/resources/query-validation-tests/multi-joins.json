@@ -1,15 +1,11 @@
 {
   "comments": [
     "NOTE: these tests only attempt to cover multi-join scenarios; ensuring the validity of the ",
-    "sub-join topologies is delegated to joins.json",
-    "",
-    "The first part of the name is the join sequence - STT, for example, means STREAM-TABLE-TABLE ",
-    "The second part of the name is the type of join - II, for example, means INNER INNER ",
-    "The third part of the name is descriptive of any additional information, if present."
+    "sub-join topologies is delegated to joins.json"
   ],
   "tests": [
     {
-      "name": "STT - II",
+      "name": "stream-table-table - inner-inner",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -36,7 +32,7 @@
       }
     },
     {
-      "name": "STT - LL",
+      "name": "stream-table-table - left-left",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -66,7 +62,7 @@
       }
     },
     {
-      "name": "STT - LI",
+      "name": "stream-table-table - left-inner",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -94,7 +90,7 @@
       }
     },
     {
-      "name": "STT - IL",
+      "name": "stream-table-table - inner-left",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -123,7 +119,7 @@
       }
     },
     {
-      "name": "STT - II - rekey",
+      "name": "stream-table-table - inner-inner - rekey",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -149,7 +145,7 @@
       }
     },
     {
-      "name": "STT - II - rekey with expression",
+      "name": "stream-table-table - inner-inner - rekey with expression",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -175,7 +171,7 @@
       }
     },
     {
-      "name": "STT - II - select * ",
+      "name": "stream-table-table - inner-inner - select * ",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -201,7 +197,7 @@
       }
     },
     {
-      "name": "STT - II - select left.* only",
+      "name": "stream-table-table - inner-inner - select left.* only",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -227,7 +223,7 @@
       }
     },
     {
-      "name": "STT - II - select left.* and specific fields from rights",
+      "name": "stream-table-table - inner-inner - select left.* and specific fields from rights",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -253,7 +249,7 @@
       }
     },
     {
-      "name": "STT - II - select sources.*",
+      "name": "stream-table-table - inner-inner - select sources.*",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -279,7 +275,7 @@
       }
     },
     {
-      "name": "STT - II - flip join expression",
+      "name": "stream-table-table - inner-inner - flip join expression",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -306,7 +302,7 @@
       }
     },
     {
-      "name": "STT - II - rekey and flip join expression",
+      "name": "stream-table-table - inner-inner - rekey and flip join expression",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -332,7 +328,7 @@
       }
     },
     {
-      "name": "STT - II - aliasing",
+      "name": "stream-table-table - inner-inner - aliasing",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -359,7 +355,7 @@
       }
     },
     {
-      "name": "SST - II",
+      "name": "stream-stream-table - inner-inner",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -390,7 +386,7 @@
       }
     },
     {
-      "name": "SST - II - rekey left",
+      "name": "stream-stream-table - inner-inner - rekey left",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, k int, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -420,7 +416,7 @@
       }
     },
     {
-      "name": "SST - II - rekey left and right",
+      "name": "stream-stream-table - inner-inner - rekey left and right",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, k int, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE STREAM S2 (ROWKEY INT KEY, k int, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -455,7 +451,7 @@
       }
     },
     {
-      "name": "SST - II - cascading join criteria",
+      "name": "stream-stream-table - inner-inner - cascading join criteria",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, k int, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE STREAM S2 (ROWKEY INT KEY, k int, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -485,7 +481,7 @@
       }
     },
     {
-      "name": "SST - LI",
+      "name": "stream-stream-table - left-inner",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -517,7 +513,7 @@
       }
     },
     {
-      "name": "SST - FI",
+      "name": "stream-stream-table - full-inner",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -550,7 +546,7 @@
       }
     },
     {
-      "name": "STS - II",
+      "name": "stream-table-stream - inner-inner",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -580,7 +576,7 @@
       }
     },
     {
-      "name": "STS - LI",
+      "name": "stream-table-stream - left-inner",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -610,7 +606,7 @@
       }
     },
     {
-      "name": "SSS - II - different windows",
+      "name": "stream-stream-stream - inner-inner - different windows",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -649,7 +645,7 @@
       }
     },
     {
-      "name": "TTT - II",
+      "name": "table-table-table - inner-inner",
       "statements": [
         "CREATE TABLE T1 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -677,7 +673,7 @@
       }
     },
     {
-      "name": "TTT - IO",
+      "name": "table-table-table - inner-full",
       "statements": [
         "CREATE TABLE T1 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -745,7 +741,7 @@
       }
     },
     {
-      "name": "STT - II - rekey on different field",
+      "name": "stream-table-table - inner-inner - rekey on different field",
       "comments": ["https://github.com/confluentinc/ksql/issues/5062"],
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
@@ -762,7 +758,7 @@
       }
     },
     {
-      "name": "STT - II - rekey on different expression",
+      "name": "stream-table-table - inner-inner - rekey on different expression",
       "comments": ["https://github.com/confluentinc/ksql/issues/5062"],
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",

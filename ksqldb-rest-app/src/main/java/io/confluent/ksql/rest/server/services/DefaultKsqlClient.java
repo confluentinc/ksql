@@ -164,9 +164,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private static Map<String, String> toClientProps(final KsqlConfig ksqlConfig) {
     final Map<String, String> clientProps = new HashMap<>();
     for (Map.Entry<String, Object> entry : ksqlConfig.originals().entrySet()) {
-      if (entry.getValue() instanceof String) {
-        clientProps.put(entry.getKey(), (String) entry.getValue());
-      }
+      clientProps.put(entry.getKey(), entry.getValue().toString());
     }
     return clientProps;
   }

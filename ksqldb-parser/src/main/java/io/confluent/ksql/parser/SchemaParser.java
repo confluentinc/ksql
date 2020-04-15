@@ -23,6 +23,8 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
@@ -47,10 +49,40 @@ public final class SchemaParser {
   }
 
   public TableElements parse(final String schema) {
-    if (schema.trim().isEmpty()) {
-      return TableElements.of();
-    }
+    final List<TableElement> elements = parseToTableElements(schema);
+    return TableElements.of(elements);
+  }
 
+  /**
+   * Parse an internal schema.
+   *
+   * <p>Internal schemas can have columns in the value that duplicate columns in the key. Where
+   * as this is not allowed for other schemas.
+   *
+   * @param schema the text to parse.
+   * @return the logical schema.
+   */
+  public LogicalSchema parseInternal(final String schema) {
+    final List<TableElement> elements = parseToTableElements(schema);
+
+    final Builder builder = LogicalSchema.builder();
+
+    elements.forEach(e -> {
+      switch (e.getNamespace()) {
+        case PRIMARY_KEY:
+        case KEY:
+          builder.keyColumn(e.getName(), e.getType().getSqlType());
+          break;
+        default:
+          builder.valueColumn(e.getName(), e.getType().getSqlType());
+          break;
+      }
+    });
+
+    return builder.withRowTime().build();
+  }
+
+  private List<TableElement> parseToTableElements(final String schema) {
     final SqlBaseLexer lexer = new SqlBaseLexer(
         new CaseInsensitiveStream(CharStreams.fromString("(" + schema + ")")));
     final CommonTokenStream tokStream = new CommonTokenStream(lexer);
@@ -83,7 +115,7 @@ public final class SchemaParser {
 
     final SqlTypeParser typeParser = SqlTypeParser.create(typeRegistry);
 
-    final List<TableElement> elements = parser.tableElements().tableElement()
+    return parser.tableElements().tableElement()
         .stream()
         .map(ctx -> new TableElement(
             getLocation(ctx),
@@ -94,7 +126,5 @@ public final class SchemaParser {
             typeParser.getType(ctx.type())
         ))
         .collect(Collectors.toList());
-
-    return TableElements.of(elements);
   }
 }

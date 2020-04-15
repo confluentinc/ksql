@@ -26,7 +26,9 @@ import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.DurationParser;
+import io.confluent.ksql.parser.SchemaParser;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -42,6 +44,7 @@ import java.util.List;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -61,6 +64,12 @@ public class TopicInfoCache {
           "CREATE .* JOIN .* WITHIN (\\d+ \\w+) ON .*",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL
       );
+
+  private static final Pattern LEFT_INTERNAL = Pattern
+      .compile(".*(?:left-repartition|Join-repartition|THIS-\\d+-store-changelog)");
+
+  private static final Pattern RIGHT_INTERNAL = Pattern
+      .compile(".*(?:right-repartition|OTHER-\\d+-store-changelog)");
 
   private final KsqlExecutionContext ksqlEngine;
   private final SchemaRegistryClient srClient;
@@ -107,9 +116,11 @@ public class TopicInfoCache {
             ? OptionalLong.of(DurationParser.parse(windowedJoinMatcher.group(1)).toMillis())
             : OptionalLong.empty();
 
+        final LogicalSchema schema = getInternalSchema(topicName, query);
+
         return new TopicInfo(
             topicName,
-            query.getLogicalSchema(),
+            schema,
             query.getResultTopic().getKeyFormat(),
             query.getResultTopic().getValueFormat(),
             changeLogWindowSize
@@ -139,6 +150,74 @@ public class TopicInfoCache {
           + System.lineSeparator() + "topic: " + topicName
           + System.lineSeparator() + "reason: " + e.getMessage(), e);
     }
+  }
+
+  private static LogicalSchema getInternalSchema(
+      final String topicName,
+      final PersistentQueryMetadata query
+  ) {
+    if (LEFT_INTERNAL.matcher(topicName).matches()) {
+      return getSchemaFromQuery("PROJECT", "PrependAliasLeft", query);
+    }
+
+    if (RIGHT_INTERNAL.matcher(topicName).matches()) {
+      return getSchemaFromQuery("PROJECT", "PrependAliasRight", query);
+    }
+
+    if (topicName.endsWith("Aggregate-Aggregate-Materialize-changelog")) {
+      return getSchemaFromQuery("AGGREGATE", "Aggregate\\.Aggregate", query);
+    }
+
+    if (topicName.endsWith("Aggregate-GroupBy-repartition")) {
+      return getSchemaFromQuery("GROUP_BY", "Aggregate\\.GroupBy", query);
+    }
+
+    if (topicName.endsWith("Reduce-changelog")) {
+      return getSchemaFromQuery("SOURCE", "KsqlTopic\\.Source", query);
+    }
+
+    throw new UnsupportedOperationException("Unsupported internal topics type: " + topicName);
+  }
+
+  private static LogicalSchema getSchemaFromQuery(
+      final String stepType,
+      final String loggerSuffix,
+      final PersistentQueryMetadata query
+  ) {
+    final String executionPlan = query.getExecutionPlan();
+
+    final Pattern pattern = Pattern
+        .compile(".*\\[ " + stepType + " ]\\s+\\|\\s+Schema: (.*)\\s+\\|\\s+Logger:\\s+.*\\."
+            + loggerSuffix + "\\b.*", Pattern.DOTALL);
+
+    final Matcher matcher = pattern.matcher(executionPlan);
+    if (!matcher.find()) {
+      throw new IllegalStateException("Failed to determine schema from:"
+          + System.lineSeparator()
+          + "reason: no matching step found"
+          + System.lineSeparator()
+          + "stepType: " + stepType
+          + System.lineSeparator()
+          + "loggerSuffix: " + loggerSuffix
+          + System.lineSeparator()
+          + "executionPlan: " + executionPlan);
+    }
+
+    final String schemaText = matcher.group(1);
+
+    if (matcher.find()) {
+      throw new IllegalStateException("Failed to determine schema from:"
+          + System.lineSeparator()
+          + "reason: multiple lines matched the step, meaning schema is ambiguous"
+          + System.lineSeparator()
+          + "stepType: " + stepType
+          + System.lineSeparator()
+          + "loggerSuffix: " + loggerSuffix
+          + System.lineSeparator()
+          + "executionPlan: " + executionPlan);
+    }
+
+    return new SchemaParser(TypeRegistry.EMPTY).parseInternal(schemaText);
   }
 
   public final class TopicInfo {

@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
+import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
@@ -67,6 +68,7 @@ public class PlanSummary {
           .put(StreamFilter.class, "FILTER")
           .put(StreamFlatMap.class, "FLAT_MAP")
           .put(StreamGroupBy.class, "GROUP_BY")
+          .put(StreamGroupByKey.class, "GROUP_BY")
           .put(StreamSelect.class, "PROJECT")
           .put(StreamSelectKeyV1.class, "REKEY")
           .put(StreamSelectKey.class, "REKEY")
@@ -113,9 +115,15 @@ public class PlanSummary {
         .map(s -> summarize(s, indent + "\t"))
         .collect(Collectors.toList());
     final LogicalSchema schema = getSchema(step, sourceSummaries);
+    final String opName = OP_NAME.get(step.getClass());
+    if (opName == null) {
+      throw new UnsupportedOperationException("Unsupported step type: "
+          + step.getClass() + ", please add a step type");
+    }
+
     stringBuilder.append(indent)
         .append(" > [ ")
-        .append(OP_NAME.get(step.getClass())).append(" ] | Schema: ")
+        .append(opName).append(" ] | Schema: ")
         .append(schema.toString(FORMAT_OPTIONS))
         .append(" | Logger: ")
         .append(QueryLoggerUtil.queryLoggerName(queryId, step.getProperties().getQueryContext()))

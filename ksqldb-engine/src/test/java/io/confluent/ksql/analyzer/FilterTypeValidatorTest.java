@@ -19,6 +19,7 @@ package io.confluent.ksql.analyzer;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -37,9 +38,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -48,9 +47,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class FilterTypeValidatorTest {
   private static final ColumnName COLUMN1 = ColumnName.of("col1");
   private static final ColumnName COLUMN2 = ColumnName.of("col2");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private FunctionRegistry functionRegistry;
@@ -76,13 +72,11 @@ public class FilterTypeValidatorTest {
     when(schema.findValueColumn(any()))
         .thenReturn(Optional.of(Column.of(COLUMN1, STRING, VALUE, 10)));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Error in WHERE expression: "
-        + "Cannot compare col1 (STRING) to 10 (INTEGER) with EQUAL.");
-
     // When:
-    validator.validateFilterExpression(comparision);
+    assertThrows("Error in WHERE expression: "
+        + "Cannot compare col1 (STRING) to 10 (INTEGER) with EQUAL.",
+        KsqlException.class,
+        () -> validator.validateFilterExpression(comparision));
   }
 
   @Test
@@ -113,13 +107,11 @@ public class FilterTypeValidatorTest {
     when(schema.findValueColumn(COLUMN2))
         .thenReturn(Optional.of(Column.of(COLUMN2, INTEGER, VALUE, 10)));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Error in WHERE expression: "
-        + "Cannot compare col1 (STRING) to col2 (INTEGER) with EQUAL.");
-
     // When:
-    validator.validateFilterExpression(comparision);
+    assertThrows("Error in WHERE expression: "
+            + "Cannot compare col1 (STRING) to col2 (INTEGER) with EQUAL.",
+        KsqlException.class,
+        () -> validator.validateFilterExpression(comparision));
   }
 
   @Test
@@ -127,13 +119,11 @@ public class FilterTypeValidatorTest {
     // Given:
     final Expression literal = new IntegerLiteral(10);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Type error in WHERE expression: "
-        + "Should evaluate to boolean but is 10 (INTEGER) instead.");
-
     // When:
-    validator.validateFilterExpression(literal);
+    assertThrows("Type error in WHERE expression: "
+            + "Should evaluate to boolean but is 10 (INTEGER) instead.",
+        KsqlException.class,
+        () -> validator.validateFilterExpression(literal));
   }
 
   @Test
@@ -155,13 +145,11 @@ public class FilterTypeValidatorTest {
     when(schema.findValueColumn(COLUMN2))
         .thenReturn(Optional.of(Column.of(COLUMN2, INTEGER, VALUE, 10)));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Error in WHERE expression: "
-        + "Cannot compare col1 (STRING) to col2 (INTEGER) with EQUAL.");
-
     // When:
-    validator.validateFilterExpression(expression);
+    assertThrows("Error in WHERE expression: "
+            + "Cannot compare col1 (STRING) to col2 (INTEGER) with EQUAL.",
+        KsqlException.class,
+        () -> validator.validateFilterExpression(expression));
   }
 
   @Test
@@ -183,12 +171,10 @@ public class FilterTypeValidatorTest {
     when(schema.findValueColumn(COLUMN2))
         .thenReturn(Optional.of(Column.of(COLUMN2, INTEGER, VALUE, 10)));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Error in WHERE expression: "
-        + "Cannot compare col1 (STRING) to col2 (INTEGER) with EQUAL.");
-
     // When:
-    validator.validateFilterExpression(expression);
+    assertThrows("Error in WHERE expression: "
+            + "Cannot compare col1 (STRING) to col2 (INTEGER) with EQUAL.",
+        KsqlException.class,
+        () -> validator.validateFilterExpression(expression));
   }
 }

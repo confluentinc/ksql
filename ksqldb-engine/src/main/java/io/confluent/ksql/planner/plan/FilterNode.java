@@ -20,7 +20,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -81,12 +80,5 @@ public class FilterNode extends PlanNode {
             getPredicate(),
             contextStacker
         );
-  }
-
-  public interface FilterNodeFactory {
-    FilterNode create(
-        FunctionRegistry functionRegistry,
-        PlanNode sourcePlanNode,
-        Expression filterExpression);
   }
 }

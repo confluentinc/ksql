@@ -91,38 +91,26 @@ public class LogicalPlanner {
   private final RewrittenAnalysis analysis;
   private final FunctionRegistry functionRegistry;
   private final AggregateAnalyzer aggregateAnalyzer;
-  private final BiFunction<PlanNode, Expression, FilterNode> filterNodeFactory;
   private final ColumnReferenceRewriter refRewriter;
-
-  public LogicalPlanner(
-      final KsqlConfig ksqlConfig,
-      final ImmutableAnalysis analysis,
-      final FunctionRegistry functionRegistry,
-      final BiFunction<PlanNode, Expression, FilterNode> filterNodeFactory
-  ) {
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.refRewriter =
-        new ColumnReferenceRewriter(analysis.getFromSourceSchemas(false).isJoin());
-    this.analysis = new RewrittenAnalysis(analysis, refRewriter::process);
-    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.filterNodeFactory = Objects.requireNonNull(filterNodeFactory, "filterNodeFactory");
-    this.aggregateAnalyzer = new AggregateAnalyzer(functionRegistry);
-  }
 
   public LogicalPlanner(
       final KsqlConfig ksqlConfig,
       final ImmutableAnalysis analysis,
       final FunctionRegistry functionRegistry
   ) {
-    this(ksqlConfig, analysis, functionRegistry,
-        (plan, exp) -> buildFilterNode(functionRegistry, plan, exp));
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.refRewriter =
+        new ColumnReferenceRewriter(analysis.getFromSourceSchemas(false).isJoin());
+    this.analysis = new RewrittenAnalysis(analysis, refRewriter::process);
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.aggregateAnalyzer = new AggregateAnalyzer(functionRegistry);
   }
 
   public OutputNode buildPlan() {
     PlanNode currentNode = buildSourceNode();
 
     if (analysis.getWhereExpression().isPresent()) {
-      currentNode = filterNodeFactory.apply(currentNode, analysis.getWhereExpression().get());
+      currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
     }
 
     if (analysis.getPartitionBy().isPresent()) {
@@ -351,8 +339,7 @@ public class LogicalPlanner {
         "Unsupported SelectItem type: " + selectItem.getClass().getName());
   }
 
-  private static FilterNode buildFilterNode(
-      final FunctionRegistry functionRegistry,
+  private FilterNode buildFilterNode(
       final PlanNode sourcePlanNode,
       final Expression filterExpression
   ) {

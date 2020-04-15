@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-public final class ComparisonUtil {
+final class ComparisonUtil {
 
   private static final List<Handler> HANDLERS = ImmutableList.<Handler>builder()
       .add(handler(SqlBaseType::isNumber, ComparisonUtil::handleNumber))
@@ -38,20 +38,7 @@ public final class ComparisonUtil {
   private ComparisonUtil() {
   }
 
-  public static void assertValidComparison(
-      final SqlType left, final ComparisonExpression.Type operator, final SqlType right
-  ) {
-    final boolean valid = isValidComparison(left, operator, right);
-
-    if (!valid) {
-      throw new KsqlException(
-          "Operator " + operator + " cannot be used to compare "
-              + left.baseType() + " and " + right.baseType()
-      );
-    }
-  }
-
-  public static boolean isValidComparison(
+  static boolean isValidComparison(
       final SqlType left, final ComparisonExpression.Type operator, final SqlType right
   ) {
     if (left == null || right == null) {

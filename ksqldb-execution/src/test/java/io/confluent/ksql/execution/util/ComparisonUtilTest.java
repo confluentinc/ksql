@@ -72,8 +72,8 @@ public class ComparisonUtilTest {
     for (final SqlType leftType: typesTable) {
       for (final SqlType rightType: typesTable) {
         if (expectedResults.get(i).get(j)) {
-          ComparisonUtil.assertValidComparison(leftType, ComparisonExpression.Type.EQUAL,
-              rightType);
+          assertThat(ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL,
+              rightType), is(true));
         }
 
         j++;
@@ -90,20 +90,8 @@ public class ComparisonUtilTest {
     int j = 0;
     for (final SqlType leftType: typesTable) {
       for (final SqlType rightType: typesTable) {
-        if (!expectedResults.get(i).get(j)) {
-          try {
-            ComparisonUtil.assertValidComparison(leftType, ComparisonExpression.Type.EQUAL,
-                rightType);
-            assertThat("fail", false);
-          } catch (final KsqlException e) {
-            assertThat(e.getMessage(), is("Operator EQUAL cannot be used to compare "
-                + SCHEMA_TO_SQL_NAME[i]
-                + " and "
-                + SCHEMA_TO_SQL_NAME[j])
-            );
-          }
-        }
-
+        assertThat(ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL,
+            rightType), is(expectedResults.get(i).get(j)));
         j++;
       }
       i++;
@@ -119,7 +107,7 @@ public class ComparisonUtilTest {
     expectedException.expectMessage("Comparison with NULL not supported: NULL = STRING");
 
     // When:
-    ComparisonUtil.assertValidComparison(null, ComparisonExpression.Type.EQUAL, SqlTypes.STRING);
+    ComparisonUtil.isValidComparison(null, ComparisonExpression.Type.EQUAL, SqlTypes.STRING);
   }
 
   @SuppressWarnings("ConstantConditions")
@@ -130,6 +118,6 @@ public class ComparisonUtilTest {
     expectedException.expectMessage("Comparison with NULL not supported: STRING = NULL");
 
     // When:
-    ComparisonUtil.assertValidComparison(SqlTypes.STRING, ComparisonExpression.Type.EQUAL, null);
+    ComparisonUtil.isValidComparison(SqlTypes.STRING, ComparisonExpression.Type.EQUAL, null);
   }
 }

@@ -51,7 +51,17 @@ public final class FilterTypeValidator {
    * Validates the given filter expression.
    */
   public void validateFilterExpression(final Expression exp) {
-    // Construct an expression type manager to be used when checking types.
+    final SqlType type = getExpressionReturnType(exp);
+    if (!SqlTypes.BOOLEAN.equals(type)) {
+      throw new KsqlException("Type error in " + filterType.name() + " expression: "
+          + "Should evaluate to boolean but is " + exp.toString()
+          + " (" + type.toString(FormatOptions.none()) + ") instead.");
+    }
+  }
+
+  private SqlType getExpressionReturnType(
+      final Expression exp
+  ) {
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
         functionRegistry);
 
@@ -59,24 +69,15 @@ public final class FilterTypeValidator {
     final Expression magicTimestampRewrite =
         new StatementRewriteForMagicPseudoTimestamp().rewrite(exp);
 
-    final SqlType type;
     try {
-      type = expressionTypeManager.getExpressionSqlType(magicTimestampRewrite);
-    } catch (KsqlStatementException e) {
-      throw new KsqlStatementException("Error in " + filterType.name() + " expression: "
-          + e.getRawMessage(), e.getSqlStatement());
+      return expressionTypeManager.getExpressionSqlType(magicTimestampRewrite);
     } catch (KsqlException e) {
       throw new KsqlStatementException("Error in " + filterType.name() + " expression: "
           + e.getMessage(), exp.toString());
     }
-    if (!SqlTypes.BOOLEAN.equals(type)) {
-      throw new KsqlStatementException("Type error in " + filterType.name() + " expression: "
-          + "Should evaluate to boolean but is " + exp.toString()
-          + " (" + type.toString(FormatOptions.none()) + ") instead.",
-          exp.toString());
-    }
   }
 
+  // The expression type being validated.
   public enum FilterType {
     WHERE,
     HAVING

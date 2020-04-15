@@ -332,13 +332,15 @@ class Analyzer {
       // as it is possible that the JOIN will not have the "FROM" source in it at
       // all (e.g. SELECT * FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id)
       final boolean flipped = rightSourceName.equals(analysis.getFrom().getAlias());
-      analysis.addJoin(new JoinInfo(
-          ImmutableList.of(left, right),
-          flipped ? comparisonExpression.getRight() : comparisonExpression.getLeft(),
-          flipped ? comparisonExpression.getLeft() : comparisonExpression.getRight(),
+      final JoinInfo joinInfo = new JoinInfo(
+          left,
+          comparisonExpression.getLeft(),
+          right,
+          comparisonExpression.getRight(),
           joinType,
           node.getWithinExpression()
-      ));
+      );
+      analysis.addJoin(flipped ? joinInfo.flip() : joinInfo);
 
       return null;
     }

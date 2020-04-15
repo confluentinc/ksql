@@ -409,7 +409,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,
-        authenticationPlugin);
+        authenticationPlugin, serverState);
     apiServer.start();
     log.info("KSQL New API Server started");
   }

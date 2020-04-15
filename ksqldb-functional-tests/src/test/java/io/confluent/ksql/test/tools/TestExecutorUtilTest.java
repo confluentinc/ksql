@@ -22,7 +22,6 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
@@ -55,7 +54,7 @@ public class TestExecutorUtilTest {
 
   @Before
   public void setUp() throws IOException {
-    final QttTestFile qttTestFile = JsonMapper.INSTANCE.mapper
+    final QttTestFile qttTestFile = TestJsonMapper.INSTANCE.get()
         .readValue(new File("src/test/resources/testing_tool_tests.json"), QttTestFile.class);
     final TestCaseNode testCaseNode = qttTestFile.tests.get(0);
     testCase = new TestCaseBuilder().buildTests(testCaseNode,

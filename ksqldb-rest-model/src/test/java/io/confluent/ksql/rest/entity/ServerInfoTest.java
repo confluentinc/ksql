@@ -18,7 +18,7 @@ package io.confluent.ksql.rest.entity;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import java.io.IOException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -32,7 +32,7 @@ public class ServerInfoTest {
 
   @Test
   public void testSerializeDeserialize() throws IOException {
-    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper mapper = ApiJsonMapper.INSTANCE.get();
     final byte[] bytes = mapper.writeValueAsBytes(serverInfo);
     final ServerInfo deserializedServerInfo = mapper.readValue(bytes, ServerInfo.class);
     Assert.assertThat(serverInfo, equalTo(deserializedServerInfo));

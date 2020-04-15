@@ -19,7 +19,7 @@ import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import java.io.IOException;
@@ -60,7 +60,7 @@ public class MockStreamedQueryResource {
 
   public static class TestStreamWriter implements StreamingOutput {
     BlockingQueue<String> dataq = new LinkedBlockingQueue<>();
-    ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+    ObjectMapper objectMapper = ApiJsonMapper.INSTANCE.get();
 
     public void enq(final String data) throws InterruptedException { dataq.put(data); }
 

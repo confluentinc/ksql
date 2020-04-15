@@ -159,8 +159,7 @@ public class KsqlResource implements KsqlConfigurable {
       throw new IllegalArgumentException("Need KS application server set");
     }
 
-
-    final String applicationServer = 
+    final String applicationServer =
         (String) config.getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG);
     final HostInfo hostInfo = ServerUtil.parseHostInfo(applicationServer);
     this.localHost = new KsqlHostInfo(hostInfo.host(), hostInfo.port());
@@ -255,7 +254,7 @@ public class KsqlResource implements KsqlConfigurable {
           statements,
           new SessionProperties(
               request.getConfigOverrides(),
-              localHost, 
+              localHost,
               localUrl,
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
           ),

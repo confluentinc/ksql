@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.auth;
+package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.configdef.ConfigValidators.oneOrMore;
 import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
@@ -92,6 +92,13 @@ public class ApiServerConfig extends AbstractConfig {
           + "Specify '*' to indicate all roles should be allowed.";
   public static final List<String> AUTHENTICATION_ROLES_DEFAULT =
       Collections.unmodifiableList(Collections.emptyList());
+  public static final String AUTHENTICATION_SKIP_PATHS_CONFIG = propertyName(
+      "authentication.skip.paths");
+  public static final String AUTHENTICATION_SKIP_PATHS_DOC =
+      "Comma separated list of paths where authentication is not required. "
+          + "Wildcards are supported.";
+  public static final List<String> AUTHENTICATION_SKIP_PATHS_DEFAULT =
+      Collections.unmodifiableList(Collections.emptyList());
 
   public static final String WORKER_POOL_SIZE = propertyName("worker.pool.size");
   public static final String WORKER_POOL_DOC =
@@ -102,6 +109,18 @@ public class ApiServerConfig extends AbstractConfig {
   public static final int DEFAULT_MAX_PUSH_QUERIES = 100;
   public static final String MAX_PUSH_QUERIES_DOC =
       "The maximum number of push queries allowed on the server at any one time";
+
+  public static final String CORS_ALLOWED_ORIGINS = propertyName("cors.allowed.origins");
+  public static final String CORS_ALLOWED_ORIGINS_DOC =
+      "CORS support: Comma separated list of allowed origins, can contain wildcards";
+
+  public static final String CORS_ALLOWED_HEADERS = propertyName("cors.allowed.headers");
+  public static final String CORS_ALLOWED_HEADERS_DOC =
+      "CORS support: Comma separated list of allowed headers";
+
+  public static final String CORS_ALLOWED_METHODS = propertyName("cors.allowed.methods");
+  public static final String CORS_ALLOWED_METHODS_DOC =
+      "CORS support: Comma separated list of allowed methods";
 
   private static String propertyName(final String name) {
     return KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + PROPERTY_PREFIX + name;
@@ -172,6 +191,12 @@ public class ApiServerConfig extends AbstractConfig {
           Importance.LOW,
           AUTHENTICATION_ROLES_DOC)
       .define(
+          AUTHENTICATION_SKIP_PATHS_CONFIG,
+          Type.LIST,
+          AUTHENTICATION_SKIP_PATHS_DEFAULT,
+          Importance.LOW,
+          AUTHENTICATION_SKIP_PATHS_DOC)
+      .define(
           WORKER_POOL_SIZE,
           Type.INT,
           DEFAULT_WORKER_POOL_SIZE,
@@ -184,7 +209,28 @@ public class ApiServerConfig extends AbstractConfig {
           DEFAULT_MAX_PUSH_QUERIES,
           zeroOrPositive(),
           Importance.MEDIUM,
-          MAX_PUSH_QUERIES_DOC);
+          MAX_PUSH_QUERIES_DOC)
+      .define(
+          CORS_ALLOWED_ORIGINS,
+          Type.STRING,
+          "",
+          Importance.MEDIUM,
+          CORS_ALLOWED_ORIGINS_DOC
+      )
+      .define(
+          CORS_ALLOWED_HEADERS,
+          Type.LIST,
+          "",
+          Importance.MEDIUM,
+          CORS_ALLOWED_HEADERS_DOC
+      )
+      .define(
+          CORS_ALLOWED_METHODS,
+          Type.LIST,
+          "",
+          Importance.MEDIUM,
+          CORS_ALLOWED_METHODS_DOC
+      );
 
   public ApiServerConfig(final Map<?, ?> map) {
     super(CONFIG_DEF, map);

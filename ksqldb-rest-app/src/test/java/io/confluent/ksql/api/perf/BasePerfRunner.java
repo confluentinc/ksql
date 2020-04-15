@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.perf;
 
-import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;

@@ -31,6 +31,8 @@ public final class ErrorCodes {
   public static final int ERROR_CODE_MISSING_KEY_FIELD = 6;
   public static final int ERROR_CODE_CANNOT_COERCE_FIELD = 7;
   public static final int ERROR_MAX_PUSH_QUERIES_EXCEEDED = 8;
+  public static final int ERROR_FAILED_AUTHENTICATION = 9;
+  public static final int ERROR_FAILED_AUTHORIZATION = 10;
 
   public static final int ERROR_CODE_INTERNAL_ERROR = 100;
 

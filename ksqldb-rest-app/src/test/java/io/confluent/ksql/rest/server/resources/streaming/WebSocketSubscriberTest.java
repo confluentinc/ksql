@@ -22,8 +22,8 @@ import static org.junit.Assert.assertEquals;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -42,7 +42,7 @@ import org.junit.Test;
 
 public class WebSocketSubscriberTest {
 
-  private static final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+  private static final ObjectMapper mapper = ApiJsonMapper.INSTANCE.get();
 
   private final Subscription subscription = EasyMock.mock(Subscription.class);
   private final Session session = EasyMock.mock(Session.class);

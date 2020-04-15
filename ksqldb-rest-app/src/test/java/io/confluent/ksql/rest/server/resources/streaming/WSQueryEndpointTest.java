@@ -38,7 +38,6 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -46,6 +45,7 @@ import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -100,7 +100,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class WSQueryEndpointTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private static final KsqlRequest VALID_REQUEST = new KsqlRequest(
       "test-sql",

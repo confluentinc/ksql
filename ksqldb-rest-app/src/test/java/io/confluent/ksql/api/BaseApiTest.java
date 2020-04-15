@@ -20,7 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
@@ -211,7 +211,7 @@ public class BaseApiTest {
   }
 
   @SuppressWarnings("unchecked")
-  private void setDefaultRowGenerator() {
+  protected void setDefaultRowGenerator() {
     List<GenericRow> rows = new ArrayList<>();
     for (JsonArray ja : DEFAULT_ROWS) {
       rows.add(GenericRow.fromList(ja.getList()));

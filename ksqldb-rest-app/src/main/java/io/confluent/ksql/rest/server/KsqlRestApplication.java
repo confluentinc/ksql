@@ -28,11 +28,11 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
-import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.endpoints.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -42,7 +42,6 @@ import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
@@ -51,6 +50,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -138,6 +138,7 @@ import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.streams.StreamsConfig;
@@ -207,8 +208,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   Please note that the old KSQL properties are the ones that should be used to configure the
   server for now, not the new ones.
    */
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static KsqlRestConfig convertToApiServerConfig(final KsqlRestConfig config) {
+    // CHECKSTYLE_RULES.ON: NPathComplexity
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
 
     final List<String> listeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);
@@ -253,6 +256,21 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     if (authRealm != null) {
       origs.put(ApiServerConfig.AUTHENTICATION_REALM_CONFIG, authRealm);
     }
+
+    final List<String> unauthedPaths = config.getList(RestConfig.AUTHENTICATION_SKIP_PATHS);
+    if (unauthedPaths != null) {
+      origs.put(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
+    }
+
+    final String corsAllowedOrigin = config
+        .getString(RestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG);
+    origs.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, corsAllowedOrigin);
+    final String corsAllowedHeaders = config
+        .getString(RestConfig.ACCESS_CONTROL_ALLOW_HEADERS);
+    origs.put(ApiServerConfig.CORS_ALLOWED_HEADERS, corsAllowedHeaders);
+    final String corsAllowedMethods = config
+        .getString(RestConfig.ACCESS_CONTROL_ALLOW_METHODS);
+    origs.put(ApiServerConfig.CORS_ALLOWED_METHODS, corsAllowedMethods);
 
     return new KsqlRestConfig(origs);
   }
@@ -315,6 +333,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
     this.routingFilterFactory = initializeRoutingFilterFactory(
         ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
+
+    sanityCheckPluginConfig(ksqlConfig.originals());
   }
 
   @Override
@@ -384,7 +404,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlEngine,
         ksqlConfigWithPort,
         pullQueryExecutor,
-        ksqlSecurityContextProvider
+        ksqlSecurityContextProvider,
+        ksqlResource
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,
@@ -588,7 +609,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     // super.configureBaseApplication(config, metricTags);
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
     final JacksonMessageBodyProvider jsonProvider =
-        new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper);
+        new JacksonMessageBodyProvider(ApiJsonMapper.INSTANCE.get());
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
     config.register(serviceContextBinderFactory.apply(ksqlConfigNoPort, securityExtension));
@@ -637,7 +658,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
                 public <T> T getEndpointInstance(final Class<T> endpointClass) {
                   return (T) new WSQueryEndpoint(
                       buildConfigWithPort(),
-                      JsonMapper.INSTANCE.mapper,
+                      ApiJsonMapper.INSTANCE.get(),
                       statementParser,
                       ksqlEngine,
                       commandStore,
@@ -1102,4 +1123,27 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     return new KsqlRestConfig(restConfigs);
   }
+
+  /*
+  Temporary sanity check to prevent broken security configuration until we have migrated the full
+  API from Jetty to Vert.x
+   */
+  private static void sanityCheckPluginConfig(final Map<String, ?> config) {
+    final Object ksqlAuthPluginClass = config.get(KsqlConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS);
+    final Object restServletInitializors = config
+        .get(RestConfig.REST_SERVLET_INITIALIZERS_CLASSES_CONFIG);
+    final Object wsServletInitializors = config
+        .get(RestConfig.WEBSOCKET_SERVLET_INITIALIZERS_CLASSES_CONFIG);
+    final boolean hasKsqlPluginConfig = ksqlAuthPluginClass != null;
+    final boolean hasJettyPluginConfig =
+        restServletInitializors != null || wsServletInitializors != null;
+
+    if (hasKsqlPluginConfig != hasJettyPluginConfig) {
+      throw new ConfigException(
+          KsqlConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS + " must be specified together with "
+              + RestConfig.REST_SERVLET_INITIALIZERS_CLASSES_CONFIG + " / "
+              + RestConfig.WEBSOCKET_SERVLET_INITIALIZERS_CLASSES_CONFIG);
+    }
+  }
+
 }

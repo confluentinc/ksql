@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -67,12 +68,12 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
     final Response response = ksqlResource.handleKsqlStatements(securityContext, request);
 
     final Code statusCode = HttpStatus.getCode(response.getStatus());
-    if (statusCode != Code.OK) {
-      // It always returns ok
-      throw new IllegalStateException("Unexpected failure");
-    }
 
-    return RestResponse.successful(statusCode, (KsqlEntityList) response.getEntity());
+    if (statusCode == Code.OK) {
+      return RestResponse.successful(statusCode, (KsqlEntityList) response.getEntity());
+    } else {
+      return RestResponse.erroneous(statusCode, (KsqlErrorMessage) response.getEntity());
+    }
   }
 
   @Override

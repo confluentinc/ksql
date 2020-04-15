@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.vertx.core.buffer.Buffer;
@@ -43,7 +43,7 @@ public final class KsqlClientUtil {
   }
 
   static <T> T deserialize(final Buffer buffer, final Class<T> clazz) {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper objectMapper = ApiJsonMapper.INSTANCE.get();
     try {
       return objectMapper.readValue(buffer.getBytes(), clazz);
     } catch (Exception e) {
@@ -52,7 +52,7 @@ public final class KsqlClientUtil {
   }
 
   static Buffer serialize(final Object object) {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper objectMapper = ApiJsonMapper.INSTANCE.get();
     try {
       final byte[] bytes = objectMapper.writeValueAsBytes(object);
       return Buffer.buffer(bytes);

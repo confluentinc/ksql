@@ -76,7 +76,7 @@ import org.hamcrest.StringDescription;
 public final class TestExecutorUtil {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.create();
+  private static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.INSTANCE.get();
 
   private TestExecutorUtil() {
   }

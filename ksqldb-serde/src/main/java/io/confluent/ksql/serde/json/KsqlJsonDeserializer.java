@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
@@ -123,6 +124,10 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       throw new SerializationException(
           "mvn " + target + " from topic: " + topic, e);
     }
+  }
+
+  public static ObjectReader jsonReader() {
+    return MAPPER.reader();
   }
 
   private static Object enforceFieldType(

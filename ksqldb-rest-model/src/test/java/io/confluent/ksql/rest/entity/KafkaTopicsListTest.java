@@ -19,7 +19,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import org.junit.Test;
 
 public class KafkaTopicsListTest {
@@ -27,7 +27,7 @@ public class KafkaTopicsListTest {
   @Test
   public void testSerde() throws Exception {
     // Given:
-    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper mapper = ApiJsonMapper.INSTANCE.get();
     final KafkaTopicsList expected = new KafkaTopicsList(
         "SHOW TOPICS;",
         ImmutableList.of(new KafkaTopicInfo("thetopic", ImmutableList.of(1, 2, 3)))

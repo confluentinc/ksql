@@ -74,20 +74,6 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  static KsqlErrorMessage makeKsqlRequestWithError(
-      final TestKsqlRestApp restApp,
-      final String sql
-  ) {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
-
-      final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
-
-      throwOnNoError(res);
-
-      return res.getErrorMessage();
-    }
-  }
-
   static List<StreamedRow> makeQueryRequest(
       final TestKsqlRestApp restApp,
       final String sql,

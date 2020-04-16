@@ -192,7 +192,7 @@ services:
 
 There are a couple things to notice here. The Postgres image mounts the custom configuration file that you wrote. Postgres adds these configuration settings into its system-wide configuration. The environment variables you gave it also set up a blank database called `customers`, along with a user named `postgres-user` that can access it.
 
-The compose file also sets up MongoDB as a replica set named `my-replica-set`. Debezium requires that MongoDB runs in this configuration to pick up changes from its oplog. In this case, you're just running a single-node replica set.
+The compose file also sets up MongoDB as a replica set named `my-replica-set`. Debezium requires that MongoDB runs in this configuration to pick up changes from its oplog (see Debezium's [documentation](https://debezium.io/documentation/reference/1.1/connectors/mongodb.html) on MongoDB). In this case, you're just running a single-node replica set.
 
 Finally, note that the ksqlDB server image mounts the `confluent-hub-components` directory, too. The jar files that you downloaded need to be on the classpath of ksqlDB when the server starts up.
 

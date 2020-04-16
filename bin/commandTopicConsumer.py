@@ -25,6 +25,7 @@
 #   -b BROKERS        Bootstrap servers
 #   -f CONFFILE       Configuration file (configProp=value format)
 #   -k KSQLSERVICEID  KsqlDB service ID
+#   -d                Enable debug logging
 
 
 from confluent_kafka import KafkaError, KafkaException, version
@@ -49,23 +50,23 @@ class CommandRecord (object):
         d = json.loads(binstr)
         return CommandRecord(d['statement'])
 
-max_offset = -1001
-def consumer_latest_offsets(consumer, partitions):
-    global max_offset
-    for p in partitions:
-        high_water = consumer.get_watermark_offsets(p)[1]
-        if high_water >= max_offset:
-            max_offset = high_water
-    print("Max offset in command topic = ", max_offset)
-
 class CommandConsumer(object):
     def __init__(self, ksqlServiceId, conf):
         self.consumer = Consumer(conf)
         self.topic = '_confluent-ksql-{}_command_topic'.format(ksqlServiceId)
 
     def consumer_run(self):
-        global max_offset
-        self.consumer.subscribe([self.topic], on_assign=consumer_latest_offsets)
+        max_offset = -1001
+
+        def latest_offsets(consumer, partitions):
+            nonlocal max_offset
+            for p in partitions:
+                high_water = consumer.get_watermark_offsets(p)[1]
+                if high_water >= max_offset:
+                    max_offset = high_water
+            logging.debug("Max offset in command topic = %d", max_offset)
+
+        self.consumer.subscribe([self.topic], on_assign=latest_offsets)
         self.msg_cnt = 0
         self.msg_err_cnt = 0
         stmts = {}
@@ -117,7 +118,9 @@ class CommandConsumer(object):
                         stmts[name].append(record.stmt)
 
                     if match is None and match2 is None and match3 is None and match4 is None:
-                        print("No match for record %s",record)
+                        if 'UNRECOGNIZED' not in stmts:
+                            stmts['UNRECOGNIZED'] = []
+                        stmts['UNRECOGNIZED'].append(record.stmt)
 
                     # High watermark is +1 from last offset
                     if msg.offset() >= max_offset-1:
@@ -125,8 +128,8 @@ class CommandConsumer(object):
 
                 except ValueError as ex:
                     print("consumer: Failed to deserialize message in "
-                                     "{} [{}] at offset {} (headers {}): {}".format(
-                                         msg.topic(), msg.partition(), msg.offset(), msg.headers(), ex))
+                          "{} [{}] at offset {} (headers {}): {}".format(
+                        msg.topic(), msg.partition(), msg.offset(), msg.headers(), ex))
                     self.msg_err_cnt += 1
 
         except KeyboardInterrupt:
@@ -134,25 +137,34 @@ class CommandConsumer(object):
 
         finally:
             self.consumer.close()
-            print("Consumed {} messages, erroneous message = {}.".format(self.msg_cnt, self.msg_err_cnt))
+            logging.debug("Consumed {} messages, erroneous message = {}.".format(self.msg_cnt, self.msg_err_cnt))
+            outer_json = []
+
             for key, value in stmts.items():
-                print("[{}]".format(key))
-                for cmd in value:
-                    print("> {}".format(cmd))
-                print("-------------------------------------------------\n")
+                inner_json = {}
+                inner_json['subject'] = key
+                inner_json['statements'] = value
+                outer_json.append(inner_json)
+
+            print(json.dumps(outer_json  ))
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Command topic consumer that dumps CREATE, DROP and TERMINATE queries to '+
-        'stdout. If no arguments are provided, default values are used. Default broker is '
-        '\'localhost:9092\'. Default ksqlServiceId is \'default_\'. You may optionally provide a configuration file with '+
-        'broker specific configuration parameters. Every run of this script will consume the topic from the beginning. ')
+    parser = argparse.ArgumentParser(description="Command topic consumer that dumps CREATE, DROP and TERMINATE queries to "+
+                                                 "stdout. If no arguments are provided, default values are used. Default broker is "
+                                                 "'localhost:9092'. Default ksqlServiceId is 'default_'. You may optionally provide a configuration file with "+
+                                                 "broker specific configuration parameters. Every run of this script will consume the topic from the beginning. ")
 
     parser.add_argument('-f', dest='confFile', type=argparse.FileType('r'),
                         help='Configuration file (configProp=value format)')
     parser.add_argument('-b', dest='brokers', type=str, default=None, help='Bootstrap servers')
     parser.add_argument('-k', dest='ksqlServiceId', type=str, default=None, help='KsqlDB service ID')
+    parser.add_argument("-d", dest='debug', action="store_true", default=False, help="Enable debug logging")
+
 
     args = parser.parse_args()
+
+    if args.debug:
+        logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
     conf = dict()
     if args.confFile is not None:
@@ -178,17 +190,14 @@ if __name__ == '__main__':
     elif 'bootstrap.servers' not in conf:
         conf['bootstrap.servers'] = 'localhost:9092'
 
-
-    if 'group.id' not in conf:
-        # Generate a unique group.id 
-        conf['group.id'] = 'commandTopicConsumer.py-{}'.format(uuid.uuid4())
-
     if args.ksqlServiceId is None:
-        args.ksqlServiceId = 'default_'   
+        args.ksqlServiceId = 'default_'
 
-    conf['auto.offset.reset'] = 'earliest'    
+    conf['auto.offset.reset'] = 'earliest'
     conf['enable.auto.commit']= 'False'
     conf['client.id'] = 'commandClient'
+    # Generate a unique group.id
+    conf['group.id'] = 'commandTopicConsumer.py-{}'.format(uuid.uuid4())
 
     c = CommandConsumer(args.ksqlServiceId, conf)
     c.consumer_run()

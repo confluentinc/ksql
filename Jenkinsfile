@@ -273,18 +273,14 @@ def job = {
                 config.dockerRepos.each { dockerRepo ->
                                             dockerName = config.dockerRegistry+dockerRepo+":${config.docker_tag}"
                                             echo "Twistloc Scan ${dockerName}"
-                                            twistlockScan   ca: '',
-                                                            cert: '',
-                                                            compliancePolicy: 'critical',
-                                                            dockerAddress: dockerHost(),
-                                                            gracePeriodDays: 0,
-                                                            ignoreImageBuildTime: true,
-                                                            image: dockerName,
-                                                            key: '',
-                                                            logLevel: 'true',
-                                                            policy: 'warn',
-                                                            requirePackageUpdate: false,
-                                                            timeout: 10
+                                            prismaCloudScanImage  ca: '',
+                                                                  cert: '',
+                                                                  dockerAddress: dockerHost(),
+                                                                  ignoreImageBuildTime: true,
+                                                                  image: dockerName,
+                                                                  key: '',
+                                                                  logLevel: 'true',
+                                                                  timeout: 10
                 }
             }
         }
@@ -296,7 +292,7 @@ def job = {
                 config.dockerRepos.each { dockerRepo ->
                                             dockerName = config.dockerRegistry+dockerRepo+":${config.docker_tag}"
                                             echo "Twistloc Publish ${dockerName}"
-                                            twistlockPublish    ca: '',
+                                            prismaCloudPublish  ca: '',
                                                                 cert: '',
                                                                 dockerAddress: dockerHost(),
                                                                 ignoreImageBuildTime: true,

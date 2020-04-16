@@ -15,8 +15,9 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -123,6 +124,18 @@ public class PlanSummaryTest {
             + "\n\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, L0 INTEGER | Logger: QID.src"
             + "\n\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, L0_2 STRING | Logger: QID.src2\n"
     ));
+  }
+
+  @Test
+  public void shouldThrowOnUnsupportedStepType() {
+    // Given:
+    final ExecutionStep<?> step = mock(ExecutionStep.class);
+
+    // When:
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> planSummaryBuilder.summarize(step)
+    );
   }
 
   private <T extends ExecutionStep<?>> T givenStep(

@@ -272,14 +272,20 @@ public class KsqlRestConfig extends RestConfig {
       }
     });
 
+    final URL sanitized = sanitizeInterNodeListener(
+        listener,
+        foo -> listener.getPort(),
+        false
+    );
+
     logInterNodeListener(
         logger,
-        listener,
+        sanitized,
         address,
         "'" + ADVERTISED_LISTENER_CONFIG + "'"
     );
 
-    return listener;
+    return sanitized;
   }
 
   private static void logInterNodeListener(
@@ -329,10 +335,6 @@ public class KsqlRestConfig extends RestConfig {
       final Function<URL, Integer> portResolver,
       final boolean replaceHost
   ) {
-    if (!replaceHost && listener.getPort() > 0) {
-      return listener;
-    }
-
     final String host = replaceHost
         ? getLocalHostName()
         : listener.getHost();
@@ -342,7 +344,7 @@ public class KsqlRestConfig extends RestConfig {
         : listener.getPort();
 
     try {
-      return new URL(listener.getProtocol(), host, port, listener.getFile());
+      return new URL(listener.getProtocol(), host, port, "");
     } catch (final MalformedURLException e) {
       throw new KsqlServerException("Resolved first listener to malformed URL", e);
     }

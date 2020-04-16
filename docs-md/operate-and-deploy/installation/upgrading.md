@@ -41,13 +41,17 @@ cluster on the new version, porting across your database schema and finally thin
 ### Port the database schema
 
 To port your database schema from one cluster to another you need to recreate all the streams,
-tables and types in the source cluster.  This is currently a manual process, until support is added
-to [dump the schema](https://github.com/confluentinc/ksql/issues/4529).
+tables and types in the source cluster.
 
-The recommended process it to:
+The recommended process is to use the [commandTopicConsumer](commandTopicConsumer.py)
+Python script to dump the ksqlDB command topic. 
 
-**Note: you can use the [SPOOL](../../developer-guide/ksqldb-reference/spool.md)
-command to capture the output of the commands you run in the CLI to a file.**
+If you prefer to recover the schema manually, use the following steps.
+
+!!! tip
+
+    You can use the [SPOOL](../../developer-guide/ksqldb-reference/spool.md)
+    command to capture the output of the commands you run in the CLI to a file.
 
 1. Capture streams SQL:
   1. Run `list streams extended;` to list all of the streams.

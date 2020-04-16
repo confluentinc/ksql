@@ -138,8 +138,6 @@ class ProxyHandler {
 
   private static void responseHandler(final HttpClientResponse clientResponse,
       final HttpServerRequest serverRequest) {
-    // If the target server closes the connection we need to close ours too
-    clientResponse.request().connection().closeHandler(v -> serverRequest.connection().close());
 
     final HttpServerResponse serverResponse = serverRequest.response();
     serverResponse.setStatusCode(clientResponse.statusCode());

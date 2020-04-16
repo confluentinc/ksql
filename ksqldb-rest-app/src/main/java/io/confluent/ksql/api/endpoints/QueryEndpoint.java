@@ -42,13 +42,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 
-public class QueryStreamEndpoint {
+public class QueryEndpoint {
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
   private final PullQueryExecutor pullQueryExecutor;
 
-  public QueryStreamEndpoint(final KsqlEngine ksqlEngine, final KsqlConfig ksqlConfig,
+  public QueryEndpoint(final KsqlEngine ksqlEngine, final KsqlConfig ksqlConfig,
       final PullQueryExecutor pullQueryExecutor) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlConfig = ksqlConfig;

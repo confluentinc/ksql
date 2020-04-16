@@ -83,6 +83,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -230,7 +231,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
   }
 
@@ -250,7 +252,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
   }
 
@@ -259,7 +262,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     // Then:
@@ -271,7 +275,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L),
+        new CompletableFuture<>()
     );
 
     // Then:
@@ -296,7 +301,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L),
+        new CompletableFuture<>()
     );
   }
 
@@ -310,7 +316,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     // Then:
@@ -332,7 +339,8 @@ public class StreamedQueryResourceTest {
     // When:
     final Response response = testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -400,7 +408,8 @@ public class StreamedQueryResourceTest {
     final Response response =
         testResource.streamQuery(
             securityContext,
-            new KsqlRequest(queryString, requestStreamsProperties, Collections.emptyMap(), null)
+            new KsqlRequest(queryString, requestStreamsProperties, Collections.emptyMap(), null),
+            new CompletableFuture<>()
         );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
@@ -539,7 +548,8 @@ public class StreamedQueryResourceTest {
     /// When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     // Then:
@@ -558,7 +568,8 @@ public class StreamedQueryResourceTest {
     // When:
     final Response response = testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -581,7 +592,8 @@ public class StreamedQueryResourceTest {
     // When:
     final Response response = testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
@@ -627,7 +639,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
   }
 

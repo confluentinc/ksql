@@ -181,6 +181,13 @@ public class InsertsStreamRunner extends BasePerfRunner {
         final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
       return null;
     }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
+        WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
   }
 
   private class InsertsSubscriber extends BaseSubscriber<JsonObject> implements

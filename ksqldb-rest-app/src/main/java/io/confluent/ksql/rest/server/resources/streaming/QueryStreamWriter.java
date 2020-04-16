@@ -31,6 +31,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.streams.KeyValue;
@@ -47,17 +48,20 @@ class QueryStreamWriter implements StreamingOutput {
   private final ObjectMapper objectMapper;
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
+  private volatile boolean connectionClosed;
 
   QueryStreamWriter(
       final TransientQueryMetadata queryMetadata,
       final long disconnectCheckInterval,
-      final ObjectMapper objectMapper
+      final ObjectMapper objectMapper,
+      final CompletableFuture<Void> connectionClosedFuture
   ) {
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
     this.queryMetadata.setLimitHandler(new LimitHandler());
     this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
+    connectionClosedFuture.thenAccept(v -> connectionClosed = true);
     queryMetadata.start();
   }
 
@@ -67,7 +71,7 @@ class QueryStreamWriter implements StreamingOutput {
       out.write("[".getBytes(StandardCharsets.UTF_8));
       write(out, buildHeader());
 
-      while (queryMetadata.isRunning() && !limitReached) {
+      while (!connectionClosed && queryMetadata.isRunning() && !limitReached) {
         final KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(
             disconnectCheckInterval,
             TimeUnit.MILLISECONDS

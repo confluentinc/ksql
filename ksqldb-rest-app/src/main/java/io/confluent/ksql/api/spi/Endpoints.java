@@ -68,4 +68,8 @@ public interface Endpoints {
   CompletableFuture<EndpointResponse> executeTerminate(ClusterTerminateRequest request,
       WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
+  CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
+      WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
+      ApiSecurityContext apiSecurityContext);
+
 }

@@ -59,6 +59,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -389,6 +390,45 @@ public class RestApiTest {
 
     // Then:
     assertThat("Expected topic X to be deleted", !topicExists("X"));
+  }
+
+  @Test
+  public void shouldFailToExecuteQueryUsingRestWithHttp2() throws Exception {
+
+    String uri = "/query";
+
+    Vertx vertx = Vertx.vertx();
+    WebClient webClient = null;
+
+    try {
+      // Given:
+      WebClientOptions webClientOptions = new WebClientOptions()
+          .setDefaultHost(REST_APP.getHttpListener().getHost())
+          .setDefaultPort(REST_APP.getHttpListener().getPort());
+
+      webClientOptions.setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
+
+      webClient = WebClient.create(vertx, webClientOptions);
+
+      JsonObject requestBody = new JsonObject()
+          .put("ksql", "SELECT * from " + AGG_TABLE + " EMIT CHANGES;");
+
+      // When:
+      VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+      webClient
+          .post(uri)
+          .sendJsonObject(requestBody, requestFuture);
+      HttpResponse<Buffer> resp = requestFuture.get();
+
+      // Then
+      assertThat(resp.statusCode(), is(405));
+
+    } finally {
+      if (webClient != null) {
+        webClient.close();
+      }
+      vertx.close();
+    }
   }
 
   @Test

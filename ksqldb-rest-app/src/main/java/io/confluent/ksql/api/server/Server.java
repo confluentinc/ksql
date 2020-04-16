@@ -41,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -246,7 +247,8 @@ public class Server {
         .setHost(host)
         .setPort(port)
         .setReuseAddress(true)
-        .setReusePort(true);
+        .setReusePort(true)
+        .setIdleTimeout(60).setIdleTimeoutUnit(TimeUnit.SECONDS);
 
     if (tls) {
       options.setUseAlpn(true).setSsl(true);

@@ -247,6 +247,27 @@ public class KsqlRestConfigTest {
   }
 
   @Test
+  public void shouldSanitizeInterNodeListenerWithTrailingSlash() {
+    // Given:
+    final URL expected = url("https://example.com:12345");
+    final URL configured = url("https://example.com:12345/");
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .putAll(MIN_VALID_CONFIGS)
+        .put(ADVERTISED_LISTENER_CONFIG, configured.toString())
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_INTER_NODE_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
   public void shouldThrowIfExplicitInterNodeListenerHasAutoPortAssignment() {
     // Given:
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -423,6 +444,30 @@ public class KsqlRestConfigTest {
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
         .put(LISTENERS_CONFIG, autoPort.toString() + ",http://localhost:2589")
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    final URL expected = url("https://example.com:2222");
+
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_FIRST_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveInterNodeListenerToFirstListenerWithAutoPortAssignmentAndTrailingSlash() {
+    // Given:
+    final URL autoPort = url("https://example.com:0/");
+
+    when(portResolver.apply(any())).thenReturn(2222);
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(LISTENERS_CONFIG, autoPort.toString() + ",http://localhost:2589/")
         .build()
     );
 

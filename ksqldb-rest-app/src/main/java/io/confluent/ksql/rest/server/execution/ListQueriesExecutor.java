@@ -50,9 +50,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -247,24 +247,28 @@ public final class ListQueriesExecutor {
     try {
       final SimpleKsqlClient ksqlClient = serviceContext.getKsqlClient();
 
-      final Map<HostInfo, Future<RestResponse<KsqlEntityList>>> futureResponses = new HashMap<>();
+      final Map<HostInfo, CompletableFuture<RestResponse<KsqlEntityList>>> futureResponses =
+          new HashMap<>();
       for (HostInfo host : remoteHosts) {
-        final Future<RestResponse<KsqlEntityList>> future = executorService.submit(() -> ksqlClient
-            .makeKsqlRequest(
-                ServerUtil.buildRemoteUri(
-                    sessionProperties.getLocalUrl(),
-                    host.host(),
-                    host.port()
-                ),
-                statement.getStatementText(),
-                Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true))
-        );
+        final CompletableFuture<RestResponse<KsqlEntityList>> future = new CompletableFuture<>();
+        executorService.execute(() -> {
+          final RestResponse<KsqlEntityList> response = ksqlClient
+              .makeKsqlRequest(
+                  ServerUtil.buildRemoteUri(
+                      sessionProperties.getLocalUrl(),
+                      host.host(),
+                      host.port()
+                  ),
+                  statement.getStatementText(),
+                  Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true));
+          future.complete(response);
+        });
 
         futureResponses.put(host, future);
       }
       
       final List<KsqlEntity> results = new ArrayList<>();
-      for (final Map.Entry<HostInfo, Future<RestResponse<KsqlEntityList>>> e
+      for (final Map.Entry<HostInfo, CompletableFuture<RestResponse<KsqlEntityList>>> e
           : futureResponses.entrySet()) {
         try {
           final RestResponse<KsqlEntityList> response =

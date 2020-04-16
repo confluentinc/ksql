@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
+import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -52,6 +53,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final KsqlStatementsEndpoint ksqlStatementsEndpoint;
   private final TerminateEndpoint terminateEndpoint;
   private final OldQueryEndpoint streamedQueryEndpoint;
+  private final ServerInfoResource serverInfoResource;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
@@ -59,7 +61,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final PullQueryExecutor pullQueryExecutor,
       final KsqlSecurityContextProvider ksqlSecurityContextProvider,
       final KsqlResource ksqlResource,
-      final StreamedQueryResource streamedQueryResource) {
+      final StreamedQueryResource streamedQueryResource,
+      final ServerInfoResource serverInfoResource) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor);
@@ -68,6 +71,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.ksqlStatementsEndpoint = new KsqlStatementsEndpoint(ksqlResource);
     this.terminateEndpoint = new TerminateEndpoint(ksqlResource);
     this.streamedQueryEndpoint = new OldQueryEndpoint(streamedQueryResource);
+    this.serverInfoResource = Objects.requireNonNull(serverInfoResource);
   }
 
   @Override
@@ -129,6 +133,13 @@ public class KsqlServerEndpoints implements Endpoints {
         ksqlSecurityContext -> terminateEndpoint.executeTerminate(
             ksqlSecurityContext,
             request), workerExecutor);
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeInfo(
+      final ApiSecurityContext apiSecurityContext) {
+    return CompletableFuture
+        .completedFuture(EndpointResponse.create(serverInfoResource.get()));
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

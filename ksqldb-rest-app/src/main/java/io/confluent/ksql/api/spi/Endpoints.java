@@ -72,4 +72,6 @@ public interface Endpoints {
       WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
       ApiSecurityContext apiSecurityContext);
 
+  CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext);
+
 }

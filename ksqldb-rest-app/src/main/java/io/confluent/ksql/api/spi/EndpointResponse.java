@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.spi;
 
 import java.util.Objects;
+import javax.ws.rs.core.Response;
 
 public interface EndpointResponse {
 
@@ -25,14 +26,19 @@ public interface EndpointResponse {
 
   Object getResponseBody();
 
-  static EndpointResponse create(final int errorCode, final String statusMessage,
+  static EndpointResponse create(final Response response) {
+    return create(response.getStatus(), response.getStatusInfo().getReasonPhrase(),
+        response.getEntity());
+  }
+
+  static EndpointResponse create(final int statusCode, final String statusMessage,
       final Object responseBody) {
     Objects.requireNonNull(responseBody);
     return new EndpointResponse() {
 
       @Override
       public int getStatusCode() {
-        return errorCode;
+        return statusCode;
       }
 
       @Override

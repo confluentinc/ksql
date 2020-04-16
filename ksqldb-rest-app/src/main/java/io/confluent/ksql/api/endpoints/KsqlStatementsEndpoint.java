@@ -37,8 +37,7 @@ public class KsqlStatementsEndpoint {
 
     final Response response = ksqlResource.handleKsqlStatements(ksqlSecurityContext, request);
 
-    return EndpointResponse.create(response.getStatus(), response.getStatusInfo().getReasonPhrase(),
-        response.getEntity());
+    return EndpointResponse.create(response);
   }
 
 }

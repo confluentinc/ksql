@@ -299,3 +299,44 @@ table, if the corresponding key exists already in the join result table.
 | 14        |                  | d                |                  |                  | [null, d]        |
 | 15        | D                |                  | [D, d]           | [D, d]           | [D, d]           |
 
+N-Way Joins
+-----------
+
+ksqlDB supports joining more than two sources in a single statement. These
+joins are semantically equivalent to joining N sources consecutively, and
+the order of the joins is controlled by the order in which the joins are
+written.
+
+Let's take the following query as an example, where `A` is a stream of events
+and `B` and `C` are both tables:
+```sql
+CREATE STREAM joined AS SELECT * FROM A
+        JOIN B ON A.id = B.product_id
+        JOIN C ON A.id = C.purchased_id;
+```
+
+The output of this query would be a stream, and the intermediate join result
+would be the stream `A ⋈ B`. If `C` were a stream instead of a table, we would 
+rewrite the join accordingly by adding a `WITHIN` clause because joining `A ⋈ B`
+with `C` is a stream-stream join:
+
+```sql
+CREATE STREAM joined AS SELECT * FROM A
+        JOIN B ON A.id = B.product_id
+        JOIN C WITHIN 10 SECONDS ON A.id = C.purchased_id;
+```
+
+### Limitations of N-Way Joins
+
+The limitations and restrictions described in the sections above apply to each intermediate 
+step in N-way joins. For example, `FULL OUTER` joins between streams and tables are
+not supported. This means that if any stage in the N-way join resolves to a `FULL OUTER`
+join between a strem and a table the entire query will fail:
+
+```sql
+--- This JOIN Fails because the second join, between A⋈B and C restuls in a FULL 
+--- OUTER JOIN between a Stream and Table
+CREATE STREAM joined AS SELECT * FROM A
+        JOIN B WITHIN 10 SECONDS ON A.id = B.product_id
+        FULL OUTER JOIN C ON A.id = C.purchased_id;
+```

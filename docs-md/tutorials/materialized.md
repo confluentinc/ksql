@@ -7,7 +7,7 @@ A standard way of building a materialized cache is to capture the changelog of a
 
 ![hard](../img/mv-hard.png){: class="centered-img"}
 
-One way you might do this is to capture the changelog of MySQL using the Debezium {{ site.kconnectlong }}. The changelog is stored in {{ site.ak }} and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can query the materializations. This can work, but is there a better way?
+One way you might do this is to capture the changelog of MySQL using the [Debezium](https://debezium.io) {{ site.ak }} connector. The changelog is stored in {{ site.ak }} and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can query the materializations. This can work, but is there a better way?
 
 Why ksqlDB?
 -----------
@@ -39,7 +39,7 @@ After running this, you should have a directory named `confluent-hub-components`
 
 To set up and launch the services in the stack, a few files need to be created first.
 
-MySQL requires some custom configuration to play well with Debezium, so take care of this first. Debezium has a dedicated [tutorial](https://debezium.io/documentation/reference/1.1/assemblies/cdc-mysql-connector/as_setup-the-mysql-server.html) if you're interested, but this guide covers just the essentials. Create a new file at `mysql/custom-config.cnf` with the following content:
+MySQL requires some custom configuration to play well with Debezium, so take care of this first. Debezium has dedicated [documentation](https://debezium.io/documentation/reference/1.1/connectors/mysql.html) if you're interested, but this guide covers just the essentials. Create a new file at `mysql/custom-config.cnf` with the following content:
 
 ```
 [mysqld]

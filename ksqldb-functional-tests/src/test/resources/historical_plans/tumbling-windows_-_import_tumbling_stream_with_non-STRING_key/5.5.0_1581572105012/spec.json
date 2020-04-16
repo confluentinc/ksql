@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572105012,
+  "path" : "query-validation-tests/tumbling-windows.json",
   "schemas" : {
     "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
     "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, WSTART BIGINT, WEND BIGINT, KEY INT> NOT NULL"

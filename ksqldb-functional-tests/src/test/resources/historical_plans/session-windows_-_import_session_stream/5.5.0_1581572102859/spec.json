@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102859,
+  "path" : "query-validation-tests/session-windows.json",
   "schemas" : {
     "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
     "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, VALUE BIGINT, KEY VARCHAR> NOT NULL"

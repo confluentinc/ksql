@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572104446,
+  "path" : "query-validation-tests/timestampformat.json",
   "schemas" : {
     "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<EVENT_TIMESTAMP VARCHAR> NOT NULL",
     "CSAS_TS_0.TS" : "STRUCT<ETS BIGINT> NOT NULL"

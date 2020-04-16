@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1583429899403,
+  "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT> NOT NULL"

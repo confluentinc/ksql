@@ -1,13 +1,14 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572099385,
+  "path" : "query-validation-tests/join-with-custom-timestamp.json",
   "schemas" : {
     "CTAS_S1_JOIN_S2_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT> NOT NULL",
     "CTAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 VARCHAR> NOT NULL",
     "CTAS_S1_JOIN_S2_0.S1_JOIN_S2" : "STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT, F1 VARCHAR, F2 VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "table table inner join with ts",
+    "name" : "table table inner join with ts - JSON",
     "inputs" : [ {
       "topic" : "s1",
       "key" : 0,

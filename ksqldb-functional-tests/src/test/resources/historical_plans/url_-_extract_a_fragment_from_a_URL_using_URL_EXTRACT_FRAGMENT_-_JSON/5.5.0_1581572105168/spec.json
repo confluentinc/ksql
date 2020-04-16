@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572105168,
+  "path" : "query-validation-tests/url.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FRAGMENT VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "extract a fragment from a URL using URL_EXTRACT_FRAGMENT",
+    "name" : "extract a fragment from a URL using URL_EXTRACT_FRAGMENT - JSON",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "1",

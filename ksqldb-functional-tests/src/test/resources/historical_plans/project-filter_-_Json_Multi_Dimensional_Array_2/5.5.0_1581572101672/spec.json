@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572101672,
+  "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_S3_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, ARRAY_COL ARRAY<ARRAY<VARCHAR>>> NOT NULL",
     "CSAS_S3_0.S3" : "STRUCT<ID BIGINT, ARRAY_ITEM VARCHAR> NOT NULL"

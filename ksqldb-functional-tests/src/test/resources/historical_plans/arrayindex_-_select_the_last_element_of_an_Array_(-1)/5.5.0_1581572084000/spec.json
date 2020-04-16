@@ -7,7 +7,7 @@
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "arrayindex - select the last element of an Array (-1)",
+    "name" : "select the last element of an Array (-1)",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "",

@@ -1,12 +1,13 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1582752466971,
+  "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "validate string elements OK",
+    "name" : "validate string elements OK - JSON_SR",
     "inputs" : [ {
       "topic" : "input",
       "key" : "",

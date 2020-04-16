@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572085076,
+  "path" : "query-validation-tests/cast.json",
   "schemas" : {
     "CSAS_OUT_0.KsqlTopic.Source" : "STRUCT<FOO VARCHAR> NOT NULL",
     "CSAS_OUT_0.OUT" : "STRUCT<VAL DECIMAL(2, 1)> NOT NULL"

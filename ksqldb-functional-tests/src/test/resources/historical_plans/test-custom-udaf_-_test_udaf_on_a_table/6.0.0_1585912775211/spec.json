@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585912775211,
+  "path" : "query-validation-tests/test-custom-udaf.json",
   "schemas" : {
     "CTAS_SUM_ID_BY_REGION_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, REGION VARCHAR> NOT NULL",
     "CTAS_SUM_ID_BY_REGION_0.Aggregate.GroupBy" : "STRUCT<REGION VARCHAR, ID BIGINT> NOT NULL",

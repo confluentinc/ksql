@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572089163,
+  "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<F0 INT, TIME BIGINT, WSTART BIGINT, WEND BIGINT, KEY VARCHAR> NOT NULL"

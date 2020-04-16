@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1581809700758,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID INT> NOT NULL",

@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1586272350000,
+  "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "InsertQuery_0.KafkaTopic_Left.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
     "InsertQuery_0.KafkaTopic_Right.Source" : "STRUCT<DATA VARCHAR> NOT NULL",

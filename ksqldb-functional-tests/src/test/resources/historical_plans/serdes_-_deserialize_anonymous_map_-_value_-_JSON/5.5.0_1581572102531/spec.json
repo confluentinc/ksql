@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102531,
+  "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "MAP<VARCHAR, INT>",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO MAP<VARCHAR, INT>> NOT NULL"
   },
   "testCase" : {
-    "name" : "deserialize anonymous map - value",
+    "name" : "deserialize anonymous map - value - JSON",
     "inputs" : [ {
       "topic" : "input_topic",
       "key" : "",

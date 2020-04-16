@@ -7,7 +7,7 @@
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<COLORS ARRAY<VARCHAR>> NOT NULL"
   },
   "testCase" : {
-    "name" : "arraycontains - filter rows where the ARRAY column contains a specified STRING",
+    "name" : "filter rows where the ARRAY column contains a specified STRING",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "1",

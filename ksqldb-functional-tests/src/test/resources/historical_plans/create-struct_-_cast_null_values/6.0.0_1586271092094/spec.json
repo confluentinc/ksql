@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1586271092094,
+  "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S STRUCT<F1 INT>> NOT NULL"

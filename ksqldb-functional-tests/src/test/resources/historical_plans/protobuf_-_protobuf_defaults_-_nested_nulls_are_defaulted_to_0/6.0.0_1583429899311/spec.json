@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1583429899311,
+  "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<I ARRAY<INT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<I ARRAY<INT>> NOT NULL"

@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572088661,
+  "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 DOUBLE> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 DOUBLE> NOT NULL"
   },
   "testCase" : {
-    "name" : "validate double elements OK",
+    "name" : "validate double elements OK - JSON",
     "inputs" : [ {
       "topic" : "input",
       "key" : "",

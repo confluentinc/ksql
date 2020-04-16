@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572084696,
+  "path" : "query-validation-tests/case-expression.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ORDERID BIGINT, ORDERUNITS DOUBLE> NOT NULL",
     "CSAS_S1_0.S1" : "STRUCT<CASE_RESAULT VARCHAR> NOT NULL"

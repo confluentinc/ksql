@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1583278618121,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
     "CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
@@ -9,7 +10,7 @@
     "CSAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN" : "STRUCT<T_ID BIGINT, T_ROWKEY VARCHAR, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
   },
   "testCase" : {
-    "name" : "stream stream left join with rowkey - rekey",
+    "name" : "stream stream left join with rowkey - rekey - AVRO",
     "inputs" : [ {
       "topic" : "left_topic",
       "key" : "foo",

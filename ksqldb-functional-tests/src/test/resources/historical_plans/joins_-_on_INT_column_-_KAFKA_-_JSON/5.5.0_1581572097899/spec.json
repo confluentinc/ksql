@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572097899,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<L0 INT, L1 INT> NOT NULL",
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<R0 INT, R1 INT> NOT NULL",
@@ -9,7 +10,7 @@
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<L_ROWKEY VARCHAR, L1 INT, R1 INT> NOT NULL"
   },
   "testCase" : {
-    "name" : "on INT column - KAFKA",
+    "name" : "on INT column - KAFKA - JSON",
     "inputs" : [ {
       "topic" : "left_topic",
       "key" : "a",

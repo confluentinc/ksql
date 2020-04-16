@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585182019526,
+  "path" : "query-validation-tests/key-field.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO INT, BAR INT> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<BAR INT, ROWTIME BIGINT> NOT NULL",

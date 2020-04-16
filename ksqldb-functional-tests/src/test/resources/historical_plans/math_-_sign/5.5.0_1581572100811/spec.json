@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572100811,
+  "path" : "query-validation-tests/math.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<I INT, L BIGINT, D DOUBLE> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<I INT, L INT, D INT> NOT NULL"

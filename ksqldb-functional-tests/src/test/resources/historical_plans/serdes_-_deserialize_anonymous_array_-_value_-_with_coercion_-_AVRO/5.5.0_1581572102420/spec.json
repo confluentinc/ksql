@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102420,
+  "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "ARRAY<VARCHAR>",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO ARRAY<VARCHAR>> NOT NULL"
   },
   "testCase" : {
-    "name" : "deserialize anonymous array - value - with coercion",
+    "name" : "deserialize anonymous array - value - with coercion - AVRO",
     "inputs" : [ {
       "topic" : "input_topic",
       "key" : "",

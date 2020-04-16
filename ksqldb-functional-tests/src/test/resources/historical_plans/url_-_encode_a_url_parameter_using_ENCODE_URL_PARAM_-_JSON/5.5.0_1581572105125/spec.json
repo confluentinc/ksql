@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572105125,
+  "path" : "query-validation-tests/url.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ENCODED VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "encode a url parameter using ENCODE_URL_PARAM",
+    "name" : "encode a url parameter using ENCODE_URL_PARAM - JSON",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "1",

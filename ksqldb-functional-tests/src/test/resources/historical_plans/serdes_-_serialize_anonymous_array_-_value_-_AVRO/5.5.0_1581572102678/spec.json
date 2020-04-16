@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102678,
+  "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO ARRAY<BIGINT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "ARRAY<BIGINT>"
   },
   "testCase" : {
-    "name" : "serialize anonymous array - value",
+    "name" : "serialize anonymous array - value - AVRO",
     "inputs" : [ {
       "topic" : "input_topic",
       "key" : "",

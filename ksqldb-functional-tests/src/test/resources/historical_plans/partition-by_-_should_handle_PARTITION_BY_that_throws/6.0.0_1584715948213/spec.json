@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1584715948213,
+  "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_REPARTITIONED_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, SHOULDTHROW BOOLEAN> NOT NULL",
     "CSAS_REPARTITIONED_0.REPARTITIONED" : "STRUCT<ID BIGINT> NOT NULL"

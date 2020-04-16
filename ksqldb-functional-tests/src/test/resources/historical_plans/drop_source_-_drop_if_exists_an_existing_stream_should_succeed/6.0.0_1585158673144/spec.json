@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585158673144,
+  "path" : "query-validation-tests/drop_source.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<DATA VARCHAR> NOT NULL"

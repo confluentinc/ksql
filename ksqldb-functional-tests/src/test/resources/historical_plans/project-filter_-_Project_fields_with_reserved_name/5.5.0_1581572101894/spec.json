@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572101894,
+  "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<START VARCHAR, END VARCHAR> NOT NULL",
     "CSAS_S1_0.S1" : "STRUCT<END VARCHAR> NOT NULL"

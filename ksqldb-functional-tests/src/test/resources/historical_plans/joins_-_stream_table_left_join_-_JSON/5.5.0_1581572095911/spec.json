@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572095911,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_LEFT_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
     "CSAS_LEFT_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
@@ -8,7 +9,7 @@
     "CSAS_LEFT_JOIN_0.LEFT_JOIN" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
   },
   "testCase" : {
-    "name" : "stream table left join",
+    "name" : "stream table left join - JSON",
     "inputs" : [ {
       "topic" : "test_table",
       "key" : 0,

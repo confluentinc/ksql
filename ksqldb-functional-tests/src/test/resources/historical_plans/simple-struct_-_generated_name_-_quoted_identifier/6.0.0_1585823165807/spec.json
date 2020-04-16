@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585823165807,
+  "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<mixedCase STRUCT<moreMixedCase INT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<moreMixedCase INT> NOT NULL"

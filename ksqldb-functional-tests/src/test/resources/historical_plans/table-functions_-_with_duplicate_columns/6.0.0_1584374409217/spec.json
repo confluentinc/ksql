@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1584374409217,
+  "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, MY_ARR ARRAY<BIGINT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, VAL BIGINT, ID2 BIGINT> NOT NULL"

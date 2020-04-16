@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102222,
+  "path" : "query-validation-tests/replace.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<REPLACE VARCHAR, REPLACE_NULL VARCHAR, REPLACE_W_NULL VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "replace",
+    "name" : "replace - PROTOBUF",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "",

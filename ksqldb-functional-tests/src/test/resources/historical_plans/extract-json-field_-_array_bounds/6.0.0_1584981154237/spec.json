@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1584981154237,
+  "path" : "query-validation-tests/extract-json-field.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<JSON VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<COL1 VARCHAR, COL2 VARCHAR, COL3 VARCHAR> NOT NULL"

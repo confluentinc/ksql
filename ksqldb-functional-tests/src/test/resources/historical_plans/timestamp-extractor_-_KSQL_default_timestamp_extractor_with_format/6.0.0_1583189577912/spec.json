@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1583189577912,
+  "path" : "query-validation-tests/timestamp-extractor.json",
   "schemas" : {
     "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, TS VARCHAR> NOT NULL",
     "CSAS_TS_0.TS" : "STRUCT<ID BIGINT> NOT NULL"

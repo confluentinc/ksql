@@ -7,7 +7,7 @@
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 ARRAY<INT>> NOT NULL"
   },
   "testCase" : {
-    "name" : "array - GENERATE_SERIES",
+    "name" : "GENERATE_SERIES",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "1",

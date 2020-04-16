@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585182011057,
+  "path" : "query-validation-tests/hopping-windows.json",
   "schemas" : {
     "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
     "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",

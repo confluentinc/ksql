@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1584374409990,
+  "path" : "query-validation-tests/udf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR, KSQL_COL_1 VARCHAR> NOT NULL"

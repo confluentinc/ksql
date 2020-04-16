@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572092699,
+  "path" : "query-validation-tests/identifiers.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<FOO INT, BAR INT> NOT NULL",
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<FOO INT, BAR INT> NOT NULL",

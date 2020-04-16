@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572098946,
+  "path" : "query-validation-tests/join-with-custom-timestamp.json",
   "schemas" : {
     "CSAS_S1_JOIN_S2_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT> NOT NULL",
     "CSAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 VARCHAR, RTS BIGINT> NOT NULL",
@@ -9,7 +10,7 @@
     "CSAS_S1_JOIN_S2_0.S1_JOIN_S2" : "STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT, F1 VARCHAR, F2 VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "stream stream inner join with ts extractor both sides",
+    "name" : "stream stream inner join with ts extractor both sides - AVRO",
     "inputs" : [ {
       "topic" : "s1",
       "key" : 0,

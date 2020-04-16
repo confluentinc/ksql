@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572088573,
+  "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 BIGINT> NOT NULL"
   },
   "testCase" : {
-    "name" : "validate bigint elements OK",
+    "name" : "validate bigint elements OK - AVRO",
     "inputs" : [ {
       "topic" : "input",
       "key" : "",

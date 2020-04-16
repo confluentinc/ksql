@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1583419431528,
+  "path" : "query-validation-tests/decimal.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DEC DECIMAL(6, 4)> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<DEC DECIMAL(6, 4)> NOT NULL"

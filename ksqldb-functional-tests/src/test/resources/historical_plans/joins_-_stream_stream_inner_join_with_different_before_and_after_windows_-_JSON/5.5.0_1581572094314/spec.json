@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572094314,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
     "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
@@ -9,7 +10,7 @@
     "CSAS_INNER_JOIN_0.INNER_JOIN" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
   },
   "testCase" : {
-    "name" : "stream stream inner join with different before and after windows",
+    "name" : "stream stream inner join with different before and after windows - JSON",
     "inputs" : [ {
       "topic" : "left_topic",
       "key" : 0,

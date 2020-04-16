@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585912757817,
+  "path" : "query-validation-tests/collect-list.json",
   "schemas" : {
     "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE INT> NOT NULL",
     "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE INT> NOT NULL",
@@ -8,7 +9,7 @@
     "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, COLLECTED ARRAY<INT>> NOT NULL"
   },
   "testCase" : {
-    "name" : "collect_list int table",
+    "name" : "collect_list int table - PROTOBUF",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : 0,

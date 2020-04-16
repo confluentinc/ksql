@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585182007432,
+  "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F1 INT, F2 VARCHAR> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<F1 INT, F2 VARCHAR, ROWTIME BIGINT> NOT NULL",
@@ -8,7 +9,7 @@
     "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<F1 INT, F2 VARCHAR, KSQL_COL_0 BIGINT> NOT NULL"
   },
   "testCase" : {
-    "name" : "fields (table->table) - format",
+    "name" : "fields (table->table) - format - PROTOBUF",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : 1,

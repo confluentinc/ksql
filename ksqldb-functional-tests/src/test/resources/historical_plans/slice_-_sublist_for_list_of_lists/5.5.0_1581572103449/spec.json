@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572103449,
+  "path" : "query-validation-tests/slice.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<L ARRAY<ARRAY<VARCHAR>>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SUB ARRAY<ARRAY<VARCHAR>>> NOT NULL"

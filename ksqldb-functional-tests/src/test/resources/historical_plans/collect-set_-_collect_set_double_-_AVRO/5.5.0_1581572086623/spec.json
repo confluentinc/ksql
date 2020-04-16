@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572086623,
+  "path" : "query-validation-tests/collect-set.json",
   "schemas" : {
     "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE DOUBLE> NOT NULL",
     "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 DOUBLE> NOT NULL",
@@ -8,7 +9,7 @@
     "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, COLLECTED ARRAY<DOUBLE>> NOT NULL"
   },
   "testCase" : {
-    "name" : "collect_set double",
+    "name" : "collect_set double - AVRO",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : 0,

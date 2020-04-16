@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585182020061,
+  "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE BIGINT> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ROWKEY BIGINT, VALUE BIGINT> NOT NULL",

@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572087317,
+  "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
     "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR, COL2 ARRAY<VARCHAR>> NOT NULL",
     "CSAS_BIG_STRUCT_0.BIG_STRUCT" : "STRUCT<S STRUCT<F1 VARCHAR, F2 ARRAY<VARCHAR>, F3 VARCHAR>> NOT NULL"

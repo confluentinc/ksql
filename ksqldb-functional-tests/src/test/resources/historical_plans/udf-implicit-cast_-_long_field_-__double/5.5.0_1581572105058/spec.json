@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572105058,
+  "path" : "query-validation-tests/udf-implicit-cast.json",
   "schemas" : {
     "CSAS_DISTANCE_STREAM_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, LAT1 DOUBLE, LON1 DOUBLE, LAT2 BIGINT> NOT NULL",
     "CSAS_DISTANCE_STREAM_0.DISTANCE_STREAM" : "STRUCT<ID BIGINT, CALCULATED_DISTANCE DOUBLE> NOT NULL"

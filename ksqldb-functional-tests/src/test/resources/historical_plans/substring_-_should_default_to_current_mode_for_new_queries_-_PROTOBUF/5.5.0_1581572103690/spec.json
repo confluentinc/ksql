@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572103690,
+  "path" : "query-validation-tests/substring.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SUBSTRING VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "should default to current mode for new queries",
+    "name" : "should default to current mode for new queries - PROTOBUF",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "",

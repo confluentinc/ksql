@@ -1,12 +1,13 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1582752466894,
+  "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 DECIMAL(15, 14)> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 DECIMAL(15, 14)> NOT NULL"
   },
   "testCase" : {
-    "name" : "validate decimal elements OK",
+    "name" : "validate decimal elements OK - JSON",
     "inputs" : [ {
       "topic" : "input",
       "key" : "",

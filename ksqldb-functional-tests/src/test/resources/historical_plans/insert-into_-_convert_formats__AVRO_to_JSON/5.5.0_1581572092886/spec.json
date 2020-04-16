@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572092886,
+  "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "InsertQuery_0.KsqlTopic.Source" : "STRUCT<A BIGINT, B VARCHAR> NOT NULL",
     "InsertQuery_0.SINK" : "STRUCT<A BIGINT, B VARCHAR> NOT NULL"

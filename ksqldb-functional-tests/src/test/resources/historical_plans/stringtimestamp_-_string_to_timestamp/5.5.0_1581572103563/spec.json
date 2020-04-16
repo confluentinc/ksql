@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572103563,
+  "path" : "query-validation-tests/stringtimestamp.json",
   "schemas" : {
     "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, TIMESTAMP VARCHAR> NOT NULL",
     "CSAS_TS_0.TS" : "STRUCT<ID BIGINT, TS BIGINT> NOT NULL"

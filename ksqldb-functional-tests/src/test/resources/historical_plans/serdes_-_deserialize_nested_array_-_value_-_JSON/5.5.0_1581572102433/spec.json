@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102433,
+  "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO ARRAY<VARCHAR>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO ARRAY<VARCHAR>> NOT NULL"
   },
   "testCase" : {
-    "name" : "deserialize nested array - value",
+    "name" : "deserialize nested array - value - JSON",
     "inputs" : [ {
       "topic" : "input_topic",
       "key" : "",

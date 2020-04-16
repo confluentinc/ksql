@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585182010177,
+  "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<DATA VARCHAR, ROWTIME BIGINT, KSQL_INTERNAL_COL_2 INT> NOT NULL",

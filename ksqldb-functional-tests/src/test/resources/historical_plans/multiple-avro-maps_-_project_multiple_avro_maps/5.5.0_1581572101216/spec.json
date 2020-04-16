@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572101216,
+  "path" : "query-validation-tests/multiple-avro-maps.json",
   "schemas" : {
     "CSAS_SINK_0.KsqlTopic.Source" : "STRUCT<M1 MAP<VARCHAR, INT>, M2 MAP<VARCHAR, VARCHAR>> NOT NULL",
     "CSAS_SINK_0.SINK" : "STRUCT<M1 MAP<VARCHAR, INT>, M2 MAP<VARCHAR, VARCHAR>> NOT NULL"

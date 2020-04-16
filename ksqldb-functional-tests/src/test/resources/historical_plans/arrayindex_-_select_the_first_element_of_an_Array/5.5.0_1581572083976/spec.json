@@ -7,7 +7,7 @@
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "arrayindex - select the first element of an Array",
+    "name" : "select the first element of an Array",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "",

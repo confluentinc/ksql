@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102594,
+  "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "VARCHAR",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO VARCHAR, FOO2 VARCHAR> NOT NULL"

@@ -1,13 +1,14 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585912766478,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CTAS_LEFT_OUTER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
     "CTAS_LEFT_OUTER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
     "CTAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
   },
   "testCase" : {
-    "name" : "table table left join",
+    "name" : "table table left join - JSON",
     "inputs" : [ {
       "topic" : "left_topic",
       "key" : 0,

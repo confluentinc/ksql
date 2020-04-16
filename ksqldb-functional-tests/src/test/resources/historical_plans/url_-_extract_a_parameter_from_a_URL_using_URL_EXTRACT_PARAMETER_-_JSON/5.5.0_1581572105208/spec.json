@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572105208,
+  "path" : "query-validation-tests/url.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<PARAM_A VARCHAR, PARAM_B VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "extract a parameter from a URL using URL_EXTRACT_PARAMETER",
+    "name" : "extract a parameter from a URL using URL_EXTRACT_PARAMETER - JSON",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "1",

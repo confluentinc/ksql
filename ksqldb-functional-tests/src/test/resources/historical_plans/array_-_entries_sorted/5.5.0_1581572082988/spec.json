@@ -7,7 +7,7 @@
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 ARRAY<STRUCT<K VARCHAR, V INT>>, KSQL_COL_1 ARRAY<STRUCT<K VARCHAR, V BIGINT>>, KSQL_COL_2 ARRAY<STRUCT<K VARCHAR, V DOUBLE>>, KSQL_COL_3 ARRAY<STRUCT<K VARCHAR, V BOOLEAN>>, KSQL_COL_4 ARRAY<STRUCT<K VARCHAR, V VARCHAR>>, KSQL_COL_5 ARRAY<STRUCT<K VARCHAR, V VARCHAR>>> NOT NULL"
   },
   "testCase" : {
-    "name" : "array - entries sorted",
+    "name" : "entries sorted",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "1",

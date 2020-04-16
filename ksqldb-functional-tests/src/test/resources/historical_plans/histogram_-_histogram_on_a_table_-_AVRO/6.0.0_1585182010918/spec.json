@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585182010918,
+  "path" : "query-validation-tests/histogram.json",
   "schemas" : {
     "CTAS_COUNT_BY_REGION_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, REGION VARCHAR> NOT NULL",
     "CTAS_COUNT_BY_REGION_0.Aggregate.GroupBy" : "STRUCT<REGION VARCHAR, NAME VARCHAR> NOT NULL",
@@ -8,7 +9,7 @@
     "CTAS_COUNT_BY_REGION_0.COUNT_BY_REGION" : "STRUCT<REGION VARCHAR, COUNTS MAP<VARCHAR, BIGINT>> NOT NULL"
   },
   "testCase" : {
-    "name" : "histogram on a table",
+    "name" : "histogram on a table - AVRO",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "0",

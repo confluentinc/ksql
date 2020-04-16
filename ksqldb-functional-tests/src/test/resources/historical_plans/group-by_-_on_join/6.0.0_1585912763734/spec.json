@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585912763734,
+  "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<TOTAL INT> NOT NULL",
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<TOTAL INT> NOT NULL",

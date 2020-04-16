@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102626,
+  "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO BOOLEAN> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "BOOLEAN"
   },
   "testCase" : {
-    "name" : "serialize anonymous primitive - value",
+    "name" : "serialize anonymous primitive - value - AVRO",
     "inputs" : [ {
       "topic" : "input_topic",
       "key" : "",

@@ -1,13 +1,14 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585912766921,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CTAS_INNER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
     "CTAS_INNER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
     "CTAS_INNER_JOIN_0.INNER_JOIN" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
   },
   "testCase" : {
-    "name" : "table table inner join",
+    "name" : "table table inner join - PROTOBUF",
     "inputs" : [ {
       "topic" : "left_topic",
       "key" : 0,

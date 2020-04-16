@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572104320,
+  "path" : "query-validation-tests/test-custom-udaf.json",
   "schemas" : {
     "CTAS_RESULT_0.KsqlTopic.Source" : "STRUCT<ID VARCHAR, VAL STRUCT<A INT, B INT>> NOT NULL",
     "CTAS_RESULT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 STRUCT<A INT, B INT>> NOT NULL",

@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102978,
+  "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ORDERTIME BIGINT, ORDERID BIGINT, ITEMID VARCHAR, ORDERUNITS DOUBLE, ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR, DOUBLE>, ADDRESS STRUCT<NUMBER BIGINT, STREET VARCHAR, CITY VARCHAR, STATE VARCHAR, ZIPCODE BIGINT>> NOT NULL",
     "CSAS_S1_0.S1" : "STRUCT<ITEMID VARCHAR, KSQL_COL_1 VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "simple struct read struct as json string",
+    "name" : "simple struct read struct as json string - JSON",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "0",

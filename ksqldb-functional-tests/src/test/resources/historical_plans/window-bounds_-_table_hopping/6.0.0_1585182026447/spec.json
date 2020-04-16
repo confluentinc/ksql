@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585182026447,
+  "path" : "query-validation-tests/window-bounds.json",
   "schemas" : {
     "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
     "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, KSQL_INTERNAL_COL_1 INT> NOT NULL",

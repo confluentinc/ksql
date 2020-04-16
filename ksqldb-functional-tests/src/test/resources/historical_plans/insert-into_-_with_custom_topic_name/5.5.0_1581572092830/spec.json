@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572092830,
+  "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "InsertQuery_1.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
     "InsertQuery_1.OUTPUT" : "STRUCT<DATA VARCHAR> NOT NULL"

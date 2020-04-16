@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572100706,
+  "path" : "query-validation-tests/literals.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, MIN_VALUE DOUBLE, NEG_MIN_VALUE DOUBLE, MIN_NORMAL DOUBLE, NEG_MIN_NORMAL DOUBLE, MAX_VALUE DOUBLE, NEG_MAX_VALUE DOUBLE> NOT NULL"

@@ -1,6 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1584458743188,
+  "path" : "query-validation-tests/latest-offset-udaf.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 VARCHAR> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 INT, KSQL_INTERNAL_COL_2 BIGINT, KSQL_INTERNAL_COL_3 DOUBLE, KSQL_INTERNAL_COL_4 BOOLEAN, KSQL_INTERNAL_COL_5 VARCHAR> NOT NULL",

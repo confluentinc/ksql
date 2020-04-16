@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572103551,
+  "path" : "query-validation-tests/stringdate.json",
   "schemas" : {
     "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, DATE VARCHAR, FORMAT VARCHAR> NOT NULL",
     "CSAS_TS_0.TS" : "STRUCT<ID BIGINT, TS INT> NOT NULL"

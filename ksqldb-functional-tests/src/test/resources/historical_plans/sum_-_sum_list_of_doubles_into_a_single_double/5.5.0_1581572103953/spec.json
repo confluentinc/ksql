@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572103953,
+  "path" : "query-validation-tests/sum.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE ARRAY<DOUBLE>> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 ARRAY<DOUBLE>, KSQL_INTERNAL_COL_1 VARCHAR> NOT NULL",

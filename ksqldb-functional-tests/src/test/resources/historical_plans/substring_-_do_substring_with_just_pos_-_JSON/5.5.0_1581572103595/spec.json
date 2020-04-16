@@ -1,12 +1,13 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572103595,
+  "path" : "query-validation-tests/substring.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SUBSTRING VARCHAR, NULL_STR VARCHAR, NULL_POS VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "do substring with just pos",
+    "name" : "do substring with just pos - JSON",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "",

@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572097246,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "BIGINT",
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "BIGINT",

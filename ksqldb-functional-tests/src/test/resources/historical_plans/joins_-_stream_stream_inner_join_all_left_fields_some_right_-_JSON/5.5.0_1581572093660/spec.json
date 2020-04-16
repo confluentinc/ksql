@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572093660,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
     "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
@@ -9,7 +10,7 @@
     "CSAS_INNER_JOIN_0.INNER_JOIN" : "STRUCT<T_ROWTIME BIGINT, T_ROWKEY BIGINT, T_ID BIGINT, T_NAME VARCHAR, T_VALUE BIGINT, F1 VARCHAR> NOT NULL"
   },
   "testCase" : {
-    "name" : "stream stream inner join all left fields some right",
+    "name" : "stream stream inner join all left fields some right - JSON",
     "inputs" : [ {
       "topic" : "left_topic",
       "key" : 0,

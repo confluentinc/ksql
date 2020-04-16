@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572104170,
+  "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 MAP<VARCHAR, INT>, F1 MAP<VARCHAR, BIGINT>, F2 MAP<VARCHAR, DOUBLE>, F3 MAP<VARCHAR, BOOLEAN>, F4 MAP<VARCHAR, VARCHAR>, F5 MAP<VARCHAR, DECIMAL(20, 10)>, F6 MAP<VARCHAR, STRUCT<A VARCHAR>>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR> NOT NULL"

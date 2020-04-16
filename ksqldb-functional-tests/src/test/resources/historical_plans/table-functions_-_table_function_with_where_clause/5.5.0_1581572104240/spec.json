@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572104240,
+  "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT, F1 ARRAY<INT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<F0 INT, VAL INT> NOT NULL"

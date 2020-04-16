@@ -5,41 +5,54 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "input",
-    "key" : "",
-    "value" : 10000000000
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : 10000000000
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
+  "testCase" : {
+    "name" : "validate bigint elements OK",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : 10000000000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : 10000000000
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (V0 BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='KAFKA');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
             "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "KAFKA"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "input",
-        "keyFormat" : {
-          "formatInfo" : {
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
             "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "KAFKA"
-        },
-        "partitions" : 4
-      } ]
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

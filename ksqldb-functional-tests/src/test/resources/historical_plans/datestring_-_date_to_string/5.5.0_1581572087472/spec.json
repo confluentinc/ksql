@@ -5,108 +5,121 @@
     "CSAS_DATE_STREAM_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, START_DATE INT, DATE_FORMAT VARCHAR> NOT NULL",
     "CSAS_DATE_STREAM_0.DATE_STREAM" : "STRUCT<ID BIGINT, CUSTOM_FORMATTED_START_DATE VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 1,
-      "START_DATE" : 17662,
-      "DATE_FORMAT" : "yyyy-MM-dd"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 2,
-      "START_DATE" : 18027,
-      "DATE_FORMAT" : "dd/MM/yyyy"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 3,
-      "START_DATE" : 18993,
-      "DATE_FORMAT" : "dd-MMM-yyyy"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 4,
-      "START_DATE" : 0,
-      "DATE_FORMAT" : "dd-MM-yyyy"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 5,
-      "START_DATE" : -1,
-      "DATE_FORMAT" : "dd-MM-yyyy'Sophia'"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "DATE_STREAM",
-    "key" : "",
-    "value" : {
-      "ID" : 1,
-      "CUSTOM_FORMATTED_START_DATE" : "2018-05-11"
-    }
-  }, {
-    "topic" : "DATE_STREAM",
-    "key" : "",
-    "value" : {
-      "ID" : 2,
-      "CUSTOM_FORMATTED_START_DATE" : "11/05/2019"
-    }
-  }, {
-    "topic" : "DATE_STREAM",
-    "key" : "",
-    "value" : {
-      "ID" : 3,
-      "CUSTOM_FORMATTED_START_DATE" : "01-Jan-2022"
-    }
-  }, {
-    "topic" : "DATE_STREAM",
-    "key" : "",
-    "value" : {
-      "ID" : 4,
-      "CUSTOM_FORMATTED_START_DATE" : "01-01-1970"
-    }
-  }, {
-    "topic" : "DATE_STREAM",
-    "key" : "",
-    "value" : {
-      "ID" : 5,
-      "CUSTOM_FORMATTED_START_DATE" : "31-12-1969Sophia"
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "DATE_STREAM",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "date to string",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 1,
+        "START_DATE" : 17662,
+        "DATE_FORMAT" : "yyyy-MM-dd"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 2,
+        "START_DATE" : 18027,
+        "DATE_FORMAT" : "dd/MM/yyyy"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 3,
+        "START_DATE" : 18993,
+        "DATE_FORMAT" : "dd-MMM-yyyy"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 4,
+        "START_DATE" : 0,
+        "DATE_FORMAT" : "dd-MM-yyyy"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 5,
+        "START_DATE" : -1,
+        "DATE_FORMAT" : "dd-MM-yyyy'Sophia'"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "DATE_STREAM",
+      "key" : "",
+      "value" : {
+        "ID" : 1,
+        "CUSTOM_FORMATTED_START_DATE" : "2018-05-11"
+      }
+    }, {
+      "topic" : "DATE_STREAM",
+      "key" : "",
+      "value" : {
+        "ID" : 2,
+        "CUSTOM_FORMATTED_START_DATE" : "11/05/2019"
+      }
+    }, {
+      "topic" : "DATE_STREAM",
+      "key" : "",
+      "value" : {
+        "ID" : 3,
+        "CUSTOM_FORMATTED_START_DATE" : "01-Jan-2022"
+      }
+    }, {
+      "topic" : "DATE_STREAM",
+      "key" : "",
+      "value" : {
+        "ID" : 4,
+        "CUSTOM_FORMATTED_START_DATE" : "01-01-1970"
+      }
+    }, {
+      "topic" : "DATE_STREAM",
+      "key" : "",
+      "value" : {
+        "ID" : 5,
+        "CUSTOM_FORMATTED_START_DATE" : "31-12-1969Sophia"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "DATE_STREAM",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT, START_DATE INTEGER, DATE_FORMAT STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM DATE_STREAM AS SELECT\n  TEST.ID ID,\n  DATETOSTRING(TEST.START_DATE, TEST.DATE_FORMAT) CUSTOM_FORMATTED_START_DATE\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "DATE_STREAM",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

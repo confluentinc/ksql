@@ -7,71 +7,88 @@
     "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S_ID BIGINT, S_ROWTIME BIGINT, S_ROWKEY BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S_ID BIGINT, NAME VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "NO_KEY",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "name" : "bob"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "S",
-    "key" : 0,
-    "value" : {
-      "ID" : 0
-    },
-    "timestamp" : 10
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : 0,
-    "value" : {
-      "S_ID" : 0,
-      "NAME" : "bob"
-    },
-    "timestamp" : 10
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "OUTPUT",
-      "type" : "stream"
+  "testCase" : {
+    "name" : "stream to table when table does not have key field and joining by table ROWKEY",
+    "inputs" : [ {
+      "topic" : "NO_KEY",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "name" : "bob"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S",
+      "key" : 0,
+      "value" : {
+        "ID" : 0
+      },
+      "timestamp" : 10
     } ],
-    "topics" : {
-      "topics" : [ {
-        "name" : "NO_KEY",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "S_ID" : 0,
+        "NAME" : "bob"
+      },
+      "timestamp" : 10
+    } ],
+    "topics" : [ {
+      "name" : "S",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "NO_KEY",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM S (ROWKEY BIGINT KEY, ID BIGINT) WITH (KAFKA_TOPIC='S', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE NO_KEY (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING) WITH (KAFKA_TOPIC='NO_KEY', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  S.ID S_ID,\n  T.NAME NAME\nFROM S S\nINNER JOIN NO_KEY T ON ((S.ID = T.ROWKEY))\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
         "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "S",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+        "type" : "stream"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "NO_KEY",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

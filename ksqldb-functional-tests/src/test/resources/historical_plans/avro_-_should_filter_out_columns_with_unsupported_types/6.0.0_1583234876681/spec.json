@@ -5,52 +5,84 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<EXPECTED INT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<EXPECTED INT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "input",
-    "key" : "",
-    "value" : {
-      "expected" : 1,
-      "c2" : null,
-      "c3" : null
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "EXPECTED" : 1
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "OUTPUT",
-      "type" : "stream",
-      "schema" : "ROWKEY STRING KEY, EXPECTED INT"
+  "testCase" : {
+    "name" : "should filter out columns with unsupported types",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "expected" : 1,
+        "c2" : null,
+        "c3" : null
+      }
     } ],
-    "topics" : {
-      "topics" : [ {
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "EXPECTED" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : {
+        "type" : "record",
+        "name" : "blah",
+        "fields" : [ {
+          "name" : "expected",
+          "type" : "int"
+        }, {
+          "name" : "c1",
+          "type" : [ "null", "bytes" ]
+        }, {
+          "name" : "c2",
+          "type" : [ "null", {
+            "type" : "fixed",
+            "name" : "md5",
+            "size" : 16
+          } ]
+        } ]
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (EXPECTED INTEGER) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='AvRo');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
         "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "AVRO"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "input",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "AVRO"
-        },
-        "partitions" : 1
-      } ]
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, EXPECTED INT"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 1
+        } ]
+      }
     }
   }
 }

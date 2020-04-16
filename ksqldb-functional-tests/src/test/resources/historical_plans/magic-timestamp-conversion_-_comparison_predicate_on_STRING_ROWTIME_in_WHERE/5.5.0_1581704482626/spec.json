@@ -5,75 +5,88 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE INT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<THING INT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : {
-      "source" : 1
-    },
-    "timestamp" : 1514764800001
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : {
-      "source" : 2
-    },
-    "timestamp" : 1546300808000
-  }, {
-    "topic" : "test_topic",
-    "key" : "3",
-    "value" : {
-      "source" : 3
-    },
-    "timestamp" : 1514764800002
-  }, {
-    "topic" : "test_topic",
-    "key" : "4",
-    "value" : {
-      "source" : 4
-    },
-    "timestamp" : 1514764800000
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "2",
-    "value" : {
-      "THING" : 2
-    },
-    "timestamp" : 1546300808000
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "3",
-    "value" : {
-      "THING" : 3
-    },
-    "timestamp" : 1514764800002
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "comparison predicate on STRING ROWTIME in WHERE",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "source" : 1
+      },
+      "timestamp" : 1514764800001
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "source" : 2
+      },
+      "timestamp" : 1546300808000
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "source" : 3
+      },
+      "timestamp" : 1514764800002
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : {
+        "source" : 4
+      },
+      "timestamp" : 1514764800000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "THING" : 2
+      },
+      "timestamp" : 1546300808000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "THING" : 3
+      },
+      "timestamp" : 1514764800002
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (SOURCE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT TEST.SOURCE THING\nFROM TEST TEST\nWHERE (TEST.ROWTIME > '2018-01-01T00:00:00.001')\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

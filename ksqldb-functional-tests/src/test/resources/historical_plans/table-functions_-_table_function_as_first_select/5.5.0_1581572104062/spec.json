@@ -5,75 +5,88 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, MY_ARR ARRAY<BIGINT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<VAL BIGINT, ID BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "0",
-    "value" : {
-      "ID" : 0,
-      "MY_ARR" : [ 1, 2 ]
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : {
-      "ID" : 1,
-      "MY_ARR" : [ 3, 4 ]
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "VAL" : 1,
-      "ID" : 0
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "VAL" : 2,
-      "ID" : 0
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "1",
-    "value" : {
-      "VAL" : 3,
-      "ID" : 1
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "1",
-    "value" : {
-      "VAL" : 4,
-      "ID" : 1
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "table function as first select",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "ID" : 0,
+        "MY_ARR" : [ 1, 2 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 1,
+        "MY_ARR" : [ 3, 4 ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : 1,
+        "ID" : 0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : 2,
+        "ID" : 0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "VAL" : 3,
+        "ID" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "VAL" : 4,
+        "ID" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  EXPLODE(TEST.MY_ARR) VAL,\n  TEST.ID ID\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

@@ -5,49 +5,62 @@
     "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE DOUBLE> NOT NULL",
     "CSAS_S2_0.S2" : "STRUCT<NAME VARCHAR, ID BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "0",
-    "value" : "0,zero,0.0"
-  }, {
-    "topic" : "test_topic",
-    "key" : "100",
-    "value" : "100,100,0.0"
-  }, {
-    "topic" : "test_topic",
-    "key" : "101",
-    "value" : "-101,101,0.0"
-  } ],
-  "outputs" : [ {
-    "topic" : "S2",
-    "key" : "101",
-    "value" : "101,-101"
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "S2",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "project and negative filter",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : "0,zero,0.0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "100",
+      "value" : "100,100,0.0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : "-101,101,0.0"
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : "101",
+      "value" : "101,-101"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT, NAME STRING, VALUE DOUBLE) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM S2 AS SELECT\n  TEST.NAME NAME,\n  TEST.ID ID\nFROM TEST TEST\nWHERE (TEST.ID < -100)\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

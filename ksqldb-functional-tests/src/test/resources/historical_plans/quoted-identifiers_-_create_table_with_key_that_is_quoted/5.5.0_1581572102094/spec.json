@@ -5,52 +5,65 @@
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<some.key VARCHAR> NOT NULL",
     "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<some.key VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "some.key" : "key"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "some.key" : "key"
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "TEST",
-      "type" : "table"
-    }, {
-      "name" : "OUTPUT",
-      "type" : "table"
+  "testCase" : {
+    "name" : "create table with key that is quoted",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "some.key" : "key"
+      }
     } ],
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "some.key" : "key"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (`some.key` STRING) WITH (KAFKA_TOPIC='test_topic', KEY='`some.key`', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "table"
       }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+        "name" : "OUTPUT",
+        "type" : "table"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

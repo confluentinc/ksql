@@ -5,78 +5,91 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SUBSTRING VARCHAR, NULL_STR VARCHAR, NULL_POS VARCHAR, NULL_LEN VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "source" : "some_string"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "source" : "another"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "source" : "short"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "SUBSTRING" : "str",
-      "NULL_STR" : null,
-      "NULL_POS" : null,
-      "NULL_LEN" : null
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "SUBSTRING" : "er",
-      "NULL_STR" : null,
-      "NULL_POS" : null,
-      "NULL_LEN" : null
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "SUBSTRING" : "",
-      "NULL_STR" : null,
-      "NULL_POS" : null,
-      "NULL_LEN" : null
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "do substring with pos and length",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : "some_string"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : "another"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : "short"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "SUBSTRING" : "str",
+        "NULL_STR" : null,
+        "NULL_POS" : null,
+        "NULL_LEN" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "SUBSTRING" : "er",
+        "NULL_STR" : null,
+        "NULL_POS" : null,
+        "NULL_LEN" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "SUBSTRING" : "",
+        "NULL_STR" : null,
+        "NULL_POS" : null,
+        "NULL_LEN" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (SOURCE STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  SUBSTRING(TEST.SOURCE, 6, 3) SUBSTRING,\n  SUBSTRING(null, 1) NULL_STR,\n  SUBSTRING(TEST.SOURCE, null) NULL_POS,\n  SUBSTRING(TEST.SOURCE, 6, null) NULL_LEN\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

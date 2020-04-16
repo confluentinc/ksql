@@ -7,93 +7,106 @@
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
     "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : "-"
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : "-"
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : "-"
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : "-"
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : "-"
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : 1,
-    "value" : "1"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : 1,
-    "value" : "2"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : 1,
-    "value" : "3"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : 1,
-    "value" : "4"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : 1,
-    "value" : "5"
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
+  "testCase" : {
+    "name" : "constant (stream->table)",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "-"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "-"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "-"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "-"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "-"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : "1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : "2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : "3"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : "4"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : "5"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (IGNORED STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT COUNT(*) KSQL_COL_0\nFROM TEST TEST\nGROUP BY 1\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
           }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
           }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        }
-      }, {
-        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        }
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      } ]
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

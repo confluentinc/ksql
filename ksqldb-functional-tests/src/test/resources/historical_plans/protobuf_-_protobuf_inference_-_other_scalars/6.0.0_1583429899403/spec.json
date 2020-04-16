@@ -5,58 +5,73 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "input",
-    "key" : "",
-    "value" : {
-      "c1" : 1.1234,
-      "c2" : 1,
-      "c3" : 400000000000,
-      "c4" : 1,
-      "c5" : 400000000000
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "C1" : 1.1233999729156494,
-      "C2" : 1,
-      "C3" : 400000000000,
-      "C4" : 1,
-      "C5" : 400000000000
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "OUTPUT",
-      "type" : "stream",
-      "schema" : "ROWKEY STRING KEY, C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT"
+  "testCase" : {
+    "name" : "protobuf inference - other scalars",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "c1" : 1.1234,
+        "c2" : 1,
+        "c3" : 400000000000,
+        "c4" : 1,
+        "c5" : 400000000000
+      }
     } ],
-    "topics" : {
-      "topics" : [ {
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "C1" : 1.1233999729156494,
+        "C2" : 1,
+        "C3" : 400000000000,
+        "C4" : 1,
+        "C5" : 400000000000
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n  uint64 c3 = 3;\n  sint32 c4 = 4;\n  sint64 c5 = 5;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INTEGER, C5 BIGINT) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
         "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "input",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 1
-      } ]
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 1
+        } ]
+      }
     }
   }
 }

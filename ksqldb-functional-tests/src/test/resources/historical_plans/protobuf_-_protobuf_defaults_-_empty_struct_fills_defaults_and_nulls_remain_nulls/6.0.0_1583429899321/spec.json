@@ -5,75 +5,90 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<S STRUCT<FOO INT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S STRUCT<FOO INT>> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "input",
-    "key" : "",
-    "value" : {
-      "s" : {
-        "foo" : 0
+  "testCase" : {
+    "name" : "protobuf defaults - empty struct fills defaults and nulls remain nulls",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "s" : {
+          "foo" : 0
+        }
       }
-    }
-  }, {
-    "topic" : "input",
-    "key" : "",
-    "value" : {
-      "s" : { }
-    }
-  }, {
-    "topic" : "input",
-    "key" : "",
-    "value" : {
-      "s" : null
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "S" : {
-        "FOO" : 0
+    }, {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "s" : { }
       }
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "S" : {
-        "FOO" : 0
+    }, {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "s" : null
       }
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "S" : null
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "input",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      } ]
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "S" : {
+          "FOO" : 0
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "S" : {
+          "FOO" : 0
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "S" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  ConnectDefault2 S = 1;\n\n  message ConnectDefault2 {\n    int32 FOO = 1;\n  }\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (S STRUCT<FOO INTEGER>) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

@@ -7,197 +7,237 @@
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 DECIMAL(4, 2), KSQL_AGG_VARIABLE_0 DECIMAL(4, 2)> NOT NULL",
     "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 2)> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : 1,
-    "value" : {
-      "id" : 1,
-      "value" : null
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "id" : 0,
-      "value" : null
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "id" : 0,
-      "value" : "-10.12"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "id" : 0,
-      "value" : "00.00"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "id" : 0,
-      "value" : "05.10"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "id" : 0,
-      "value" : null
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 100,
-    "value" : {
-      "id" : 100,
-      "value" : "10.10"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 100,
-    "value" : {
-      "id" : 100,
-      "value" : "06.40"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 100,
-    "value" : {
-      "id" : 100,
-      "value" : "30.80"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "id" : 0,
-      "value" : "20.99"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "id" : 0,
-      "value" : "10.11"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "S2",
-    "key" : 1,
-    "value" : {
-      "ID" : 1,
-      "VALUE" : null
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "VALUE" : null
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "VALUE" : "-10.12"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "VALUE" : "00.00"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "VALUE" : "05.10"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "VALUE" : "05.10"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 100,
-    "value" : {
-      "ID" : 100,
-      "VALUE" : "10.10"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 100,
-    "value" : {
-      "ID" : 100,
-      "VALUE" : "10.10"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 100,
-    "value" : {
-      "ID" : 100,
-      "VALUE" : "30.80"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "VALUE" : "20.99"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "VALUE" : "20.99"
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "S2",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
+  "testCase" : {
+    "name" : "max decimal group by",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "id" : 1,
+        "value" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "id" : 0,
+        "value" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "id" : 0,
+        "value" : "-10.12"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "id" : 0,
+        "value" : "00.00"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "id" : 0,
+        "value" : "05.10"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "id" : 0,
+        "value" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "id" : 100,
+        "value" : "10.10"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "id" : 100,
+        "value" : "06.40"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "id" : 100,
+        "value" : "30.80"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "id" : 0,
+        "value" : "20.99"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "id" : 0,
+        "value" : "10.11"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : {
+        "ID" : 1,
+        "VALUE" : null
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "VALUE" : null
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "VALUE" : "-10.12"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "VALUE" : "00.00"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "VALUE" : "05.10"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "VALUE" : "05.10"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "VALUE" : "10.10"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "VALUE" : "10.10"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "VALUE" : "30.80"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "VALUE" : "20.99"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "VALUE" : "20.99"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "ID",
+          "type" : [ "null", "long" ],
+          "default" : null
+        }, {
+          "name" : "VALUE",
+          "type" : [ "null", {
+            "type" : "bytes",
+            "scale" : 2,
+            "precision" : 4,
+            "connect.version" : 1,
+            "connect.parameters" : {
+              "scale" : "2",
+              "connect.decimal.precision" : "4"
+            },
+            "connect.name" : "org.apache.kafka.connect.data.Decimal",
+            "logicalType" : "decimal"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, VALUE DECIMAL(4, 2)) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='AVRO');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  MAX(TEST.VALUE) VALUE\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
           }
-        },
-        "valueFormat" : {
-          "format" : "AVRO"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "AVRO"
-        }
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "AVRO"
-        },
-        "partitions" : 4
-      } ]
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

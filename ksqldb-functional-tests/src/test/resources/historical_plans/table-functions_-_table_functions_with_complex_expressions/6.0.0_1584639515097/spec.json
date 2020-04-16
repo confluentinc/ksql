@@ -5,64 +5,77 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT, F1 INT, F2 INT, F3 INT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<F0 INT, KSQL_COL_0 INT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "0",
-    "value" : {
-      "ID" : 0,
-      "F0" : 1,
-      "F1" : 10,
-      "F2" : 11,
-      "F3" : 12
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "F0" : 1,
-      "KSQL_COL_0" : 21
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "F0" : 1,
-      "KSQL_COL_0" : 23
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "F0" : 1,
-      "KSQL_COL_0" : 22
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "table functions with complex expressions",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "ID" : 0,
+        "F0" : 1,
+        "F1" : 10,
+        "F2" : 11,
+        "F3" : 12
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "F0" : 1,
+        "KSQL_COL_0" : 21
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "F0" : 1,
+        "KSQL_COL_0" : 23
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "F0" : 1,
+        "KSQL_COL_0" : 22
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (F0 INTEGER, F1 INTEGER, F2 INTEGER, F3 INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  TEST.F0 F0,\n  EXPLODE(ARRAY[ABS((TEST.F1 + TEST.F2)), ABS((TEST.F2 + TEST.F3)), ABS((TEST.F3 + TEST.F1))]) KSQL_COL_0\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

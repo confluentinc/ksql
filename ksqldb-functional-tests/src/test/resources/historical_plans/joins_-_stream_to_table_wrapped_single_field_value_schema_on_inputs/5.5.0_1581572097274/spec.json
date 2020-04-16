@@ -7,115 +7,132 @@
     "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S_ID BIGINT, S_ROWTIME BIGINT, S_ROWKEY VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID1 BIGINT, ID2 BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "T",
-    "key" : "0",
-    "value" : {
-      "ID" : 2
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "S",
-    "key" : "0",
-    "value" : {
-      "ID" : 1
-    },
-    "timestamp" : 10
-  }, {
-    "topic" : "S",
-    "key" : "0",
-    "value" : {
-      "ID" : null
-    },
-    "timestamp" : 20
-  }, {
-    "topic" : "T",
-    "key" : "0",
-    "value" : {
-      "ID" : null
-    },
-    "timestamp" : 30
-  }, {
-    "topic" : "S",
-    "key" : "0",
-    "value" : {
-      "ID" : null
-    },
-    "timestamp" : 40
-  }, {
-    "topic" : "T",
-    "key" : "0",
-    "value" : null,
-    "timestamp" : 50
-  }, {
-    "topic" : "S",
-    "key" : "0",
-    "value" : {
-      "ID" : 1
-    },
-    "timestamp" : 60
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "ID1" : 1,
-      "ID2" : 2
-    },
-    "timestamp" : 10
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "ID1" : null,
-      "ID2" : 2
-    },
-    "timestamp" : 20
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "ID1" : null,
-      "ID2" : null
-    },
-    "timestamp" : 40
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "S",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "T",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "stream to table wrapped single field value schema on inputs",
+    "inputs" : [ {
+      "topic" : "T",
+      "key" : "0",
+      "value" : {
+        "ID" : 2
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S",
+      "key" : "0",
+      "value" : {
+        "ID" : 1
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "S",
+      "key" : "0",
+      "value" : {
+        "ID" : null
+      },
+      "timestamp" : 20
+    }, {
+      "topic" : "T",
+      "key" : "0",
+      "value" : {
+        "ID" : null
+      },
+      "timestamp" : 30
+    }, {
+      "topic" : "S",
+      "key" : "0",
+      "value" : {
+        "ID" : null
+      },
+      "timestamp" : 40
+    }, {
+      "topic" : "T",
+      "key" : "0",
+      "value" : null,
+      "timestamp" : 50
+    }, {
+      "topic" : "S",
+      "key" : "0",
+      "value" : {
+        "ID" : 1
+      },
+      "timestamp" : 60
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "ID1" : 1,
+        "ID2" : 2
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "ID1" : null,
+        "ID2" : 2
+      },
+      "timestamp" : 20
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "ID1" : null,
+        "ID2" : null
+      },
+      "timestamp" : 40
+    } ],
+    "topics" : [ {
+      "name" : "S",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "T",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM S (ID BIGINT) WITH (KAFKA_TOPIC='S', VALUE_FORMAT='JSON');", "CREATE TABLE T (ID BIGINT) WITH (KAFKA_TOPIC='T', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  S.ID ID1,\n  T.ID ID2\nFROM S S\nINNER JOIN T T ON ((S.ROWKEY = T.ROWKEY))\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "T",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

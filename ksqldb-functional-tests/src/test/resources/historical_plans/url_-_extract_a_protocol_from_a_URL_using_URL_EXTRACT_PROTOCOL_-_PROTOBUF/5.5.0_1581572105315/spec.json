@@ -5,75 +5,88 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<PROTOCOL VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : {
-      "url" : "http://test@confluent.io"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : {
-      "url" : "https://test@confluent.io:8080/nested/path?query&jobs"
-    },
-    "timestamp" : 1
-  }, {
-    "topic" : "test_topic",
-    "key" : "3",
-    "value" : {
-      "url" : "www.confluent.io"
-    },
-    "timestamp" : 2
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "1",
-    "value" : {
-      "PROTOCOL" : "http"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "2",
-    "value" : {
-      "PROTOCOL" : "https"
-    },
-    "timestamp" : 1
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "3",
-    "value" : {
-      "PROTOCOL" : null
-    },
-    "timestamp" : 2
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "extract a protocol from a URL using URL_EXTRACT_PROTOCOL",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "url" : "http://test@confluent.io"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "url" : "https://test@confluent.io:8080/nested/path?query&jobs"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "url" : "www.confluent.io"
+      },
+      "timestamp" : 2
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "PROTOCOL" : "http"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "PROTOCOL" : "https"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "PROTOCOL" : null
+      },
+      "timestamp" : 2
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (URL STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PROTOCOL(TEST.URL) PROTOCOL\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

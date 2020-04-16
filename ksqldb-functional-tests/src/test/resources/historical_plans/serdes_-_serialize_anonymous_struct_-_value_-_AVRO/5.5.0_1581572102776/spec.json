@@ -5,79 +5,122 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO STRUCT<F0 INT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<F0 INT>"
   },
-  "inputs" : [ {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : {
+  "testCase" : {
+    "name" : "serialize anonymous struct - value",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : {
+          "F0" : 1
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : {
+          "F0" : null
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
         "F0" : 1
       }
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : {
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
         "F0" : null
       }
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : null
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : null
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "F0" : 1
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "F0" : null
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : null
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : null
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "AVRO"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "input_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "AVRO"
-        },
-        "partitions" : 4
-      } ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "schema" : {
+        "type" : "record",
+        "name" : "ignored",
+        "fields" : [ {
+          "name" : "F0",
+          "type" : [ "null", "int" ]
+        } ]
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "input_topic",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "FOO",
+          "type" : [ "null", {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema_FOO",
+            "fields" : [ {
+              "name" : "F0",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_FOO"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (FOO STRUCT<F0 INTEGER>) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='AVRO');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

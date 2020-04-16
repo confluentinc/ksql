@@ -5,41 +5,54 @@
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, MIN_VALUE DOUBLE, NEG_MIN_VALUE DOUBLE, MIN_NORMAL DOUBLE, NEG_MIN_NORMAL DOUBLE, MAX_VALUE DOUBLE, NEG_MAX_VALUE DOUBLE> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "input",
-    "key" : "",
-    "value" : "0"
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : "0,4.9E-324,-4.9E-324,2.2250738585072014E-308,-2.2250738585072014E-308,1.7976931348623157E308,-1.7976931348623157E308"
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "input",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "DOUBLE literal min/max",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : "0"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "0,4.9E-324,-4.9E-324,2.2250738585072014E-308,-2.2250738585072014E-308,1.7976931348623157E308,-1.7976931348623157E308"
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT\n  INPUT.ID ID,\n  4.9E-324 MIN_VALUE,\n  -4.9E-324 NEG_MIN_VALUE,\n  2.2250738585072014E-308 MIN_NORMAL,\n  -2.2250738585072014E-308 NEG_MIN_NORMAL,\n  1.7976931348623157E308 MAX_VALUE,\n  -1.7976931348623157E308 NEG_MAX_VALUE\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

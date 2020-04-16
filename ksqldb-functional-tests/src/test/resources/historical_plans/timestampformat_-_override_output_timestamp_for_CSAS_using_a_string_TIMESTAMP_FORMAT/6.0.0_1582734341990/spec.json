@@ -5,73 +5,86 @@
     "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, EVENT_TS VARCHAR> NOT NULL",
     "CSAS_TS_0.TS" : "STRUCT<ID BIGINT, EVENT_TS VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 1,
-      "EVENT_TS" : "2018-05-11T21:58:33Z"
-    },
-    "timestamp" : 10
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 2,
-      "EVENT_TS" : "not a timestamp"
-    },
-    "timestamp" : 10
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 3,
-      "EVENT_TS" : "2019-05-11T21:58:33Z"
-    },
-    "timestamp" : 10
-  } ],
-  "outputs" : [ {
-    "topic" : "TS",
-    "key" : "",
-    "value" : {
-      "ID" : 1,
-      "EVENT_TS" : "2018-05-11T21:58:33Z"
-    },
-    "timestamp" : 1526075913000
-  }, {
-    "topic" : "TS",
-    "key" : "",
-    "value" : {
-      "ID" : 3,
-      "EVENT_TS" : "2019-05-11T21:58:33Z"
-    },
-    "timestamp" : 1557611913000
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "TS",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "override output timestamp for CSAS using a string TIMESTAMP_FORMAT",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 1,
+        "EVENT_TS" : "2018-05-11T21:58:33Z"
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 2,
+        "EVENT_TS" : "not a timestamp"
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 3,
+        "EVENT_TS" : "2019-05-11T21:58:33Z"
+      },
+      "timestamp" : 10
+    } ],
+    "outputs" : [ {
+      "topic" : "TS",
+      "key" : "",
+      "value" : {
+        "ID" : 1,
+        "EVENT_TS" : "2018-05-11T21:58:33Z"
+      },
+      "timestamp" : 1526075913000
+    }, {
+      "topic" : "TS",
+      "key" : "",
+      "value" : {
+        "ID" : 3,
+        "EVENT_TS" : "2019-05-11T21:58:33Z"
+      },
+      "timestamp" : 1557611913000
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TS",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT, EVENT_TS STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM TS WITH (TIMESTAMP='event_ts', TIMESTAMP_FORMAT='yyyy-MM-dd''T''HH:mm:ssX') AS SELECT\n  TEST.ID ID,\n  TEST.EVENT_TS EVENT_TS\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "TS",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

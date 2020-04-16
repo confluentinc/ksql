@@ -7,124 +7,145 @@
     "CSAS_S1_JOIN_T1_0.Join.Left" : "STRUCT<S1_ID BIGINT, S1_NAME VARCHAR, S1_TS BIGINT, S1_ROWTIME BIGINT, S1_ROWKEY BIGINT> NOT NULL",
     "CSAS_S1_JOIN_T1_0.S1_JOIN_T1" : "STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT, F1 VARCHAR, F2 VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "t1",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "F1" : "blah",
-      "F2" : "foo",
-      "RTS" : 10000
-    },
-    "timestamp" : 10000
-  }, {
-    "topic" : "s1",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "NAME" : "zero",
-      "TS" : 0
-    },
-    "timestamp" : 10000
-  }, {
-    "topic" : "t1",
-    "key" : 10,
-    "value" : {
-      "ID" : 10,
-      "F1" : "foo",
-      "F2" : "bar",
-      "RTS" : 13000
-    },
-    "timestamp" : 90000
-  }, {
-    "topic" : "s1",
-    "key" : 10,
-    "value" : {
-      "ID" : 10,
-      "NAME" : "100",
-      "TS" : 11000
-    },
-    "timestamp" : 800000
-  }, {
-    "topic" : "s1",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "NAME" : "jan",
-      "TS" : 8000
-    },
-    "timestamp" : 0
-  } ],
-  "outputs" : [ {
-    "topic" : "S1_JOIN_T1",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "NAME" : "zero",
-      "TS" : 0,
-      "F1" : "blah",
-      "F2" : "foo"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "S1_JOIN_T1",
-    "key" : 10,
-    "value" : {
-      "ID" : 10,
-      "NAME" : "100",
-      "TS" : 11000,
-      "F1" : "foo",
-      "F2" : "bar"
-    },
-    "timestamp" : 11000
-  }, {
-    "topic" : "S1_JOIN_T1",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "NAME" : "jan",
-      "TS" : 8000,
-      "F1" : "blah",
-      "F2" : "foo"
-    },
-    "timestamp" : 8000
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "S1_JOIN_T1",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "s1",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "t1",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "stream table join with ts extractor both sides",
+    "inputs" : [ {
+      "topic" : "t1",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "F1" : "blah",
+        "F2" : "foo",
+        "RTS" : 10000
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "s1",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "zero",
+        "TS" : 0
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "t1",
+      "key" : 10,
+      "value" : {
+        "ID" : 10,
+        "F1" : "foo",
+        "F2" : "bar",
+        "RTS" : 13000
+      },
+      "timestamp" : 90000
+    }, {
+      "topic" : "s1",
+      "key" : 10,
+      "value" : {
+        "ID" : 10,
+        "NAME" : "100",
+        "TS" : 11000
+      },
+      "timestamp" : 800000
+    }, {
+      "topic" : "s1",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "jan",
+        "TS" : 8000
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "S1_JOIN_T1",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "zero",
+        "TS" : 0,
+        "F1" : "blah",
+        "F2" : "foo"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S1_JOIN_T1",
+      "key" : 10,
+      "value" : {
+        "ID" : 10,
+        "NAME" : "100",
+        "TS" : 11000,
+        "F1" : "foo",
+        "F2" : "bar"
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "S1_JOIN_T1",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "jan",
+        "TS" : 8000,
+        "F1" : "blah",
+        "F2" : "foo"
+      },
+      "timestamp" : 8000
+    } ],
+    "topics" : [ {
+      "name" : "t1",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string F1 = 2;\n  string F2 = 3;\n  int64 RTS = 4;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "s1",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string NAME = 2;\n  int64 TS = 3;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1_JOIN_T1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM S1 (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, TS BIGINT) WITH (KAFKA_TOPIC='s1', KEY='ID', TIMESTAMP='TS', VALUE_FORMAT='PROTOBUF');", "CREATE TABLE T1 (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING, F2 STRING, RTS BIGINT) WITH (KAFKA_TOPIC='t1', KEY='ID', TIMESTAMP='RTS', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM S1_JOIN_T1 WITH (TIMESTAMP='TS') AS SELECT\n  S1.ID ID,\n  S1.NAME NAME,\n  S1.TS TS,\n  T1.F1 F1,\n  T1.F2 F2\nFROM S1 S1\nINNER JOIN T1 T1 ON ((S1.ID = T1.ID))\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1_JOIN_T1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "s1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "t1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

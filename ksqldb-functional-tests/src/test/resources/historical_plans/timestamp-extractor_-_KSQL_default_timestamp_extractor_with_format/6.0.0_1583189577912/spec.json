@@ -5,68 +5,81 @@
     "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, TS VARCHAR> NOT NULL",
     "CSAS_TS_0.TS" : "STRUCT<ID BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 1,
-      "TS" : "10-04-19 12:00:17Z"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 2,
-      "TS" : "!!!!!!!!!!!!!!!!!"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ID" : 3,
-      "TS" : "10-04-19 12:00:17Z"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "TS",
-    "key" : "",
-    "value" : {
-      "ID" : 1
-    },
-    "timestamp" : 1271678417000
-  }, {
-    "topic" : "TS",
-    "key" : "",
-    "value" : {
-      "ID" : 3
-    },
-    "timestamp" : 1271678417000
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "TS",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "KSQL default timestamp extractor with format",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 1,
+        "TS" : "10-04-19 12:00:17Z"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 2,
+        "TS" : "!!!!!!!!!!!!!!!!!"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 3,
+        "TS" : "10-04-19 12:00:17Z"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TS",
+      "key" : "",
+      "value" : {
+        "ID" : 1
+      },
+      "timestamp" : 1271678417000
+    }, {
+      "topic" : "TS",
+      "key" : "",
+      "value" : {
+        "ID" : 3
+      },
+      "timestamp" : 1271678417000
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TS",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT, TS STRING) WITH (KAFKA_TOPIC='test_topic', TIMESTAMP='ts', TIMESTAMP_FORMAT='yy-MM-dd HH:mm:ssX', VALUE_FORMAT='JSON');", "CREATE STREAM TS AS SELECT TEST.ID ID\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "TS",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

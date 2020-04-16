@@ -16,38 +16,23 @@
 package io.confluent.ksql.test.planned;
 
 import io.confluent.ksql.test.loader.TestLoader;
-import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.VersionedTest;
-import java.util.Objects;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Loads test cases that include physical plan for any QTT test case that should be tested
- * against a saved physical plan (according to {@link PlannedTestUtils#isPlannedTestCase})
+ * Loads test cases that include physical plan for any QTT test case that should be tested against a
+ * saved physical plan (according to {@link PlannedTestUtils#isPlannedTestCase})
  */
-public class PlannedTestLoader implements TestLoader<VersionedTest> {
+public final class PlannedTestLoader {
 
-  private final TestLoader<TestCase> innerLoader;
-
-  private PlannedTestLoader(
-      final TestLoader<TestCase> innerLoader
-  ) {
-    this.innerLoader = Objects.requireNonNull(innerLoader, "innerLoader");
+  private PlannedTestLoader() {
   }
 
-  public static PlannedTestLoader of(final TestLoader<TestCase> innerLoader) {
-    return new PlannedTestLoader(innerLoader);
-  }
+  public static Stream<VersionedTest> load() {
+    final List<String> whiteList = TestLoader.getWhiteList();
 
-  @Override
-  public Stream<VersionedTest> load() {
-    return innerLoader.load()
-        .filter(PlannedTestUtils::isPlannedTestCase)
-        .flatMap(PlannedTestLoader::buildHistoricalTestCases);
-  }
-
-  private static Stream<VersionedTest> buildHistoricalTestCases(final TestCase testCase) {
-    return TestCasePlanLoader.allForTestCase(testCase).stream()
-          .map(plan -> PlannedTestUtils.buildPlannedTestCase(testCase, plan));
+    return TestCasePlanLoader.load(whiteList)
+        .map(PlannedTestUtils::buildPlannedTestCase);
   }
 }

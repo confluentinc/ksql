@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.test.loader;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.test.tools.Test;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -25,5 +28,20 @@ import java.util.stream.Stream;
  */
 public interface TestLoader<T extends Test> {
 
+  // Pass a single test or multiple tests separated by commas to the test framework.
+  // Example:
+  //   mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
+  //   mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
+  String KSQL_TEST_FILES = "ksql.test.files";
+
   Stream<T> load();
+
+  static List<String> getWhiteList() {
+    final String ksqlTestFiles = System.getProperty(KSQL_TEST_FILES, "").trim();
+    if (ksqlTestFiles.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    return ImmutableList.copyOf(ksqlTestFiles.split(","));
+  }
 }

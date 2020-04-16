@@ -55,7 +55,7 @@ public class QueryTranslationTest {
     return
         Streams.concat(
             testFileLoader().load(),
-            PlannedTestLoader.of(testFileLoader()).load()
+            PlannedTestLoader.load()
         )
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toCollection(ArrayList::new));

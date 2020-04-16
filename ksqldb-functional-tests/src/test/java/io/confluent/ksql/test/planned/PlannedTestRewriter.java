@@ -15,9 +15,8 @@
 
 package io.confluent.ksql.test.planned;
 
-import io.confluent.ksql.test.tools.TestCase;
 import java.util.Objects;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,27 +31,27 @@ public class PlannedTestRewriter {
 
   private static final Logger LOG = LoggerFactory.getLogger(PlannedTestRewriter.class);
 
-  private final BiFunction<TestCase, TestCasePlan, TestCasePlan> rewriter;
+  private final Function<TestCasePlan, TestCasePlan> rewriter;
 
-  public static final BiFunction<TestCase, TestCasePlan, TestCasePlan> FULL
-      = TestCasePlanLoader::rebuiltForTestCase;
+  public static final Function<TestCasePlan, TestCasePlan> FULL
+      = TestCasePlanLoader::rebuild;
 
-  public PlannedTestRewriter(final BiFunction<TestCase, TestCasePlan, TestCasePlan> rewriter) {
+  public PlannedTestRewriter(final Function<TestCasePlan, TestCasePlan> rewriter) {
     this.rewriter = Objects.requireNonNull(rewriter, "rewriter");
   }
 
-  public void rewriteTestCases(final Stream<TestCase> testCases) {
-    testCases
-        .filter(PlannedTestUtils::isPlannedTestCase)
-        .forEach(this::rewriteTestCase);
+  public void rewriteTestCasePlans(final Stream<TestCasePlan> testPlans) {
+    testPlans
+        .forEach(this::rewriteTestCasePlan);
   }
 
-  private void rewriteTestCase(final TestCase testCase) {
-    for (final TestCasePlan testCasePlan : TestCasePlanLoader.allForTestCase(testCase)) {
-      LOG.info("Rewriting " + testCase.getName() + " - " + testCasePlan.getSpecNode().getVersion());
+  private void rewriteTestCasePlan(final TestCasePlan original) {
+    LOG.info("Rewriting "
+        + original.getSpecNode().getTestCase().name()
+        + " - " + original.getSpecNode().getVersion());
 
-      final TestCasePlan rewritten = rewriter.apply(testCase, testCasePlan);
-      TestCasePlanWriter.writeTestCasePlan(testCase, rewritten);
-    }
+    final TestCasePlan rewritten = rewriter.apply(original);
+
+    TestCasePlanWriter.writeTestCasePlan(rewritten);
   }
 }

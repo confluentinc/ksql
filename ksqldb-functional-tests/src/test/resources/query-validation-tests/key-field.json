@@ -72,15 +72,15 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": "foo","value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"BAR":2, "ROWKEY": "foo"}}
       ],
       "post": {
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": null},
-          {"name": "OUTPUT", "type": "stream", "keyField": "FOO"}
+          {"name": "OUTPUT", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -111,30 +111,6 @@
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": null},
           {"name": "OUTPUT", "type": "stream", "keyField": null}
-        ]
-      }
-    },
-    {
-      "name": "stream | initially null | group by (-) | key in value | no aliasing",
-      "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "KSQL_COL_0": 1}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "INPUT", "type": "stream", "keyField": null},
-          {
-            "name": "OUTPUT",
-            "type": "table",
-            "keyField": "FOO",
-            "schema": "ROWKEY INT KEY, FOO INT, KSQL_COL_0 BIGINT"
-          }
         ]
       }
     },
@@ -262,12 +238,12 @@
         {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ROWKEY":1, "BAR": 2}}
       ],
       "post": {
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": "FOO"},
-          {"name": "OUTPUT", "type": "stream", "keyField": "FOO", "schema": "ROWKEY INT KEY, FOO INT, BAR INT"}
+          {"name": "OUTPUT", "type": "stream", "keyField": null, "schema": "FOO INT KEY, BAR INT, ROWKEY INT"}
         ],
         "topics": {
           "blacklist": ".*-repartition"
@@ -300,7 +276,7 @@
       "post": {
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": "FOO"},
-          {"name": "OUTPUT", "type": "stream", "keyField": null, "schema": "ROWKEY INT KEY, BAR INT"}
+          {"name": "OUTPUT", "type": "stream", "keyField": null, "schema": "FOO INT KEY, BAR INT"}
         ],
         "topics": {
           "blacklist": ".*-repartition"
@@ -317,12 +293,12 @@
         {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": {"FOO": 1, "BAR": 2}}
+        {"topic": "OUTPUT", "key": 2, "value": {"FOO": 1, "ROWKEY": 1}}
       ],
       "post": {
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": "FOO"},
-          {"name": "OUTPUT", "type": "stream", "keyField": "BAR"}
+          {"name": "OUTPUT", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -354,28 +330,6 @@
           {"name": "INPUT", "type": "stream", "keyField": "FOO"},
           {"name": "OUTPUT", "type": "stream", "keyField": null}
         ]
-      }
-    },
-    {
-      "name": "stream | initially set | group by (same) | key in value | no aliasing",
-      "statements": [
-        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "KSQL_COL_0": 1}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "INPUT", "type": "stream", "keyField": "FOO"},
-          {"name": "OUTPUT", "type": "table", "keyField": "FOO"}
-        ],
-        "topics": {
-          "blacklist": ".*-repartition"
-        }
       }
     },
     {
@@ -419,24 +373,6 @@
         "topics": {
           "blacklist": ".*-repartition"
         }
-      }
-    },
-    {
-      "name": "stream | initially set | group by (different) | key in value | no aliasing",
-      "statements": [
-        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": {"BAR":2, "KSQL_COL_0": 1}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "table", "keyField": "BAR"}
-        ]
       }
     },
     {
@@ -491,25 +427,6 @@
         "sources": [
           {"name": "INPUT", "type": "table", "keyField": null},
           {"name": "OUTPUT", "type": "table", "keyField": null}
-        ]
-      }
-    },
-    {
-      "name": "table | initially null | group by (-) | key in value | no aliasing",
-      "statements": [
-        "CREATE TABLE INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": "x", "value": {"foo": 1}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"FOO": 1, "KSQL_COL_0": 1}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "INPUT", "type": "table", "keyField": null},
-          {"name": "OUTPUT", "type": "table", "keyField": "FOO"}
         ]
       }
     },
@@ -592,24 +509,6 @@
       }
     },
     {
-      "name": "table | initially set | group by (same) | key in value | no aliasing",
-      "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": 1,"value": {"foo": 1, "bar": 2}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 1,"value": {"FOO": 1, "KSQL_COL_0":  1}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "table", "keyField": "FOO"}
-        ]
-      }
-    },
-    {
       "name": "table | initially set | group by (same) | key in value | aliasing",
       "statements": [
         "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -646,24 +545,6 @@
       }
     },
     {
-      "name": "table | initially set | group by (different) | key in value | no aliasing",
-      "statements": [
-        "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": {"BAR": 2, "KSQL_COL_0":  1}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "table", "keyField": "BAR"}
-        ]
-      }
-    },
-    {
       "name": "table | initially set | group by (different) | key in value | aliasing",
       "statements": [
         "CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -696,24 +577,6 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": null}
-        ]
-      }
-    },
-    {
-      "name": "stream | initially set | partition by expression | key in value | no aliasing",
-      "statements": [
-        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT foo + bar FROM INPUT PARTITION BY foo + bar;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 3, "value": {"KSQL_COL_0":  3}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "stream", "keyField": null}
         ]
       }
     },

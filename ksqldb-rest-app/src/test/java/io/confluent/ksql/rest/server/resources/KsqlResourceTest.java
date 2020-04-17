@@ -97,7 +97,6 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -111,6 +110,7 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
@@ -616,10 +616,10 @@ public class KsqlResourceTest {
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead."))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
-        "CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;"))));
+        "CREATE STREAM s2 AS SELECT count(S2_F1) FROM test_stream group by s2_f1;"))));
 
     // When:
-    makeRequest("CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;");
+    makeRequest("CREATE STREAM s2 AS SELECT count(S2_F1) FROM test_stream group by s2_f1;");
   }
 
   @Test

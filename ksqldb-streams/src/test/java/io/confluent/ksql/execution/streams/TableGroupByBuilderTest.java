@@ -142,7 +142,7 @@ public class TableGroupByBuilderTest {
     when(tableHolder.getSchema()).thenReturn(SCHEMA);
     when(tableHolder.getTable()).thenReturn(sourceTable);
 
-    when(paramsFactory.build(any(), any(), any(), any(), any())).thenReturn(groupByParams);
+    when(paramsFactory.build(any(), any(), any(), any())).thenReturn(groupByParams);
 
     when(groupByParams.getSchema()).thenReturn(REKEYED_SCHEMA);
     when(groupByParams.getMapper()).thenReturn(mapper);
@@ -190,8 +190,7 @@ public class TableGroupByBuilderTest {
         eq(SCHEMA),
         any(),
         eq(alias),
-        eq(processingLogger),
-        eq(ksqlConfig)
+        eq(processingLogger)
     );
   }
 

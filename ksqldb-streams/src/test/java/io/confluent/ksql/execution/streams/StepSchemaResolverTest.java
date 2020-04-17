@@ -244,32 +244,8 @@ public class StepSchemaResolverTest {
   }
 
   @Test
-  public void shouldResolveSchemaForStreamGroupBy() {
-    // Given:
-    final StreamGroupBy<?> step = new StreamGroupBy<>(
-        PROPERTIES,
-        streamSource,
-        formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.empty()
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
-        .valueColumns(SCHEMA.value())
-        .build()));
-  }
-
-  @Test
   public void shouldResolveSchemaForStreamGroupByAnyKey() {
     // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
-
     final StreamGroupBy<?> step = new StreamGroupBy<>(
         PROPERTIES,
         streamSource,
@@ -292,8 +268,6 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForAliasedStreamGroupBy() {
     // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
-
     final StreamGroupBy<?> step = new StreamGroupBy<>(
         PROPERTIES,
         streamSource,
@@ -465,32 +439,8 @@ public class StepSchemaResolverTest {
   }
 
   @Test
-  public void shouldResolveSchemaForTableGroupBy() {
-    // Given:
-    final TableGroupBy<?> step = new TableGroupBy<>(
-        PROPERTIES,
-        tableSource,
-        formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.empty()
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
-        .valueColumns(SCHEMA.value())
-        .build()));
-  }
-
-  @Test
   public void shouldResolveSchemaForTableGroupByAnyKey() {
     // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
-
     final TableGroupBy<?> step = new TableGroupBy<>(
         PROPERTIES,
         tableSource,
@@ -513,8 +463,6 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForAliasedTableGroupBy() {
     // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
-
     final TableGroupBy<?> step = new TableGroupBy<>(
         PROPERTIES,
         tableSource,

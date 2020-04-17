@@ -13,7 +13,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE integer) WITH (kafka_topic='test_topic',value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
+        "CREATE TABLE S2 as SELECT collect_list(value) as collected FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 0}},
@@ -22,10 +22,10 @@
         {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [0]}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [0,100]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500,100]}}
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [0]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [0,100]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [500]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [500,100]}}
       ]
     },
     {
@@ -33,7 +33,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
+        "CREATE TABLE S2 as SELECT collect_list(value) as collected FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 2147483648}},
@@ -42,10 +42,10 @@
         {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [2147483648]}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [2147483648,100]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500,100]}}
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [2147483648]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [2147483648,100]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [500]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [500,100]}}
       ]
     },
     {
@@ -53,7 +53,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE double) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
+        "CREATE TABLE S2 as SELECT collect_list(value) as collected FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 5.4}},
@@ -62,10 +62,10 @@
         {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 300.8}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [5.4]}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [5.4,100.1]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500.9]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500.9,300.8]}}
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [5.4]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [5.4,100.1]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [500.9]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [500.9,300.8]}}
       ]
     },
     {
@@ -73,7 +73,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE varchar) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
+        "CREATE TABLE S2 as SELECT collect_list(value) as collected FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": "foo"}},
@@ -83,11 +83,11 @@
         {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "foo"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": ["foo"]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz"]}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": ["foo","bar"]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz","baz"]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz","baz","foo"]}}
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": ["foo"]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": ["baz"]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": ["foo","bar"]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": ["baz","baz"]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": ["baz","baz","foo"]}}
       ]
     },
     {
@@ -95,7 +95,7 @@
       "format": ["JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE map<varchar, boolean>) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE S2 as SELECT id, collect_list(value['key1']) AS collected FROM test group by id;"
+        "CREATE TABLE S2 as SELECT collect_list(value['key1']) AS collected FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":true, "key2":false}}},
@@ -103,9 +103,9 @@
         {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":true, "key2":true}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true]}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true,false]}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true,false,true]}}
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[true]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[true,false]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[true,false,true]}}
       ]
     },
     {
@@ -113,7 +113,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, VALUE integer) WITH (kafka_topic='test_topic',value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
+        "CREATE TABLE S2 as SELECT collect_list(value) as collected FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 0}},
@@ -122,12 +122,12 @@
         {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [0]}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": []}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [100]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": []}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [100]}}
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [0]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": []}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [100]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [500]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": []}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [100]}}
       ]
     },
     {
@@ -135,7 +135,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
+        "CREATE TABLE S2 as SELECT collect_list(value) as collected FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 2147483648}},
@@ -144,12 +144,12 @@
         {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [2147483648]}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": []}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [100]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500]}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": []}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [100]}}
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [2147483648]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": []}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [100]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [500]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": []}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [100]}}
       ]
     },
     {
@@ -157,7 +157,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, VALUE double) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
+        "CREATE TABLE S2 as SELECT collect_list(value) as collected FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 5.4}},
@@ -166,12 +166,12 @@
         {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 300.8}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0,"value": {"ID": 0, "COLLECTED": [5.4]}},
-        {"topic": "S2", "key": 0,"value": {"ID": 0, "COLLECTED": []}},
-        {"topic": "S2", "key": 0,"value": {"ID": 0, "COLLECTED": [100.1]}},
-        {"topic": "S2", "key": 100,"value": {"ID": 100, "COLLECTED": [500.9]}},
-        {"topic": "S2", "key": 100,"value": {"ID": 100, "COLLECTED": []}},
-        {"topic": "S2", "key": 100,"value": {"ID": 100, "COLLECTED": [300.8]}}
+        {"topic": "S2", "key": 0,"value": {"COLLECTED": [5.4]}},
+        {"topic": "S2", "key": 0,"value": {"COLLECTED": []}},
+        {"topic": "S2", "key": 0,"value": {"COLLECTED": [100.1]}},
+        {"topic": "S2", "key": 100,"value": {"COLLECTED": [500.9]}},
+        {"topic": "S2", "key": 100,"value": {"COLLECTED": []}},
+        {"topic": "S2", "key": 100,"value": {"COLLECTED": [300.8]}}
       ]
     },
     {
@@ -179,7 +179,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, VALUE varchar) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
+        "CREATE TABLE S2 as SELECT collect_list(value) as collected FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": {"ID": 0, "VALUE": "foo"}},
@@ -189,14 +189,14 @@
         {"topic": "test_topic", "key": 100,"value": {"ID": 100, "VALUE": "foo"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0,"value": {"ID": 0, "COLLECTED": ["foo"]}},
-        {"topic": "S2", "key": 100,"value": {"ID": 100, "COLLECTED": ["baz"]}},
-        {"topic": "S2", "key": 0,"value": {"ID": 0, "COLLECTED": []}},
-        {"topic": "S2", "key": 0,"value": {"ID": 0, "COLLECTED": ["bar"]}},
-        {"topic": "S2", "key": 100,"value": {"ID": 100, "COLLECTED": []}},
-        {"topic": "S2", "key": 100,"value": {"ID": 100, "COLLECTED": ["baz"]}},
-        {"topic": "S2", "key": 100,"value": {"ID": 100, "COLLECTED": []}},
-        {"topic": "S2", "key": 100,"value": {"ID": 100, "COLLECTED": ["foo"]}}
+        {"topic": "S2", "key": 0,"value": {"COLLECTED": ["foo"]}},
+        {"topic": "S2", "key": 100,"value": {"COLLECTED": ["baz"]}},
+        {"topic": "S2", "key": 0,"value": {"COLLECTED": []}},
+        {"topic": "S2", "key": 0,"value": {"COLLECTED": ["bar"]}},
+        {"topic": "S2", "key": 100,"value": {"COLLECTED": []}},
+        {"topic": "S2", "key": 100,"value": {"COLLECTED": ["baz"]}},
+        {"topic": "S2", "key": 100,"value": {"COLLECTED": []}},
+        {"topic": "S2", "key": 100,"value": {"COLLECTED": ["foo"]}}
       ]
     },
     {
@@ -204,7 +204,7 @@
       "format": ["JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE map<varchar, boolean>) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE S2 as SELECT id, collect_list(value['key1']) AS collected FROM test group by id;"
+        "CREATE TABLE S2 as SELECT collect_list(value['key1']) AS collected FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":true, "key2":false}}},
@@ -212,11 +212,11 @@
         {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":true, "key2":true}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0,"value": {"ID":0,"COLLECTED":[true]}},
-        {"topic": "S2", "key": 0,"value": {"ID":0,"COLLECTED":[]}},
-        {"topic": "S2", "key": 0,"value": {"ID":0,"COLLECTED":[false]}},
-        {"topic": "S2", "key": 0,"value": {"ID":0,"COLLECTED":[]}},
-        {"topic": "S2", "key": 0,"value": {"ID":0,"COLLECTED":[true]}}
+        {"topic": "S2", "key": 0,"value": {"COLLECTED":[true]}},
+        {"topic": "S2", "key": 0,"value": {"COLLECTED":[]}},
+        {"topic": "S2", "key": 0,"value": {"COLLECTED":[false]}},
+        {"topic": "S2", "key": 0,"value": {"COLLECTED":[]}},
+        {"topic": "S2", "key": 0,"value": {"COLLECTED":[true]}}
       ]
     }
   ]

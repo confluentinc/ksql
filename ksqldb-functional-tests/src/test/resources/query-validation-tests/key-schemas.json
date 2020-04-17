@@ -302,7 +302,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<ROWKEY ARRAY<INT>> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'ARRAY'"
+        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<ID ARRAY<INT>> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'ARRAY'"
       }
     },
     {
@@ -313,7 +313,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<ROWKEY MAP<VARCHAR, INT>> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'MAP'"
+        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<ID MAP<VARCHAR, INT>> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'MAP'"
       }
     },
     {
@@ -322,9 +322,6 @@
         "CREATE STREAM INPUT (OTHER DOUBLE KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT ID, OTHER as KEY FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "input", "key": 3.0, "value": {"id": 1}}
       ],
@@ -349,9 +346,6 @@
         "CREATE STREAM INPUT (KEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT ID, KEY as KEY2 FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "input", "key": "a", "value": {"id": 1}}
       ],
@@ -367,27 +361,6 @@
             "schema": "KEY STRING KEY, ID BIGINT, KEY2 STRING"
           }
         ]
-      }
-    },
-    {
-      "name": "explicit key field named other than ROWKEY - old",
-      "statements": [
-        "CREATE STREAM INPUT (OTHER STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "'OTHER' is an invalid KEY column name. KSQL currently only supports KEY columns named ROWKEY."
-      }
-    },
-    {
-      "name": "KEY key field name- old",
-      "comment": "tests that `KEY` is allowed as a KEY column name",
-      "statements": [
-        "CREATE STREAM INPUT (KEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "'KEY' is an invalid KEY column name. KSQL currently only supports KEY columns named ROWKEY."
       }
     },
     {

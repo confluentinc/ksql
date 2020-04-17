@@ -253,13 +253,13 @@ public class KsqlEngineTest {
         "Incompatible data sink and query result. "
             + "Data sink (BAR) type is KSTREAM but select query result is KTABLE.")));
     expectedException.expect(statementText(
-        is("insert into bar select itemid, count(*) from orders group by itemid;")));
+        is("insert into bar select count(*) from orders group by itemid;")));
 
     // When:
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-        "insert into bar select itemid, count(*) from orders group by itemid;",
+        "insert into bar select count(*) from orders group by itemid;",
         KSQL_CONFIG,
         Collections.emptyMap()
     );
@@ -282,13 +282,13 @@ public class KsqlEngineTest {
             + "Sink key field is ORDERTIME (type: BIGINT) "
             + "while result key field is ORDERID (type: BIGINT)")));
     expectedException.expect(statementText(
-        is("insert into bar select * from orders partition by orderid;")));
+        is("insert into bar select * from orders partition by orderid as ROWKEY;")));
 
     // When:
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-        "insert into bar select * from orders partition by orderid;",
+        "insert into bar select * from orders partition by orderid as ROWKEY;",
         KSQL_CONFIG,
         Collections.emptyMap()
     );
@@ -799,7 +799,7 @@ public class KsqlEngineTest {
         serviceContext,
         ksqlEngine,
         "create stream s as select * from orders;"
-            + "create table t as select itemid, count(*) from orders group by itemid;",
+            + "create table t as select count(*) from orders group by itemid;",
         KSQL_CONFIG, Collections.emptyMap()
     );
 

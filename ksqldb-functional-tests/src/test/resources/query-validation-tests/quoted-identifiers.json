@@ -81,10 +81,10 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM TEST PARTITION BY `some.key`;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"some.key": "key"}}
+        {"topic": "test_topic", "key": "old-key","value": {"some.key": "key"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "key", "value": {"some.key": "key"}}
+        {"topic": "OUTPUT", "key": "key", "value": {"ROWKEY": "old-key"}}
       ]
     },
     {

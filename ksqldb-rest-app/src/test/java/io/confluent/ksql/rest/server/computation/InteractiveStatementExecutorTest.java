@@ -22,7 +22,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -780,7 +779,7 @@ public class InteractiveStatementExecutorTest {
 
     final Command ctasCommand = new Command(
         "CREATE TABLE table1  AS "
-            + "SELECT pageid, count(pageid) "
+            + "SELECT count(pageid) "
             + "FROM pageview "
             + "WINDOW TUMBLING ( SIZE 10 SECONDS) "
             + "GROUP BY pageid;",

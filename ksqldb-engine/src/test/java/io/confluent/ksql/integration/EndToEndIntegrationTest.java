@@ -205,11 +205,11 @@ public class EndToEndIntegrationTest {
   public void shouldSelectAllFromDerivedStream() throws Exception {
     executeStatement(
         "CREATE STREAM pageviews_female"
-        + " AS SELECT %s.userid AS userid, pageid, regionid, gender "
+        + " AS SELECT pageid, regionid, gender "
         + " FROM %s "
         + " LEFT JOIN %s ON %s.userid = %s.userid"
         + " WHERE gender = 'FEMALE';",
-        USER_TABLE, PAGE_VIEW_STREAM, USER_TABLE, PAGE_VIEW_STREAM,
+        PAGE_VIEW_STREAM, USER_TABLE, PAGE_VIEW_STREAM,
         USER_TABLE);
 
     final TransientQueryMetadata queryMetadata = executeStatement(
@@ -249,12 +249,12 @@ public class EndToEndIntegrationTest {
       final List<Object> columns = result.value.values();
       log.debug("pageview join: {}", columns);
 
-      assertThat(columns, hasSize(6));
+      assertThat(columns, hasSize(5));
 
-      final String user = (String) columns.get(2);
+      final String user = (String) columns.get(1);
       actualUsers.add(user);
 
-      final String page = (String) columns.get(3);
+      final String page = (String) columns.get(2);
       actualPages.add(page);
     }
 
@@ -287,7 +287,7 @@ public class EndToEndIntegrationTest {
 
     executeStatement(
         "CREATE STREAM pageviews_by_viewtime "
-        + "AS SELECT viewtime, pageid, userid "
+        + "AS SELECT pageid, userid "
         + "from %s "
         + "partition by viewtime;",
         PAGE_VIEW_STREAM);
@@ -299,8 +299,8 @@ public class EndToEndIntegrationTest {
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
     assertThat(PRODUCED_COUNT.get(), greaterThan(0));
-    assertThat(columns.get(3).toString(), startsWith("PAGE_"));
-    assertThat(columns.get(4).toString(), startsWith("USER_"));
+    assertThat(columns.get(2).toString(), startsWith("PAGE_"));
+    assertThat(columns.get(3).toString(), startsWith("USER_"));
   }
 
   @Test

@@ -814,25 +814,6 @@ public class CreateSourceFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnRowKeyValueColumn() {
-    // Given:
-    final CreateStream statement = new CreateStream(
-        SOME_NAME,
-        TableElements.of(tableElement(VALUE, ROWKEY_NAME.text(), new Type(SqlTypes.STRING))),
-        true,
-        withProperties
-    );
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "'ROWKEY' is a reserved column name. It can only be used for KEY columns.");
-
-    // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
-  }
-
-  @Test
   public void shouldNotThrowOnRowKeyKeyColumn() {
     // Given:
     final CreateStream statement = new CreateStream(
@@ -871,10 +852,6 @@ public class CreateSourceFactoryTest {
   @Test
   public void shouldNotThrowOnKeyColumnThatIsNotCalledRowKey() {
     // Given:
-    ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED, true
-    ));
-
     final CreateStream statement = new CreateStream(
         SOME_NAME,
         TableElements.of(tableElement(KEY, "someKey", new Type(SqlTypes.STRING))),

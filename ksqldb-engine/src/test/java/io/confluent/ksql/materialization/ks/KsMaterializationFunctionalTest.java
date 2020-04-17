@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -48,7 +49,6 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.UserDataProvider;
 import java.time.Duration;
 import java.time.Instant;
@@ -65,6 +65,7 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -523,12 +524,11 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT USERID, COUNT(*), USERID AS USERID_2 FROM " + USER_TABLE
+            + " SELECT COUNT(*), USERID AS USERID_2 FROM " + USER_TABLE
             + " GROUP BY USERID;"
     );
 
     final LogicalSchema schema = schema(
-        "USERID", SqlTypes.STRING,
         "KSQL_COL_0", SqlTypes.BIGINT,
         "USERID_2", SqlTypes.STRING
     );
@@ -687,9 +687,11 @@ public class KsMaterializationFunctionalTest {
     return query;
   }
 
-  private static Struct asKeyStruct(final String rowKey, final PhysicalSchema physicalSchema) {
-    final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
-    key.put(SchemaUtil.ROWKEY_NAME.text(), rowKey);
+  private static Struct asKeyStruct(final String keyValue, final PhysicalSchema physicalSchema) {
+    final ConnectSchema keySchema = physicalSchema.keySchema().ksqlSchema();
+    final String keyName = Iterables.getOnlyElement(keySchema.fields()).name();
+    final Struct key = new Struct(keySchema);
+    key.put(keyName, keyValue);
     return key;
   }
 
@@ -700,7 +702,7 @@ public class KsMaterializationFunctionalTest {
   ) {
     return LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(columnName0), columnType0)
         .build();
   }
@@ -712,24 +714,9 @@ public class KsMaterializationFunctionalTest {
   ) {
     return LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(columnName0), columnType0)
         .valueColumn(ColumnName.of(columnName1), columnType1)
-        .build();
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  private static LogicalSchema schema(
-      final String columnName0, final SqlType columnType0,
-      final String columnName1, final SqlType columnType1,
-      final String columnName2, final SqlType columnType2
-  ) {
-    return LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumn(ColumnName.of(columnName0), columnType0)
-        .valueColumn(ColumnName.of(columnName1), columnType1)
-        .valueColumn(ColumnName.of(columnName2), columnType2)
         .build();
   }
 
@@ -740,8 +727,7 @@ public class KsMaterializationFunctionalTest {
         + " (" + USER_DATA_PROVIDER.ksqlSchemaString(true) + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
-        + "    value_format='" + VALUE_FORMAT.name() + "', "
-        + "    key = '" + USER_DATA_PROVIDER.key() + "'"
+        + "    value_format='" + VALUE_FORMAT.name() + "'"
         + ");"
     );
 
@@ -749,8 +735,7 @@ public class KsMaterializationFunctionalTest {
         + " (" + USER_DATA_PROVIDER.ksqlSchemaString(false) + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
-        + "    value_format='" + VALUE_FORMAT.name() + "', "
-        + "    key = '" + USER_DATA_PROVIDER.key() + "'"
+        + "    value_format='" + VALUE_FORMAT.name() + "'"
         + ");"
     );
 
@@ -758,11 +743,9 @@ public class KsMaterializationFunctionalTest {
         + " (" + PAGE_VIEW_DATA_PROVIDER.ksqlSchemaString(false) + ")"
         + " WITH ("
         + "    kafka_topic='" + PAGE_VIEWS_TOPIC + "', "
-        + "    value_format='" + VALUE_FORMAT.name() + "', "
-        + "    key = '" + PAGE_VIEW_DATA_PROVIDER.key() + "'"
+        + "    value_format='" + VALUE_FORMAT.name() + "'"
         + ");"
     );
-
   }
 }
 

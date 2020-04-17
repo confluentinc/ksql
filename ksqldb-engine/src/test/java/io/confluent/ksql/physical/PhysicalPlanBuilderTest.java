@@ -205,14 +205,14 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
 
     assertThat(lines[0], startsWith(
-        " > [ PROJECT ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, KSQL_COL_0 DOUBLE, "
+        " > [ PROJECT ] | Schema: COL0 BIGINT KEY, COL0 BIGINT, KSQL_COL_0 DOUBLE, "
             + "KSQL_COL_1 BIGINT |"));
     assertThat(lines[1], startsWith(
-        "\t\t > [ AGGREGATE ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, "
+        "\t\t > [ AGGREGATE ] | Schema: COL0 BIGINT KEY, COL0 BIGINT, "
             + "COL3 DOUBLE, KSQL_AGG_VARIABLE_0 DOUBLE, "
             + "KSQL_AGG_VARIABLE_1 BIGINT |"));
     assertThat(lines[2], startsWith(
-        "\t\t\t\t > [ GROUP_BY ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL3 DOUBLE |"
+        "\t\t\t\t > [ GROUP_BY ] | Schema: COL0 BIGINT KEY, COL0 BIGINT, COL3 DOUBLE |"
     ));
     assertThat(lines[3], startsWith(
         "\t\t\t\t\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL3 DOUBLE |"));
@@ -288,8 +288,8 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldRekeyIfPartitionByDoesNotMatchResultKey() {
-    final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
-    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
+    final String csasQuery = "CREATE STREAM s1 AS SELECT col1, col2 FROM test1 PARTITION BY col0;";
+    final String insertIntoQuery = "INSERT INTO s1 SELECT col1, col2 FROM test1 PARTITION BY col0;";
     givenKafkaTopicsExist("test1");
 
     final List<QueryMetadata> queryMetadataList = execute(
@@ -298,12 +298,12 @@ public class PhysicalPlanBuilderTest {
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(4));
-    assertThat(lines[0], equalTo(" > [ SINK ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING, COL2 "
+    assertThat(lines[0], equalTo(" > [ SINK ] | Schema: COL0 BIGINT KEY, COL1 STRING, COL2 "
         + "DOUBLE | Logger: INSERTQUERY_1.S1"));
     assertThat(lines[2],
-        containsString("[ REKEY ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE, ROWTIME BIGINT, ROWKEY STRING "
+        containsString("[ REKEY ] | Schema: COL0 BIGINT KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE, ROWTIME BIGINT, ROWKEY STRING "
             + "| Logger: INSERTQUERY_1.PartitionBy"));
-    assertThat(lines[1], containsString("[ PROJECT ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING"
+    assertThat(lines[1], containsString("[ PROJECT ] | Schema: COL0 BIGINT KEY, COL1 STRING"
         + ", COL2 DOUBLE | Logger: INSERTQUERY_1.Project"));
   }
 
@@ -321,7 +321,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(result.getExecutionPlan(), containsString(
-        "[ REKEY ] | Schema: ROWKEY BIGINT KEY, ID2"
+        "[ REKEY ] | Schema: COL1 BIGINT KEY, ID2"
     ));
   }
 
@@ -339,7 +339,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(result.getExecutionPlan(), containsString(
-        "[ REKEY ] | Schema: ROWKEY BIGINT KEY, ID3"
+        "[ REKEY ] | Schema: COL0 BIGINT KEY, ID3"
     ));
   }
 

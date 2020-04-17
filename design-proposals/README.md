@@ -45,11 +45,11 @@ Next KLIP number: **23**
 | [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)                 | Approved       | N/A     |
 | [KLIP-2: Insert Into Semantics](klip-2-produce-data.md)                            | Merged         | 5.3     |
 | [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | Approved       | N/A     |
-| [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Approved       | 5.4     |
-| [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Approved       | N/A     |
-| [KLIP-7: Kafka Connect Integration](klip-7-connect-integration.md)                 | Approved       | 5.4     |
-| [KLIP-8: Queryable State Stores](klip-8-queryable-state-stores.md)                 | Approved       | 5.4     |
-| [KLIP-9: Table Functions](klip-9-table-functions.md)                               | Approved       | 5.4     |
+| [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Merged         | 5.4     |
+| [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Merged         | 5.5     |
+| [KLIP-7: Kafka Connect Integration](klip-7-connect-integration.md)                 | Merged         | 5.4     |
+| [KLIP-8: Queryable State Stores](klip-8-queryable-state-stores.md)                 | Merged         | 5.4     |
+| [KLIP-9: Table Functions](klip-9-table-functions.md)                               | Merged         | 5.4     |
 | [KLIP-10: Suppress](klip-10-suppress.md)                                           | Proposal       | N/A     |
 | [KLIP-11: Redesign KSQL query language](klip-11-DQL.md)                            | Proposal       | N/A     |
 | [KLIP-12: Implement High-Availability for Pull queries](klip-12-pull-high-availability.md)| Proposal       | N/A     |
@@ -62,5 +62,6 @@ Next KLIP number: **23**
 | [KLIP-19: Introduce Materialize Views](klip-19-materialize-views.md)               | Proposal       | N/A     |
 | [KLIP-20: Remove 'TERMINATE' statements](klip-20_remove_terminate.md)              | Proposal       | N/A     |
 | [KLIP-21: Correct 'INSERT VALUES' semantics](klip-21_correct_insert_values_semantics.md)  | Proposal       | N/A     |
-| KLIP-22: Add consumer group id to CREATE STREAM and CREATE TABLE DSL  | Proposal       | N/A     |
-| KLIP-23: PRIMARY KEYs for tables                                      | Proposal       | N/A     |
+| KLIP-22: Add consumer group id to CREATE STREAM and CREATE TABLE DSL               | Proposal       | N/A     |
+| [KLIP-23: PRIMARY KEYs for tables](klip-23-primary-keys-for-tables.md)             | Merged         | 0.9 / release after 5.5  |
+| KLIP-24: KEY column semantics in queries                                           | Proposal       | N/A     |

@@ -38,7 +38,7 @@ public class QueriesTableBuilderTest {
     // Given:
     final String exampleQuery = "select * from test_stream emit changes";
     final RunningQuery query = new RunningQuery(
-            exampleQuery,
+        exampleQuery,
         ImmutableSet.of("SINK"),
         ImmutableSet.of("SINK"),
         new QueryId("0"),

@@ -42,9 +42,9 @@ Example
 ```sql
 ksql> show queries;
 
- Query ID    | Status    | Sink Name | Sink Kafka Topic | Query String                                                                                                                                
+ Query ID    | Query Type | Status    | Sink Name | Sink Kafka Topic | Query String                                                                                                                                
 ------------------------------------------------------------------------------------------------------------
- CSAS_TEST_0 | RUNNING:2 | TEST      | TEST             | CREATE STREAM TEST WITH (KAFKA_TOPIC='TEST', PARTITIONS=1, REPLICAS=1) AS SELECT *FROM KSQL_PROCESSING_LOG KSQL_PROCESSING_LOG EMIT CHANGES; 
+ CSAS_TEST_0 | PUSH       | RUNNING:2 | TEST      | TEST             | CREATE STREAM TEST WITH (KAFKA_TOPIC='TEST', PARTITIONS=1, REPLICAS=1) AS SELECT *FROM KSQL_PROCESSING_LOG KSQL_PROCESSING_LOG EMIT CHANGES; 
 ------------------------------------------------------------------------------------------------------------
 For detailed information on a Query run: EXPLAIN <Query ID>;
 ```
@@ -54,6 +54,7 @@ For detailed information on a Query run: EXPLAIN <Query ID>;
 ksql> show queries extended;
 
 ID                   : CSAS_TEST_0
+Query Type           : PUSH
 SQL                  : CREATE STREAM TEST WITH (KAFKA_TOPIC='TEST', PARTITIONS=1, REPLICAS=1) AS SELECT *
 FROM KSQL_PROCESSING_LOG KSQL_PROCESSING_LOG
 EMIT CHANGES;

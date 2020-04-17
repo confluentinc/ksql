@@ -231,7 +231,8 @@ public final class ListSourceExecutor {
             q.getQueryId(),
             QueryStatusCount.fromStreamsStateCounts(
                 Collections.singletonMap(
-                    KafkaStreams.State.valueOf(q.getState()), 1)), KsqlConstants.KsqlQueryType.PUSH)).collect(Collectors.toList());
+                    KafkaStreams.State.valueOf(q.getState()), 1)),
+            KsqlConstants.KsqlQueryType.PUSH)).collect(Collectors.toList());
   }
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {

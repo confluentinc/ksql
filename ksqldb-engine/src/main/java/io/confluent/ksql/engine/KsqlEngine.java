@@ -44,6 +44,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -54,6 +55,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,8 +130,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return primaryContext.getPersistentQuery(queryId);
   }
 
+  @Override
   public List<PersistentQueryMetadata> getPersistentQueries() {
     return ImmutableList.copyOf(primaryContext.getPersistentQueries().values());
+  }
+
+  @Override
+  public List<QueryMetadata> getAllLiveQueries() {
+    return ImmutableList.copyOf(new ArrayList<>(allLiveQueries));
   }
 
   public boolean hasActiveQueries() {

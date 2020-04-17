@@ -42,6 +42,7 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -89,7 +90,6 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext
   ) {
     final Map<QueryId, RunningQuery> runningQueries = getLocalSimple(executionContext);
-
     mergeSimple(remoteResults, runningQueries);
 
     return Optional.of(new Queries(
@@ -101,18 +101,33 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext
   ) {
     final Map<QueryId, RunningQuery> persistentQueries =  executionContext
-        .getPersistentQueries()
+        .getAllLiveQueries()
         .stream()
         .collect(Collectors.toMap(
-            PersistentQueryMetadata::getQueryId,
-            q -> new RunningQuery(
-                q.getStatementString(),
-                ImmutableSet.of(q.getSinkName().text()),
-                ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
-                q.getQueryId(),
-                QueryStatusCount.fromStreamsStateCounts(
-                    Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)),
-                q.getQueryType())
+            QueryMetadata::getQueryId,
+            q -> {
+              if (q instanceof PersistentQueryMetadata) {
+                System.out.println("getting local");
+                final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) q;
+                return new RunningQuery(
+                    q.getStatementString(),
+                    ImmutableSet.of(persistentQuery.getSinkName().text()),
+                    ImmutableSet.of(persistentQuery.getResultTopic().getKafkaTopicName()),
+                    q.getQueryId(),
+                    QueryStatusCount.fromStreamsStateCounts(
+                        Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)),
+                    q.getQueryType());
+              }
+              System.out.println("what is being returned");
+              return new RunningQuery(
+                  q.getStatementString(),
+                  ImmutableSet.of(),
+                  ImmutableSet.of(),
+                  q.getQueryId(),
+                  QueryStatusCount.fromStreamsStateCounts(
+                      Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)),
+                  q.getQueryType());
+            }
         ));
     return persistentQueries;
   }
@@ -130,7 +145,7 @@ public final class ListQueriesExecutor {
     
     for (RunningQuery q : remoteRunningQueries) {
       final QueryId queryId = q.getId();
-
+      System.out.println(q.getId());
       // If the query has already been discovered, update the QueryStatusCount object
       if (allResults.containsKey(queryId)) {
         for (Map.Entry<KsqlQueryStatus, Integer> entry :
@@ -175,10 +190,10 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext
   ) {
     return executionContext
-        .getPersistentQueries()
+        .getAllLiveQueries()
         .stream()
         .collect(Collectors.toMap(
-            PersistentQueryMetadata::getQueryId,
+            QueryMetadata::getQueryId,
             query -> QueryDescriptionFactory.forQueryMetadata(
                 query,
                 Collections.singletonMap(

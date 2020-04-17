@@ -83,6 +83,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
+  public List<QueryMetadata> getAllLiveQueries() {
+    return ImmutableList.of();
+  }
+
+  @Override
   public List<ParsedStatement> parse(final String sql) {
     return engineContext.parse(sql);
   }

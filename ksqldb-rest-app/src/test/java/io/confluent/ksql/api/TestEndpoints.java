@@ -26,6 +26,7 @@ import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -147,6 +148,12 @@ public class TestEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeAllStatuses(
       ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeLagReport(
+      LagReportingMessage lagReportingMessage, ApiSecurityContext apiSecurityContext) {
     return null;
   }
 

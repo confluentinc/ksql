@@ -57,7 +57,7 @@ public class ServerVerticle extends AbstractVerticle {
   public static final Set<String> NON_PROXIED_ENDPOINTS = ImmutableSet
       .of("/query-stream", "/inserts-stream", "/close-query",
           "/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
-          "/status/:type/:entity/:action", "/status");
+          "/status/:type/:entity/:action", "/status", "/lag");
 
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;

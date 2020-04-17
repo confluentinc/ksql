@@ -21,6 +21,7 @@ import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
@@ -84,5 +85,8 @@ public interface Endpoints {
       ApiSecurityContext apiSecurityContext);
 
   CompletableFuture<EndpointResponse> executeAllStatuses(ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeLagReport(LagReportingMessage lagReportingMessage,
+      ApiSecurityContext apiSecurityContext);
 
 }

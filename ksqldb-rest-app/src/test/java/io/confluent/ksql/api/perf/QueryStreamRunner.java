@@ -30,6 +30,7 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
@@ -156,6 +157,12 @@ public class QueryStreamRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeAllStatuses(
         ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeLagReport(
+        LagReportingMessage lagReportingMessage, ApiSecurityContext apiSecurityContext) {
       return null;
     }
 

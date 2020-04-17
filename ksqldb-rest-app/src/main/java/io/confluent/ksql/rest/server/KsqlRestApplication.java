@@ -189,6 +189,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final ServerInfoResource serverInfoResource;
   private final Optional<HeartbeatResource> heartbeatResource;
   private final Optional<ClusterStatusResource> clusterStatusResource;
+  private final Optional<LagReportingResource> lagReportingResource;
 
   // We embed this in here for now
   private Vertx vertx = null;
@@ -348,6 +349,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       this.heartbeatResource = Optional.empty();
       this.clusterStatusResource = Optional.empty();
     }
+    if (lagReportingAgent.isPresent()) {
+      this.lagReportingResource = Optional.of(new LagReportingResource(lagReportingAgent.get()));
+    } else {
+      this.lagReportingResource = Optional.empty();
+    }
 
     sanityCheckPluginConfig(ksqlConfig.originals());
   }
@@ -372,7 +378,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       config.register(clusterStatusResource.get());
     }
     if (lagReportingAgent.isPresent()) {
-      config.register(new LagReportingResource(lagReportingAgent.get()));
+      config.register(lagReportingResource.get());
     }
     config.register(new KsqlExceptionMapper());
     config.register(new ServerStateDynamicBinding(serverState));
@@ -425,7 +431,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         serverInfoResource,
         heartbeatResource,
         clusterStatusResource,
-        statusResource
+        statusResource,
+        lagReportingResource
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,

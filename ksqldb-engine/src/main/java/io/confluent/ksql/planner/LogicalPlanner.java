@@ -564,34 +564,25 @@ public class LogicalPlanner {
     final SqlType keyType;
 
     if (groupByExps.size() != 1) {
-      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-        keyName = groupBy.getAlias()
-            .orElseGet(keyColNameGen::nextKsqlColAlias);
-      } else {
-        keyName = SchemaUtil.ROWKEY_NAME;
-      }
       keyType = SqlTypes.STRING;
+      keyName = groupBy.getAlias()
+          .orElseGet(keyColNameGen::nextKsqlColAlias);
+
     } else {
       final Expression expression = groupByExps.get(0);
-
-      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-        if (groupBy.getAlias().isPresent()) {
-          keyName = groupBy.getAlias().get();
-        } else if (expression instanceof ColumnReferenceExp) {
-          keyName = ((ColumnReferenceExp) expression).getColumnName();
-        } else {
-          keyName = keyColNameGen.uniqueAliasFor(expression);
-        }
-      } else {
-        keyName = exactlyMatchesKeyColumns(expression, sourceSchema)
-            ? ((ColumnReferenceExp) expression).getColumnName()
-            : SchemaUtil.ROWKEY_NAME;
-      }
 
       final ExpressionTypeManager typeManager =
           new ExpressionTypeManager(sourceSchema, functionRegistry);
 
       keyType = typeManager.getExpressionSqlType(expression);
+
+      if (groupBy.getAlias().isPresent()) {
+        keyName = groupBy.getAlias().get();
+      } else if (expression instanceof ColumnReferenceExp) {
+        keyName = ((ColumnReferenceExp) expression).getColumnName();
+      } else {
+        keyName = keyColNameGen.uniqueAliasFor(expression);
+      }
     }
 
     return LogicalSchema.builder()
@@ -606,20 +597,6 @@ public class LogicalPlanner {
       final PartitionBy partitionBy
   ) {
     final LogicalSchema sourceSchema = sourceNode.getSchema();
-
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-      final ExpressionTypeManager expressionTypeManager =
-          new ExpressionTypeManager(sourceSchema, functionRegistry);
-
-      final SqlType keyType = expressionTypeManager
-          .getExpressionSqlType(partitionBy.getExpression());
-
-      return LogicalSchema.builder()
-          .withRowTime()
-          .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
-          .valueColumns(sourceSchema.value())
-          .build();
-    }
 
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,

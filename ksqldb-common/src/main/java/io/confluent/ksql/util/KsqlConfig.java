@@ -267,8 +267,6 @@ public class KsqlConfig extends AbstractConfig {
       + "behavior, and instead throw an exception to ensure that no data is missed, set "
       + "ksql.timestamp.skip.invalid to true.";
 
-  public static final String KSQL_ANY_KEY_NAME_ENABLED = "ksql.any.key.name.enabled";
-
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -622,13 +620,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_TIMESTAMP_THROW_ON_INVALID_DEFAULT,
             Importance.MEDIUM,
             KSQL_TIMESTAMP_THROW_ON_INVALID_DOC
-        )
-        .define(
-            KSQL_ANY_KEY_NAME_ENABLED,
-            Type.BOOLEAN,
-            false,
-            Importance.LOW,
-            "Feature flag for removing restriction on key names - WIP, do not enable."
         )
         .define(
             KSQL_QUERY_PULL_METRICS_ENABLED,

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.util.Version;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -61,6 +62,7 @@ public class CommandTest {
     grep(serialized, ".*\"streamsProperties\" *: *\\{ *\"foo\" *: *\"bar\" *\\}.*");
     grep(serialized, ".*\"statement\" *: *\"test statement;\".*");
     grep(serialized, ".*\"originalProperties\" *: *\\{ *\"biz\" *: *\"baz\" *\\}.*");
+    grep(serialized, ".*\"version\" *: *\"" + Version.getVersion() + "\".*");
     final Command deserialized = mapper.readValue(serialized, Command.class);
     assertThat(deserialized, equalTo(command));
   }

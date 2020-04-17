@@ -166,6 +166,12 @@ public class QueryStreamRunner extends BasePerfRunner {
       return null;
     }
 
+    @Override
+    public CompletableFuture<EndpointResponse> executeCheckHealth(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
     synchronized void closePublishers() {
       for (QueryStreamPublisher publisher : publishers) {
         publisher.close();

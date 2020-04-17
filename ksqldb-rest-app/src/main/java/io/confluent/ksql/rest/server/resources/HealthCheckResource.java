@@ -20,7 +20,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
@@ -32,14 +31,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-@Path("/healthcheck")
-@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class HealthCheckResource {
 
   private static final Boolean KEY = Boolean.TRUE;
@@ -56,7 +49,6 @@ public class HealthCheckResource {
     this.responseCache = createResponseCache(healthCheckAgent, healthCheckInterval);
   }
 
-  @GET
   public Response checkHealth() {
     return Response.ok(getResponse()).build();
   }

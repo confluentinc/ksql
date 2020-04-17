@@ -15,21 +15,15 @@
 
 package io.confluent.ksql.rest.server.filters;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.rest.Errors;
-import io.confluent.ksql.rest.server.resources.HealthCheckResource;
-import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
-import java.lang.reflect.Method;
 import java.security.Principal;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.Priority;
-import javax.ws.rs.Path;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,13 +31,12 @@ import org.slf4j.LoggerFactory;
  * Authorization filter for REST endpoints.
  */
 @Priority(Priorities.AUTHORIZATION)
-public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
+public class KsqlAuthorizationFilter implements ContainerRequestFilter {
+
   private static final Logger log = LoggerFactory.getLogger(KsqlAuthorizationFilter.class);
 
-  private static final Set<String> PATHS_WITHOUT_AUTHORIZATION = getPathsFrom(
-      ServerMetadataResource.class,
-      HealthCheckResource.class
-  );
+  private static final Set<String> PATHS_WITHOUT_AUTHORIZATION = ImmutableSet.of("/v1/metadata",
+      "/v1/metadata/id", "/healthcheck");
 
   private final KsqlAuthorizationProvider authorizationProvider;
 
@@ -78,23 +71,4 @@ public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
     return !PATHS_WITHOUT_AUTHORIZATION.contains(path);
   }
 
-  private static Set<String> getPathsFrom(final Class<?> ...resourceClass) {
-
-    final Set<String> paths = new HashSet<>();
-    for (final Class<?> clazz : resourceClass) {
-      final String mainPath = StringUtils.stripEnd(
-          clazz.getAnnotation(Path.class).value(), "/"
-      );
-
-      paths.add(mainPath);
-      for (final Method m : clazz.getMethods()) {
-        if (m.isAnnotationPresent(Path.class)) {
-          paths.add(mainPath + "/"
-              + StringUtils.strip(m.getAnnotation(Path.class).value(), "/"));
-        }
-      }
-    }
-
-    return Collections.unmodifiableSet(paths);
-  }
 }

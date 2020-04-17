@@ -116,6 +116,14 @@ public final class KsqlRestClient implements Closeable {
     return target().getServerInfo();
   }
 
+  public RestResponse<CommandStatus> getStatus(final String commandId) {
+    return target().getStatus(commandId);
+  }
+
+  public RestResponse<CommandStatuses> getAllStatuses() {
+    return target().getStatuses();
+  }
+
   public RestResponse<HealthCheckResponse> getServerHealth() {
     return target().getServerHealth();
   }

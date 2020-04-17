@@ -80,4 +80,9 @@ public interface Endpoints {
 
   CompletableFuture<EndpointResponse> executeClusterStatus(ApiSecurityContext apiSecurityContext);
 
+  CompletableFuture<EndpointResponse> executeStatus(String type, String entity, String action,
+      ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeAllStatuses(ApiSecurityContext apiSecurityContext);
+
 }

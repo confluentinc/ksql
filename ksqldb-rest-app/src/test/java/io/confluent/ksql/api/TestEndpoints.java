@@ -138,6 +138,18 @@ public class TestEndpoints implements Endpoints {
     return null;
   }
 
+  @Override
+  public CompletableFuture<EndpointResponse> executeStatus(String type, String entity,
+      String action, ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeAllStatuses(
+      ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
   public synchronized void setRowGeneratorFactory(
       final Supplier<RowGenerator> rowGeneratorFactory) {
     this.rowGeneratorFactory = rowGeneratorFactory;

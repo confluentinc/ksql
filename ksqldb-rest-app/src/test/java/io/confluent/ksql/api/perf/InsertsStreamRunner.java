@@ -206,6 +206,18 @@ public class InsertsStreamRunner extends BasePerfRunner {
         ApiSecurityContext apiSecurityContext) {
       return null;
     }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeStatus(String type, String entity,
+        String action, ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeAllStatuses(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
   }
 
   private class InsertsSubscriber extends BaseSubscriber<JsonObject> implements

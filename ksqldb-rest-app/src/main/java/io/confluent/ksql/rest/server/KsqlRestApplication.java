@@ -424,7 +424,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         streamedQueryResource,
         serverInfoResource,
         heartbeatResource,
-        clusterStatusResource
+        clusterStatusResource,
+        statusResource
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,

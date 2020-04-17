@@ -96,7 +96,7 @@ public class JoinIntTest {
       throws Exception {
 
     final String queryString = String.format(
-            "CREATE STREAM %s AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN"
+            "CREATE STREAM %s AS SELECT ORDERID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN"
             + " %s on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1' ;",
             testStreamName,
             orderStreamName,
@@ -116,7 +116,7 @@ public class JoinIntTest {
     );
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
-        genericRow("ORDER_1", "ITEM_1", 10.0, "home cinema")
+        genericRow("ORDER_1", 10.0, "home cinema")
     );
 
     final Map<String, GenericRow> results = new HashMap<>();
@@ -149,7 +149,7 @@ public class JoinIntTest {
     final String testStreamName = "OrderedWithDescription".toUpperCase();
 
     final String csasQueryString = String.format(
-        "CREATE STREAM %s AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN "
+        "CREATE STREAM %s AS SELECT ORDERID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN "
         + "%s " +
         " on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'Hello' ;",
         testStreamName,
@@ -161,7 +161,7 @@ public class JoinIntTest {
     );
 
     final String insertQueryString = String.format(
-        "INSERT INTO %s SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN "
+        "INSERT INTO %s SELECT ORDERID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN "
         + "%s " +
         " on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1' ;",
         testStreamName,
@@ -185,7 +185,7 @@ public class JoinIntTest {
 
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
-        genericRow("ORDER_1", "ITEM_1", 10.0, "home cinema")
+        genericRow("ORDER_1", 10.0, "home cinema")
     );
 
     final Map<String, GenericRow> results = new HashMap<>();
@@ -235,7 +235,7 @@ public class JoinIntTest {
   @Test
   public void shouldUseTimeStampFieldFromStream() throws Exception {
     final String queryString = String.format(
-        "CREATE STREAM JOINED AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN"
+        "CREATE STREAM JOINED AS SELECT ORDERID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN"
             + " %s on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1';"
             + "CREATE STREAM OUTPUT AS SELECT ORDERID, DESCRIPTION, ROWTIME AS RT FROM JOINED;",
         ORDER_STREAM_NAME_AVRO,

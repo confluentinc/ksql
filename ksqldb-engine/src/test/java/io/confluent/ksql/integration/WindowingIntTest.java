@@ -128,7 +128,7 @@ public class WindowingIntTest {
     // Given:
     givenTable("CREATE TABLE %s AS "
         + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(KEYVALUEMAP['key2']/2) "
-        + "FROM " + ORDERS_STREAM + " WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
+        + "FROM " + ORDERS_STREAM + " WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID AS ROWKEY;");
 
     final Map<String, GenericRow> expected = ImmutableMap.of(
         "ITEM_1",
@@ -145,13 +145,13 @@ public class WindowingIntTest {
   public void shouldAggregateTumblingWindow() {
     // Given:
     givenTable("CREATE TABLE %s AS "
-        + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*) "
+        + "SELECT COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*) "
         + "FROM " + ORDERS_STREAM + " WINDOW TUMBLING (SIZE 10 SECONDS) "
         + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
         new Windowed<>("ITEM_1", new TimeWindow(tenSecWindowStartMs, Long.MAX_VALUE)),
-        genericRow("ITEM_1", 2L, 20.0, 100.0)
+        genericRow(2L, 20.0, 100.0)
     );
 
     // Then:
@@ -165,7 +165,7 @@ public class WindowingIntTest {
     givenTable("CREATE TABLE %s AS "
         + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10) "
         + "FROM " + ORDERS_STREAM + " WINDOW HOPPING (SIZE 10 SECONDS, ADVANCE BY 5 SECONDS) "
-        + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
+        + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID AS ROWKEY;");
 
     final long firstWindowStart = tenSecWindowStartMs;
     final long secondWindowStart = firstWindowStart + TimeUnit.SECONDS.toMillis(5);
@@ -188,7 +188,7 @@ public class WindowingIntTest {
     givenTable("CREATE TABLE %s AS "
         + "SELECT ORDERID, COUNT(*), SUM(ORDERUNITS) "
         + "FROM " + ORDERS_STREAM + " WINDOW SESSION (10 SECONDS) "
-        + "GROUP BY ORDERID;");
+        + "GROUP BY ORDERID AS ROWKEY;");
 
     final long sessionEnd = batch0SentMs + batch1Delay;
 
@@ -228,7 +228,8 @@ public class WindowingIntTest {
       final Map<K, GenericRow> expected,
       final Matcher<? super Map<K, GenericRow>> tableRowMatcher
   ) {
-    final Deserializer keyDeserializer = getKeyDeserializerFor(expected.keySet().iterator().next());
+    final Deserializer<K> keyDeserializer =
+        (Deserializer<K>) getKeyDeserializerFor(expected.keySet().iterator().next());
 
     TEST_HARNESS.verifyAvailableRows(
         streamName, hasUniqueRecords(tableRowMatcher), JSON, resultSchema, keyDeserializer,

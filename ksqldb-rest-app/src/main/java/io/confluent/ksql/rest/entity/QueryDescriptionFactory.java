@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.entity;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -41,7 +40,6 @@ public final class QueryDescriptionFactory {
     if (queryMetadata instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) queryMetadata;
       return create(
-          persistentQuery.getQueryId(),
           persistentQuery,
           persistentQuery.getResultTopic().getKeyFormat().getWindowType(),
           ImmutableSet.of(persistentQuery.getSinkName()),
@@ -50,23 +48,21 @@ public final class QueryDescriptionFactory {
     }
 
     return create(
-        new QueryId(""),
         queryMetadata,
         Optional.empty(),
         Collections.emptySet(),
-        Collections.emptyMap()
+        ksqlHostQueryStatus
     );
   }
 
   private static QueryDescription create(
-      final QueryId id,
       final QueryMetadata queryMetadata,
       final Optional<WindowType> windowType,
       final Set<SourceName> sinks,
       final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus
   ) {
     return new QueryDescription(
-        id,
+        queryMetadata.getQueryId(),
         queryMetadata.getStatementString(),
         windowType,
         EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema()),
@@ -75,7 +71,8 @@ public final class QueryDescriptionFactory {
         queryMetadata.getTopologyDescription(),
         queryMetadata.getExecutionPlan(),
         queryMetadata.getOverriddenProperties(),
-        ksqlHostQueryStatus
+        ksqlHostQueryStatus,
+        queryMetadata.getQueryType()
     );
   }
 }

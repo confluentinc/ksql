@@ -472,6 +472,6 @@ public class ListQueriesExecutorTest {
         ImmutableSet.of(md.getSinkName().text()),
         ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
         md.getQueryId(),
-        queryStatusCount);
+        queryStatusCount, KsqlConstants.KsqlQueryType.PUSH);
   }
 }

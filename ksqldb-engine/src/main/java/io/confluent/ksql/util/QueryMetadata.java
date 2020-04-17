@@ -19,7 +19,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.time.Duration;
 import java.util.Collection;
@@ -51,6 +53,7 @@ public abstract class QueryMetadata {
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
   private final Long closeTimeout;
+  private final QueryId queryId;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
@@ -67,7 +70,8 @@ public abstract class QueryMetadata {
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
-      final long closeTimeout
+      final long closeTimeout,
+      final QueryId queryId
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -85,6 +89,7 @@ public abstract class QueryMetadata {
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
     this.closeTimeout = closeTimeout;
+    this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
@@ -99,6 +104,7 @@ public abstract class QueryMetadata {
     this.logicalSchema = other.logicalSchema;
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
     this.closeTimeout = other.closeTimeout;
+    this.queryId = other.queryId;
   }
 
   public void registerQueryStateListener(final QueryStateListener queryStateListener) {
@@ -168,6 +174,13 @@ public abstract class QueryMetadata {
     return everStarted;
   }
 
+  public QueryId getQueryId() {
+    return queryId;
+  }
+
+  public KsqlQueryType getQueryType() {
+    return KsqlQueryType.PUSH;
+  }
 
   /**
    * Stops the query without cleaning up the external resources

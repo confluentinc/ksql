@@ -100,7 +100,7 @@ public final class ListQueriesExecutor {
   private static Map<QueryId, RunningQuery> getLocalSimple(
       final KsqlExecutionContext executionContext
   ) {
-    return executionContext
+    final Map<QueryId, RunningQuery> persistentQueries =  executionContext
         .getPersistentQueries()
         .stream()
         .collect(Collectors.toMap(
@@ -111,8 +111,10 @@ public final class ListQueriesExecutor {
                 ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
                 q.getQueryId(),
                 QueryStatusCount.fromStreamsStateCounts(
-                    Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)))
+                    Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)),
+                q.getQueryType())
         ));
+    return persistentQueries;
   }
 
   private static void mergeSimple(

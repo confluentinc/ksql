@@ -30,6 +30,12 @@ Query Status
 * `ERROR`: the query has entered an error state.
 * `UNRESPONSIVE`: the host running the query returned an error when requesting the query status.
 
+Query Type
+-----------
+
+* `Push`: these queries run on every single node in the cluster.
+* `Transient`: these queries run on a single node.
+
 Example
 -------
 

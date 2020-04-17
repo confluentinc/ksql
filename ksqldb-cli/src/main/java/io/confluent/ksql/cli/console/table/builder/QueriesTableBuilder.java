@@ -25,13 +25,20 @@ import java.util.stream.Stream;
 public class QueriesTableBuilder implements TableBuilder<Queries> {
 
   private static final List<String> HEADERS =
-      ImmutableList.of("Query ID", "Status", "Sink Name", "Sink Kafka Topic", "Query String");
+      ImmutableList.of(
+          "Query ID",
+          "Query Type",
+          "Status",
+          "Sink Name",
+          "Sink Kafka Topic",
+          "Query String");
 
   @Override
   public Table buildTable(final Queries entity) {
     final Stream<List<String>> rows = entity.getQueries().stream()
         .map(r -> ImmutableList.of(
             r.getId().toString(),
+            r.getQueryType().toString(),
             r.getStatusCount().toString(),
             String.join(",", r.getSinks()),
             String.join(",", r.getSinkKafkaTopics()),

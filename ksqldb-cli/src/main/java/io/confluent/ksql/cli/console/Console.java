@@ -661,6 +661,7 @@ public class Console implements Closeable {
 
   private void printQueryDescription(final QueryDescription query) {
     writer().println(String.format("%-20s : %s", "ID", query.getId()));
+    writer().println(String.format("%-20s : %s", "Query Type", query.getQueryType()));
     if (query.getStatementText().length() > 0) {
       writer().println(String.format("%-20s : %s", "SQL", query.getStatementText()));
     }

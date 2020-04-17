@@ -76,6 +76,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
@@ -311,7 +312,7 @@ public class ConsoleTest {
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), queryStatusCount));
+            "select * from t1 emit changes", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), queryStatusCount, KsqlConstants.KsqlQueryType.TRANSIENT));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -327,7 +328,7 @@ public class ConsoleTest {
           + "  \"@type\" : \"queries\"," + NEWLINE
           + "  \"statementText\" : \"e\"," + NEWLINE
           + "  \"queries\" : [ {" + NEWLINE
-          + "    \"queryString\" : \"select * from t1\"," + NEWLINE
+          + "    \"queryString\" : \"select * from t1 emit changes\"," + NEWLINE
           + "    \"sinks\" : [ \"Test\" ]," + NEWLINE
           + "    \"sinkKafkaTopics\" : [ \"Test topic\" ]," + NEWLINE
           + "    \"id\" : \"0\"," + NEWLINE
@@ -335,16 +336,17 @@ public class ConsoleTest {
           + "      \"RUNNING\" : 1," + NEWLINE
           + "      \"ERROR\" : 2" + NEWLINE
           + "    }," + NEWLINE
+          + "    \"queryType\" : \"TRANSIENT\"," + NEWLINE
           + "    \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
     } else {
       assertThat(output, is("" + NEWLINE
-          + " Query ID | Status            | Sink Name | Sink Kafka Topic | Query String     " + NEWLINE
-          + "--------------------------------------------------------------------------------" + NEWLINE
-          + " 0        | " + STATUS_COUNT_STRING + " | Test      | Test topic       | select * from t1 " + NEWLINE
-          + "--------------------------------------------------------------------------------" + NEWLINE
+          + " Query ID | Query Type | Status            | Sink Name | Sink Kafka Topic | Query String                  " + NEWLINE
+          + "----------------------------------------------------------------------------------------------------" + NEWLINE
+          + " 0        | TRANSIENT  | " + STATUS_COUNT_STRING + " | Test      | Test topic       | select * from t1 emit changes " + NEWLINE
+          + "----------------------------------------------------------------------------------------------------" + NEWLINE
           + "For detailed information on a Query run: EXPLAIN <Query ID>;" + NEWLINE));
     }
   }
@@ -366,10 +368,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount)
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PUSH)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount)
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PUSH)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -419,6 +421,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
+          + "      \"queryType\" : \"PUSH\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
@@ -430,6 +433,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
+          + "      \"queryType\" : \"PUSH\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
@@ -1034,10 +1038,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount)
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PUSH)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount)
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PUSH)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -1086,6 +1090,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
+          + "      \"queryType\" : \"PUSH\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
@@ -1097,6 +1102,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
+          + "      \"queryType\" : \"PUSH\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE

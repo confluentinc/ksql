@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,6 +47,7 @@ public class QueryDescription {
   private final String executionPlan;
   private final Map<String, Object> overriddenProperties;
   private final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus;
+  private final KsqlQueryType queryType;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
@@ -61,7 +63,8 @@ public class QueryDescription {
       @JsonProperty("executionPlan") final String executionPlan,
       @JsonProperty("overriddenProperties") final Map<String, Object> overriddenProperties,
       @JsonProperty("ksqlHostQueryStatus") final Map<KsqlHostInfoEntity, KsqlQueryStatus>
-          ksqlHostQueryStatus
+          ksqlHostQueryStatus,
+      @JsonProperty("queryType") final KsqlQueryType queryType
   ) {
     this.id = Objects.requireNonNull(id, "id");
     this.statementText = Objects.requireNonNull(statementText, "statementText");
@@ -75,6 +78,7 @@ public class QueryDescription {
         .requireNonNull(overriddenProperties, "overriddenProperties"));
     this.ksqlHostQueryStatus =
         new HashMap<>(Objects.requireNonNull(ksqlHostQueryStatus, "ksqlHostQueryStatus"));
+    this.queryType = Objects.requireNonNull(queryType, "queryType");
   }
 
   public QueryId getId() {
@@ -135,6 +139,10 @@ public class QueryDescription {
     return Collections.unmodifiableMap(ksqlHostQueryStatus);
   }
 
+  public KsqlQueryType getQueryType() {
+    return queryType;
+  }
+
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public boolean equals(final Object o) {
@@ -155,7 +163,8 @@ public class QueryDescription {
         && Objects.equals(sources, that.sources)
         && Objects.equals(sinks, that.sinks)
         && Objects.equals(overriddenProperties, that.overriddenProperties)
-        && Objects.equals(ksqlHostQueryStatus, that.ksqlHostQueryStatus);
+        && Objects.equals(ksqlHostQueryStatus, that.ksqlHostQueryStatus)
+        && Objects.equals(queryType, that.queryType);
   }
 
   @Override
@@ -170,7 +179,8 @@ public class QueryDescription {
         sources,
         sinks,
         overriddenProperties,
-        ksqlHostQueryStatus
+        ksqlHostQueryStatus,
+        queryType
     );
   }
 }

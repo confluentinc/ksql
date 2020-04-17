@@ -78,4 +78,6 @@ public interface Endpoints {
   CompletableFuture<EndpointResponse> executeHeartbeat(HeartbeatMessage heartbeatMessage,
       ApiSecurityContext apiSecurityContext);
 
+  CompletableFuture<EndpointResponse> executeClusterStatus(ApiSecurityContext apiSecurityContext);
+
 }

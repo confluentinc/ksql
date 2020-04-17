@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
@@ -59,6 +60,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final OldQueryEndpoint streamedQueryEndpoint;
   private final ServerInfoResource serverInfoResource;
   private final Optional<HeartbeatResource> heartbeatResource;
+  private final Optional<ClusterStatusResource> clusterStatusResource;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
@@ -68,7 +70,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final KsqlResource ksqlResource,
       final StreamedQueryResource streamedQueryResource,
       final ServerInfoResource serverInfoResource,
-      final Optional<HeartbeatResource> heartbeatResource) {
+      final Optional<HeartbeatResource> heartbeatResource,
+      final Optional<ClusterStatusResource> clusterStatusResource) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor);
@@ -78,7 +81,8 @@ public class KsqlServerEndpoints implements Endpoints {
     this.terminateEndpoint = new TerminateEndpoint(ksqlResource);
     this.streamedQueryEndpoint = new OldQueryEndpoint(streamedQueryResource);
     this.serverInfoResource = Objects.requireNonNull(serverInfoResource);
-    this.heartbeatResource = heartbeatResource;
+    this.heartbeatResource = Objects.requireNonNull(heartbeatResource);
+    this.clusterStatusResource = Objects.requireNonNull(clusterStatusResource);
   }
 
   @Override
@@ -156,6 +160,16 @@ public class KsqlServerEndpoints implements Endpoints {
     return heartbeatResource.map(resource -> CompletableFuture
         .completedFuture(
             EndpointResponse.create(resource.registerHeartbeat(heartbeatMessage))))
+        .orElseGet(() -> CompletableFuture
+            .completedFuture(EndpointResponse.create(HttpStatus.SC_NOT_FOUND, "Not found", null)));
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeClusterStatus(
+      final ApiSecurityContext apiSecurityContext) {
+    return clusterStatusResource.map(resource -> CompletableFuture
+        .completedFuture(
+            EndpointResponse.create(resource.checkClusterStatus())))
         .orElseGet(() -> CompletableFuture
             .completedFuture(EndpointResponse.create(HttpStatus.SC_NOT_FOUND, "Not found", null)));
   }

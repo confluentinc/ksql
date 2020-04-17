@@ -25,7 +25,6 @@ import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.TopicPartitionEntity;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.LagReportingAgent;
 import io.confluent.ksql.util.HostStatus;
@@ -36,10 +35,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
@@ -50,8 +45,6 @@ import org.apache.kafka.streams.state.StreamsMetadata;
  * status such as whether it is alive or dead and the last time its status got updated.
  */
 
-@Path("/clusterStatus")
-@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class ClusterStatusResource {
 
   private final KsqlEngine engine;
@@ -69,7 +62,6 @@ public class ClusterStatusResource {
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
   }
 
-  @GET
   public Response checkClusterStatus() {
     final ClusterStatusResponse response = getResponse();
     return Response.ok(response).build();

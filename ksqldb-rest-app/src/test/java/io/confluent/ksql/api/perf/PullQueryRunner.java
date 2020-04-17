@@ -158,6 +158,12 @@ public class PullQueryRunner extends BasePerfRunner {
       return null;
     }
 
+    @Override
+    public CompletableFuture<EndpointResponse> executeClusterStatus(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
     synchronized void closePublishers() {
       for (PullQueryPublisher publisher : publishers) {
         publisher.close();

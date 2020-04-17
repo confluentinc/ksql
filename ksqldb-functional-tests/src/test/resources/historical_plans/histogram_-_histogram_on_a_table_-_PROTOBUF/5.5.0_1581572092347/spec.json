@@ -1,171 +1,187 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572092347,
+  "path" : "query-validation-tests/histogram.json",
   "schemas" : {
     "CTAS_COUNT_BY_REGION_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, REGION VARCHAR> NOT NULL",
     "CTAS_COUNT_BY_REGION_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 VARCHAR> NOT NULL",
     "CTAS_COUNT_BY_REGION_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_AGG_VARIABLE_0 MAP<VARCHAR, BIGINT>> NOT NULL",
     "CTAS_COUNT_BY_REGION_0.COUNT_BY_REGION" : "STRUCT<REGION VARCHAR, COUNTS MAP<VARCHAR, BIGINT>> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "0",
-    "value" : {
-      "ID" : 0,
-      "NAME" : "alice",
-      "REGION" : "east"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : {
-      "ID" : 1,
-      "NAME" : "bob",
-      "REGION" : "east"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : {
-      "ID" : 2,
-      "NAME" : "carol",
-      "REGION" : "west"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "3",
-    "value" : {
-      "ID" : 3,
-      "NAME" : "dave",
-      "REGION" : "west"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : {
-      "ID" : 1,
-      "NAME" : "bob",
-      "REGION" : "west"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : null
-  } ],
-  "outputs" : [ {
-    "topic" : "COUNT_BY_REGION",
-    "key" : "east",
-    "value" : {
-      "REGION" : "east",
-      "COUNTS" : {
-        "alice" : 1
+  "testCase" : {
+    "name" : "histogram on a table - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "ID" : 0,
+        "NAME" : "alice",
+        "REGION" : "east"
       }
-    }
-  }, {
-    "topic" : "COUNT_BY_REGION",
-    "key" : "east",
-    "value" : {
-      "REGION" : "east",
-      "COUNTS" : {
-        "alice" : 1,
-        "bob" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 1,
+        "NAME" : "bob",
+        "REGION" : "east"
       }
-    }
-  }, {
-    "topic" : "COUNT_BY_REGION",
-    "key" : "west",
-    "value" : {
-      "REGION" : "west",
-      "COUNTS" : {
-        "carol" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "ID" : 2,
+        "NAME" : "carol",
+        "REGION" : "west"
       }
-    }
-  }, {
-    "topic" : "COUNT_BY_REGION",
-    "key" : "west",
-    "value" : {
-      "REGION" : "west",
-      "COUNTS" : {
-        "carol" : 1,
-        "dave" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "ID" : 3,
+        "NAME" : "dave",
+        "REGION" : "west"
       }
-    }
-  }, {
-    "topic" : "COUNT_BY_REGION",
-    "key" : "east",
-    "value" : {
-      "REGION" : "east",
-      "COUNTS" : {
-        "alice" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 1,
+        "NAME" : "bob",
+        "REGION" : "west"
       }
-    }
-  }, {
-    "topic" : "COUNT_BY_REGION",
-    "key" : "west",
-    "value" : {
-      "REGION" : "west",
-      "COUNTS" : {
-        "carol" : 1,
-        "dave" : 1,
-        "bob" : 1
-      }
-    }
-  }, {
-    "topic" : "COUNT_BY_REGION",
-    "key" : "west",
-    "value" : {
-      "REGION" : "west",
-      "COUNTS" : {
-        "carol" : 1,
-        "dave" : 1
-      }
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "COUNT_BY_REGION",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "east",
+      "value" : {
+        "REGION" : "east",
+        "COUNTS" : {
+          "alice" : 1
         }
-      }, {
-        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-GroupBy-repartition",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "east",
+      "value" : {
+        "REGION" : "east",
+        "COUNTS" : {
+          "alice" : 1,
+          "bob" : 1
         }
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "west",
+      "value" : {
+        "REGION" : "west",
+        "COUNTS" : {
+          "carol" : 1
+        }
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "west",
+      "value" : {
+        "REGION" : "west",
+        "COUNTS" : {
+          "carol" : 1,
+          "dave" : 1
+        }
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "east",
+      "value" : {
+        "REGION" : "east",
+        "COUNTS" : {
+          "alice" : 1
+        }
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "west",
+      "value" : {
+        "REGION" : "west",
+        "COUNTS" : {
+          "carol" : 1,
+          "dave" : 1,
+          "bob" : 1
+        }
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "west",
+      "value" : {
+        "REGION" : "west",
+        "COUNTS" : {
+          "carol" : 1,
+          "dave" : 1
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string NAME = 2;\n  string REGION = 3;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "COUNT_BY_REGION",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (ID BIGINT, NAME STRING, REGION STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='PROTOBUF');", "CREATE TABLE COUNT_BY_REGION AS SELECT\n  TEST.REGION REGION,\n  HISTOGRAM(TEST.NAME) COUNTS\nFROM TEST TEST\nGROUP BY TEST.REGION\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "COUNT_BY_REGION",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
           }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      } ]
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

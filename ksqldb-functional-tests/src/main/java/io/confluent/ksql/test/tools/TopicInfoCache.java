@@ -40,6 +40,7 @@ import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PlanSummary;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -157,23 +158,23 @@ public class TopicInfoCache {
       final PersistentQueryMetadata query
   ) {
     if (LEFT_INTERNAL.matcher(topicName).matches()) {
-      return getSchemaFromQuery("PROJECT", "PrependAliasLeft", query);
+      return getSchemaFromQuery(PlanSummary.PROJECT_STEP, "PrependAliasLeft", query);
     }
 
     if (RIGHT_INTERNAL.matcher(topicName).matches()) {
-      return getSchemaFromQuery("PROJECT", "PrependAliasRight", query);
+      return getSchemaFromQuery(PlanSummary.PROJECT_STEP, "PrependAliasRight", query);
     }
 
     if (topicName.endsWith("Aggregate-Aggregate-Materialize-changelog")) {
-      return getSchemaFromQuery("AGGREGATE", "Aggregate\\.Aggregate", query);
+      return getSchemaFromQuery(PlanSummary.AGGREGATE_STEP, "Aggregate\\.Aggregate", query);
     }
 
     if (topicName.endsWith("Aggregate-GroupBy-repartition")) {
-      return getSchemaFromQuery("GROUP_BY", "Aggregate\\.GroupBy", query);
+      return getSchemaFromQuery(PlanSummary.GROUP_BY_STEP, "Aggregate\\.GroupBy", query);
     }
 
     if (topicName.endsWith("Reduce-changelog")) {
-      return getSchemaFromQuery("SOURCE", "KsqlTopic\\.Source", query);
+      return getSchemaFromQuery(PlanSummary.SOURCE_STEP, "KsqlTopic\\.Source", query);
     }
 
     throw new UnsupportedOperationException("Unsupported internal topics type: " + topicName);

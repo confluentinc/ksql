@@ -1,216 +1,236 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585182007432,
+  "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F1 INT, F2 VARCHAR> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<F1 INT, F2 VARCHAR, ROWTIME BIGINT> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<F1 INT, F2 VARCHAR, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
     "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<F1 INT, F2 VARCHAR, KSQL_COL_0 BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : 1,
-    "value" : {
-      "F1" : 1,
-      "F2" : "a"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 2,
-    "value" : {
-      "F1" : 2,
-      "F2" : "b"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 1,
-    "value" : {
-      "F1" : 1,
-      "F2" : "b"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 2,
-    "value" : null
-  }, {
-    "topic" : "test_topic",
-    "key" : 1,
-    "value" : {
-      "F1" : 1,
-      "F2" : "a"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-    "key" : "a|+|1",
-    "value" : {
-      "F1" : 1,
-      "F2" : "a",
-      "ROWTIME" : 0,
-      "KSQL_AGG_VARIABLE_0" : 1
-    }
-  }, {
-    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-    "key" : "b|+|2",
-    "value" : {
-      "F1" : 2,
-      "F2" : "b",
-      "ROWTIME" : 0,
-      "KSQL_AGG_VARIABLE_0" : 1
-    }
-  }, {
-    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-    "key" : "a|+|1",
-    "value" : {
-      "F1" : 1,
-      "F2" : "a",
-      "ROWTIME" : 0,
-      "KSQL_AGG_VARIABLE_0" : 0
-    }
-  }, {
-    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-    "key" : "b|+|1",
-    "value" : {
-      "F1" : 1,
-      "F2" : "b",
-      "ROWTIME" : 0,
-      "KSQL_AGG_VARIABLE_0" : 1
-    }
-  }, {
-    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-    "key" : "b|+|2",
-    "value" : {
-      "F1" : 2,
-      "F2" : "b",
-      "ROWTIME" : 0,
-      "KSQL_AGG_VARIABLE_0" : 0
-    }
-  }, {
-    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-    "key" : "b|+|1",
-    "value" : {
-      "F1" : 1,
-      "F2" : "b",
-      "ROWTIME" : 0,
-      "KSQL_AGG_VARIABLE_0" : 0
-    }
-  }, {
-    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-    "key" : "a|+|1",
-    "value" : {
-      "F1" : 1,
-      "F2" : "a",
-      "ROWTIME" : 0,
-      "KSQL_AGG_VARIABLE_0" : 1
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "a|+|1",
-    "value" : {
-      "F1" : 1,
-      "F2" : "a",
-      "KSQL_COL_0" : 1
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "b|+|2",
-    "value" : {
-      "F1" : 2,
-      "F2" : "b",
-      "KSQL_COL_0" : 1
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "a|+|1",
-    "value" : {
-      "F1" : 1,
-      "F2" : "a",
-      "KSQL_COL_0" : 0
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "b|+|1",
-    "value" : {
-      "F1" : 1,
-      "F2" : "b",
-      "KSQL_COL_0" : 1
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "b|+|2",
-    "value" : {
-      "F1" : 2,
-      "F2" : "b",
-      "KSQL_COL_0" : 0
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "b|+|1",
-    "value" : {
-      "F1" : 1,
-      "F2" : "b",
-      "KSQL_COL_0" : 0
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "a|+|1",
-    "value" : {
-      "F1" : 1,
-      "F2" : "a",
-      "KSQL_COL_0" : 1
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "OUTPUT",
-      "type" : "table",
-      "schema" : "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_0 BIGINT"
+  "testCase" : {
+    "name" : "fields (table->table) - format - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "F1" : 1,
+        "F2" : "a"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "F1" : 2,
+        "F2" : "b"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "F1" : 1,
+        "F2" : "b"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : null
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "F1" : 1,
+        "F2" : "a"
+      }
     } ],
-    "topics" : {
-      "topics" : [ {
+    "outputs" : [ {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "a|+|1",
+      "value" : {
+        "F1" : 1,
+        "F2" : "a",
+        "ROWTIME" : 0,
+        "KSQL_AGG_VARIABLE_0" : 1
+      }
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "b|+|2",
+      "value" : {
+        "F1" : 2,
+        "F2" : "b",
+        "ROWTIME" : 0,
+        "KSQL_AGG_VARIABLE_0" : 1
+      }
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "a|+|1",
+      "value" : {
+        "F1" : 1,
+        "F2" : "a",
+        "ROWTIME" : 0,
+        "KSQL_AGG_VARIABLE_0" : 0
+      }
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "b|+|1",
+      "value" : {
+        "F1" : 1,
+        "F2" : "b",
+        "ROWTIME" : 0,
+        "KSQL_AGG_VARIABLE_0" : 1
+      }
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "b|+|2",
+      "value" : {
+        "F1" : 2,
+        "F2" : "b",
+        "ROWTIME" : 0,
+        "KSQL_AGG_VARIABLE_0" : 0
+      }
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "b|+|1",
+      "value" : {
+        "F1" : 1,
+        "F2" : "b",
+        "ROWTIME" : 0,
+        "KSQL_AGG_VARIABLE_0" : 0
+      }
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "a|+|1",
+      "value" : {
+        "F1" : 1,
+        "F2" : "a",
+        "ROWTIME" : 0,
+        "KSQL_AGG_VARIABLE_0" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a|+|1",
+      "value" : {
+        "F1" : 1,
+        "F2" : "a",
+        "KSQL_COL_0" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "b|+|2",
+      "value" : {
+        "F1" : 2,
+        "F2" : "b",
+        "KSQL_COL_0" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a|+|1",
+      "value" : {
+        "F1" : 1,
+        "F2" : "a",
+        "KSQL_COL_0" : 0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "b|+|1",
+      "value" : {
+        "F1" : 1,
+        "F2" : "b",
+        "KSQL_COL_0" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "b|+|2",
+      "value" : {
+        "F1" : 2,
+        "F2" : "b",
+        "KSQL_COL_0" : 0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "b|+|1",
+      "value" : {
+        "F1" : 1,
+        "F2" : "b",
+        "KSQL_COL_0" : 0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a|+|1",
+      "value" : {
+        "F1" : 1,
+        "F2" : "a",
+        "KSQL_COL_0" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 F1 = 1;\n  string F2 = 2;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (ROWKEY INTEGER KEY, F1 INTEGER, F2 STRING) WITH (KAFKA_TOPIC='test_topic', KEY='f1', VALUE_FORMAT='PROTOBUF');", "CREATE TABLE OUTPUT AS SELECT\n  TEST.F1 F1,\n  TEST.F2 F2,\n  COUNT(*) KSQL_COL_0\nFROM TEST TEST\nGROUP BY TEST.F2, TEST.F1\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
         "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
+        "type" : "table",
+        "schema" : "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_0 BIGINT"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
           }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        }
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      } ]
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

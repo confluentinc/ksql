@@ -1,67 +1,81 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572101905,
+  "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<S STRUCT<START VARCHAR, END VARCHAR>> NOT NULL",
     "CSAS_S1_0.S1" : "STRUCT<S__END VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "0",
-    "value" : {
-      "S" : {
-        "START" : "hello",
-        "END" : "foo"
+  "testCase" : {
+    "name" : "Project struct fields with reserved name",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "S" : {
+          "START" : "hello",
+          "END" : "foo"
+        }
       }
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "0",
-    "value" : {
-      "S" : {
-        "START" : "world",
-        "END" : "bar"
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "S" : {
+          "START" : "world",
+          "END" : "bar"
+        }
       }
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "S1",
-    "key" : "0",
-    "value" : {
-      "S__END" : "foo"
-    }
-  }, {
-    "topic" : "S1",
-    "key" : "0",
-    "value" : {
-      "S__END" : "bar"
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "S1",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : "0",
+      "value" : {
+        "S__END" : "foo"
+      }
+    }, {
+      "topic" : "S1",
+      "key" : "0",
+      "value" : {
+        "S__END" : "bar"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (S STRUCT<START STRING, `END` STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S1 AS SELECT TEST.S->`END` S__END\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

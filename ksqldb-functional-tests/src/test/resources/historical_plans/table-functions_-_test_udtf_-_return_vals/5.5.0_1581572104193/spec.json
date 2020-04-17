@@ -1,70 +1,84 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572104193,
+  "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 VARCHAR, F5 DECIMAL(20, 10), F6 STRUCT<A VARCHAR>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 INT, KSQL_COL_1 BIGINT, KSQL_COL_2 DOUBLE, KSQL_COL_3 BOOLEAN, KSQL_COL_4 VARCHAR, KSQL_COL_5 DECIMAL(30, 10), KSQL_COL_6 STRUCT<A VARCHAR>> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "0",
-    "value" : {
-      "F0" : 1,
-      "F1" : 2,
-      "F2" : 3.1,
-      "F3" : true,
-      "F4" : "foo",
-      "F5" : 123.456,
-      "F6" : {
-        "A" : "bar"
+  "testCase" : {
+    "name" : "test_udtf - return vals",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "F0" : 1,
+        "F1" : 2,
+        "F2" : 3.1,
+        "F3" : true,
+        "F4" : "foo",
+        "F5" : 123.456,
+        "F6" : {
+          "A" : "bar"
+        }
       }
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "KSQL_COL_0" : 1,
-      "KSQL_COL_1" : 2,
-      "KSQL_COL_2" : 3.1,
-      "KSQL_COL_3" : true,
-      "KSQL_COL_4" : "foo",
-      "KSQL_COL_5" : 123.456,
-      "KSQL_COL_6" : {
-        "A" : "bar"
-      }
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "OUTPUT",
-      "type" : "stream",
-      "schema" : "ROWKEY STRING KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT, KSQL_COL_2 DOUBLE, KSQL_COL_3 BOOLEAN, KSQL_COL_4 STRING, KSQL_COL_5 DECIMAL(30, 10), KSQL_COL_6 STRUCT<A VARCHAR>"
     } ],
-    "topics" : {
-      "topics" : [ {
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "KSQL_COL_0" : 1,
+        "KSQL_COL_1" : 2,
+        "KSQL_COL_2" : 3.1,
+        "KSQL_COL_3" : true,
+        "KSQL_COL_4" : "foo",
+        "KSQL_COL_5" : 123.456,
+        "KSQL_COL_6" : {
+          "A" : "bar"
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (F0 INTEGER, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING, F5 DECIMAL(20, 10), F6 STRUCT<A STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  TEST_UDTF(TEST.F0) KSQL_COL_0,\n  TEST_UDTF(TEST.F1) KSQL_COL_1,\n  TEST_UDTF(TEST.F2) KSQL_COL_2,\n  TEST_UDTF(TEST.F3) KSQL_COL_3,\n  TEST_UDTF(TEST.F4) KSQL_COL_4,\n  TEST_UDTF(TEST.F5) KSQL_COL_5,\n  TEST_UDTF(TEST.F6) KSQL_COL_6\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
         "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT, KSQL_COL_2 DOUBLE, KSQL_COL_3 BOOLEAN, KSQL_COL_4 STRING, KSQL_COL_5 DECIMAL(30, 10), KSQL_COL_6 STRUCT<A VARCHAR>"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

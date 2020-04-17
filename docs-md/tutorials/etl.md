@@ -9,7 +9,7 @@ A streaming ETL pipeline enables streaming events between arbitrary sources and 
 
 ![hard](../img/etl-hard.png){: class="centered-img"}
 
-One way you might do this is to capture the changelogs of upstream Postgres and MongoDB databases. The changelog can be stored in {{ site.ak }}, where a series of deployed programs transforms, aggregates, and joins the data together. The processed data can be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
+One way you might do this is to capture the changelogs of upstream Postgres and MongoDB databases using the [Debezium](https://debezium.io) {{ site.ak }} connectors. The changelog can be stored in {{ site.ak }}, where a series of deployed programs transforms, aggregates, and joins the data together. The processed data can be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
 
 Why ksqlDB?
 -----------
@@ -53,7 +53,7 @@ docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components
 
 ### Start the stack
 
-Next, set up and launch the services in the stack. But before you bring it up, you need to make a few changes to the way that Postgres launches so that it works well with Debezium.  Debezium has a dedicated [tutorial](https://debezium.io/documentation/reference/1.1/connectors/postgresql.html) on this if you're interested, but this guide covers just the essentials. To simplify some of this, you launch a Postgres Docker container [extended by Debezium](https://hub.docker.com/r/debezium/postgres) to handle some of the customization. Also, you must create an additional configuration file at `postgres/custom-config.conf` with the following content:
+Next, set up and launch the services in the stack. But before you bring it up, you need to make a few changes to the way that Postgres launches so that it works well with Debezium.  Debezium has dedicated [documentation](https://debezium.io/documentation/reference/1.1/connectors/postgresql.html) on this if you're interested, but this guide covers just the essentials. To simplify some of this, you launch a Postgres Docker container [extended by Debezium](https://hub.docker.com/r/debezium/postgres) to handle some of the customization. Also, you must create an additional configuration file at `postgres/custom-config.conf` with the following content:
 
 ```
 listen_addresses = '*'
@@ -192,7 +192,7 @@ services:
 
 There are a couple things to notice here. The Postgres image mounts the custom configuration file that you wrote. Postgres adds these configuration settings into its system-wide configuration. The environment variables you gave it also set up a blank database called `customers`, along with a user named `postgres-user` that can access it.
 
-The compose file also sets up MongoDB as a replica set named `my-replica-set`. Debezium requires that MongoDB runs in this configuration to pick up changes from its oplog. In this case, you're just running a single-node replica set.
+The compose file also sets up MongoDB as a replica set named `my-replica-set`. Debezium requires that MongoDB runs in this configuration to pick up changes from its oplog (see Debezium's [documentation](https://debezium.io/documentation/reference/1.1/connectors/mongodb.html) on MongoDB). In this case, you're just running a single-node replica set.
 
 Finally, note that the ksqlDB server image mounts the `confluent-hub-components` directory, too. The jar files that you downloaded need to be on the classpath of ksqlDB when the server starts up.
 
@@ -369,8 +369,6 @@ CREATE SOURCE CONNECTOR customers_reader WITH (
     'database.password' = 'postgres-pw',
     'database.dbname' = 'customers',
     'database.server.name' = 'customers',
-    'database.history.kafka.bootstrap.servers' = 'broker:9092',
-    'database.history.kafka.topic' = 'customers',
     'table.whitelist' = 'public.customers',
     'transforms' = 'unwrap',
     'transforms.unwrap.type' = 'io.debezium.transforms.ExtractNewRecordState',
@@ -391,8 +389,6 @@ CREATE SOURCE CONNECTOR logistics_reader WITH (
     'mongodb.authsource' = 'admin',
     'mongodb.user' = 'dbz-user',
     'mongodb.password' = 'dbz-pw',
-    'database.history.kafka.bootstrap.servers' = 'broker:9092',
-    'database.history.kafka.topic' = 'logistics',
     'collection.whitelist' = 'logistics.*',
     'transforms' = 'unwrap',
     'transforms.unwrap.type' = 'io.debezium.connector.mongodb.transforms.ExtractNewDocumentState',

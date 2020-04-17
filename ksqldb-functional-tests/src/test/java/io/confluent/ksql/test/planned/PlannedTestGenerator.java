@@ -39,6 +39,6 @@ public final class PlannedTestGenerator {
     if (PlannedTestUtils.isSamePlan(latest, current)) {
       return;
     }
-    TestCasePlanWriter.writeTestCasePlan(testCase, current);
+    TestCasePlanWriter.writeTestCasePlan(current);
   }
 }

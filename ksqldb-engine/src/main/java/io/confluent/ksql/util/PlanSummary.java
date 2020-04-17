@@ -58,33 +58,41 @@ import java.util.stream.Collectors;
  * description is returned in KSQL's HTTP API in response to EXPLAIN statements.
  */
 public class PlanSummary {
+
   private static final FormatOptions FORMAT_OPTIONS = FormatOptions.of(
       IdentifierUtil::needsQuotes
   );
+
+  public static final String AGGREGATE_STEP = "AGGREGATE";
+  public static final String PROJECT_STEP = "PROJECT";
+  public static final String GROUP_BY_STEP = "GROUP_BY";
+  public static final String SOURCE_STEP = "SOURCE";
+
+  @SuppressWarnings("rawtypes")
   private static final Map<Class<? extends ExecutionStep>, String> OP_NAME =
       new ImmutableMap.Builder<Class<? extends ExecutionStep>, String>()
-          .put(StreamAggregate.class, "AGGREGATE")
-          .put(StreamWindowedAggregate.class, "AGGREGATE")
+          .put(StreamAggregate.class, AGGREGATE_STEP)
+          .put(StreamWindowedAggregate.class, AGGREGATE_STEP)
           .put(StreamFilter.class, "FILTER")
           .put(StreamFlatMap.class, "FLAT_MAP")
-          .put(StreamGroupBy.class, "GROUP_BY")
-          .put(StreamGroupByKey.class, "GROUP_BY")
-          .put(StreamSelect.class, "PROJECT")
+          .put(StreamGroupBy.class, GROUP_BY_STEP)
+          .put(StreamGroupByKey.class, GROUP_BY_STEP)
+          .put(StreamSelect.class, PROJECT_STEP)
           .put(StreamSelectKeyV1.class, "REKEY")
           .put(StreamSelectKey.class, "REKEY")
           .put(StreamSink.class, "SINK")
-          .put(StreamSource.class, "SOURCE")
+          .put(StreamSource.class, SOURCE_STEP)
           .put(StreamStreamJoin.class, "JOIN")
           .put(StreamTableJoin.class, "JOIN")
-          .put(WindowedStreamSource.class, "SOURCE")
-          .put(TableAggregate.class, "AGGREGATE")
+          .put(WindowedStreamSource.class, SOURCE_STEP)
+          .put(TableAggregate.class, AGGREGATE_STEP)
           .put(TableFilter.class, "FILTER")
-          .put(TableGroupBy.class, "GROUP_BY")
-          .put(TableSelect.class, "PROJECT")
+          .put(TableGroupBy.class, GROUP_BY_STEP)
+          .put(TableSelect.class, PROJECT_STEP)
           .put(TableSink.class, "SINK")
           .put(TableTableJoin.class, "JOIN")
-          .put(TableSource.class, "SOURCE")
-          .put(WindowedTableSource.class, "SOURCE")
+          .put(TableSource.class, SOURCE_STEP)
+          .put(WindowedTableSource.class, SOURCE_STEP)
           .build();
 
   private final QueryId queryId;
@@ -111,15 +119,18 @@ public class PlanSummary {
 
   private StepSummary summarize(final ExecutionStep<?> step, final String indent) {
     final StringBuilder stringBuilder = new StringBuilder();
+
     final List<StepSummary> sourceSummaries = step.getSources().stream()
         .map(s -> summarize(s, indent + "\t"))
         .collect(Collectors.toList());
-    final LogicalSchema schema = getSchema(step, sourceSummaries);
+
     final String opName = OP_NAME.get(step.getClass());
     if (opName == null) {
       throw new UnsupportedOperationException("Unsupported step type: "
           + step.getClass() + ", please add a step type");
     }
+
+    final LogicalSchema schema = getSchema(step, sourceSummaries);
 
     stringBuilder.append(indent)
         .append(" > [ ")
@@ -128,6 +139,7 @@ public class PlanSummary {
         .append(" | Logger: ")
         .append(QueryLoggerUtil.queryLoggerName(queryId, step.getProperties().getQueryContext()))
         .append("\n");
+
     for (final StepSummary sourceSummary : sourceSummaries) {
       stringBuilder
           .append("\t")
@@ -139,15 +151,22 @@ public class PlanSummary {
 
   private LogicalSchema getSchema(
       final ExecutionStep<?> step,
-      final List<StepSummary> sourceSummaries) {
+      final List<StepSummary> sourceSummaries
+  ) {
     switch (sourceSummaries.size()) {
-      case 1: return schemaResolver.resolve(step, sourceSummaries.get(0).schema);
-      case 2: return schemaResolver.resolve(
-          step, sourceSummaries.get(0).schema, sourceSummaries.get(1).schema);
-      case 0: break;
-      default: throw new IllegalStateException();
+      case 1:
+        return schemaResolver.resolve(step, sourceSummaries.get(0).schema);
+      case 2:
+        return schemaResolver.resolve(
+            step,
+            sourceSummaries.get(0).schema,
+            sourceSummaries.get(1).schema
+        );
+      case 0:
+        return schemaResolver.resolve(step, ((SourceStep<?>) step).getSourceSchema());
+      default:
+        throw new IllegalStateException();
     }
-    return schemaResolver.resolve(step, ((SourceStep) step).getSourceSchema());
   }
 
   private static final class StepSummary {

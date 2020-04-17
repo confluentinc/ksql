@@ -16,21 +16,18 @@
 package io.confluent.ksql.function.udf.array;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.KsqlFunctionException;
 import java.util.List;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class GenerateSeriesTest {
 
   private final GenerateSeries rangeUdf = new GenerateSeries();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldComputePositiveIntRange() {
@@ -162,44 +159,80 @@ public class GenerateSeriesTest {
 
   @Test
   public void shouldThrowOnStepZeroInt() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GENERATE_SERIES step cannot be zero");
-    rangeUdf.generateSeriesInt(0, 10, 0);
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> rangeUdf.generateSeriesInt(0, 10, 0)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "GENERATE_SERIES step cannot be zero"));
   }
 
   @Test
   public void shouldThrowOnStepZeroLong() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GENERATE_SERIES step cannot be zero");
-    rangeUdf.generateSeriesLong(0L, 10L, 0);
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> rangeUdf.generateSeriesLong(0L, 10L, 0)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "GENERATE_SERIES step cannot be zero"));
   }
 
   @Test
   public void shouldThrowIfStepWrongSignInt1() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GENERATE_SERIES step has wrong sign");
-    rangeUdf.generateSeriesInt(0, 10, -1);
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> rangeUdf.generateSeriesInt(0, 10, -1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "GENERATE_SERIES step has wrong sign"));
   }
 
   @Test
   public void shouldThrowIfStepWrongSignInt2() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GENERATE_SERIES step has wrong sign");
-    rangeUdf.generateSeriesInt(9, 0, 1);
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> rangeUdf.generateSeriesInt(9, 0, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "GENERATE_SERIES step has wrong sign"));
   }
 
   @Test
   public void shouldThrowIfStepWrongSignLong1() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GENERATE_SERIES step has wrong sign");
-    rangeUdf.generateSeriesLong(0, 10, -1);
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> rangeUdf.generateSeriesLong(0, 10, -1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "GENERATE_SERIES step has wrong sign"));
   }
 
   @Test
   public void shouldThrowIfStepWrongSignLong2() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GENERATE_SERIES step has wrong sign");
-    rangeUdf.generateSeriesLong(9, 0, 1);
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> rangeUdf.generateSeriesLong(9, 0, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "GENERATE_SERIES step has wrong sign"));
   }
 
 }

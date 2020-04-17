@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.analyzer;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,18 +32,13 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PushQueryValidatorTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Analysis analysis;
@@ -65,12 +63,14 @@ public class PushQueryValidatorTest {
     // Given:
     when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Push queries don't support `EMIT FINAL`.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Push queries don't support `EMIT FINAL`."));
   }
 
   @Test
@@ -81,13 +81,14 @@ public class PushQueryValidatorTest {
     givenSourceTable();
     givenWindowedSource();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "KSQL does not support persistent queries on windowed tables.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("KSQL does not support persistent queries on windowed tables."));
   }
 
   @Test

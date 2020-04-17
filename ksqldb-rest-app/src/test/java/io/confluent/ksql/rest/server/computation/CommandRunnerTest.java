@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -45,9 +46,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -60,9 +59,6 @@ import org.mockito.stubbing.Answer;
 public class CommandRunnerTest {
   private static final long COMMAND_RUNNER_HEALTH_TIMEOUT = 1000;
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-  
   @Mock
   private InteractiveStatementExecutor statementExecutor;
   @Mock
@@ -205,11 +201,11 @@ public class CommandRunnerTest {
     givenQueuedCommands(queuedCommand1, queuedCommand2);
     doThrow(new RuntimeException()).when(statementExecutor).handleStatement(queuedCommand2);
 
-    // Expect:
-    expectedException.expect(RuntimeException.class);
-    
     // When:
-    commandRunner.fetchAndRunCommands();
+    assertThrows(
+        RuntimeException.class,
+        () -> commandRunner.fetchAndRunCommands()
+    );
   }
 
   @Test

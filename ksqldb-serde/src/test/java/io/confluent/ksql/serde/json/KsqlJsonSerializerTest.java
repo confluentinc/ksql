@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.serde.json;
 
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
@@ -52,9 +54,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -129,9 +129,6 @@ public class KsqlJsonSerializerTest {
       .field("address", ADDRESS_SCHEMA)
       .build();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Parameters
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][]{{false}, {true}});
@@ -197,13 +194,15 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldThrowIfNotStruct() {
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Invalid type for STRUCT: class java.lang.Integer")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, 10);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, 10)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Invalid type for STRUCT: class java.lang.Integer"))));
   }
 
   @Test
@@ -242,13 +241,15 @@ public class KsqlJsonSerializerTest {
     // Given:
     givenSerializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for BOOLEAN: class java.lang.Integer")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, 10);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, 10)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
+        "Invalid type for BOOLEAN: class java.lang.Integer"))));
   }
 
   @Test
@@ -268,13 +269,15 @@ public class KsqlJsonSerializerTest {
     // Given:
     givenSerializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for INT32: class java.lang.Boolean")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, true);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, true)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
+        "Invalid type for INT32: class java.lang.Boolean"))));
   }
 
   @Test
@@ -294,13 +297,15 @@ public class KsqlJsonSerializerTest {
     // Given:
     givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for INT64: class java.lang.Boolean")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, true);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, true)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
+        "Invalid type for INT64: class java.lang.Boolean"))));
   }
 
   @Test
@@ -332,13 +337,15 @@ public class KsqlJsonSerializerTest {
     // Given:
     givenSerializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for FLOAT64: class org.apache.kafka.connect.data.Struct")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA));
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA))
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
+        "Invalid type for FLOAT64: class org.apache.kafka.connect.data.Struct"))));
   }
 
   @Test
@@ -358,13 +365,15 @@ public class KsqlJsonSerializerTest {
     // Given:
     givenSerializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for STRING: class org.apache.kafka.connect.data.Struct")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA));
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA))
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
+        "Invalid type for STRING: class org.apache.kafka.connect.data.Struct"))));
   }
 
   @Test
@@ -390,13 +399,15 @@ public class KsqlJsonSerializerTest {
         .build()
     );
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for ARRAY: class java.lang.Boolean")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, true);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, true)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
+        "Invalid type for ARRAY: class java.lang.Boolean"))));
   }
 
   @Test
@@ -407,13 +418,15 @@ public class KsqlJsonSerializerTest {
         .build()
     );
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for BOOLEAN: class java.lang.String")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, ImmutableList.of("not boolean"));
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, ImmutableList.of("not boolean"))
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
+        "Invalid type for BOOLEAN: class java.lang.String"))));
   }
 
   @Test
@@ -443,13 +456,15 @@ public class KsqlJsonSerializerTest {
         .build()
     );
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for MAP: class java.lang.Boolean")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, true);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, true)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
+        "Invalid type for MAP: class java.lang.Boolean"))));
   }
 
   @Test
@@ -460,13 +475,15 @@ public class KsqlJsonSerializerTest {
         .build()
     );
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for STRING: class java.lang.Integer")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, ImmutableMap.of(1, 2));
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, ImmutableMap.of(1, 2))
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
+        "Invalid type for STRING: class java.lang.Integer"))));
   }
 
   @Test
@@ -477,13 +494,15 @@ public class KsqlJsonSerializerTest {
         .build()
     );
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(CoreMatchers.is(
-        "Invalid type for INT64: class java.lang.Boolean")));
-
     // When:
-    serializer.serialize(SOME_TOPIC, ImmutableMap.of("a", false));
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, ImmutableMap.of("a", false))
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
+        "Invalid type for INT64: class java.lang.Boolean"))));
   }
 
   @Test
@@ -500,18 +519,20 @@ public class KsqlJsonSerializerTest {
         true
     );
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Only MAPs with STRING keys are supported");
-
     // When:
-    new KsqlJsonSerdeFactory(false).createSerde(physicalSchema, config, () -> null);
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new KsqlJsonSerdeFactory(false).createSerde(physicalSchema, config, () -> null)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Only MAPs with STRING keys are supported"));
   }
 
   @Test
   public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
     // Given:
-    final PersistenceSchema physicalSchema =  PersistenceSchema.from(
+    final PersistenceSchema physicalSchema = PersistenceSchema.from(
         (ConnectSchema) SchemaBuilder
             .struct()
             .field("f0", SchemaBuilder
@@ -525,12 +546,14 @@ public class KsqlJsonSerializerTest {
         true
     );
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Only MAPs with STRING keys are supported");
-
     // When:
-    new KsqlJsonSerdeFactory(false).createSerde(physicalSchema, config, () -> null);
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new KsqlJsonSerdeFactory(false).createSerde(physicalSchema, config, () -> null)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Only MAPs with STRING keys are supported"));
   }
 
   @Test
@@ -569,13 +592,16 @@ public class KsqlJsonSerializerTest {
   @Test
   public void shouldIncludeTopicNameInException() {
     // Given:
-    givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
-
-    // Then:
-    expectedException.expectMessage(SOME_TOPIC);
+    givenSerializerForSchema(OPTIONAL_INT64_SCHEMA);
 
     // When:
-    serializer.serialize(SOME_TOPIC, true);
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> serializer.serialize(SOME_TOPIC, true)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(SOME_TOPIC));
   }
 
   @Test

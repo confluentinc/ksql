@@ -15,9 +15,15 @@
 
 package io.confluent.ksql.function;
 
+import static io.confluent.ksql.function.KsqlScalarFunction.INTERNAL_PATH;
+import static io.confluent.ksql.metastore.TypeRegistry.EMPTY;
+import static io.confluent.ksql.schema.ksql.SqlTypeParser.create;
+import static java.util.Optional.empty;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udtf.Udtf;
@@ -35,18 +41,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class UdtfLoaderTest {
 
   private static final ClassLoader PARENT_CLASS_LOADER = UdtfLoaderTest.class.getClassLoader();
 
   private static final FunctionRegistry FUNC_REG = initializeFunctionRegistry();
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
 
   @Test
@@ -231,60 +232,64 @@ public class UdtfLoaderTest {
   public void shouldNotLoadUdtfWithWrongReturnValue() {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
+    final SqlTypeParser typeParser = create(EMPTY);
     final UdtfLoader udtfLoader = new UdtfLoader(
-        functionRegistry, Optional.empty(), typeParser, true
+        functionRegistry, empty(), typeParser, true
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage(
-            is("UDTF functions must return a List. Class io.confluent.ksql.function.UdtfLoaderTest$UdtfBadReturnValue Method badReturn"));
-
     // When:
-    udtfLoader.loadUdtfFromClass(UdtfBadReturnValue.class, KsqlScalarFunction.INTERNAL_PATH);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udtfLoader.loadUdtfFromClass(UdtfBadReturnValue.class, INTERNAL_PATH)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UDTF functions must return a List. Class io.confluent.ksql"
+            + ".function.UdtfLoaderTest$UdtfBadReturnValue Method badReturn"));
   }
 
   @Test
   public void shouldNotLoadUdtfWithRawListReturn() {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
+    final SqlTypeParser typeParser = create(EMPTY);
     final UdtfLoader udtfLoader = new UdtfLoader(
-        functionRegistry, Optional.empty(), typeParser, true
+        functionRegistry, empty(), typeParser, true
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage(
-            is("UDTF functions must return a parameterized List. Class io.confluent.ksql.function.UdtfLoaderTest$RawListReturn Method badReturn"));
-
     // When:
-    udtfLoader.loadUdtfFromClass(RawListReturn.class, KsqlScalarFunction.INTERNAL_PATH);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udtfLoader.loadUdtfFromClass(RawListReturn.class, INTERNAL_PATH)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UDTF functions must return a parameterized List. Class io.confluent.ksql.function.UdtfLoaderTest$RawListReturn Method badReturn"));
   }
 
   @Test
   public void shouldNotLoadUdtfWithBigDecimalReturnAndNoSchemaProvider() {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
+    final SqlTypeParser typeParser = create(EMPTY);
     final UdtfLoader udtfLoader = new UdtfLoader(
-        functionRegistry, Optional.empty(), typeParser, true
+        functionRegistry, empty(), typeParser, true
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage(
-            is("Cannot load UDF bigDecimalNoSchemaProvider. BigDecimal return type is not supported without a schema provider method."));
-
     // When:
-    udtfLoader
-        .loadUdtfFromClass(BigDecimalNoSchemaProvider.class, KsqlScalarFunction.INTERNAL_PATH);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udtfLoader
+            .loadUdtfFromClass(BigDecimalNoSchemaProvider.class, INTERNAL_PATH)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot load UDF bigDecimalNoSchemaProvider. BigDecimal return type is not supported without a schema provider method."));
   }
-  
+
   @UdtfDescription(name = "badReturnUdtf", description = "whatever")
   static class UdtfBadReturnValue {
 

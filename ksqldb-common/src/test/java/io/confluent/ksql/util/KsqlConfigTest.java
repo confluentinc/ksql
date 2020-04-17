@@ -40,13 +40,9 @@ import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class KsqlConfigTest {
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldSetInitialValuesCorrectly() {
@@ -125,7 +121,7 @@ public class KsqlConfigTest {
             StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100"));
 
     assertThat(ksqlConfig.getKsqlStreamConfigProps()
-        .get(StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+            .get(StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
         equalTo(100));
 
     assertThat(ksqlConfig.getKsqlStreamConfigProps()
@@ -167,7 +163,7 @@ public class KsqlConfigTest {
             StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, "1024"));
 
     assertThat(ksqlConfig.getKsqlStreamConfigProps()
-        .get(StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
+            .get(StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
         equalTo(1024L));
 
     assertThat(ksqlConfig.getKsqlStreamConfigProps()
@@ -244,7 +240,7 @@ public class KsqlConfigTest {
         get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG), equalTo(128L));
 
     assertThat(ksqlConfig.getKsqlStreamConfigProps().
-        get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG),
+            get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG),
         is(nullValue()));
   }
 

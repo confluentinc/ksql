@@ -14,8 +14,10 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,9 +40,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -71,9 +71,6 @@ public class ValidatedCommandFactoryTest {
   private ConfiguredStatement<? extends Statement> configuredStatement;
   private ValidatedCommandFactory commandFactory;
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Before
   public void setup() {
     commandFactory = new ValidatedCommandFactory(config);
@@ -101,12 +98,14 @@ public class ValidatedCommandFactoryTest {
     when(terminateQuery.getQueryId()).thenReturn(Optional.of(QUERY_ID));
     when(executionContext.getPersistentQuery(QUERY_ID)).thenReturn(Optional.empty());
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Unknown queryId");
-
     // When:
-    commandFactory.create(configuredStatement, executionContext);
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> commandFactory.create(configuredStatement, executionContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown queryId"));
 
   }
 

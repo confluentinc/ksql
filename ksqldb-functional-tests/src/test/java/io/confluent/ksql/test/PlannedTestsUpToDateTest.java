@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.test;
 
-import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
@@ -33,6 +32,8 @@ import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test that ensures that each QTT test case that should be tested from a physical

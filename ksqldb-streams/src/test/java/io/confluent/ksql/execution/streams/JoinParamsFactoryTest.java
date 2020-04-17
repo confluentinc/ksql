@@ -2,17 +2,17 @@ package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class JoinParamsFactoryTest {
 
@@ -25,9 +25,6 @@ public class JoinParamsFactoryTest {
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private JoinParams joinParams;
 
@@ -57,12 +54,15 @@ public class JoinParamsFactoryTest {
         .build()
         .withMetaAndKeyColsInValue(false);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid join. Key types differ: INTEGER vs STRING");
-
     // When:
-    JoinParamsFactory.create(intKeySchema, RIGHT_SCHEMA);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> JoinParamsFactory.create(intKeySchema, RIGHT_SCHEMA)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid join. Key types differ: INTEGER vs STRING"));
   }
 
   @Test

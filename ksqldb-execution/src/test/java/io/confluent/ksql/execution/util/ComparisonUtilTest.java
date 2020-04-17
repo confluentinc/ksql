@@ -27,9 +27,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ComparisonUtilTest {
 
@@ -45,7 +43,7 @@ public class ComparisonUtilTest {
       SqlTypes.struct().field("foo", SqlTypes.BIGINT).build()
   );
 
-  private static final SqlBaseType[] SCHEMA_TO_SQL_NAME = new SqlBaseType[] {
+  private static final SqlBaseType[] SCHEMA_TO_SQL_NAME = new SqlBaseType[]{
       SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DOUBLE,
       SqlBaseType.DECIMAL, SqlBaseType.STRING, SqlBaseType.ARRAY, SqlBaseType.MAP, SqlBaseType.STRUCT
   };
@@ -62,16 +60,13 @@ public class ComparisonUtilTest {
       ImmutableList.of(false, false, false, false, false, false, false, false, false) // Struct
   );
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void shouldAssertTrueForValidComparisons() {
     // When:
     int i = 0;
     int j = 0;
-    for (final SqlType leftType: typesTable) {
-      for (final SqlType rightType: typesTable) {
+    for (final SqlType leftType : typesTable) {
+      for (final SqlType rightType : typesTable) {
         if (expectedResults.get(i).get(j)) {
           assertThat(
               ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType)
@@ -90,8 +85,8 @@ public class ComparisonUtilTest {
     // When:
     int i = 0;
     int j = 0;
-    for (final SqlType leftType: typesTable) {
-      for (final SqlType rightType: typesTable) {
+    for (final SqlType leftType : typesTable) {
+      for (final SqlType rightType : typesTable) {
         if (!expectedResults.get(i).get(j)) {
           try {
             ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType);

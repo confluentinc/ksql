@@ -1,9 +1,9 @@
 package io.confluent.ksql.ddl.commands;
 
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
@@ -31,11 +31,9 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.Set;
-import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -74,9 +72,6 @@ public class DdlCommandExecTest {
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Before
   public void setup() {
     //when(metaStore.getSource(STREAM_NAME)).thenReturn(source);
@@ -97,7 +92,7 @@ public class DdlCommandExecTest {
     cmdExec.execute(SQL_TEXT, createStream, false);
 
     // Then:
-    MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName("F1"));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName("F1"));
   }
 
   @Test
@@ -133,7 +128,7 @@ public class DdlCommandExecTest {
     cmdExec.execute(SQL_TEXT, createStream, false);
 
     // Then:
-    MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
   }
 
   @Test
@@ -175,7 +170,7 @@ public class DdlCommandExecTest {
     cmdExec.execute(SQL_TEXT, createTable, false);
 
     // Then:
-    MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName("F1"));
+    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName("F1"));
   }
 
   @Test
@@ -187,7 +182,7 @@ public class DdlCommandExecTest {
     cmdExec.execute(SQL_TEXT, createTable, false);
 
     // Then:
-    MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName(Optional.empty()));
+    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName(Optional.empty()));
   }
 
   @Test
@@ -214,7 +209,7 @@ public class DdlCommandExecTest {
     cmdExec.execute(SQL_TEXT, createTable, false);
 
     // Then:
-    MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getSqlExpression(), is(SQL_TEXT));
+    assertThat(metaStore.getSource(TABLE_NAME).getSqlExpression(), is(SQL_TEXT));
   }
 
   @Test
@@ -270,7 +265,7 @@ public class DdlCommandExecTest {
     assertThat(result.isSuccess(), is(true));
     assertThat(
         result.getMessage(),
-        equalTo(String.format("Source %s (topic: %s) was dropped.",  STREAM_NAME, TOPIC_NAME))
+        equalTo(String.format("Source %s (topic: %s) was dropped.", STREAM_NAME, TOPIC_NAME))
     );
   }
 
@@ -280,12 +275,12 @@ public class DdlCommandExecTest {
     metaStore.registerType("type", SqlTypes.STRING);
 
     // When:
-    final DdlCommandResult result  = cmdExec.execute(SQL_TEXT, dropType, false);
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropType, false);
 
     // Then:
     assertThat(metaStore.resolveType("type").isPresent(), is(false));
-    MatcherAssert.assertThat("Expected successful execution", result.isSuccess());
-    MatcherAssert.assertThat(result.getMessage(), is("Dropped type 'type'"));
+    assertThat("Expected successful execution", result.isSuccess());
+    assertThat(result.getMessage(), is("Dropped type 'type'"));
   }
 
   @Test
@@ -297,8 +292,8 @@ public class DdlCommandExecTest {
     final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropType, false);
 
     // Then:
-    MatcherAssert.assertThat("Expected successful execution", result.isSuccess());
-    MatcherAssert.assertThat(result.getMessage(), is("Type 'type' does not exist"));
+    assertThat("Expected successful execution", result.isSuccess());
+    assertThat(result.getMessage(), is("Type 'type' does not exist"));
   }
 
   private void givenDropSourceCommand(final SourceName name) {

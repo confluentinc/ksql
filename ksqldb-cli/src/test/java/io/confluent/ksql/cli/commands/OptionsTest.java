@@ -16,22 +16,19 @@
 package io.confluent.ksql.cli.commands;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class OptionsTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldUseDefaultServerIfNoneSupplied() {
@@ -56,12 +53,14 @@ public class OptionsTest {
     // Given:
     final Options options = parse("-u", "joe");
 
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("You must specify both a username and a password");
-
     // When:
-    options.getUserNameAndPassword();
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> options.getUserNameAndPassword()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("You must specify both a username and a password"));
   }
 
   @Test
@@ -69,12 +68,14 @@ public class OptionsTest {
     // Given:
     final Options options = parse("http://foobar", "-p", "joe");
 
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("You must specify both a username and a password");
-
     // When:
-    options.getUserNameAndPassword();
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> options.getUserNameAndPassword()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("You must specify both a username and a password"));
   }
 
   @Test

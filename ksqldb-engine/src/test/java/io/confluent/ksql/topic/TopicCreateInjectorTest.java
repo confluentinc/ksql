@@ -19,6 +19,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -61,9 +63,7 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -74,9 +74,6 @@ public class TopicCreateInjectorTest {
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private TopicProperties.Builder builder;
@@ -316,7 +313,7 @@ public class TopicCreateInjectorTest {
     final CreateSourceAsProperties props = result.getStatement().getProperties();
     assertThat(props.getKafkaTopic(), is(Optional.of("expectedName")));
     assertThat(props.getPartitions(), is(Optional.of(10)));
-    assertThat(props.getReplicas(), is(Optional.of((short)10)));
+    assertThat(props.getReplicas(), is(Optional.of((short) 10)));
   }
 
   @Test
@@ -427,17 +424,19 @@ public class TopicCreateInjectorTest {
     // Given:
     givenStatement("CREATE STREAM foo (FOO STRING) WITH (value_format='avro', kafka_topic='doesntexist');");
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Topic 'doesntexist' does not exist. If you want to create a new topic for the "
-            + "stream/table please re-run the statement providing the required 'PARTITIONS' "
-            + "configuration in the WITH clause (and optionally 'REPLICAS'). For example: "
-            + "CREATE STREAM FOO (FOO STRING) "
-            + "WITH (KAFKA_TOPIC='doesntexist', PARTITIONS=2, REPLICAS=1, VALUE_FORMAT='avro');");
-
     // When:
-    injector.inject(statement, builder);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Topic 'doesntexist' does not exist. If you want to create a new topic for the "
+        + "stream/table please re-run the statement providing the required 'PARTITIONS' "
+        + "configuration in the WITH clause (and optionally 'REPLICAS'). For example: "
+        + "CREATE STREAM FOO (FOO STRING) "
+        + "WITH (KAFKA_TOPIC='doesntexist', PARTITIONS=2, REPLICAS=1, VALUE_FORMAT='avro');"));
   }
 
   private ConfiguredStatement<?> givenStatement(final String sql) {

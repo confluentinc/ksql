@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableCauseMatcher.hasCause;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
@@ -64,10 +65,8 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
@@ -94,9 +93,6 @@ public class SslFunctionalTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   private Map<String, String> clientProps;
   private SslContextFactory sslContextFactory;
 
@@ -115,13 +111,15 @@ public class SslFunctionalTest {
 
   @Test
   public void shouldNotBeAbleToUseCliIfClientDoesNotTrustServerCert() {
-    // Then:
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectCause(is(instanceOf(ProcessingException.class)));
-    expectedException.expectCause(hasCause(is(instanceOf(SSLHandshakeException.class))));
-
     // When:
-    canMakeCliRequest();
+    final Exception e = assertThrows(
+        KsqlRestClientException.class,
+        () -> canMakeCliRequest()
+    );
+
+    // Then:
+    assertThat(e.getCause(), (is(instanceOf(ProcessingException.class))));
+    assertThat(e.getCause(), (hasCause(is(instanceOf(SSLHandshakeException.class)))));
   }
 
   @Test
@@ -137,18 +135,21 @@ public class SslFunctionalTest {
   }
 
   @Test
-  public void shouldNotBeAbleToUseWssIfClientDoesNotTrustServerCert() throws Exception {
-    // Then:
-    expectedException.expect(either(
-        both(hasCause(hasCause(hasMessage(
-            containsString("unable to find valid certification path to requested target")))))
-            .and(instanceOf(SSLHandshakeException.class))
-    ).or(
-        instanceOf(EOFException.class)  // Occasionally, get EOF exception.
-    ));
-
+  public void shouldNotBeAbleToUseWssIfClientDoesNotTrustServerCert() {
     // When:
-    makeWsRequest();
+    final Exception e = assertThrows(
+        Exception.class,
+        this::makeWsRequest
+    );
+
+    // Then:
+    if (!(e instanceof EOFException)) { // Occasionally, get EOF exception.
+      assertThat(e, instanceOf(SSLHandshakeException.class));
+      assertThat(
+          e.getCause().getCause().getMessage(),
+          containsString("unable to find valid certification path to requested target")
+      );
+    }
   }
 
   @Test

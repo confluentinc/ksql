@@ -28,6 +28,7 @@ import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
@@ -131,6 +132,12 @@ public class QueryStreamRunner extends BasePerfRunner {
 
     @Override
     public CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeHeartbeat(HeartbeatMessage heartbeatMessage,
+        ApiSecurityContext apiSecurityContext) {
       return null;
     }
 

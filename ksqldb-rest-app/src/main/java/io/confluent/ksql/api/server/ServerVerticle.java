@@ -56,7 +56,7 @@ public class ServerVerticle extends AbstractVerticle {
 
   public static final Set<String> NON_PROXIED_ENDPOINTS = ImmutableSet
       .of("/query-stream", "/inserts-stream", "/close-query",
-          "/ksql", "/ksql/terminate", "/query", "/info");
+          "/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat");
 
   // Quick switch so we can easily revert to not serving ported endpoints directly
   private static final boolean SERVE_PORTED_ENDPOINTS = true;

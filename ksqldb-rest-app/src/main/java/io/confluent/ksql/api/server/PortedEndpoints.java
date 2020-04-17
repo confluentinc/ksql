@@ -28,6 +28,7 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.StreamedEndpointResponse;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
@@ -52,7 +53,7 @@ import org.apache.http.HttpStatus;
 class PortedEndpoints {
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
-      .of("/ksql", "/ksql/terminate", "/query", "/info");
+      .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat");
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
@@ -90,6 +91,10 @@ class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(MediaType.APPLICATION_JSON)
         .handler(new PortedEndpoints(endpoints, server)::handleInfoRequest);
+    router.route(HttpMethod.POST, "/heartbeat")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(new PortedEndpoints(endpoints, server)::handleHeartbeatRequest);
   }
 
   static void setupFailureHandler(final Router router) {
@@ -136,6 +141,14 @@ class PortedEndpoints {
     );
   }
 
+
+  void handleHeartbeatRequest(final RoutingContext routingContext) {
+    handlePortedOldApiRequest(server, routingContext, HeartbeatMessage.class,
+        (request, apiSecurityContext) ->
+            endpoints.executeHeartbeat(request, DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
   private static <T> void handlePortedOldApiRequest(final Server server,
       final RoutingContext routingContext,
       final Class<T> requestClass,
@@ -161,6 +174,11 @@ class PortedEndpoints {
 
       response.setStatusCode(endpointResponse.getStatusCode())
           .setStatusMessage(endpointResponse.getStatusMessage());
+
+      if (endpointResponse.getResponseBody() == null) {
+        response.end();
+        return;
+      }
 
       // What the old API returns in it's response is something of a mishmash - sometimes it's
       // a plain String, other times it's an object that needs to be JSON encoded, other times

@@ -24,6 +24,7 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.vertx.core.Context;
@@ -122,6 +123,12 @@ public class TestEndpoints implements Endpoints {
 
   @Override
   public CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeHeartbeat(HeartbeatMessage heartbeatMessage,
+      ApiSecurityContext apiSecurityContext) {
     return null;
   }
 

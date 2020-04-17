@@ -68,7 +68,7 @@ public class Server {
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private WorkerExecutor workerExecutor;
-  private int jettyPort = -1;
+  private volatile int jettyPort = -1;
   private List<URI> listeners = new ArrayList<>();
 
   public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints,
@@ -172,7 +172,7 @@ public class Server {
     return workerExecutor;
   }
 
-  synchronized SocketAddress getProxyTarget() {
+  SocketAddress getProxyTarget() {
     if (jettyPort == -1) {
       throw new IllegalStateException("jetty port not set");
     }
@@ -236,7 +236,7 @@ public class Server {
     return ImmutableList.copyOf(listeners);
   }
 
-  public synchronized void setJettyPort(final int jettyPort) {
+  public void setJettyPort(final int jettyPort) {
     this.jettyPort = jettyPort;
   }
 

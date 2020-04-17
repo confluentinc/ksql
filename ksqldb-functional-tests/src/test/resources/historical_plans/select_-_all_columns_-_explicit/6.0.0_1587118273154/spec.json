@@ -1,0 +1,72 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1587118273154,
+  "path" : "query-validation-tests/select.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID_COPY INT, ROWTIME_COPY BIGINT, NAME VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "all columns - explicit",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 8,
+      "value" : {
+        "name" : "a"
+      },
+      "timestamp" : 1234
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 8,
+      "value" : {
+        "ID_COPY" : 8,
+        "ROWTIME_COPY" : 1234,
+        "NAME" : "a"
+      },
+      "timestamp" : 1234
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID AS ID_COPY, ROWTIME AS ROWTIME_COPY, NAME FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ID INT KEY, ID_COPY INT, ROWTIME_COPY BIGINT, NAME STRING"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

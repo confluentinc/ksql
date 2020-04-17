@@ -1,0 +1,183 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1587118266585,
+  "path" : "query-validation-tests/min-group-by.json",
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<VALUE DOUBLE> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<VALUE DOUBLE, ID BIGINT> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<VALUE DOUBLE, ID BIGINT, KSQL_AGG_VARIABLE_0 DOUBLE> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<MIN DOUBLE> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "min double group by",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "value" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "value" : 179769313486231570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "value" : 5.1
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "value" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "value" : 100.1
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "value" : 6.4
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "value" : 300.8
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "value" : -179769313486231570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "value" : 100.11
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : {
+        "MIN" : null
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "MIN" : 179769313486231570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "MIN" : 5.1
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "MIN" : 5.1
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "MIN" : 100.1
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "MIN" : 6.4
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "MIN" : 6.4
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "MIN" : -179769313486231570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "MIN" : -179769313486231570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "VALUE",
+          "type" : [ "null", "double" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE double) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE TABLE S2 as SELECT min(value) as MIN FROM test group by id;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

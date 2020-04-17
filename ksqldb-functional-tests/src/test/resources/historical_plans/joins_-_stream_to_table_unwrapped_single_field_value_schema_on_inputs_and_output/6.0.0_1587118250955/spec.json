@@ -1,0 +1,98 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1587118250955,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "VARCHAR",
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "VARCHAR",
+    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S_NAME VARCHAR, S_ROWTIME BIGINT, S_ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "VARCHAR"
+  },
+  "testCase" : {
+    "name" : "stream to table unwrapped single field value schema on inputs and output",
+    "inputs" : [ {
+      "topic" : "T",
+      "key" : 0,
+      "value" : "b",
+      "timestamp" : 0
+    }, {
+      "topic" : "S",
+      "key" : 0,
+      "value" : "a",
+      "timestamp" : 10
+    }, {
+      "topic" : "S",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 20
+    }, {
+      "topic" : "T",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 30
+    }, {
+      "topic" : "S",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 40
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : "a",
+      "timestamp" : 10
+    } ],
+    "topics" : [ {
+      "name" : "S",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "T",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM S (ID BIGINT KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='S', value_format='JSON');", "CREATE TABLE T (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T', value_format='JSON');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT s.name name FROM S JOIN T ON S.id = T.id;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "T",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1587118280677,
+  "path" : "query-validation-tests/topk-group-by.json",
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR, VALUE VARCHAR> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<VALUE VARCHAR, ID BIGINT, KSQL_INTERNAL_COL_2 INT> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<VALUE VARCHAR, ID BIGINT, KSQL_AGG_VARIABLE_0 ARRAY<VARCHAR>> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<TOPK ARRAY<VARCHAR>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "topk string - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "key" : 0,
+        "value" : "a"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "key" : 0,
+        "value" : "b"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "key" : 0,
+        "value" : "c"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "key" : 0,
+        "value" : "b"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "key" : 0,
+        "value" : "d"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "a" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "b", "a" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "c", "b", "a" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "c", "b", "b" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "d", "c", "b" ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  string VALUE = 2;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE string) WITH (kafka_topic='test_topic', value_format='PROTOBUF');", "CREATE TABLE S2 as SELECT topk(value, 3) as topk FROM test group by id;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

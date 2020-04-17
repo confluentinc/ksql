@@ -1,0 +1,135 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1587118269659,
+  "path" : "query-validation-tests/multi-joins.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KafkaTopic_L_Left.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.KafkaTopic_L_Right.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<T1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "table-table-table - inner-inner",
+    "inputs" : [ {
+      "topic" : "left",
+      "key" : 0,
+      "value" : {
+        "id" : 1
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "right",
+      "key" : 0,
+      "value" : {
+        "id" : 2
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "right2",
+      "key" : 0,
+      "value" : {
+        "id" : 3
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "left",
+      "key" : 0,
+      "value" : {
+        "id" : 4
+      },
+      "timestamp" : 1000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "T1_ID" : 1,
+        "T2_ID" : 2,
+        "T3_ID" : 3
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "T1_ID" : 4,
+        "T2_ID" : 2,
+        "T3_ID" : 3
+      },
+      "timestamp" : 1000
+    } ],
+    "topics" : [ {
+      "name" : "left",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "right2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "right",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE T1 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='left', value_format='JSON');", "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');", "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT T1.ID, T2.ID, T3.ID FROM T1 JOIN T2 ON T1.ROWKEY = T2.ROWKEY JOIN T3 ON T1.ROWKEY = T3.ROWKEY;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "table",
+        "schema" : "ROWKEY INT PRIMARY KEY, T1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "left",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ],
+        "blackList" : ".*-repartition"
+      }
+    }
+  }
+}

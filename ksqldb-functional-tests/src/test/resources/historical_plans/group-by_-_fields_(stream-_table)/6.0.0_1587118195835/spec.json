@@ -1,0 +1,143 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1587118195835,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F1 INT, F2 VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<F1 INT, F2 VARCHAR, ROWTIME BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<F1 INT, F2 VARCHAR, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<F1 INT, F2 VARCHAR, KSQL_COL_0 BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "fields (stream->table)",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "1,a"
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : "2,b"
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "1,a"
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : "2,b"
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : "3,a"
+    } ],
+    "outputs" : [ {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "a|+|1",
+      "value" : "1,a,0,1"
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "b|+|2",
+      "value" : "2,b,0,1"
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "a|+|1",
+      "value" : "1,a,0,2"
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "b|+|2",
+      "value" : "2,b,0,2"
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "a|+|3",
+      "value" : "3,a,0,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a|+|1",
+      "value" : "1,a,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "b|+|2",
+      "value" : "2,b,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a|+|1",
+      "value" : "1,a,2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "b|+|2",
+      "value" : "2,b,2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a|+|3",
+      "value" : "3,a,1"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "table",
+        "schema" : "KSQL_COL_1 STRING KEY, F1 INT, F2 STRING, KSQL_COL_0 BIGINT"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1587118210167,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F1 VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<F1 VARCHAR, ROWTIME BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<F1 VARCHAR, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR, KSQL_COL_1 BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "field with field used in function in projection (stream->table)",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "one"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "two"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "three"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "one"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "five"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "one",
+      "value" : "o,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "two",
+      "value" : "t,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "three",
+      "value" : "t,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "one",
+      "value" : "o,2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "five",
+      "value" : "f,1"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (f1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT SUBSTRING(f1, 0, 1), COUNT(*) FROM TEST GROUP BY f1;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

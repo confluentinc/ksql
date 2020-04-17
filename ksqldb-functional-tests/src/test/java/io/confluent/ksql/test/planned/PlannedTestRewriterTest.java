@@ -31,6 +31,6 @@ public class PlannedTestRewriterTest {
   @Ignore
   public void rewritePlans() {
     new PlannedTestRewriter(PlannedTestRewriter.FULL)
-        .rewriteTestCasePlans(TestCasePlanLoader.all());
+        .rewriteTestCasePlans(new TestCasePlanLoader().all());
   }
 }

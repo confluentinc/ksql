@@ -1,89 +1,105 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102803,
+  "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO STRUCT<F0 INT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO STRUCT<F0 INT>> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : {
-        "F0" : 1
+  "testCase" : {
+    "name" : "serialize nested struct - value - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : {
+          "F0" : 1
+        }
       }
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : {
-        "F0" : null
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : {
+          "F0" : null
+        }
       }
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : null
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : null
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "FOO" : {
-        "F0" : 1
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : null
       }
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "FOO" : {
-        "F0" : 0
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "FOO" : {
+          "F0" : 1
+        }
       }
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "FOO" : null
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : null
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "input_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF"
-        },
-        "partitions" : 4
-      } ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "FOO" : {
+          "F0" : 0
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  ConnectDefault2 FOO = 1;\n\n  message ConnectDefault2 {\n    int32 F0 = 1;\n  }\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (FOO STRUCT<F0 INTEGER>) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

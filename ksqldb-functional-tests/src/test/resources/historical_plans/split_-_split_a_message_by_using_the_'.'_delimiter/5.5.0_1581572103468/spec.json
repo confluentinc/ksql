@@ -1,107 +1,121 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572103468,
+  "path" : "query-validation-tests/split.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<MESSAGE VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SPLIT_MSG ARRAY<VARCHAR>> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : {
-      "message" : "a.b.c"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : {
-      "message" : ".abc."
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "test_topic",
-    "key" : "3",
-    "value" : {
-      "message" : "..a.."
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "test_topic",
-    "key" : "4",
-    "value" : {
-      "message" : "abc"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "test_topic",
-    "key" : "5",
-    "value" : {
-      "message" : ""
-    },
-    "timestamp" : 0
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "1",
-    "value" : {
-      "SPLIT_MSG" : [ "a", "b", "c" ]
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "2",
-    "value" : {
-      "SPLIT_MSG" : [ "", "abc", "" ]
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "3",
-    "value" : {
-      "SPLIT_MSG" : [ "", "", "a", "", "" ]
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "4",
-    "value" : {
-      "SPLIT_MSG" : [ "abc" ]
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "5",
-    "value" : {
-      "SPLIT_MSG" : [ "" ]
-    },
-    "timestamp" : 0
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "split a message by using the '.' delimiter",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "message" : "a.b.c"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "message" : ".abc."
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "message" : "..a.."
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : {
+        "message" : "abc"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "5",
+      "value" : {
+        "message" : ""
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "SPLIT_MSG" : [ "a", "b", "c" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "SPLIT_MSG" : [ "", "abc", "" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "SPLIT_MSG" : [ "", "", "a", "", "" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "4",
+      "value" : {
+        "SPLIT_MSG" : [ "abc" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "5",
+      "value" : {
+        "SPLIT_MSG" : [ "" ]
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (MESSAGE STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT SPLIT(TEST.MESSAGE, '.') SPLIT_MSG\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

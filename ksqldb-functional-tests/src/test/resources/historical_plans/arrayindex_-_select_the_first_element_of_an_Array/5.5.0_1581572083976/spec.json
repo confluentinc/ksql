@@ -1,85 +1,99 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572083976,
+  "path" : "query-validation-tests/arrayindex.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<COLORS ARRAY<VARCHAR>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "colors" : [ "Red", "Green" ]
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "colors" : [ "Black" ]
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "colors" : [ null, "Yellow", "Pink" ]
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "colors" : [ ]
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "C" : "Red"
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "C" : "Black"
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "C" : null
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "C" : null
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "select the first element of an Array",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "colors" : [ "Red", "Green" ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "colors" : [ "Black" ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "colors" : [ null, "Yellow", "Pink" ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "colors" : [ ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "C" : "Red"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "C" : "Black"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "C" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "C" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (colors ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT colors[1] as C FROM test;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

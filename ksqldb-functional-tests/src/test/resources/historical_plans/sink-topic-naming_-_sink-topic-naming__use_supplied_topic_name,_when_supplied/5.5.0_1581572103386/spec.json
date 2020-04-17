@@ -1,49 +1,66 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572103386,
+  "path" : "query-validation-tests/sink-topic-naming.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SOURCE VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : {
-      "source" : "s1"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "Fred",
-    "key" : "1",
-    "value" : {
-      "SOURCE" : "s1"
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "Fred",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "sink-topic-naming: use supplied topic name, when supplied",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "source" : "s1"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "Fred",
+      "key" : "1",
+      "value" : {
+        "SOURCE" : "s1"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "Fred",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (SOURCE STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT WITH (KAFKA_TOPIC='Fred') AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "properties" : {
+      "ksql.output.topic.name.prefix" : "some-prefix-"
+    },
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "Fred",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

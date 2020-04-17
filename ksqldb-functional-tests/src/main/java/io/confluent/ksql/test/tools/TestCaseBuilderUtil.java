@@ -63,13 +63,26 @@ public final class TestCaseBuilderUtil {
       final String testName,
       final Optional<String> explicitFormat
   ) {
-    final String fileName = getNameWithoutExtension(testPath.toString());
+    final String prefix = filePrefix(testPath.toString());
 
     final String pf = explicitFormat
         .map(f -> " - " + f)
         .orElse("");
 
-    return fileName + " - " + testName + pf;
+    return prefix + testName + pf;
+  }
+
+  public static String extractSimpleTestName(
+      final String testPath,
+      final String testName
+  ) {
+    final String prefix = filePrefix(testPath);
+
+    if (!testName.startsWith(prefix)) {
+      throw new IllegalArgumentException("Not prefixed test name: " + testName);
+    }
+
+    return testName.substring(prefix.length());
   }
 
   public static List<String> buildStatements(
@@ -164,6 +177,10 @@ public final class TestCaseBuilderUtil {
       e.printStackTrace(System.out);
       return null;
     }
+  }
+
+  private static String filePrefix(final String testPath) {
+    return getNameWithoutExtension(testPath) + " - ";
   }
 
   private static class TestColumn implements SimpleColumn {

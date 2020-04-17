@@ -1,53 +1,67 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102040,
+  "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<with.dot VARCHAR, *bad!chars* VARCHAR, SELECT VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<with.dot VARCHAR, *bad!chars* VARCHAR, SELECT VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "with.dot" : "popcorn",
-      "*bad!chars*" : "cheetos",
-      "SELECT" : "reserved"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "with.dot" : "popcorn",
-      "*bad!chars*" : "cheetos",
-      "SELECT" : "reserved"
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "source fields that require quotes",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "with.dot" : "popcorn",
+        "*bad!chars*" : "cheetos",
+        "SELECT" : "reserved"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "with.dot" : "popcorn",
+        "*bad!chars*" : "cheetos",
+        "SELECT" : "reserved"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (`with.dot` STRING, `*bad!chars*` STRING, `SELECT` STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

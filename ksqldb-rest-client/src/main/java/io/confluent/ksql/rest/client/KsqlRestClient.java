@@ -29,7 +29,9 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
+import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.vertx.core.http.HttpClientOptions;
 import java.io.Closeable;
@@ -122,6 +124,14 @@ public final class KsqlRestClient implements Closeable {
 
   public RestResponse<CommandStatuses> getAllStatuses() {
     return target().getStatuses();
+  }
+
+  public RestResponse<ServerMetadata> getServerMetadata() {
+    return target().getServerMetadata();
+  }
+
+  public RestResponse<ServerClusterId> getServerMetadataId() {
+    return target().getServerMetadataId();
   }
 
   public RestResponse<HealthCheckResponse> getServerHealth() {

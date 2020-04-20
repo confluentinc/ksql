@@ -163,6 +163,18 @@ public class TestEndpoints implements Endpoints {
     return null;
   }
 
+  @Override
+  public CompletableFuture<EndpointResponse> executeServerMetadata(
+      ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
+      ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
   public synchronized void setRowGeneratorFactory(
       final Supplier<RowGenerator> rowGeneratorFactory) {
     this.rowGeneratorFactory = rowGeneratorFactory;

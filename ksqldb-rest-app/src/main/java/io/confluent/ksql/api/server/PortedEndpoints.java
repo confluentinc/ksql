@@ -59,7 +59,8 @@ class PortedEndpoints {
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
       .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
-          "/status/:type/:entity/:action", "/status", "/lag", "/healthcheck");
+          "/status/:type/:entity/:action", "/status", "/lag", "/healthcheck", "/v1/metadata",
+          "/v1/metadata/id");
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
@@ -123,6 +124,14 @@ class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(MediaType.APPLICATION_JSON)
         .handler(new PortedEndpoints(endpoints, server)::handleHealthcheckRequest);
+    router.route(HttpMethod.GET, "/v1/metadata")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(new PortedEndpoints(endpoints, server)::handleServerMetadataRequest);
+    router.route(HttpMethod.GET, "/v1/metadata/id")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(new PortedEndpoints(endpoints, server)::handleServerMetadataClusterIdRequest);
   }
 
   static void setupFailureHandler(final Router router) {
@@ -213,6 +222,21 @@ class PortedEndpoints {
     handlePortedOldApiRequest(server, routingContext, null,
         (request, apiSecurityContext) ->
             endpoints.executeCheckHealth(DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
+  void handleServerMetadataRequest(final RoutingContext routingContext) {
+    handlePortedOldApiRequest(server, routingContext, null,
+        (request, apiSecurityContext) ->
+            endpoints.executeServerMetadata(DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
+  void handleServerMetadataClusterIdRequest(final RoutingContext routingContext) {
+    handlePortedOldApiRequest(server, routingContext, null,
+        (request, apiSecurityContext) ->
+            endpoints
+                .executeServerMetadataClusterId(DefaultApiSecurityContext.create(routingContext))
     );
   }
 

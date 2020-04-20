@@ -191,6 +191,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Optional<ClusterStatusResource> clusterStatusResource;
   private final Optional<LagReportingResource> lagReportingResource;
   private final HealthCheckResource healthCheckResource;
+  private volatile ServerMetadataResource serverMetadataResource;
 
   // We embed this in here for now
   private Vertx vertx = null;
@@ -368,7 +369,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   public void setupResources(final Configurable<?> config, final KsqlRestConfig appConfig) {
     config.register(rootDocument);
     config.register(serverInfoResource);
-    config.register(ServerMetadataResource.create(serviceContext, ksqlConfigNoPort));
+    this.serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfigNoPort);
+    config.register(serverMetadataResource);
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
@@ -434,7 +436,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         clusterStatusResource,
         statusResource,
         lagReportingResource,
-        healthCheckResource
+        healthCheckResource,
+        serverMetadataResource
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,

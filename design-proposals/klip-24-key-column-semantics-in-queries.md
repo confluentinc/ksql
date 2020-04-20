@@ -85,10 +85,6 @@ Only the key column should exist and it should be called either (TBD):
   - `ID`, or
   - `I1_ID`.
 
-Additionally, we may want to consider dropping `I2.ID` from the result, given we know it is equal
-to `I1.ID`. This effectively de-duplicates the data and saves on resources. Whether we do this is
-TBD.
-
 ### Removal of non-standard Aliasing
 
 The [allow any key name](https://github.com/confluentinc/ksql/issues/3536) feature has introduced
@@ -243,7 +239,6 @@ CREATE TABLE OUTPUT AS SELECT ID AS NEW_KEY, V0, V1, ID FROM INPUT;
 - Removal of non-standard GROUP BY, PARTITION BY and JOIN aliasing syntax,
   in favour of standard aliasing of the key column in the projection.
 - removal of duplicate left join column on 'select *' joins.
-- TBD: remove of right join column(s) from 'select *' joins.
 - TBD: syntax for allowing user to add key column to value schema.
 
 ## What is not in scope
@@ -308,22 +303,7 @@ CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 JOIN INPUT I2 ON I1.ID = I2.ID;
 -- note join key is duplicated in I1_ID and I2_ID columns, only.
 ```
 
-4. (Optional: TDB) Removal of duplicate right join column(s) on `select *` joins. For example:
-
-```sql
-CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 JOIN INPUT I2 ON I1.ID = I2.ID;
--- current result schema: ID INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
--- note join key is duplicated in ID, I1_ID and I2_ID columns.
-
--- proposed result schema either (TBD):
--- Note: these are the same as for point 3 above, minus the `I2_ID` column
--- a): ID INT KEY, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT
--- note join key is no longer duplicated, it is only in ID column
--- b): I1_ID INT KEY, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT
--- note join key is no longer duplicated, it is only in I1_ID column
-```
-
-5. TBD: Syntax for allowing key column to be added as value column
+4. TBD: Syntax for allowing key column to be added as value column
 
 TDB.
 

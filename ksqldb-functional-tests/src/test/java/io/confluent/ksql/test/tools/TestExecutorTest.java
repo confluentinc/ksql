@@ -69,7 +69,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TestExecutorTest {
 
-  private static final String INTERNAL_TOPIC_0 = "internal";
   private static final String SINK_TOPIC_NAME = "sink_topic";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()

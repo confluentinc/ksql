@@ -7,7 +7,7 @@ Maybe you need to do something simple, like transform the events to strip out an
 
 A streaming ETL pipeline enables streaming events between arbitrary sources and sinks, and it helps you make changes to the data while it’s in-flight.
 
-![hard](../img/etl-hard.png){: class="centered-img"}
+![hard](../img/etl-hard.png){: class="centered-img" style="width: 90%"}
 
 One way you might do this is to capture the changelogs of upstream Postgres and MongoDB databases using the [Debezium](https://debezium.io) {{ site.ak }} connectors. The changelog can be stored in {{ site.ak }}, where a series of deployed programs transforms, aggregates, and joins the data together. The processed data can be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
 
@@ -18,7 +18,7 @@ Gluing all of the above services together is certainly a challenge. Along with y
 
 ksqlDB helps streamline how you write and deploy streaming data pipelines by boiling it down to just two things: storage ({{ site.ak }}) and compute (ksqlDB).
 
-![easy](../img/etl-easy.png){: class="centered-img" style="width: 80%"}
+![easy](../img/etl-easy.png){: class="centered-img" style="width: 70%"}
 
 Using ksqlDB, you can run any {{ site.kconnectlong }} connector by embedding it in ksqlDB's servers. You can transform, join, and aggregate all of your streams together by using a coherent, powerful SQL language. This gives you a slender architecture for managing the end-to-end flow of your data pipeline.
 

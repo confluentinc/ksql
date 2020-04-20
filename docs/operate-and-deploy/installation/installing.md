@@ -153,7 +153,7 @@ these services:
 - {{ site.sr }} -- enables Avro and Protobuf
 - ksqlDB Server -- one instance
 
-Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docs-md/tutorials/docker-compose.yml)
+Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docs/tutorials/docker-compose.yml)
 for the [ksqlDB Tutorial](../../tutorials/basics-docker.md) to get started with
 a local installation of ksqlDB.
 

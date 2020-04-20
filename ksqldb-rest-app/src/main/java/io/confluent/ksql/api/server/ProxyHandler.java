@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.util.VertxUtils.checkContext;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
@@ -40,7 +41,6 @@ import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +123,7 @@ class ProxyHandler {
               .end();
         } else {
           log.error("Failed to proxy websocket", ar.cause());
-          request.response().setStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR).end();
+          request.response().setStatusCode(INTERNAL_SERVER_ERROR.code()).end();
         }
       }
     });

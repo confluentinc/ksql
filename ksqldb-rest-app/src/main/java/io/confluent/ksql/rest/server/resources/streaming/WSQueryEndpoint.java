@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -64,7 +65,6 @@ import javax.websocket.OnError;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -208,7 +208,7 @@ public class WSQueryEndpoint {
 
       validateVersion(session);
 
-      final Optional<Response> readyResponse = serverState.checkReady();
+      final Optional<EndpointResponse> readyResponse = serverState.checkReady();
       if (readyResponse.isPresent()) {
         final String msg = ((KsqlErrorMessage) readyResponse.get().getEntity()).getMessage();
         SessionUtil.closeSilently(session, CloseCodes.TRY_AGAIN_LATER, msg);

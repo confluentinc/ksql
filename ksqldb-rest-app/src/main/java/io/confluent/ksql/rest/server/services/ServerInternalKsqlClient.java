@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.services;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -32,7 +33,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import javax.ws.rs.core.Response;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpStatus.Code;
 
@@ -65,7 +65,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
     final KsqlRequest request = new KsqlRequest(
         sql, Collections.emptyMap(), requestProperties, null);
 
-    final Response response = ksqlResource.handleKsqlStatements(securityContext, request);
+    final EndpointResponse response = ksqlResource.handleKsqlStatements(securityContext, request);
 
     final Code statusCode = HttpStatus.getCode(response.getStatus());
 

@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.AuthenticationPluginHandler;
@@ -40,7 +43,6 @@ import io.vertx.ext.web.handler.BodyHandler;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,9 +168,9 @@ public class ServerVerticle extends AbstractVerticle {
         );
       } else {
         final int errorCode;
-        if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+        if (statusCode == UNAUTHORIZED.code()) {
           errorCode = ErrorCodes.ERROR_FAILED_AUTHENTICATION;
-        } else if (statusCode == HttpStatus.SC_FORBIDDEN) {
+        } else if (statusCode == FORBIDDEN.code()) {
           errorCode = ErrorCodes.ERROR_FAILED_AUTHORIZATION;
         } else {
           errorCode = ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
@@ -238,7 +240,7 @@ public class ServerVerticle extends AbstractVerticle {
       // Fail the request as unauthorized - this will occur if no auth plugin but Jaas handler
       // is configured, but auth header is not basic auth
       routingContext
-          .fail(HttpStatus.SC_UNAUTHORIZED,
+          .fail(UNAUTHORIZED.code(),
               new KsqlApiException("Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION));
     }
   }

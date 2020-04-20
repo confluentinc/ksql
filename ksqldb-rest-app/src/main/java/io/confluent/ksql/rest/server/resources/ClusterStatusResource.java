@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
@@ -35,7 +36,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 
@@ -62,9 +62,9 @@ public class ClusterStatusResource {
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
   }
 
-  public Response checkClusterStatus() {
+  public EndpointResponse checkClusterStatus() {
     final ClusterStatusResponse response = getResponse();
-    return Response.ok(response).build();
+    return EndpointResponse.ok(response);
   }
 
   private ClusterStatusResponse getResponse() {

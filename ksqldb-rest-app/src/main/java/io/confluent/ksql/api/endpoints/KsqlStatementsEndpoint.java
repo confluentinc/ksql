@@ -15,13 +15,12 @@
 
 package io.confluent.ksql.api.endpoints;
 
-import io.confluent.ksql.api.spi.EndpointResponse;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.VertxUtils;
 import java.util.Objects;
-import javax.ws.rs.core.Response;
 
 public class KsqlStatementsEndpoint {
 
@@ -34,10 +33,7 @@ public class KsqlStatementsEndpoint {
   public EndpointResponse executeStatements(final KsqlSecurityContext ksqlSecurityContext,
       final KsqlRequest request) {
     VertxUtils.checkIsWorker();
-
-    final Response response = ksqlResource.handleKsqlStatements(ksqlSecurityContext, request);
-
-    return EndpointResponse.create(response);
+    return ksqlResource.handleKsqlStatements(ksqlSecurityContext, request);
   }
 
 }

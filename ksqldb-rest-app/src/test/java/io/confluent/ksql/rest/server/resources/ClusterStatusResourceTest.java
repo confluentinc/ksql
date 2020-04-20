@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
@@ -39,7 +40,6 @@ import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.Map;
 import java.util.Optional;
-import javax.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,7 +88,7 @@ public class ClusterStatusResourceTest {
     when(lagReportingAgent.getLagPerHost(any())).thenReturn(Optional.empty());
 
     // When:
-    final Response response = clusterStatusResource.checkClusterStatus();
+    final EndpointResponse response = clusterStatusResource.checkClusterStatus();
 
     // Then:
     assertThat(response.getStatus(), is(200));
@@ -106,7 +106,7 @@ public class ClusterStatusResourceTest {
     when(lagReportingAgent.getLagPerHost(any())).thenReturn(Optional.of(HOST_STORE_LAGS));
 
     // When:
-    final Response response = clusterStatusResource.checkClusterStatus();
+    final EndpointResponse response = clusterStatusResource.checkClusterStatus();
 
     // Then:
     assertThat(response.getStatus(), is(200));

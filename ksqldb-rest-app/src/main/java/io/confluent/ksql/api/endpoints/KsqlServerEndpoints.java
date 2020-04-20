@@ -15,13 +15,15 @@
 
 package io.confluent.ksql.api.endpoints;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
-import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -48,7 +50,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.apache.http.HttpStatus;
 import org.reactivestreams.Subscriber;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -170,7 +171,7 @@ public class KsqlServerEndpoints implements Endpoints {
   public CompletableFuture<EndpointResponse> executeInfo(
       final ApiSecurityContext apiSecurityContext) {
     return CompletableFuture
-        .completedFuture(EndpointResponse.create(serverInfoResource.get()));
+        .completedFuture(serverInfoResource.get());
   }
 
   @Override
@@ -178,65 +179,57 @@ public class KsqlServerEndpoints implements Endpoints {
       final HeartbeatMessage heartbeatMessage,
       final ApiSecurityContext apiSecurityContext) {
     return heartbeatResource.map(resource -> CompletableFuture
-        .completedFuture(
-            EndpointResponse.create(resource.registerHeartbeat(heartbeatMessage))))
+        .completedFuture(resource.registerHeartbeat(heartbeatMessage)))
         .orElseGet(() -> CompletableFuture
-            .completedFuture(EndpointResponse.create(HttpStatus.SC_NOT_FOUND, "Not found", null)));
+            .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeClusterStatus(
       final ApiSecurityContext apiSecurityContext) {
     return clusterStatusResource.map(resource -> CompletableFuture
-        .completedFuture(
-            EndpointResponse.create(resource.checkClusterStatus())))
+        .completedFuture(resource.checkClusterStatus()))
         .orElseGet(() -> CompletableFuture
-            .completedFuture(EndpointResponse.create(HttpStatus.SC_NOT_FOUND, "Not found", null)));
+            .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeStatus(final String type, final String entity,
       final String action, final ApiSecurityContext apiSecurityContext) {
-    return CompletableFuture
-        .completedFuture(EndpointResponse.create(statusResource.getStatus(type, entity, action)));
+    return CompletableFuture.completedFuture(statusResource.getStatus(type, entity, action));
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeAllStatuses(
       final ApiSecurityContext apiSecurityContext) {
-    return CompletableFuture
-        .completedFuture(EndpointResponse.create(statusResource.getAllStatuses()));
+    return CompletableFuture.completedFuture(statusResource.getAllStatuses());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeLagReport(
       final LagReportingMessage lagReportingMessage, final ApiSecurityContext apiSecurityContext) {
     return lagReportingResource.map(resource -> CompletableFuture
-        .completedFuture(
-            EndpointResponse.create(resource.receiveHostLag(lagReportingMessage))))
+        .completedFuture(resource.receiveHostLag(lagReportingMessage)))
         .orElseGet(() -> CompletableFuture
-            .completedFuture(EndpointResponse.create(HttpStatus.SC_NOT_FOUND, "Not found", null)));
+            .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeCheckHealth(
       final ApiSecurityContext apiSecurityContext) {
-    return CompletableFuture
-        .completedFuture(EndpointResponse.create(healthCheckResource.checkHealth()));
+    return CompletableFuture.completedFuture(healthCheckResource.checkHealth());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeServerMetadata(
       final ApiSecurityContext apiSecurityContext) {
-    return CompletableFuture
-        .completedFuture(EndpointResponse.create(serverMetadataResource.getServerMetadata()));
+    return CompletableFuture.completedFuture(serverMetadataResource.getServerMetadata());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
       final ApiSecurityContext apiSecurityContext) {
-    return CompletableFuture
-        .completedFuture(EndpointResponse.create(serverMetadataResource.getServerClusterId()));
+    return CompletableFuture.completedFuture(serverMetadataResource.getServerClusterId());
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

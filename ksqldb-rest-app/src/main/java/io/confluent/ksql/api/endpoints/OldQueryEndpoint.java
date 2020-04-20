@@ -15,16 +15,13 @@
 
 package io.confluent.ksql.api.endpoints;
 
-import io.confluent.ksql.api.spi.EndpointResponse;
-import io.confluent.ksql.api.spi.StreamedEndpointResponse;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.VertxUtils;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
 
 /*
 This is the ported _old_ API query endpoint
@@ -40,17 +37,7 @@ public class OldQueryEndpoint {
   public EndpointResponse executeQuery(final KsqlSecurityContext ksqlSecurityContext,
       final KsqlRequest request, final CompletableFuture<Void> connectionClosedFuture) {
     VertxUtils.checkIsWorker();
-
-    final Response response = streamedQueryResource
-        .streamQuery(ksqlSecurityContext, request, connectionClosedFuture);
-
-    if (response.getEntity() instanceof StreamingOutput) {
-      return StreamedEndpointResponse.create(((StreamingOutput) response.getEntity()));
-    } else {
-      return EndpointResponse.create(response);
-    }
-
-
+    return streamedQueryResource.streamQuery(ksqlSecurityContext, request, connectionClosedFuture);
   }
 
 }

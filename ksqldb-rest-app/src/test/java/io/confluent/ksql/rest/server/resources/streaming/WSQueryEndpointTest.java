@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -84,7 +85,6 @@ import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
@@ -373,7 +373,7 @@ public class WSQueryEndpointTest {
     // Given:
     when(serverState.checkReady()).thenReturn(
         Optional.of(
-            Response.status(503)
+            EndpointResponse.create().status(503)
                 .entity(new KsqlErrorMessage(50300, "error"))
                 .build()
         )

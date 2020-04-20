@@ -15,13 +15,12 @@
 
 package io.confluent.ksql.api.endpoints;
 
-import io.confluent.ksql.api.spi.EndpointResponse;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.VertxUtils;
 import java.util.Objects;
-import javax.ws.rs.core.Response;
 
 public class TerminateEndpoint {
 
@@ -34,10 +33,7 @@ public class TerminateEndpoint {
   public EndpointResponse executeTerminate(final KsqlSecurityContext ksqlSecurityContext,
       final ClusterTerminateRequest request) {
     VertxUtils.checkIsWorker();
-
-    final Response response = ksqlResource.terminateCluster(ksqlSecurityContext, request);
-
-    return EndpointResponse.create(response);
+    return ksqlResource.terminateCluster(ksqlSecurityContext, request);
   }
 
 }

@@ -50,6 +50,7 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
@@ -62,15 +63,12 @@ import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.VertxCompletableFuture;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -286,37 +284,15 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldExecuteRootDocumentRequest() throws Exception {
+  public void shouldExecuteRootDocumentRequest() {
 
-    Vertx vertx = Vertx.vertx();
-    WebClient webClient = null;
+    HttpResponse<Buffer> resp = RestIntegrationTestUtil
+        .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1, HttpMethod.GET,
+            "/", null);
 
-    try {
-      // Given:
-      WebClientOptions webClientOptions = new WebClientOptions()
-          .setDefaultHost(REST_APP.getHttpListener().getHost())
-          .setDefaultPort(REST_APP.getHttpListener().getPort())
-          .setFollowRedirects(false);
-
-      webClient = WebClient.create(vertx, webClientOptions);
-
-      // When:
-      VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
-      webClient
-          .get("/")
-          .send(requestFuture);
-      HttpResponse<Buffer> resp = requestFuture.get();
-
-      // Then
-      assertThat(resp.statusCode(), is(HttpStatus.SC_TEMPORARY_REDIRECT));
-      assertThat(resp.getHeader("location"), is("/info"));
-
-    } finally {
-      if (webClient != null) {
-        webClient.close();
-      }
-      vertx.close();
-    }
+    // Then
+    assertThat(resp.statusCode(), is(HttpStatus.SC_TEMPORARY_REDIRECT));
+    assertThat(resp.getHeader("location"), is("/info"));
   }
 
   @Test
@@ -485,42 +461,18 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldFailToExecuteQueryUsingRestWithHttp2() throws Exception {
+  public void shouldFailToExecuteQueryUsingRestWithHttp2() {
 
-    String uri = "/query";
+    // Given:
+    KsqlRequest ksqlRequest = new KsqlRequest("SELECT * from " + AGG_TABLE + " EMIT CHANGES;",
+        Collections.emptyMap(), Collections.emptyMap(), null);
 
-    Vertx vertx = Vertx.vertx();
-    WebClient webClient = null;
+    // When:
+    HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+        HttpVersion.HTTP_2, HttpMethod.POST, "/query", ksqlRequest);
 
-    try {
-      // Given:
-      WebClientOptions webClientOptions = new WebClientOptions()
-          .setDefaultHost(REST_APP.getHttpListener().getHost())
-          .setDefaultPort(REST_APP.getHttpListener().getPort());
-
-      webClientOptions.setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
-
-      webClient = WebClient.create(vertx, webClientOptions);
-
-      JsonObject requestBody = new JsonObject()
-          .put("ksql", "SELECT * from " + AGG_TABLE + " EMIT CHANGES;");
-
-      // When:
-      VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
-      webClient
-          .post(uri)
-          .sendJsonObject(requestBody, requestFuture);
-      HttpResponse<Buffer> resp = requestFuture.get();
-
-      // Then
-      assertThat(resp.statusCode(), is(405));
-
-    } finally {
-      if (webClient != null) {
-        webClient.close();
-      }
-      vertx.close();
-    }
+    // Then:
+    assertThat(resp.statusCode(), is(405));
   }
 
   private boolean topicExists(final String topicName) {

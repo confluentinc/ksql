@@ -15,20 +15,21 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import javax.ws.rs.core.Response;
+import io.confluent.ksql.rest.EndpointResponse;
 
 /*
  * "Exception" used to conveniently return an error response from an
  * internal function call of a resource
  */
 public class KsqlRestException extends RuntimeException {
-  private final Response response;
 
-  public KsqlRestException(final Response response) {
+  private final EndpointResponse response;
+
+  public KsqlRestException(final EndpointResponse response) {
     this.response = response;
   }
 
-  public Response getResponse() {
+  public EndpointResponse getResponse() {
     return response;
   }
 }

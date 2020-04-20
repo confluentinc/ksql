@@ -18,7 +18,7 @@
       return acc;
     }, {prev: '', segs: [], foundLang: false});
 
-    const updatedUrl = updated.segs.join('/');
+    var updatedUrl = updated.segs.join('/');
 
     if (updated.foundLang) {
       window.location.replace(updatedUrl);

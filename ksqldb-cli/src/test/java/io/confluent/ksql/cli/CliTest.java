@@ -723,7 +723,7 @@ public class CliTest {
   @Test
   public void testCreateTable() {
     final String queryString = "CREATE TABLE " + tableName + " AS " +
-        " SELECT ITEMID, COUNT(*) FROM " + ORDER_DATA_PROVIDER.kstreamName() +
+        " SELECT COUNT(*) FROM " + ORDER_DATA_PROVIDER.kstreamName() +
         " GROUP BY ITEMID;";
 
     assertRunCommand(

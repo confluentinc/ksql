@@ -51,7 +51,7 @@ Prior to creating an issue, please search through existing issues so that you ar
 When submitting a pull request (PR), use the following guidelines:
 
 * Follow the style guide below
-* Add/update documentation appropriately for the change you are making.
+* Add/update documentation appropriately for the change you are making. For more information, see the [docs readme](docs/readme.md).
 * If you are introducing a new feature you may want to first submit your idea by creating a [new GitHub issue](https://github.com/confluentinc/ksql/issues) to solicit feedback.
 * If you would like design feedback, you should first introduce a [KLIP](design-proposals/README.md)
 * Non-trivial changes should include unit tests covering the new functionality and potentially [function tests](ksql-engine/src/test/resources/query-validation-tests/README.md).

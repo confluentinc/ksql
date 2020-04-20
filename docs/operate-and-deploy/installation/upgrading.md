@@ -101,7 +101,7 @@ the new nodes processing the historic data.
 ### Destroy the old cluster
 
 Once you're happy with your new cluster you can destroy the old one using the
-[terminate endpoint](https://github.com/confluentinc/ksql/blob/master/docs-md/developer-guide/ksqldb-rest-api/terminate-endpoint.md).
+[terminate endpoint](https://github.com/confluentinc/ksql/blob/master/docs/developer-guide/ksqldb-rest-api/terminate-endpoint.md).
 This will stop all processing and delete any internal topics in Kafka.
 
 ## Upgrade notes

@@ -72,7 +72,6 @@ import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.LagReportingResource;
-import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
@@ -166,7 +165,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
   private final CommandStore commandStore;
-  private final RootDocument rootDocument;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
@@ -293,7 +291,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlRestConfig restConfig,
       final CommandRunner commandRunner,
       final CommandStore commandStore,
-      final RootDocument rootDocument,
       final StatusResource statusResource,
       final StreamedQueryResource streamedQueryResource,
       final KsqlResource ksqlResource,
@@ -318,7 +315,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.restConfig = requireNonNull(restConfig, "restConfig");
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandRunner = requireNonNull(commandRunner, "commandRunner");
-    this.rootDocument = requireNonNull(rootDocument, "rootDocument");
     this.statusResource = requireNonNull(statusResource, "statusResource");
     this.streamedQueryResource = requireNonNull(streamedQueryResource, "streamedQueryResource");
     this.ksqlResource = requireNonNull(ksqlResource, "ksqlResource");
@@ -367,7 +363,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
   @Override
   public void setupResources(final Configurable<?> config, final KsqlRestConfig appConfig) {
-    config.register(rootDocument);
     config.register(serverInfoResource);
     this.serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfigNoPort);
     config.register(serverMetadataResource);
@@ -791,8 +786,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final InteractiveStatementExecutor statementExecutor =
         new InteractiveStatementExecutor(serviceContext, ksqlEngine, specificQueryIdGenerator);
 
-    final RootDocument rootDocument = new RootDocument();
-
     final StatusResource statusResource = new StatusResource(statementExecutor);
     final VersionCheckerAgent versionChecker
         = versionCheckerFactory.apply(ksqlEngine::hasActiveQueries);
@@ -888,7 +881,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         injectPathsWithoutAuthentication(restConfig),
         commandRunner,
         commandStore,
-        rootDocument,
         statusResource,
         streamedQueryResource,
         ksqlResource,

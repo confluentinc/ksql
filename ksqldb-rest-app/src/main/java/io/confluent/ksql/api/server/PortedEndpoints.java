@@ -79,6 +79,8 @@ class PortedEndpoints {
 
   static void setupEndpoints(final Endpoints endpoints, final Server server,
       final Router router) {
+    router.route(HttpMethod.GET, "/")
+        .handler(new PortedEndpoints(endpoints, server)::handleInfoRedirect);
     router.route(HttpMethod.POST, "/ksql")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
@@ -238,6 +240,13 @@ class PortedEndpoints {
             endpoints
                 .executeServerMetadataClusterId(DefaultApiSecurityContext.create(routingContext))
     );
+  }
+
+  void handleInfoRedirect(final RoutingContext routingContext) {
+    // We redirect to the /info endpoint.
+    // (This preserves behaviour of the old API)
+    routingContext.response().putHeader("location", "/info")
+        .setStatusCode(HttpStatus.SC_TEMPORARY_REDIRECT).end();
   }
 
   private static <T> void handlePortedOldApiRequest(final Server server,

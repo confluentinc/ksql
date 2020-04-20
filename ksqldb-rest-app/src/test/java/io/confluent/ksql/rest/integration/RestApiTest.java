@@ -84,6 +84,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.ws.rs.core.MediaType;
+import org.apache.http.HttpStatus;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
@@ -282,6 +283,40 @@ public class RestApiTest {
 
     // Then:
     assertThat(response, is(notNullValue()));
+  }
+
+  @Test
+  public void shouldExecuteRootDocumentRequest() throws Exception {
+
+    Vertx vertx = Vertx.vertx();
+    WebClient webClient = null;
+
+    try {
+      // Given:
+      WebClientOptions webClientOptions = new WebClientOptions()
+          .setDefaultHost(REST_APP.getHttpListener().getHost())
+          .setDefaultPort(REST_APP.getHttpListener().getPort())
+          .setFollowRedirects(false);
+
+      webClient = WebClient.create(vertx, webClientOptions);
+
+      // When:
+      VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+      webClient
+          .get("/")
+          .send(requestFuture);
+      HttpResponse<Buffer> resp = requestFuture.get();
+
+      // Then
+      assertThat(resp.statusCode(), is(HttpStatus.SC_TEMPORARY_REDIRECT));
+      assertThat(resp.getHeader("location"), is("/info"));
+
+    } finally {
+      if (webClient != null) {
+        webClient.close();
+      }
+      vertx.close();
+    }
   }
 
   @Test

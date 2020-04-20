@@ -16,7 +16,6 @@
 package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -35,6 +34,7 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
@@ -127,7 +127,7 @@ public final class StatementRewriter<C> {
         final BiFunction<Expression, C, Expression> expressionRewriter,
         final BiFunction<AstNode, Context<C>, Optional<AstNode>> plugin) {
       this.expressionRewriter
-          = Objects.requireNonNull(expressionRewriter, "expressionRewriter");;
+          = Objects.requireNonNull(expressionRewriter, "expressionRewriter");
       this.plugin = Objects.requireNonNull(plugin, "plugin");
       this.rewriter = this::process;
     }
@@ -137,7 +137,7 @@ public final class StatementRewriter<C> {
         final BiFunction<AstNode, Context<C>, Optional<AstNode>> plugin,
         final BiFunction<AstNode, C, AstNode> rewriter) {
       this.expressionRewriter
-          = Objects.requireNonNull(expressionRewriter, "expressionRewriter");;
+          = Objects.requireNonNull(expressionRewriter, "expressionRewriter");
       this.plugin = Objects.requireNonNull(plugin, "plugin");
       this.rewriter = Objects.requireNonNull(rewriter, "rewriter");
     }
@@ -189,8 +189,8 @@ public final class StatementRewriter<C> {
       final Optional<GroupBy> groupBy = node.getGroupBy()
           .map(exp -> ((GroupBy) rewriter.apply(exp, context)));
 
-      final Optional<Expression> partitionBy = node.getPartitionBy()
-          .map(exp -> processExpression(exp, context));
+      final Optional<PartitionBy> partitionBy = node.getPartitionBy()
+          .map(exp -> ((PartitionBy) rewriter.apply(exp, context)));
 
       final Optional<Expression> having = node.getHaving()
           .map(exp -> (processExpression(exp, context)));
@@ -295,7 +295,19 @@ public final class StatementRewriter<C> {
       }
 
       final Relation rewrittenLeft = (Relation) rewriter.apply(node.getLeft(), context);
-      final JoinedSource rightSource = Iterables.getOnlyElement(node.getRights());
+
+      return new Join(
+          node.getLocation(),
+          rewrittenLeft,
+          node.getRights()
+              .stream()
+              .map(right -> process(right, context))
+              .map(JoinedSource.class::cast)
+              .collect(ImmutableList.toImmutableList()));
+    }
+
+    @Override
+    protected AstNode visitJoinedSource(final JoinedSource rightSource, final C context) {
       final Relation rewrittenRight = (Relation) rewriter.apply(rightSource.getRelation(), context);
       final Optional<WithinExpression> rewrittenWithin = rightSource.getWithinExpression()
           .map(within -> (WithinExpression) rewriter.apply(within, context));
@@ -306,15 +318,12 @@ public final class StatementRewriter<C> {
         );
       }
 
-      return new Join(
-          node.getLocation(),
-          rewrittenLeft,
-          ImmutableList.of(new JoinedSource(
-              rightSource.getLocation(),
-              rewrittenRight,
-              rightSource.getType(),
-              rewrittenCriteria,
-              rewrittenWithin)));
+      return new JoinedSource(
+          rightSource.getLocation(),
+          rewrittenRight,
+          rightSource.getType(),
+          rewrittenCriteria,
+          rewrittenWithin);
     }
 
     @Override
@@ -433,6 +442,17 @@ public final class StatementRewriter<C> {
     }
 
     @Override
+    protected AstNode visitPartitionBy(final PartitionBy node, final C context) {
+      final Optional<AstNode> result = plugin.apply(node, new Context<>(context, this));
+      return result
+          .orElseGet(() -> new PartitionBy(
+              node.getLocation(),
+              processExpression(node.getExpression(), context),
+              node.getAlias()
+          ));
+    }
+
+    @Override
     protected AstNode visitGroupBy(final GroupBy node, final C context) {
       final Optional<AstNode> result = plugin.apply(node, new Context<>(context, this));
       if (result.isPresent()) {
@@ -443,7 +463,7 @@ public final class StatementRewriter<C> {
           .map(exp -> processExpression(exp, context))
           .collect(Collectors.toList());
 
-      return new GroupBy(node.getLocation(), rewrittenGroupings);
+      return new GroupBy(node.getLocation(), rewrittenGroupings, node.getAlias());
     }
 
     @Override

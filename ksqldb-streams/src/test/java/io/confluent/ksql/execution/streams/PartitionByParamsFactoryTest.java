@@ -138,6 +138,7 @@ public class PartitionByParamsFactoryTest {
     final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
         SCHEMA,
         partitionBy,
+        Optional.empty(),
         functionRegistry
     );
 
@@ -156,7 +157,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldBuildResultSchemaWhenPartitioningByStructField() {
     // Given:
-      final Expression partitionBy = new DereferenceExpression(
+    final Expression partitionBy = new DereferenceExpression(
         Optional.empty(),
         new UnqualifiedColumnReferenceExp(COL3),
         "someField"
@@ -166,6 +167,7 @@ public class PartitionByParamsFactoryTest {
     final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
         SCHEMA,
         partitionBy,
+        Optional.empty(),
         functionRegistry
     );
 
@@ -194,6 +196,7 @@ public class PartitionByParamsFactoryTest {
     final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
         SCHEMA,
         partitionBy,
+        Optional.empty(),
         functionRegistry
     );
 
@@ -207,6 +210,32 @@ public class PartitionByParamsFactoryTest {
         .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(COL0, SqlTypes.STRING)
         .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER)
+        .build()));
+  }
+
+  @Test
+  public void shouldBuildResultSchemaUsingSuppliedAlias() {
+    // Given:
+    final Expression partitionBy = new UnqualifiedColumnReferenceExp(COL1);
+    final ColumnName newKeyName = ColumnName.of("NEW_KEY");
+
+    // When:
+    final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
+        SCHEMA,
+        partitionBy,
+        Optional.of(newKeyName),
+        functionRegistry
+    );
+
+    // Then:
+    assertThat(resultSchema, is(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(newKeyName, SqlTypes.INTEGER)
+        .valueColumn(COL1, SqlTypes.INTEGER)
+        .valueColumn(COL2, SqlTypes.INTEGER)
+        .valueColumn(COL3, COL3_TYPE)
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(COL0, SqlTypes.STRING)
         .build()));
   }
 
@@ -288,7 +317,7 @@ public class PartitionByParamsFactoryTest {
 
   private PartitionByParams partitionBy(final Expression expression) {
     return PartitionByParamsFactory
-        .build(SCHEMA, expression, KSQL_CONFIG, functionRegistry, logger);
+        .build(SCHEMA, expression, Optional.empty(), KSQL_CONFIG, functionRegistry, logger);
   }
 
   public static class FailingUdf implements Kudf {

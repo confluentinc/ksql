@@ -1,76 +1,137 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572091566,
+  "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<USER INT, SUBREGION VARCHAR, REGION VARCHAR> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_INTERNAL_COL_2 VARCHAR> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_INTERNAL_COL_2 VARCHAR, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
     "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : "1,a,r0"
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : "2,a,r1"
-  }, {
-    "topic" : "test_topic",
-    "key" : "3",
-    "value" : "3,a,r0"
-  }, {
-    "topic" : "test_topic",
-    "key" : "4",
-    "value" : "4,b,r0"
-  }, {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : null
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : "2,a,r0"
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : "2,b,r1"
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "r0a",
-    "value" : "1"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "r1a",
-    "value" : "1"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "r0a",
-    "value" : "2"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "r0b",
-    "value" : "1"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "r0a",
-    "value" : "1"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "r1a",
-    "value" : "0"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "r0a",
-    "value" : "2"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "r0a",
-    "value" : "1"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "r1b",
-    "value" : "1"
-  } ]
+  "testCase" : {
+    "name" : "string concat using + op (table->table)",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : "1,a,r0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : "2,a,r1"
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : "3,a,r0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : "4,b,r0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : null
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : "2,a,r0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : "2,b,r1"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r0a",
+      "value" : "1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r1a",
+      "value" : "1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r0a",
+      "value" : "2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r0b",
+      "value" : "1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r0a",
+      "value" : "1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r1a",
+      "value" : "0"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r0a",
+      "value" : "2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r0a",
+      "value" : "1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r1b",
+      "value" : "1"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (USER INTEGER, SUBREGION STRING, REGION STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT COUNT(*) KSQL_COL_0\nFROM TEST TEST\nGROUP BY (TEST.REGION + TEST.SUBREGION)\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
 }

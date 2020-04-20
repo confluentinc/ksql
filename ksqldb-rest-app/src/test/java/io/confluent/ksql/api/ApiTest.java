@@ -605,7 +605,7 @@ public class ApiTest extends BaseApiTest {
     validateInsertStreamError(ERROR_CODE_MALFORMED_REQUEST, "Invalid JSON in inserts stream",
         insertsResponse.error, (long) rows.size() - 1);
 
-    assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
   }
 
   @Test
@@ -771,6 +771,20 @@ public class ApiTest extends BaseApiTest {
       final JsonObject ackLine = new JsonObject().put("status", "ok").put("seq", i);
       assertThat(jsonArray.getJsonObject(i), is(ackLine));
     }
+  }
+
+  @Test
+  public void shouldIncludeContentTypeHeaderInResponse() throws Exception {
+    // When
+    JsonObject requestBody = new JsonObject().put("ksql", "show streams;");
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post("/ksql")
+        .sendBuffer(requestBody.toBuffer(), requestFuture);
+
+    // Then
+    HttpResponse<Buffer> response = requestFuture.get();
+    assertThat(response.getHeader("content-type"), is("application/json"));
   }
 
   private void shouldRejectMalformedJsonInArgs(String uri) throws Exception {

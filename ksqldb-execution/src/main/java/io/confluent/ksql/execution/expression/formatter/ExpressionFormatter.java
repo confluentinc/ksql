@@ -311,6 +311,7 @@ public final class ExpressionFormatter {
           + process(node.getValue(), context)
           + " LIKE "
           + process(node.getPattern(), context)
+          + node.getEscape().map(c -> " ESCAPE '" + c + "'").orElse("")
           + ')';
     }
 

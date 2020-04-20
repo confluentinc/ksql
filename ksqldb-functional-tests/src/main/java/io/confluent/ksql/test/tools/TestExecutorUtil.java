@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -34,6 +35,7 @@ import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -75,7 +77,7 @@ import org.hamcrest.StringDescription;
 public final class TestExecutorUtil {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.create();
+  private static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.INSTANCE.get();
 
   private TestExecutorUtil() {
   }
@@ -85,7 +87,9 @@ public final class TestExecutorUtil {
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
-      final StubKafkaService stubKafkaService) {
+      final StubKafkaService stubKafkaService,
+      final TestExecutionListener listener
+  ) {
     final Map<String, String> persistedConfigs = testCase.persistedProperties();
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
@@ -95,9 +99,12 @@ public final class TestExecutorUtil {
         serviceContext,
         ksqlEngine,
         maybeUpdatedConfigs,
-        stubKafkaService);
+        stubKafkaService,
+        listener
+    );
+
     final List<TopologyTestDriverContainer> topologyTestDrivers = new ArrayList<>();
-    for (final PersistentQueryAndSources persistentQueryAndSources: queryMetadataList) {
+    for (final PersistentQueryAndSources persistentQueryAndSources : queryMetadataList) {
       final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSources
           .getPersistentQueryMetadata();
       final Properties streamsProperties = new Properties();
@@ -131,14 +138,15 @@ public final class TestExecutorUtil {
     return topologyTestDrivers;
   }
 
-  public static Iterable<ConfiguredKsqlPlan> planTestCase(
+  @VisibleForTesting
+  static Iterable<ConfiguredKsqlPlan> planTestCase(
       final KsqlEngine engine,
       final TestCase testCase,
       final KsqlConfig ksqlConfig,
       final Optional<SchemaRegistryClient> srClient,
       final StubKafkaService stubKafkaService
   ) {
-    initializeTopics(testCase, engine.getServiceContext(), stubKafkaService);
+    initializeTopics(testCase, engine.getServiceContext(), stubKafkaService, engine.getMetaStore());
     if (testCase.getExpectedTopology().isPresent()
         && testCase.getExpectedTopology().get().getPlan().isPresent()) {
       return testCase.getExpectedTopology().get().getPlan().get()
@@ -158,18 +166,9 @@ public final class TestExecutorUtil {
 
     final Optional<ParsedSchema> schema = getSchema(sinkDataSource, schemaRegistryClient);
 
-    final Topic sinkTopic = new Topic(
-        kafkaTopicName,
-        KsqlConstants.legacyDefaultSinkPartitionCount,
-        KsqlConstants.legacyDefaultSinkReplicaCount,
-        schema
-    );
+    final Topic sinkTopic = new Topic(kafkaTopicName, schema);
 
-    if (stubKafkaService.topicExists(sinkTopic)) {
-      stubKafkaService.updateTopic(sinkTopic);
-    } else {
-      stubKafkaService.createTopic(sinkTopic);
-    }
+    stubKafkaService.ensureTopic(sinkTopic);
     return sinkTopic;
   }
 
@@ -192,32 +191,21 @@ public final class TestExecutorUtil {
     return Optional.empty();
   }
 
-  public static List<PersistentQueryMetadata> buildQueries(
-      final TestCase testCase,
-      final ServiceContext serviceContext,
-      final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig,
-      final StubKafkaService stubKafkaService
-  ) {
-    return doBuildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, stubKafkaService)
-        .stream()
-        .map(PersistentQueryAndSources::getPersistentQueryMetadata)
-        .collect(Collectors.toList());
-  }
-
   private static List<PersistentQueryAndSources> doBuildQueries(
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
-      final StubKafkaService stubKafkaService
+      final StubKafkaService stubKafkaService,
+      final TestExecutionListener listener
   ) {
     final List<PersistentQueryAndSources> queries = execute(
         ksqlEngine,
         testCase,
         ksqlConfig,
         Optional.of(serviceContext.getSchemaRegistryClient()),
-        stubKafkaService
+        stubKafkaService,
+        listener
     );
 
     if (testCase.getInputRecords().isEmpty()) {
@@ -233,13 +221,26 @@ public final class TestExecutorUtil {
   private static void initializeTopics(
       final TestCase testCase,
       final ServiceContext serviceContext,
-      final StubKafkaService stubKafkaService
+      final StubKafkaService stubKafkaService,
+      final FunctionRegistry functionRegistry
   ) {
     final KafkaTopicClient topicClient = serviceContext.getTopicClient();
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
-    for (final Topic topic : testCase.getTopics()) {
-      stubKafkaService.createTopic(topic);
+    final List<String> statements = testCase.getExpectedTopology().isPresent()
+        ? ImmutableList.of() // Historic plans have already their topics already captured
+        : testCase.statements(); // Non-historic plans need to capture topics from stmts
+
+    final Collection<Topic> topics = TestCaseBuilderUtil.getAllTopics(
+        statements,
+        testCase.getTopics(),
+        testCase.getOutputRecords(),
+        testCase.getInputRecords(),
+        functionRegistry
+    );
+
+    for (final Topic topic : topics) {
+      stubKafkaService.ensureTopic(topic);
       topicClient.createTopic(
           topic.getName(),
           topic.getNumPartitions(),
@@ -264,19 +265,26 @@ public final class TestExecutorUtil {
       final TestCase testCase,
       final KsqlConfig ksqlConfig,
       final Optional<SchemaRegistryClient> srClient,
-      final StubKafkaService stubKafkaService
+      final StubKafkaService stubKafkaService,
+      final TestExecutionListener listener
   ) {
     final ImmutableList.Builder<PersistentQueryAndSources> queriesBuilder = new Builder<>();
     for (final ConfiguredKsqlPlan plan
         : planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService)) {
+
+      listener.acceptPlan(plan);
+
       final ExecuteResultAndSources result = executePlan(engine, plan);
       if (!result.getSources().isPresent()) {
         continue;
       }
-      queriesBuilder.add(new PersistentQueryAndSources(
-          (PersistentQueryMetadata) result.getExecuteResult().getQuery().get(),
-          result.getSources().get()
-      ));
+
+      final PersistentQueryMetadata query = (PersistentQueryMetadata) result
+          .getExecuteResult().getQuery().get();
+
+      listener.acceptQuery(query);
+
+      queriesBuilder.add(new PersistentQueryAndSources(query, result.getSources().get()));
     }
     return queriesBuilder.build();
   }

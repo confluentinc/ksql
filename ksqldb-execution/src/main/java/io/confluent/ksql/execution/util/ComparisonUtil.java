@@ -38,25 +38,18 @@ final class ComparisonUtil {
   private ComparisonUtil() {
   }
 
-  static void isValidComparison(
+  static boolean isValidComparison(
       final SqlType left, final ComparisonExpression.Type operator, final SqlType right
   ) {
     if (left == null || right == null) {
       throw nullSchemaException(left, operator, right);
     }
 
-    final boolean valid = HANDLERS.stream()
+    return HANDLERS.stream()
         .filter(h -> h.handles.test(left.baseType()))
         .findFirst()
         .map(h -> h.validator.test(operator, right))
         .orElse(false);
-
-    if (!valid) {
-      throw new KsqlException(
-          "Operator " + operator + " cannot be used to compare "
-              + left.baseType() + " and " + right.baseType()
-      );
-    }
   }
 
   private static KsqlException nullSchemaException(

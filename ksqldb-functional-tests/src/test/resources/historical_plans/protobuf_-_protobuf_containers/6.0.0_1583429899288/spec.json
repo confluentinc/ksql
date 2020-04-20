@@ -1,28 +1,71 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1583429899288,
+  "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ASTR ARRAY<VARCHAR>, MSTR MAP<VARCHAR, VARCHAR>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ASTR ARRAY<VARCHAR>, MSTR MAP<VARCHAR, VARCHAR>> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "input",
-    "key" : "",
-    "value" : {
-      "astr" : [ "1", "2" ],
-      "mstr" : {
-        "1" : "a"
+  "testCase" : {
+    "name" : "protobuf containers",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "astr" : [ "1", "2" ],
+        "mstr" : {
+          "1" : "a"
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ASTR" : [ "1", "2" ],
+        "MSTR" : {
+          "1" : "a"
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated string ASTR = 1;\n  repeated ConnectDefault2Entry MSTR = 2;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    string value = 2;\n  }\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ASTR ARRAY<STRING>, MSTR MAP<STRING, STRING>) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
       }
     }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "ASTR" : [ "1", "2" ],
-      "MSTR" : {
-        "1" : "a"
-      }
-    }
-  } ]
+  }
 }

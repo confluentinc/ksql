@@ -1,82 +1,135 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572085076,
+  "path" : "query-validation-tests/cast.json",
   "schemas" : {
     "CSAS_OUT_0.KsqlTopic.Source" : "STRUCT<FOO VARCHAR> NOT NULL",
     "CSAS_OUT_0.OUT" : "STRUCT<VAL DECIMAL(2, 1)> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "foo" : "0.1"
+  "testCase" : {
+    "name" : "string to decimal",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "foo" : "0.1"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "foo" : "1.1"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "foo" : "0.0"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "foo" : "0.99"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "foo" : "0.10"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "foo" : "0.01"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUT",
+      "key" : "",
+      "value" : {
+        "VAL" : "0.1"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : "",
+      "value" : {
+        "VAL" : "1.1"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : "",
+      "value" : {
+        "VAL" : "0.0"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : "",
+      "value" : {
+        "VAL" : "1.0"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : "",
+      "value" : {
+        "VAL" : "0.1"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : "",
+      "value" : {
+        "VAL" : "0.0"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "FOO",
+          "type" : [ "null", "string" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (FOO STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO');", "CREATE STREAM OUT AS SELECT CAST(TEST.FOO AS DECIMAL(2, 1)) VAL\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "foo" : "1.1"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "foo" : "0.0"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "foo" : "0.99"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "foo" : "0.10"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "foo" : "0.01"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUT",
-    "key" : "",
-    "value" : {
-      "VAL" : "0.1"
-    }
-  }, {
-    "topic" : "OUT",
-    "key" : "",
-    "value" : {
-      "VAL" : "1.1"
-    }
-  }, {
-    "topic" : "OUT",
-    "key" : "",
-    "value" : {
-      "VAL" : "0.0"
-    }
-  }, {
-    "topic" : "OUT",
-    "key" : "",
-    "value" : {
-      "VAL" : "1.0"
-    }
-  }, {
-    "topic" : "OUT",
-    "key" : "",
-    "value" : {
-      "VAL" : "0.1"
-    }
-  }, {
-    "topic" : "OUT",
-    "key" : "",
-    "value" : {
-      "VAL" : "0.0"
-    }
-  } ]
+  }
 }

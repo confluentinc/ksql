@@ -20,7 +20,9 @@ import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessag
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
@@ -35,9 +37,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import org.eclipse.jetty.http.HttpStatus.Code;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -47,9 +47,6 @@ public class CommandStoreUtilTest {
 
   private static final Duration TIMEOUT = Duration.ofMillis(5000L);
   private static final long SEQUENCE_NUMBER = 2;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private CommandQueue commandQueue;
@@ -87,15 +84,17 @@ public class CommandStoreUtilTest {
     doThrow(new TimeoutException("uh oh"))
         .when(commandQueue).ensureConsumedPast(SEQUENCE_NUMBER, TIMEOUT);
 
-    // Expect:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(
-        containsString("Timed out while waiting for a previous command to execute"))));
-    expectedException.expect(exceptionErrorMessage(errorMessage(
-        containsString("command sequence number: 2"))));
-
     // When:
-    CommandStoreUtil.httpWaitForCommandSequenceNumber(commandQueue, request, TIMEOUT);
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> CommandStoreUtil.httpWaitForCommandSequenceNumber(commandQueue, request, TIMEOUT)
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    assertThat(e, exceptionErrorMessage(errorMessage(
+        containsString("Timed out while waiting for a previous command to execute"))));
+    assertThat(e, exceptionErrorMessage(errorMessage(
+        containsString("command sequence number: 2"))));
   }
 }

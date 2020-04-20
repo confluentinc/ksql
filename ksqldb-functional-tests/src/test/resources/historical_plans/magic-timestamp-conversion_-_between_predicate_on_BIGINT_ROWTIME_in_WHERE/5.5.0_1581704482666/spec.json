@@ -1,52 +1,93 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581704482666,
+  "path" : "query-validation-tests/magic-timestamp-conversion.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE INT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<THING INT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : {
-      "source" : 1
-    },
-    "timestamp" : 1514764799999
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : {
-      "source" : 2
-    },
-    "timestamp" : 1514764800001
-  }, {
-    "topic" : "test_topic",
-    "key" : "3",
-    "value" : {
-      "source" : 3
-    },
-    "timestamp" : 1514764801000
-  }, {
-    "topic" : "test_topic",
-    "key" : "4",
-    "value" : {
-      "source" : 4
-    },
-    "timestamp" : 1514764801001
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "2",
-    "value" : {
-      "THING" : 2
-    },
-    "timestamp" : 1514764800001
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "3",
-    "value" : {
-      "THING" : 3
-    },
-    "timestamp" : 1514764801000
-  } ]
+  "testCase" : {
+    "name" : "between predicate on BIGINT ROWTIME in WHERE",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "source" : 1
+      },
+      "timestamp" : 1514764799999
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "source" : 2
+      },
+      "timestamp" : 1514764800001
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "source" : 3
+      },
+      "timestamp" : 1514764801000
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : {
+        "source" : 4
+      },
+      "timestamp" : 1514764801001
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "THING" : 2
+      },
+      "timestamp" : 1514764800001
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "THING" : 3
+      },
+      "timestamp" : 1514764801000
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (SOURCE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT TEST.SOURCE THING\nFROM TEST TEST\nWHERE (TEST.ROWTIME BETWEEN 1514764800001 AND 1514764801000)\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
 }

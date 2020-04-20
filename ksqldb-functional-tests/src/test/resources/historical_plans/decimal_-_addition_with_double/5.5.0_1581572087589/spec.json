@@ -1,49 +1,117 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572087589,
+  "path" : "query-validation-tests/decimal.json",
   "schemas" : {
     "CSAS_TEST2_0.KsqlTopic.Source" : "STRUCT<A DECIMAL(4, 2), B DOUBLE> NOT NULL",
     "CSAS_TEST2_0.TEST2" : "STRUCT<RESULT DOUBLE> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test",
-    "key" : "0",
-    "value" : {
-      "A" : "10.01",
-      "B" : 5.1
+  "testCase" : {
+    "name" : "addition with double",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : "0",
+      "value" : {
+        "A" : "10.01",
+        "B" : 5.1
+      }
+    }, {
+      "topic" : "test",
+      "key" : "0",
+      "value" : {
+        "A" : "10.01",
+        "B" : -5.0
+      }
+    }, {
+      "topic" : "test",
+      "key" : "0",
+      "value" : {
+        "A" : "10.01",
+        "B" : 0.0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TEST2",
+      "key" : "0",
+      "value" : {
+        "RESULT" : 15.11
+      }
+    }, {
+      "topic" : "TEST2",
+      "key" : "0",
+      "value" : {
+        "RESULT" : 5.01
+      }
+    }, {
+      "topic" : "TEST2",
+      "key" : "0",
+      "value" : {
+        "RESULT" : 10.01
+      }
+    } ],
+    "topics" : [ {
+      "name" : "TEST2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "A",
+          "type" : [ "null", {
+            "type" : "bytes",
+            "scale" : 2,
+            "precision" : 4,
+            "connect.version" : 1,
+            "connect.parameters" : {
+              "scale" : "2",
+              "connect.decimal.precision" : "4"
+            },
+            "connect.name" : "org.apache.kafka.connect.data.Decimal",
+            "logicalType" : "decimal"
+          } ],
+          "default" : null
+        }, {
+          "name" : "B",
+          "type" : [ "null", "double" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (A DECIMAL(4, 2), B DOUBLE) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='AVRO');", "CREATE STREAM TEST2 AS SELECT (TEST.A + TEST.B) RESULT\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "TEST2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
-  }, {
-    "topic" : "test",
-    "key" : "0",
-    "value" : {
-      "A" : "10.01",
-      "B" : -5.0
-    }
-  }, {
-    "topic" : "test",
-    "key" : "0",
-    "value" : {
-      "A" : "10.01",
-      "B" : 0.0
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "TEST2",
-    "key" : "0",
-    "value" : {
-      "RESULT" : 15.11
-    }
-  }, {
-    "topic" : "TEST2",
-    "key" : "0",
-    "value" : {
-      "RESULT" : 5.01
-    }
-  }, {
-    "topic" : "TEST2",
-    "key" : "0",
-    "value" : {
-      "RESULT" : 10.01
-    }
-  } ]
+  }
 }

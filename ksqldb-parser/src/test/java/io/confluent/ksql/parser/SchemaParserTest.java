@@ -18,7 +18,9 @@ package io.confluent.ksql.parser;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Type;
@@ -29,11 +31,8 @@ import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -43,9 +42,6 @@ public class SchemaParserTest {
 
   private static final ColumnName FOO = ColumnName.of("FOO");
   private static final ColumnName BAR = ColumnName.of("BAR");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private TypeRegistry typeRegistry;
@@ -72,21 +68,6 @@ public class SchemaParserTest {
   }
 
   @Test
-  public void shouldParseValidSchemaWithRowKeyField() {
-    // Given:
-    final String schema = "ROWKEY STRING KEY, bar INT";
-
-    // When:
-    final TableElements elements = parser.parse(schema);
-
-    // Then:
-    assertThat(elements, contains(
-        new TableElement(Namespace.KEY, SchemaUtil.ROWKEY_NAME, new Type(SqlTypes.STRING)),
-        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
-    ));
-  }
-
-  @Test
   public void shouldParseValidSchemaWithKeyField() {
     // Given:
     final String schema = "K STRING KEY, bar INT";
@@ -97,6 +78,21 @@ public class SchemaParserTest {
     // Then:
     assertThat(elements, contains(
         new TableElement(Namespace.KEY, ColumnName.of("K"), new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
+    ));
+  }
+
+  @Test
+  public void shouldParseValidSchemaWithPrimaryKeyField() {
+    // Given:
+    final String schema = "K STRING PRIMARY KEY, bar INT";
+
+    // When:
+    final TableElements elements = parser.parse(schema);
+
+    // Then:
+    assertThat(elements, contains(
+        new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("K"), new Type(SqlTypes.STRING)),
         new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
     ));
   }
@@ -147,11 +143,14 @@ public class SchemaParserTest {
     final String schema = "foo-bar INTEGER";
 
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Error parsing schema \"foo-bar INTEGER\" at 1:4: extraneous input '-' ");
-
     // When:
-    parser.parse(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> parser.parse(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Error parsing schema \"foo-bar INTEGER\" at 1:4: extraneous input '-' "));
   }
 
   @Test
@@ -160,10 +159,13 @@ public class SchemaParserTest {
     final String schema = "CREATE INTEGER";
 
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Error parsing schema \"CREATE INTEGER\" at 1:1: extraneous input 'CREATE' ");
-
     // When:
-    parser.parse(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> parser.parse(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Error parsing schema \"CREATE INTEGER\" at 1:1: extraneous input 'CREATE' "));
   }
 }

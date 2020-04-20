@@ -16,11 +16,11 @@
 package io.confluent.ksql.rest.entity;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.io.IOException;
 import java.util.List;
@@ -29,13 +29,14 @@ import org.junit.Test;
 
 public class SchemaDescriptionFormatTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
+
   private void shouldSerializeCorrectly(final String descriptionString,
-                                        final List<FieldInfo> deserialized) throws IOException {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    final List<?> deserializedGeneric = objectMapper.readValue(descriptionString, List.class);
-    final String serialized=  objectMapper.writeValueAsString(deserialized);
+      final List<FieldInfo> deserialized) throws IOException {
+    final List<?> deserializedGeneric = OBJECT_MAPPER.readValue(descriptionString, List.class);
+    final String serialized = OBJECT_MAPPER.writeValueAsString(deserialized);
     assertThat(
-        objectMapper.readValue(serialized, List.class),
+        OBJECT_MAPPER.readValue(serialized, List.class),
         equalTo(deserializedGeneric));
   }
 
@@ -77,9 +78,9 @@ public class SchemaDescriptionFormatTest {
         "  }\n" +
         "]";
 
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    final List<FieldInfo> deserialized = objectMapper.readValue(
-        descriptionString, new TypeReference<List<FieldInfo>>(){});
+    final List<FieldInfo> deserialized = OBJECT_MAPPER.readValue(
+        descriptionString, new TypeReference<List<FieldInfo>>() {
+        });
 
     // Test deserialization
     assertThat(deserialized.size(), equalTo(2));
@@ -124,9 +125,9 @@ public class SchemaDescriptionFormatTest {
         "  }\n" +
         "]";
 
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    final List<FieldInfo> deserialized = objectMapper.readValue(
-        descriptionString, new TypeReference<List<FieldInfo>>(){});
+    final List<FieldInfo> deserialized = OBJECT_MAPPER.readValue(
+        descriptionString, new TypeReference<List<FieldInfo>>() {
+        });
 
     // Test deserialization
     assertThat(deserialized.size(), equalTo(1));
@@ -159,9 +160,9 @@ public class SchemaDescriptionFormatTest {
         "  }\n" +
         "]";
 
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    final List<FieldInfo> deserialized = objectMapper.readValue(
-        descriptionString, new TypeReference<List<FieldInfo>>(){});
+    final List<FieldInfo> deserialized = OBJECT_MAPPER.readValue(
+        descriptionString, new TypeReference<List<FieldInfo>>() {
+        });
 
     // Test deserialization
     assertThat(deserialized.size(), equalTo(1));

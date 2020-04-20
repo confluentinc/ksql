@@ -29,6 +29,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
@@ -51,6 +52,8 @@ public class RepartitionNodeTest {
   private static final ColumnName V0 = ColumnName.of("V0");
   private static final ColumnName V1 = ColumnName.of("V1");
   private static final ColumnName V2 = ColumnName.of("V2");
+  private static final Optional<ColumnName> PARTITION_BY_ALIAS =
+      Optional.of(ColumnName.of("SomeAlias"));
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
@@ -70,7 +73,9 @@ public class RepartitionNodeTest {
   @Mock
   private PlanNode parent;
   @Mock
-  private Expression partitionBy;
+  private PartitionBy partitionBy;
+  @Mock
+  private Expression partitionByExpression;
   private RepartitionNode repartitionNode;
 
   @Before
@@ -78,6 +83,9 @@ public class RepartitionNodeTest {
     when(parent.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(parent.getSourceName()).thenReturn(Optional.of(MATCHING_SOURCE_NAME));
     when(parent.resolveSelectStar(any(), anyBoolean())).thenReturn(PARENT_COL_NAMES.stream());
+
+    when(partitionBy.getAlias()).thenReturn(PARTITION_BY_ALIAS);
+    when(partitionBy.getExpression()).thenReturn(partitionByExpression);
 
     repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, partitionBy, KeyField.none());
   }

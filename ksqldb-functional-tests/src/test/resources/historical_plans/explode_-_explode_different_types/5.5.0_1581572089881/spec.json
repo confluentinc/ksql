@@ -1,43 +1,84 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572089881,
+  "path" : "query-validation-tests/explode.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 ARRAY<INT>, F1 ARRAY<BIGINT>, F2 ARRAY<DOUBLE>, F3 ARRAY<BOOLEAN>, F4 ARRAY<VARCHAR>, F5 ARRAY<DECIMAL(20, 10)>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 INT, KSQL_COL_1 BIGINT, KSQL_COL_2 DOUBLE, KSQL_COL_3 BOOLEAN, KSQL_COL_4 VARCHAR, KSQL_COL_5 DECIMAL(20, 10)> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "0",
-    "value" : {
-      "F0" : [ 1, 2 ],
-      "F1" : [ 2, 3 ],
-      "F2" : [ 3.1, 4.1 ],
-      "F3" : [ true, false ],
-      "F4" : [ "foo", "bar" ],
-      "F5" : [ 123.456, 456.123 ]
+  "testCase" : {
+    "name" : "explode different types",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "F0" : [ 1, 2 ],
+        "F1" : [ 2, 3 ],
+        "F2" : [ 3.1, 4.1 ],
+        "F3" : [ true, false ],
+        "F4" : [ "foo", "bar" ],
+        "F5" : [ 123.456, 456.123 ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "KSQL_COL_0" : 1,
+        "KSQL_COL_1" : 2,
+        "KSQL_COL_2" : 3.1,
+        "KSQL_COL_3" : true,
+        "KSQL_COL_4" : "foo",
+        "KSQL_COL_5" : 123.456
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "KSQL_COL_0" : 2,
+        "KSQL_COL_1" : 3,
+        "KSQL_COL_2" : 4.1,
+        "KSQL_COL_3" : false,
+        "KSQL_COL_4" : "bar",
+        "KSQL_COL_5" : 456.123
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (F0 ARRAY<INTEGER>, F1 ARRAY<BIGINT>, F2 ARRAY<DOUBLE>, F3 ARRAY<BOOLEAN>, F4 ARRAY<STRING>, F5 ARRAY<DECIMAL(20, 10)>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  EXPLODE(TEST.F0) KSQL_COL_0,\n  EXPLODE(TEST.F1) KSQL_COL_1,\n  EXPLODE(TEST.F2) KSQL_COL_2,\n  EXPLODE(TEST.F3) KSQL_COL_3,\n  EXPLODE(TEST.F4) KSQL_COL_4,\n  EXPLODE(TEST.F5) KSQL_COL_5\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "KSQL_COL_0" : 1,
-      "KSQL_COL_1" : 2,
-      "KSQL_COL_2" : 3.1,
-      "KSQL_COL_3" : true,
-      "KSQL_COL_4" : "foo",
-      "KSQL_COL_5" : 123.456
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "KSQL_COL_0" : 2,
-      "KSQL_COL_1" : 3,
-      "KSQL_COL_2" : 4.1,
-      "KSQL_COL_3" : false,
-      "KSQL_COL_4" : "bar",
-      "KSQL_COL_5" : 456.123
-    }
-  } ]
+  }
 }

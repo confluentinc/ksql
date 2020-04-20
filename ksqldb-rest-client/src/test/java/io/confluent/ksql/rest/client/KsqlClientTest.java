@@ -106,7 +106,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<KsqlEntityList> resp = target.postKsqlRequest(ksql, Optional.of(123L));
+    RestResponse<KsqlEntityList> resp = target.postKsqlRequest(ksql, Collections.emptyMap(), Optional.of(123L));
 
     // Then:
     assertThat(resp.get(), is(expectedResponse));
@@ -129,7 +129,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    target.postKsqlRequest("some ksql", Optional.of(123L));
+    target.postKsqlRequest("some ksql", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
     assertThat(server.getHeaders().get("Authorization"), is(toAuthHeader(credentials)));
@@ -144,7 +144,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri).authorizationHeader("other auth");
-    target.postKsqlRequest("some ksql", Optional.of(123L));
+    target.postKsqlRequest("some ksql", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
     assertThat(server.getHeaders().get("Authorization"), is("other auth"));
@@ -160,7 +160,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri).properties(props);
-    target.postKsqlRequest("some ksql", Optional.of(123L));
+    target.postKsqlRequest("some ksql", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
     assertThat(getKsqlRequest().getConfigOverrides(), is(props));
@@ -465,7 +465,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<KsqlEntityList> resp = target.postKsqlRequest("ssl test", Optional.of(123L));
+    RestResponse<KsqlEntityList> resp = target.postKsqlRequest("ssl test", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
     assertThat(getKsqlRequest().getKsql(), is("ssl test"));
@@ -515,12 +515,12 @@ public class KsqlClientTest {
     startClientWithTls();
     expectedEx.expect(KsqlRestClientException.class);
     expectedEx
-        .expectMessage("Cannot make request with scheme http as client is configured with tls");
+        .expectMessage("Error issuing POST to KSQL server. path:/ksql");
 
     // When:
     URI uri = URI.create("http://localhost:" + server.getPort());
     KsqlTarget target = ksqlClient.target(uri);
-    target.postKsqlRequest("ssl test", Optional.of(123L));
+    target.postKsqlRequest("ssl test", Collections.emptyMap(), Optional.of(123L));
   }
 
   @Test
@@ -529,12 +529,12 @@ public class KsqlClientTest {
     expectedEx.expect(KsqlRestClientException.class);
     expectedEx
         .expectMessage(
-            "Cannot make request with scheme https as client is configured without tls");
+            "Error issuing POST to KSQL server. path:/ksql");
 
     // When:
     URI uri = URI.create("https://localhost:" + server.getPort());
     KsqlTarget target = ksqlClient.target(uri);
-    target.postKsqlRequest("ssl test", Optional.of(123L));
+    target.postKsqlRequest("ssl test", Collections.emptyMap(), Optional.of(123L));
   }
 
   @Test
@@ -545,7 +545,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<KsqlEntityList> response = target.postKsqlRequest("sql", Optional.of(123L));
+    RestResponse<KsqlEntityList> response = target.postKsqlRequest("sql", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -581,7 +581,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<KsqlEntityList> response = target.postKsqlRequest("sql", Optional.of(123L));
+    RestResponse<KsqlEntityList> response = target.postKsqlRequest("sql", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
     assertThat(response.getStatusCode().getCode(), is(400));
@@ -615,7 +615,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<KsqlEntityList> response = target.postKsqlRequest("sql", Optional.of(123L));
+    RestResponse<KsqlEntityList> response = target.postKsqlRequest("sql", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -649,7 +649,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<KsqlEntityList> response = target.postKsqlRequest("sql", Optional.of(123L));
+    RestResponse<KsqlEntityList> response = target.postKsqlRequest("sql", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -708,14 +708,12 @@ public class KsqlClientTest {
   private void startClientWithTls() {
     Map<String, String> props = new HashMap<>();
     props.putAll(ClientTrustStore.trustStoreProps());
-    props.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
     createClient(props);
   }
 
   private void startClientWithTlsAndTruststorePassword(final String password) {
     Map<String, String> props = new HashMap<>();
     props.putAll(ClientTrustStore.trustStoreProps());
-    props.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
     props.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, password);
     createClient(props);
   }

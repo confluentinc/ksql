@@ -18,27 +18,25 @@ package io.confluent.ksql.test.planned;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.test.model.KsqlVersion;
-import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.tools.TestCase;
-import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.test.tools.TestCaseBuilder;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
-import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public final class PlannedTestUtils {
 
-  static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.create();
+  static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.INSTANCE.get();
 
   private PlannedTestUtils() {
   }
@@ -83,31 +81,23 @@ public final class PlannedTestUtils {
     }
   }
 
-  public static TestCase buildPlannedTestCase(
-      final TestCase testCase,
-      final TestCasePlan planAtVersionNode
-  ) {
-    final Map<String, Topic> topicsByName = testCase.getTopics().stream()
-        .collect(Collectors.toMap(Topic::getName, t -> t));
-    final KsqlVersion version = KsqlVersion.parse(planAtVersionNode.getSpecNode().getVersion())
-        .withTimestamp(planAtVersionNode.getSpecNode().getTimestamp());
-    return testCase.withPlan(
+  public static TestCase buildPlannedTestCase(final TestCasePlan testCasePlan) {
+    final KsqlVersion version = KsqlVersion.parse(testCasePlan.getSpecNode().getVersion())
+        .withTimestamp(testCasePlan.getSpecNode().getTimestamp());
+
+    final TestCase testCase = Iterables.getOnlyElement(TestCaseBuilder.buildTests(
+        testCasePlan.getSpecNode().getTestCase(),
+        Paths.get(testCasePlan.getSpecNode().getPath())
+    ));
+
+    return testCase.withExpectedTopology(
         version,
         new TopologyAndConfigs(
-            Optional.of(planAtVersionNode.getPlanNode().getPlan()),
-            planAtVersionNode.getTopology(),
-            planAtVersionNode.getSpecNode().getSchemas(),
-            planAtVersionNode.getPlanNode().getConfigs()
-        ),
-        planAtVersionNode.getSpecNode().getInputs().stream()
-            .map(n -> n.build(topicsByName))
-            .collect(Collectors.toList()),
-        planAtVersionNode.getSpecNode().getOutputs().stream()
-            .map(n -> n.build(topicsByName))
-            .collect(Collectors.toList()),
-        planAtVersionNode.getSpecNode().getPostConditions()
-            .map(PostConditionsNode::build)
-            .orElse(PostConditions.NONE)
+            Optional.of(testCasePlan.getPlanNode().getPlan()),
+            testCasePlan.getTopology(),
+            testCasePlan.getSpecNode().getSchemas(),
+            testCasePlan.getPlanNode().getConfigs()
+        )
     );
   }
 }

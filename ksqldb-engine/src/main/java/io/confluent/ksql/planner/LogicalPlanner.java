@@ -20,6 +20,8 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.analyzer.FilterTypeValidator;
+import io.confluent.ksql.analyzer.FilterTypeValidator.FilterType;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
@@ -42,8 +44,12 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.GroupBy;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.planner.JoinTree.Join;
+import io.confluent.ksql.planner.JoinTree.Leaf;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -108,17 +114,20 @@ public class LogicalPlanner {
 
     if (analysis.getPartitionBy().isPresent()) {
       currentNode = buildRepartitionNode(
-          "PartitionBy", currentNode, analysis.getPartitionBy().get());
+          "PartitionBy",
+          currentNode,
+          analysis.getPartitionBy().get()
+      );
     }
 
     if (!analysis.getTableFunctions().isEmpty()) {
       currentNode = buildFlatMapNode(currentNode);
     }
 
-    if (analysis.getGroupByExpressions().isEmpty()) {
-      currentNode = buildProjectNode(currentNode, "Project");
-    } else {
+    if (analysis.getGroupBy().isPresent()) {
       currentNode = buildAggregateNode(currentNode);
+    } else {
+      currentNode = buildProjectNode(currentNode, "Project");
     }
 
     return buildOutputNode(currentNode);
@@ -192,7 +201,11 @@ public class LogicalPlanner {
   }
 
   private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {
-    final List<Expression> groupByExps = analysis.getGroupByExpressions();
+    final GroupBy groupBy = analysis.getGroupBy()
+        .orElseThrow(IllegalStateException::new);
+
+    final List<Expression> groupByExps = groupBy
+        .getGroupingExpressions();
 
     final List<SelectExpression> projectionExpressions = buildSelectExpressions(
         sourcePlanNode,
@@ -200,15 +213,15 @@ public class LogicalPlanner {
     );
 
     final LogicalSchema schema =
-        buildAggregateSchema(sourcePlanNode, groupByExps, projectionExpressions);
+        buildAggregateSchema(sourcePlanNode, groupBy, projectionExpressions);
 
-    final Expression groupBy = groupByExps.size() == 1
+    final Expression groupBySingle = groupByExps.size() == 1
         ? groupByExps.get(0)
         : null;
 
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching(
         (expression, alias) ->
-            expression.equals(groupBy)
+            expression.equals(groupBySingle)
                 && !SchemaUtil.isSystemColumn(alias)
                 && !schema.isKeyColumn(alias),
         projectionExpressions);
@@ -218,12 +231,21 @@ public class LogicalPlanner {
         refRewriter::process
     );
 
+    if (analysis.getHavingExpression().isPresent()) {
+      final FilterTypeValidator validator = new FilterTypeValidator(
+          sourcePlanNode.getSchema(),
+          functionRegistry,
+          FilterType.HAVING);
+
+      validator.validateFilterExpression(analysis.getHavingExpression().get());
+    }
+
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
         schema,
         keyFieldName,
-        groupByExps,
+        groupBy,
         functionRegistry,
         analysis,
         aggregateAnalysis,
@@ -316,24 +338,33 @@ public class LogicalPlanner {
         "Unsupported SelectItem type: " + selectItem.getClass().getName());
   }
 
-  private static FilterNode buildFilterNode(
+  private FilterNode buildFilterNode(
       final PlanNode sourcePlanNode,
       final Expression filterExpression
   ) {
+    final FilterTypeValidator validator = new FilterTypeValidator(
+        sourcePlanNode.getSchema(),
+        functionRegistry,
+        FilterType.WHERE);
+
+    validator.validateFilterExpression(filterExpression);
+
     return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
 
   private RepartitionNode buildRepartitionNode(
       final String planId,
       final PlanNode sourceNode,
-      final Expression partitionBy
+      final PartitionBy partitionBy
   ) {
     final KeyField keyField;
 
-    if (!(partitionBy instanceof UnqualifiedColumnReferenceExp)) {
+    final Expression expression = partitionBy.getExpression();
+
+    if (!(expression instanceof UnqualifiedColumnReferenceExp)) {
       keyField = KeyField.none();
     } else {
-      final ColumnName columnName = ((UnqualifiedColumnReferenceExp) partitionBy).getColumnName();
+      final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
       final LogicalSchema sourceSchema = sourceNode.getSchema();
 
       final Column proposedKey = sourceSchema
@@ -396,9 +427,13 @@ public class LogicalPlanner {
     final PlanNode repartition = buildRepartitionNode(
         side + "SourceKeyed",
         sourceNode,
-        // We need to repartition on the original join expression, and we need to drop
-        // all qualifiers.
-        ExpressionTreeRewriter.rewriteWith(rewriter::process, joinExpression)
+        new PartitionBy(
+            Optional.empty(),
+            // We need to repartition on the original join expression, and we need to drop
+            // all qualifiers.
+            ExpressionTreeRewriter.rewriteWith(rewriter::process, joinExpression),
+            Optional.empty()
+        )
     );
 
     final List<SelectExpression> projection = selectWithPrependAlias(
@@ -415,49 +450,54 @@ public class LogicalPlanner {
   }
 
   private PlanNode buildSourceNode() {
-
-    final List<AliasedDataSource> sources = analysis.getFromDataSources();
-
     if (!analysis.isJoin()) {
-      return buildNonJoinNode(sources);
+      return buildNonJoinNode(analysis.getFrom());
     }
-
-    if (sources.size() == 1) {
-      throw new IllegalStateException("Expected more than one source. Got " + sources.size());
-    }
-
-    final AliasedDataSource left = sources.get(0);
-    final AliasedDataSource right = sources.get(1);
 
     final List<JoinInfo> joinInfo = analysis.getOriginal().getJoin();
+    final JoinTree.Node tree = JoinTree.build(joinInfo);
+    if (tree instanceof JoinTree.Leaf) {
+      throw new IllegalStateException("Expected more than one source:"
+          + analysis.getAllDataSources());
+    }
 
-    final PlanNode leftSourceNode = buildSourceForJoin(
-        left,
-        "Left",
-        joinInfo.get(0).getLeftJoinExpression()
-    );
+    return buildJoin((Join) tree, "");
+  }
 
-    final PlanNode rightSourceNode = buildSourceForJoin(
-        right,
-        "Right",
-        joinInfo.get(0).getRightJoinExpression()
-    );
+  /**
+   * @param root    the root of the Join Tree
+   * @param prefix  the prefix to uniquely identify the plan node
+   * @return the PlanNode representing this Join Tree
+   */
+  private PlanNode buildJoin(final Join root, final String prefix) {
+    final PlanNode left;
+    if (root.getLeft() instanceof JoinTree.Join) {
+      left = buildJoin((Join) root.getLeft(), prefix + "L_");
+    } else {
+      final JoinTree.Leaf leaf = (Leaf) root.getLeft();
+      left = buildSourceForJoin(
+          leaf.getSource(), prefix + "Left", root.getInfo().getLeftJoinExpression());
+    }
+
+    final PlanNode right;
+    if (root.getRight() instanceof JoinTree.Join) {
+      right = buildJoin((Join) root.getRight(), prefix + "R_");
+    } else {
+      final JoinTree.Leaf leaf = (Leaf) root.getRight();
+      right = buildSourceForJoin(
+          leaf.getSource(), prefix + "Right", root.getInfo().getRightJoinExpression());
+    }
 
     return new JoinNode(
-        new PlanNodeId("Join"),
-        joinInfo.get(0).getType(),
-        leftSourceNode,
-        rightSourceNode,
-        joinInfo.get(0).getWithinExpression()
+        new PlanNodeId(prefix + "Join"),
+        root.getInfo().getType(),
+        left,
+        right,
+        root.getInfo().getWithinExpression()
     );
   }
 
-  private DataSourceNode buildNonJoinNode(final List<AliasedDataSource> sources) {
-    if (sources.size() != 1) {
-      throw new IllegalStateException("Expected only 1 source, got: " + sources.size());
-    }
-
-    final AliasedDataSource dataSource = analysis.getFromDataSources().get(0);
+  private DataSourceNode buildNonJoinNode(final AliasedDataSource dataSource) {
     return new DataSourceNode(
         new PlanNodeId("KsqlTopic"),
         dataSource.getDataSource(),
@@ -504,7 +544,7 @@ public class LogicalPlanner {
 
   private LogicalSchema buildAggregateSchema(
       final PlanNode sourcePlanNode,
-      final List<Expression> groupByExps,
+      final GroupBy groupBy,
       final List<SelectExpression> projectionExpressions
   ) {
     final LogicalSchema sourceSchema = sourcePlanNode.getSchema();
@@ -518,12 +558,15 @@ public class LogicalPlanner {
     final ColumnAliasGenerator keyColNameGen = ColumnNames
         .columnAliasGenerator(Stream.of(sourceSchema, projectionSchema));
 
+    final List<Expression> groupByExps = groupBy.getGroupingExpressions();
+
     final ColumnName keyName;
     final SqlType keyType;
 
     if (groupByExps.size() != 1) {
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-        keyName = keyColNameGen.nextKsqlColAlias();
+        keyName = groupBy.getAlias()
+            .orElseGet(keyColNameGen::nextKsqlColAlias);
       } else {
         keyName = SchemaUtil.ROWKEY_NAME;
       }
@@ -532,7 +575,9 @@ public class LogicalPlanner {
       final Expression expression = groupByExps.get(0);
 
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-        if (expression instanceof ColumnReferenceExp) {
+        if (groupBy.getAlias().isPresent()) {
+          keyName = groupBy.getAlias().get();
+        } else if (expression instanceof ColumnReferenceExp) {
           keyName = ((ColumnReferenceExp) expression).getColumnName();
         } else {
           keyName = keyColNameGen.uniqueAliasFor(expression);
@@ -558,21 +603,16 @@ public class LogicalPlanner {
 
   private LogicalSchema buildRepartitionedSchema(
       final PlanNode sourceNode,
-      final Expression partitionBy
+      final PartitionBy partitionBy
   ) {
     final LogicalSchema sourceSchema = sourceNode.getSchema();
-
-    if (exactlyMatchesKeyColumns(partitionBy, sourceSchema)) {
-      // No-op:
-      return sourceSchema;
-    }
 
     if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
       final ExpressionTypeManager expressionTypeManager =
           new ExpressionTypeManager(sourceSchema, functionRegistry);
 
       final SqlType keyType = expressionTypeManager
-          .getExpressionSqlType(partitionBy);
+          .getExpressionSqlType(partitionBy.getExpression());
 
       return LogicalSchema.builder()
           .withRowTime()
@@ -583,7 +623,8 @@ public class LogicalPlanner {
 
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
-        partitionBy,
+        partitionBy.getExpression(),
+        partitionBy.getAlias(),
         functionRegistry
     );
   }

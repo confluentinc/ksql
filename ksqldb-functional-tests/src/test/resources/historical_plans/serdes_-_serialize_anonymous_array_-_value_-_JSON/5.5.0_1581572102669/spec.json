@@ -1,48 +1,94 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102669,
+  "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO ARRAY<BIGINT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "ARRAY<BIGINT>"
   },
-  "inputs" : [ {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : [ 12, 34, 999 ]
+  "testCase" : {
+    "name" : "serialize anonymous array - value - JSON",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : [ 12, 34, 999 ]
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : [ 12, 34, null ]
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : [ 12, 34, 999 ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : [ 12, 34, null ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "schema" : {
+        "type" : "array",
+        "items" : [ "null", "long" ]
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (FOO ARRAY<BIGINT>) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : [ 12, 34, null ]
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : null
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : null
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : [ 12, 34, 999 ]
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : [ 12, 34, null ]
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : null
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : null
-  } ]
+  }
 }

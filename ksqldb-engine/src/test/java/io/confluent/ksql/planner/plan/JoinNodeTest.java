@@ -102,8 +102,16 @@ public class JoinNodeTest {
       .valueColumn(ColumnName.of("R1"), SqlTypes.BIGINT)
       .build();
 
+  private static final LogicalSchema RIGHT2_SOURCE_SCHEMA = LogicalSchema.builder()
+          .withRowTime()
+          .keyColumn(ColumnName.of("right2Key"), SqlTypes.BIGINT)
+          .valueColumn(ColumnName.of("C0"), SqlTypes.STRING)
+          .valueColumn(ColumnName.of("R2"), SqlTypes.BIGINT)
+          .build();
+
   private static final SourceName LEFT_ALIAS = SourceName.of("left");
   private static final SourceName RIGHT_ALIAS = SourceName.of("right");
+  private static final SourceName RIGHT2_ALIAS = SourceName.of("right2");
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = prependAlias(
       LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
@@ -111,6 +119,10 @@ public class JoinNodeTest {
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = prependAlias(
       RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+  );
+
+  private static final LogicalSchema RIGHT2_NODE_SCHEMA = prependAlias(
+          RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
   );
 
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
@@ -141,6 +153,8 @@ public class JoinNodeTest {
   private DataSourceNode left;
   @Mock
   private DataSourceNode right;
+  @Mock
+  private DataSourceNode right2;
   @Mock
   private SchemaKStream<String> leftSchemaKStream;
   @Mock
@@ -177,6 +191,7 @@ public class JoinNodeTest {
 
     when(left.getSchema()).thenReturn(LEFT_NODE_SCHEMA);
     when(right.getSchema()).thenReturn(RIGHT_NODE_SCHEMA);
+    when(right2.getSchema()).thenReturn(RIGHT2_NODE_SCHEMA);
 
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
@@ -710,6 +725,71 @@ public class JoinNodeTest {
   }
 
   @Test
+  public void shouldResolveUnaliasedSelectStarWithMultipleJoins() {
+    // Given:
+    final JoinNode joinNode = new JoinNode(
+            nodeId,
+            JoinType.LEFT,
+            left,
+            new JoinNode(
+                    new PlanNodeId("foo"),
+                    JoinType.LEFT,
+                    right,
+                    right2,
+                    Optional.empty()
+            ), Optional.empty()
+    );
+
+    when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
+    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
+    when(right2.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r2")));
+
+    // When:
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.empty(), true);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(ColumnName.of("l"), ColumnName.of("r"), ColumnName.of("r2")));
+
+    verify(left).resolveSelectStar(Optional.empty(), false);
+    verify(right).resolveSelectStar(Optional.empty(), false);
+    verify(right2).resolveSelectStar(Optional.empty(), false);
+  }
+
+  @Test
+  public void shouldResolveUnaliasedSelectStarWithMultipleJoinsOnLeftSide() {
+    // Given:
+    final JoinNode joinNode = new JoinNode(
+            nodeId,
+            JoinType.LEFT,
+            new JoinNode(
+                    new PlanNodeId("foo"),
+                    JoinType.LEFT,
+                    right,
+                    right2,
+                    Optional.empty()
+            ),
+            left,
+            Optional.empty()
+    );
+
+    when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
+    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
+    when(right2.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r2")));
+
+    // When:
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.empty(), true);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(ColumnName.of("r"), ColumnName.of("r2"), ColumnName.of("l")));
+
+    verify(left).resolveSelectStar(Optional.empty(), false);
+    verify(right).resolveSelectStar(Optional.empty(), false);
+    verify(right2).resolveSelectStar(Optional.empty(), false);
+  }
+
+  @Test
   public void shouldResolveAliasedSelectStarByCallingOnlyCorrectParent() {
     // Given:
     final JoinNode joinNode = new JoinNode(
@@ -730,6 +810,36 @@ public class JoinNodeTest {
     assertThat(columns, contains(ColumnName.of("r")));
 
     verify(left, never()).resolveSelectStar(any(), anyBoolean());
+    verify(right).resolveSelectStar(Optional.of(RIGHT_ALIAS), false);
+  }
+
+  @Test
+  public void shouldResolveNestedAliasedSelectStarByCallingOnlyCorrectParentWithMultiJoins() {
+    // Given:
+    final JoinNode joinNode = new JoinNode(
+            nodeId,
+            JoinType.LEFT,
+            left,
+            new JoinNode(
+                    new PlanNodeId("foo"),
+                    JoinType.LEFT,
+                    right,
+                    right2,
+                    Optional.empty()
+            ), Optional.empty()
+    );
+
+    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
+
+    // When:
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.of(RIGHT_ALIAS), true);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(ColumnName.of("r")));
+
+    verify(left, never()).resolveSelectStar(any(), anyBoolean());
+    verify(right2, never()).resolveSelectStar(any(), anyBoolean());
     verify(right).resolveSelectStar(Optional.of(RIGHT_ALIAS), false);
   }
 

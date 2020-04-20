@@ -16,7 +16,9 @@
 package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
@@ -28,14 +30,9 @@ import java.math.BigDecimal;
 import java.util.Map;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SqlDecimalTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
@@ -86,12 +83,14 @@ public class SqlDecimalTest {
     // Given:
     final SqlDecimal schema = SqlTypes.decimal(4, 1);
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("Expected DECIMAL, got BIGINT");
-
     // When:
-    schema.validateValue(10L);
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(10L)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected DECIMAL, got BIGINT"));
   }
 
   @Test
@@ -99,12 +98,14 @@ public class SqlDecimalTest {
     // Given:
     final SqlDecimal schema = SqlTypes.decimal(4, 1);
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("Expected DECIMAL(4, 1), got precision 5");
-
     // When:
-    schema.validateValue(new BigDecimal("1234.5"));
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(new BigDecimal("1234.5"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected DECIMAL(4, 1), got precision 5"));
   }
 
   @Test
@@ -112,12 +113,14 @@ public class SqlDecimalTest {
     // Given:
     final SqlDecimal schema = SqlTypes.decimal(4, 1);
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("Expected DECIMAL(4, 1), got scale 2");
-
     // When:
-    schema.validateValue(new BigDecimal("12.50"));
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(new BigDecimal("12.50"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected DECIMAL(4, 1), got scale 2"));
   }
 
   @Test

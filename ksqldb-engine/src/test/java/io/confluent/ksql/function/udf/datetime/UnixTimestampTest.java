@@ -15,20 +15,13 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import java.sql.Timestamp;
 
 import static org.junit.Assert.assertTrue;
 
 public class UnixTimestampTest {
 
   private UnixTimestamp udf;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {

@@ -80,11 +80,6 @@ public final class SqlPrimitiveType extends SqlType {
   }
 
   @Override
-  public boolean supportsCast() {
-    return true;
-  }
-
-  @Override
   public void validateValue(final Object value) {
     if (value == null) {
       return;

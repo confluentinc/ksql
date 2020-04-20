@@ -17,21 +17,18 @@ package io.confluent.ksql.metastore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.stream.IntStream;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressFBWarnings({"RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT", "RV_RETURN_VALUE_IGNORED_INFERRED"})
 public class ReferentialIntegrityTableEntryTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private ReferentialIntegrityTableEntry entry;
 
@@ -95,12 +92,14 @@ public class ReferentialIntegrityTableEntryTest {
     // Given:
     entry.addSourceForQueries("id");
 
-    // Then:
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage("Already source for query: id");
-
     // When:
-    entry.addSourceForQueries("id");
+    final IllegalStateException e = assertThrows(
+        IllegalStateException.class,
+        () -> entry.addSourceForQueries("id")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Already source for query: id"));
   }
 
   @Test
@@ -108,12 +107,14 @@ public class ReferentialIntegrityTableEntryTest {
     // Given:
     entry.addSinkForQueries("id");
 
-    // Then:
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage("Already sink for query: id");
-
     // When:
-    entry.addSinkForQueries("id");
+    final IllegalStateException e = assertThrows(
+        IllegalStateException.class,
+        () -> entry.addSinkForQueries("id")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Already sink for query: id"));
   }
 
   @SuppressWarnings("ResultOfMethodCallIgnored")

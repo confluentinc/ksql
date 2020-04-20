@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.integration;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -71,6 +71,20 @@ public final class RestIntegrationTestUtil {
       throwOnError(res);
 
       return awaitResults(restClient, res.getResponse());
+    }
+  }
+
+  static KsqlErrorMessage makeKsqlRequestWithError(
+      final TestKsqlRestApp restApp,
+      final String sql
+  ) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
+
+      throwOnNoError(res);
+
+      return res.getErrorMessage();
     }
   }
 
@@ -139,7 +153,7 @@ public final class RestIntegrationTestUtil {
     final URI listener = restApp.getHttpListener();
 
     final Client httpClient = ClientBuilder.newBuilder()
-        .register(new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper))
+        .register(new JacksonMessageBodyProvider(ApiJsonMapper.INSTANCE.get()))
         .build();
 
     try {
@@ -160,7 +174,7 @@ public final class RestIntegrationTestUtil {
     makeKsqlRequest(
         restApp,
         "CREATE STREAM " + dataProvider.kstreamName()
-            + " (" + dataProvider.ksqlSchemaString() + ") "
+            + " (" + dataProvider.ksqlSchemaString(false) + ") "
             + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');"
     );
   }

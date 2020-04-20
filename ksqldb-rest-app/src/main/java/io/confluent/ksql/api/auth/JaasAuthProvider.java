@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.auth;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -137,14 +138,13 @@ public class JaasAuthProvider implements AuthProvider {
   }
 
   @SuppressWarnings("deprecation")
-  static class JaasUser extends io.vertx.ext.auth.AbstractUser {
+  static class JaasUser extends io.vertx.ext.auth.AbstractUser implements ApiUser {
 
-    private final String username;
-    private JsonObject principal;
+    private final Principal principal;
     private boolean authorized;
 
     JaasUser(final String username, final boolean authorized) {
-      this.username = Objects.requireNonNull(username, "username");
+      this.principal = new JaasPrincipal(Objects.requireNonNull(username));
       this.authorized = authorized;
     }
 
@@ -158,14 +158,16 @@ public class JaasAuthProvider implements AuthProvider {
 
     @Override
     public JsonObject principal() {
-      if (principal == null) {
-        principal = new JsonObject().put("username", username).put("authorized", authorized);
-      }
-      return principal;
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void setAuthProvider(final AuthProvider authProvider) {
+    }
+
+    @Override
+    public Principal getPrincipal() {
+      return principal;
     }
   }
 }

@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -69,7 +70,7 @@ public class ServerInternalKsqlClientTest {
 
     // When:
     final RestResponse<KsqlEntityList> restResponse =
-        ksqlClient.makeKsqlRequest(unused, KSQL_STATEMENT);
+        ksqlClient.makeKsqlRequest(unused, KSQL_STATEMENT, ImmutableMap.of());
 
     // Then:
     assertThat("is successful", restResponse.isSuccessful());

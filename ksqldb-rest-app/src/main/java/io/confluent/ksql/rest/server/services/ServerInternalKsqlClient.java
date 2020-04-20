@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -55,22 +56,24 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
     this.securityContext = requireNonNull(securityContext, "securityContext");
   }
 
+
   @Override
   public RestResponse<KsqlEntityList> makeKsqlRequest(
       final URI serverEndpoint,
-      final String sql
-  ) {
+      final String sql,
+      final Map<String, ?> requestProperties) {
     final KsqlRequest request = new KsqlRequest(
-        sql, Collections.emptyMap(), Collections.emptyMap(), null);
+        sql, Collections.emptyMap(), requestProperties, null);
+
     final Response response = ksqlResource.handleKsqlStatements(securityContext, request);
 
     final Code statusCode = HttpStatus.getCode(response.getStatus());
-    if (statusCode != Code.OK) {
-      // It always returns ok
-      throw new IllegalStateException("Unexpected failure");
-    }
 
-    return RestResponse.successful(statusCode, (KsqlEntityList) response.getEntity());
+    if (statusCode == Code.OK) {
+      return RestResponse.successful(statusCode, (KsqlEntityList) response.getEntity());
+    } else {
+      return RestResponse.erroneous(statusCode, (KsqlErrorMessage) response.getEntity());
+    }
   }
 
   @Override

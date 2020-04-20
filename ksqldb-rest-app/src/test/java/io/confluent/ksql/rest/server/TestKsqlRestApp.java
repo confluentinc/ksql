@@ -22,14 +22,13 @@ import static org.easymock.EasyMock.niceMock;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.api.auth.ApiServerConfig;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
-import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -67,6 +66,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -99,26 +99,26 @@ import org.junit.rules.ExternalResource;
  */
 public class TestKsqlRestApp extends ExternalResource {
 
-  private static final AtomicInteger COUNTER = new AtomicInteger();
+  protected static final AtomicInteger COUNTER = new AtomicInteger();
 
-  private final String metricsPrefix = "app-" + COUNTER.getAndIncrement() + "-";
-  private final Map<String, ?> baseConfig;
-  private final Supplier<String> bootstrapServers;
-  private final Supplier<ServiceContext> serviceContext;
-  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
-  private final KsqlSecurityContextProvider securityContextProvider;
-  private final List<URL> listeners = new ArrayList<>();
-  private final Optional<BasicCredentials> credentials;
-  private ExecutableServer<KsqlRestConfig> restServer;
-  private KsqlExecutionContext ksqlEngine;
-  private KsqlRestApplication ksqlRestApplication;
+  protected final String metricsPrefix = "app-" + COUNTER.getAndIncrement() + "-";
+  protected final Map<String, ?> baseConfig;
+  protected final Supplier<String> bootstrapServers;
+  protected final Supplier<ServiceContext> serviceContext;
+  protected final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
+  protected final KsqlSecurityContextProvider securityContextProvider;
+  protected final List<URL> listeners = new ArrayList<>();
+  protected final Optional<BasicCredentials> credentials;
+  protected ExecutableServer<KsqlRestConfig> restServer;
+  protected KsqlExecutionContext ksqlEngine;
+  protected KsqlRestApplication ksqlRestApplication;
 
   static {
     // Increase the default - it's low (100)
     System.setProperty("sun.net.maxDatagramSockets", "1024");
   }
 
-  private TestKsqlRestApp(
+  protected TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
@@ -239,10 +239,10 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public static Client buildClient() {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper.copy();
+    final ObjectMapper objectMapper = ApiJsonMapper.INSTANCE.get().copy();
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);
-    objectMapper.registerModule(new Jdk8Module());
+
     final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     return ClientBuilder.newBuilder().register(jsonProvider).build();
   }
@@ -253,29 +253,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
   @Override
   protected void before() {
-    if (restServer != null) {
-      after();
-    }
-
-    final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
-
-    try {
-      ksqlRestApplication = KsqlRestApplication.buildApplication(
-          metricsPrefix,
-          convertToApiServerConfig(config),
-          (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
-          3,
-          serviceContext.get(),
-          serviceContextBinderFactory,
-          ksqlSecurityExtension -> securityContextProvider);
-
-      restServer = new ExecutableServer<>(
-          new ApplicationServer<>(convertToLocalListener(config)),
-          ImmutableList.of(ksqlRestApplication)
-      );
-    } catch (final Exception e) {
-      throw new RuntimeException("Failed to initialise", e);
-    }
+    initialize();
 
     try {
       restServer.startAsync();
@@ -300,6 +278,32 @@ public class TestKsqlRestApp extends ExternalResource {
       throw new RuntimeException(e);
     }
     restServer = null;
+  }
+
+  protected void initialize() {
+    if (restServer != null) {
+      after();
+    }
+
+    final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
+
+    try {
+      ksqlRestApplication = KsqlRestApplication.buildApplication(
+          metricsPrefix,
+          convertToApiServerConfig(config),
+          (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
+          3,
+          serviceContext.get(),
+          serviceContextBinderFactory,
+          ksqlSecurityExtension -> securityContextProvider);
+
+      restServer = new ExecutableServer<>(
+          new ApplicationServer<>(convertToLocalListener(config)),
+          ImmutableList.of(ksqlRestApplication)
+      );
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to initialise", e);
+    }
   }
 
   public static Builder builder(final Supplier<String> bootstrapServers) {
@@ -483,7 +487,7 @@ public class TestKsqlRestApp extends ExternalResource {
     public Builder withEnabledKsqlClient() {
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
-              TestDefaultKsqlClientFactory::instance);
+              () -> TestDefaultKsqlClientFactory.instance(additionalProps));
       return this;
     }
 
@@ -537,6 +541,18 @@ public class TestKsqlRestApp extends ExternalResource {
           securityContextBinder,
           securityContextProvider,
           credentials
+      );
+    }
+
+    public TestKsqlRestAppWaitingOnPrecondition buildWaitingOnPrecondition(final CountDownLatch latch) {
+      return new TestKsqlRestAppWaitingOnPrecondition(
+          bootstrapServers,
+          additionalProps,
+          serviceContext,
+          securityContextBinder,
+          securityContextProvider,
+          credentials,
+          latch
       );
     }
   }

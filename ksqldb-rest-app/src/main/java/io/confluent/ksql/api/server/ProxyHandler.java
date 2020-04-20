@@ -15,15 +15,20 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.util.VertxUtils.checkContext;
+
+import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.http.UpgradeRejectedException;
 import io.vertx.core.http.WebSocket;
@@ -35,6 +40,7 @@ import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,14 +53,21 @@ class ProxyHandler {
 
   private static final Logger log = LoggerFactory.getLogger(ProxyHandler.class);
 
+  private static final String TRANSFER_ENCODING_HEADER = HttpHeaders.TRANSFER_ENCODING.toString();
+  private static final String CONTENT_LENGTH_HEADER = HttpHeaders.CONTENT_LENGTH.toString();
+  private static final String CHUNKED_ENCODING = "chunked";
+
+  private final Context context;
   private final HttpClient proxyClient;
   private final Server server;
   private SocketAddress proxyTarget;
 
-  ProxyHandler(final Server server) {
+  ProxyHandler(final Server server, final Context context) {
+    this.context = context;
     this.proxyClient = server.getVertx()
         .createHttpClient(
-            new HttpClientOptions().setMaxPoolSize(10));
+            new HttpClientOptions().setMaxPoolSize(10)
+                .setTryUsePerMessageWebSocketCompression(true));
     this.server = server;
   }
 
@@ -86,6 +99,7 @@ class ProxyHandler {
   }
 
   void websocketProxyHandler(final RoutingContext routingContext) {
+    checkContext(context);
     final HttpServerRequest request = routingContext.request();
     final WebSocketConnectOptions options = new WebSocketConnectOptions()
         .setHost(proxyTarget().host())
@@ -93,13 +107,15 @@ class ProxyHandler {
         .setHeaders(request.headers())
         .setURI(request.uri());
     request.pause();
+
     proxyClient.webSocket(options, ar -> {
+      checkContext(context);
       request.resume();
       if (ar.succeeded()) {
         final WebSocket webSocket = ar.result();
         final ServerWebSocket serverWebSocket = request.upgrade();
-        WebsocketPipe.pipe(serverWebSocket, webSocket);
-        WebsocketPipe.pipe(webSocket, serverWebSocket);
+        WebsocketPipe.pipe(context, serverWebSocket, webSocket);
+        WebsocketPipe.pipe(context, webSocket, serverWebSocket);
       } else {
         if (ar.cause() instanceof UpgradeRejectedException) {
           final UpgradeRejectedException uge = (UpgradeRejectedException) ar.cause();
@@ -107,7 +123,7 @@ class ProxyHandler {
               .end();
         } else {
           log.error("Failed to proxy websocket", ar.cause());
-          request.response().setStatusCode(500).end();
+          request.response().setStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR).end();
         }
       }
     });
@@ -130,22 +146,25 @@ class ProxyHandler {
     serverResponse.setStatusMessage(clientResponse.statusMessage());
     serverResponse.headers().setAll(clientResponse.headers());
 
+    final HttpVersion version = serverRequest.version();
+
+    // Vert.x requires that content-length is set if not chunked but Jetty sometimes sends
+    // response with no content-length and not chunked, so we workaround this by adding a
+    // transfer encoding response header with chunked in this case
+    if (version != HttpVersion.HTTP_2 && clientResponse.getHeader(CONTENT_LENGTH_HEADER) == null
+        && clientResponse.getHeader(TRANSFER_ENCODING_HEADER) == null) {
+      serverResponse.putHeader(TRANSFER_ENCODING_HEADER, CHUNKED_ENCODING);
+    } else if (version == HttpVersion.HTTP_2
+        && clientResponse.getHeader(TRANSFER_ENCODING_HEADER) != null) {
+      // Transfer-encoding is prohibited in HTTP2 so we must remove this header
+      serverResponse.headers().remove(TRANSFER_ENCODING_HEADER);
+    }
+
     // We do our own pipe as we need to intercept end to add any trailers
-    Pipe.pipe(clientResponse, serverResponse, () -> {
+    Pipe.pipe(clientResponse, serverResponse, version == HttpVersion.HTTP_2 ? null : () -> {
       final MultiMap trailers = clientResponse.trailers();
       serverResponse.trailers().setAll(trailers);
-    }, () -> checkFirstWrite(clientResponse, serverResponse));
-  }
-
-  // Vert.x requires that content-length is set if not chunked but Jetty sometimes sends
-  // response with no content-length and not chunked, so we workaround this by adding a
-  // tranfer encoding response header with chunked in this case
-  private static void checkFirstWrite(final HttpClientResponse clientResponse,
-      final HttpServerResponse serverResponse) {
-    if (clientResponse.getHeader("content-length") == null
-        && clientResponse.getHeader("transfer-encoding") == null) {
-      serverResponse.putHeader("transfer-encoding", "chunked");
-    }
+    });
   }
 
   private static void exceptionHandler(final Throwable t) {
@@ -158,35 +177,28 @@ class ProxyHandler {
     private final WriteStream<Buffer> to;
     private boolean drainHandlerSet;
     private final Runnable beforeEndHook;
-    private Runnable beforeFirstWriteHook;
-
 
     private static void pipe(final ReadStream<Buffer> from, final WriteStream<Buffer> to) {
-      new Pipe(from, to, null, null);
+      new Pipe(from, to, null);
     }
 
     private static void pipe(final ReadStream<Buffer> from, final WriteStream<Buffer> to,
-        final Runnable beforeEndHook, final Runnable beforeWriteHook) {
-      new Pipe(from, to, beforeEndHook, beforeWriteHook);
+        final Runnable beforeEndHook) {
+      new Pipe(from, to, beforeEndHook);
     }
 
     private Pipe(final ReadStream<Buffer> from, final WriteStream<Buffer> to,
-        final Runnable beforeEndHook, final Runnable beforeFirstWriteHook) {
+        final Runnable beforeEndHook) {
       this.from = from;
       this.to = to;
       this.beforeEndHook = beforeEndHook;
-      this.beforeFirstWriteHook = beforeFirstWriteHook;
-      from.endHandler(this::requestEnded);
+      from.endHandler(this::fromEnded);
       from.handler(this::handler);
       from.exceptionHandler(this::exceptionHandler);
       to.exceptionHandler(this::exceptionHandler);
     }
 
     private void handler(final Buffer buffer) {
-      if (beforeFirstWriteHook != null) {
-        beforeFirstWriteHook.run();
-        beforeFirstWriteHook = null;
-      }
       to.write(buffer);
       if (!drainHandlerSet && to.writeQueueFull()) {
         drainHandlerSet = true;
@@ -200,7 +212,7 @@ class ProxyHandler {
       from.resume();
     }
 
-    private void requestEnded(final Void v) {
+    private void fromEnded(final Void v) {
       if (beforeEndHook != null) {
         beforeEndHook.run();
       }
@@ -213,45 +225,66 @@ class ProxyHandler {
 
   }
 
-
   private static final class WebsocketPipe {
 
+    private final Context context;
     private final WebSocketBase from;
     private final WebSocketBase to;
     private boolean drainHandlerSet;
 
-    public static void pipe(final WebSocketBase from, final WebSocketBase to) {
-      new WebsocketPipe(from, to);
+    public static void pipe(final Context context, final WebSocketBase from,
+        final WebSocketBase to) {
+      new WebsocketPipe(context, from, to);
     }
 
-    private WebsocketPipe(final WebSocketBase from, final WebSocketBase to) {
+    private WebsocketPipe(final Context context, final WebSocketBase from,
+        final WebSocketBase to) {
+      this.context = context;
       this.from = from;
       this.to = to;
 
       from.frameHandler(this::frameHandler);
       from.exceptionHandler(this::exceptionHandler);
-      // Don't need to close the from websocket on end of to websocket as we proxy
-      // close frames too
+
+      // Proxy any close of the connection too
+      to.closeHandler(v -> {
+        checkContext(context);
+        if (!from.isClosed()) {
+          from.close();
+        }
+      });
     }
 
     private void frameHandler(final WebSocketFrame wsf) {
+      checkContext(context);
+
       if (to.isClosed()) {
         return;
       }
-      to.writeFrame(wsf);
-      if (!drainHandlerSet && to.writeQueueFull()) {
-        drainHandlerSet = true;
-        from.pause();
-        to.drainHandler(this::drainHandler);
+
+      if (wsf.isClose()) {
+        // The close method sends a close frame so we don't want to proxy the existing
+        // close frame - instead call close with the status code and reason from the existing
+        // frame
+        to.close(wsf.closeStatusCode(), wsf.closeReason());
+      } else {
+        to.writeFrame(wsf);
+        if (!drainHandlerSet && to.writeQueueFull()) {
+          drainHandlerSet = true;
+          from.pause();
+          to.drainHandler(this::drainHandler);
+        }
       }
     }
 
     private void drainHandler(final Void v) {
+      checkContext(context);
       drainHandlerSet = false;
       from.resume();
     }
 
     private void exceptionHandler(final Throwable t) {
+      checkContext(context);
       log.error("Exception in proxying websocket", t);
       try {
         to.close();

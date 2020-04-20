@@ -1,66 +1,107 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572105337,
+  "path" : "query-validation-tests/url.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<Q VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : {
-      "url" : "http://www.test.com?query#fragment"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : {
-      "url" : "http://www.test.com/path?q1&q2"
-    },
-    "timestamp" : 1
-  }, {
-    "topic" : "test_topic",
-    "key" : "3",
-    "value" : {
-      "url" : "http://test@confluent.io:8080/nested/path?q=2"
-    },
-    "timestamp" : 2
-  }, {
-    "topic" : "test_topic",
-    "key" : "4",
-    "value" : {
-      "url" : "http://test@confluent.io:8080/path"
-    },
-    "timestamp" : 3
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "1",
-    "value" : {
-      "Q" : "query"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "2",
-    "value" : {
-      "Q" : "q1&q2"
-    },
-    "timestamp" : 1
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "3",
-    "value" : {
-      "Q" : "q=2"
-    },
-    "timestamp" : 2
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "4",
-    "value" : {
-      "Q" : null
-    },
-    "timestamp" : 3
-  } ]
+  "testCase" : {
+    "name" : "extract a query from a URL using URL_EXTRACT_QUERY - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "url" : "http://www.test.com?query#fragment"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "url" : "http://www.test.com/path?q1&q2"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "url" : "http://test@confluent.io:8080/nested/path?q=2"
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : {
+        "url" : "http://test@confluent.io:8080/path"
+      },
+      "timestamp" : 3
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "Q" : "query"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "Q" : "q1&q2"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "Q" : "q=2"
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "4",
+      "value" : {
+        "Q" : null
+      },
+      "timestamp" : 3
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (URL STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_QUERY(TEST.URL) Q\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
 }

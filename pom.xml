@@ -120,13 +120,14 @@
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>65.1</icu.version>
-        <vertx.version>3.8.5</vertx.version>
+        <vertx.version>3.9.0</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
         <kafka.version>5.5.0-ccs-SNAPSHOT</kafka.version>
         <ce.kafka.version>5.5.0-ce-SNAPSHOT</ce.kafka.version>
         <confluent.version>5.5.0-SNAPSHOT</confluent.version>
+        <compile.warnings-flag>-Werror</compile.warnings-flag>
     </properties>
 
     <dependencyManagement>
@@ -527,7 +528,7 @@
                             <compilerArgs>
                                 <arg>-Xlint:all,-serial,-options,-path</arg>
                                 <arg>-parameters</arg>
-                                <arg>-Werror</arg>
+                                <arg>${compile.warnings-flag}</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>

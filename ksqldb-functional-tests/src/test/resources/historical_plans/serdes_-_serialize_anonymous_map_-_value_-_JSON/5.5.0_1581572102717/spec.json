@@ -1,64 +1,122 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102717,
+  "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO MAP<VARCHAR, DOUBLE>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "MAP<VARCHAR, DOUBLE>"
   },
-  "inputs" : [ {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : {
+  "testCase" : {
+    "name" : "serialize anonymous map - value - JSON",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : {
+          "a" : 1.1,
+          "b" : 2.2,
+          "c" : 3.456
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : {
+          "a" : 1.1,
+          "b" : 2.2,
+          "c" : null
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
         "a" : 1.1,
         "b" : 2.2,
         "c" : 3.456
       }
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : {
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
         "a" : 1.1,
         "b" : 2.2,
         "c" : null
       }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "schema" : {
+        "type" : "array",
+        "items" : {
+          "type" : "record",
+          "name" : "test",
+          "fields" : [ {
+            "name" : "key",
+            "type" : [ "null", "string" ],
+            "default" : null
+          }, {
+            "name" : "value",
+            "type" : [ "null", "double" ],
+            "default" : null
+          } ]
+        }
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (FOO MAP<STRING, DOUBLE>) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : null
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : null
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "a" : 1.1,
-      "b" : 2.2,
-      "c" : 3.456
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "a" : 1.1,
-      "b" : 2.2,
-      "c" : null
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : null
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : null
-  } ]
+  }
 }

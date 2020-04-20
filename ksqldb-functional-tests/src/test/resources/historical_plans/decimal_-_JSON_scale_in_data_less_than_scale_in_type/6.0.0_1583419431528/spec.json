@@ -1,93 +1,132 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1583419431528,
+  "path" : "query-validation-tests/decimal.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DEC DECIMAL(6, 4)> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<DEC DECIMAL(6, 4)> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test",
-    "key" : "",
-    "value" : {
-      "DEC" : 10
-    }
-  }, {
-    "topic" : "test",
-    "key" : "",
-    "value" : {
-      "DEC" : 1
-    }
-  }, {
-    "topic" : "test",
-    "key" : "",
-    "value" : {
-      "DEC" : 0.1
-    }
-  }, {
-    "topic" : "test",
-    "key" : "",
-    "value" : {
-      "DEC" : 0.01
-    }
-  }, {
-    "topic" : "test",
-    "key" : "",
-    "value" : {
-      "DEC" : 0.001
-    }
-  }, {
-    "topic" : "test",
-    "key" : "",
-    "value" : {
-      "DEC" : 0.0001
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "DEC" : 10
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "DEC" : 1
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "DEC" : 0.1
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "DEC" : 0.01
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "DEC" : 0.001
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "DEC" : 0.0001
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "INPUT",
-      "type" : "stream",
-      "schema" : "ROWKEY STRING KEY, DEC DECIMAL(6,4)"
+  "testCase" : {
+    "name" : "JSON scale in data less than scale in type",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "DEC" : 10
+      }
+    }, {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "DEC" : 1
+      }
+    }, {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "DEC" : 0.1
+      }
+    }, {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "DEC" : 0.01
+      }
+    }, {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "DEC" : 0.001
+      }
+    }, {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "DEC" : 0.0001
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "DEC" : 10
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "DEC" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "DEC" : 0.1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "DEC" : 0.01
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "DEC" : 0.001
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "DEC" : 0.0001
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test",
+      "replicas" : 1,
+      "numPartitions" : 4
     }, {
       "name" : "OUTPUT",
-      "type" : "stream",
-      "schema" : "ROWKEY STRING KEY, DEC DECIMAL(6,4)"
-    } ]
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (DEC DECIMAL(6, 4)) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, DEC DECIMAL(6,4)"
+      }, {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, DEC DECIMAL(6,4)"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
   }
 }

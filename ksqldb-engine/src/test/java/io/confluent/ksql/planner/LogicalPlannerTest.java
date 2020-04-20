@@ -114,7 +114,7 @@ public class LogicalPlannerTest {
     final String
         simpleQuery =
         "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
-        + "t1.col0 = t2.col0 WHERE t1.col1 > 10 AND t2.col4 = 10.8 EMIT CHANGES;";
+        + "t1.col0 = t2.col0 WHERE t1.col3 > 10.8 AND t2.col2 = 'foo' EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
@@ -125,7 +125,7 @@ public class LogicalPlannerTest {
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
     final FilterNode filterNode = (FilterNode) projectNode.getSources().get(0);
-    assertThat(filterNode.getPredicate().toString(), equalTo("((T1_COL1 > 10) AND (T2_COL4 = 10.8))"));
+    assertThat(filterNode.getPredicate().toString(), equalTo("((T1_COL3 > 10.8) AND (T2_COL2 = 'foo'))"));
 
     assertThat(filterNode.getSources().get(0), instanceOf(JoinNode.class));
     final JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);
@@ -267,7 +267,6 @@ public class LogicalPlannerTest {
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
     assertThat(aggregateNode.getSchema().value().get(1).type(), equalTo(SqlTypes.DOUBLE));
     assertThat(logicalPlan.getSources().get(0).getSchema().value().size(), equalTo(2));
-
   }
 
   @Test
@@ -285,7 +284,7 @@ public class LogicalPlannerTest {
     final String
         simpleQuery =
         "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
-            + "t1.col0 = t2.col0 WHERE t1.col1 > 10 AND t2.col4 = 10.8 EMIT CHANGES;";
+            + "t1.col0 = t2.col0 WHERE t1.col3 > 10.8 AND t2.col2 = 'foo' EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }
@@ -301,7 +300,7 @@ public class LogicalPlannerTest {
   @Test
   public void shouldCreateTableOutputForTableFilter() {
     final String
-        simpleQuery = "SELECT * FROM test2 WHERE col4 = 10.8 EMIT CHANGES;";
+        simpleQuery = "SELECT * FROM test2 WHERE col2 = 'foo' EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
   }

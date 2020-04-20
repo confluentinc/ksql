@@ -16,23 +16,20 @@
 package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.Arrays;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SqlArrayTest {
 
   private static final SqlType SOME_TYPE = SqlPrimitiveType.of(SqlBaseType.STRING);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
@@ -67,12 +64,14 @@ public class SqlArrayTest {
     // Given:
     final SqlArray schema = SqlTypes.array(SqlTypes.BIGINT);
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("Expected ARRAY, got BIGINT");
+    // Where:
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(10L)
+    );
 
-    // When:
-    schema.validateValue(10L);
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected ARRAY, got BIGINT"));
   }
 
   @Test
@@ -80,12 +79,14 @@ public class SqlArrayTest {
     // Given:
     final SqlArray schema = SqlTypes.array(SqlTypes.BIGINT);
 
-    // Then:
-    expectedException.expect(DataException.class);
-    expectedException.expectMessage("ARRAY element 2: Expected BIGINT, got INT");
+    // Where:
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(ImmutableList.of(11L, 9))
+    );
 
-    // When:
-    schema.validateValue(ImmutableList.of(11L, 9));
+    // Then:
+    assertThat(e.getMessage(), containsString("ARRAY element 2: Expected BIGINT, got INT"));
   }
 
   @Test

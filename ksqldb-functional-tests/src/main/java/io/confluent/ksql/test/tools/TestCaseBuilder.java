@@ -17,13 +17,13 @@ package io.confluent.ksql.test.tools;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.test.model.PostConditionsNode;
+import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TestCaseNode;
+import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,9 +34,10 @@ import org.hamcrest.Matcher;
  */
 public final class TestCaseBuilder {
 
-  private final FunctionRegistry functionRegistry = TestFunctionRegistry.INSTANCE.get();
+  private TestCaseBuilder() {
+  }
 
-  public List<TestCase> buildTests(final TestCaseNode test, final Path testPath) {
+  public static List<TestCase> buildTests(final TestCaseNode test, final Path testPath) {
     if (!test.isEnabled()) {
       return ImmutableList.of();
     }
@@ -54,7 +55,7 @@ public final class TestCaseBuilder {
     }
   }
 
-  private TestCase createTest(
+  private static TestCase createTest(
       final TestCaseNode test,
       final Optional<String> explicitFormat,
       final Path testPath
@@ -76,21 +77,16 @@ public final class TestCaseBuilder {
       final Optional<Matcher<Throwable>> ee = test.expectedException()
           .map(een -> een.build(Iterables.getLast(statements)));
 
-      final Map<String, Topic> topics = TestCaseBuilderUtil.getTopicsByName(
-          statements,
-          test.topics(),
-          test.outputs(),
-          test.inputs(),
-          ee.isPresent(),
-          functionRegistry
-      );
+      final List<Topic> topics = test.topics().stream()
+          .map(TopicNode::build)
+          .collect(Collectors.toList());
 
       final List<Record> inputRecords = test.inputs().stream()
-          .map(node -> node.build(topics))
+          .map(RecordNode::build)
           .collect(Collectors.toList());
 
       final List<Record> outputRecords = test.outputs().stream()
-          .map(node -> node.build(topics))
+          .map(RecordNode::build)
           .collect(Collectors.toList());
 
       final PostConditions post = test.postConditions()
@@ -102,7 +98,7 @@ public final class TestCaseBuilder {
           testName,
           versionBounds,
           test.properties(),
-          topics.values(),
+          topics,
           inputRecords,
           outputRecords,
           statements,

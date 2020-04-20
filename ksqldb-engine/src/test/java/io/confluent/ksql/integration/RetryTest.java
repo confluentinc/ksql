@@ -16,12 +16,11 @@
 package io.confluent.ksql.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +28,6 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -57,8 +55,6 @@ public class RetryTest {
 
   @Rule
   public Retry retry = Retry.none();
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   public TimeUnit timeUnit;
@@ -104,14 +100,13 @@ public class RetryTest {
     // Given:
     test++;
 
-    // Expect:
-    if (test == 2) {
-      expectedException.expect(RetryException.class);
-      expectedException.expectMessage("2");
+    // When:
+    if (test < 2) {
+      throw new RetryException(test);
     }
 
-    // When:
-    throw new RetryException(test);
+    // Then:
+    assertThat(test, equalTo(2));
   }
 
   @Test
@@ -133,11 +128,13 @@ public class RetryTest {
     test++;
     retry.upTo(0);
 
-    // Expect:
-    expectedException.expect(RetryException.class);
-
     // When:
-    if (test == 1) throw new RetryException(test);
+    if (test < 1) {
+      throw new RetryException(test);
+    }
+
+    // Then:
+    assertThat(test, equalTo(1));
   }
 
   @Test
@@ -146,12 +143,13 @@ public class RetryTest {
     test++;
     retry.when(KsqlException.class);
 
-    // Expect:
-    expectedException.expect(RetryException.class);
-    expectedException.expectMessage("1");
-
     // When:
-    throw new RetryException(test);
+    if (test < 1) {
+      throw new RetryException(test);
+    }
+
+    // Then:
+    assertThat(test, equalTo(1));
   }
 
   private static class RetryResource extends ExternalResource {

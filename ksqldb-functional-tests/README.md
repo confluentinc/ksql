@@ -65,19 +65,24 @@ The following is a template test file:
       "name": "my first positive test",
       "description": "an example positive test where the output is verified",
       "statements": [
-        "CREATE STREAM intput (ID bigint) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE STREAM output AS SELECT id FROM test WHERE id < 10;"
+        "CREATE STREAM input (ID bigint KEY, NAME STRING) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT ** FROM input WHERE id < 10;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": 0, "value": {"id": 8}, "timestamp": 0},
-        {"topic": "input_topic", "key": 0, "value": {"id": 10}, "timestamp": 10000},
-        {"topic": "input_topic", "key": 1, "value": {"id": 9}, "timestamp": 30000},
-        {"topic": "input_topic", "key": 1, "value": {"id": 11}, "timestamp": 40000}
+        {"topic": "input_topic", "key": 8, "value": {"name": "bob"}, "timestamp": 0},
+        {"topic": "input_topic", "key": 10, "value": {"name": "pete"}, "timestamp": 10000},
+        {"topic": "input_topic", "key": 9, "value": {"name": "vic"}, "timestamp": 30000},
+        {"topic": "input_topic", "key": 11, "value": {"name": "jon"}, "timestamp": 40000}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"id": 8}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 0, "value": {"id": 9}, "timestamp": 30000}
-      ]
+        {"topic": "OUTPUT", "key": 8, "value": {"NAME": "bob"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 9, "value": {"NAME": "vic"}, "timestamp": 30000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING"}
+        ]
+      }
     },
     {
       "name": "test using insert statements",
@@ -273,7 +278,15 @@ A test can define a set of post conditions that must be met for the test to pass
       {"name": "INPUT", "type": "stream", "keyField": null}
     ],
     "topics": {
-      "blacklist": ".*-not-allowed"
+      "blacklist": ".*-not-allowed",
+      "topics": [
+        {
+          "name" : "OUTPUT",
+          "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+          "valueFormat" : {"format" : "DELIMITED"},
+          "partitions" : 4
+        }
+      ]
     }
   }
 }
@@ -284,6 +297,7 @@ Post conditions current support the following checks:
 | Attribute | Description |
 |-----------|:------------|
 | sources   | (Optional) A list of sources that must exist in the metastore after the statements have executed. This list does not need to define every source. |
+| topics    | (Optional) Topic post conditions |
 
 #### Sources
 A post condition can define the list of sources that must exist in the metastore. A source might be:
@@ -305,11 +319,20 @@ Each source can define the following attributes:
 | schema      | (Optional) Specifies the SQL schema for the source. |
 
 #### Topics
+
 A post condition can define a check against the set of topics the case creates
 
 ```json
 {
-  "blacklist": ".*-repartition"
+  "blacklist": ".*-repartition",
+  "topics": [
+    {
+      "name" : "OUTPUT",
+      "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+      "valueFormat" : {"format" : "DELIMITED"},
+      "partitions" : 4
+    }
+  ]
 }
 ```
 
@@ -318,4 +341,24 @@ The topics object can define the following attributes:
 | Attribute   | Description |
 |-------------|:------------|
 | blacklist   | Regex defining a blacklist of topic names that should not be created. |
+| topics      | A list of topics that should be created. |
 
+##### Topic
+
+```json
+{
+  "name" : "OUTPUT",
+  "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+  "valueFormat" : {"format" : "DELIMITED"},
+  "partitions" : 4
+}
+```
+
+The topic object can define the following attributes:
+
+| Attribute   | Description |
+|-------------|:------------|
+| name        | The name of the topic. |
+| keyFormat   | The key serialization format. |
+| valueFormat | The value serialization format. |
+| partitions  | (Optional) The number of partitions. |

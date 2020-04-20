@@ -29,7 +29,6 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -180,7 +179,7 @@ public final class CreateSourceFactory {
 
       if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
         final boolean isRowKey = e.getName().equals(SchemaUtil.ROWKEY_NAME);
-        if (e.getNamespace() == Namespace.KEY) {
+        if (e.getNamespace().isKey()) {
           if (!isRowKey) {
             throw new KsqlException("'" + e.getName().text() + "' is an invalid KEY column name. "
                 + "KSQL currently only supports KEY columns named ROWKEY.");

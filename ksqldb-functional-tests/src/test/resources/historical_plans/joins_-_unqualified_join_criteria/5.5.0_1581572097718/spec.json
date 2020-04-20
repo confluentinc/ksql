@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572097718,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<LEFT_ID BIGINT, NAME VARCHAR> NOT NULL",
     "CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<RIGHT_ID BIGINT, F1 VARCHAR> NOT NULL",
@@ -8,139 +9,212 @@
     "CSAS_LEFT_OUTER_JOIN_0.Join.Right" : "STRUCT<TT_RIGHT_ID BIGINT, TT_F1 VARCHAR, TT_ROWTIME BIGINT, TT_ROWKEY BIGINT> NOT NULL",
     "CSAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN" : "STRUCT<LEFT_ID BIGINT, NAME VARCHAR, F1 VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "left_topic",
-    "key" : 0,
-    "value" : {
-      "LEFT_ID" : 0,
-      "NAME" : "zero"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "right_topic",
-    "key" : 0,
-    "value" : {
-      "RIGHT_ID" : 0,
-      "F1" : "blah"
-    },
-    "timestamp" : 10000
-  }, {
-    "topic" : "left_topic",
-    "key" : 10,
-    "value" : {
-      "LEFT_ID" : 10,
-      "NAME" : "100"
-    },
-    "timestamp" : 11000
-  }, {
-    "topic" : "left_topic",
-    "key" : 0,
-    "value" : {
-      "LEFT_ID" : 0,
-      "NAME" : "foo"
-    },
-    "timestamp" : 13000
-  }, {
-    "topic" : "right_topic",
-    "key" : 0,
-    "value" : {
-      "RIGHT_ID" : 0,
-      "F1" : "a"
-    },
-    "timestamp" : 15000
-  }, {
-    "topic" : "right_topic",
-    "key" : 100,
-    "value" : {
-      "RIGHT_ID" : 100,
-      "F1" : "newblah"
-    },
-    "timestamp" : 16000
-  }, {
-    "topic" : "left_topic",
-    "key" : 90,
-    "value" : {
-      "LEFT_ID" : 90,
-      "NAME" : "ninety"
-    },
-    "timestamp" : 17000
-  }, {
-    "topic" : "left_topic",
-    "key" : 0,
-    "value" : {
-      "LEFT_ID" : 0,
-      "NAME" : "bar"
-    },
-    "timestamp" : 30000
-  } ],
-  "outputs" : [ {
-    "topic" : "LEFT_OUTER_JOIN",
-    "key" : 0,
-    "value" : {
-      "LEFT_ID" : 0,
-      "NAME" : "zero",
-      "F1" : null
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "LEFT_OUTER_JOIN",
-    "key" : 0,
-    "value" : {
-      "LEFT_ID" : 0,
-      "NAME" : "zero",
-      "F1" : "blah"
-    },
-    "timestamp" : 10000
-  }, {
-    "topic" : "LEFT_OUTER_JOIN",
-    "key" : 10,
-    "value" : {
-      "LEFT_ID" : 10,
-      "NAME" : "100",
-      "F1" : null
-    },
-    "timestamp" : 11000
-  }, {
-    "topic" : "LEFT_OUTER_JOIN",
-    "key" : 0,
-    "value" : {
-      "LEFT_ID" : 0,
-      "NAME" : "foo",
-      "F1" : "blah"
-    },
-    "timestamp" : 13000
-  }, {
-    "topic" : "LEFT_OUTER_JOIN",
-    "key" : 0,
-    "value" : {
-      "LEFT_ID" : 0,
-      "NAME" : "foo",
-      "F1" : "a"
-    },
-    "timestamp" : 15000
-  }, {
-    "topic" : "LEFT_OUTER_JOIN",
-    "key" : 90,
-    "value" : {
-      "LEFT_ID" : 90,
-      "NAME" : "ninety",
-      "F1" : null
-    },
-    "timestamp" : 17000
-  }, {
-    "topic" : "LEFT_OUTER_JOIN",
-    "key" : 0,
-    "value" : {
-      "LEFT_ID" : 0,
-      "NAME" : "bar",
-      "F1" : null
-    },
-    "timestamp" : 30000
-  } ],
-  "postConditions" : {
-    "sources" : [ {
+  "testCase" : {
+    "name" : "unqualified join criteria",
+    "inputs" : [ {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "LEFT_ID" : 0,
+        "NAME" : "zero"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "RIGHT_ID" : 0,
+        "F1" : "blah"
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "left_topic",
+      "key" : 10,
+      "value" : {
+        "LEFT_ID" : 10,
+        "NAME" : "100"
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "LEFT_ID" : 0,
+        "NAME" : "foo"
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "RIGHT_ID" : 0,
+        "F1" : "a"
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "right_topic",
+      "key" : 100,
+      "value" : {
+        "RIGHT_ID" : 100,
+        "F1" : "newblah"
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "left_topic",
+      "key" : 90,
+      "value" : {
+        "LEFT_ID" : 90,
+        "NAME" : "ninety"
+      },
+      "timestamp" : 17000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "LEFT_ID" : 0,
+        "NAME" : "bar"
+      },
+      "timestamp" : 30000
+    } ],
+    "outputs" : [ {
+      "topic" : "LEFT_OUTER_JOIN",
+      "key" : 0,
+      "value" : {
+        "LEFT_ID" : 0,
+        "NAME" : "zero",
+        "F1" : null
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "LEFT_OUTER_JOIN",
+      "key" : 0,
+      "value" : {
+        "LEFT_ID" : 0,
+        "NAME" : "zero",
+        "F1" : "blah"
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "LEFT_OUTER_JOIN",
+      "key" : 10,
+      "value" : {
+        "LEFT_ID" : 10,
+        "NAME" : "100",
+        "F1" : null
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "LEFT_OUTER_JOIN",
+      "key" : 0,
+      "value" : {
+        "LEFT_ID" : 0,
+        "NAME" : "foo",
+        "F1" : "blah"
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "LEFT_OUTER_JOIN",
+      "key" : 0,
+      "value" : {
+        "LEFT_ID" : 0,
+        "NAME" : "foo",
+        "F1" : "a"
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "LEFT_OUTER_JOIN",
+      "key" : 90,
+      "value" : {
+        "LEFT_ID" : 90,
+        "NAME" : "ninety",
+        "F1" : null
+      },
+      "timestamp" : 17000
+    }, {
+      "topic" : "LEFT_OUTER_JOIN",
+      "key" : 0,
+      "value" : {
+        "LEFT_ID" : 0,
+        "NAME" : "bar",
+        "F1" : null
+      },
+      "timestamp" : 30000
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
       "name" : "LEFT_OUTER_JOIN",
-      "type" : "stream"
-    } ]
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, LEFT_ID BIGINT, NAME STRING) WITH (KAFKA_TOPIC='left_topic', KEY='LEFT_ID', VALUE_FORMAT='JSON');", "CREATE STREAM TEST_STREAM (ROWKEY BIGINT KEY, RIGHT_ID BIGINT, F1 STRING) WITH (KAFKA_TOPIC='right_topic', KEY='RIGHT_ID', VALUE_FORMAT='JSON');", "CREATE STREAM LEFT_OUTER_JOIN AS SELECT\n  T.LEFT_ID LEFT_ID,\n  T.NAME NAME,\n  TT.F1 F1\nFROM TEST T\nLEFT OUTER JOIN TEST_STREAM TT WITHIN 11 SECONDS ON ((T.LEFT_ID = TT.RIGHT_ID))\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "LEFT_OUTER_JOIN",
+        "type" : "stream"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "LEFT_OUTER_JOIN",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
   }
 }

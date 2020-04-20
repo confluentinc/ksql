@@ -17,8 +17,11 @@ package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.JAAS_KAFKA_PROPS_NAME;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
+import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -40,10 +43,8 @@ import org.apache.kafka.common.errors.AuthorizationException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatcher;
@@ -81,9 +82,6 @@ public class AuthorizationFunctionalTest {
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(TOPIC_1);
@@ -99,14 +97,14 @@ public class AuthorizationFunctionalTest {
     // Given:
     denyAccess(USER1, "POST", "/ksql");
 
-    // Then:
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(
-        String.format("Access denied to User:%s", USER1.username())
+    // When
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> makeKsqlRequest(USER1, "SHOW TOPICS;")
     );
 
-    // When:
-    makeKsqlRequest(USER1, "SHOW TOPICS;");
+  // Then:
+    assertThat(e.getMessage(), containsString(format("Access denied to User:%s", USER1.username())));
   }
 
   @Test

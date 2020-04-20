@@ -643,8 +643,8 @@
       "name": "table-table left join",
       "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
         "CREATE TABLE LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
       ],
       "properties": {
@@ -677,8 +677,8 @@
     {
       "name": "table-table left join - PROTOBUF",
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
         "CREATE TABLE LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
       ],
       "properties": {
@@ -712,8 +712,8 @@
       "name": "table-table inner join",
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
         "CREATE TABLE INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;"
       ],
       "properties": {
@@ -745,8 +745,8 @@
       "name": "table-table outer join",
       "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
         "CREATE TABLE OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
       ],
       "properties": {
@@ -779,8 +779,8 @@
     {
       "name": "table-table outer join - PROTOBUF",
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
         "CREATE TABLE OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
       ],
       "properties": {
@@ -815,7 +815,7 @@
       "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}');",
         "CREATE STREAM LEFT_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
       ],
       "properties": {
@@ -846,7 +846,7 @@
       "name": "stream-table left join - PROTOBUF",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='PROTOBUF');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='PROTOBUF');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='PROTOBUF');",
         "CREATE STREAM LEFT_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
       ],
       "properties": {
@@ -878,7 +878,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.id = tt.id;"
       ],
       "properties": {
@@ -908,9 +908,9 @@
       "name": "a table join pipeline",
       "format": ["JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE_2 (ID BIGINT KEY, F3 varchar) WITH (kafka_topic='right_topic_2', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE_2 (ID BIGINT PRIMARY KEY, F3 varchar) WITH (kafka_topic='right_topic_2', value_format='{FORMAT}');",
         "CREATE TABLE INNER_JOIN WITH (PARTITIONS=4) as SELECT name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
         "CREATE TABLE INNER_JOIN_2 AS SELECT name, f1, f3 FROM inner_join tt join TEST_TABLE_2 t ON t.id = tt.id;"
       ],
@@ -938,8 +938,8 @@
     {
       "name": "table-table join with where clause",
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT t.id, name, tt.f1, f2 FROM test t JOIN test_table tt ON t.id = tt.id WHERE t.value > 10 AND tt.f2 > 5;"
       ],
       "properties": {
@@ -1061,7 +1061,7 @@
       "name": "stream-table wrapped single field value schema on inputs",
       "statements": [
         "CREATE STREAM S (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='S', value_format='JSON');",
-        "CREATE TABLE T (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='T', value_format='JSON');",
+        "CREATE TABLE T (ID BIGINT PRIMARY KEY, NAME STRING) WITH (kafka_topic='T', value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT s.name name1, t.name name2 FROM S JOIN T ON S.id = T.id;"
       ],
       "properties": {
@@ -1091,7 +1091,7 @@
       ],
       "statements": [
         "CREATE STREAM S (ID BIGINT KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='S', value_format='JSON');",
-        "CREATE TABLE T (ID BIGINT KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T', value_format='JSON');",
+        "CREATE TABLE T (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T', value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT s.name name1, t.name name2 FROM S JOIN T ON S.id = T.id;"
       ],
       "properties": {
@@ -1117,7 +1117,7 @@
       ],
       "statements": [
         "CREATE STREAM S (ID BIGINT KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='S', value_format='JSON');",
-        "CREATE TABLE T (ID BIGINT KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T', value_format='JSON');",
+        "CREATE TABLE T (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T', value_format='JSON');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT s.name name FROM S JOIN T ON S.id = T.id;"
       ],
       "properties": {
@@ -1137,8 +1137,8 @@
     {
       "name": "table-table wrapped single field value schema on inputs",
       "statements": [
-        "CREATE TABLE T1 (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='T1', value_format='JSON');",
-        "CREATE TABLE T2 (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='T2', value_format='JSON');",
+        "CREATE TABLE T1 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (kafka_topic='T1', value_format='JSON');",
+        "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (kafka_topic='T2', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT t1.name name1, t2.name name2 FROM T1 JOIN T2 ON T1.id = T2.id;"
       ],
       "properties": {
@@ -1164,8 +1164,8 @@
     {
       "name": "table-table unwrapped single field value schema on inputs",
       "statements": [
-        "CREATE TABLE T1 (ID BIGINT KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T1', value_format='JSON');",
-        "CREATE TABLE T2 (ID BIGINT KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T2', value_format='JSON');",
+        "CREATE TABLE T1 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T1', value_format='JSON');",
+        "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T2', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT t1.name name1, t2.name name2 FROM T1 JOIN T2 ON T1.id = T2.id;"
       ],
       "properties": {
@@ -1186,8 +1186,8 @@
     {
       "name": "table-table unwrapped single field value schema on inputs and output",
       "statements": [
-        "CREATE TABLE T1 (ID BIGINT KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T1', value_format='JSON');",
-        "CREATE TABLE T2 (ID BIGINT KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T2', value_format='JSON');",
+        "CREATE TABLE T1 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T1', value_format='JSON');",
+        "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T2', value_format='JSON');",
         "CREATE TABLE OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT t1.name name FROM T1 JOIN T2 ON T1.id = T2.id;"
       ],
       "properties": {
@@ -1470,7 +1470,7 @@
       "name": "on non STRING value column",
       "statements": [
         "CREATE STREAM INPUT_STREAM (K STRING KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');",
-        "CREATE TABLE INPUT_TABLE (ID BIGINT KEY, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
+        "CREATE TABLE INPUT_TABLE (ID BIGINT PRIMARY KEY, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.SF = T.ID;"
       ],
       "properties": {
@@ -1500,7 +1500,7 @@
       "name": "on non key table column",
       "statements": [
         "CREATE STREAM INPUT_STREAM (ID BIGINT KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');",
-        "CREATE TABLE INPUT_TABLE (K BIGINT KEY, ID BIGINT, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
+        "CREATE TABLE INPUT_TABLE (K BIGINT PRIMARY KEY, ID BIGINT, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.ID = T.ID;"
       ],
       "properties": {
@@ -2495,8 +2495,8 @@
       "name": "table table left join",
       "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2526,8 +2526,8 @@
     {
       "name": "table table left join - PROTOBUF",
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF', key='ID');",
         "CREATE TABLE LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2557,8 +2557,8 @@
     {
       "name": "table table left join - join key not in projection",
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
         "CREATE TABLE LEFT_OUTER_JOIN as SELECT name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2588,8 +2588,8 @@
     {
       "name": "table table left join - right join key in projection",
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
         "CREATE TABLE LEFT_OUTER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2622,8 +2622,8 @@
     {
       "name": "table table left join - both join keys in projection",
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
         "CREATE TABLE LEFT_OUTER_JOIN as SELECT t.id, tt.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2654,8 +2654,8 @@
       "name": "table table inner join",
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2683,8 +2683,8 @@
     {
       "name": "table table inner join - join key not in projection",
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
         "CREATE TABLE INNER_JOIN as SELECT name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2712,8 +2712,8 @@
     {
       "name": "table table inner join - right join key in projection",
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
         "CREATE TABLE INNER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2745,8 +2745,8 @@
       "name": "table table outer join",
       "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2779,8 +2779,8 @@
     {
       "name": "table table outer join - PROTOBUF",
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF', key='ID');",
         "CREATE TABLE OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2813,8 +2813,8 @@
     {
       "name": "table table outer join - right join key in projection",
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
         "CREATE TABLE OUTER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2849,7 +2849,7 @@
       "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}', key='ID');",
         "CREATE STREAM LEFT_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2877,7 +2877,7 @@
       "name": "stream table left join - PROTOBUF",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='PROTOBUF', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='PROTOBUF', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='PROTOBUF', key='ID');",
         "CREATE STREAM LEFT_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2905,7 +2905,7 @@
       "name": "stream table left join - join key not in projection",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
         "CREATE STREAM LEFT_JOIN as SELECT name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2933,7 +2933,7 @@
       "name": "stream table left join - right join key in projection",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
         "CREATE STREAM LEFT_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2965,7 +2965,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -2992,7 +2992,7 @@
       "name": "stream table inner join - join key not in projection",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT name, value, f1, f2 FROM test t join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -3019,7 +3019,7 @@
       "name": "stream table inner join - right join key in projection",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -3050,7 +3050,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
       ],
       "inputs": [
@@ -3109,7 +3109,7 @@
       "name": "join using ROWKEY in the criteria - join key not in projection",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
       ],
       "inputs": [
@@ -3136,7 +3136,7 @@
       "name": "join using ROWKEY in the criteria - right join key in projection",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
       ],
       "inputs": [
@@ -3166,7 +3166,7 @@
       "name": "join using ROWKEY in the criteria - left rowkey in projection",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.rowkey AS ID, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
       ],
       "inputs": [
@@ -3196,7 +3196,7 @@
       "name": "join using ROWKEY in the criteria - right rowkey in projection",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT tt.rowkey AS ID, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
       ],
       "inputs": [
@@ -3226,7 +3226,7 @@
       "name": "multiple join keys in projection",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.ID AS ID1, t.ID AS ID2, t.rowkey AS ID3, tt.ID AS ID4, tt.ROWKEY AS ID5 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
       ],
       "inputs": [
@@ -3258,9 +3258,9 @@
       "name": "table join pipeline",
       "format": ["JSON"],
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE_2 (ROWKEY BIGINT KEY, ID bigint, F3 varchar) WITH (kafka_topic='right_topic_2', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST_TABLE_2 (ROWKEY BIGINT PRIMARY KEY, ID bigint, F3 varchar) WITH (kafka_topic='right_topic_2', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE INNER_JOIN WITH (PARTITIONS=4) as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
         "CREATE TABLE INNER_JOIN_2 AS SELECT t_id, name, f1, f3 FROM inner_join tt join TEST_TABLE_2 t ON t.id = tt.t_id;"
       ],
@@ -3285,8 +3285,8 @@
     {
       "name": "table table join with where clause",
       "statements": [
-        "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
         "CREATE TABLE OUTPUT as SELECT t.id, name, tt.f1, f2 FROM test t JOIN test_table tt ON t.id = tt.id WHERE t.value > 10 AND tt.f2 > 5;"
       ],
       "inputs": [
@@ -3329,7 +3329,7 @@
       "name": "stream to table when neither have key field and joining by table key column",
       "statements": [
         "CREATE STREAM S (ID bigint) WITH (kafka_topic='S', value_format='JSON');",
-        "CREATE TABLE NO_KEY (ROWKEY BIGINT KEY, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
+        "CREATE TABLE NO_KEY (ROWKEY BIGINT PRIMARY KEY, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT s.id as ID, name FROM S JOIN NO_KEY t ON s.id = t.ROWKEY;"
       ],
       "inputs": [
@@ -3349,7 +3349,7 @@
       "name": "stream to table when table does not have key field and joining by table ROWKEY",
       "statements": [
         "CREATE STREAM S (ROWKEY BIGINT KEY, ID bigint) WITH (kafka_topic='S', value_format='JSON', key='ID');",
-        "CREATE TABLE NO_KEY (ROWKEY BIGINT KEY, ID bigint, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
+        "CREATE TABLE NO_KEY (ROWKEY BIGINT PRIMARY KEY, ID bigint, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT s.id, name FROM S JOIN NO_KEY t ON s.id = t.ROWKEY;"
       ],
       "inputs": [
@@ -3779,7 +3779,7 @@
       "name": "on non-STRING key",
       "statements": [
         "CREATE STREAM INPUT_STREAM (ROWKEY BIGINT KEY, SF INT) WITH (kafka_topic='stream_topic', value_format='JSON');",
-        "CREATE TABLE INPUT_TABLE (ROWKEY BIGINT KEY, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
+        "CREATE TABLE INPUT_TABLE (ROWKEY BIGINT PRIMARY KEY, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.ROWKEY = T.ROWKEY;"
       ],
       "inputs": [
@@ -3806,7 +3806,7 @@
       "name": "on non-STRING value column",
       "statements": [
         "CREATE STREAM INPUT_STREAM (ROWKEY STRING KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');",
-        "CREATE TABLE INPUT_TABLE (ROWKEY BIGINT KEY, ID BIGINT, TF INT) WITH (kafka_topic='table_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE INPUT_TABLE (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, TF INT) WITH (kafka_topic='table_topic', value_format='JSON', key='ID');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.SF = T.ID;"
       ],
       "inputs": [
@@ -3833,7 +3833,7 @@
       "name": "on non-key table column",
       "statements": [
         "CREATE STREAM INPUT_STREAM (ROWKEY BIGINT KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');",
-        "CREATE TABLE INPUT_TABLE (ROWKEY BIGINT KEY, ID BIGINT, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
+        "CREATE TABLE INPUT_TABLE (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.ROWKEY = T.ID;"
       ],
       "expectedException": {
@@ -4050,19 +4050,6 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Implicit repartitioning of windowed sources is not supported. See https://github.com/confluentinc/ksql/issues/4385."
-      }
-    },
-    {
-      "name": "join with multiple sources",
-      "statements": [
-        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
-        "CREATE TABLE T2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
-        "CREATE TABLE T3 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN T2 ON S1.ID = T2.ID JOIN T3 ON S1.ID = T3.ID;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Invalid join criteria specified; KSQL does not support multi-way joins."
       }
     }
   ]

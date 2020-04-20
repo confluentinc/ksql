@@ -1,6 +1,7 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572098598,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT> NOT NULL",
@@ -8,66 +9,154 @@
     "CSAS_OUTPUT_0.Join.Right" : "STRUCT<S2_ID BIGINT, S2_ROWTIME BIGINT, S2_ROWKEY INT, S2_WINDOWSTART BIGINT, S2_WINDOWEND BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S1_ID BIGINT, S2_ID BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "left_topic",
-    "key" : 1,
-    "value" : {
-      "ID" : 1
-    },
-    "timestamp" : 765,
-    "window" : {
-      "start" : 234,
-      "end" : 765,
-      "type" : "SESSION"
-    }
-  }, {
-    "topic" : "right_topic",
-    "key" : 1,
-    "value" : {
-      "ID" : 2
-    },
-    "timestamp" : 567,
-    "window" : {
-      "start" : 234,
-      "end" : 567,
-      "type" : "SESSION"
-    }
-  }, {
-    "topic" : "right_topic",
-    "key" : 1,
-    "value" : {
-      "ID" : 3
-    },
-    "timestamp" : 765,
-    "window" : {
-      "start" : 234,
-      "end" : 765,
-      "type" : "SESSION"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : 1,
-    "value" : {
-      "S1_ID" : 1,
-      "S2_ID" : 3
-    },
-    "timestamp" : 765,
-    "window" : {
-      "start" : 234,
-      "end" : 765,
-      "type" : "SESSION"
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "OUTPUT",
-      "type" : "stream",
-      "schema" : "ROWKEY INT KEY, S1_ID BIGINT, S2_ID BIGINT",
-      "keyFormat" : {
-        "format" : "KAFKA",
-        "windowType" : "SESSION"
+  "testCase" : {
+    "name" : "matching session-windowed",
+    "inputs" : [ {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "ID" : 1
+      },
+      "timestamp" : 765,
+      "window" : {
+        "start" : 234,
+        "end" : 765,
+        "type" : "SESSION"
       }
-    } ]
+    }, {
+      "topic" : "right_topic",
+      "key" : 1,
+      "value" : {
+        "ID" : 2
+      },
+      "timestamp" : 567,
+      "window" : {
+        "start" : 234,
+        "end" : 567,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "right_topic",
+      "key" : 1,
+      "value" : {
+        "ID" : 3
+      },
+      "timestamp" : 765,
+      "window" : {
+        "start" : 234,
+        "end" : 765,
+        "type" : "SESSION"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "S1_ID" : 1,
+        "S2_ID" : 3
+      },
+      "timestamp" : 765,
+      "window" : {
+        "start" : 234,
+        "end" : 765,
+        "type" : "SESSION"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM S1 (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='left_topic', VALUE_FORMAT='JSON', WINDOW_TYPE='SESSION');", "CREATE STREAM S2 (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='right_topic', VALUE_FORMAT='JSON', WINDOW_TYPE='SESSION');", "CREATE STREAM OUTPUT AS SELECT\n  S1.ID S1_ID,\n  S2.ID S2_ID\nFROM S1 S1\nINNER JOIN S2 S2 WITHIN 1 MINUTES ON ((S1.ROWKEY = S2.ROWKEY))\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ROWKEY INT KEY, S1_ID BIGINT, S2_ID BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
   }
 }

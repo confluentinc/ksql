@@ -1,36 +1,77 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572084650,
+  "path" : "query-validation-tests/case-expression.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ORDERID BIGINT, ORDERUNITS DOUBLE> NOT NULL",
     "CSAS_S1_0.S1" : "STRUCT<CASE_RESAULT BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ORDERID" : 4,
-      "ORDERUNITS" : 1.9
+  "testCase" : {
+    "name" : "searched case with arithmetic expression in result",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ORDERID" : 4,
+        "ORDERUNITS" : 1.9
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ORDERID" : 5,
+        "ORDERUNITS" : 1.0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : "",
+      "value" : {
+        "CASE_RESAULT" : 6
+      }
+    }, {
+      "topic" : "S1",
+      "key" : "",
+      "value" : {
+        "CASE_RESAULT" : 7
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM ORDERS (ORDERID BIGINT, ORDERUNITS DOUBLE) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S1 AS SELECT (CASE WHEN (ORDERS.ORDERUNITS < 2.0) THEN (ORDERS.ORDERID + 2) END) CASE_RESAULT\nFROM ORDERS ORDERS\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ORDERID" : 5,
-      "ORDERUNITS" : 1.0
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "S1",
-    "key" : "",
-    "value" : {
-      "CASE_RESAULT" : 6
-    }
-  }, {
-    "topic" : "S1",
-    "key" : "",
-    "value" : {
-      "CASE_RESAULT" : 7
-    }
-  } ]
+  }
 }

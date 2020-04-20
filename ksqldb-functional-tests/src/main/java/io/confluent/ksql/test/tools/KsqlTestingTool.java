@@ -16,13 +16,11 @@
 package io.confluent.ksql.test.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.test.model.InputRecordsNode;
 import io.confluent.ksql.test.model.OutputRecordsNode;
-import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.tools.command.TestOptions;
 import io.confluent.ksql.util.KsqlException;
@@ -38,10 +36,9 @@ import java.util.stream.Collectors;
 public final class KsqlTestingTool {
 
   private KsqlTestingTool() {
-
   }
 
-  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
+  private static final ObjectMapper OBJECT_MAPPER = TestJsonMapper.INSTANCE.get();
 
   public static void main(final String[] args) {
 
@@ -60,11 +57,6 @@ public final class KsqlTestingTool {
     } catch (final Exception e) {
       System.err.println("Invalid arguments: " + e.getMessage());
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static List<RecordNode> getRecordNodesFromFile(final String filePath) throws IOException {
-    return OBJECT_MAPPER.readValue(new File(filePath), List.class);
   }
 
   private static List<String> getSqlStatements(final String queryFilePath) {
@@ -123,13 +115,13 @@ public final class KsqlTestingTool {
         true
     );
 
-    final TestCase testCase = new TestCaseBuilder()
+    final TestCase testCase = TestCaseBuilder
         .buildTests(testCaseNode, new File(statementFile).toPath())
         .get(0);
 
     executeTestCase(
         testCase,
-        new TestExecutor());
+        TestExecutor.create());
 
   }
 
@@ -138,7 +130,7 @@ public final class KsqlTestingTool {
       final TestExecutor testExecutor
   ) {
     try {
-      testExecutor.buildAndExecuteQuery(testCase);
+      testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
       System.out.println("\t >>> Test passed!");
     } catch (final Exception | AssertionError e) {
       System.err.println("\t>>>>> Test failed: " + e.getMessage());

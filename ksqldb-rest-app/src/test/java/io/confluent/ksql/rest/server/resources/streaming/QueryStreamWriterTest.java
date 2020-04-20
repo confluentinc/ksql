@@ -30,10 +30,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -87,7 +87,7 @@ public class QueryStreamWriterTest {
   @Before
   public void setUp() {
 
-    objectMapper = JsonMapper.INSTANCE.mapper;
+    objectMapper = ApiJsonMapper.INSTANCE.get();
 
     ehCapture = newCapture();
     drainCapture = newCapture();

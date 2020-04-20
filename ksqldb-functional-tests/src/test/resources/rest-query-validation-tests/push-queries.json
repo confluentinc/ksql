@@ -234,7 +234,7 @@
     {
       "name": "imported windowed table - DOUBLE KEY",
       "statements": [
-        "CREATE TABLE INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
+        "CREATE TABLE INPUT (ROWKEY DOUBLE PRIMARY KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
         "SELECT * FROM INPUT WHERE ROWKEY = 11.1 AND WINDOWSTART=12000 EMIT CHANGES LIMIT 1;"
       ],
       "inputs": [
@@ -348,7 +348,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
-        "message": "Window bounds column WINDOWSTART can only be used in the SELECT clause of windowed aggregations",
+        "message": "Error in WHERE expression: Unknown column WINDOWSTART.",
         "status": 400
       }
     },

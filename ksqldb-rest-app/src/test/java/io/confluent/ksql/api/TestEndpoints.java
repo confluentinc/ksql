@@ -18,14 +18,19 @@ package io.confluent.ksql.api;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.reactive.BufferedPublisher;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.StreamsList;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -84,6 +89,28 @@ public class TestEndpoints implements Endpoints {
     this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), acksPublisher,
         acksBeforePublisherError);
     return CompletableFuture.completedFuture(insertsSubscriber);
+  }
+
+  @Override
+  public synchronized CompletableFuture<EndpointResponse> executeKsqlRequest(
+      final KsqlRequest request,
+      final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext) {
+    this.lastSql = request.getKsql();
+    this.lastProperties = new JsonObject(request.getRequestProperties());
+    this.lastApiSecurityContext = apiSecurityContext;
+    if (request.getKsql().toLowerCase().equals("show streams;")) {
+      final StreamsList entity = new StreamsList(request.getKsql(), Collections.emptyList());
+      return CompletableFuture.completedFuture(EndpointResponse.create(200, "OK", entity));
+    } else {
+      return null;
+    }
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeTerminate(final ClusterTerminateRequest request,
+      final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+    return null;
   }
 
   public synchronized void setRowGeneratorFactory(

@@ -285,7 +285,7 @@ Your output should resemble:
       default, it is assumed the key schema is a single `KAFKA` formatted `STRING`
       column and is called `ROWKEY`. It is also possible to supply just the key
       column in the statement, allowing you to specify the key column type. For example:
-      `CREATE TABLE users_original (ROWKEY INT KEY) WITH (...);`
+      `CREATE TABLE users_original (ROWKEY INT PRIMARY KEY) WITH (...);`
 
 !!! note
       The data generated has the same value in the {{ site.ak }} record's key
@@ -1025,14 +1025,14 @@ in the value:
 
 ```sql
 CREATE TABLE WAREHOUSE_LOCATION 
-   (ROWKEY INT KEY, WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR)
+   (ROWKEY INT PRIMARY KEY, WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR)
    WITH (KAFKA_TOPIC='warehouse_location',
       VALUE_FORMAT='JSON',
       KEY='WAREHOUSE_ID',
       PARTITIONS=2);
 
 CREATE TABLE WAREHOUSE_SIZE 
-   (ROWKEY INT KEY, WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE)
+   (ROWKEY INT PRIMARY KEY, WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE)
    WITH (KAFKA_TOPIC='warehouse_size',
       VALUE_FORMAT='JSON',
       KEY='WAREHOUSE_ID',

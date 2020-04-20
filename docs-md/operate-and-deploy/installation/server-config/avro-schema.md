@@ -123,7 +123,7 @@ creates the `users` table with a 64-bit integer key and infers the value
 columns from the Avro schema.
 
 ```sql
-CREATE TABLE users (ROWKEY BIGINT KEY)
+CREATE TABLE users (ROWKEY BIGINT PRIMARY KEY)
   WITH (KAFKA_TOPIC='users-avro-topic',
         VALUE_FORMAT='AVRO',
         KEY='userid');

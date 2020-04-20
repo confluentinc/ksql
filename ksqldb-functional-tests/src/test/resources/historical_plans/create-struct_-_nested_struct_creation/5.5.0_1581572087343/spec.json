@@ -1,33 +1,72 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572087343,
+  "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
     "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR> NOT NULL",
     "CSAS_BIG_STRUCT_0.BIG_STRUCT" : "STRUCT<S STRUCT<F1 STRUCT<C1 VARCHAR>>> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test",
-    "key" : "",
-    "value" : {
-      "col1" : "foo"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "BIG_STRUCT",
-    "key" : "",
-    "value" : {
-      "S" : {
-        "F1" : {
-          "C1" : "foo"
+  "testCase" : {
+    "name" : "nested struct creation",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "col1" : "foo"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "BIG_STRUCT",
+      "key" : "",
+      "value" : {
+        "S" : {
+          "F1" : {
+            "C1" : "foo"
+          }
         }
       }
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
+    } ],
+    "topics" : [ {
+      "name" : "test",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
       "name" : "BIG_STRUCT",
-      "type" : "stream",
-      "schema" : "ROWKEY STRING KEY, S STRUCT<F1 STRUCT<C1 STRING>>"
-    } ]
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (COL1 STRING) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='JSON');", "CREATE STREAM BIG_STRUCT AS SELECT STRUCT(F1:=STRUCT(C1:=INPUT.COL1)) S\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "BIG_STRUCT",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, S STRUCT<F1 STRUCT<C1 STRING>>"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "BIG_STRUCT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
   }
 }

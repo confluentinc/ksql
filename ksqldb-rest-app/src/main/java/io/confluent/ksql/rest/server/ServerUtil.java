@@ -51,8 +51,13 @@ public final class ServerUtil {
     if (applicationServerId == null || applicationServerId.trim().isEmpty()) {
       return StreamsMetadataState.UNKNOWN_HOST;
     }
-    final String host = getHost(applicationServerId);
-    final Integer port = getPort(applicationServerId);
+
+    final String serverId = applicationServerId.endsWith("/")
+        ? applicationServerId.substring(0, applicationServerId.lastIndexOf("/"))
+        : applicationServerId;
+
+    final String host = getHost(serverId);
+    final Integer port = getPort(serverId);
 
     if (host == null || port == null) {
       throw new KsqlException(String.format(
@@ -69,7 +74,10 @@ public final class ServerUtil {
    * @param remotePort The remote port
    * @return uri
    */
-  static URI buildRemoteUri(final URL localHost, final String remoteHost, final int remotePort) {
+  public static URI buildRemoteUri(
+      final URL localHost,
+      final String remoteHost,
+      final int remotePort) {
     try {
       return new URL(localHost.getProtocol(), remoteHost, remotePort, "/").toURI();
     } catch (final Exception e) {

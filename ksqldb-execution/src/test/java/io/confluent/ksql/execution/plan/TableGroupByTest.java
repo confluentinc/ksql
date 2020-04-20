@@ -19,7 +19,9 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +43,8 @@ public class TableGroupByTest {
   private Formats formats1;
   @Mock
   private Formats formats2;
+  @Mock
+  private ColumnName alias;
 
   private List<Expression> expression1;
   private List<Expression> expression2;
@@ -51,15 +55,17 @@ public class TableGroupByTest {
     expression2 = ImmutableList.of(mock(Expression.class));
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableGroupBy<>(properties1, source1, formats1, expression1),
-            new TableGroupBy<>(properties1, source1, formats1, expression1))
-        .addEqualityGroup(new TableGroupBy<>(properties2, source1, formats1, expression1))
-        .addEqualityGroup(new TableGroupBy<>(properties1, source2, formats1, expression1))
-        .addEqualityGroup(new TableGroupBy<>(properties1, source1, formats2, expression1))
-        .addEqualityGroup(new TableGroupBy<>(properties1, source1, formats1, expression2));
+            new TableGroupBy<>(properties1, source1, formats1, expression1, Optional.of(alias)),
+            new TableGroupBy<>(properties1, source1, formats1, expression1, Optional.of(alias)))
+        .addEqualityGroup(new TableGroupBy<>(properties2, source1, formats1, expression1, Optional.of(alias)))
+        .addEqualityGroup(new TableGroupBy<>(properties1, source2, formats1, expression1, Optional.of(alias)))
+        .addEqualityGroup(new TableGroupBy<>(properties1, source1, formats2, expression1, Optional.of(alias)))
+        .addEqualityGroup(new TableGroupBy<>(properties1, source1, formats1, expression2, Optional.of(alias)))
+        .addEqualityGroup(new TableGroupBy<>(properties1, source1, formats1, expression1, Optional.empty()));
   }
 }

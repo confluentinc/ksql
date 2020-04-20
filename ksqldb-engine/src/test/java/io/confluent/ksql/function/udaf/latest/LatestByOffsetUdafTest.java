@@ -17,7 +17,7 @@ package io.confluent.ksql.function.udaf.latest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.notNullValue;
 
 import io.confluent.ksql.function.udaf.Udaf;
 import org.apache.kafka.connect.data.Struct;
@@ -26,7 +26,7 @@ import org.junit.Test;
 public class LatestByOffsetUdafTest {
 
   @Test
-  public void shouldInitializeToNull() {
+  public void shouldInitialize() {
     // Given:
     final Udaf<Integer, Struct, Integer> udaf = LatestByOffset
         .latest(LatestByOffset.STRUCT_LONG);
@@ -35,7 +35,7 @@ public class LatestByOffsetUdafTest {
     Struct init = udaf.initialize();
 
     // Then:
-    assertThat(init, is(nullValue()));
+    assertThat(init, is(notNullValue()));
   }
 
   @Test

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.test.planned;
 
+import static com.google.common.io.Files.getNameWithoutExtension;
+
 import io.confluent.ksql.test.tools.TestCase;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,15 +42,16 @@ public final class PlannedTestPath {
     return new PlannedTestPath(Paths.get(PLANS_DIR, formatName(testCase.getName())));
   }
 
-  public static PlannedTestPath forTestCasePlan(final TestCase testCase, final TestCasePlan plan) {
-    return new PlannedTestPath(
-        forTestCase(testCase).path()
-            .resolve(plan.getSpecNode().getVersion() + "_" + plan.getSpecNode().getTimestamp())
-    );
-  }
+  @SuppressWarnings("UnstableApiUsage")
+  public static PlannedTestPath forTestCasePlan(final TestCasePlan plan) {
+    final TestCaseSpecNode spec = plan.getSpecNode();
 
-  public PlannedTestPath resolve(final Path path) {
-    return new PlannedTestPath(this.path.resolve(path));
+    final String fileName = getNameWithoutExtension(spec.getPath());
+
+    final String name = formatName(fileName + " - " + spec.getTestCase().name());
+
+    return new PlannedTestPath(Paths.get(PLANS_DIR, name))
+        .resolve(spec.getVersion() + "_" + spec.getTimestamp());
   }
 
   public PlannedTestPath resolve(final String path) {
@@ -61,6 +64,10 @@ public final class PlannedTestPath {
 
   public Path relativePath() {
     return findBaseDir().resolve(path);
+  }
+
+  static PlannedTestPath base() {
+    return new PlannedTestPath(Paths.get(PLANS_DIR));
   }
 
   private static Path findBaseDir() {

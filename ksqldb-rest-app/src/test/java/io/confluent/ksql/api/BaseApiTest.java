@@ -20,11 +20,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.auth.ApiServerConfig;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
@@ -69,15 +70,17 @@ public class BaseApiTest {
   protected WebClient client;
   protected Server server;
   protected TestEndpoints testEndpoints;
+  protected ServerState serverState;
 
   @Before
   public void setUp() {
-
     vertx = Vertx.vertx();
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     testEndpoints = new TestEndpoints();
     ApiServerConfig serverConfig = createServerConfig();
+    serverState = new ServerState();
+    serverState.setReady();
     createServer(serverConfig);
     this.client = createClient();
     setDefaultRowGenerator();
@@ -114,7 +117,7 @@ public class BaseApiTest {
 
   protected void createServer(ApiServerConfig serverConfig) {
     server = new Server(vertx, serverConfig, testEndpoints, false,
-        new KsqlDefaultSecurityExtension(), Optional.empty());
+        new KsqlDefaultSecurityExtension(), Optional.empty(), serverState);
     server.start();
   }
 
@@ -211,7 +214,7 @@ public class BaseApiTest {
   }
 
   @SuppressWarnings("unchecked")
-  private void setDefaultRowGenerator() {
+  protected void setDefaultRowGenerator() {
     List<GenericRow> rows = new ArrayList<>();
     for (JsonArray ja : DEFAULT_ROWS) {
       rows.add(GenericRow.fromList(ja.getList()));

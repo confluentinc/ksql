@@ -1,18 +1,59 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572101270,
+  "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_REPARTITIONED_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
     "CSAS_REPARTITIONED_0.REPARTITIONED" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "0",
-    "value" : "0,zero,50"
-  } ],
-  "outputs" : [ {
-    "topic" : "REPARTITIONED",
-    "key" : "zero",
-    "value" : "0,zero,50"
-  } ]
+  "testCase" : {
+    "name" : "partition by with projection select all",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : "0,zero,50"
+    } ],
+    "outputs" : [ {
+      "topic" : "REPARTITIONED",
+      "key" : "zero",
+      "value" : "0,zero,50"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "REPARTITIONED",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='delimited');", "CREATE STREAM REPARTITIONED AS SELECT *\nFROM TEST TEST\nPARTITION BY TEST.NAME\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "REPARTITIONED",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
 }

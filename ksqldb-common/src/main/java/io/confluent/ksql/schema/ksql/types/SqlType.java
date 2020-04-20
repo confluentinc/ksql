@@ -36,8 +36,6 @@ public abstract class SqlType {
     return baseType;
   }
 
-  public abstract boolean supportsCast();
-
   public abstract void validateValue(Object value);
 
   public abstract String toString(FormatOptions formatOptions);

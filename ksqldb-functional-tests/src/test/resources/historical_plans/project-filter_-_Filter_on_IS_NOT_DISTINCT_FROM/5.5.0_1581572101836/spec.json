@@ -1,42 +1,83 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572101836,
+  "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<C1 BIGINT, C2 INT> NOT NULL",
     "CSAS_S1_0.S1" : "STRUCT<C1 BIGINT, C2 INT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : "0,0"
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : "0,1"
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : "1,0"
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : "0,"
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : ",0"
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : ","
-  } ],
-  "outputs" : [ {
-    "topic" : "S1",
-    "key" : "",
-    "value" : "0,0"
-  }, {
-    "topic" : "S1",
-    "key" : "",
-    "value" : ","
-  } ]
+  "testCase" : {
+    "name" : "Filter on IS NOT DISTINCT FROM",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "0,0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "0,1"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "1,0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "0,"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : ",0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : ","
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : "",
+      "value" : "0,0"
+    }, {
+      "topic" : "S1",
+      "key" : "",
+      "value" : ","
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM S1 AS SELECT *\nFROM TEST TEST\nWHERE (NOT (TEST.C1 IS DISTINCT FROM TEST.C2))\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
 }

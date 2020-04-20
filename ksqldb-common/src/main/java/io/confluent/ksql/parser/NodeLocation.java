@@ -36,6 +36,10 @@ public final class NodeLocation {
     return charPositionInLine + 1;
   }
 
+  public String asPrefix() {
+    return toString() + ": ";
+  }
+
   @Override
   public String toString() {
     return String.format("Line: %d, Col: %d", line, charPositionInLine + 1);

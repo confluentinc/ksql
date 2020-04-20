@@ -1,30 +1,71 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585310568495,
+  "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<A STRUCT<B MAP<VARCHAR, STRUCT<C ARRAY<STRUCT<D INT>>>>>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<A__B['key$Name[]']__C[1]__D INT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "A" : {
-        "B" : {
-          "key$Name[]" : {
-            "C" : [ {
-              "D" : 1
-            } ]
+  "testCase" : {
+    "name" : "generated name",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "A" : {
+          "B" : {
+            "key$Name[]" : {
+              "C" : [ {
+                "D" : 1
+              } ]
+            }
           }
         }
       }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "A__B['key$Name[]']__C[1]__D" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (A STRUCT<B MAP<STRING, STRUCT<C ARRAY<STRUCT<D INTEGER>>>>>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');", "CREATE STREAM OUTPUT AS SELECT INPUT.A->B['key$Name[]']->C[1]->D `A__B['key$Name[]']__C[1]__D`\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "A__B['key$Name[]']__C[1]__D" : 1
-    }
-  } ]
+  }
 }

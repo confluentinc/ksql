@@ -17,21 +17,16 @@ package io.confluent.ksql.test.loader;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.tools.Test;
+import io.confluent.ksql.test.tools.TestJsonMapper;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -42,17 +37,7 @@ import java.util.stream.Stream;
  */
 public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
 
-  // Pass a single test or multiple tests separated by commas to the test framework.
-  // Example:
-  //   mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
-  //   mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
-  private static final String KSQL_TEST_FILES = "ksql.test.files";
-
-  public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
-      .setSerializationInclusion(Include.NON_EMPTY)
-      .registerModule(new Jdk8Module());
+  public static final ObjectMapper OBJECT_MAPPER = TestJsonMapper.INSTANCE.get();
 
   private final Path testDir;
   private final Class<? extends TestFile<T>> testFileType;
@@ -76,7 +61,7 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
   }
 
   public Stream<T> load() {
-    final List<String> whiteList = getWhiteList();
+    final List<String> whiteList = TestLoader.getWhiteList();
     final List<Path> testPaths = whiteList.isEmpty()
         ? loadTestPathsFromDirectory()
         : getTestPathsFromWhiteList(whiteList);
@@ -118,15 +103,6 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
     } catch (final IOException e) {
       throw new TestFrameworkException("Failed to read test dir: " + testDir, e);
     }
-  }
-
-  private static List<String> getWhiteList() {
-    final String ksqlTestFiles = System.getProperty(KSQL_TEST_FILES, "").trim();
-    if (ksqlTestFiles.isEmpty()) {
-      return Collections.emptyList();
-    }
-
-    return Arrays.asList(ksqlTestFiles.split(","));
   }
 
   private static <TFT extends TestFile<T>, T extends Test> Stream<T> buildTests(

@@ -1,42 +1,83 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585050801320,
+  "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SHOULDTHROW BOOLEAN> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SHOULDTHROW BOOLEAN, KSQL_COL_0 BOOLEAN> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "a",
-    "value" : {
-      "shouldThrow" : false
+  "testCase" : {
+    "name" : "should handle UDTFs that throw",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : {
+        "shouldThrow" : false
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "b",
+      "value" : {
+        "shouldThrow" : true
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "c",
+      "value" : {
+        "shouldThrow" : false
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "a",
+      "value" : {
+        "SHOULDTHROW" : false,
+        "KSQL_COL_0" : false
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "c",
+      "value" : {
+        "SHOULDTHROW" : false,
+        "KSQL_COL_0" : false
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (SHOULDTHROW BOOLEAN) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  TEST.SHOULDTHROW SHOULDTHROW,\n  THROWING_UDTF(TEST.SHOULDTHROW) KSQL_COL_0\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
-  }, {
-    "topic" : "test_topic",
-    "key" : "b",
-    "value" : {
-      "shouldThrow" : true
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "c",
-    "value" : {
-      "shouldThrow" : false
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "a",
-    "value" : {
-      "SHOULDTHROW" : false,
-      "KSQL_COL_0" : false
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "c",
-    "value" : {
-      "SHOULDTHROW" : false,
-      "KSQL_COL_0" : false
-    }
-  } ]
+  }
 }

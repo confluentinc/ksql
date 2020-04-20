@@ -1,83 +1,134 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572086783,
+  "path" : "query-validation-tests/collect-set.json",
   "schemas" : {
     "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE VARCHAR> NOT NULL",
     "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 VARCHAR> NOT NULL",
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_AGG_VARIABLE_0 ARRAY<VARCHAR>> NOT NULL",
     "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, COLLECTED ARRAY<VARCHAR>> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "VALUE" : "foo"
+  "testCase" : {
+    "name" : "collect_set string - JSON",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "VALUE" : "foo"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "VALUE" : "baz"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "VALUE" : "bar"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "VALUE" : "baz"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "VALUE" : "foo"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "COLLECTED" : [ "foo" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "COLLECTED" : [ "baz" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "COLLECTED" : [ "foo", "bar" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "COLLECTED" : [ "baz" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "COLLECTED" : [ "baz", "foo" ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, VALUE STRING) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  COLLECT_SET(TEST.VALUE) COLLECTED\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
-  }, {
-    "topic" : "test_topic",
-    "key" : 100,
-    "value" : {
-      "ID" : 100,
-      "VALUE" : "baz"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "VALUE" : "bar"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 100,
-    "value" : {
-      "ID" : 100,
-      "VALUE" : "baz"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 100,
-    "value" : {
-      "ID" : 100,
-      "VALUE" : "foo"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "COLLECTED" : [ "foo" ]
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 100,
-    "value" : {
-      "ID" : 100,
-      "COLLECTED" : [ "baz" ]
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "COLLECTED" : [ "foo", "bar" ]
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "S2",
-    "key" : 100,
-    "value" : {
-      "ID" : 100,
-      "COLLECTED" : [ "baz" ]
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 100,
-    "value" : {
-      "ID" : 100,
-      "COLLECTED" : [ "baz", "foo" ]
-    }
-  } ]
+  }
 }

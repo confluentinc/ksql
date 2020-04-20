@@ -45,6 +45,7 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -211,8 +212,7 @@ class Analyzer {
           .map(w -> KeyFormat.windowed(
               FormatInfo.of(FormatFactory.KAFKA.name()), w.getWindowInfo()))
           .orElseGet(() -> analysis
-              .getFromDataSources()
-              .get(0)
+              .getFrom()
               .getDataSource()
               .getKsqlTopic()
               .getKeyFormat());
@@ -225,8 +225,7 @@ class Analyzer {
 
     private FormatInfo getSourceInfo() {
       return analysis
-          .getFromDataSources()
-          .get(0)
+          .getFrom()
           .getDataSource()
           .getKsqlTopic()
           .getValueFormat()
@@ -263,10 +262,13 @@ class Analyzer {
       analysis.getWhereExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "WHERE"));
 
-      analysis.getGroupByExpressions()
+      analysis.getGroupBy()
+          .map(GroupBy::getGroupingExpressions)
+          .orElseGet(ImmutableList::of)
           .forEach(expression -> columnValidator.analyzeExpression(expression, "GROUP BY"));
 
       analysis.getPartitionBy()
+          .map(PartitionBy::getExpression)
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
 
       analysis.getHavingExpression()
@@ -284,15 +286,22 @@ class Analyzer {
       isJoin = true;
 
       process(node.getLeft(), context);
-      node.getRights().forEach(right -> process(right.getRelation(), context));
+      node.getRights().forEach(right -> process(right, context));
+      return null;
+    }
+
+    @Override
+    protected AstNode visitJoinedSource(final JoinedSource node, final Void context) {
+      process(node.getRelation(), context);
+
+      final AliasedDataSource source = analysis
+              .getSourceByAlias(((AliasedRelation) node.getRelation()).getAlias())
+              .orElseThrow(() -> new IllegalStateException(
+                      "Expected to register source in above process call"));
 
       final JoinNode.JoinType joinType = getJoinType(node);
 
-      final AliasedDataSource left = analysis.getFromDataSources().get(0);
-      final AliasedDataSource right = analysis.getFromDataSources().get(1);
-
-      final JoinedSource source = Iterables.getOnlyElement(node.getRights());
-      final JoinOn joinOn = (JoinOn) source.getCriteria();
+      final JoinOn joinOn = (JoinOn) node.getCriteria();
       final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
           .getExpression();
 
@@ -314,27 +323,44 @@ class Analyzer {
       final SourceName rightSourceName = getOnlySourceForJoin(
           comparisonExpression.getRight(), comparisonExpression, srcsUsedInRight);
 
-      throwOnSelfJoin(left, right);
+      final AliasedDataSource left = analysis.getSourceByAlias(leftSourceName)
+          .orElseThrow(() -> new KsqlException("Cannot join on unknown source: " + leftSourceName));
+
+      final AliasedDataSource right = analysis.getSourceByAlias(rightSourceName)
+          .orElseThrow(() -> new KsqlException("Cannot join on unknown source: " + leftSourceName));
+
       throwOnIncompleteJoinCriteria(left, right, leftSourceName, rightSourceName);
       throwOnIncompatibleSourceWindowing(left, right);
+      throwOnJoinWithoutSource(source, left, right);
 
-      final boolean flipped = leftSourceName.equals(right.getAlias());
-      analysis.addJoin(new JoinInfo(
-          flipped ? comparisonExpression.getRight() : comparisonExpression.getLeft(),
-          flipped ? comparisonExpression.getLeft() : comparisonExpression.getRight(),
+      // we consider this JOIN "flipped" if the left hand side of the expression
+      // is not the source - in the case of multi-way joins, the JoinInfo will be
+      // flipped in the JoinTree so that the new source is always on the right and
+      // the result of previous joins is on the left
+      final boolean flipped = rightSourceName.equals(analysis.getFrom().getAlias());
+      final JoinInfo joinInfo = new JoinInfo(
+          left,
+          comparisonExpression.getLeft(),
+          right,
+          comparisonExpression.getRight(),
           joinType,
-          source.getWithinExpression()
-      ));
+          node.getWithinExpression()
+      );
+      analysis.addJoin(flipped ? joinInfo.flip() : joinInfo);
 
       return null;
     }
 
-    private void throwOnSelfJoin(final AliasedDataSource left, final AliasedDataSource right) {
-      if (left.getDataSource().getName().equals(right.getDataSource().getName())) {
+    private void throwOnJoinWithoutSource(
+            final AliasedDataSource source,
+            final AliasedDataSource left,
+            final AliasedDataSource right
+    ) {
+      if (!source.equals(left) && !source.equals(right)) {
         throw new KsqlException(
-            "Can not join '" + left.getDataSource().getName().toString(FormatOptions.noEscape())
-                + "' to '" + right.getDataSource().getName().toString(FormatOptions.noEscape())
-                + "': self joins are not yet supported."
+            "A join criteria is expected to reference the source (" + source.getAlias()
+                + ") in the FROM clause, instead the right source references " + right.getAlias()
+                + " and the left source references " + left.getAlias()
         );
       }
     }
@@ -345,8 +371,10 @@ class Analyzer {
         final SourceName leftExpressionSource,
         final SourceName rightExpressionSource
     ) {
-      final boolean valid = ImmutableSet.of(leftExpressionSource, rightExpressionSource)
-          .containsAll(ImmutableList.of(left.getAlias(), right.getAlias()));
+      final ImmutableSet<SourceName> usedSources = ImmutableSet
+          .of(leftExpressionSource, rightExpressionSource);
+      final boolean valid = usedSources.size() == 2
+          && usedSources.containsAll(ImmutableList.of(left.getAlias(), right.getAlias()));
 
       if (!valid) {
         throw new KsqlException(
@@ -434,9 +462,8 @@ class Analyzer {
       }
     }
 
-    private JoinNode.JoinType getJoinType(final Join node) {
+    private JoinNode.JoinType getJoinType(final JoinedSource source) {
       final JoinNode.JoinType joinType;
-      final JoinedSource source = Iterables.getOnlyElement(node.getRights());
       switch (source.getType()) {
         case INNER:
           joinType = JoinNode.JoinType.INNER;
@@ -462,6 +489,16 @@ class Analyzer {
         throw new KsqlException(structuredDataSourceName + " does not exist.");
       }
 
+      final Optional<AliasedDataSource> existing = analysis.getSourceByName(source.getName());
+      if (existing.isPresent()) {
+        throw new KsqlException(
+            "Can not join '"
+                + structuredDataSourceName.toString(FormatOptions.noEscape())
+                + "' to '"
+                + existing.get().getDataSource().getName().toString(FormatOptions.noEscape())
+                + "': self joins are not yet supported."
+        );
+      }
       analysis.addDataSource(node.getAlias(), source);
       return node;
     }
@@ -490,10 +527,10 @@ class Analyzer {
 
     private void analyzeGroupBy(final GroupBy groupBy) {
       isGroupBy = true;
-      analysis.setGroupByExpressions(groupBy.getGroupingExpressions());
+      analysis.setGroupBy(groupBy);
     }
 
-    private void analyzePartitionBy(final Expression partitionBy) {
+    private void analyzePartitionBy(final PartitionBy partitionBy) {
       analysis.setPartitionBy(partitionBy);
     }
 
@@ -516,7 +553,7 @@ class Analyzer {
         }
       }
 
-      if (analysis.getGroupByExpressions().isEmpty()) {
+      if (!analysis.getGroupBy().isPresent()) {
         throwOnUdafs(column.getExpression());
       }
     }
@@ -538,7 +575,7 @@ class Analyzer {
     }
 
     public void validate() {
-      final String kafkaSources = analysis.getFromDataSources().stream()
+      final String kafkaSources = analysis.getAllDataSources().stream()
           .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
               == FormatFactory.KAFKA)
           .map(AliasedDataSource::getAlias)
@@ -610,7 +647,7 @@ class Analyzer {
 
           tableFunctionName = Optional.of(functionName);
 
-          if (!analysis.getGroupByExpressions().isEmpty()) {
+          if (analysis.getGroupBy().isPresent()) {
             throw new KsqlException("Table functions cannot be used with aggregations.");
           }
 

@@ -476,6 +476,7 @@ public class SchemaKTableTest {
     final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
         valueFormat,
         groupByExpressions,
+        Optional.empty(),
         childContextStacker
     );
 
@@ -491,11 +492,13 @@ public class SchemaKTableTest {
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
     final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
+    final Optional<ColumnName> alias = Optional.of(ColumnName.of("COL1"));
 
     // When:
     final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
         valueFormat,
         groupByExpressions,
+        alias,
         childContextStacker
     );
 
@@ -508,7 +511,8 @@ public class SchemaKTableTest {
                 initialSchemaKTable.getSourceTableStep(),
                 io.confluent.ksql.execution.plan.Formats
                     .of(initialSchemaKTable.keyFormat, valueFormat, SerdeOption.none()),
-                groupByExpressions
+                groupByExpressions,
+                alias
             )
         )
     );
@@ -526,6 +530,7 @@ public class SchemaKTableTest {
     final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
         valueFormat,
         groupByExpressions,
+        Optional.empty(),
         childContextStacker
     );
 
@@ -557,7 +562,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKGroupedTable result =
-        schemaKTable.groupBy(valueFormat, groupByExpressions, childContextStacker);
+        schemaKTable.groupBy(valueFormat, groupByExpressions, Optional.empty(), childContextStacker);
 
     // Then:
     result.getSourceTableStep().build(planBuilder);
@@ -593,7 +598,7 @@ public class SchemaKTableTest {
 
     // Call groupBy and extract the captured mapper
     final SchemaKGroupedTable result = initialSchemaKTable.groupBy(
-        valueFormat, groupByExpressions, childContextStacker);
+        valueFormat, groupByExpressions, Optional.empty(), childContextStacker);
     result.getSourceTableStep().build(planBuilder);
     verify(mockKTable, mockKGroupedTable);
     final KeyValueMapper keySelector = capturedKeySelector.getValue();
@@ -847,7 +852,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKGroupedTable result = selected
-        .groupBy(valueFormat, groupByExprs, childContextStacker);
+        .groupBy(valueFormat, groupByExprs, Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(result.getKeyField(),

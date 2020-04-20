@@ -15,13 +15,13 @@
 package io.confluent.ksql.test;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.TestExecutionListener;
 import io.confluent.ksql.test.tools.TestExecutor;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -37,8 +37,8 @@ final class EndToEndEngineTestUtil {
   private EndToEndEngineTestUtil(){}
 
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
-    try (final TestExecutor testExecutor = new TestExecutor()) {
-      testExecutor.buildAndExecuteQuery(testCase);
+    try (final TestExecutor testExecutor = TestExecutor.create()) {
+      testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
     } catch (final AssertionError e) {
       throw new AssertionError(e.getMessage()
           + System.lineSeparator()

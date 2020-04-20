@@ -1,34 +1,73 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572087317,
+  "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
     "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR, COL2 ARRAY<VARCHAR>> NOT NULL",
     "CSAS_BIG_STRUCT_0.BIG_STRUCT" : "STRUCT<S STRUCT<F1 VARCHAR, F2 ARRAY<VARCHAR>, F3 VARCHAR>> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test",
-    "key" : "",
-    "value" : {
-      "col1" : "foo",
-      "col2" : [ "bar" ]
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "BIG_STRUCT",
-    "key" : "",
-    "value" : {
-      "S" : {
-        "F1" : "foo",
-        "F2" : [ "bar" ],
-        "F3" : "oo"
+  "testCase" : {
+    "name" : "basic struct creation",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "col1" : "foo",
+        "col2" : [ "bar" ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "BIG_STRUCT",
+      "key" : "",
+      "value" : {
+        "S" : {
+          "F1" : "foo",
+          "F2" : [ "bar" ],
+          "F3" : "oo"
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "BIG_STRUCT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (COL1 STRING, COL2 ARRAY<STRING>) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='JSON');", "CREATE STREAM BIG_STRUCT AS SELECT STRUCT(F1:=INPUT.COL1, F2:=INPUT.COL2, F3:=SUBSTRING(INPUT.COL1, 2)) S\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "BIG_STRUCT",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, S STRUCT<F1 STRING, F2 ARRAY<STRING>, F3 STRING>"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "BIG_STRUCT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
       }
     }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "BIG_STRUCT",
-      "type" : "stream",
-      "schema" : "ROWKEY STRING KEY, S STRUCT<F1 STRING, F2 ARRAY<STRING>, F3 STRING>"
-    } ]
   }
 }

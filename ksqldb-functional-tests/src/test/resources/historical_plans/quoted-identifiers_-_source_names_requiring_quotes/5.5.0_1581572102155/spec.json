@@ -1,22 +1,63 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102155,
+  "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
     "CSAS_foo-too_0.KsqlTopic.Source" : "STRUCT<ID VARCHAR> NOT NULL",
     "CSAS_foo-too_0.foo-too" : "STRUCT<ID VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "foo-source",
-    "key" : "",
-    "value" : {
-      "id" : "1"
+  "testCase" : {
+    "name" : "source names requiring quotes",
+    "inputs" : [ {
+      "topic" : "foo-source",
+      "key" : "",
+      "value" : {
+        "id" : "1"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "foo-too",
+      "key" : "",
+      "value" : {
+        "ID" : "1"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "foo-source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "foo-too",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM `foo-source` (ID STRING) WITH (KAFKA_TOPIC='foo-source', VALUE_FORMAT='JSON');", "CREATE STREAM `foo-too` AS SELECT `foo-source`.ID ID\nFROM `foo-source` `foo-source`\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "foo-source",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "foo-too",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
-  } ],
-  "outputs" : [ {
-    "topic" : "foo-too",
-    "key" : "",
-    "value" : {
-      "ID" : "1"
-    }
-  } ]
+  }
 }

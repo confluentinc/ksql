@@ -1018,6 +1018,32 @@
           {"row":{"columns":["10", 12365, 1]}}
         ]}
       ]
+    },
+    {
+      "name": "fail on null key",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=NULL;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Primary key columns can not be NULL: (ROWKEY = null)",
+        "status": 400
+      }
+    },
+    {
+      "name": "fail on non-literal key",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=CAST(1 AS INT);"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Ony comparison to literals is currently supported: (ROWKEY = CAST(1 AS INTEGER))",
+        "status": 400
+      }
     }
   ]
 }

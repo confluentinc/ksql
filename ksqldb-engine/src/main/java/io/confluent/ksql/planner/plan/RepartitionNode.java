@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -37,14 +38,14 @@ import java.util.stream.Stream;
 public class RepartitionNode extends PlanNode {
 
   private final PlanNode source;
-  private final Expression partitionBy;
+  private final PartitionBy partitionBy;
   private final KeyField keyField;
 
   public RepartitionNode(
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Expression partitionBy,
+      final PartitionBy partitionBy,
       final KeyField keyField
   ) {
     super(id, source.getNodeOutputType(), schema, source.getSourceName());
@@ -71,12 +72,16 @@ public class RepartitionNode extends PlanNode {
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     return source.buildStream(builder)
-        .selectKey(partitionBy, builder.buildNodeContext(getId().toString()));
+        .selectKey(
+            partitionBy.getExpression(),
+            partitionBy.getAlias(),
+            builder.buildNodeContext(getId().toString())
+        );
   }
 
   @VisibleForTesting
   public Expression getPartitionBy() {
-    return partitionBy;
+    return partitionBy.getExpression();
   }
 
   @Override

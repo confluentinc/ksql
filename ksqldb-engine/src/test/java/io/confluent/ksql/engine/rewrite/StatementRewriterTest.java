@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.engine.rewrite;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -47,6 +47,7 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.JoinedSource.Type;
+import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
@@ -55,6 +56,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -71,6 +73,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class StatementRewriterTest {
+
+  private static final ColumnName COL2 = ColumnName.of("Bob");
 
   @Mock
   private BiFunction<Expression, Object, Expression> expressionRewriter;
@@ -165,7 +169,7 @@ public class StatementRewriterTest {
       final Optional<WindowExpression> window,
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
-      final Optional<Expression> partitionBy,
+      final Optional<PartitionBy> partitionBy,
       final Optional<Expression> having
   ) {
     when(mockRewriter.apply(select, context)).thenReturn(rewrittenSelect);
@@ -278,9 +282,14 @@ public class StatementRewriterTest {
   @Test
   public void shouldRewriteQueryWithPartitionBy() {
     // Given:
+    final PartitionBy partitionBy = mock(PartitionBy.class);
+    final PartitionBy rewrittenPartitionBy = mock(PartitionBy.class);
+
     final Query query =
-        givenQuery(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(expression), Optional.empty());
-    when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
+        givenQuery(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(partitionBy),
+            Optional.empty());
+
+    when(mockRewriter.apply(partitionBy, context)).thenReturn(rewrittenPartitionBy);
 
     // When:
     final AstNode rewritten = rewriter.rewrite(query, context);
@@ -293,7 +302,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.of(rewrittenExpression),
+        Optional.of(rewrittenPartitionBy),
         Optional.empty(),
         resultMaterialization,
         false,
@@ -512,6 +521,7 @@ public class StatementRewriterTest {
   private static TableElement givenTableElement(final String name) {
     final TableElement element = mock(TableElement.class);
     when(element.getName()).thenReturn(ColumnName.of(name));
+    when(element.getNamespace()).thenReturn(Namespace.VALUE);
     return element;
   }
 
@@ -773,7 +783,8 @@ public class StatementRewriterTest {
     final Expression rewrittenExp2 = mock(Expression.class);
     final GroupBy groupBy = new GroupBy(
         location,
-        ImmutableList.of(exp1, exp2)
+        ImmutableList.of(exp1, exp2),
+        Optional.of(COL2)
     );
     when(expressionRewriter.apply(exp1, context)).thenReturn(rewrittenExp1);
     when(expressionRewriter.apply(exp2, context)).thenReturn(rewrittenExp2);
@@ -787,10 +798,32 @@ public class StatementRewriterTest {
         equalTo(
             new GroupBy(
                 location,
-                ImmutableList.of(rewrittenExp1, rewrittenExp2)
+                ImmutableList.of(rewrittenExp1, rewrittenExp2),
+                Optional.of(COL2)
             )
         )
     );
+  }
+
+  @Test
+  public void shouldRewritePartitionBy() {
+    // Given:
+    final PartitionBy partitionBy = new PartitionBy(
+        location,
+        expression,
+        Optional.of(COL2)
+    );
+    when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(partitionBy, context);
+
+    // Then:
+    assertThat(rewritten, equalTo(new PartitionBy(
+        location,
+        rewrittenExpression,
+        Optional.of(COL2)
+    )));
   }
 
   @Test

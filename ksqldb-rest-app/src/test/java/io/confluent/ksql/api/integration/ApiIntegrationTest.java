@@ -128,11 +128,6 @@ public class ApiIntegrationTest {
     REST_APP.getServiceContext().close();
   }
 
-  private JsonArray expectedColumnNames = new JsonArray().add("ROWTIME").add("ROWKEY")
-      .add("VIEWTIME").add("USERID").add("PAGEID");
-  private JsonArray expectedColumnTypes = new JsonArray().add("BIGINT").add("BIGINT")
-      .add("BIGINT").add("STRING").add("STRING");
-
   @Test
   public void shouldExecutePushQueryWithLimit() {
 
@@ -144,8 +139,12 @@ public class ApiIntegrationTest {
 
     // Then:
     assertThat(response.rows, hasSize(2));
-    assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
-    assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
+    assertThat(response.responseObject.getJsonArray("columnNames"), is(
+        new JsonArray().add("ROWTIME").add("ROWKEY")
+            .add("VIEWTIME").add("USERID").add("PAGEID")));
+    assertThat(response.responseObject.getJsonArray("columnTypes"), is(
+        new JsonArray().add("BIGINT").add("BIGINT")
+            .add("BIGINT").add("STRING").add("STRING")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
 
@@ -241,7 +240,7 @@ public class ApiIntegrationTest {
   public void shouldExecutePullQuery() {
 
     // Given:
-    String sql = "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';";
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
 
     // When:
     // Maybe need to retry as populating agg table is async
@@ -255,7 +254,7 @@ public class ApiIntegrationTest {
     QueryResponse response = atomicReference.get();
 
     // Then:
-    JsonArray expectedColumnNames = new JsonArray().add("ROWKEY").add("ROWTIME").add("COUNT");
+    JsonArray expectedColumnNames = new JsonArray().add("USERID").add("ROWTIME").add("COUNT");
     JsonArray expectedColumnTypes = new JsonArray().add("STRING").add("BIGINT").add("BIGINT");
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
@@ -270,7 +269,7 @@ public class ApiIntegrationTest {
   public void shouldFailPullQueryWithInvalidSql() {
 
     // Given:
-    String sql = "SLLLECET * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';";
+    String sql = "SLLLECET * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
 
     // Then:
     shouldFailToExecuteQuery(sql, "line 1:1: mismatched input 'SLLLECET' expecting");
@@ -280,8 +279,8 @@ public class ApiIntegrationTest {
   public void shouldFailPullQueryWithMoreThanOneStatement() {
 
     // Given:
-    String sql = "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';" +
-        "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';";
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';" +
+        "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
 
     // Then:
     shouldFailToExecuteQuery(sql, "Expected exactly one KSQL statement; found 2 instead");

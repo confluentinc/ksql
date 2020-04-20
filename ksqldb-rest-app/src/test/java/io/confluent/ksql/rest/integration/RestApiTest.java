@@ -251,7 +251,7 @@ public class RestApiTest {
   public void shouldExecutePullQueryOverWebSocketWithV1ContentType() {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
+        "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         Versions.KSQL_V1_JSON_TYPE,
         Versions.KSQL_V1_JSON_TYPE
     );
@@ -261,7 +261,7 @@ public class RestApiTest {
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
-            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"},"
+            + "{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"},"
             + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
             + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
             + "]"));
@@ -275,7 +275,7 @@ public class RestApiTest {
   public void shouldExecutePullQueryOverWebSocketWithJsonContentType() {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT COUNT, ROWKEY from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
+        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON_TYPE,
         MediaType.APPLICATION_JSON_TYPE
     );
@@ -286,7 +286,7 @@ public class RestApiTest {
     assertThat(messages.get(0),
         is("["
             + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
-            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"}"
+            + "{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"}"
             + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[1,\"USER_1\"]}}"));
@@ -296,7 +296,7 @@ public class RestApiTest {
   public void shouldReturnCorrectSchemaForPullQueryWithOnlyKeyInSelect() {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT ROWKEY from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
+        "SELECT USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON_TYPE,
         MediaType.APPLICATION_JSON_TYPE
     );
@@ -306,7 +306,7 @@ public class RestApiTest {
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
-            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"}"
+            + "{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"}"
             + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[\"USER_1\"]}}"));
@@ -316,7 +316,7 @@ public class RestApiTest {
   public void shouldReturnCorrectSchemaForPullQueryWithOnlyValueColumnInSelect() {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT COUNT from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
+        "SELECT COUNT from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON_TYPE,
         MediaType.APPLICATION_JSON_TYPE
     );
@@ -337,7 +337,7 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> {
       final String response = rawRestQueryRequest(
-          "SELECT COUNT, ROWKEY from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';"
+          "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';"
       );
       return Arrays.asList(response.split(System.lineSeparator()));
     };
@@ -348,7 +348,7 @@ public class RestApiTest {
 
     assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
     assertThat(messages.get(0),
-        endsWith("\",\"schema\":\"`COUNT` BIGINT, `ROWKEY` STRING KEY\"}},"));
+        endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
   }
 

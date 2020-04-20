@@ -54,7 +54,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.UserDataProvider;
 import java.io.IOException;
 import java.util.List;
@@ -126,7 +125,7 @@ public class PullQueryRoutingFunctionalTest {
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
           .withRowTime()
-          .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+          .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
       SerdeOption.none()
@@ -218,7 +217,7 @@ public class PullQueryRoutingFunctionalTest {
     );
     //Create table
     output = KsqlIdentifierTestUtil.uniqueIdentifierName();
-    sql = "SELECT * FROM " + output + " WHERE ROWKEY = '" + KEY + "';";
+    sql = "SELECT * FROM " + output + " WHERE USERID = '" + KEY + "';";
     List<KsqlEntity> res = makeAdminRequestWithResponse(
         REST_APP_0,
         "CREATE TABLE " + output + " AS"

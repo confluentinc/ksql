@@ -39,7 +39,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.UserDataProvider;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
@@ -104,7 +103,7 @@ public class PullQueryFunctionalTest {
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
           .withRowTime()
-          .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+          .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
       SerdeOption.none()
@@ -190,7 +189,7 @@ public class PullQueryFunctionalTest {
 
     waitForTableRows();
 
-    final String sql = "SELECT * FROM " + output + " WHERE ROWKEY = '" + key + "';";
+    final String sql = "SELECT * FROM " + output + " WHERE USERID = '" + key + "';";
 
     // When:
 
@@ -219,7 +218,7 @@ public class PullQueryFunctionalTest {
     waitForTableRows();
 
     final String sql = "SELECT * FROM " + output
-        + " WHERE ROWKEY = '" + key + "'"
+        + " WHERE USERID = '" + key + "'"
         + " AND WINDOWSTART = " + BASE_TIME + ";";
 
     // When:
@@ -231,7 +230,7 @@ public class PullQueryFunctionalTest {
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(
-        key,                    // ROWKEY
+        key,                    // USERID
         BASE_TIME,              // WINDOWSTART
         BASE_TIME + ONE_SECOND, // WINDOWEND
         BASE_TIME,              // ROWTIME

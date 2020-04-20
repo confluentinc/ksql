@@ -30,9 +30,11 @@ import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.core.streams.ReadStream;
@@ -242,6 +244,12 @@ public class InsertsStreamRunner extends BasePerfRunner {
     public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
         ApiSecurityContext apiSecurityContext) {
       return null;
+    }
+
+    @Override
+    public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+
     }
   }
 

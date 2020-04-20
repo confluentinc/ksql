@@ -60,7 +60,7 @@ public class ServerVerticle extends AbstractVerticle {
       .of("/query-stream", "/inserts-stream", "/close-query",
           "/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
           "/status/:type/:entity/:action", "/status", "/lag", "/healthcheck", "/v1/metadata",
-          "/v1/metadata/id");
+          "/v1/metadata/id", "/ws/*");
 
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
@@ -140,11 +140,7 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(new CloseQueryHandler(server));
 
     PortedEndpoints.setupEndpoints(endpoints, server, router);
-
-    if (proxyHandler != null) {
-      proxyHandler.setupRoutes(router);
-    }
-
+    
     return router;
   }
 

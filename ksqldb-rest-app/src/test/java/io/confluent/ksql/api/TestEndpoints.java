@@ -29,8 +29,10 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.vertx.core.Context;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import java.util.Collections;
 import java.util.HashSet;
@@ -173,6 +175,12 @@ public class TestEndpoints implements Endpoints {
   public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
       ApiSecurityContext apiSecurityContext) {
     return null;
+  }
+
+  @Override
+  public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+
   }
 
   public synchronized void setRowGeneratorFactory(

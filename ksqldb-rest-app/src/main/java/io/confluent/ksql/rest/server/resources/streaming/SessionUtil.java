@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import io.vertx.core.http.ServerWebSocket;
 import java.nio.charset.StandardCharsets;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
@@ -32,6 +33,17 @@ final class SessionUtil {
   private static final int ECLIPSE_LEN = "...".getBytes(StandardCharsets.UTF_8).length;
 
   private SessionUtil() {
+  }
+
+  static void closeSilently(
+      final ServerWebSocket webSocket,
+      final CloseCodes code,
+      final String message) {
+    try {
+      webSocket.close((short) code.getCode(), message);
+    } catch (final Exception e) {
+      LOG.info("Exception caught closing websocket", e);
+    }
   }
 
   static void closeSilently(

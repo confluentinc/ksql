@@ -227,9 +227,15 @@ be compatible with the upcoming multiple-key-column support.
 
 However, this posses a problem, as it does not provide a single place where the user can provide an
 alias for the system generated `KSQL_COL_0` key column name. Any solution to allow providing an
-alias would likely be incompatible with the planned multiple key column support. Hence, we propose
-leaving this edge case unsolved, i.e. users will _not_ be able to provide an alias for the name of
-the key column resulting from multiple grouping expressions.
+alias would likely be incompatible with the planned multiple key column support. 
+
+Hence, we propose leaving this edge case unsolved, i.e. users will _not_ be able to provide an alias
+for the name of the key column resulting from multiple grouping expressions. This will be resolved
+when support for multiple key columns is added.
+
+Alternatively, ksqlDB could support the non-strandard `GROUP BY (a, b) AS c` style aliasing, to allow
+users to provide their own name. This support could be removed once multiple key columns are 
+supported.
 
 If anyone has any suggestions on how we can support this in a compatible manner, please speak up!
 

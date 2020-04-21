@@ -54,8 +54,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.StreamingOutput;
 
 class PortedEndpoints {
 
@@ -86,55 +84,55 @@ class PortedEndpoints {
     router.route(HttpMethod.POST, "/ksql")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleKsqlRequest);
     router.route(HttpMethod.POST, "/ksql/terminate")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleTerminateRequest);
     router.route(HttpMethod.POST, "/query")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleQueryRequest);
     router.route(HttpMethod.GET, "/info")
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleInfoRequest);
     router.route(HttpMethod.POST, "/heartbeat")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleHeartbeatRequest);
     router.route(HttpMethod.GET, "/clusterStatus")
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleClusterStatusRequest);
     router.route(HttpMethod.GET, "/status/:type/:entity/:action")
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleStatusRequest);
     router.route(HttpMethod.GET, "/status")
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleAllStatusesRequest);
     router.route(HttpMethod.POST, "/lag")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleLagReportRequest);
     router.route(HttpMethod.GET, "/healthcheck")
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleHealthcheckRequest);
     router.route(HttpMethod.GET, "/v1/metadata")
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleServerMetadataRequest);
     router.route(HttpMethod.GET, "/v1/metadata/id")
         .produces(Versions.KSQL_V1_JSON)
-        .produces(MediaType.APPLICATION_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleServerMetadataClusterIdRequest);
     router.route(HttpMethod.GET, "/ws/query")
         .handler(new PortedEndpoints(endpoints, server)::handleWebsocket);

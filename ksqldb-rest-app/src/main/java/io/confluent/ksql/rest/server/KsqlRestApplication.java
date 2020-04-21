@@ -29,6 +29,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
+import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.endpoints.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
@@ -62,9 +63,7 @@ import io.confluent.ksql.rest.server.HeartbeatAgent.Builder;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
-import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
-import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
@@ -79,7 +78,6 @@ import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.rest.server.state.ServerState;
-import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
@@ -126,7 +124,6 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -141,7 +138,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.ServerConnector;
-import org.glassfish.hk2.utilities.Binder;
 import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,7 +160,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final KsqlResource ksqlResource;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
-  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
   private final KsqlSecurityExtension securityExtension;
   private final Optional<AuthenticationPlugin> authenticationPlugin;
@@ -291,7 +286,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final StreamedQueryResource streamedQueryResource,
       final KsqlResource ksqlResource,
       final VersionCheckerAgent versionCheckerAgent,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
       final KsqlSecurityContextProvider ksqlSecurityContextProvider,
       final KsqlSecurityExtension securityExtension,
       final Optional<AuthenticationPlugin> authenticationPlugin,
@@ -319,8 +313,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.preconditions = requireNonNull(preconditions, "preconditions");
     this.versionCheckerAgent = requireNonNull(versionCheckerAgent, "versionCheckerAgent");
-    this.serviceContextBinderFactory =
-        requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
     this.ksqlSecurityContextProvider = requireNonNull(ksqlSecurityContextProvider,
         "ksqlSecurityContextProvider");
     this.securityExtension = requireNonNull(securityExtension, "securityExtension");
@@ -374,7 +366,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     if (lagReportingAgent.isPresent()) {
       config.register(lagReportingResource.get());
     }
-    config.register(new ServerStateDynamicBinding(serverState));
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
@@ -674,16 +665,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         new JacksonMessageBodyProvider(ApiJsonMapper.INSTANCE.get());
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
-    config.register(serviceContextBinderFactory.apply(ksqlConfigNoPort, securityExtension));
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
     config.property(ServerProperties.WADL_FEATURE_DISABLE, true);
-
-    // Controls the access to all REST endpoints
-    securityExtension.getAuthorizationProvider().ifPresent(
-        ac -> config.register(new KsqlAuthorizationFilter(ac))
-    );
   }
 
   static KsqlRestApplication buildApplication(
@@ -703,8 +688,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         versionCheckerFactory,
         Integer.MAX_VALUE,
         serviceContext,
-        (config, securityExtension) ->
-            new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory),
         schemaRegistryClientFactory
     );
   }
@@ -716,7 +699,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
       final ServiceContext serviceContext,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
+      //final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
@@ -861,7 +844,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         streamedQueryResource,
         ksqlResource,
         versionChecker,
-        serviceContextBinderFactory,
         ksqlSecurityContextProvider,
         securityExtension,
         securityHandlerPlugin,
@@ -1117,7 +1099,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         restConfig.getList(RestConfig.AUTHENTICATION_SKIP_PATHS)
     );
 
-    authenticationSkipPaths.addAll(KsqlAuthorizationFilter.getPathsWithoutAuthorization());
+    authenticationSkipPaths.addAll(KsqlAuthorizationProviderHandler.PATHS_WITHOUT_AUTHORIZATION);
 
     final Map<String, Object> restConfigs = restConfig.getOriginals();
 

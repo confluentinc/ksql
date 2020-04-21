@@ -21,9 +21,6 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 public final class OldApiExceptionMapper {
 
@@ -35,22 +32,9 @@ public final class OldApiExceptionMapper {
       final KsqlRestException restException = (KsqlRestException) exception;
       return restException.getResponse();
     }
-    if (exception instanceof WebApplicationException) {
-      final WebApplicationException webApplicationException = (WebApplicationException) exception;
-      return EndpointResponse.create()
-          .status(
-              Response.Status.fromStatusCode(
-                  webApplicationException.getResponse().getStatus()).getStatusCode())
-          .type(MediaType.APPLICATION_JSON_TYPE.getType())
-          .entity(
-              new KsqlErrorMessage(
-                  Errors.toErrorCode(webApplicationException.getResponse().getStatus()),
-                  webApplicationException))
-          .build();
-    }
     return EndpointResponse.create()
         .status(INTERNAL_SERVER_ERROR.code())
-        .type(MediaType.APPLICATION_JSON_TYPE.getType())
+        .type("application/json")
         .entity(new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, exception))
         .build();
   }

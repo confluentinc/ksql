@@ -17,9 +17,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import io.vertx.core.http.ServerWebSocket;
 import java.nio.charset.StandardCharsets;
-import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
-import javax.websocket.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,17 +41,6 @@ final class SessionUtil {
       webSocket.close((short) code.getCode(), truncate(message));
     } catch (final Exception e) {
       LOG.info("Exception caught closing websocket", e);
-    }
-  }
-
-  static void closeSilently(
-      final Session session,
-      final CloseCodes code,
-      final String message) {
-    try {
-      session.close(new CloseReason(code, truncate(message)));
-    } catch (final Exception e) {
-      LOG.info("Exception caught closing session {}", session.getId(), e);
     }
   }
 

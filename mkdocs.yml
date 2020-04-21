@@ -8,7 +8,7 @@ google_analytics: ['UA-56447542-10', 'docs.ksqldb.io']
 repo_name: confluentinc/ksql
 repo_url: https://github.com/confluentinc/ksql
 edit_uri: ""
-docs_dir: docs-md
+docs_dir: docs
 
 theme:
     name: material
@@ -19,6 +19,9 @@ theme:
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - js/extra.js
 
 nav:
   - Overview: index.md
@@ -107,7 +110,7 @@ nav:
     - REST API:
       - REST API Index: developer-guide/api.md # old reference topic, rename file to index.md
       - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
-      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md 
+      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
       - Execute a statement: developer-guide/ksqldb-rest-api/ksql-endpoint.md
       - Run a query: developer-guide/ksqldb-rest-api/query-endpoint.md
       - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
@@ -152,7 +155,7 @@ markdown_extensions:
 
 plugins:
     - search
-    - git-revision-date # Must come before the macros plugin    
+    - git-revision-date # Must come before the macros plugin
     - macros
 
 extra:

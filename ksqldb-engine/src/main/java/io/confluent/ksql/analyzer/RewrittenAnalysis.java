@@ -59,10 +59,6 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     this.rewriter = Objects.requireNonNull(rewriter, "rewriter");
   }
 
-  public ImmutableAnalysis getOriginal() {
-    return original;
-  }
-
   @Override
   public List<FunctionCall> getTableFunctions() {
     return rewriteList(original.getTableFunctions());
@@ -148,16 +144,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   @Override
   public List<JoinInfo> getJoin() {
-    return original.getJoin().stream().map(
-        j -> new JoinInfo(
-            j.getLeftSource(),
-            rewrite(j.getLeftJoinExpression()),
-            j.getRightSource(),
-            rewrite(j.getRightJoinExpression()),
-            j.getType(),
-            j.getWithinExpression()
-        )
-    ).collect(Collectors.toList());
+    return original.getJoin();
   }
 
   @Override

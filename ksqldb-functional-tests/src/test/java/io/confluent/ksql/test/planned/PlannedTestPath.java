@@ -27,7 +27,6 @@ public final class PlannedTestPath {
 
   private static final String INVALID_FILENAME_CHARS_PATTERN = "\\s|/|\\\\|:|\\*|\\?|\"|<|>|\\|";
   private static final String BASE_DIRECTORY = "src/test/resources/";
-  private static final String PLANS_DIR = "historical_plans/";
   public static final String SPEC_FILE = "spec.json";
   public static final String PLAN_FILE = "plan.json";
   public static final String TOPOLOGY_FILE = "topology";
@@ -38,19 +37,25 @@ public final class PlannedTestPath {
     this.path = Objects.requireNonNull(path, "path");
   }
 
-  public static PlannedTestPath forTestCase(final TestCase testCase) {
-    return new PlannedTestPath(Paths.get(PLANS_DIR, formatName(testCase.getName())));
+  public static PlannedTestPath of(final Path path) {
+    return new PlannedTestPath(path);
+  }
+
+  public static PlannedTestPath forTestCase(final Path planDir, final TestCase testCase) {
+    return new PlannedTestPath(planDir)
+        .resolve(formatName(testCase.getName()));
   }
 
   @SuppressWarnings("UnstableApiUsage")
-  public static PlannedTestPath forTestCasePlan(final TestCasePlan plan) {
+  public static PlannedTestPath forTestCasePlan(final Path planDir, final TestCasePlan plan) {
     final TestCaseSpecNode spec = plan.getSpecNode();
 
     final String fileName = getNameWithoutExtension(spec.getPath());
 
     final String name = formatName(fileName + " - " + spec.getTestCase().name());
 
-    return new PlannedTestPath(Paths.get(PLANS_DIR, name))
+    return new PlannedTestPath(planDir)
+        .resolve(name)
         .resolve(spec.getVersion() + "_" + spec.getTimestamp());
   }
 
@@ -64,10 +69,6 @@ public final class PlannedTestPath {
 
   public Path relativePath() {
     return findBaseDir().resolve(path);
-  }
-
-  static PlannedTestPath base() {
-    return new PlannedTestPath(Paths.get(PLANS_DIR));
   }
 
   private static Path findBaseDir() {

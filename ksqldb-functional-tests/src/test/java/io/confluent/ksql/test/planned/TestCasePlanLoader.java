@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.test.planned;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.test.TestFrameworkException;
@@ -40,6 +42,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -60,36 +64,36 @@ public final class TestCasePlanLoader {
 
   private static final String CURRENT_VERSION = getFormattedVersionFromPomFile();
   private static final KsqlConfig BASE_CONFIG = new KsqlConfig(TestExecutor.baseConfig());
+  public static final Path PLANS_DIR = Paths.get("historical_plans");
 
-  private TestCasePlanLoader() {
+  private final Path plansDir;
+
+  public TestCasePlanLoader() {
+    this(PLANS_DIR);
   }
 
-  public static Stream<TestCasePlan> all() {
-    return load(ImmutableSet.of());
+  @VisibleForTesting
+  public TestCasePlanLoader(final Path plansDir) {
+    this.plansDir = requireNonNull(plansDir, "plansDir");
   }
 
-  @SuppressWarnings("UnstableApiUsage")
-  public static Stream<TestCasePlan> load(final Collection<String> whiteList) {
-    final Predicate<String> pathPredicate = whiteList.isEmpty()
-        ? path -> true
-        : whiteList.stream()
-            .map(com.google.common.io.Files::getNameWithoutExtension)
-            .map(item -> (Predicate<String>) path -> path.startsWith(item + "_-_"))
-            .reduce(path -> false, Predicate::or);
+  public Stream<TestCasePlan> all() {
+    return load(path -> true);
+  }
 
-    final PlannedTestPath base = PlannedTestPath.base();
-
-    return PlannedTestUtils.loadContents(base.path().toString())
+  public Stream<TestCasePlan> load(final Predicate<Path> predicate) {
+    return PlannedTestUtils.loadContents(plansDir.toString())
         .orElseThrow(() -> new TestFrameworkException(
-            "Historical test directory not found: " + base.path()))
+            "Historical test directory not found: " + plansDir))
         .stream()
-        .filter(pathPredicate)
-        .map(base::resolve)
+        .map(plansDir::resolve)
+        .filter(predicate::test)
         .flatMap(dir -> PlannedTestUtils.loadContents(dir.toString())
             .orElseGet(ImmutableList::of)
             .stream()
             .map(dir::resolve)
         )
+        .map(PlannedTestPath::of)
         .map(TestCasePlanLoader::parseSpec);
   }
 
@@ -153,7 +157,7 @@ public final class TestCasePlanLoader {
    * @return a list of the loaded plans.
    */
   public static List<TestCasePlan> allForTestCase(final TestCase testCase) {
-    final PlannedTestPath rootforCase = PlannedTestPath.forTestCase(testCase);
+    final PlannedTestPath rootforCase = PlannedTestPath.forTestCase(PLANS_DIR, testCase);
     return PlannedTestUtils.loadContents(rootforCase.path().toString())
         .orElse(Collections.emptyList())
         .stream()

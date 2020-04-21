@@ -145,28 +145,53 @@
       }
     },
     {
-      "name": "stream-table-table - inner-inner - rekey with expression",
+      "name": "stream-table-table - inner-inner - rekey with different expression",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
         "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.K + 1 = T2.ROWKEY JOIN T3 ON S1.K + 1 = T3.ROWKEY;"
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.K - 1 = T2.ROWKEY JOIN T3 ON S1.K + 1 = T3.ROWKEY;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
       },
       "inputs": [
-        {"topic": "right2", "key": 1, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right2", "key": 3, "value": {"id": 3}, "timestamp": 10},
         {"topic": "right", "key": 1, "value": {"id": 2}, "timestamp": 11},
-        {"topic": "left", "key": 0, "value": {"k": 0, "id": 1}, "timestamp": 12}
+        {"topic": "left", "key": 0, "value": {"k": 2, "id": 1}, "timestamp": 12}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-repartition", "key": 1, "value": {"S1_K": 0, "S1_ID": 1, "S1_ROWTIME": 12, "S1_ROWKEY": 0, "S1_KSQL_COL_0": 1}, "timestamp": 12},
-        {"topic": "OUTPUT", "key": 1, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  12}
+        {"topic": "OUTPUT", "key": 3, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  12}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "KSQL_COL_0 INT KEY, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "KSQL_COL_1 INT KEY, S1_ID BIGINT, T2_ID BIGINT, T3_ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-table-table - inner-inner - rekey on different field",
+      "comments": ["https://github.com/confluentinc/ksql/issues/5062"],
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID int) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID int) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID int) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.ID = T2.ROWKEY JOIN T3 ON S1.K = T3.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "right2", "key": 2, "value": {"id": 3}, "timestamp": 10},
+        {"topic": "right", "key": 1, "value": {"id": 2}, "timestamp": 11},
+        {"topic": "left", "key": 0, "value": {"k": 2, "id": 1}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 2, "value": {"S1_ID": 1, "T2_ID": 2, "T3_ID": 3}, "timestamp":  12}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "S1_K INT KEY, S1_ID INT, T2_ID INT, T3_ID INT"}
         ]
       }
     },
@@ -728,7 +753,7 @@
       }
     },
     {
-      "name": "TTS - Invalid",
+      "name": "table-table-stream - Invalid",
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -738,40 +763,6 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Join between invalid operands requested: left type: KTABLE, right type: KSTREAM"
-      }
-    },
-    {
-      "name": "stream-table-table - inner-inner - rekey on different field",
-      "comments": ["https://github.com/confluentinc/ksql/issues/5062"],
-      "statements": [
-        "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.ID = T2.ROWKEY JOIN T3 ON S1.K = T3.ROWKEY;"
-      ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "KSQL does not yet support multi-joins with different expressions. A join for `S1` already exists with the condition `S1.ID` - cannot additionally join on `S1.K`"
-      }
-    },
-    {
-      "name": "stream-table-table - inner-inner - rekey on different expression",
-      "comments": ["https://github.com/confluentinc/ksql/issues/5062"],
-      "statements": [
-        "CREATE STREAM S1 (ROWKEY INT KEY, K INT, ID bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE TABLE T2 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE TABLE T3 (ROWKEY INT PRIMARY KEY, ID bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.ID, t2.ID, t3.ID FROM S1 JOIN T2 ON S1.K - 1 = T2.ROWKEY JOIN T3 ON S1.K = T3.ROWKEY;"
-      ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "KSQL does not yet support multi-joins with different expressions. A join for `S1` already exists with the condition `(S1.K - 1)` - cannot additionally join on `S1.K`"
       }
     }
   ]

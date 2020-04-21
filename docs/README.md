@@ -1,36 +1,89 @@
-# KSQL Documentation
+# ksqlDB Documentation
 
-Visit [this page](https://docs.confluent.io/current/ksql/docs/index.html) to learn about KSQL.
+Source content for ksqlDB documentation
+=======================================
 
-# Generating KSQL docs for Confluent Platform
-The KSQL docs are imported from this public repo and built along with the rest of the Confluent Platform documentation. 
+The `docs` directory in the [ksqlDB repo](https://github.com/confluentinc/ksql)
+contains the markdown files and other source content for the
+[ksqlDB docs](https://docs.ksqldb.io).
 
-# Building the documentation locally
+Contribute to ksqlDB docs
+=========================
 
-*This documentation is built using [Sphinx](http://sphinx-doc.org). It also uses some extensions for theming and REST API
- documentation support.
- 
- Start by installing the requirements:
- 
-     pip install -r requirements.txt
- 
- Then you can generate the HTML version of the docs:
- 
-     make html
- 
- The root of the documentation will be at `_build/html/index.html`
- 
- While editing the documentation, you can get a live preview using python-livepreview. Install the Python library:
- 
-     pip install livereload
- 
- Then run the monitoring script in the background:
- 
-     python autoreload.py &
- 
- If you install the [browser extensions](http://livereload.com/) then everything should update every time any files are
- saved without any manual steps on your part.
+You can help to improve the ksqlDB documentation by contributing to this repo:
 
-# Contributing
-This documentation is built using [Sphinx](http://sphinx-doc.org). For information on how to contribute, see the [contributing guidelines](contributing.md).
+- Open a [GitHub issue](https://github.com/confluentinc/ksql/issues) and give it
+  the `documentation` label.
+- Submit a [pull request](https://github.com/confluentinc/ksql/pulls) with your
+  proposed documentation changes.
+- Get started with
+  [writing and formatting on GitHub](https://help.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github).
 
+Build docs locally
+==================
+
+It's easy to build the documentation on your local machine, so you can preview
+as you write.
+
+Prerequisites
+-------------
+
+To build the docs on your local machine: 
+
+- Install Python 3.7 or higher: [Properly Installing Python](https://docs.python-guide.org/starting/installation/)
+- Install Pip: [Installation](https://pip.pypa.io/en/stable/installing/)
+- Clone the [ksqlDB repo](https://github.com/confluentinc/ksql).
+
+Install MkDocs
+--------------
+
+The ksqlDB documentation uses the [MkDocs](https://www.mkdocs.org/) static
+site generator to build the docs site.
+
+With Python and `pip` installed, use the following command to install `mkdocs`.
+
+```bash
+pip install mkdocs
+```
+
+For more information, see [Installation](https://www.mkdocs.org/#installation).
+
+Install MkDocs plugins and extensions
+-------------------------------------
+
+The ksqlDB documentation build uses these plugins and extensions:
+
+- **mdx_gh_links:** shorthand links to GitHub
+- **mkdocs-macros-plugin:** variables and macros  
+- **mkdocs-git-revision-date-plugin:** page last updated in GitHub
+- **pymdown-extensions:** adds features to the standard Python Markdown library
+- **mkdocs-material:** docs site theme
+
+Install the plugins and extensions by using the `pip` installer:
+
+```bash
+pip install mdx_gh_links
+pip install mkdocs-macros-plugin
+pip install mkdocs-git-revision-date-plugin
+pip install pymdown-extensions
+pip install mkdocs-material
+```
+
+Build the docs
+--------------
+
+In your local clone of the ksqlDB repo, navigate to the `docs` directory.
+
+```bash
+cd docs
+```
+
+Build the docs and start a server to enable viewing them.
+
+```bash
+mkdocs serve
+```
+
+Open a web browser to `http://127.0.0.1:8000` to view the docs. Keep the server
+running, and it will detect file changes as you edit and automatically rebuild
+when you save a file.

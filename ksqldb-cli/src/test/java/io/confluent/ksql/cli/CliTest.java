@@ -621,14 +621,14 @@ public class CliTest {
     // When:
     final Supplier<String> runner = () -> {
       // It's possible that the state store is not warm on the first invocation, hence the retry
-      run("SELECT ROWKEY, COUNT FROM X WHERE ROWKEY='ITEM_1';", localCli);
+      run("SELECT ITEMID, COUNT FROM X WHERE ITEMID='ITEM_1';", localCli);
       return terminal.getOutputString();
     };
 
     // Wait for warm store:
     assertThatEventually(runner, containsString("|ITEM_1"));
     assertRunCommand(
-        "SELECT ROWKEY, COUNT FROM X WHERE ROWKEY='ITEM_1';",
+        "SELECT ITEMID, COUNT FROM X WHERE ITEMID='ITEM_1';",
         containsRows(
             row("ITEM_1", "1")
         )
@@ -647,11 +647,11 @@ public class CliTest {
     // When:
     final Supplier<String> runner = () -> {
       // It's possible that the state store is not warm on the first invocation, hence the retry
-      run("SELECT * FROM Y WHERE ROWKEY='ITEM_1';", localCli);
+      run("SELECT * FROM Y WHERE ITEMID='ITEM_1';", localCli);
       return terminal.getOutputString();
     };
 
-    assertThatEventually(runner, containsString("ROWKEY"));
+    assertThatEventually(runner, containsString("ITEMID"));
     assertThatEventually(runner, containsString("COUNT"));
   }
 

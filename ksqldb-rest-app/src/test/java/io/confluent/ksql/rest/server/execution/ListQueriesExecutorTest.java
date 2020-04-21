@@ -220,8 +220,7 @@ public class ListQueriesExecutorTest {
         engine,
         serviceContext
     ).orElseThrow(IllegalStateException::new);
-
-    System.out.println(queries.getQueries().get(0).getId());
+    
     // Then
     assertThat(queries.getQueries(),
         containsInAnyOrder(

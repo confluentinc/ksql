@@ -107,7 +107,7 @@ public final class ListQueriesExecutor {
             QueryMetadata::getQueryId,
             q -> {
               if (q instanceof PersistentQueryMetadata) {
-                System.out.println("getting local");
+
                 final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) q;
                 return new RunningQuery(
                     q.getStatementString(),
@@ -118,7 +118,7 @@ public final class ListQueriesExecutor {
                         Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)),
                     q.getQueryType());
               }
-              System.out.println("what is being returned");
+
               return new RunningQuery(
                   q.getStatementString(),
                   ImmutableSet.of(),
@@ -145,7 +145,7 @@ public final class ListQueriesExecutor {
     
     for (RunningQuery q : remoteRunningQueries) {
       final QueryId queryId = q.getId();
-      System.out.println(q.getId());
+
       // If the query has already been discovered, update the QueryStatusCount object
       if (allResults.containsKey(queryId)) {
         for (Map.Entry<KsqlQueryStatus, Integer> entry :

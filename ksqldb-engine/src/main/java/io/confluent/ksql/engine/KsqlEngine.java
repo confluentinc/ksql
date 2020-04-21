@@ -137,7 +137,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public List<QueryMetadata> getAllLiveQueries() {
-    return ImmutableList.copyOf(new ArrayList<>(allLiveQueries));
+    return ImmutableList.copyOf(allLiveQueries);
   }
 
   public boolean hasActiveQueries() {

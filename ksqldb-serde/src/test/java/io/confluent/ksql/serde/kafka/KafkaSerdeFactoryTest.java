@@ -16,8 +16,10 @@
 package io.confluent.ksql.serde.kafka;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.name.ColumnName;
@@ -34,18 +36,13 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KafkaSerdeFactoryTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlConfig ksqlConfig;
@@ -68,13 +65,15 @@ public class KafkaSerdeFactoryTest {
         .valueColumn(ColumnName.of("f1"), SqlTypes.BIGINT)
         .build());
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "The 'KAFKA' format only supports a single field. Got: f0 INT, f1 BIGINT");
-
     // When:
-    factory.validate(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.validate(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The 'KAFKA' format only supports a single field. Got: f0 INT, f1 BIGINT"));
   }
 
   @Test
@@ -82,13 +81,14 @@ public class KafkaSerdeFactoryTest {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.BOOLEAN);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("The 'KAFKA' format does not support type 'BOOLEAN'");
-
     // When:
-    factory.validate(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.validate(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The 'KAFKA' format does not support type 'BOOLEAN'"));
   }
 
   @Test
@@ -96,13 +96,14 @@ public class KafkaSerdeFactoryTest {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.decimal(1, 1));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("The 'KAFKA' format does not support type 'DECIMAL'");
-
     // When:
-    factory.validate(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.validate(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The 'KAFKA' format does not support type 'DECIMAL'"));
   }
 
   @Test
@@ -110,13 +111,14 @@ public class KafkaSerdeFactoryTest {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.array(SqlTypes.STRING));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("The 'KAFKA' format does not support type 'ARRAY'");
-
     // When:
-    factory.validate(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.validate(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The 'KAFKA' format does not support type 'ARRAY'"));
   }
 
   @Test
@@ -124,13 +126,14 @@ public class KafkaSerdeFactoryTest {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.map(SqlTypes.STRING));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("The 'KAFKA' format does not support type 'MAP'");
-
     // When:
-    factory.validate(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.validate(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The 'KAFKA' format does not support type 'MAP'"));
   }
 
   @Test
@@ -140,13 +143,14 @@ public class KafkaSerdeFactoryTest {
         .field("f0", SqlTypes.STRING)
         .build());
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("The 'KAFKA' format does not support type 'STRUCT'");
-
     // When:
-    factory.validate(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.validate(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The 'KAFKA' format does not support type 'STRUCT'"));
   }
 
   @Test

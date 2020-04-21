@@ -21,25 +21,28 @@ import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+
+import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
+import static java.util.Optional.of;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 public class SingleColumnTest {
 
   private static final Optional<NodeLocation> A_LOCATION = Optional.empty();
   private static final Expression AN_EXPRESSION = new StringLiteral("foo");
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void shouldThrowIfAliasIsSystemColumnName() {
-    // Expect:
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage("is a reserved system column name.");
-
     // When:
-    new SingleColumn(A_LOCATION, AN_EXPRESSION, Optional.of(SchemaUtil.WINDOWSTART_NAME));
+    final Exception e = assertThrows(
+        ParseFailedException.class,
+        () -> new SingleColumn(A_LOCATION, AN_EXPRESSION, of(WINDOWSTART_NAME))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("is a reserved system column name."));
   }
 }

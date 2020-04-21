@@ -72,9 +72,7 @@ import javax.ws.rs.core.Configurable;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -88,9 +86,6 @@ public class KsqlRestApplicationTest {
   private static final String LOG_TOPIC_NAME = "log_topic";
   private static final String CMD_TOPIC_NAME = "command_topic";
   private static final String LIST_STREAMS_SQL = "list streams;";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private ServiceContext serviceContext;
@@ -194,7 +189,7 @@ public class KsqlRestApplicationTest {
         ksqlConfig
     );
 
-    givenAppWithRestConfig(ImmutableMap.of(RestConfig.LISTENERS_CONFIG,  "http://localhost:0"));
+    givenAppWithRestConfig(ImmutableMap.of(RestConfig.LISTENERS_CONFIG, "http://localhost:0"));
   }
 
   @Test

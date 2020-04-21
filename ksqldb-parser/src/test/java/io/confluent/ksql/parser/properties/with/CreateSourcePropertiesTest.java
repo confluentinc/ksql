@@ -15,9 +15,17 @@
 
 package io.confluent.ksql.parser.properties.with;
 
+import static com.google.common.collect.ImmutableMap.of;
+import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.from;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_SIZE_PROPERTY;
+import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_TYPE_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -40,9 +48,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -54,9 +60,6 @@ public class CreateSourcePropertiesTest {
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("AvRo"),
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("foo")
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Function<String, Duration> durationParser;
@@ -132,15 +135,15 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldThrowOnConstructionInvalidTimestampFormat() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid datatime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i");
-
     // When:
-    CreateSourceAsProperties.from(
-        ImmutableMap
-            .of(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY, new StringLiteral("invalid")));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> from(
+            of(TIMESTAMP_FORMAT_PROPERTY, new StringLiteral("invalid")))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid datatime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i"));
   }
 
   @Test
@@ -151,13 +154,15 @@ public class CreateSourcePropertiesTest {
         .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Unknown"))
         .build();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid value Unknown for property WINDOW_TYPE: "
-        + "String must be one of: SESSION, HOPPING, TUMBLING, null");
-
     // When:
-    CreateSourceProperties.from(props);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(props)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value Unknown for property WINDOW_TYPE: "
+        + "String must be one of: SESSION, HOPPING, TUMBLING, null"));
   }
 
   @Test
@@ -171,15 +176,17 @@ public class CreateSourcePropertiesTest {
 
     when(durationParser.apply(any())).thenThrow(new IllegalArgumentException("a failure reason"));
 
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> new CreateSourceProperties(props, durationParser)
+    );
+
     // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Error in WITH clause property 'WINDOW_SIZE': "
+    assertThat(e.getMessage(), containsString("Error in WITH clause property 'WINDOW_SIZE': "
         + "a failure reason"
         + System.lineSeparator()
-        + "Example valid value: '10 SECONDS'");
-
-    // When:
-    new CreateSourceProperties(props, durationParser);
+        + "Example valid value: '10 SECONDS'"));
   }
 
   @Test
@@ -199,18 +206,19 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldThrowOnHoppingWindowWithOutSize() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "HOPPING windows require 'WINDOW_SIZE' to be provided in the WITH clause. "
-            + "For example: 'WINDOW_SIZE'='10 SECONDS'");
-
     // When:
-    CreateSourceProperties.from(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("hopping"))
-            .build());
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .putAll(MINIMUM_VALID_PROPS)
+                .put(WINDOW_TYPE_PROPERTY, new StringLiteral("hopping"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("HOPPING windows require 'WINDOW_SIZE' to be provided in the WITH clause. "
+        + "For example: 'WINDOW_SIZE'='10 SECONDS'"));
   }
 
   @Test
@@ -230,18 +238,19 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldThrowOnTumblingWindowWithOutSize() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "TUMBLING windows require 'WINDOW_SIZE' to be provided in the WITH clause. "
-            + "For example: 'WINDOW_SIZE'='10 SECONDS'");
-
     // When:
-    CreateSourceProperties.from(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("tumbling"))
-            .build());
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .putAll(MINIMUM_VALID_PROPS)
+                .put(WINDOW_TYPE_PROPERTY, new StringLiteral("tumbling"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("TUMBLING windows require 'WINDOW_SIZE' to be provided in the WITH clause. "
+        + "For example: 'WINDOW_SIZE'='10 SECONDS'"));
   }
 
   @Test
@@ -259,18 +268,19 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldThrowOnSessionWindowWithSize() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "'WINDOW_SIZE' should not be set for SESSION windows.");
-
     // When:
-    CreateSourceProperties.from(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("SESSION"))
-            .put(CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("2 MILLISECONDS"))
-            .build());
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .putAll(MINIMUM_VALID_PROPS)
+                .put(WINDOW_TYPE_PROPERTY, new StringLiteral("SESSION"))
+                .put(WINDOW_SIZE_PROPERTY, new StringLiteral("2 MILLISECONDS"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("'WINDOW_SIZE' should not be set for SESSION windows."));
   }
 
   @Test
@@ -381,61 +391,66 @@ public class CreateSourcePropertiesTest {
   public void shouldFailIfNoKafkaTopicName() {
     // Given:
     final HashMap<String, Literal> props = new HashMap<>(MINIMUM_VALID_PROPS);
-    props.remove(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY);
-
-    // Expect:
-    expectedException.expectMessage(
-        "Missing required property \"KAFKA_TOPIC\" which has no default value.");
-    expectedException.expect(KsqlException.class);
+    props.remove(KAFKA_TOPIC_NAME_PROPERTY);
 
     // When:
-    CreateSourceProperties.from(props);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(props)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Missing required property \"KAFKA_TOPIC\" which has no default value."));
   }
 
   @Test
   public void shouldFailIfNoValueFormat() {
     // Given:
     final HashMap<String, Literal> props = new HashMap<>(MINIMUM_VALID_PROPS);
-    props.remove(CommonCreateConfigs.VALUE_FORMAT_PROPERTY);
-
-    // Expect:
-    expectedException
-        .expectMessage("Missing required property \"VALUE_FORMAT\" which has no default value.");
-    expectedException.expect(KsqlException.class);
+    props.remove(VALUE_FORMAT_PROPERTY);
 
     // When:
-    CreateSourceProperties.from(props);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(props)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Missing required property \"VALUE_FORMAT\" which has no default value."));
   }
 
   @Test
   public void shouldFailIfInvalidWindowConfig() {
-    // Expect:
-    expectedException.expectMessage(
-        "Invalid value bar for property WINDOW_TYPE: String must be one of: SESSION, HOPPING, TUMBLING");
-    expectedException.expect(KsqlException.class);
-
     // When:
-    CreateSourceProperties.from(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("bar"))
-            .build()
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .putAll(MINIMUM_VALID_PROPS)
+                .put(WINDOW_TYPE_PROPERTY, new StringLiteral("bar"))
+                .build()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value bar for property WINDOW_TYPE: String must be one of: SESSION, HOPPING, TUMBLING"));
   }
 
   @Test
   public void shouldFailIfInvalidConfig() {
-    // Expect:
-    expectedException.expectMessage("Invalid config variable(s) in the WITH clause: FOO");
-    expectedException.expect(KsqlException.class);
-
     // When:
-    CreateSourceProperties.from(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put("foo", new StringLiteral("bar"))
-            .build()
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .putAll(MINIMUM_VALID_PROPS)
+                .put("foo", new StringLiteral("bar"))
+                .build()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid config variable(s) in the WITH clause: FOO"));
   }
 
   @SuppressWarnings("UnstableApiUsage")

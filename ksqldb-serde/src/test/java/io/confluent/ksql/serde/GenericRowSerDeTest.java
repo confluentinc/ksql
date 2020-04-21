@@ -16,8 +16,10 @@
 package io.confluent.ksql.serde;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -45,9 +47,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -85,9 +85,6 @@ public class GenericRowSerDeTest {
   private static final String SOME_TOPIC = "fred";
   private static final byte[] SOME_BYTES = "Vic".getBytes(StandardCharsets.UTF_8);
   private static final Map<String, ?> SOME_CONFIG = ImmutableMap.of("some", "thing");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlConfig ksqlConfig;
@@ -129,25 +126,27 @@ public class GenericRowSerDeTest {
     doThrow(new RuntimeException("Boom!"))
         .when(serdesFactories).validate(FORMAT, MUTLI_FIELD_SCHEMA);
 
-    // Expect:
-    expectedException.expect(SchemaNotSupportedException.class);
-    expectedException.expectMessage("Value format does not support value schema."
+    // When:
+    final Exception e = assertThrows(
+        SchemaNotSupportedException.class,
+        () -> valueSerde.create(
+            FORMAT,
+            MUTLI_FIELD_SCHEMA,
+            ksqlConfig,
+            srClientFactory,
+            LOGGER_PREFIX,
+            processingContext
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Value format does not support value schema."
         + System.lineSeparator()
         + "format: JSON"
         + System.lineSeparator()
         + "schema: Persistence{schema=STRUCT<f0 VARCHAR, f1 INT> NOT NULL, unwrapped=false}"
         + System.lineSeparator()
-        + "reason: Boom!");
-
-    // When:
-    valueSerde.create(
-        FORMAT,
-        MUTLI_FIELD_SCHEMA,
-        ksqlConfig,
-        srClientFactory,
-        LOGGER_PREFIX,
-        processingContext
-    );
+        + "reason: Boom!"));
   }
 
   @Test
@@ -338,12 +337,14 @@ public class GenericRowSerDeTest {
 
     final GenericRow tooFew = GenericRow.genericRow("str");
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectMessage("Field count mismatch. expected: 2, got: 1");
-
     // When:
-    serializer.serialize(SOME_TOPIC, tooFew);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, tooFew)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Field count mismatch. expected: 2, got: 1"));
   }
 
   @Test
@@ -354,12 +355,14 @@ public class GenericRowSerDeTest {
 
     final GenericRow tooFew = GenericRow.genericRow("str", 10, "extra");
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectMessage("Field count mismatch. expected: 2, got: 3");
-
     // When:
-    serializer.serialize(SOME_TOPIC, tooFew);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, tooFew)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Field count mismatch. expected: 2, got: 3"));
   }
 
   @Test
@@ -425,12 +428,14 @@ public class GenericRowSerDeTest {
 
     final GenericRow row = GenericRow.genericRow("str", "too many fields");
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectMessage("Expected single-field value. got: 2");
-
     // When:
-    serializer.serialize(SOME_TOPIC, row);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, row)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected single-field value. got: 2"));
   }
 
   @Test

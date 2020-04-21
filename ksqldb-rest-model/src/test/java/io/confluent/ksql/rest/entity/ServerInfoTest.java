@@ -16,11 +16,11 @@
 package io.confluent.ksql.rest.entity;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import java.io.IOException;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ServerInfoTest {
@@ -35,6 +35,6 @@ public class ServerInfoTest {
     final ObjectMapper mapper = ApiJsonMapper.INSTANCE.get();
     final byte[] bytes = mapper.writeValueAsBytes(serverInfo);
     final ServerInfo deserializedServerInfo = mapper.readValue(bytes, ServerInfo.class);
-    Assert.assertThat(serverInfo, equalTo(deserializedServerInfo));
+    assertThat(serverInfo, equalTo(deserializedServerInfo));
   }
 }

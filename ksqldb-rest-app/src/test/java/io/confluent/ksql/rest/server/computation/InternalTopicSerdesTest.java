@@ -15,8 +15,11 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static io.confluent.ksql.rest.server.computation.InternalTopicSerdes.deserializer;
+import static java.nio.charset.Charset.defaultCharset;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Charsets;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
@@ -25,9 +28,7 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.schema.Operator;
 import java.nio.charset.Charset;
 import org.apache.kafka.common.errors.SerializationException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class InternalTopicSerdesTest {
 
@@ -36,9 +37,6 @@ public class InternalTopicSerdesTest {
       new IntegerLiteral(123),
       new IntegerLiteral(456)
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldUsePlanMapperForSerialize() {
@@ -63,13 +61,13 @@ public class InternalTopicSerdesTest {
 
   @Test
   public void shouldThrowSerializationExceptionOnSerializeError() {
-    // Expect:
-    expectedException.expect(SerializationException.class);
-
     // When:
-    InternalTopicSerdes.deserializer(Command.class).deserialize(
-        "",
-        "{abc".getBytes(Charset.defaultCharset())
+    assertThrows(
+        SerializationException.class,
+        () -> deserializer(Command.class).deserialize(
+            "",
+            "{abc".getBytes(defaultCharset())
+        )
     );
   }
 }

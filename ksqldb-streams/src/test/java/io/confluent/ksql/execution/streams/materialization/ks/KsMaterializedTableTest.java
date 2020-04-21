@@ -16,8 +16,10 @@
 package io.confluent.ksql.execution.streams.materialization.ks;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,9 +40,7 @@ import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -58,9 +58,6 @@ public class KsMaterializedTableTest {
 
   private static final Struct A_KEY = StructKeyUtil
       .keyBuilder(ColumnName.of("K0"), SqlTypes.STRING).build("x");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsStateStore stateStore;
@@ -92,13 +89,16 @@ public class KsMaterializedTableTest {
     // Given:
     when(stateStore.store(any())).thenThrow(new MaterializationTimeOutException("Boom"));
 
-    // Then:
-    expectedException.expect(MaterializationException.class);
-    expectedException.expectMessage("Failed to get value from materialized table");
-    expectedException.expectCause(instanceOf(MaterializationTimeOutException.class));
-
     // When:
-    table.get(A_KEY);
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> table.get(A_KEY)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to get value from materialized table"));
+    assertThat(e.getCause(), (instanceOf(MaterializationTimeOutException.class)));
   }
 
   @Test
@@ -106,13 +106,16 @@ public class KsMaterializedTableTest {
     // Given:
     when(tableStore.get(any())).thenThrow(new MaterializationTimeOutException("Boom"));
 
-    // Then:
-    expectedException.expect(MaterializationException.class);
-    expectedException.expectMessage("Failed to get value from materialized table");
-    expectedException.expectCause(instanceOf(MaterializationTimeOutException.class));
-
     // When:
-    table.get(A_KEY);
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> table.get(A_KEY)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to get value from materialized table"));
+    assertThat(e.getCause(), (instanceOf(MaterializationTimeOutException.class)));
   }
 
   @Test

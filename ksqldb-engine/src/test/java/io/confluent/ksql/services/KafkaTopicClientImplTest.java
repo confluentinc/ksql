@@ -24,7 +24,9 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -80,16 +82,11 @@ import org.easymock.EasyMockRunner;
 import org.easymock.IArgumentMatcher;
 import org.easymock.Mock;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
 public class KafkaTopicClientImplTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private static final String topicName1 = "topic1";
   private static final String topicName2 = "topic2";
@@ -153,9 +150,6 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldFailCreateExistingTopic() {
-    expectedException.expect(KafkaTopicExistsException.class);
-    expectedException.expectMessage("and 2 replication factor (topic has 1)");
-
     expect(adminClient.describeCluster()).andReturn(describeClusterResult());
     expect(adminClient.describeConfigs(describeBrokerRequest()))
         .andReturn(describeBrokerResult(Collections.emptyList()));
@@ -165,8 +159,13 @@ public class KafkaTopicClientImplTest {
         .andReturn(getDescribeTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
-    verify(adminClient);
+
+    final KafkaTopicExistsException e = assertThrows(
+        (KafkaTopicExistsException.class),
+        () -> kafkaTopicClient.createTopic(topicName1, 1, (short) 2)
+    );
+
+    assertThat(e.getMessage(), containsString("and 2 replication factor (topic has 1)"));
   }
 
   @Test
@@ -177,15 +176,17 @@ public class KafkaTopicClientImplTest {
         .andReturn(createTopicAuthorizationException());
 
     replay(adminClient);
-
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(
-        String.format("Authorization denied to Create on topic(s): [%s]", topicName1));
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     // When:
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.createTopic(topicName1, 1, (short) 2)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        String.format("Authorization denied to Create on topic(s): [%s]", topicName1)));
     verify(adminClient);
   }
 
@@ -252,16 +253,17 @@ public class KafkaTopicClientImplTest {
         .andReturn(describeTopicAuthorizationException());
 
     replay(adminClient);
-
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(
-        String.format("Authorization denied to Describe on topic(s): [%s]", topicName1));
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     // When:
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    kafkaTopicClient.describeTopics(Collections.singleton(topicName1));
-    verify(adminClient);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.describeTopics(Collections.singleton(topicName1))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Describe on topic(s): [%s]", topicName1)));
   }
 
   @Test
@@ -323,7 +325,7 @@ public class KafkaTopicClientImplTest {
 
   @Test(expected = TopicDeletionDisabledException.class)
   public void shouldFailToDeleteOnTopicDeletionDisabledException()
-          throws InterruptedException, ExecutionException, TimeoutException {
+      throws InterruptedException, ExecutionException, TimeoutException {
     // Given:
     expect(adminClient.deleteTopics(anyObject())).andReturn(
         deleteTopicException(new TopicDeletionDisabledException("error")));
@@ -337,7 +339,7 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldFailToDeleteOnTopicAuthorizationException()
-          throws InterruptedException, ExecutionException, TimeoutException {
+      throws InterruptedException, ExecutionException, TimeoutException {
     // Given:
     expect(adminClient.deleteTopics(anyObject())).andReturn(
         (deleteTopicException(new TopicAuthorizationException("error"))));
@@ -345,18 +347,19 @@ public class KafkaTopicClientImplTest {
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(
-        String.format("Authorization denied to Delete on topic(s): [%s]", topicName1));
-
     // When:
-    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format("Authorization denied to Delete on topic(s): [%s]", topicName1)));
   }
 
   @Test(expected = KafkaDeleteTopicsException.class)
   public void shouldFailToDeleteOnKafkaDeleteTopicsException()
-          throws InterruptedException, ExecutionException, TimeoutException {
+      throws InterruptedException, ExecutionException, TimeoutException {
     // Given:
     expect(adminClient.deleteTopics(anyObject())).andReturn(
         (deleteTopicException(new Exception("error"))));
@@ -370,7 +373,7 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldNotThrowKafkaDeleteTopicsExceptionWhenMissingTopic()
-          throws InterruptedException, ExecutionException, TimeoutException {
+      throws InterruptedException, ExecutionException, TimeoutException {
     // Given:
     expect(adminClient.deleteTopics(anyObject())).andReturn(
         (deleteTopicException(new UnknownTopicOrPartitionException("error"))));
@@ -466,8 +469,8 @@ public class KafkaTopicClientImplTest {
         ImmutableMap.of(
             new ConfigResource(ConfigResource.Type.TOPIC, "peter"),
             ImmutableSet.of(
-              new AlterConfigOp(new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT), OpType.SET)
-        ))))
+                new AlterConfigOp(new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT), OpType.SET)
+            ))))
         .andReturn(alterTopicConfigResponse());
     replay(adminClient);
 
@@ -674,7 +677,7 @@ public class KafkaTopicClientImplTest {
   }
 
   private static DeleteTopicsResult deleteTopicException(final Exception e)
-          throws InterruptedException, ExecutionException, TimeoutException {
+      throws InterruptedException, ExecutionException, TimeoutException {
     final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
     final KafkaFuture<Void> kafkaFuture = mock(KafkaFuture.class);
 
@@ -724,7 +727,7 @@ public class KafkaTopicClientImplTest {
   }
 
   private static DescribeConfigsResult topicConfigResponse(final String topicName,
-      final ConfigEntry... entries) {
+                                                           final ConfigEntry... entries) {
 
     final Map<ConfigResource, Config> config = ImmutableMap.of(
         new ConfigResource(ConfigResource.Type.TOPIC, topicName),
@@ -775,7 +778,7 @@ public class KafkaTopicClientImplTest {
    * https://issues.apache.org/jira/browse/KAFKA-6727
    */
   private static Map<ConfigResource, Config> withResourceConfig(final ConfigResource resource,
-      final ConfigEntry... entries) {
+                                                                final ConfigEntry... entries) {
     final Set<ConfigEntry> expected = Arrays.stream(entries)
         .collect(Collectors.toSet());
 
@@ -783,7 +786,7 @@ public class KafkaTopicClientImplTest {
       @SuppressWarnings("unchecked")
       @Override
       public boolean matches(final Object argument) {
-        final Map<ConfigResource, Config> request = (Map<ConfigResource, Config>)argument;
+        final Map<ConfigResource, Config> request = (Map<ConfigResource, Config>) argument;
         if (request.size() != 1) {
           return false;
         }

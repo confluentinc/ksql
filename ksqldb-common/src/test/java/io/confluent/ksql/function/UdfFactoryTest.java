@@ -23,42 +23,57 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 import org.apache.kafka.common.KafkaException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+
+import static com.google.common.collect.ImmutableList.of;
+import static io.confluent.ksql.function.KsqlScalarFunction.create;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
+import static java.util.Collections.emptyList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 public class UdfFactoryTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private static final String functionName = "TestFunc";
   private final UdfFactory factory = new UdfFactory(TestFunc.class,
       new UdfMetadata(functionName, "", "", "", "internal"));
-  
+
   @Test
   public void shouldThrowIfNoVariantFoundThatAcceptsSuppliedParamTypes() {
-    expectedException.expect(KafkaException.class);
-    expectedException.expectMessage("Function 'TestFunc' does not accept parameters (STRING, BIGINT)");
+    // When:
+    final Exception e = assertThrows(
+        KafkaException.class,
+        () -> factory.getFunction(of(STRING, BIGINT))
+    );
 
-    factory.getFunction(ImmutableList.of(SqlTypes.STRING, SqlTypes.BIGINT));
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Function 'TestFunc' does not accept parameters (STRING, BIGINT)"));
   }
 
   @Test
   public void shouldThrowExceptionIfAddingFunctionWithDifferentPath() {
-    expectedException.expect(KafkaException.class);
-    expectedException.expectMessage("as a function with the same name has been loaded from a different jar");
-    factory.addFunction(KsqlScalarFunction.create(
-        (params, args) -> SqlTypes.STRING,
-        ParamTypes.STRING,
-        Collections.emptyList(),
-        FunctionName.of("TestFunc"),
-        TestFunc.class,
-        ksqlConfig -> null,
-        "",
-        "not the same path",
-        false
-    ));
+    // When:
+    final Exception e = assertThrows(
+        KafkaException.class,
+        () -> factory.addFunction(create(
+            (params, args) -> STRING,
+            ParamTypes.STRING,
+            emptyList(),
+            FunctionName.of("TestFunc"),
+            TestFunc.class,
+            ksqlConfig -> null,
+            "",
+            "not the same path",
+            false
+        ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "as a function with the same name has been loaded from a different jar"));
   }
 
   private abstract class TestFunc implements Kudf {

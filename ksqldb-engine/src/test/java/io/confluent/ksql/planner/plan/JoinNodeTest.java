@@ -20,7 +20,9 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -77,9 +79,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -128,9 +128,6 @@ public class JoinNodeTest {
   private static final PlanNodeId nodeId = new PlanNodeId("join");
   private static final QueryContext.Stacker CONTEXT_STACKER =
       new QueryContext.Stacker().push(nodeId.toString());
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private DataSource leftSource;
@@ -242,19 +239,20 @@ public class JoinNodeTest {
     // Given:
     setupTopicClientExpectations(1, 2);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Can't join T1 with T2 since the number of partitions don't match. T1 "
-            + "partitions = 1; T2 partitions = 2. Please repartition either one so that the "
-            + "number of partitions match."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> buildJoin(
+            "SELECT t1.col0, t2.col0, t2.col1 "
+                + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0 EMIT CHANGES;"
+        )
     );
 
-    // When:
-    buildJoin(
-          "SELECT t1.col0, t2.col0, t2.col1 "
-              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0 EMIT CHANGES;"
-    );
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Can't join T1 with T2 since the number of partitions don't match. T1 "
+        + "partitions = 1; T2 partitions = 2. Please repartition either one so that the "
+        + "number of partitions match."));
   }
 
   @Test
@@ -359,14 +357,14 @@ public class JoinNodeTest {
         Optional.empty()
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Stream-Stream joins must have a WITHIN clause specified. None was provided."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.buildStream(ksqlStreamBuilder)
     );
 
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    assertThat(e.getMessage(), containsString("Stream-Stream joins must have a WITHIN clause specified. None was provided."));
   }
 
   @Test
@@ -387,14 +385,14 @@ public class JoinNodeTest {
         WITHIN_EXPRESSION
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Can't join left with right since the number of partitions don't match."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.buildStream(ksqlStreamBuilder)
     );
 
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    assertThat(e.getMessage(), containsString("Can't join left with right since the number of partitions don't match."));
   }
 
   @Test
@@ -493,14 +491,14 @@ public class JoinNodeTest {
         Optional.empty()
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Full outer joins between streams and tables are not supported."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.buildStream(ksqlStreamBuilder)
     );
 
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    assertThat(e.getMessage(), containsString("Full outer joins between streams and tables are not supported."));
   }
 
   @Test
@@ -520,14 +518,14 @@ public class JoinNodeTest {
         Optional.of(withinExpression)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "A window definition was provided for a Stream-Table join."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.buildStream(ksqlStreamBuilder)
     );
 
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    assertThat(e.getMessage(), containsString("A window definition was provided for a Stream-Table join."));
   }
 
   @Test
@@ -622,14 +620,14 @@ public class JoinNodeTest {
         Optional.of(withinExpression)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "A window definition was provided for a Table-Table join."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.buildStream(ksqlStreamBuilder)
     );
 
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    assertThat(e.getMessage(), containsString("A window definition was provided for a Table-Table join."));
   }
 
   @Test

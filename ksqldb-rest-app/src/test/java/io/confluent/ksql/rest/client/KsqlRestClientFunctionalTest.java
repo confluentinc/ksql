@@ -16,13 +16,14 @@
 package io.confluent.ksql.rest.client;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -65,9 +66,7 @@ import org.apache.http.HttpStatus;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -77,9 +76,6 @@ public class KsqlRestClientFunctionalTest {
   private MockApplication mockApplication;
   private ExecutableServer<KsqlRestConfig> mockServer;
   private KsqlRestClient ksqlRestClient;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() throws Exception {
@@ -226,7 +222,7 @@ public class KsqlRestClientFunctionalTest {
   @Test
   public void shouldParseSingleServerAddress() throws Exception {
     final String singleServerAddress = "http://singleServer:8088";
-    final URI singleServerURI = new URI (singleServerAddress);
+    final URI singleServerURI = new URI(singleServerAddress);
     try (KsqlRestClient client = buildClient(singleServerAddress)) {
       assertThat(client.getServerAddress(), is(singleServerURI));
     }
@@ -236,7 +232,7 @@ public class KsqlRestClientFunctionalTest {
   public void shouldParseMultipleServerAddresses() throws Exception {
     final String firstServerAddress = "http://firstServer:8088";
     final String multipleServerAddresses = firstServerAddress + ",http://secondServer:8088";
-    final URI firstServerURI = new URI (firstServerAddress);
+    final URI firstServerURI = new URI(firstServerAddress);
     try (KsqlRestClient client = buildClient(multipleServerAddresses)) {
       assertThat(client.getServerAddress(), is(firstServerURI));
     }
@@ -244,9 +240,15 @@ public class KsqlRestClientFunctionalTest {
 
   @Test
   public void shouldThrowIfAnyServerAddressIsInvalid() {
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectMessage("The supplied serverAddress is invalid: secondBuggyServer.8088");
-    buildClient("http://firstServer:8088,secondBuggyServer.8088");
+    // When:
+    final Exception e = assertThrows(
+        KsqlRestClientException.class,
+        () -> buildClient("http://firstServer:8088,secondBuggyServer.8088")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The supplied serverAddress is invalid: secondBuggyServer.8088"));
   }
 
   @Test
@@ -523,7 +525,7 @@ public class KsqlRestClientFunctionalTest {
 
     private List<StreamedRow> getRows() throws InterruptedException {
       thread.join(20_000);
-      assertThat("Receive thread still running", thread.isAlive(),  is(false));
+      assertThat("Receive thread still running", thread.isAlive(), is(false));
       if (exception.get() != null) {
         throw new RuntimeException(exception.get());
       }

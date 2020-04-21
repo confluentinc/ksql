@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
@@ -64,9 +66,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -196,9 +196,6 @@ public class KsqlAvroDeserializerTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.singletonMap(
       KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "fake-schema-registry-url"));
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Mock
   private ProcessingLogger recordLogger;
 
@@ -277,13 +274,15 @@ public class KsqlAvroDeserializerTest {
 
     givenDeserializerForSchema(ORDER_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Cannot deserialize type int64 as type struct")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Cannot deserialize type int64 as type struct"))));
   }
 
   @Test
@@ -310,13 +309,15 @@ public class KsqlAvroDeserializerTest {
 
     givenDeserializerForSchema(ORDER_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(is(
-        "Cannot deserialize type boolean as type int64 for path: ->ORDERID")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(is(
+        "Cannot deserialize type boolean as type int64 for path: ->ORDERID"))));
   }
 
   @Test
@@ -432,13 +433,15 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(10, LONG_AVRO_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Cannot deserialize type int32 as type boolean")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Cannot deserialize type int32 as type boolean"))));
   }
 
   @Test
@@ -506,13 +509,15 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Cannot deserialize type boolean as type int32")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Cannot deserialize type boolean as type int32"))));
   }
 
   @Test
@@ -578,13 +583,15 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Cannot deserialize type boolean as type int64")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Cannot deserialize type boolean as type int64"))));
   }
 
   @Test
@@ -636,8 +643,8 @@ public class KsqlAvroDeserializerTest {
 
     final Map<byte[], Double> validCoercions = ImmutableMap
         .<byte[], Double>builder()
-        .put(givenConnectSerialized(10.1f, Schema.FLOAT32_SCHEMA), (double)10.1f)
-        .put(givenConnectSerialized(20.3f, Schema.OPTIONAL_FLOAT32_SCHEMA), (double)20.3f)
+        .put(givenConnectSerialized(10.1f, Schema.FLOAT32_SCHEMA), (double) 10.1f)
+        .put(givenConnectSerialized(20.3f, Schema.OPTIONAL_FLOAT32_SCHEMA), (double) 20.3f)
         .put(givenConnectSerialized(30.4, Schema.FLOAT64_SCHEMA), 30.4)
         .put(givenConnectSerialized(40.5, Schema.OPTIONAL_FLOAT64_SCHEMA), 40.5)
         .build();
@@ -659,13 +666,15 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Cannot deserialize type boolean as type float64")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Cannot deserialize type boolean as type float64"))));
   }
 
   @Test
@@ -739,13 +748,15 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(AN_ORDER, ORDER_AVRO_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Cannot deserialize type struct as type string")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Cannot deserialize type struct as type string"))));
   }
 
   @Test
@@ -828,13 +839,15 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Cannot deserialize type boolean as type array")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Cannot deserialize type boolean as type array"))));
   }
 
   @Test
@@ -849,13 +862,15 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(value, STRING_ARRAY_AVRO_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Cannot deserialize type string as type int32")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Cannot deserialize type string as type int32"))));
   }
 
   @Test
@@ -945,13 +960,15 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Cannot deserialize type boolean as type map")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Cannot deserialize type boolean as type map"))));
   }
 
   @Test
@@ -966,13 +983,15 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(value, INT_MAP_AVRO_SCHEMA);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Cannot deserialize type int32 as type boolean")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Cannot deserialize type int32 as type boolean"))));
   }
 
   @Test
@@ -982,12 +1001,14 @@ public class KsqlAvroDeserializerTest {
         .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
         .build();
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Avro only supports MAPs with STRING keys");
-
     // When:
-    givenDeserializerForSchema(schema);
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> givenDeserializerForSchema(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Avro only supports MAPs with STRING keys"));
   }
 
   @Test
@@ -1001,26 +1022,31 @@ public class KsqlAvroDeserializerTest {
             .build())
         .build();
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Avro only supports MAPs with STRING keys");
-
     // When:
-    givenDeserializerForSchema(schema);
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> givenDeserializerForSchema(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Avro only supports MAPs with STRING keys"));
   }
 
   @Test
   public void shouldIncludeTopicNameInException() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+    givenDeserializerForSchema(OPTIONAL_INT64_SCHEMA);
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
-    // Then:
-    expectedException.expectMessage(SOME_TOPIC);
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(SOME_TOPIC));
   }
 
   @Test
@@ -1392,7 +1418,7 @@ public class KsqlAvroDeserializerTest {
   public void shouldDeserializeConnectMapWithInt64Key() {
     shouldDeserializeConnectFieldTypeCorrectly(
         SchemaBuilder.map(Schema.INT64_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
-        ImmutableMap.of( 1L, 10, 2L, 20, 3L, 30),
+        ImmutableMap.of(1L, 10, 2L, 20, 3L, 30),
         SchemaBuilder.map(
             Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA
         ).optional().build(),
@@ -1404,7 +1430,7 @@ public class KsqlAvroDeserializerTest {
   public void shouldDeserializeConnectMapWithBooleanKey() {
     shouldDeserializeConnectFieldTypeCorrectly(
         SchemaBuilder.map(Schema.BOOLEAN_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
-        ImmutableMap.of( true, 10, false, 20),
+        ImmutableMap.of(true, 10, false, 20),
         SchemaBuilder.map(
             Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA
         ).optional().build(),
@@ -1470,8 +1496,8 @@ public class KsqlAvroDeserializerTest {
 
     final boolean unwrap = schema.type() != Schema.Type.STRUCT;
     final Schema ksqlSchema = unwrap
-      ? SchemaBuilder.struct().field("f0", schema).build()
-      :  schema;
+        ? SchemaBuilder.struct().field("f0", schema).build()
+        : schema;
 
     deserializer = serdeFactory.createSerde(
         PersistenceSchema.from((ConnectSchema) ksqlSchema, unwrap),

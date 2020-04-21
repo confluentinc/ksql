@@ -15,8 +15,11 @@
 
 package io.confluent.ksql.parser;
 
+import static io.confluent.ksql.parser.ExpressionParser.parseSelectExpression;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -27,16 +30,11 @@ import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.Operator;
 import java.util.concurrent.TimeUnit;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ExpressionParserTest {
   private static final IntegerLiteral ONE = new IntegerLiteral(1);
   private static final IntegerLiteral TWO = new IntegerLiteral(2);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldParseExpression() {
@@ -72,22 +70,26 @@ public class ExpressionParserTest {
 
   @Test
   public void shouldThrowOnSelectExpressionWithoutAlias() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Select item must have identifier in: 1 + 2");
-
     // When:
-    ExpressionParser.parseSelectExpression("1 + 2");
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> parseSelectExpression("1 + 2")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Select item must have identifier in: 1 + 2"));
   }
 
   @Test
   public void shouldThrowOnAllColumns() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Illegal select item type in: *");
-
     // When:
-    ExpressionParser.parseSelectExpression("*");
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> parseSelectExpression("*")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Illegal select item type in: *"));
   }
 
   @Test

@@ -19,8 +19,10 @@ import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessag
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,7 +43,6 @@ import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -56,9 +57,6 @@ public class PullQueryExecutorTest {
     public final TemporaryEngine engine = new TemporaryEngine()
         .withConfigs(ImmutableMap.of(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG, false));
 
-    @Rule
-    public final ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void shouldThrowExceptionIfConfigDisabled() {
       // Given:
@@ -72,12 +70,14 @@ public class PullQueryExecutorTest {
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
           engine.getEngine(), Optional.empty(), ROUTING_FILTER_FACTORY);
 
-      // Then:
-      expectedException.expect(KsqlException.class);
-      expectedException.expectMessage(containsString("Pull queries are disabled"));
-
       // When:
-      pullQueryExecutor.execute(query, engine.getServiceContext());
+      final Exception e = assertThrows(
+          KsqlException.class,
+          () -> pullQueryExecutor.execute(query, engine.getServiceContext())
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Pull queries are disabled"));
     }
   }
 
@@ -86,9 +86,6 @@ public class PullQueryExecutorTest {
 
     @Rule
     public final TemporaryEngine engine = new TemporaryEngine();
-
-    @Rule
-    public final ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void shouldRedirectQueriesToQueryEndPoint() {
@@ -99,22 +96,24 @@ public class PullQueryExecutorTest {
           engine.getKsqlConfig()
       );
 
+      // When:
+      final KsqlRestException e = assertThrows(
+          KsqlRestException.class,
+          () -> CustomValidators.QUERY_ENDPOINT.validate(
+              query,
+              ImmutableMap.of(),
+              engine.getEngine(),
+              engine.getServiceContext()
+          )
+      );
+
       // Then:
-      expectedException.expect(KsqlRestException.class);
-      expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-      expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
+      assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+      assertThat(e, exceptionStatementErrorMessage(errorMessage(containsString(
           "The following statement types should be issued to the websocket endpoint '/query'"
       ))));
-      expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
+      assertThat(e, exceptionStatementErrorMessage(statement(containsString(
           "SELECT * FROM test_table;"))));
-
-      // When:
-      CustomValidators.QUERY_ENDPOINT.validate(
-          query,
-          ImmutableMap.of(),
-          engine.getEngine(),
-          engine.getServiceContext()
-      );
     }
   }
 }

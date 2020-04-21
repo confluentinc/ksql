@@ -71,14 +71,9 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SqlFormatterTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private AliasedRelation leftAlias;
   private AliasedRelation rightAlias;
@@ -157,8 +152,8 @@ public class SqlFormatterTest {
     rightAlias = new AliasedRelation(right, SourceName.of("R"));
 
     criteria = new JoinOn(new ComparisonExpression(ComparisonExpression.Type.EQUAL,
-                                                   new StringLiteral("left.col0"),
-                                                   new StringLiteral("right.col0")));
+        new StringLiteral("left.col0"),
+        new StringLiteral("right.col0")));
 
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
 
@@ -333,18 +328,18 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatLeftJoinWithWithin() {
     final Join join = new Join(Join.Type.LEFT, leftAlias, rightAlias,
-                         criteria,
-                         Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
+        criteria,
+        Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
     final String expected = "`left` L\nLEFT OUTER JOIN `right` R WITHIN 10 SECONDS ON "
-                            + "(('left.col0' = 'right.col0'))";
+        + "(('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 
   @Test
   public void shouldFormatLeftJoinWithoutJoinWindow() {
     final Join join = new Join(Join.Type.LEFT, leftAlias, rightAlias,
-                               criteria, Optional.empty());
+        criteria, Optional.empty());
 
     final String result = SqlFormatter.formatSql(join);
     final String expected = "`left` L\nLEFT OUTER JOIN `right` R ON (('left.col0' = 'right.col0'))";
@@ -354,19 +349,19 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatInnerJoin() {
     final Join join = new Join(Join.Type.INNER, leftAlias, rightAlias,
-                               criteria,
-                               Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
+        criteria,
+        Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
     final String expected = "`left` L\nINNER JOIN `right` R WITHIN 10 SECONDS ON "
-                            + "(('left.col0' = 'right.col0'))";
+        + "(('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 
   @Test
   public void shouldFormatInnerJoinWithoutJoinWindow() {
     final Join join = new Join(Join.Type.INNER, leftAlias, rightAlias,
-                               criteria,
-                               Optional.empty());
+        criteria,
+        Optional.empty());
 
     final String expected = "`left` L\nINNER JOIN `right` R ON (('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
@@ -376,11 +371,11 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatOuterJoin() {
     final Join join = new Join(Join.Type.OUTER, leftAlias, rightAlias,
-                               criteria,
-                               Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
+        criteria,
+        Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
     final String expected = "`left` L\nFULL OUTER JOIN `right` R WITHIN 10 SECONDS ON"
-                            + " (('left.col0' = 'right.col0'))";
+        + " (('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 
@@ -388,8 +383,8 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatOuterJoinWithoutJoinWindow() {
     final Join join = new Join(Join.Type.OUTER, leftAlias, rightAlias,
-                               criteria,
-                               Optional.empty());
+        criteria,
+        Optional.empty());
 
     final String expected = "`left` L\nFULL OUTER JOIN `right` R ON (('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));

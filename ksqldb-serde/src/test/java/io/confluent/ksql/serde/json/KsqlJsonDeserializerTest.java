@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde.json;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -22,6 +24,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
@@ -51,9 +54,7 @@ import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -99,9 +100,6 @@ public class KsqlJsonDeserializerTest {
       .build();
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Parameters
   public static Collection<Object[]> data() {
@@ -177,13 +175,15 @@ public class KsqlJsonDeserializerTest {
     // Given:
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(containsString(
-        "Can't convert type. sourceType: BooleanNode, requiredType: STRUCT<ORDERTIME BIGINT")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString(
+        "Can't convert type. sourceType: BooleanNode, requiredType: STRUCT<ORDERTIME BIGINT"))));
   }
 
   @Test
@@ -194,13 +194,15 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(value);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(startsWith(
-        "Can't convert type. sourceType: BooleanNode, requiredType: BIGINT")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: BIGINT"))));
   }
 
   @Test
@@ -322,13 +324,15 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(IntNode.valueOf(23));
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(startsWith(
-        "Can't convert type. sourceType: IntNode, requiredType: BOOLEAN")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: IntNode, requiredType: BOOLEAN"))));
   }
 
   @Test
@@ -361,13 +365,15 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(startsWith(
-        "Can't convert type. sourceType: BooleanNode, requiredType: INTEGER")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: INTEGER"))));
   }
 
   @Test
@@ -401,13 +407,15 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(startsWith(
-        "Can't convert type. sourceType: BooleanNode, requiredType: BIGINT")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: BIGINT"))));
   }
 
   @Test
@@ -441,13 +449,15 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(startsWith(
-        "Can't convert type. sourceType: BooleanNode, requiredType: DOUBLE")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: DOUBLE"))));
   }
 
   @Test
@@ -480,7 +490,7 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldDeserializedJsonNumberAsBigDecimal() {
     // Given:
-    givenDeserializerForSchema(DecimalUtil.builder(20,19).build());
+    givenDeserializerForSchema(DecimalUtil.builder(20, 19).build());
 
     final List<String> validCoercions = ImmutableList.of(
         "1.1234512345123451234",
@@ -506,13 +516,15 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(startsWith(
-        "Can't convert type. sourceType: BooleanNode, requiredType: DECIMAL(20, 19)")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: DECIMAL(20, 19)"))));
   }
 
   @Test
@@ -542,13 +554,15 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(startsWith(
-        "Can't convert type. sourceType: BooleanNode, requiredType: ARRAY<VARCHAR>")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: ARRAY<VARCHAR>"))));
   }
 
   @Test
@@ -563,13 +577,15 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(expected);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(startsWith(
-        "Can't coerce string to type. targetType: INTEGER")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't coerce string to type. targetType: INTEGER"))));
   }
 
   @Test
@@ -599,13 +615,15 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(startsWith(
-        "Can't convert type. sourceType: BooleanNode, requiredType: MAP<VARCHAR, INT>")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: MAP<VARCHAR, INT>"))));
   }
 
   @Test
@@ -618,13 +636,15 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(ImmutableMap.of("a", 1, "b", true));
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(startsWith(
-        "Can't convert type. sourceType: BooleanNode, requiredType: INTEGER")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: INTEGER"))));
   }
 
   @Test
@@ -641,12 +661,14 @@ public class KsqlJsonDeserializerTest {
         true
     );
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Only MAPs with STRING keys are supported");
-
     // When:
-    new KsqlJsonDeserializer(physicalSchema, false);
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new KsqlJsonDeserializer(physicalSchema, false)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Only MAPs with STRING keys are supported"));
   }
 
   @Test
@@ -666,26 +688,31 @@ public class KsqlJsonDeserializerTest {
         true
     );
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Only MAPs with STRING keys are supported");
-
     // When:
-    new KsqlJsonDeserializer(physicalSchema, false);
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new KsqlJsonDeserializer(physicalSchema, false)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Only MAPs with STRING keys are supported"));
   }
 
   @Test
   public void shouldIncludeTopicNameInException() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+    givenDeserializerForSchema(OPTIONAL_INT64_SCHEMA);
 
-    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
-
-    // Then:
-    expectedException.expectMessage(SOME_TOPIC);
+    final byte[] bytes = "true".getBytes(UTF_8);
 
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(SOME_TOPIC));
   }
 
   @Test
@@ -714,11 +741,14 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
-    // Then:
-    expectedException.expectCause(hasMessage(endsWith(", path: $")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(endsWith(", path: $"))));
   }
 
   @Test
@@ -729,12 +759,14 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(value);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(endsWith(", path: $.ORDERTIME")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(endsWith(", path: $.ORDERTIME"))));
   }
 
   @Test
@@ -749,12 +781,14 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(expected);
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(endsWith("path: $[1]")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(endsWith("path: $[1]"))));
   }
 
   @Test
@@ -767,12 +801,14 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] bytes = serializeJson(ImmutableMap.of("a", 1, "b", true));
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(hasMessage(endsWith("path: $.b.value")));
-
     // When:
-    deserializer.deserialize(SOME_TOPIC, bytes);
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(endsWith("path: $.b.value"))));
   }
 
   private void givenDeserializerForSchema(final Schema serializedSchema) {

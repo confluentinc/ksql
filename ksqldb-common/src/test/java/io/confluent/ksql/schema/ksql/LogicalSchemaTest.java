@@ -29,9 +29,11 @@ import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
 import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
@@ -44,11 +46,9 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-@SuppressWarnings({"UnstableApiUsage","unchecked"})
+@SuppressWarnings({"UnstableApiUsage", "unchecked"})
 public class LogicalSchemaTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");
@@ -65,9 +65,6 @@ public class LogicalSchemaTest {
       .keyColumn(K0, BIGINT)
       .valueColumn(F1, BIGINT)
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
@@ -500,7 +497,7 @@ public class LogicalSchemaTest {
     ));
   }
 
- @Test
+  @Test
   public void shouldRemoveWindowedMetaColumnsFromValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
@@ -574,12 +571,14 @@ public class LogicalSchemaTest {
     final Builder builder = LogicalSchema.builder()
         .keyColumn(KEY, BIGINT);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Duplicate keys found in schema: `key` BIGINT");
-
     // When:
-    builder.keyColumn(KEY, BIGINT);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> builder.keyColumn(KEY, BIGINT)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Duplicate keys found in schema: `key` BIGINT"));
   }
 
   @Test
@@ -588,12 +587,14 @@ public class LogicalSchemaTest {
     final Builder builder = LogicalSchema.builder()
         .valueColumn(VALUE, BIGINT);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Duplicate values found in schema: `value` BIGINT");
-
     // When:
-    builder.valueColumn(VALUE, BIGINT);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> builder.valueColumn(VALUE, BIGINT)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Duplicate values found in schema: `value` BIGINT"));
   }
 
   @Test

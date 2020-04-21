@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.security;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
 
 import io.confluent.ksql.engine.KsqlEngine;
@@ -42,9 +45,7 @@ import java.util.Optional;
 import org.apache.kafka.common.acl.AclOperation;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -65,9 +66,6 @@ public class KsqlAuthorizationValidatorImplTest {
   private KsqlAccessValidator accessValidator;
   @Mock
   private ServiceContext serviceContext;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private KsqlAuthorizationValidator authorizationValidator;
   private KsqlEngine ksqlEngine;
@@ -112,14 +110,16 @@ public class KsqlAuthorizationValidatorImplTest {
         "SELECT * FROM %s;", STREAM_TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
-    ));
-
     // When:
-    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+    )));
   }
 
   @Test
@@ -141,14 +141,16 @@ public class KsqlAuthorizationValidatorImplTest {
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
     );
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
-    ));
-
     // When:
-    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+    )));
   }
 
   @Test
@@ -159,14 +161,16 @@ public class KsqlAuthorizationValidatorImplTest {
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
     );
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_2
-    ));
-
     // When:
-    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_2
+    )));
   }
 
   @Test
@@ -177,14 +181,16 @@ public class KsqlAuthorizationValidatorImplTest {
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
     );
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
-    ));
-
     // When:
-    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+    )));
   }
 
   @Test
@@ -206,14 +212,16 @@ public class KsqlAuthorizationValidatorImplTest {
         "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Write on topic(s): [%s]", TOPIC_2
-    ));
-
     // When:
-    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Write on topic(s): [%s]", TOPIC_2
+    )));
   }
 
   @Test
@@ -224,14 +232,16 @@ public class KsqlAuthorizationValidatorImplTest {
         "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
-    ));
-
     // When:
-    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+    )));
   }
 
   @Test
@@ -242,14 +252,16 @@ public class KsqlAuthorizationValidatorImplTest {
         "CREATE STREAM newStream AS SELECT * FROM %s;", STREAM_TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
-    ));
-
     // When:
-    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+    )));
   }
 
   @Test
@@ -271,15 +283,16 @@ public class KsqlAuthorizationValidatorImplTest {
         "CREATE STREAM %s AS SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Write on topic(s): [%s]", TOPIC_2
-    ));
-
-
     // When:
-    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Write on topic(s): [%s]", TOPIC_2
+    )));
   }
 
   @Test
@@ -309,14 +322,16 @@ public class KsqlAuthorizationValidatorImplTest {
     givenAccessDenied(TOPIC_1, AclOperation.READ);
     final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_1));
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
-    ));
-
     // When:
-    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+    )));
   }
 
   @Test
@@ -338,14 +353,16 @@ public class KsqlAuthorizationValidatorImplTest {
         "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_1)
     );
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
-    ));
-
     // When:
-    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+    )));
   }
 
   private void givenAccessDenied(final String topicName, final AclOperation operation) {

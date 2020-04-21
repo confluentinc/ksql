@@ -21,10 +21,12 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
@@ -57,9 +59,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 /**
  * DO NOT ADD NEW TESTS TO THIS FILE
@@ -91,9 +91,6 @@ public class QueryAnalyzerFunctionalTest {
 
   private static final QualifiedColumnReferenceExp TEST_COL1 =
       new QualifiedColumnReferenceExp(TEST1, ColumnName.of("COL1"));
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
@@ -225,7 +222,7 @@ public class QueryAnalyzerFunctionalTest {
     assertThat(analysis.getTableFunctions(), hasSize(1));
     assertThat(analysis.getTableFunctions().get(0).getName().name(), equalTo("EXPLODE"));
   }
-  
+
   @Test
   public void shouldAnalyseWindowedAggregate() {
     // Given:
@@ -252,12 +249,15 @@ public class QueryAnalyzerFunctionalTest {
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Use of aggregate functions requires a GROUP BY clause. Aggregate function(s): SUM");
-
     // When:
-    queryAnalyzer.analyzeAggregate(query, analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyzeAggregate(query, analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Use of aggregate functions requires a GROUP BY clause. Aggregate function(s): SUM"));
   }
 
   @Test
@@ -268,12 +268,15 @@ public class QueryAnalyzerFunctionalTest {
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Non-aggregate SELECT expression(s) not part of GROUP BY: [ORDERS.ORDERID]");
-
     // When:
-    queryAnalyzer.analyzeAggregate(query, analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyzeAggregate(query, analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Non-aggregate SELECT expression(s) not part of GROUP BY: [ORDERS.ORDERID]"));
   }
 
   @Test
@@ -284,12 +287,15 @@ public class QueryAnalyzerFunctionalTest {
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("Non-aggregate HAVING expression not part of GROUP BY: [ORDERS.ORDERID]");
-
     // When:
-    queryAnalyzer.analyzeAggregate(query, analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyzeAggregate(query, analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Non-aggregate HAVING expression not part of GROUP BY: [ORDERS.ORDERID]"));
   }
 
   @Test
@@ -359,13 +365,14 @@ public class QueryAnalyzerFunctionalTest {
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "GROUP BY does not support aggregate functions: SUM is an aggregate function.");
-
     // When:
-    queryAnalyzer.analyzeAggregate(query, analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyzeAggregate(query, analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("GROUP BY does not support aggregate functions: SUM is an aggregate function."));
   }
 
   @Test
@@ -394,15 +401,16 @@ public class QueryAnalyzerFunctionalTest {
     final Query query = givenQuery("select *, count() from orders group by itemid EMIT CHANGES;");
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Non-aggregate SELECT expression(s) not part of GROUP BY: "
-            + "[ORDERS.ADDRESS, ORDERS.ARRAYCOL, ORDERS.ITEMINFO, ORDERS.MAPCOL, ORDERS.ORDERID, "
-            + "ORDERS.ORDERTIME, ORDERS.ORDERUNITS, ORDERS.ROWKEY, ORDERS.ROWTIME]"
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyzeAggregate(query, analysis)
     );
 
-    // When:
-    queryAnalyzer.analyzeAggregate(query, analysis);
+    // Then:
+    assertThat(e.getMessage(), containsString("Non-aggregate SELECT expression(s) not part of GROUP BY: "
+        + "[ORDERS.ADDRESS, ORDERS.ARRAYCOL, ORDERS.ITEMINFO, ORDERS.MAPCOL, ORDERS.ORDERID, "
+        + "ORDERS.ORDERTIME, ORDERS.ORDERUNITS, ORDERS.ROWKEY, ORDERS.ROWTIME]"));
   }
 
   @Test
@@ -434,13 +442,14 @@ public class QueryAnalyzerFunctionalTest {
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(ORDERS.ORDERID, 1, 2)]"
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyzeAggregate(query, analysis)
     );
 
-    // When:
-    queryAnalyzer.analyzeAggregate(query, analysis);
+    // Then:
+    assertThat(e.getMessage(), containsString("Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(ORDERS.ORDERID, 1, 2)]"));
   }
 
   @Test
@@ -451,14 +460,15 @@ public class QueryAnalyzerFunctionalTest {
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Non-aggregate SELECT expression(s) not part of GROUP BY: "
-            + "[(ORDERS.ITEMID + ORDERS.ADDRESS->STREET)]"
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyzeAggregate(query, analysis)
     );
 
-    // When:
-    queryAnalyzer.analyzeAggregate(query, analysis);
+    // Then:
+    assertThat(e.getMessage(), containsString("Non-aggregate SELECT expression(s) not part of GROUP BY: "
+        + "[(ORDERS.ITEMID + ORDERS.ADDRESS->STREET)]"));
   }
 
   @Test
@@ -469,13 +479,15 @@ public class QueryAnalyzerFunctionalTest {
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Non-aggregate SELECT expression(s) not part of GROUP BY: [ORDERS.ORDERID]"
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyzeAggregate(query, analysis)
     );
 
-    // When:
-    queryAnalyzer.analyzeAggregate(query, analysis);
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Non-aggregate SELECT expression(s) not part of GROUP BY: [ORDERS.ORDERID]"));
   }
 
   @Test
@@ -486,14 +498,15 @@ public class QueryAnalyzerFunctionalTest {
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Non-aggregate SELECT expression(s) not part of GROUP BY: "
-            + "[(ORDERS.ORDERID - ORDERS.ORDERTIME)]"
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyzeAggregate(query, analysis)
     );
 
-    // When:
-    queryAnalyzer.analyzeAggregate(query, analysis);
+    // Then:
+    assertThat(e.getMessage(), containsString("Non-aggregate SELECT expression(s) not part of GROUP BY: "
+        + "[(ORDERS.ORDERID - ORDERS.ORDERTIME)]"));
   }
 
   @Test
@@ -502,13 +515,15 @@ public class QueryAnalyzerFunctionalTest {
     final Query query = givenQuery("select orderid from orders group by orderid EMIT CHANGES;");
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "GROUP BY requires columns using aggregate functions in SELECT clause."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyzeAggregate(query, analysis)
     );
 
-    // When:
-    queryAnalyzer.analyzeAggregate(query, analysis);
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "GROUP BY requires columns using aggregate functions in SELECT clause."));
   }
 
   @Test

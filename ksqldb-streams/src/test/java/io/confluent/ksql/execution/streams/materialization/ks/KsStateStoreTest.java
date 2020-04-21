@@ -15,9 +15,15 @@
 
 package io.confluent.ksql.execution.streams.materialization.ks;
 
+import static org.apache.kafka.streams.KafkaStreams.State.NOT_RUNNING;
+import static org.apache.kafka.streams.KafkaStreams.State.RUNNING;
+import static org.apache.kafka.streams.state.QueryableStoreTypes.sessionStore;
+import static org.apache.kafka.streams.state.QueryableStoreTypes.windowStore;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -41,9 +47,7 @@ import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -60,9 +64,6 @@ public class KsStateStoreTest {
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .keyColumn(ColumnName.of("v0"), SqlTypes.BIGINT)
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KafkaStreams kafkaStreams;
@@ -104,16 +105,18 @@ public class KsStateStoreTest {
   public void shouldThrowIfNotRunningAfterFailedToGetStore() {
     // Given:
     when(kafkaStreams.state())
-        .thenReturn(State.RUNNING)
-        .thenReturn(State.NOT_RUNNING);
+        .thenReturn(RUNNING)
+        .thenReturn(NOT_RUNNING);
     when(kafkaStreams.store(any())).thenThrow(new IllegalStateException());
 
     // When:
-    expectedException.expect(MaterializationException.class);
-    expectedException.expectMessage("State store currently unavailable: someStore");
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> store.store(sessionStore())
+    );
 
-    // When:
-    store.store(QueryableStoreTypes.sessionStore());
+    // Then:
+    assertThat(e.getMessage(), containsString("State store currently unavailable: someStore"));
   }
 
   @Test
@@ -144,13 +147,16 @@ public class KsStateStoreTest {
     // Given:
     when(kafkaStreams.store(any())).thenThrow(new InvalidStateStoreException("boom"));
 
-    // Then:
-    expectedException.expect(MaterializationException.class);
-    expectedException.expectMessage("State store currently unavailable: " + STORE_NAME);
-    expectedException.expectCause(instanceOf(InvalidStateStoreException.class));
-
     // When:
-    store.store(QueryableStoreTypes.windowStore());
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> store.store(windowStore())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "State store currently unavailable: " + STORE_NAME));
+    assertThat(e.getCause(), (instanceOf(InvalidStateStoreException.class)));
   }
 
   @Test

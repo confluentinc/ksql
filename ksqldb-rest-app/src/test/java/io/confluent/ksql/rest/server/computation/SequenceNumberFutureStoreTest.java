@@ -24,14 +24,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SequenceNumberFutureStoreTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private SequenceNumberFutureStore futureStore;
 

@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.util;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -36,7 +37,6 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
-import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -91,7 +91,7 @@ public class CommandStoreUtilTest {
     );
 
     // Then:
-    assertThat(e, exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    assertThat(e, exceptionStatusCode(is(SERVICE_UNAVAILABLE.code())));
     assertThat(e, exceptionErrorMessage(errorMessage(
         containsString("Timed out while waiting for a previous command to execute"))));
     assertThat(e, exceptionErrorMessage(errorMessage(

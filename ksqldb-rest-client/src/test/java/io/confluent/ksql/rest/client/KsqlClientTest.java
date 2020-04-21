@@ -584,7 +584,7 @@ public class KsqlClientTest {
     RestResponse<KsqlEntityList> response = target.postKsqlRequest("sql", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
-    assertThat(response.getStatusCode().getCode(), is(400));
+    assertThat(response.getStatusCode(), is(400));
     assertThat(response.getErrorMessage().getErrorCode(), is(40000));
     assertThat(response.getErrorMessage().getMessage(), is("ouch"));
     assertThat(response.getErrorMessage().getStackTrace(), is(ImmutableList.of("s1", "s2")));
@@ -601,7 +601,7 @@ public class KsqlClientTest {
     RestResponse<ServerInfo> response = target.getServerInfo();
 
     // Then:
-    assertThat(response.getStatusCode().getCode(), is(400));
+    assertThat(response.getStatusCode(), is(400));
     assertThat(response.getErrorMessage().getErrorCode(), is(40000));
     assertThat(response.getErrorMessage().getMessage(), is("ouch"));
     assertThat(response.getErrorMessage().getStackTrace(), is(ImmutableList.of("s1", "s2")));

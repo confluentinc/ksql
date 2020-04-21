@@ -16,9 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 /**
- * An {@code Executable} is a lifecycle interface that does not conflict with
- * {@link org.eclipse.jetty.util.component.LifeCycle} so that it can be used
- * to specify additional operations during start/stop/join.
+ * An {@code Executable} is a lifecycle interface
  */
 public interface Executable {
 

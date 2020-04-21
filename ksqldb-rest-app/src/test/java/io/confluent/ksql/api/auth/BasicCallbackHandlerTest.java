@@ -20,8 +20,6 @@ import static org.mockito.Mockito.verify;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
-import org.eclipse.jetty.jaas.callback.ObjectCallback;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,8 +36,6 @@ public class BasicCallbackHandlerTest {
 
   @Mock
   private NameCallback nameCallback;
-  @Mock
-  private ObjectCallback objectCallback;
   @Mock
   private PasswordCallback passwordCallback;
   @Mock
@@ -58,20 +54,11 @@ public class BasicCallbackHandlerTest {
   @Test
   public void shouldHandleCallbacks() throws Exception {
     // When:
-    callbackHandler.handle(new Callback[]{nameCallback, objectCallback, passwordCallback});
+    callbackHandler.handle(new Callback[]{nameCallback, passwordCallback});
 
     // Then:
     verify(nameCallback).setName(USERNAME);
-    verify(objectCallback).setObject(PASSWORD);
     verify(passwordCallback).setPassword(PASSWORD.toCharArray());
   }
 
-  @Test
-  public void shouldThrowOnUnsupportedCallback() throws Exception {
-    // Expect:
-    expectedException.expect(UnsupportedCallbackException.class);
-
-    // When:
-    callbackHandler.handle(new Callback[]{unknownCallback});
-  }
 }

@@ -54,7 +54,7 @@ public class TestKsqlRestAppWaitingOnPrecondition extends TestKsqlRestApp {
     try {
       new Thread(() -> {
         try {
-          restServer.startAsync();
+          ksqlRestApplication.startAsync();
         } catch (Exception e) {
           throw new RuntimeException("Error starting server", e);
         }

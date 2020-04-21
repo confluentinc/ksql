@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.state.HostInfo;
@@ -38,7 +37,7 @@ public class ServerUtilTest {
     // Given:
     final KsqlRestConfig restConfig =
         new KsqlRestConfig(
-            Collections.singletonMap(RestConfig.LISTENERS_CONFIG,
+            Collections.singletonMap(KsqlRestConfig.LISTENERS_CONFIG,
                 "invalid"));
 
     // Then:
@@ -50,7 +49,7 @@ public class ServerUtilTest {
     // Given:
     final KsqlRestConfig restConfig =
         new KsqlRestConfig(
-            Collections.singletonMap(RestConfig.LISTENERS_CONFIG,
+            Collections.singletonMap(KsqlRestConfig.LISTENERS_CONFIG,
                 "http://localhost:8088, http://localhost:9099"));
 
     // Then:

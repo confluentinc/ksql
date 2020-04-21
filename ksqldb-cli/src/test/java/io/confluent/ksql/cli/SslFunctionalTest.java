@@ -16,15 +16,12 @@
 package io.confluent.ksql.cli;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.internal.matchers.ThrowableCauseMatcher.hasCause;
-import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
@@ -34,33 +31,17 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.rest.RestConfig;
-import java.io.EOFException;
-import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLHandshakeException;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.http.HttpStatus.Code;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.eclipse.jetty.util.ssl.SslContextFactory.Server;
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
-import org.eclipse.jetty.websocket.api.annotations.WebSocket;
-import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
-import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -85,7 +66,7 @@ public class SslFunctionalTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperties(ServerKeyStore.keyStoreProps())
-      .withProperty(RestConfig.LISTENERS_CONFIG, "https://localhost:0")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0")
       .build();
 
   @ClassRule
@@ -98,7 +79,6 @@ public class SslFunctionalTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private Map<String, String> clientProps;
-  private SslContextFactory sslContextFactory;
 
   @BeforeClass
   public static void classSetUp() {
@@ -110,7 +90,6 @@ public class SslFunctionalTest {
   @Before
   public void setUp() {
     clientProps = ImmutableMap.of();
-    sslContextFactory = new Server();
   }
 
   @Test
@@ -134,10 +113,10 @@ public class SslFunctionalTest {
     givenTrustStoreConfigured();
 
     // When:
-    final Code result = canMakeCliRequest();
+    final int result = canMakeCliRequest();
 
     // Then:
-    assertThat(result, is(Code.OK));
+    assertThat(result, is(OK.code()));
   }
 
   @Test
@@ -146,16 +125,10 @@ public class SslFunctionalTest {
     givenClientConfguredWithoutTruststore();
 
     // Then:
-    expectedException.expect(either(
-        both(hasCause(hasCause(hasMessage(
-            containsString("unable to find valid certification path to requested target")))))
-            .and(instanceOf(SSLHandshakeException.class))
-    ).or(
-        instanceOf(EOFException.class)  // Occasionally, get EOF exception.
-    ));
+    expectedException.expect(SSLHandshakeException.class);
 
     // When:
-    makeWsRequest();
+    WebsocketUtils.makeWsRequest(JSON_KSQL_REQUEST, clientProps, REST_APP);
   }
 
   @Test
@@ -164,7 +137,7 @@ public class SslFunctionalTest {
     givenTrustStoreConfigured();
 
     // When:
-    makeWsRequest();
+    WebsocketUtils.makeWsRequest(JSON_KSQL_REQUEST, clientProps, REST_APP);
 
     // Then: did not throw.
   }
@@ -174,18 +147,13 @@ public class SslFunctionalTest {
     clientProps = ImmutableMap.<String, String>builder()
         .putAll(ClientTrustStore.trustStoreProps())
         .build();
-
-    // WS:
-    sslContextFactory.setTrustStorePath(ClientTrustStore.trustStorePath());
-    sslContextFactory.setTrustStorePassword(ClientTrustStore.trustStorePassword());
-    sslContextFactory.setEndpointIdentificationAlgorithm("");
   }
 
   private void givenClientConfguredWithoutTruststore() {
     clientProps = ImmutableMap.of();
   }
 
-  private Code canMakeCliRequest() {
+  private int canMakeCliRequest() {
     final String serverAddress = REST_APP.getHttpsListener().toString();
 
     try (KsqlRestClient restClient = KsqlRestClient.create(
@@ -196,75 +164,11 @@ public class SslFunctionalTest {
     )) {
       final RestResponse<?> response = restClient.makeKsqlRequest("show topics;");
       if (response.isSuccessful()) {
-        return Code.OK;
+        return OK.code();
       }
 
-      return HttpStatus.getCode(response.getErrorMessage().getErrorCode());
+      return response.getErrorMessage().getErrorCode();
     }
   }
 
-  private void makeWsRequest() throws Exception {
-    final HttpClient httpClient = new HttpClient(sslContextFactory);
-    httpClient.start();
-    final WebSocketClient wsClient = new WebSocketClient(httpClient);
-    wsClient.start();
-
-    try {
-      final ClientUpgradeRequest request = new ClientUpgradeRequest();
-      final WebSocketListener listener = new WebSocketListener();
-      final URI wsUri = REST_APP.getWssListener().resolve("/ws/query?request=" + JSON_KSQL_REQUEST);
-
-      wsClient.connect(listener, wsUri, request);
-
-      assertThat("Response received",
-          listener.latch.await(30, TimeUnit.SECONDS), is(true));
-
-      final Throwable error = listener.error.get();
-      if (error != null) {
-        throw (Exception) error;
-      }
-    } finally {
-      wsClient.stop();
-      httpClient.destroy();
-    }
-  }
-
-  @WebSocket
-  public static class WebSocketListener {
-
-    private Session session;
-    final CountDownLatch latch = new CountDownLatch(1);
-    final AtomicReference<Throwable> error = new AtomicReference<>();
-
-    @SuppressWarnings("unused") // Invoked via reflection
-    @OnWebSocketConnect
-    public void onConnect(final Session session) {
-      this.session = session;
-    }
-
-    @SuppressWarnings("unused") // Invoked via reflection
-    @OnWebSocketError
-    public void onError(final Throwable t) {
-      error.compareAndSet(null, t);
-      closeSilently();
-      latch.countDown();
-    }
-
-    @SuppressWarnings("unused") // Invoked via reflection
-    @OnWebSocketMessage
-    public void onMessage(final String msg) {
-      closeSilently();
-      latch.countDown();
-    }
-
-    private void closeSilently() {
-      try {
-        if (session != null) {
-          session.close();
-        }
-      } catch (final Exception e) {
-        // meh
-      }
-    }
-  }
 }

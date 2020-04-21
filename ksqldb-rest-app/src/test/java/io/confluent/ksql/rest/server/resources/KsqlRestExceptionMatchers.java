@@ -17,8 +17,6 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
-import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -35,7 +33,7 @@ public final class KsqlRestExceptionMatchers {
    * @return the matcher.
    */
   public static Matcher<? super KsqlRestException> exceptionStatusCode(
-      final Matcher<HttpStatus.Code> expected
+      final Matcher<Integer> expected
   ) {
     return new TypeSafeDiagnosingMatcher<KsqlRestException>() {
       @Override
@@ -43,7 +41,7 @@ public final class KsqlRestExceptionMatchers {
           final KsqlRestException actual,
           final Description mismatchDescription
       ) {
-        final Code actualCode = HttpStatus.getCode(actual.getResponse().getStatus());
+        final int actualCode = actual.getResponse().getStatus();
         if (!expected.matches(actualCode)) {
           mismatchDescription.appendText("but status code ");
           expected.describeMismatch(actualCode, mismatchDescription);

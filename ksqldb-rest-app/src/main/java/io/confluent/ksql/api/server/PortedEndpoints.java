@@ -135,6 +135,8 @@ class PortedEndpoints {
         .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleServerMetadataClusterIdRequest);
     router.route(HttpMethod.GET, "/ws/query")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(JSON_CONTENT_TYPE)
         .handler(new PortedEndpoints(endpoints, server)::handleWebsocket);
   }
 

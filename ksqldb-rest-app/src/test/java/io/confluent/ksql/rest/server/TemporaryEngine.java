@@ -51,7 +51,6 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -92,7 +91,7 @@ public class TemporaryEngine extends ExternalResource {
         ImmutableMap.<String, Object>builder()
             .putAll(configs)
             .put("ksql.command.topic.suffix", "commands")
-            .put( RestConfig.LISTENERS_CONFIG, "http://localhost:8088" )
+            .put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
             .build()
     );
 

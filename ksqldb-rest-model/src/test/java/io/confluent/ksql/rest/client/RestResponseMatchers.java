@@ -31,7 +31,7 @@ public final class RestResponseMatchers {
         (is(status), "response with status", "status") {
       @Override
       protected Integer featureValueOf(final RestResponse<?> actual) {
-        return actual.getStatusCode().getCode();
+        return actual.getStatusCode();
       }
     };
   }

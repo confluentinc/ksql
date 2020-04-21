@@ -170,7 +170,7 @@ public abstract class BasePerfRunner {
     ApiServerConfig serverConfig = createServerConfig();
     final ServerState serverState = new ServerState();
     serverState.setReady();
-    server = new Server(vertx, serverConfig, endpoints, false, new KsqlDefaultSecurityExtension(),
+    server = new Server(vertx, serverConfig, endpoints, new KsqlDefaultSecurityExtension(),
         Optional.empty(), serverState);
     server.start();
     client = createClient();

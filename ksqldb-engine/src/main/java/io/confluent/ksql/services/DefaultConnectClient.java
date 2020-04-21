@@ -24,6 +24,7 @@ import com.github.rholder.retry.WaitStrategies;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.vertx.core.http.HttpHeaders;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -33,7 +34,6 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-import javax.ws.rs.core.HttpHeaders;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -253,7 +253,7 @@ public class DefaultConnectClient implements ConnectClient {
 
   private Header[] headers() {
     return authHeader.isPresent()
-        ? new Header[]{new BasicHeader(HttpHeaders.AUTHORIZATION, authHeader.get())}
+        ? new Header[]{new BasicHeader(HttpHeaders.AUTHORIZATION.toString(), authHeader.get())}
         : new Header[]{};
   }
 

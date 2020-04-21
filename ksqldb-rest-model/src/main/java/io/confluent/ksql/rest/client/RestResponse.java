@@ -15,22 +15,22 @@
 
 package io.confluent.ksql.rest.client;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import java.util.Objects;
-import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.http.HttpStatus.Code;
 
 public abstract class RestResponse<R> {
 
-  private final Code statusCode;
+  private final int statusCode;
 
-  private RestResponse(final HttpStatus.Code statusCode) {
-    this.statusCode = Objects.requireNonNull(statusCode, "statusCode");
+  private RestResponse(final int statusCode) {
+    this.statusCode = statusCode;
   }
 
   public boolean isSuccessful() {
-    return statusCode.isSuccess();
+    return statusCode == OK.code();
   }
 
   public boolean isErroneous() {
@@ -41,29 +41,29 @@ public abstract class RestResponse<R> {
 
   public abstract R getResponse();
 
-  public HttpStatus.Code getStatusCode() {
+  public int getStatusCode() {
     return statusCode;
   }
 
   public static <R> RestResponse<R> erroneous(
-      final HttpStatus.Code statusCode,
+      final int statusCode,
       final KsqlErrorMessage errorMessage
   ) {
     return new Erroneous<>(statusCode, errorMessage);
   }
 
   public static <R> RestResponse<R> erroneous(
-      final HttpStatus.Code statusCode,
+      final int statusCode,
       final String message
   ) {
     return new Erroneous<>(
         statusCode,
-        new KsqlErrorMessage(Errors.toErrorCode(statusCode.getCode()), message)
+        new KsqlErrorMessage(Errors.toErrorCode(statusCode), message)
     );
   }
 
   public static <R> RestResponse<R> successful(
-      final HttpStatus.Code statusCode,
+      final int statusCode,
       final R response
   ) {
     return new Successful<>(statusCode, response);
@@ -82,13 +82,13 @@ public abstract class RestResponse<R> {
     private final KsqlErrorMessage errorMessage;
 
     private Erroneous(
-        final HttpStatus.Code statusCode,
+        final int statusCode,
         final KsqlErrorMessage errorMessage
     ) {
       super(statusCode);
       this.errorMessage = errorMessage;
 
-      if (statusCode.isSuccess()) {
+      if (statusCode == OK.code()) {
         throw new IllegalArgumentException("Success code passed to error!");
       }
     }
@@ -117,13 +117,13 @@ public abstract class RestResponse<R> {
     private final R response;
 
     private Successful(
-        final HttpStatus.Code statusCode,
+        final int statusCode,
         final R response
     ) {
       super(statusCode);
       this.response = response;
 
-      if (!statusCode.isSuccess()) {
+      if (statusCode != OK.code()) {
         throw new IllegalArgumentException("Error code passed to success!");
       }
     }

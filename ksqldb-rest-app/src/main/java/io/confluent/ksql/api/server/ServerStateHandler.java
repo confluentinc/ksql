@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
+
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -22,7 +24,6 @@ import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
-import org.eclipse.jetty.http.HttpStatus;
 
 public class ServerStateHandler implements Handler<RoutingContext> {
 
@@ -38,7 +39,7 @@ public class ServerStateHandler implements Handler<RoutingContext> {
     if (response.isPresent()) {
       final KsqlErrorMessage errorMsg = (KsqlErrorMessage) response.get().getEntity();
       routingContext.fail(
-          HttpStatus.SERVICE_UNAVAILABLE_503,
+          SERVICE_UNAVAILABLE.code(),
           new KsqlApiException(errorMsg.getMessage(), errorMsg.getErrorCode())
       );
     } else {

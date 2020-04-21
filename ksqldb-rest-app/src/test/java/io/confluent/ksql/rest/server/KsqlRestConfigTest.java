@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server;
 
 
 import static io.confluent.ksql.rest.server.KsqlRestConfig.ADVERTISED_LISTENER_CONFIG;
-import static io.confluent.rest.RestConfig.LISTENERS_CONFIG;
+import static io.confluent.ksql.rest.server.KsqlRestConfig.LISTENERS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;

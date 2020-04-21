@@ -15,6 +15,11 @@
 
 package io.confluent.ksql.rest.client;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
@@ -23,8 +28,6 @@ import io.vertx.core.buffer.Buffer;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.naming.AuthenticationException;
-import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.http.HttpStatus.Code;
 
 public final class KsqlClientUtil {
 
@@ -36,8 +39,8 @@ public final class KsqlClientUtil {
       final String path,
       final Function<ResponseWithBody, T> mapper
   ) {
-    final Code statusCode = HttpStatus.getCode(resp.getResponse().statusCode());
-    return statusCode == Code.OK
+    final int statusCode = resp.getResponse().statusCode();
+    return statusCode == OK.code()
         ? RestResponse.successful(statusCode, mapper.apply(resp))
         : createErrorResponse(path, resp);
   }
@@ -65,24 +68,24 @@ public final class KsqlClientUtil {
       final String path,
       final ResponseWithBody resp
   ) {
-    final Code statusCode = HttpStatus.getCode(resp.getResponse().statusCode());
+    final int statusCode = resp.getResponse().statusCode();
     final Optional<KsqlErrorMessage> errorMessage = tryReadErrorMessage(resp);
     if (errorMessage.isPresent()) {
       return RestResponse.erroneous(statusCode, errorMessage.get());
     }
 
-    if (statusCode == Code.NOT_FOUND) {
+    if (statusCode == NOT_FOUND.code()) {
       return RestResponse.erroneous(statusCode,
           "Path not found. Path='" + path + "'. "
               + "Check your ksql http url to make sure you are connecting to a ksql server."
       );
     }
 
-    if (statusCode == Code.UNAUTHORIZED) {
+    if (statusCode == UNAUTHORIZED.code()) {
       return RestResponse.erroneous(statusCode, unauthorizedErrorMsg());
     }
 
-    if (statusCode == Code.FORBIDDEN) {
+    if (statusCode == FORBIDDEN.code()) {
       return RestResponse.erroneous(statusCode, forbiddenErrorMsg());
     }
 

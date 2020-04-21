@@ -34,14 +34,6 @@ public class ZooKeeperEmbeddedTest {
   private static final long CONNECT_TIMEOUT_MS = (int) EmbeddedSingleNodeKafkaCluster
       .ZK_CONNECT_TIMEOUT.toMillis();
 
-  /**
-   * Test is only valid if Jetty is on the class path:
-   */
-  @SuppressWarnings("unused")
-  private final org.eclipse.jetty.server.Connector ensureClassOnClassPath = null;
-  @SuppressWarnings("unused")
-  private final org.eclipse.jetty.servlet.ServletContextHandler ensureClassOnClassPath2 = null;
-
   @Test
   public void shouldSupportMultipleInstancesRunning() throws Exception {
     // Given:

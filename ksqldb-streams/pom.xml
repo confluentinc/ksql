@@ -86,7 +86,7 @@
                         <configuration>
                             <compilerArgs>
                                 <arg>-Xlint:all,-serial,-rawtypes</arg>
-                                <arg>-Werror</arg>
+                                <arg>${compile.warnings-flag}</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>

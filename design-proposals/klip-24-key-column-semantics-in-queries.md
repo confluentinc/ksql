@@ -289,11 +289,11 @@ example:
 
 ```sql
 -- 'any key' aliasing syntax that will be dropped:
-CREATE TABLE OUTPUT AS SELECT COUNT() AS COUNT FROM INPUT GROUP BY (V0 + V1) AS K;
+CREATE TABLE OUTPUT AS SELECT COUNT() AS COUNT FROM INPUT GROUP BY V0 AS K;
 -- resulting schema: K INT KEY, COUNT BIGINT
 
 -- proposed key column aliasing in projection:
-CREATE TABLE OUTPUT AS SELECT (V0 + v1) AS K, COUNT() AS COUNT FROM INPUT GROUP BY V0 + V1;
+CREATE TABLE OUTPUT AS SELECT V0 AS K, COUNT() AS COUNT FROM INPUT GROUP BY V0;
 -- resulting schema: K INT KEY, COUNT BIGINT
 ```
 

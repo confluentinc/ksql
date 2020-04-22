@@ -26,7 +26,7 @@ public final class EndpointResponse {
   private final Object entity;
 
   private EndpointResponse(final Map<String, String> headers, final int status,
-      final String statusMessage, final Object entity) {
+      final Object entity) {
     this.headers = headers;
     this.status = status;
     this.entity = entity;
@@ -45,11 +45,11 @@ public final class EndpointResponse {
   }
 
   public static EndpointResponse ok(final Object entity) {
-    return new EndpointResponse(null, HttpResponseStatus.OK.code(), null, entity);
+    return new EndpointResponse(null, HttpResponseStatus.OK.code(), entity);
   }
 
   public static EndpointResponse failed(final int status) {
-    return new EndpointResponse(null, status, null, null);
+    return new EndpointResponse(null, status, null);
   }
 
   public static final class Builder {
@@ -84,7 +84,7 @@ public final class EndpointResponse {
     }
 
     public EndpointResponse build() {
-      return new EndpointResponse(headers, status, null, entity);
+      return new EndpointResponse(headers, status, entity);
     }
 
   }

@@ -28,7 +28,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import javax.ws.rs.WebApplicationException;
 import org.junit.Test;
 
-public class KsqlExceptionMapperTest {
+public class OldApiExceptionMapperTest {
 
   @Test
   public void shouldReturnEmbeddedResponseForKsqlRestException() {

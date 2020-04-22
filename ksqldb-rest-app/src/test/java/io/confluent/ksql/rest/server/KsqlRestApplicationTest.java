@@ -38,6 +38,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -68,7 +69,6 @@ import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -131,7 +131,7 @@ public class KsqlRestApplicationTest {
   @Mock
   private LagReportingAgent lagReportingAgent;
   @Mock
-  private Response response;
+  private EndpointResponse response;
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;

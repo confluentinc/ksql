@@ -18,11 +18,11 @@ package io.confluent.ksql.api;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
-import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.reactive.BufferedPublisher;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -103,7 +103,7 @@ public class TestEndpoints implements Endpoints {
     this.lastApiSecurityContext = apiSecurityContext;
     if (request.getKsql().toLowerCase().equals("show streams;")) {
       final StreamsList entity = new StreamsList(request.getKsql(), Collections.emptyList());
-      return CompletableFuture.completedFuture(EndpointResponse.create(200, "OK", entity));
+      return CompletableFuture.completedFuture(EndpointResponse.ok(entity));
     } else {
       return null;
     }

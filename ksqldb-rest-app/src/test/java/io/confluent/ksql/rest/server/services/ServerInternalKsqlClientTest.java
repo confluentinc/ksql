@@ -15,21 +15,20 @@
 
 package io.confluent.ksql.rest.server.services;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
-
 import java.net.URI;
 import java.util.Collections;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,14 +49,14 @@ public class ServerInternalKsqlClientTest {
   @Mock
   private URI unused;
   @Mock
-  private Response response;
+  private EndpointResponse response;
   @Mock
   private KsqlEntityList entities;
   private ServerInternalKsqlClient ksqlClient;
 
   @Before
   public void setUp() {
-    when(response.getStatus()).thenReturn(Status.OK.getStatusCode());
+    when(response.getStatus()).thenReturn(OK.code());
     when(response.getEntity()).thenReturn(entities);
 
     ksqlClient = new ServerInternalKsqlClient(ksqlResource, securityContext);

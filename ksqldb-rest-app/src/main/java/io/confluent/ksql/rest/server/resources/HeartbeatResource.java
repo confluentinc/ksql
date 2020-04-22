@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.util.KsqlHostInfo;
-import javax.ws.rs.core.Response;
 
 /**
  * Endpoint for registering heartbeats received from remote servers. The heartbeats are used
@@ -35,9 +35,9 @@ public class HeartbeatResource {
     this.heartbeatAgent = heartbeatAgent;
   }
 
-  public Response registerHeartbeat(final HeartbeatMessage request) {
+  public EndpointResponse registerHeartbeat(final HeartbeatMessage request) {
     handleHeartbeat(request);
-    return Response.ok(new HeartbeatResponse(true)).build();
+    return EndpointResponse.ok(new HeartbeatResponse(true));
   }
 
   private void handleHeartbeat(final HeartbeatMessage request) {

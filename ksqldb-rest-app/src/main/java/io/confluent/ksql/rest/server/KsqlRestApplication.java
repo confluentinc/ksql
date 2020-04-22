@@ -69,7 +69,6 @@ import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
-import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.LagReportingResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
@@ -378,7 +377,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     if (lagReportingAgent.isPresent()) {
       config.register(lagReportingResource.get());
     }
-    config.register(new KsqlExceptionMapper());
     config.register(new ServerStateDynamicBinding(serverState));
   }
 

@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -65,8 +66,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.regex.PatternSyntaxException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
@@ -190,8 +189,8 @@ public class KsqlResource implements KsqlConfigurable {
     );
   }
 
-  public Response terminateCluster(
-      @Context final KsqlSecurityContext securityContext,
+  public EndpointResponse terminateCluster(
+      final KsqlSecurityContext securityContext,
       final ClusterTerminateRequest request
   ) {
     LOG.info("Received: " + request);
@@ -210,15 +209,15 @@ public class KsqlResource implements KsqlConfigurable {
               false
           )
       );
-      return Response.ok(entities).build();
+      return EndpointResponse.ok(entities);
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
           e, TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, new KsqlEntityList());
     }
   }
 
-  public Response handleKsqlStatements(
-      @Context final KsqlSecurityContext securityContext,
+  public EndpointResponse handleKsqlStatements(
+      final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
     LOG.info("Received: " + request);
@@ -260,7 +259,7 @@ public class KsqlResource implements KsqlConfigurable {
       );
 
       LOG.info("Processed successfully: " + request);
-      return Response.ok(entities).build();
+      return EndpointResponse.ok(entities);
     } catch (final KsqlRestException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
       throw e;

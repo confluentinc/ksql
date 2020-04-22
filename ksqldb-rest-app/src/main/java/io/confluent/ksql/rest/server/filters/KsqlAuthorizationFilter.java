@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.filters;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import java.security.Principal;
@@ -24,6 +25,7 @@ import javax.annotation.Priority;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +61,10 @@ public class KsqlAuthorizationFilter implements ContainerRequestFilter {
     } catch (final Throwable t) {
       log.warn(String.format("User:%s is denied access to \"%s %s\"",
           user.getName(), method, path), t);
-      requestContext.abortWith(Errors.accessDenied(t.getMessage()));
+      final EndpointResponse endpointResponse = Errors.accessDenied(t.getMessage());
+      final Response response = Response.status(endpointResponse.getStatus())
+          .entity(endpointResponse.getEntity()).build();
+      requestContext.abortWith(response);
     }
   }
 

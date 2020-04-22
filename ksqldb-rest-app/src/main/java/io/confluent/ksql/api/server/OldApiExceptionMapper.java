@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,39 +13,44 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.resources;
+package io.confluent.ksql.api.server;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 
-public class KsqlExceptionMapper implements ExceptionMapper<Throwable> {
+public final class OldApiExceptionMapper {
 
-  @Override
-  public Response toResponse(final Throwable exception) {
+  private OldApiExceptionMapper() {
+  }
+
+  public static EndpointResponse mapException(final Throwable exception) {
     if (exception instanceof KsqlRestException) {
-      final KsqlRestException restException = (KsqlRestException)exception;
+      final KsqlRestException restException = (KsqlRestException) exception;
       return restException.getResponse();
     }
     if (exception instanceof WebApplicationException) {
-      final WebApplicationException webApplicationException = (WebApplicationException)exception;
-      return Response
+      final WebApplicationException webApplicationException = (WebApplicationException) exception;
+      return EndpointResponse.create()
           .status(
               Response.Status.fromStatusCode(
-                  webApplicationException.getResponse().getStatus()))
-          .type(MediaType.APPLICATION_JSON_TYPE)
+                  webApplicationException.getResponse().getStatus()).getStatusCode())
+          .type(MediaType.APPLICATION_JSON_TYPE.getType())
           .entity(
               new KsqlErrorMessage(
                   Errors.toErrorCode(webApplicationException.getResponse().getStatus()),
                   webApplicationException))
           .build();
     }
-    return Response
-        .status(Response.Status.INTERNAL_SERVER_ERROR)
-        .type(MediaType.APPLICATION_JSON_TYPE)
+    return EndpointResponse.create()
+        .status(INTERNAL_SERVER_ERROR.code())
+        .type(MediaType.APPLICATION_JSON_TYPE.getType())
         .entity(new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, exception))
         .build();
   }

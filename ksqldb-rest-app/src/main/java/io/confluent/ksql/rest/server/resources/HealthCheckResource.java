@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -31,7 +32,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
-import javax.ws.rs.core.Response;
 
 public class HealthCheckResource {
 
@@ -49,8 +49,8 @@ public class HealthCheckResource {
     this.responseCache = createResponseCache(healthCheckAgent, healthCheckInterval);
   }
 
-  public Response checkHealth() {
-    return Response.ok(getResponse()).build();
+  public EndpointResponse checkHealth() {
+    return EndpointResponse.ok(getResponse());
   }
 
   private HealthCheckResponse getResponse() {

@@ -27,10 +27,9 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.util.KsqlException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import java.net.URI;
 import java.security.Principal;
-
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import org.glassfish.jersey.internal.PropertiesDelegate;
 import org.glassfish.jersey.server.ContainerRequest;
@@ -42,7 +41,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlAuthorizationFilterTest {
-  private static final int FORBIDDEN = Response.Status.FORBIDDEN.getStatusCode();
+
+  private static final int FORBIDDEN = HttpResponseStatus.FORBIDDEN.code();
 
   @Mock
   private KsqlAuthorizationProvider authorizationProvider;

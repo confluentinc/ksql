@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -55,8 +56,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
@@ -145,13 +144,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
         KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED);
     this.pullQueryMetrics = collectMetrics
         ? Optional.of(new PullQueryExecutorMetrics(
-            ksqlEngine.getServiceId(),
-            ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
+        ksqlEngine.getServiceId(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
         : empty();
   }
 
-  public Response streamQuery(
-      @Context final KsqlSecurityContext securityContext,
+  public EndpointResponse streamQuery(
+      final KsqlSecurityContext securityContext,
       final KsqlRequest request,
       final CompletableFuture<Void> connectionClosedFuture
   ) {
@@ -194,13 +193,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
   }
 
   @SuppressWarnings("unchecked")
-  private Response handleStatement(
+  private EndpointResponse handleStatement(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request,
       final PreparedStatement<?> statement,
       final long startTime,
       final CompletableFuture<Void> connectionClosedFuture
-  )  {
+  ) {
     try {
       authorizationValidator.ifPresent(validator ->
           validator.checkAuthorization(
@@ -213,15 +212,15 @@ public class StreamedQueryResource implements KsqlConfigurable {
         final PreparedStatement<Query> queryStmt = (PreparedStatement<Query>) statement;
 
         if (queryStmt.getStatement().isPullQuery()) {
-          final Response response =  handlePullQuery(
-                securityContext.getServiceContext(),
+          final EndpointResponse response = handlePullQuery(
+              securityContext.getServiceContext(),
               queryStmt,
               request.getConfigOverrides(),
               request.getRequestProperties()
           );
           if (pullQueryMetrics.isPresent()) {
             //Record latency at microsecond scale
-            final double latency = (time.nanoseconds() - startTime) / 1000f ;
+            final double latency = (time.nanoseconds() - startTime) / 1000f;
             pullQueryMetrics.get().recordLatency(latency);
             pullQueryMetrics.get().recordRate(1);
           }
@@ -256,7 +255,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
   }
 
-  private Response handlePullQuery(
+  private EndpointResponse handlePullQuery(
       final ServiceContext serviceContext,
       final PreparedStatement<Query> statement,
       final Map<String, Object> configOverrides,
@@ -281,10 +280,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .map(this::writeValueAsString)
         .collect(Collectors.joining("," + System.lineSeparator(), "[", "]"));
 
-    return Response.ok().entity(data).build();
+    return EndpointResponse.ok(data);
   }
 
-  private Response handlePushQuery(
+  private EndpointResponse handlePushQuery(
       final ServiceContext serviceContext,
       final PreparedStatement<Query> statement,
       final Map<String, Object> streamsProperties,
@@ -302,7 +301,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         connectionClosedFuture);
 
     log.info("Streaming query '{}'", statement.getStatementText());
-    return Response.ok().entity(queryStreamWriter).build();
+    return EndpointResponse.ok(queryStreamWriter);
   }
 
   private String writeValueAsString(final Object object) {
@@ -313,7 +312,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
   }
 
-  private Response handlePrintTopic(
+  private EndpointResponse handlePrintTopic(
       final ServiceContext serviceContext,
       final Map<String, Object> streamProperties,
       final PreparedStatement<PrintTopic> statement,
@@ -358,7 +357,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     );
 
     log.info("Printing topic '{}'", topicName);
-    return Response.ok().entity(topicStreamWriter).build();
+    return EndpointResponse.ok(topicStreamWriter);
   }
 
   private static Collection<String> findPossibleTopicMatches(

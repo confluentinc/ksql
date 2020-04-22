@@ -16,6 +16,10 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.rest.Errors.toErrorCode;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
+import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
 import static org.apache.http.HttpHeaders.TRANSFER_ENCODING;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -23,17 +27,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
-import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.StreamedEndpointResponse;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
@@ -52,8 +54,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import org.apache.http.HttpStatus;
+import javax.ws.rs.core.StreamingOutput;
 
 class PortedEndpoints {
 
@@ -246,7 +247,7 @@ class PortedEndpoints {
     // We redirect to the /info endpoint.
     // (This preserves behaviour of the old API)
     routingContext.response().putHeader("location", "/info")
-        .setStatusCode(HttpStatus.SC_TEMPORARY_REDIRECT).end();
+        .setStatusCode(TEMPORARY_REDIRECT.code()).end();
   }
 
   private static <T> void handlePortedOldApiRequest(final Server server,
@@ -259,7 +260,7 @@ class PortedEndpoints {
       try {
         requestObject = OBJECT_MAPPER.readValue(routingContext.getBody().getBytes(), requestClass);
       } catch (Exception e) {
-        routingContext.fail(HttpStatus.SC_BAD_REQUEST,
+        routingContext.fail(BAD_REQUEST.code(),
             new KsqlApiException("Malformed JSON", ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
         return;
       }
@@ -274,8 +275,8 @@ class PortedEndpoints {
       if (t instanceof CompletionException) {
         t = t.getCause();
       }
-      final Response errResponse = new KsqlExceptionMapper().toResponse(t);
-      handleOldApiResponse(server, routingContext, response, EndpointResponse.create(errResponse));
+      final EndpointResponse errResponse = OldApiExceptionMapper.mapException(t);
+      handleOldApiResponse(server, routingContext, response, errResponse);
       return null;
     });
   }
@@ -285,36 +286,35 @@ class PortedEndpoints {
       final EndpointResponse endpointResponse) {
     response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
 
-    response.setStatusCode(endpointResponse.getStatusCode())
-        .setStatusMessage(endpointResponse.getStatusMessage());
+    response.setStatusCode(endpointResponse.getStatus());
 
     // What the old API returns in it's response is something of a mishmash - sometimes it's
     // a plain String, other times it's an object that needs to be JSON encoded, other times
     // it represents a stream.
-    if (endpointResponse instanceof StreamedEndpointResponse) {
+    if (endpointResponse.getEntity() instanceof StreamingOutput) {
       if (routingContext.request().version() == HttpVersion.HTTP_2) {
         // The old /query endpoint uses chunked encoding which is not supported in HTTP2
-        routingContext.response().setStatusCode(HttpStatus.SC_METHOD_NOT_ALLOWED)
+        routingContext.response().setStatusCode(METHOD_NOT_ALLOWED.code())
             .setStatusMessage("The /query endpoint is not available using HTTP2").end();
         return;
       }
       response.putHeader(TRANSFER_ENCODING, CHUNKED_ENCODING);
-      streamEndpointResponse(server, response, (StreamedEndpointResponse) endpointResponse);
+      streamEndpointResponse(server, response, (StreamingOutput) endpointResponse.getEntity());
     } else {
-      if (endpointResponse.getResponseBody() == null) {
+      if (endpointResponse.getEntity() == null) {
         response.end();
       } else {
         final Buffer responseBody;
-        if (endpointResponse.getResponseBody() instanceof String) {
-          responseBody = Buffer.buffer((String) endpointResponse.getResponseBody());
+        if (endpointResponse.getEntity() instanceof String) {
+          responseBody = Buffer.buffer((String) endpointResponse.getEntity());
         } else {
           try {
             final byte[] bytes = OBJECT_MAPPER
-                .writeValueAsBytes(endpointResponse.getResponseBody());
+                .writeValueAsBytes(endpointResponse.getEntity());
             responseBody = Buffer.buffer(bytes);
           } catch (JsonProcessingException e) {
             // This is an internal error as it's a bug in the server
-            routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR, e);
+            routingContext.fail(INTERNAL_SERVER_ERROR.code(), e);
             return;
           }
         }
@@ -324,12 +324,12 @@ class PortedEndpoints {
   }
 
   private static void streamEndpointResponse(final Server server, final HttpServerResponse response,
-      final StreamedEndpointResponse streamedEndpointResponse) {
+      final StreamingOutput streamingOutput) {
     final WorkerExecutor workerExecutor = server.getWorkerExecutor();
     final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
     workerExecutor.executeBlocking(promise -> {
       try (OutputStream os = new BufferedOutputStream(new ResponseOutputStream(response))) {
-        streamedEndpointResponse.execute(os);
+        streamingOutput.write(os);
       } catch (Exception e) {
         promise.fail(e);
       }
@@ -355,7 +355,7 @@ class PortedEndpoints {
       routingContext.response().setStatusCode(statusCode)
           .end(Buffer.buffer(bytes));
     } catch (JsonProcessingException e) {
-      routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR, e);
+      routingContext.fail(INTERNAL_SERVER_ERROR.code(), e);
     }
   }
 

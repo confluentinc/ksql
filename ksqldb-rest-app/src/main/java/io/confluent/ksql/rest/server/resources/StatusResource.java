@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import java.util.Optional;
-import javax.ws.rs.core.Response;
 
 public class StatusResource {
 
@@ -31,11 +31,11 @@ public class StatusResource {
     this.statementExecutor = statementExecutor;
   }
 
-  public Response getAllStatuses() {
-    return Response.ok(CommandStatuses.fromFullStatuses(statementExecutor.getStatuses())).build();
+  public EndpointResponse getAllStatuses() {
+    return EndpointResponse.ok(CommandStatuses.fromFullStatuses(statementExecutor.getStatuses()));
   }
 
-  public Response getStatus(final String type, final String entity, final String action) {
+  public EndpointResponse getStatus(final String type, final String entity, final String action) {
     final CommandId commandId = new CommandId(type, entity, action);
 
     final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
@@ -44,6 +44,6 @@ public class StatusResource {
       return Errors.notFound("Command not found");
     }
 
-    return Response.ok(commandStatus.get()).build();
+    return EndpointResponse.ok(commandStatus.get());
   }
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
@@ -24,6 +25,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -33,7 +35,6 @@ import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import javax.ws.rs.core.Response;
 import org.junit.Test;
 
 public class StatusResourceTest {
@@ -108,9 +109,9 @@ public class StatusResourceTest {
   @Test
   public void testGetStatusNotFound() throws Exception {
     final StatusResource testResource = getTestStatusResource();
-    final Response response = testResource.getStatus(
+    final EndpointResponse response = testResource.getStatus(
         CommandId.Type.STREAM.name(), "foo", CommandId.Action.CREATE.name());
-    assertThat(response.getStatus(), equalTo(Response.Status.NOT_FOUND.getStatusCode()));
+    assertThat(response.getStatus(), equalTo(NOT_FOUND.code()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
     assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_NOT_FOUND));

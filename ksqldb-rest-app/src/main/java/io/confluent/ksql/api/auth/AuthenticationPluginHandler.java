@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.auth;
 
 import static io.confluent.ksql.api.server.ServerUtils.convertCommaSeparatedWilcardsToRegex;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 
 import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.ErrorCodes;
@@ -34,7 +35,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
-import org.apache.http.HttpStatus;
 
 /**
  * Handler that calls any authentication plugin
@@ -76,7 +76,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
       if (principal == null) {
         // Not authenticated
         routingContext
-            .fail(HttpStatus.SC_UNAUTHORIZED, new KsqlApiException("Failed authentication",
+            .fail(UNAUTHORIZED.code(), new KsqlApiException("Failed authentication",
                 ErrorCodes.ERROR_FAILED_AUTHENTICATION));
       } else {
         routingContext.setUser(new AuthPluginUser(principal));

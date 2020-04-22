@@ -15,54 +15,53 @@
 
 package io.confluent.ksql.rest;
 
-import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
-import static javax.ws.rs.core.Response.Status.FORBIDDEN;
-import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static javax.ws.rs.core.Response.Status.PRECONDITION_REQUIRED;
-import static javax.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
-import static javax.ws.rs.core.Response.Status.UNAUTHORIZED;
+import static io.netty.handler.codec.http.HttpHeaderNames.RETRY_AFTER;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.PRECONDITION_REQUIRED;
+import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import java.util.Objects;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 
-
 public final class Errors {
+
   private static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
 
-  public static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
-  public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
-  private static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
+  public static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.code());
+  public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.code()) + 1;
+  private static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.code()) + 2;
 
-  public static final int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.getStatusCode());
+  public static final int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.code());
 
-  public static final int ERROR_CODE_FORBIDDEN = toErrorCode(FORBIDDEN.getStatusCode());
+  public static final int ERROR_CODE_FORBIDDEN = toErrorCode(FORBIDDEN.code());
   public static final int ERROR_CODE_FORBIDDEN_KAFKA_ACCESS =
-      toErrorCode(FORBIDDEN.getStatusCode()) + 1;
+      toErrorCode(FORBIDDEN.code()) + 1;
 
   public static final int ERROR_CODE_SCHEMA_REGISTRY_UNCOFIGURED =
-      toErrorCode(PRECONDITION_REQUIRED.getStatusCode()) + 1;
+      toErrorCode(PRECONDITION_REQUIRED.code()) + 1;
 
-  public static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
+  public static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.code());
 
   public static final int ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT =
-      toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 1;
+      toErrorCode(SERVICE_UNAVAILABLE.code()) + 1;
 
   public static final int ERROR_CODE_SERVER_NOT_READY =
-      toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 2;
+      toErrorCode(SERVICE_UNAVAILABLE.code()) + 2;
 
   public static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
-      toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 3;
+      toErrorCode(SERVICE_UNAVAILABLE.code()) + 3;
 
   public static final int ERROR_CODE_SERVER_ERROR =
-      toErrorCode(INTERNAL_SERVER_ERROR.getStatusCode());
+      toErrorCode(INTERNAL_SERVER_ERROR.code());
 
   private final ErrorMessages errorMessages;
 
@@ -74,82 +73,82 @@ public final class Errors {
     return statusCode * HTTP_TO_ERROR_CODE_MULTIPLIER;
   }
 
-  public static Response notReady() {
-    return Response
-        .status(SERVICE_UNAVAILABLE)
-        .header(HttpHeaders.RETRY_AFTER, 10)
+  public static EndpointResponse notReady() {
+    return EndpointResponse.create()
+        .status(SERVICE_UNAVAILABLE.code())
+        .header(RETRY_AFTER.toString(), 10)
         .entity(new KsqlErrorMessage(ERROR_CODE_SERVER_NOT_READY, "Server initializing"))
         .build();
   }
 
-  public static Response accessDenied(final String msg) {
-    return Response
-        .status(FORBIDDEN)
+  public static EndpointResponse accessDenied(final String msg) {
+    return EndpointResponse.create()
+        .status(FORBIDDEN.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN, msg))
         .build();
   }
 
-  private Response constructAccessDeniedFromKafkaResponse(final String errorMessage) {
-    return Response
-        .status(FORBIDDEN)
+  private EndpointResponse constructAccessDeniedFromKafkaResponse(final String errorMessage) {
+    return EndpointResponse.create()
+        .status(FORBIDDEN.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMessage))
         .build();
   }
 
-  private Response constructSchemaRegistryNotConfiguredResponse(final String errorMessage) {
-    return Response
-        .status(PRECONDITION_REQUIRED)
+  private EndpointResponse constructSchemaRegistryNotConfiguredResponse(final String errorMessage) {
+    return EndpointResponse.create()
+        .status(PRECONDITION_REQUIRED.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_SCHEMA_REGISTRY_UNCOFIGURED, errorMessage))
         .build();
   }
 
-  public static Response badRequest(final String msg) {
-    return Response
-        .status(BAD_REQUEST)
+  public static EndpointResponse badRequest(final String msg) {
+    return EndpointResponse.create()
+        .status(BAD_REQUEST.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_BAD_REQUEST, msg))
         .build();
   }
 
-  public static Response badRequest(final Throwable t) {
-    return Response
-        .status(BAD_REQUEST)
+  public static EndpointResponse badRequest(final Throwable t) {
+    return EndpointResponse.create()
+        .status(BAD_REQUEST.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_BAD_REQUEST, t))
         .build();
   }
 
-  public static Response badStatement(final String msg, final String statementText) {
+  public static EndpointResponse badStatement(final String msg, final String statementText) {
     return badStatement(msg, statementText, new KsqlEntityList());
   }
 
-  public static Response badStatement(
+  public static EndpointResponse badStatement(
       final String msg,
       final String statementText,
       final KsqlEntityList entities) {
-    return Response
-        .status(BAD_REQUEST)
+    return EndpointResponse.create()
+        .status(BAD_REQUEST.code())
         .entity(new KsqlStatementErrorMessage(
             ERROR_CODE_BAD_STATEMENT, msg, statementText, entities))
         .build();
   }
 
-  public static Response badStatement(final Throwable t, final String statementText) {
+  public static EndpointResponse badStatement(final Throwable t, final String statementText) {
     return badStatement(t, statementText, new KsqlEntityList());
   }
 
-  public static Response badStatement(
+  public static EndpointResponse badStatement(
       final Throwable t,
       final String statementText,
       final KsqlEntityList entities) {
-    return Response
-        .status(BAD_REQUEST)
+    return EndpointResponse.create()
+        .status(BAD_REQUEST.code())
         .entity(new KsqlStatementErrorMessage(
             ERROR_CODE_BAD_STATEMENT, t, statementText, entities))
         .build();
   }
 
-  public static Response queryEndpoint(final String statementText) {
-    return Response
-        .status(BAD_REQUEST)
+  public static EndpointResponse queryEndpoint(final String statementText) {
+    return EndpointResponse.create()
+        .status(BAD_REQUEST.code())
         .entity(new KsqlStatementErrorMessage(
             ERROR_CODE_QUERY_ENDPOINT,
             "The following statement types should be issued to the websocket endpoint '/query':"
@@ -161,61 +160,61 @@ public final class Errors {
         .build();
   }
 
-  public static Response notFound(final String msg) {
-    return Response
-        .status(NOT_FOUND)
+  public static EndpointResponse notFound(final String msg) {
+    return EndpointResponse.create()
+        .status(NOT_FOUND.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_NOT_FOUND, msg))
         .build();
   }
 
-  public static Response serverErrorForStatement(final Throwable t, final String statementText) {
+  public static EndpointResponse serverErrorForStatement(final Throwable t,
+      final String statementText) {
     return serverErrorForStatement(t, statementText, new KsqlEntityList());
   }
 
-  public static Response serverErrorForStatement(
+  public static EndpointResponse serverErrorForStatement(
       final Throwable t, final String statementText, final KsqlEntityList entities) {
-    return Response
-        .status(INTERNAL_SERVER_ERROR)
+    return EndpointResponse.create()
+        .status(INTERNAL_SERVER_ERROR.code())
         .entity(new KsqlStatementErrorMessage(ERROR_CODE_SERVER_ERROR, t, statementText, entities))
         .build();
   }
 
-  public static Response commandQueueCatchUpTimeout(final long cmdSeqNum) {
+  public static EndpointResponse commandQueueCatchUpTimeout(final long cmdSeqNum) {
     final String errorMsg = "Timed out while waiting for a previous command to execute. "
         + "command sequence number: " + cmdSeqNum;
 
-    return Response
-        .status(SERVICE_UNAVAILABLE)
+    return EndpointResponse.create()
+        .status(SERVICE_UNAVAILABLE.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT, errorMsg))
         .build();
   }
 
-  public static Response serverShuttingDown() {
-    return Response
-        .status(SERVICE_UNAVAILABLE)
+  public static EndpointResponse serverShuttingDown() {
+    return EndpointResponse.create()
+        .status(SERVICE_UNAVAILABLE.code())
         .entity(new KsqlErrorMessage(
             ERROR_CODE_SERVER_SHUTTING_DOWN,
             "The server is shutting down"))
         .build();
   }
 
-  public static Response serverNotReady(final KsqlErrorMessage error) {
-    return Response
-        .status(SERVICE_UNAVAILABLE)
+  public static EndpointResponse serverNotReady(final KsqlErrorMessage error) {
+    return EndpointResponse.create()
+        .status(SERVICE_UNAVAILABLE.code())
         .entity(error)
         .build();
   }
-  
-  
+
   public Errors(final ErrorMessages errorMessages) {
     this.errorMessages = Objects.requireNonNull(errorMessages, "errorMessages");
   }
 
-  public Response accessDeniedFromKafkaResponse(final Exception e) {
+  public EndpointResponse accessDeniedFromKafkaResponse(final Exception e) {
     return constructAccessDeniedFromKafkaResponse(errorMessages.kafkaAuthorizationErrorMessage(e));
   }
 
-  public Response schemaRegistryNotConfiguredResponse(final Exception e) {
+  public EndpointResponse schemaRegistryNotConfiguredResponse(final Exception e) {
     return constructSchemaRegistryNotConfiguredResponse(
         errorMessages.schemaRegistryUnconfiguredErrorMessage(e));
   }
@@ -228,9 +227,9 @@ public final class Errors {
     return errorMessages.transactionInitTimeoutErrorMessage(e);
   }
 
-  public Response generateResponse(
+  public EndpointResponse generateResponse(
       final Exception e,
-      final Response defaultResponse
+      final EndpointResponse defaultResponse
   ) {
     if (ExceptionUtils.indexOfType(e, TopicAuthorizationException.class) >= 0) {
       return accessDeniedFromKafkaResponse(e);

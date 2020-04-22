@@ -25,9 +25,7 @@ Use the [CREATE TABLE](./create-table) statement to create a table from an exist
 underlying Kafka topic.
 
 The following examples show how to create tables from an existing Kafka topic,
-named `users`. To see these examples in action, create the `users` topic
-by following the procedure in
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
+named `users`.
 
 ### Create a Table with Selected Columns
 
@@ -355,10 +353,3 @@ Your output should resemble:
  Source USERS_FEMALE was dropped.
 -----------------------------------
 ```
-
-Next Steps
-----------
-
--   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
--   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
-

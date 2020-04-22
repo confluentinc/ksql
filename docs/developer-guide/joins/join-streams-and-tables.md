@@ -35,9 +35,6 @@ CREATE STREAM pageviews_enriched AS
   EMIT CHANGES;
 ```
 
-For the full code example, see
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../../tutorials/basics-docker.md).
-
 When you join two streams, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
 units, see [ksqlDB Time Units](../syntax-reference.md#ksqldb-time-units).

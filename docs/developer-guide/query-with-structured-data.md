@@ -14,8 +14,6 @@ The following example shows how to create a ksqlDB stream from an
 {{ site.aktm }} topic that has structured data. Also, it shows how to run
 queries to access the structured data.
 
-TODO: Internal links
-
 1.  Set up the ksqlDB environment.
 2.  Use the {{ site.kcat }} utility to create and populate a new topic,
     named `raw-topic`.
@@ -26,9 +24,7 @@ TODO: Internal links
 Set up the ksqlDB Environment
 -----------------------------
 
-To set up ksqlDB, follow the first three steps in
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md),
-or if you have git and Docker installed already, run the following commands:
+To set up ksqlDB, execute the following using Git and Docker:
 
 ```bash
 # Step 1
@@ -308,6 +304,5 @@ Next Steps
 ----------
 
 -   [STRUCT](syntax-reference.md#struct)
--   [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md)
 -   [Query With Arrays and Maps](query-with-arrays-and-maps.md)
 

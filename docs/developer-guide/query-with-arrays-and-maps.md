@@ -12,9 +12,7 @@ declare and access these types.
 The following example shows how to create a ksqlDB table from an
 {{ site.aktm }} topic that has array and map fields. Also, it shows how to
 run queries to access the array and map data. It assumes a Kafka topic,
-named `users`. To see this example in action, create the `users` topic
-by following the procedure in
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
+named `users`.
 
 !!! important
       When you start the ksql-datagen process for the `users` topic, set the

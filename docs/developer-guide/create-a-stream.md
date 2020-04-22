@@ -25,9 +25,7 @@ Use the [CREATE STREAM](./create-stream) statement to create a stream from an ex
 Kafka topic.
 
 The following examples show how to create streams from an existing Kafka topic,
-named `pageviews`. To see these examples in action, create the
-`pageviews` topic by following the procedure in
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
+named `pageviews`.
 
 ### Create a Stream with Selected Columns
 
@@ -363,10 +361,3 @@ Your output should resemble:
  Source PAGEVIEWS_INTRO was dropped.
 -------------------
 ```
-
-Next Steps
-----------
-
--   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
--   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
-

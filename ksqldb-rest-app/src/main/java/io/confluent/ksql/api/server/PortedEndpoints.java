@@ -62,7 +62,7 @@ class PortedEndpoints {
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
       .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
           "/status/:type/:entity/:action", "/status", "/lag", "/healthcheck", "/v1/metadata",
-          "/v1/metadata/id", "/ws/*");
+          "/v1/metadata/id", "/ws/query");
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";

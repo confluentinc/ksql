@@ -60,7 +60,7 @@ public class ServerVerticle extends AbstractVerticle {
       .of("/query-stream", "/inserts-stream", "/close-query",
           "/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
           "/status/:type/:entity/:action", "/status", "/lag", "/healthcheck", "/v1/metadata",
-          "/v1/metadata/id", "/ws/*");
+          "/v1/metadata/id", "/ws/query");
 
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;

@@ -40,7 +40,7 @@ final class SessionUtil {
       final CloseCodes code,
       final String message) {
     try {
-      webSocket.close((short) code.getCode(), message);
+      webSocket.close((short) code.getCode(), truncate(message));
     } catch (final Exception e) {
       LOG.info("Exception caught closing websocket", e);
     }

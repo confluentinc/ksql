@@ -248,7 +248,9 @@ public class Server {
         .setPort(port)
         .setReuseAddress(true)
         .setReusePort(true)
-        .setIdleTimeout(60).setIdleTimeoutUnit(TimeUnit.SECONDS);
+        .setIdleTimeout(60).setIdleTimeoutUnit(TimeUnit.SECONDS)
+        .setPerMessageWebSocketCompressionSupported(true)
+        .setPerFrameWebSocketCompressionSupported(true);
 
     if (tls) {
       options.setUseAlpn(true).setSsl(true);

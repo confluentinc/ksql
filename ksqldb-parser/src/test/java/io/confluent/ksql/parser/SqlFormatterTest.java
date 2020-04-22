@@ -629,7 +629,7 @@ public class SqlFormatterTest {
 
     final String result = SqlFormatter.formatSql(statement);
 
-    assertThat(result, is("EXPLAIN \nfoo"));
+    assertThat(result, is("EXPLAIN \nFOO"));
   }
 
   @Test

@@ -468,7 +468,7 @@ You can take this further by enriching all shipments with more information about
 ```sql
 CREATE STREAM shipped_orders WITH (
     kafka_topic = 'shipped_orders'
-) AS
+)   AS
     SELECT o.order_id,
            s.shipment_id,
            o.customer_id,

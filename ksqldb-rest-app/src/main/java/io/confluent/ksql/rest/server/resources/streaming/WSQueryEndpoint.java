@@ -163,7 +163,6 @@ public class WSQueryEndpoint {
       final PreparedStatement<?> preparedStatement = parseStatement(request);
 
       final Statement statement = preparedStatement.getStatement();
-      final Class<? extends Statement> type = statement.getClass();
 
       authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
           ksqlSecurityContext,

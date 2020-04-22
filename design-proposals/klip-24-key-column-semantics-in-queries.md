@@ -134,7 +134,7 @@ CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (...);
 CREATE TABLE OUTPUT AS SELECT V0, COUNT(*) AS COUNT FROM INPUT GROUP BY V0;
 -- fails with duplicate column error on 'V0'.
 
--- Note: the equivalent query would of failed before the any-key-name work:
+-- Note: the equivalent query would have failed before the any-key-name work:
 CREATE TABLE OUTPUT AS SELECT ROWKEY, COUNT(*) AS COUNT FROM INPUT GROUP BY V0;
 -- fails with duplicate column error on 'ROWKEY'.
 ```

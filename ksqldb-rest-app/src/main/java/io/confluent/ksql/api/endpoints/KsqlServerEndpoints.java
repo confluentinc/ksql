@@ -26,6 +26,8 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
+import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -34,6 +36,7 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.reactivestreams.Subscriber;
 
@@ -48,13 +51,15 @@ public class KsqlServerEndpoints implements Endpoints {
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
   private final KsqlStatementsEndpoint ksqlStatementsEndpoint;
   private final TerminateEndpoint terminateEndpoint;
+  private final OldQueryEndpoint streamedQueryEndpoint;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final PullQueryExecutor pullQueryExecutor,
       final KsqlSecurityContextProvider ksqlSecurityContextProvider,
-      final KsqlResource ksqlResource) {
+      final KsqlResource ksqlResource,
+      final StreamedQueryResource streamedQueryResource) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor);
@@ -62,6 +67,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.ksqlSecurityContextProvider = Objects.requireNonNull(ksqlSecurityContextProvider);
     this.ksqlStatementsEndpoint = new KsqlStatementsEndpoint(ksqlResource);
     this.terminateEndpoint = new TerminateEndpoint(ksqlResource);
+    this.streamedQueryEndpoint = new OldQueryEndpoint(streamedQueryResource);
   }
 
   @Override
@@ -71,7 +77,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
     return executeOnWorker(
-        () -> new QueryStreamEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor)
+        () -> new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor)
             .createQueryPublisher(sql, properties, context, workerExecutor,
                 ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext()),
         workerExecutor);
@@ -94,12 +100,24 @@ public class KsqlServerEndpoints implements Endpoints {
   public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    return executeOnWorker(
-        () -> ksqlStatementsEndpoint
-            .executeStatements(
-                ksqlSecurityContextProvider.provide(apiSecurityContext),
-                request),
-        workerExecutor);
+
+    return executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> ksqlStatementsEndpoint.executeStatements(
+            ksqlSecurityContext,
+            request), workerExecutor);
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeQueryRequest(final KsqlRequest request,
+      final WorkerExecutor workerExecutor,
+      final CompletableFuture<Void> connectionClosedFuture,
+      final ApiSecurityContext apiSecurityContext) {
+
+    return executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> streamedQueryEndpoint.executeQuery(
+            ksqlSecurityContext,
+            request,
+            connectionClosedFuture), workerExecutor);
   }
 
   @Override
@@ -107,20 +125,34 @@ public class KsqlServerEndpoints implements Endpoints {
       final ClusterTerminateRequest request,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    return executeOnWorker(
-        () -> terminateEndpoint
-            .executeTerminate(
-                ksqlSecurityContextProvider.provide(apiSecurityContext),
-                request),
-        workerExecutor);
+    return executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> terminateEndpoint.executeTerminate(
+            ksqlSecurityContext,
+            request), workerExecutor);
   }
-
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,
       final WorkerExecutor workerExecutor) {
     final VertxCompletableFuture<R> vcf = new VertxCompletableFuture<>();
     workerExecutor.executeBlocking(promise -> promise.complete(supplier.get()), false, vcf);
     return vcf;
+  }
+
+  private CompletableFuture<EndpointResponse> executeOldApiEndpoint(
+      final ApiSecurityContext apiSecurityContext,
+      final Function<KsqlSecurityContext, EndpointResponse> functionCall,
+      final WorkerExecutor workerExecutor) {
+
+    final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
+        .provide(apiSecurityContext);
+
+    return executeOnWorker(() -> {
+      try {
+        return functionCall.apply(ksqlSecurityContext);
+      } finally {
+        ksqlSecurityContext.getServiceContext().close();
+      }
+    }, workerExecutor);
   }
 
 }

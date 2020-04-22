@@ -44,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
@@ -184,7 +185,7 @@ public class QueryStreamWriterTest {
   private void createWriter() {
     replay(queryMetadata, ksqlEngine, rowQueue);
 
-    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper);
+    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper, new CompletableFuture<>());
 
     out = new ByteArrayOutputStream();
     limitHandler = limitHandlerCapture.getValue();

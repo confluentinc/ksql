@@ -108,6 +108,7 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -125,6 +126,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -396,7 +398,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   }
 
   void startApiServer(final KsqlConfig ksqlConfigWithPort) {
-    vertx = Vertx.vertx();
+    vertx = Vertx.vertx(
+        new VertxOptions().setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
+            .setMaxWorkerExecuteTime(Long.MAX_VALUE));
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     final Endpoints endpoints = new KsqlServerEndpoints(
@@ -404,7 +408,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlConfigWithPort,
         pullQueryExecutor,
         ksqlSecurityContextProvider,
-        ksqlResource
+        ksqlResource,
+        streamedQueryResource
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,
@@ -701,9 +706,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         serviceContext,
         (config, securityExtension) ->
             new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory),
-        ksqlSecurityExtension -> new DefaultKsqlSecurityContextProvider(ksqlSecurityExtension,
-            RestServiceContextFactory::create,
-            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory)
+        schemaRegistryClientFactory
     );
   }
 
@@ -715,8 +718,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final int maxStatementRetries,
       final ServiceContext serviceContext,
       final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
-      final Function<KsqlSecurityExtension, KsqlSecurityContextProvider>
-          securityContextProviderFactory) {
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -770,6 +772,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final ServerState serverState = new ServerState();
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
+
+    final KsqlSecurityContextProvider ksqlSecurityContextProvider =
+        new DefaultKsqlSecurityContextProvider(
+            securityExtension,
+            RestServiceContextFactory::create,
+            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
         ksqlConfig);
@@ -858,7 +866,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlResource,
         versionChecker,
         serviceContextBinderFactory,
-        securityContextProviderFactory.apply(securityExtension),
+        ksqlSecurityContextProvider,
         securityExtension,
         securityHandlerPlugin,
         serverState,

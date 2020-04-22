@@ -139,6 +139,13 @@ public class PullQueryRunner extends BasePerfRunner {
       return null;
     }
 
+    @Override
+    public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
+        WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
     synchronized void closePublishers() {
       for (PullQueryPublisher publisher : publishers) {
         publisher.close();

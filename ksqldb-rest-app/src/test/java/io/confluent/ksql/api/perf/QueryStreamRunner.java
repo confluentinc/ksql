@@ -116,7 +116,16 @@ public class QueryStreamRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeTerminate(
         final ClusterTerminateRequest request,
-        final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+        final WorkerExecutor workerExecutor,
+        final ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
+        WorkerExecutor workerExecutor,
+        CompletableFuture<Void> connectionClosedFuture,
+        ApiSecurityContext apiSecurityContext) {
       return null;
     }
 

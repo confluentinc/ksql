@@ -231,6 +231,18 @@ public class InsertsStreamRunner extends BasePerfRunner {
         ApiSecurityContext apiSecurityContext) {
       return null;
     }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeServerMetadata(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
   }
 
   private class InsertsSubscriber extends BaseSubscriber<JsonObject> implements

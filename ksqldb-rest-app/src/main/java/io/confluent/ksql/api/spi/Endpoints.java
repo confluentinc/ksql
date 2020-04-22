@@ -64,6 +64,10 @@ public interface Endpoints {
       Subscriber<InsertResult> acksSubscriber, Context context, WorkerExecutor workerExecutor,
       ApiSecurityContext apiSecurityContext);
 
+  /*
+  The ported old API endpoints now follow
+   */
+
   CompletableFuture<EndpointResponse> executeKsqlRequest(KsqlRequest request,
       WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
@@ -90,5 +94,10 @@ public interface Endpoints {
       ApiSecurityContext apiSecurityContext);
 
   CompletableFuture<EndpointResponse> executeCheckHealth(ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeServerMetadata(ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
+      ApiSecurityContext apiSecurityContext);
 
 }

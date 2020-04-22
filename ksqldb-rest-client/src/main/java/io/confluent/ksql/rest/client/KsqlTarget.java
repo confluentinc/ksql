@@ -31,7 +31,9 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
+import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
@@ -64,6 +66,8 @@ public final class KsqlTarget {
   private static final String HEARTBEAT_PATH = "/heartbeat";
   private static final String CLUSTERSTATUS_PATH = "/clusterStatus";
   private static final String LAG_REPORT_PATH = "/lag";
+  private static final String SERVER_METADATA_PATH = "/v1/metadata";
+  private static final String SERVER_METADATA_ID_PATH = "/v1/metadata/id";
 
   private final HttpClient httpClient;
   private final SocketAddress socketAddress;
@@ -134,6 +138,14 @@ public final class KsqlTarget {
 
   public RestResponse<CommandStatus> getStatus(final String commandId) {
     return get(STATUS_PATH + "/" + commandId, CommandStatus.class);
+  }
+
+  public RestResponse<ServerMetadata> getServerMetadata() {
+    return get(SERVER_METADATA_PATH, ServerMetadata.class);
+  }
+
+  public RestResponse<ServerClusterId> getServerMetadataId() {
+    return get(SERVER_METADATA_ID_PATH, ServerClusterId.class);
   }
 
   public RestResponse<KsqlEntityList> postKsqlRequest(

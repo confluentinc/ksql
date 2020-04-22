@@ -32,7 +32,6 @@ import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -43,7 +42,6 @@ import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.api.server.ServerVerticle;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -52,7 +50,9 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
@@ -65,7 +65,6 @@ import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
@@ -267,6 +266,25 @@ public class RestApiTest {
   }
 
   @Test
+  public void shouldExecuteServerMetadataRequest() {
+    // When:
+    final ServerMetadata response = RestIntegrationTestUtil.makeServerMetadataRequest(REST_APP);
+
+    // Then:
+    assertThat(response.getVersion(), is(notNullValue()));
+    assertThat(response.getClusterId(), is(notNullValue()));
+  }
+
+  @Test
+  public void shouldExecuteServerMetadataIdRequest() {
+    // When:
+    final ServerClusterId response = RestIntegrationTestUtil.makeServerMetadataIdRequest(REST_APP);
+
+    // Then:
+    assertThat(response, is(notNullValue()));
+  }
+
+  @Test
   public void shouldExecutePushQueryOverRest() {
     // When:
     final String response = rawRestQueryRequest(
@@ -462,68 +480,6 @@ public class RestApiTest {
       // Then
       assertThat(resp.statusCode(), is(405));
 
-    } finally {
-      if (webClient != null) {
-        webClient.close();
-      }
-      vertx.close();
-    }
-  }
-
-  @Test
-  public void shouldExecuteStatementWithConnectionCloseHeaderHTTP1_1() throws Exception {
-    HttpResponse<Buffer> response = shouldExecuteStatementWithConnectionCloseHeader(
-        HttpVersion.HTTP_1_1);
-    String transferEncodingHeader = response.getHeader(HttpHeaders.TRANSFER_ENCODING.toString());
-    assertThat(transferEncodingHeader, is("chunked"));
-  }
-
-  @Test
-  public void shouldExecuteStatementWithConnectionCloseHeaderHTTP2() throws Exception {
-    HttpResponse<Buffer> response = shouldExecuteStatementWithConnectionCloseHeader(
-        HttpVersion.HTTP_2);
-    // Chunked transfer encoding header is illegal in HTTP2
-    String transferEncodingHeader = response.getHeader(HttpHeaders.TRANSFER_ENCODING.toString());
-    if (transferEncodingHeader != null) {
-      assertThat(transferEncodingHeader.toLowerCase(), is(not("chunked")));
-    }
-  }
-
-  // See https://github.com/confluentinc/ksql/issues/4760
-  private HttpResponse<Buffer> shouldExecuteStatementWithConnectionCloseHeader(
-      final HttpVersion version)
-      throws Exception {
-
-    String uri = "/v1/metadata/id";
-    assertThat(ServerVerticle.NON_PROXIED_ENDPOINTS.contains(uri), is(false));
-
-    Vertx vertx = Vertx.vertx();
-    WebClient webClient = null;
-
-    try {
-      // Given:
-      WebClientOptions webClientOptions = new WebClientOptions()
-          .setDefaultHost(REST_APP.getHttpListener().getHost())
-          .setDefaultPort(REST_APP.getHttpListener().getPort());
-
-      if (version == HttpVersion.HTTP_2) {
-        webClientOptions.setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
-      }
-
-      webClient = WebClient.create(vertx, webClientOptions);
-
-      // When:
-      VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
-      webClient
-          .get(uri)
-          .putHeader("connection", "close")
-          .send(requestFuture);
-      HttpResponse<Buffer> resp = requestFuture.get();
-
-      // Then
-      assertThat(resp.statusCode(), is(200));
-
-      return resp;
     } finally {
       if (webClient != null) {
         webClient.close();

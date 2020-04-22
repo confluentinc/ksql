@@ -33,6 +33,7 @@ import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.LagReportingResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
+import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -68,6 +69,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final StatusResource statusResource;
   private final Optional<LagReportingResource> lagReportingResource;
   private final HealthCheckResource healthCheckResource;
+  private final ServerMetadataResource serverMetadataResource;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   public KsqlServerEndpoints(
@@ -82,7 +84,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final Optional<ClusterStatusResource> clusterStatusResource,
       final StatusResource statusResource,
       final Optional<LagReportingResource> lagReportingResource,
-      final HealthCheckResource healthCheckResource) {
+      final HealthCheckResource healthCheckResource,
+      final ServerMetadataResource serverMetadataResource) {
 
     // CHECKSTYLE_RULES.ON: ParameterNumber
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
@@ -99,6 +102,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.statusResource = Objects.requireNonNull(statusResource);
     this.lagReportingResource = Objects.requireNonNull(lagReportingResource);
     this.healthCheckResource = Objects.requireNonNull(healthCheckResource);
+    this.serverMetadataResource = Objects.requireNonNull(serverMetadataResource);
   }
 
   @Override
@@ -219,6 +223,20 @@ public class KsqlServerEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext) {
     return CompletableFuture
         .completedFuture(EndpointResponse.create(healthCheckResource.checkHealth()));
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeServerMetadata(
+      final ApiSecurityContext apiSecurityContext) {
+    return CompletableFuture
+        .completedFuture(EndpointResponse.create(serverMetadataResource.getServerMetadata()));
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
+      final ApiSecurityContext apiSecurityContext) {
+    return CompletableFuture
+        .completedFuture(EndpointResponse.create(serverMetadataResource.getServerClusterId()));
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

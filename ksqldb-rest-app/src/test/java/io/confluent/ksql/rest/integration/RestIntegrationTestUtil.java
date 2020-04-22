@@ -29,7 +29,9 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
@@ -116,6 +118,28 @@ public final class RestIntegrationTestUtil {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
 
       final RestResponse<CommandStatuses> res = restClient.getAllStatuses();
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static ServerMetadata makeServerMetadataRequest(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<ServerMetadata> res = restClient.getServerMetadata();
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static ServerClusterId makeServerMetadataIdRequest(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<ServerClusterId> res = restClient.getServerMetadataId();
 
       throwOnError(res);
 

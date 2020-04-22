@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -58,7 +59,7 @@ class PortedEndpoints {
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
       .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
-          "/status/:type/:entity/:action", "/status");
+          "/status/:type/:entity/:action", "/status", "/lag");
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
@@ -113,6 +114,11 @@ class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(MediaType.APPLICATION_JSON)
         .handler(new PortedEndpoints(endpoints, server)::handleAllStatusesRequest);
+    router.route(HttpMethod.POST, "/lag")
+        .handler(BodyHandler.create())
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(new PortedEndpoints(endpoints, server)::handleLagReportRequest);
   }
 
   static void setupFailureHandler(final Router router) {
@@ -189,6 +195,13 @@ class PortedEndpoints {
     handlePortedOldApiRequest(server, routingContext, null,
         (r, apiSecurityContext) ->
             endpoints.executeAllStatuses(DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
+  void handleLagReportRequest(final RoutingContext routingContext) {
+    handlePortedOldApiRequest(server, routingContext, LagReportingMessage.class,
+        (request, apiSecurityContext) ->
+            endpoints.executeLagReport(request, DefaultApiSecurityContext.create(routingContext))
     );
   }
 

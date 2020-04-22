@@ -25,10 +25,12 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
+import io.confluent.ksql.rest.server.resources.LagReportingResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
@@ -63,7 +65,9 @@ public class KsqlServerEndpoints implements Endpoints {
   private final Optional<HeartbeatResource> heartbeatResource;
   private final Optional<ClusterStatusResource> clusterStatusResource;
   private final StatusResource statusResource;
+  private final Optional<LagReportingResource> lagReportingResource;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumber
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
@@ -74,7 +78,9 @@ public class KsqlServerEndpoints implements Endpoints {
       final ServerInfoResource serverInfoResource,
       final Optional<HeartbeatResource> heartbeatResource,
       final Optional<ClusterStatusResource> clusterStatusResource,
-      final StatusResource statusResource) {
+      final StatusResource statusResource,
+      final Optional<LagReportingResource> lagReportingResource) {
+    // CHECKSTYLE_RULES.ON: ParameterNumber
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor);
@@ -87,6 +93,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.heartbeatResource = Objects.requireNonNull(heartbeatResource);
     this.clusterStatusResource = Objects.requireNonNull(clusterStatusResource);
     this.statusResource = Objects.requireNonNull(statusResource);
+    this.lagReportingResource = Objects.requireNonNull(lagReportingResource);
   }
 
   @Override
@@ -190,6 +197,16 @@ public class KsqlServerEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext) {
     return CompletableFuture
         .completedFuture(EndpointResponse.create(statusResource.getAllStatuses()));
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeLagReport(
+      final LagReportingMessage lagReportingMessage, final ApiSecurityContext apiSecurityContext) {
+    return lagReportingResource.map(resource -> CompletableFuture
+        .completedFuture(
+            EndpointResponse.create(resource.receiveHostLag(lagReportingMessage))))
+        .orElseGet(() -> CompletableFuture
+            .completedFuture(EndpointResponse.create(HttpStatus.SC_NOT_FOUND, "Not found", null)));
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

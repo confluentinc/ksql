@@ -118,6 +118,8 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
+    // /chc endpoints need to be first because they need to be accessible even before
+    // preconditions have been satisfied
     router.route(HttpMethod.GET, "/chc/ready").handler(ServerVerticle::chcHandler);
     router.route(HttpMethod.GET, "/chc/live").handler(ServerVerticle::chcHandler);
 

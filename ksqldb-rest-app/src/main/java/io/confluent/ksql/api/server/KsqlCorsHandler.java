@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ServerUtils.convertCommaSeparatedWilcardsToRegex;
 
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
@@ -37,16 +38,16 @@ public class KsqlCorsHandler implements Handler<RoutingContext> {
   private static final List<String> EXCLUDED_PATH_PREFIXES = Collections.singletonList("/ws/");
 
   static void setupCorsHandler(final Server server, final Router router) {
-    final ApiServerConfig apiServerConfig = server.getConfig();
-    final String allowedOrigins = apiServerConfig
-        .getString(ApiServerConfig.CORS_ALLOWED_ORIGINS);
+    final KsqlRestConfig ksqlRestConfig = server.getConfig();
+    final String allowedOrigins = ksqlRestConfig
+        .getString(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG);
     if (allowedOrigins.trim().isEmpty()) {
       return;
     }
     final String convertedPattern = convertCommaSeparatedWilcardsToRegex(allowedOrigins);
     final CorsHandler corsHandler = CorsHandler.create(convertedPattern);
-    final Set<String> allowedMethodsSet = new HashSet<>(apiServerConfig
-        .getList(ApiServerConfig.CORS_ALLOWED_METHODS));
+    final Set<String> allowedMethodsSet = new HashSet<>(ksqlRestConfig
+        .getList(KsqlRestConfig.ACCESS_CONTROL_ALLOW_METHODS));
     if (allowedMethodsSet.isEmpty()) {
       allowedMethodsSet.addAll(DEFAULT_ALLOWED_METHODS);
     }
@@ -54,8 +55,8 @@ public class KsqlCorsHandler implements Handler<RoutingContext> {
         allowedMethodsSet.stream().map(sMethod -> HttpMethod.valueOf(sMethod.toUpperCase()))
             .collect(Collectors.toSet()));
 
-    final Set<String> allowedHeadersSet = new HashSet<>(apiServerConfig
-        .getList(ApiServerConfig.CORS_ALLOWED_HEADERS));
+    final Set<String> allowedHeadersSet = new HashSet<>(ksqlRestConfig
+        .getList(KsqlRestConfig.ACCESS_CONTROL_ALLOW_HEADERS));
     if (allowedHeadersSet.isEmpty()) {
       allowedHeadersSet.addAll(DEFAULT_ALLOWED_HEADERS);
     }

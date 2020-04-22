@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlConfig;
+import io.vertx.core.http.ClientAuth;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -531,6 +532,54 @@ public class KsqlRestConfigTest {
     verifyLogsInterNodeListener(expected, QUOTED_FIRST_LISTENER_CONFIG);
     verifyLogsWildcardWarning(expected);
     verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveClientAuthNone() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
+        .build()
+    );
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.NONE));
+  }
+
+  @Test
+  public void shouldResolveClientAuthRequest() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUESTED)
+        .build()
+    );
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.REQUEST));
+  }
+
+  @Test
+  public void shouldResolveClientAuthRequired() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
+        .build()
+    );
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.REQUIRED));
   }
 
   private void verifyLogsInterNodeListener(final URL listener, final String sourceConfig) {

@@ -21,9 +21,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.api.utils.QueryResponse;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import java.util.Map;
@@ -65,10 +65,10 @@ public class MaxQueriesTest extends BaseApiTest {
   }
 
   @Override
-  protected ApiServerConfig createServerConfig() {
-    ApiServerConfig config = super.createServerConfig();
+  protected KsqlRestConfig createServerConfig() {
+    KsqlRestConfig config = super.createServerConfig();
     Map<String, Object> origs = config.originals();
-    origs.put(ApiServerConfig.MAX_PUSH_QUERIES, MAX_QUERIES);
-    return new ApiServerConfig(origs);
+    origs.put(KsqlRestConfig.MAX_PUSH_QUERIES, MAX_QUERIES);
+    return new KsqlRestConfig(origs);
   }
 }

@@ -19,7 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import java.net.URI;
 import java.util.HashMap;
@@ -123,10 +123,10 @@ public class ListenersTest extends BaseApiTest {
     createServer(createConfig("http:: uiqhwduihqwduhi:8989", false));
   }
 
-  private ApiServerConfig createConfig(String listeners, boolean tls) {
+  private KsqlRestConfig createConfig(String listeners, boolean tls) {
     Map<String, Object> config = new HashMap<>();
-    config.put(ApiServerConfig.LISTENERS, listeners);
-    config.put(ApiServerConfig.VERTICLE_INSTANCES, 4);
+    config.put(KsqlRestConfig.LISTENERS_CONFIG, listeners);
+    config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
 
     if (tls) {
       String keyStorePath = ServerKeyStore.keyStoreProps()
@@ -134,11 +134,11 @@ public class ListenersTest extends BaseApiTest {
       String keyStorePassword = ServerKeyStore.keyStoreProps()
           .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
 
-      config.put(ApiServerConfig.TLS_KEY_STORE_PATH, keyStorePath);
-      config.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD, keyStorePassword);
+      config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath);
+      config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword);
     }
 
-    return new ApiServerConfig(config);
+    return new KsqlRestConfig(config);
   }
 
   private void init() {

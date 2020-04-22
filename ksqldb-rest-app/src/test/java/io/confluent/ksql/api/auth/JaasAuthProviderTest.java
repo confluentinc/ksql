@@ -26,8 +26,8 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.api.auth.JaasAuthProvider.JaasUser;
 import io.confluent.ksql.api.auth.JaasAuthProvider.LoginContextSupplier;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -63,7 +63,7 @@ public class JaasAuthProviderTest {
   @Mock
   private WorkerExecutor worker;
   @Mock
-  private ApiServerConfig config;
+  private KsqlRestConfig config;
   @Mock
   private JsonObject authInfo;
   @Mock
@@ -82,7 +82,7 @@ public class JaasAuthProviderTest {
   @Before
   public void setUp() throws Exception {
     handleAsyncExecution();
-    when(config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG)).thenReturn(REALM);
+    when(config.getString(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG)).thenReturn(REALM);
     when(authInfo.getString("username")).thenReturn(USERNAME);
     when(authInfo.getString("password")).thenReturn(PASSWORD);
     when(loginContextSupplier.get(REALM, new BasicCallbackHandler(USERNAME, PASSWORD)))
@@ -195,7 +195,7 @@ public class JaasAuthProviderTest {
   }
 
   private void givenAllowedRoles(final String... roles) {
-    when(config.getList(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG))
+    when(config.getList(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG))
         .thenReturn(Arrays.asList(roles));
   }
 

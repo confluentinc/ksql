@@ -20,11 +20,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -78,7 +78,7 @@ public class BaseApiTest {
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     testEndpoints = new TestEndpoints();
-    ApiServerConfig serverConfig = createServerConfig();
+    KsqlRestConfig serverConfig = createServerConfig();
     serverState = new ServerState();
     serverState.setReady();
     createServer(serverConfig);
@@ -115,17 +115,17 @@ public class BaseApiTest {
     }
   }
 
-  protected void createServer(ApiServerConfig serverConfig) {
+  protected void createServer(KsqlRestConfig serverConfig) {
     server = new Server(vertx, serverConfig, testEndpoints,
         new KsqlDefaultSecurityExtension(), Optional.empty(), serverState);
     server.start();
   }
 
-  protected ApiServerConfig createServerConfig() {
+  protected KsqlRestConfig createServerConfig() {
     final Map<String, Object> config = new HashMap<>();
-    config.put(ApiServerConfig.LISTENERS, "http://localhost:0");
-    config.put(ApiServerConfig.VERTICLE_INSTANCES, 4);
-    return new ApiServerConfig(config);
+    config.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0");
+    config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
+    return new KsqlRestConfig(config);
   }
 
   protected WebClientOptions createClientOptions() {

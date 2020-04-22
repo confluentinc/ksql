@@ -15,14 +15,12 @@
 
 package io.confluent.ksql.rest.server;
 
-import static io.confluent.ksql.rest.server.KsqlRestApplication.convertToApiServerConfig;
 import static java.util.Objects.requireNonNull;
 import static org.easymock.EasyMock.niceMock;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -247,7 +245,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
-          convertToApiServerConfig(config),
+          config,
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
@@ -370,7 +368,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers.get());
     config.putIfAbsent(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0");
-    config.put(ApiServerConfig.VERTICLE_INSTANCES, 4);
+    config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
     return new KsqlRestConfig(config);
   }
 

@@ -24,6 +24,7 @@ import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
@@ -230,16 +231,16 @@ public class ServerVerticle extends AbstractVerticle {
 
   private static Optional<AuthHandler> getJaasAuthHandler(final Server server) {
     final String authMethod = server.getConfig()
-        .getString(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG);
+        .getString(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG);
     switch (authMethod) {
-      case ApiServerConfig.AUTHENTICATION_METHOD_BASIC:
+      case KsqlRestConfig.AUTHENTICATION_METHOD_BASIC:
         return Optional.of(basicAuthHandler(server));
-      case ApiServerConfig.AUTHENTICATION_METHOD_NONE:
+      case KsqlRestConfig.AUTHENTICATION_METHOD_NONE:
         return Optional.empty();
       default:
         throw new IllegalStateException(String.format(
             "Unexpected value for %s: %s",
-            ApiServerConfig.AUTHENTICATION_METHOD_CONFIG,
+            KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG,
             authMethod
         ));
     }
@@ -247,7 +248,7 @@ public class ServerVerticle extends AbstractVerticle {
 
   private static AuthHandler basicAuthHandler(final Server server) {
     final AuthProvider authProvider = new JaasAuthProvider(server, server.getConfig());
-    final String realm = server.getConfig().getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
+    final String realm = server.getConfig().getString(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG);
     final AuthHandler basicAuthHandler = BasicAuthHandler.create(authProvider, realm);
     // It doesn't matter what we set here as we actually do the authorisation at the
     // authentication stage and cache the result, but we must add an authority or

@@ -76,7 +76,7 @@ services:
       - "./mysql/custom-config.cnf:/etc/mysql/conf.d/custom-config.cnf"
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.4.0
+    image: confluentinc/cp-zookeeper:{{ site.cprelease }}
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -86,7 +86,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:5.4.0
+    image: confluentinc/cp-enterprise-kafka:{{ site.cprelease }}
     hostname: broker
     container_name: broker
     depends_on:
@@ -104,7 +104,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:5.4.1
+    image: confluentinc/cp-schema-registry:{{ site.cprelease }}
     hostname: schema-registry
     container_name: schema-registry
     depends_on:

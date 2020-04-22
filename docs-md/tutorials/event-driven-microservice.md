@@ -33,7 +33,7 @@ version: '2'
 
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.4.0
+    image: confluentinc/cp-zookeeper:{{ site.cprelease }}
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -43,7 +43,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:5.4.0
+    image: confluentinc/cp-enterprise-kafka:{{ site.cprelease }}
     hostname: broker
     container_name: broker
     depends_on:
@@ -61,7 +61,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:5.4.1
+    image: confluentinc/cp-schema-registry:{{ site.cprelease }}
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
@@ -74,7 +74,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:0.8.1
+    image: confluentinc/ksqldb-server:{{ site.release }}
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -105,7 +105,7 @@ services:
       KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:0.8.1
+    image: confluentinc/ksqldb-cli:{{ site.release }}
     container_name: ksqldb-cli
     depends_on:
       - broker
@@ -329,7 +329,7 @@ Start by creating a `pom.xml` file for your microservice. This simple microservi
   <properties>
     <!-- Keep versions as properties to allow easy modification -->
     <java.version>8</java.version>
-    <confluent.version>5.4.1</confluent.version>
+    <confluent.version>{{ site.cprelease }}</confluent.version>
     <kafka.version>2.5.0</kafka.version>
     <avro.version>1.9.1</avro.version>
     <slf4j.version>1.7.30</slf4j.version>

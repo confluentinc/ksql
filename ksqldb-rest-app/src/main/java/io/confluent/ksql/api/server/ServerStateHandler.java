@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
-import javax.ws.rs.core.Response;
 import org.eclipse.jetty.http.HttpStatus;
 
 public class ServerStateHandler implements Handler<RoutingContext> {
@@ -34,7 +34,7 @@ public class ServerStateHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    final Optional<Response> response = serverState.checkReady();
+    final Optional<EndpointResponse> response = serverState.checkReady();
     if (response.isPresent()) {
       final KsqlErrorMessage errorMsg = (KsqlErrorMessage) response.get().getEntity();
       routingContext.fail(

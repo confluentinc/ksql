@@ -1,69 +1,83 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572101936,
+  "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : 1.1,
-    "value" : "0"
-  }, {
-    "topic" : "test_topic",
-    "key" : 0.09999,
-    "value" : "1"
-  }, {
-    "topic" : "test_topic",
-    "key" : 0.0,
-    "value" : "2"
-  }, {
-    "topic" : "test_topic",
-    "key" : 0.11,
-    "value" : "3"
-  }, {
-    "topic" : "test_topic",
-    "key" : 1.1,
-    "value" : "4"
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : 1.1,
-    "value" : "0"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : 0.11,
-    "value" : "3"
-  }, {
-    "topic" : "OUTPUT",
-    "key" : 1.1,
-    "value" : "4"
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "Filter on non-STRING ROWKEY",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1.1,
+      "value" : "0"
+    }, {
+      "topic" : "test_topic",
+      "key" : 0.09999,
+      "value" : "1"
+    }, {
+      "topic" : "test_topic",
+      "key" : 0.0,
+      "value" : "2"
+    }, {
+      "topic" : "test_topic",
+      "key" : 0.11,
+      "value" : "3"
+    }, {
+      "topic" : "test_topic",
+      "key" : 1.1,
+      "value" : "4"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1.1,
+      "value" : "0"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0.11,
+      "value" : "3"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1.1,
+      "value" : "4"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, C1 BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nWHERE (INPUT.ROWKEY > 0.1)\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

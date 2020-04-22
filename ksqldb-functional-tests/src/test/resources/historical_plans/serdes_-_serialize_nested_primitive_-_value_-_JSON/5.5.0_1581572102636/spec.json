@@ -1,69 +1,92 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572102636,
+  "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO BOOLEAN> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO BOOLEAN> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : true
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : {
-      "FOO" : null
-    }
-  }, {
-    "topic" : "input_topic",
-    "key" : "",
-    "value" : null
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "FOO" : true
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "FOO" : null
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : null
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "input_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "serialize nested primitive - value - JSON",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : true
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "FOO" : true
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "schema" : {
+        "type" : "record",
+        "name" : "ignored",
+        "fields" : [ {
+          "name" : "FOO",
+          "type" : [ "null", "boolean" ]
+        } ]
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (FOO BOOLEAN) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

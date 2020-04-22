@@ -69,10 +69,8 @@ import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
-import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.LagReportingResource;
-import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
@@ -108,6 +106,7 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -125,6 +124,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -132,10 +132,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.websocket.DeploymentException;
-import javax.websocket.server.ServerEndpoint;
-import javax.websocket.server.ServerEndpointConfig;
-import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
@@ -145,7 +141,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.hk2.utilities.Binder;
 import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
@@ -164,7 +159,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
   private final CommandStore commandStore;
-  private final RootDocument rootDocument;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
@@ -184,6 +178,14 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final RoutingFilterFactory routingFilterFactory;
   private final PullQueryExecutor pullQueryExecutor;
   private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
+  private final ServerInfoResource serverInfoResource;
+  private final Optional<HeartbeatResource> heartbeatResource;
+  private final Optional<ClusterStatusResource> clusterStatusResource;
+  private final Optional<LagReportingResource> lagReportingResource;
+  private final HealthCheckResource healthCheckResource;
+  private volatile ServerMetadataResource serverMetadataResource;
+  private volatile WSQueryEndpoint wsQueryEndpoint;
+  private volatile ListeningScheduledExecutorService oldApiWebsocketExecutor;
 
   // We embed this in here for now
   private Vertx vertx = null;
@@ -285,7 +287,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlRestConfig restConfig,
       final CommandRunner commandRunner,
       final CommandStore commandStore,
-      final RootDocument rootDocument,
       final StatusResource statusResource,
       final StreamedQueryResource streamedQueryResource,
       final KsqlResource ksqlResource,
@@ -310,7 +311,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.restConfig = requireNonNull(restConfig, "restConfig");
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandRunner = requireNonNull(commandRunner, "commandRunner");
-    this.rootDocument = requireNonNull(rootDocument, "rootDocument");
     this.statusResource = requireNonNull(statusResource, "statusResource");
     this.streamedQueryResource = requireNonNull(streamedQueryResource, "streamedQueryResource");
     this.ksqlResource = requireNonNull(ksqlResource, "ksqlResource");
@@ -334,34 +334,81 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.routingFilterFactory = initializeRoutingFilterFactory(
         ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
 
+    this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
+    if (heartbeatAgent.isPresent()) {
+      this.heartbeatResource = Optional.of(new HeartbeatResource(heartbeatAgent.get()));
+      this.clusterStatusResource = Optional.of(new ClusterStatusResource(
+          ksqlEngine, heartbeatAgent.get(), lagReportingAgent));
+    } else {
+      this.heartbeatResource = Optional.empty();
+      this.clusterStatusResource = Optional.empty();
+    }
+    if (lagReportingAgent.isPresent()) {
+      this.lagReportingResource = Optional.of(new LagReportingResource(lagReportingAgent.get()));
+    } else {
+      this.lagReportingResource = Optional.empty();
+    }
+    this.healthCheckResource = HealthCheckResource.create(
+        ksqlResource,
+        serviceContext,
+        this.config,
+        this.ksqlConfigNoPort);
+
     sanityCheckPluginConfig(ksqlConfig.originals());
   }
 
   @Override
   public void setupResources(final Configurable<?> config, final KsqlRestConfig appConfig) {
-    config.register(rootDocument);
-    config.register(new ServerInfoResource(serviceContext, ksqlConfigNoPort));
-    config.register(ServerMetadataResource.create(serviceContext, ksqlConfigNoPort));
+    config.register(serverInfoResource);
+    this.serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfigNoPort);
+    config.register(serverMetadataResource);
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
-    config.register(HealthCheckResource.create(
-        ksqlResource,
-        serviceContext,
-        this.config,
-        this.ksqlConfigNoPort)
-    );
+    config.register(healthCheckResource);
 
-    if (heartbeatAgent.isPresent()) {
-      config.register(new HeartbeatResource(heartbeatAgent.get()));
-      config.register(new ClusterStatusResource(
-          ksqlEngine, heartbeatAgent.get(), lagReportingAgent));
+    if (heartbeatResource.isPresent()) {
+      config.register(heartbeatResource.get());
+      config.register(clusterStatusResource.get());
     }
     if (lagReportingAgent.isPresent()) {
-      config.register(new LagReportingResource(lagReportingAgent.get()));
+      config.register(lagReportingResource.get());
     }
-    config.register(new KsqlExceptionMapper());
     config.register(new ServerStateDynamicBinding(serverState));
+
+    final StatementParser statementParser = new StatementParser(ksqlEngine);
+    final Optional<KsqlAuthorizationValidator> authorizationValidator =
+        KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
+    final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
+        KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
+        ErrorMessages.class
+    ));
+
+    final KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(ksqlConfigNoPort.originals());
+
+    oldApiWebsocketExecutor = MoreExecutors.listeningDecorator(
+        Executors.newScheduledThreadPool(
+            ksqlRestConfig.getInt(KsqlRestConfig.KSQL_WEBSOCKETS_NUM_THREADS),
+            new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("websockets-query-thread-%d")
+                .build()
+        )
+    );
+
+    this.wsQueryEndpoint = new WSQueryEndpoint(
+        ksqlConfigNoPort,
+        statementParser,
+        ksqlEngine,
+        commandStore,
+        oldApiWebsocketExecutor,
+        versionCheckerAgent::updateLastRequestTime,
+        Duration.ofMillis(ksqlRestConfig.getLong(
+            KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+        authorizationValidator,
+        errorHandler,
+        pullQueryExecutor
+    );
   }
 
   @Override
@@ -396,7 +443,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   }
 
   void startApiServer(final KsqlConfig ksqlConfigWithPort) {
-    vertx = Vertx.vertx();
+    vertx = Vertx.vertx(
+        new VertxOptions().setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
+            .setMaxWorkerExecuteTime(Long.MAX_VALUE));
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     final Endpoints endpoints = new KsqlServerEndpoints(
@@ -404,7 +453,16 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlConfigWithPort,
         pullQueryExecutor,
         ksqlSecurityContextProvider,
-        ksqlResource
+        ksqlResource,
+        streamedQueryResource,
+        serverInfoResource,
+        heartbeatResource,
+        clusterStatusResource,
+        statusResource,
+        lagReportingResource,
+        healthCheckResource,
+        serverMetadataResource,
+        wsQueryEndpoint
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,
@@ -553,6 +611,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       vertx = null;
     }
 
+    if (oldApiWebsocketExecutor != null) {
+      oldApiWebsocketExecutor.shutdown();
+    }
+
     shutdownAdditionalAgents();
   }
 
@@ -624,64 +686,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     );
   }
 
-  @SuppressWarnings("UnstableApiUsage")
-  @Override
-  protected void registerWebSocketEndpoints(final ServerContainer container) {
-    try {
-      final ListeningScheduledExecutorService exec = MoreExecutors.listeningDecorator(
-          Executors.newScheduledThreadPool(
-              config.getInt(KsqlRestConfig.KSQL_WEBSOCKETS_NUM_THREADS),
-              new ThreadFactoryBuilder()
-                  .setDaemon(true)
-                  .setNameFormat("websockets-query-thread-%d")
-                  .build()
-          )
-      );
-
-      final StatementParser statementParser = new StatementParser(ksqlEngine);
-      final Optional<KsqlAuthorizationValidator> authorizationValidator =
-          KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
-      final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
-          KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
-          ErrorMessages.class
-      ));
-
-      container.addEndpoint(
-          ServerEndpointConfig.Builder
-              .create(
-                  WSQueryEndpoint.class,
-                  WSQueryEndpoint.class.getAnnotation(ServerEndpoint.class).value()
-              )
-              .configurator(new Configurator() {
-                @Override
-                @SuppressWarnings("unchecked")
-                public <T> T getEndpointInstance(final Class<T> endpointClass) {
-                  return (T) new WSQueryEndpoint(
-                      buildConfigWithPort(),
-                      ApiJsonMapper.INSTANCE.get(),
-                      statementParser,
-                      ksqlEngine,
-                      commandStore,
-                      exec,
-                      versionCheckerAgent::updateLastRequestTime,
-                      Duration.ofMillis(config.getLong(
-                          KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-                      authorizationValidator,
-                      errorHandler,
-                      securityExtension,
-                      serverState,
-                      serviceContext.getSchemaRegistryClientFactory(),
-                      pullQueryExecutor
-                  );
-                }
-              })
-              .build()
-      );
-    } catch (final DeploymentException e) {
-      log.error("Unable to create websockets endpoint", e);
-    }
-  }
-
   static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory
@@ -701,9 +705,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         serviceContext,
         (config, securityExtension) ->
             new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory),
-        ksqlSecurityExtension -> new DefaultKsqlSecurityContextProvider(ksqlSecurityExtension,
-            RestServiceContextFactory::create,
-            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory)
+        schemaRegistryClientFactory
     );
   }
 
@@ -715,8 +717,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final int maxStatementRetries,
       final ServiceContext serviceContext,
       final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
-      final Function<KsqlSecurityExtension, KsqlSecurityContextProvider>
-          securityContextProviderFactory) {
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -761,8 +762,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final InteractiveStatementExecutor statementExecutor =
         new InteractiveStatementExecutor(serviceContext, ksqlEngine, specificQueryIdGenerator);
 
-    final RootDocument rootDocument = new RootDocument();
-
     final StatusResource statusResource = new StatusResource(statementExecutor);
     final VersionCheckerAgent versionChecker
         = versionCheckerFactory.apply(ksqlEngine::hasActiveQueries);
@@ -770,6 +769,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final ServerState serverState = new ServerState();
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
+
+    final KsqlSecurityContextProvider ksqlSecurityContextProvider =
+        new DefaultKsqlSecurityContextProvider(
+            securityExtension,
+            RestServiceContextFactory::create,
+            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
         ksqlConfig);
@@ -852,13 +857,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         injectPathsWithoutAuthentication(restConfig),
         commandRunner,
         commandStore,
-        rootDocument,
         statusResource,
         streamedQueryResource,
         ksqlResource,
         versionChecker,
         serviceContextBinderFactory,
-        securityContextProviderFactory.apply(securityExtension),
+        ksqlSecurityContextProvider,
         securityExtension,
         securityHandlerPlugin,
         serverState,

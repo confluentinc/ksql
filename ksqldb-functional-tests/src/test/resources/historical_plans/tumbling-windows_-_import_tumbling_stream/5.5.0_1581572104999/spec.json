@@ -1,135 +1,149 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572104999,
+  "path" : "query-validation-tests/tumbling-windows.json",
   "schemas" : {
     "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
     "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, VALUE BIGINT, KEY VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "a",
-    "value" : "1,0",
-    "timestamp" : 0,
-    "window" : {
-      "start" : 0,
-      "end" : 30000,
-      "type" : "TIME"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "a",
-    "value" : "2,100",
-    "timestamp" : 0,
-    "window" : {
-      "start" : 0,
-      "end" : 30000,
-      "type" : "TIME"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "a",
-    "value" : "3,10",
-    "timestamp" : 0,
-    "window" : {
-      "start" : 0,
-      "end" : 30000,
-      "type" : "TIME"
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "a",
-    "value" : "4,50",
-    "timestamp" : 30000,
-    "window" : {
-      "start" : 30000,
-      "end" : 60000,
-      "type" : "TIME"
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "S2",
-    "key" : "a",
-    "value" : "1,0,a",
-    "timestamp" : 0,
-    "window" : {
-      "start" : 0,
-      "end" : 30000,
-      "type" : "TIME"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : "a",
-    "value" : "2,100,a",
-    "timestamp" : 0,
-    "window" : {
-      "start" : 0,
-      "end" : 30000,
-      "type" : "TIME"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : "a",
-    "value" : "3,10,a",
-    "timestamp" : 0,
-    "window" : {
-      "start" : 0,
-      "end" : 30000,
-      "type" : "TIME"
-    }
-  }, {
-    "topic" : "S2",
-    "key" : "a",
-    "value" : "4,50,a",
-    "timestamp" : 30000,
-    "window" : {
-      "start" : 30000,
-      "end" : 60000,
-      "type" : "TIME"
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "S2",
-      "type" : "stream",
-      "schema" : "ROWKEY STRING KEY, ID BIGINT, VALUE BIGINT, KEY STRING",
-      "keyFormat" : {
-        "format" : "KAFKA",
-        "windowType" : "TUMBLING",
-        "windowSize" : 30000
+  "testCase" : {
+    "name" : "import tumbling stream",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : "1,0",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : "2,100",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : "3,10",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : "4,50",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 30000,
+        "end" : 60000,
+        "type" : "TIME"
       }
     } ],
-    "topics" : {
-      "topics" : [ {
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : "a",
+      "value" : "1,0,a",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : "a",
+      "value" : "2,100,a",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : "a",
+      "value" : "3,10,a",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : "a",
+      "value" : "4,50,a",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 30000,
+        "end" : 60000,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_SIZE='30 seconds', WINDOW_TYPE='Tumbling');", "CREATE STREAM S2 AS SELECT\n  *,\n  TEST.ROWKEY KEY\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
         "name" : "S2",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, ID BIGINT, VALUE BIGINT, KEY STRING",
         "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 30000
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000
+            }
           },
-          "windowInfo" : {
-            "type" : "TUMBLING",
-            "size" : 30.000000000
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
+          "valueFormat" : {
+            "format" : "DELIMITED"
           },
-          "windowInfo" : {
-            "type" : "TUMBLING",
-            "size" : 30.000000000
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      } ]
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

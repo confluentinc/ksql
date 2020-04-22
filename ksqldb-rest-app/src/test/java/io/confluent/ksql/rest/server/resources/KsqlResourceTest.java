@@ -30,8 +30,9 @@ import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.st
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static java.util.Collections.emptyMap;
-import static javax.ws.rs.core.Response.Status.FORBIDDEN;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -90,6 +91,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -97,7 +99,6 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -111,6 +112,7 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
@@ -168,7 +170,6 @@ import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.Response;
 import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.Producer;
@@ -359,11 +360,11 @@ public class KsqlResourceTest {
     when(topicInjector.inject(any()))
         .thenAnswer(inv -> inv.getArgument(0));
 
-    when(errorsHandler.generateResponse(any(), any())).thenAnswer(new Answer<Response>() {
+    when(errorsHandler.generateResponse(any(), any())).thenAnswer(new Answer<EndpointResponse>() {
       @Override
-      public Response answer(final InvocationOnMock invocation) throws Throwable {
+      public EndpointResponse answer(final InvocationOnMock invocation) throws Throwable {
         final Object[] args = invocation.getArguments();
-        return (Response) args[1];
+        return (EndpointResponse) args[1];
       }
     });
 
@@ -788,13 +789,14 @@ public class KsqlResourceTest {
   public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() {
     // Given:
     final String errorMsg = "some error";
-    when(errorsHandler.generateResponse(any(), any())).thenReturn(Response
-        .status(FORBIDDEN)
+    when(errorsHandler.generateResponse(any(), any())).thenReturn(EndpointResponse.create()
+        .status(FORBIDDEN.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
         .build());
     doThrow(new KsqlTopicAuthorizationException(
         AclOperation.DELETE,
-        Collections.singleton("topic"))).when(authorizationValidator).checkAuthorization(any(), any(), any());
+        Collections.singleton("topic"))).when(authorizationValidator)
+        .checkAuthorization(any(), any(), any());
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -1743,7 +1745,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldHandleTerminateRequestCorrectly() {
     // When:
-    final Response response = ksqlResource.terminateCluster(
+    final EndpointResponse response = ksqlResource.terminateCluster(
         securityContext,
         VALID_TERMINATE_REQUEST
     );
@@ -1773,7 +1775,7 @@ public class KsqlResourceTest {
         .thenThrow(new KsqlException(""));
 
     // When:
-    final Response response = ksqlResource.terminateCluster(
+    final EndpointResponse response = ksqlResource.terminateCluster(
         securityContext,
         VALID_TERMINATE_REQUEST
     );
@@ -2008,7 +2010,8 @@ public class KsqlResourceTest {
 
   private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final Code errorCode) {
     try {
-      final Response response = ksqlResource.handleKsqlStatements(securityContext, ksqlRequest);
+      final EndpointResponse response = ksqlResource
+          .handleKsqlStatements(securityContext, ksqlRequest);
       assertThat(response.getStatus(), is(errorCode.getCode()));
       assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
       return (KsqlErrorMessage) response.getEntity();
@@ -2064,8 +2067,9 @@ public class KsqlResourceTest {
       final KsqlRequest ksqlRequest,
       final Class<T> expectedEntityType) {
 
-    final Response response = ksqlResource.handleKsqlStatements(securityContext, ksqlRequest);
-    if (response.getStatus() != Response.Status.OK.getStatusCode()) {
+    final EndpointResponse response = ksqlResource
+        .handleKsqlStatements(securityContext, ksqlRequest);
+    if (response.getStatus() != OK.code()) {
       throw new KsqlRestException(response);
     }
 

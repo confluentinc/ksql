@@ -38,6 +38,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -49,7 +50,6 @@ import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
-import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -69,12 +69,9 @@ import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -89,9 +86,6 @@ public class KsqlRestApplicationTest {
   private static final String CMD_TOPIC_NAME = "command_topic";
   private static final String LIST_STREAMS_SQL = "list streams;";
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Mock
   private ServiceContext serviceContext;
   @Mock
@@ -102,8 +96,6 @@ public class KsqlRestApplicationTest {
   private ProcessingLogConfig processingLogConfig;
   @Mock
   private CommandRunner commandRunner;
-  @Mock
-  private RootDocument rootDocument;
   @Mock
   private StatusResource statusResource;
   @Mock
@@ -139,7 +131,7 @@ public class KsqlRestApplicationTest {
   @Mock
   private LagReportingAgent lagReportingAgent;
   @Mock
-  private Response response;
+  private EndpointResponse response;
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
@@ -194,7 +186,7 @@ public class KsqlRestApplicationTest {
         ksqlConfig
     );
 
-    givenAppWithRestConfig(ImmutableMap.of(RestConfig.LISTENERS_CONFIG,  "http://localhost:0"));
+    givenAppWithRestConfig(ImmutableMap.of(RestConfig.LISTENERS_CONFIG, "http://localhost:0"));
   }
 
   @Test
@@ -469,7 +461,6 @@ public class KsqlRestApplicationTest {
         restConfig,
         commandRunner,
         commandQueue,
-        rootDocument,
         statusResource,
         streamedQueryResource,
         ksqlResource,

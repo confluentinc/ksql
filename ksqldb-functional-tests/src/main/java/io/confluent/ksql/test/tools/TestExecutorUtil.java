@@ -227,8 +227,12 @@ public final class TestExecutorUtil {
     final KafkaTopicClient topicClient = serviceContext.getTopicClient();
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
+    final List<String> statements = testCase.getExpectedTopology().isPresent()
+        ? ImmutableList.of() // Historic plans have already their topics already captured
+        : testCase.statements(); // Non-historic plans need to capture topics from stmts
+
     final Collection<Topic> topics = TestCaseBuilderUtil.getAllTopics(
-        testCase.statements(),
+        statements,
         testCase.getTopics(),
         testCase.getOutputRecords(),
         testCase.getInputRecords(),

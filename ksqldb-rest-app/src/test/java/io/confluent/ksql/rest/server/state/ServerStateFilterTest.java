@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.rest.server.state;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import java.util.Optional;
 import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,7 +36,7 @@ public class ServerStateFilterTest {
   @Mock
   private ServerState serverState;
   @Mock
-  private Response response;
+  private EndpointResponse response;
   private ServerStateFilter filter;
 
   @Rule
@@ -55,7 +56,7 @@ public class ServerStateFilterTest {
     filter.filter(requestContext);
 
     // Then:
-    verify(requestContext).abortWith(response);
+    verify(requestContext).abortWith(any());
   }
 
   @Test

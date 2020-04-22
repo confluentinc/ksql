@@ -15,22 +15,14 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import java.util.Optional;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
-@Path("/status")
-@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StatusResource {
 
   private final InteractiveStatementExecutor statementExecutor;
@@ -39,17 +31,11 @@ public class StatusResource {
     this.statementExecutor = statementExecutor;
   }
 
-  @GET
-  public Response getAllStatuses() {
-    return Response.ok(CommandStatuses.fromFullStatuses(statementExecutor.getStatuses())).build();
+  public EndpointResponse getAllStatuses() {
+    return EndpointResponse.ok(CommandStatuses.fromFullStatuses(statementExecutor.getStatuses()));
   }
 
-  @GET
-  @Path("/{type}/{entity}/{action}")
-  public Response getStatus(
-      @PathParam("type") final String type,
-      @PathParam("entity") final String entity,
-      @PathParam("action") final String action) {
+  public EndpointResponse getStatus(final String type, final String entity, final String action) {
     final CommandId commandId = new CommandId(type, entity, action);
 
     final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
@@ -58,6 +44,6 @@ public class StatusResource {
       return Errors.notFound("Command not found");
     }
 
-    return Response.ok(commandStatus.get()).build();
+    return EndpointResponse.ok(commandStatus.get());
   }
 }

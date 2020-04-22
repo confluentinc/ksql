@@ -1,79 +1,93 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572105158,
+  "path" : "query-validation-tests/url.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<DECODED VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : {
-      "url" : "%3Ffoo+%24bar"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : {
-      "url" : "hello%26world"
-    },
-    "timestamp" : 1
-  }, {
-    "topic" : "test_topic",
-    "key" : "3",
-    "value" : {
-      "url" : "nothing"
-    },
-    "timestamp" : 2
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "1",
-    "value" : {
-      "DECODED" : "?foo $bar"
-    },
-    "timestamp" : 0
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "2",
-    "value" : {
-      "DECODED" : "hello&world"
-    },
-    "timestamp" : 1
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "3",
-    "value" : {
-      "DECODED" : "nothing"
-    },
-    "timestamp" : 2
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "decode a url parameter using DECODE_URL_PARAM - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "url" : "%3Ffoo+%24bar"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "url" : "hello%26world"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "url" : "nothing"
+      },
+      "timestamp" : 2
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "DECODED" : "?foo $bar"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "DECODED" : "hello&world"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "DECODED" : "nothing"
+      },
+      "timestamp" : 2
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (URL STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT URL_DECODE_PARAM(TEST.URL) DECODED\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

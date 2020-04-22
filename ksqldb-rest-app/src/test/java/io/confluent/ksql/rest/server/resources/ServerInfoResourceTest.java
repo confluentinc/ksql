@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -32,7 +33,6 @@ import io.confluent.ksql.util.Version;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.common.KafkaFuture;
@@ -80,7 +80,7 @@ public class ServerInfoResourceTest {
   @Test
   public void shouldReturnServerInfo() {
     // When:
-    final Response response = serverInfoResource.get();
+    final EndpointResponse response = serverInfoResource.get();
 
     // Then:
     assertThat(response.getStatus(), equalTo(200));

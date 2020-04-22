@@ -1,84 +1,98 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572100392,
+  "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
     "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, KEY VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "input",
-    "key" : "1",
-    "value" : {
-      "id" : 1
-    }
-  }, {
-    "topic" : "input",
-    "key" : "1",
-    "value" : {
-      "id" : 2
-    }
-  }, {
-    "topic" : "input",
-    "key" : "",
-    "value" : {
-      "id" : 3
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "1",
-    "value" : {
-      "ID" : 1,
-      "KEY" : "1"
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "1",
-    "value" : {
-      "ID" : 2,
-      "KEY" : "1"
-    }
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : {
-      "ID" : 3,
-      "KEY" : ""
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "OUTPUT",
-      "type" : "table",
-      "schema" : "ROWKEY STRING KEY, ID BIGINT, KEY STRING",
-      "keyFormat" : {
-        "format" : "KAFKA"
+  "testCase" : {
+    "name" : "table implicit KAFKA STRING ROWKEY",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "1",
+      "value" : {
+        "id" : 1
+      }
+    }, {
+      "topic" : "input",
+      "key" : "1",
+      "value" : {
+        "id" : 2
+      }
+    }, {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "id" : 3
       }
     } ],
-    "topics" : {
-      "topics" : [ {
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "ID" : 1,
+        "KEY" : "1"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "ID" : 2,
+        "KEY" : "1"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ID" : 3,
+        "KEY" : ""
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE INPUT (ID BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  INPUT.ID ID,\n  INPUT.ROWKEY KEY\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
         "name" : "OUTPUT",
+        "type" : "table",
+        "schema" : "ROWKEY STRING KEY, ID BIGINT, KEY STRING",
         "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "input",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+          "format" : "KAFKA"
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

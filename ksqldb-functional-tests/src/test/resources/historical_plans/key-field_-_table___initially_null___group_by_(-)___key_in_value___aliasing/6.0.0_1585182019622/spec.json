@@ -1,79 +1,93 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585182019622,
+  "path" : "query-validation-tests/key-field.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO INT> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<FOO INT, ROWTIME BIGINT> NOT NULL",
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<FOO INT, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
     "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ALIASED INT, KSQL_COL_0 BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "input_topic",
-    "key" : "x",
-    "value" : {
-      "foo" : 1
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : 1,
-    "value" : {
-      "ALIASED" : 1,
-      "KSQL_COL_0" : 1
-    }
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "INPUT",
-      "type" : "table"
-    }, {
-      "name" : "OUTPUT",
-      "type" : "table"
+  "testCase" : {
+    "name" : "table | initially null | group by (-) | key in value | aliasing",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "x",
+      "value" : {
+        "foo" : 1
+      }
     } ],
-    "topics" : {
-      "topics" : [ {
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "ALIASED" : 1,
+        "KSQL_COL_0" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE INPUT (FOO INTEGER) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  INPUT.FOO ALIASED,\n  COUNT(*) KSQL_COL_0\nFROM INPUT INPUT\nGROUP BY INPUT.FOO\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "table"
+      }, {
         "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
+        "type" : "table"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
           }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
           }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        }
-      }, {
-        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        }
-      }, {
-        "name" : "input_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

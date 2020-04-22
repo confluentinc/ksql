@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.test.planned;
 
+import static com.google.common.io.Files.getNameWithoutExtension;
+
 import io.confluent.ksql.test.tools.TestCase;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,7 +27,6 @@ public final class PlannedTestPath {
 
   private static final String INVALID_FILENAME_CHARS_PATTERN = "\\s|/|\\\\|:|\\*|\\?|\"|<|>|\\|";
   private static final String BASE_DIRECTORY = "src/test/resources/";
-  private static final String PLANS_DIR = "historical_plans/";
   public static final String SPEC_FILE = "spec.json";
   public static final String PLAN_FILE = "plan.json";
   public static final String TOPOLOGY_FILE = "topology";
@@ -36,19 +37,26 @@ public final class PlannedTestPath {
     this.path = Objects.requireNonNull(path, "path");
   }
 
-  public static PlannedTestPath forTestCase(final TestCase testCase) {
-    return new PlannedTestPath(Paths.get(PLANS_DIR, formatName(testCase.getName())));
+  public static PlannedTestPath of(final Path path) {
+    return new PlannedTestPath(path);
   }
 
-  public static PlannedTestPath forTestCasePlan(final TestCase testCase, final TestCasePlan plan) {
-    return new PlannedTestPath(
-        forTestCase(testCase).path()
-            .resolve(plan.getSpecNode().getVersion() + "_" + plan.getSpecNode().getTimestamp())
-    );
+  public static PlannedTestPath forTestCase(final Path planDir, final TestCase testCase) {
+    return new PlannedTestPath(planDir)
+        .resolve(formatName(testCase.getName()));
   }
 
-  public PlannedTestPath resolve(final Path path) {
-    return new PlannedTestPath(this.path.resolve(path));
+  @SuppressWarnings("UnstableApiUsage")
+  public static PlannedTestPath forTestCasePlan(final Path planDir, final TestCasePlan plan) {
+    final TestCaseSpecNode spec = plan.getSpecNode();
+
+    final String fileName = getNameWithoutExtension(spec.getPath());
+
+    final String name = formatName(fileName + " - " + spec.getTestCase().name());
+
+    return new PlannedTestPath(planDir)
+        .resolve(name)
+        .resolve(spec.getVersion() + "_" + spec.getTimestamp());
   }
 
   public PlannedTestPath resolve(final String path) {

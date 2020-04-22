@@ -23,8 +23,6 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.util.KsqlException;
-import javax.ws.rs.core.Response;
-
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.junit.Before;
@@ -57,7 +55,7 @@ public class ErrorsTest {
 
   @Test
   public void shouldReturnForbiddenKafkaResponse() {
-    final Response response = errorHandler.accessDeniedFromKafkaResponse(exception);
+    final EndpointResponse response = errorHandler.accessDeniedFromKafkaResponse(exception);
     assertThat(response.getStatus(), is(403));
     assertThat(response.getEntity(), is(instanceOf(KsqlErrorMessage.class)));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(), is(SOME_KAFKA_ERROR));
@@ -71,7 +69,7 @@ public class ErrorsTest {
 
   @Test
   public void shouldReturnForbiddenKafkaResponseIfRootCauseTopicAuthorizationException() {
-    final Response response = errorHandler.generateResponse(new KsqlException(
+    final EndpointResponse response = errorHandler.generateResponse(new KsqlException(
         new TopicAuthorizationException("error")), Errors.badRequest("bad"));
     assertThat(response.getStatus(), is(403));
     assertThat(response.getEntity(), is(instanceOf(KsqlErrorMessage.class)));
@@ -80,15 +78,15 @@ public class ErrorsTest {
 
   @Test
   public void shouldReturnResponseIfRootCauseNotASpecificException() {
-    final Response response = errorHandler.generateResponse(new KsqlException(
+    final EndpointResponse response = errorHandler.generateResponse(new KsqlException(
         new RuntimeException("error")), Errors.badRequest("bad"));
     assertThat(response.getStatus(), is(400));
   }
 
   @Test
   public void shouldReturnSchemaRegistryNotConfiguredResponseIfRootCauseKsqlSchemaRegistryConfigException() {
-    final Response response = errorHandler.generateResponse(new KsqlException(
-            new KsqlSchemaRegistryNotConfiguredException("error")), Errors.badRequest("bad"));
+    final EndpointResponse response = errorHandler.generateResponse(new KsqlException(
+        new KsqlSchemaRegistryNotConfiguredException("error")), Errors.badRequest("bad"));
     assertThat(response.getStatus(), is(428));
     assertThat(response.getEntity(), is(instanceOf(KsqlErrorMessage.class)));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(), is(SOME_SR_ERROR));

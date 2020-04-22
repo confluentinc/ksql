@@ -1,57 +1,71 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572101309,
+  "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_REPARTITIONED_0.KsqlTopic.Source" : "STRUCT<ID VARCHAR, NAME VARCHAR> NOT NULL",
     "CSAS_REPARTITIONED_0.REPARTITIONED" : "STRUCT<ID VARCHAR, NAME VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "0",
-    "value" : "0,a"
-  }, {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : "1,b"
-  } ],
-  "outputs" : [ {
-    "topic" : "REPARTITIONED",
-    "key" : "0",
-    "value" : "0_new,a"
-  }, {
-    "topic" : "REPARTITIONED",
-    "key" : "1",
-    "value" : "1_new,b"
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "REPARTITIONED",
-      "type" : "stream"
+  "testCase" : {
+    "name" : "aliased key field - same name",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : "0,a"
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : "1,b"
     } ],
-    "topics" : {
-      "topics" : [ {
+    "outputs" : [ {
+      "topic" : "REPARTITIONED",
+      "key" : "0",
+      "value" : "0_new,a"
+    }, {
+      "topic" : "REPARTITIONED",
+      "key" : "1",
+      "value" : "1_new,b"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "REPARTITIONED",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING, NAME STRING) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='delimited');", "CREATE STREAM REPARTITIONED AS SELECT\n  (TEST.ID + '_new') ID,\n  TEST.NAME NAME\nFROM TEST TEST\nPARTITION BY TEST.ID\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
         "name" : "REPARTITIONED",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      } ]
+        "type" : "stream"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "REPARTITIONED",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

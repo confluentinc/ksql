@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.test.planned;
 
-import io.confluent.ksql.test.QueryTranslationTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -32,6 +31,6 @@ public class PlannedTestRewriterTest {
   @Ignore
   public void rewritePlans() {
     new PlannedTestRewriter(PlannedTestRewriter.FULL)
-        .rewriteTestCases(QueryTranslationTest.findTestCases());
+        .rewriteTestCasePlans(new TestCasePlanLoader().all());
   }
 }

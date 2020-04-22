@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.test.planned;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.engine.KsqlPlan;
@@ -25,21 +28,30 @@ import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.RecordNode;
+import io.confluent.ksql.test.model.TestCaseNode;
+import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.TestCaseBuilderUtil;
 import io.confluent.ksql.test.tools.TestExecutionListener;
 import io.confluent.ksql.test.tools.TestExecutor;
-import io.confluent.ksql.test.tools.stubs.StubKafkaService;
+import io.confluent.ksql.test.tools.TestFunctionRegistry;
+import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
@@ -50,15 +62,44 @@ import org.w3c.dom.NodeList;
  */
 public final class TestCasePlanLoader {
 
-  private static final StubKafkaService KAFKA_STUB = StubKafkaService.create();
   private static final String CURRENT_VERSION = getFormattedVersionFromPomFile();
   private static final KsqlConfig BASE_CONFIG = new KsqlConfig(TestExecutor.baseConfig());
+  public static final Path PLANS_DIR = Paths.get("historical_plans");
 
-  private TestCasePlanLoader() {
+  private final Path plansDir;
+
+  public TestCasePlanLoader() {
+    this(PLANS_DIR);
+  }
+
+  @VisibleForTesting
+  public TestCasePlanLoader(final Path plansDir) {
+    this.plansDir = requireNonNull(plansDir, "plansDir");
+  }
+
+  public Stream<TestCasePlan> all() {
+    return load(path -> true);
+  }
+
+  public Stream<TestCasePlan> load(final Predicate<Path> predicate) {
+    return PlannedTestUtils.loadContents(plansDir.toString())
+        .orElseThrow(() -> new TestFrameworkException(
+            "Historical test directory not found: " + plansDir))
+        .stream()
+        .map(plansDir::resolve)
+        .filter(predicate::test)
+        .flatMap(dir -> PlannedTestUtils.loadContents(dir.toString())
+            .orElseGet(ImmutableList::of)
+            .stream()
+            .map(dir::resolve)
+        )
+        .map(PlannedTestPath::of)
+        .map(TestCasePlanLoader::parseSpec);
   }
 
   /**
    * Create a TestCasePlan from a TestCase by executing it against an engine
+   *
    * @param testCase the test case to build plans for
    * @return the built plan.
    */
@@ -67,26 +108,26 @@ public final class TestCasePlanLoader {
         testCase,
         CURRENT_VERSION,
         System.currentTimeMillis(),
-        BASE_CONFIG.getAllConfigPropsWithSecretsObfuscated()
+        BASE_CONFIG.getAllConfigPropsWithSecretsObfuscated(),
+        TestCaseBuilderUtil.extractSimpleTestName(testCase.getTestFile(), testCase.getName())
     );
   }
 
   /**
    * Rebuilds a TestCasePlan given a TestCase and a TestCasePlan
    *
-   * @param testCase the test case to rebuild the plan for
    * @param original the plan to rebuild
    * @return the rebuilt plan.
    */
-  public static TestCasePlan rebuiltForTestCase(
-      final TestCase testCase,
+  public static TestCasePlan rebuild(
       final TestCasePlan original
   ) {
     return buildStatementsInTestCase(
-        PlannedTestUtils.buildPlannedTestCase(testCase, original),
+        PlannedTestUtils.buildPlannedTestCase(original),
         original.getSpecNode().getVersion(),
         original.getSpecNode().getTimestamp(),
-        original.getPlanNode().getConfigs()
+        original.getPlanNode().getConfigs(),
+        original.getSpecNode().getTestCase().name()
     );
   }
 
@@ -116,7 +157,7 @@ public final class TestCasePlanLoader {
    * @return a list of the loaded plans.
    */
   public static List<TestCasePlan> allForTestCase(final TestCase testCase) {
-    final PlannedTestPath rootforCase = PlannedTestPath.forTestCase(testCase);
+    final PlannedTestPath rootforCase = PlannedTestPath.forTestCase(PLANS_DIR, testCase);
     return PlannedTestUtils.loadContents(rootforCase.path().toString())
         .orElse(Collections.emptyList())
         .stream()
@@ -160,17 +201,33 @@ public final class TestCasePlanLoader {
       final TestCase testCase,
       final String version,
       final long timestamp,
-      final Map<String, String> configs
+      final Map<String, String> configs,
+      final String simpleTestName
   ) {
     final TestInfoGatherer testInfo = executeTestCaseAndGatherInfo(testCase);
+
+    final List<TopicNode> allTopicNodes = getTopicsFromTestCase(testCase);
+
+    final TestCaseNode testCodeNode = new TestCaseNode(
+        simpleTestName,
+        Optional.empty(),
+        ImmutableList.of(),
+        testCase.getInputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),
+        testCase.getOutputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),
+        allTopicNodes,
+        testCase.statements(),
+        testCase.properties(),
+        null,
+        testCase.getPostConditions().asNode(testInfo.getTopics()).orElse(null),
+        true
+    );
 
     final TestCaseSpecNode spec = new TestCaseSpecNode(
         version,
         timestamp,
+        testCase.getTestFile(),
         testInfo.getSchemasDescription(),
-        testCase.getInputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),
-        testCase.getOutputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),
-        testCase.getPostConditions().asNode(testInfo.getTopics())
+        testCodeNode
     );
 
     final TestCasePlanNode plan = new TestCasePlanNode(testInfo.getPlans(), configs);
@@ -180,6 +237,20 @@ public final class TestCasePlanLoader {
         plan,
         testInfo.getTopologyDescription()
     );
+  }
+
+  private static List<TopicNode> getTopicsFromTestCase(final TestCase testCase) {
+    final Collection<Topic> allTopics = TestCaseBuilderUtil.getAllTopics(
+        testCase.statements(),
+        testCase.getTopics(),
+        testCase.getOutputRecords(),
+        testCase.getInputRecords(),
+        TestFunctionRegistry.INSTANCE.get()
+    );
+
+    return allTopics.stream()
+        .map(TopicNode::from)
+        .collect(Collectors.toList());
   }
 
   private static TestInfoGatherer executeTestCaseAndGatherInfo(final TestCase testCase) {

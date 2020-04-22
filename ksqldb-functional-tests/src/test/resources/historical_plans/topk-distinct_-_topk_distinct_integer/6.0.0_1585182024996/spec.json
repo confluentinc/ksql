@@ -1,124 +1,138 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1585182024996,
+  "path" : "query-validation-tests/topk-distinct.json",
   "schemas" : {
     "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE INT> NOT NULL",
     "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE INT, KSQL_INTERNAL_COL_2 INT> NOT NULL",
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE INT, KSQL_AGG_VARIABLE_0 ARRAY<INT>> NOT NULL",
     "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, TOPK ARRAY<INT>> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "NAME" : "zero",
-      "VALUE" : 0
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "NAME" : "zero",
-      "VALUE" : 100
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "NAME" : "zero",
-      "VALUE" : 99
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "NAME" : "zero",
-      "VALUE" : 7
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "NAME" : "zero",
-      "VALUE" : 100
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "TOPK" : [ 0 ]
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "TOPK" : [ 100, 0 ]
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "TOPK" : [ 100, 99, 0 ]
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "TOPK" : [ 100, 99, 7 ]
-    }
-  }, {
-    "topic" : "S2",
-    "key" : 0,
-    "value" : {
-      "ID" : 0,
-      "TOPK" : [ 100, 99, 7 ]
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "S2",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
+  "testCase" : {
+    "name" : "topk distinct integer",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "zero",
+        "VALUE" : 0
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "zero",
+        "VALUE" : 100
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "zero",
+        "VALUE" : 99
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "zero",
+        "VALUE" : 7
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "zero",
+        "VALUE" : 100
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "TOPK" : [ 0 ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "TOPK" : [ 100, 0 ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "TOPK" : [ 100, 99, 0 ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "TOPK" : [ 100, 99, 7 ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "TOPK" : [ 100, 99, 7 ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE INTEGER) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  TOPKDISTINCT(TEST.VALUE, 3) TOPK\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
           }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        }
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

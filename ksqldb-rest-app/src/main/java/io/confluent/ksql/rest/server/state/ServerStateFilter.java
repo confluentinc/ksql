@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.state;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.core.Response;
 
 /**
  * A javax request filter that ensures the KSQL server is in the READY state before
@@ -38,6 +39,9 @@ public class ServerStateFilter implements ContainerRequestFilter {
    */
   @Override
   public void filter(final ContainerRequestContext requestContext) {
-    state.checkReady().ifPresent(requestContext::abortWith);
+    state.checkReady().ifPresent(er -> {
+      final Response response = Response.status(er.getStatus()).entity(er.getEntity()).build();
+      requestContext.abortWith(response);
+    });
   }
 }

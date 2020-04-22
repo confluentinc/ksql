@@ -17,7 +17,7 @@ package io.confluent.ksql.cli;
 
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_ACCEPTABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.anyOf;
@@ -781,7 +781,7 @@ public class CliTest {
         RestResponse.erroneous(
             Code.NOT_ACCEPTABLE,
             new KsqlErrorMessage(
-                Errors.toErrorCode(NOT_ACCEPTABLE.getStatusCode()),
+                Errors.toErrorCode(NOT_ACCEPTABLE.code()),
                 "Minimum supported client version: 1.0")
         ));
 

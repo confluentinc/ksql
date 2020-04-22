@@ -16,8 +16,10 @@
 package io.confluent.ksql.serde;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -51,9 +53,7 @@ import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -80,9 +80,6 @@ public class GenericKeySerDeTest {
           .build(),
       true
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SerdeFactories serdeFactories;
@@ -121,25 +118,27 @@ public class GenericKeySerDeTest {
     doThrow(new RuntimeException("Boom!"))
         .when(serdeFactories).validate(FORMAT, WRAPPED_SCHEMA);
 
-    // Expect:
-    expectedException.expect(SchemaNotSupportedException.class);
-    expectedException.expectMessage("Key format does not support key schema."
+    // When:
+    final Exception e = assertThrows(
+        SchemaNotSupportedException.class,
+        () -> factory.create(
+            FORMAT,
+            WRAPPED_SCHEMA,
+            CONFIG,
+            srClientFactory,
+            LOGGER_NAME_PREFIX,
+            processingLogCxt
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Key format does not support key schema."
         + System.lineSeparator()
         + "format: JSON"
         + System.lineSeparator()
         + "schema: Persistence{schema=STRUCT<f0 VARCHAR> NOT NULL, unwrapped=false}"
         + System.lineSeparator()
-        + "reason: Boom!");
-
-    // When:
-    factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
+        + "reason: Boom!"));
   }
 
   @Test

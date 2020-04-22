@@ -1,69 +1,83 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572104001,
+  "path" : "query-validation-tests/table.json",
   "schemas" : {
     "CTAS_T1_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE INT> NOT NULL",
     "CTAS_T1_0.T1" : "STRUCT<NAME VARCHAR, VALUE INT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : "1,one,100"
-  }, {
-    "topic" : "test_topic",
-    "key" : "2",
-    "value" : "2,two,200"
-  }, {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : "1,one,300"
-  }, {
-    "topic" : "test_topic",
-    "key" : "1",
-    "value" : null
-  } ],
-  "outputs" : [ {
-    "topic" : "T1",
-    "key" : "1",
-    "value" : "one,100"
-  }, {
-    "topic" : "T1",
-    "key" : "2",
-    "value" : "two,200"
-  }, {
-    "topic" : "T1",
-    "key" : "1",
-    "value" : "one,300"
-  }, {
-    "topic" : "T1",
-    "key" : "1",
-    "value" : null
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "T1",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "update-delete",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : "1,one,100"
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : "2,two,200"
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : "1,one,300"
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "T1",
+      "key" : "1",
+      "value" : "one,100"
+    }, {
+      "topic" : "T1",
+      "key" : "2",
+      "value" : "two,200"
+    }, {
+      "topic" : "T1",
+      "key" : "1",
+      "value" : "one,300"
+    }, {
+      "topic" : "T1",
+      "key" : "1",
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "T1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (ID BIGINT, NAME STRING, VALUE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE TABLE T1 AS SELECT\n  TEST.NAME NAME,\n  TEST.VALUE VALUE\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "T1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

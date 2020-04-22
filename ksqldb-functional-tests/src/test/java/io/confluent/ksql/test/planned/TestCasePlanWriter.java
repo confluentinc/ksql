@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.test.planned;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import io.confluent.ksql.test.loader.JsonTestLoader;
-import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.model.KsqlVersion;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,17 +30,22 @@ public final class TestCasePlanWriter {
   private TestCasePlanWriter() {
   }
 
-  public static void writeTestCasePlan(final TestCase testCase, final TestCasePlan planAtVersion) {
-    final Path parent = PlannedTestPath.forTestCasePlan(testCase, planAtVersion).relativePath();
+  public static void writeTestCasePlan(final TestCasePlan thePlan) {
+    final Path parent = PlannedTestPath.forTestCasePlan(TestCasePlanLoader.PLANS_DIR, thePlan)
+        .relativePath();
+
     final Path specPath = parent.resolve(PlannedTestPath.SPEC_FILE);
     final Path planPath = parent.resolve(PlannedTestPath.PLAN_FILE);
     final Path topologyPath = parent.resolve(PlannedTestPath.TOPOLOGY_FILE);
+
+    final ObjectMapper planMapper = getPlanMapper(thePlan);
+
     try {
       Files.createDirectories(parent);
       Files.write(
           specPath,
           JsonTestLoader.OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
-              .writeValueAsString(planAtVersion.getSpecNode())
+              .writeValueAsString(thePlan.getSpecNode())
               .getBytes(Charsets.UTF_8),
           StandardOpenOption.CREATE,
           StandardOpenOption.WRITE,
@@ -46,8 +53,8 @@ public final class TestCasePlanWriter {
       );
       Files.write(
           planPath,
-          PlannedTestUtils.PLAN_MAPPER.writerWithDefaultPrettyPrinter()
-              .writeValueAsString(planAtVersion.getPlanNode())
+          planMapper.writerWithDefaultPrettyPrinter()
+              .writeValueAsString(thePlan.getPlanNode())
               .getBytes(Charsets.UTF_8),
           StandardOpenOption.CREATE,
           StandardOpenOption.WRITE,
@@ -55,7 +62,7 @@ public final class TestCasePlanWriter {
       );
       Files.write(
           topologyPath,
-          planAtVersion.getTopology().getBytes(Charsets.UTF_8),
+          thePlan.getTopology().getBytes(Charsets.UTF_8),
           StandardOpenOption.CREATE,
           StandardOpenOption.WRITE,
           StandardOpenOption.TRUNCATE_EXISTING
@@ -63,5 +70,19 @@ public final class TestCasePlanWriter {
     } catch (final IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * Older versions of the plan we persisted without {@code Include.NON_EMPTY} set. To give us clean
+   * re-writes, we replicate that here.
+   */
+  private static ObjectMapper getPlanMapper(final TestCasePlan plan) {
+    final KsqlVersion version = KsqlVersion.parse(plan.getSpecNode().getVersion());
+    if (version.getVersion().major() <= 5) {
+      return PlannedTestUtils.PLAN_MAPPER.copy()
+          .setSerializationInclusion(Include.ALWAYS);
+    }
+
+    return PlannedTestUtils.PLAN_MAPPER;
   }
 }

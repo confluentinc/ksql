@@ -449,12 +449,37 @@ public class LogicalPlanner {
     );
   }
 
+  private PlanNode buildSourceForJoin(
+      final Join join,
+      final PlanNode joinedSource,
+      final String side,
+      final Expression joinExpression
+  ) {
+    // we do not need to repartition if the joinExpression
+    // is already part of the join equivalence set
+    if (join.joinEquivalenceSet().contains(joinExpression)) {
+      return joinedSource;
+    }
+
+    return buildRepartitionNode(
+        side + "SourceKeyed",
+        joinedSource,
+        new PartitionBy(
+            Optional.empty(),
+            // We need to repartition on the original join expression, and we need to drop
+            // all qualifiers.
+            ExpressionTreeRewriter.rewriteWith(refRewriter::process, joinExpression),
+            Optional.empty()
+        )
+    );
+  }
+
   private PlanNode buildSourceNode() {
     if (!analysis.isJoin()) {
       return buildNonJoinNode(analysis.getFrom());
     }
 
-    final List<JoinInfo> joinInfo = analysis.getOriginal().getJoin();
+    final List<JoinInfo> joinInfo = analysis.getJoin();
     final JoinTree.Node tree = JoinTree.build(joinInfo);
     if (tree instanceof JoinTree.Leaf) {
       throw new IllegalStateException("Expected more than one source:"
@@ -472,7 +497,12 @@ public class LogicalPlanner {
   private PlanNode buildJoin(final Join root, final String prefix) {
     final PlanNode left;
     if (root.getLeft() instanceof JoinTree.Join) {
-      left = buildJoin((Join) root.getLeft(), prefix + "L_");
+      left = buildSourceForJoin(
+          (JoinTree.Join) root.getLeft(),
+          buildJoin((Join) root.getLeft(), prefix + "L_"),
+          prefix + "Left",
+          root.getInfo().getLeftJoinExpression()
+      );
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getLeft();
       left = buildSourceForJoin(
@@ -481,7 +511,12 @@ public class LogicalPlanner {
 
     final PlanNode right;
     if (root.getRight() instanceof JoinTree.Join) {
-      right = buildJoin((Join) root.getRight(), prefix + "R_");
+      right = buildSourceForJoin(
+          (JoinTree.Join) root.getRight(),
+          buildJoin((Join) root.getRight(), prefix + "R_"),
+          prefix + "Right",
+          root.getInfo().getRightJoinExpression()
+      );
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getRight();
       right = buildSourceForJoin(

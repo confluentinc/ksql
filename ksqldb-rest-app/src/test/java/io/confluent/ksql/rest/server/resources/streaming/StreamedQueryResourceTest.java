@@ -21,7 +21,7 @@ import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
-import static javax.ws.rs.core.Response.Status.FORBIDDEN;
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -52,6 +52,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -83,12 +84,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
@@ -121,15 +122,16 @@ public class StreamedQueryResourceTest {
       StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
   ));
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
-  
-  private static final Response AUTHORIZATION_ERROR_RESPONSE = Response
-      .status(FORBIDDEN)
+
+  private static final EndpointResponse AUTHORIZATION_ERROR_RESPONSE = EndpointResponse.create()
+      .status(FORBIDDEN.code())
       .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, "some error"))
       .build();
 
   private static final String TOPIC_NAME = "test_stream";
   private static final String PUSH_QUERY_STRING = "SELECT * FROM " + TOPIC_NAME + " EMIT CHANGES;";
-  private static final String PULL_QUERY_STRING = "SELECT * FROM " + TOPIC_NAME + " WHERE ROWKEY='null';";
+  private static final String PULL_QUERY_STRING =
+      "SELECT * FROM " + TOPIC_NAME + " WHERE ROWKEY='null';";
   private static final String PRINT_TOPIC = "Print TEST_TOPIC;";
 
   private static final RoutingFilterFactory ROUTING_FILTER_FACTORY =
@@ -230,7 +232,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
   }
 
@@ -250,7 +253,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
   }
 
@@ -259,7 +263,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     // Then:
@@ -271,7 +276,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L),
+        new CompletableFuture<>()
     );
 
     // Then:
@@ -296,7 +302,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L),
+        new CompletableFuture<>()
     );
   }
 
@@ -310,7 +317,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     // Then:
@@ -330,9 +338,10 @@ public class StreamedQueryResourceTest {
         .when(authorizationValidator).checkAuthorization(any(), any(), any());
 
     // When:
-    final Response response = testResource.streamQuery(
+    final EndpointResponse response = testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -397,10 +406,11 @@ public class StreamedQueryResourceTest {
         ConfiguredStatement.of(query, requestStreamsProperties, VALID_CONFIG)))
         .thenReturn(transientQueryMetadata);
 
-    final Response response =
+    final EndpointResponse response =
         testResource.streamQuery(
             securityContext,
-            new KsqlRequest(queryString, requestStreamsProperties, Collections.emptyMap(), null)
+            new KsqlRequest(queryString, requestStreamsProperties, Collections.emptyMap(), null),
+            new CompletableFuture<>()
         );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
@@ -539,7 +549,8 @@ public class StreamedQueryResourceTest {
     /// When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     // Then:
@@ -556,9 +567,10 @@ public class StreamedQueryResourceTest {
         .when(authorizationValidator).checkAuthorization(any(), any(), any());
 
     // When:
-    final Response response = testResource.streamQuery(
+    final EndpointResponse response = testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -579,9 +591,10 @@ public class StreamedQueryResourceTest {
         .when(authorizationValidator).checkAuthorization(any(), any(), any());
 
     // When:
-    final Response response = testResource.streamQuery(
+    final EndpointResponse response = testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
 
     assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
@@ -627,7 +640,8 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>()
     );
   }
 

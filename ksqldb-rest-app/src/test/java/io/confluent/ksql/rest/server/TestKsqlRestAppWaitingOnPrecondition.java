@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
@@ -44,11 +43,11 @@ public class TestKsqlRestAppWaitingOnPrecondition extends TestKsqlRestApp {
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
       final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
-      final KsqlSecurityContextProvider securityContextProvider,
       final Optional<BasicCredentials> credentials,
       final CountDownLatch latch
   ) {
-    super(bootstrapServers, additionalProps, serviceContext, serviceContextBinderFactory, securityContextProvider, credentials);
+    super(bootstrapServers, additionalProps, serviceContext, serviceContextBinderFactory,
+        credentials);
     this.latch = latch;
   }
 

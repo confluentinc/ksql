@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -29,12 +30,12 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpVersion;
+import io.vertx.ext.web.client.HttpResponse;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -118,21 +119,12 @@ public class ClusterTerminationTest {
   }
 
   private static void terminateCluster(final List<String> deleteTopicList) {
-    final Client client = TestKsqlRestApp.buildClient();
 
-    try (final Response response = client
-        .target(REST_APP.getHttpListener())
-        .path("ksql/terminate")
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .post(terminateClusterRequest(deleteTopicList))) {
+    HttpResponse<Buffer> resp = RestIntegrationTestUtil
+        .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1,
+            HttpMethod.POST, "/ksql/terminate", new ClusterTerminateRequest(deleteTopicList));
 
-      assertThat(response.getStatus(), is(Response.Status.OK.getStatusCode()));
-    } finally {
-      client.close();
-    }
+    assertThat(resp.statusCode(), is(OK.code()));
   }
 
-  private static Entity<?> terminateClusterRequest(final List<String> deleteTopicList) {
-    return Entity.json(new ClusterTerminateRequest(deleteTopicList));
-  }
 }

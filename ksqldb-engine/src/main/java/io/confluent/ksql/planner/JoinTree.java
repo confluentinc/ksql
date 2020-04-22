@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.planner;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -22,6 +24,7 @@ import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -111,6 +114,18 @@ final class JoinTree {
      * @return a debug string that pretty prints the tree
      */
     String debugString(int indent);
+
+    /**
+     * An {@code Expression} that is part of this Node's equivalence set evaluates
+     * to the same value as the key for this join. Consider the following JOIN:
+     * <pre>{@code
+     *  SELECT * FROM A JOIN B on A.id = B.id + 1
+     *                  JOIN C on A.id = C.id - 1;
+     * }</pre>
+     * The equivalence set for the above join would be {@code {A.id, B.id + 1, c.id - 1}}
+     * since all of those expressions evaluate to the same value.
+     */
+    Set<Expression> joinEquivalenceSet();
   }
 
   static class Join implements Node {
@@ -123,23 +138,6 @@ final class JoinTree {
       this.left = left;
       this.right = right;
       this.info = info;
-
-      checkJoinConditions(info.getLeftSource(), info.getLeftJoinExpression());
-      checkJoinConditions(info.getRightSource(), info.getRightJoinExpression());
-    }
-
-    /**
-     * @see <a href="https://github.com/confluentinc/ksql/issues/5062">#5062</a>
-     */
-    private void checkJoinConditions(final AliasedDataSource source, final Expression expression) {
-      final Expression existing = joinForSource(source);
-      if (!Objects.equals(existing, expression)) {
-        throw new KsqlException(
-            "KSQL does not yet support multi-joins with different expressions. "
-                + "A join for " + source.getAlias()
-                + " already exists with the condition `" + existing
-                + "` - cannot additionally join on `" + expression + "`");
-      }
     }
 
     public JoinInfo getInfo() {
@@ -159,22 +157,6 @@ final class JoinTree {
       return left.containsSource(dataSource) || right.containsSource(dataSource);
     }
 
-    private Expression joinForSource(final AliasedDataSource dataSource) {
-      if (left.containsSource(dataSource)) {
-        return left instanceof Leaf
-            ? info.getLeftJoinExpression()
-            : ((Join) left).joinForSource(dataSource);
-      }
-
-      if (right.containsSource(dataSource)) {
-        return right instanceof Leaf
-            ? info.getRightJoinExpression()
-            : ((Join) right).joinForSource(dataSource);
-      }
-
-      throw new IllegalStateException("Expected to find a leaf containing " + dataSource);
-    }
-
     @Override
     public String debugString(final int indent) {
       return "⋈\n"
@@ -182,6 +164,61 @@ final class JoinTree {
           + left.debugString(indent + 3) + "\n"
           + StringUtils.repeat(' ', indent) + "+--"
           + right.debugString(indent + 3);
+    }
+
+    @Override
+    public Set<Expression> joinEquivalenceSet() {
+      // the algorithm to compute the keys on a tree recursively
+      // checks to see if the keys from subtrees are equivalent to
+      // the existing join criteria. take the following tree and
+      // join conditions as example:
+      //
+      //            ⋈
+      //          /   \
+      //         ⋈     ⋈
+      //        /  \  / \
+      //       A   B C   D
+      //
+      // A JOIN B on A.id = B.id as AB
+      // C JOIN D on C.id = D.id as BC
+      // AB JOIN CD on A.id = C.id + 1 as ABCD
+      //
+      // The final topic would be partitioned on A.id, which is equivalent
+      // to any one of [A.id, B.id, C.id+1].
+      //
+      // We can compute this set by checking if either the left or right side
+      // of the join expression is contained within the equivalence key set
+      // of the child node. If it is contained, then we know that the child
+      // equivalence set can be included in the parent equivalence set
+      //
+      // In the example above, the left side of the join, A.id, is in the AB
+      // child set. This means we can add all of AB's keys to the output.
+      // `C.id + 1` on the other hand, is not in either AB or BC's child set
+      // so we do not include them in the output set.
+      //
+      // We always include both sides of the current join in the output set,
+      // since we know the key will be the equivalence of those
+
+      final Set<Expression> keys = ImmutableSet.of(
+          info.getLeftJoinExpression(),
+          info.getRightJoinExpression()
+      );
+
+      final Set<Expression> lefts = left.joinEquivalenceSet();
+      final Set<Expression> rights = right.joinEquivalenceSet();
+
+      final boolean includeLeft = !Sets.intersection(lefts, keys).isEmpty();
+      final boolean includeRight = !Sets.intersection(rights, keys).isEmpty();
+
+      if (includeLeft && includeRight) {
+        return Sets.union(keys, Sets.union(lefts, rights));
+      } else if (includeLeft) {
+        return Sets.union(keys, lefts);
+      } else if (includeRight) {
+        return Sets.union(keys, rights);
+      } else {
+        return keys;
+      }
     }
 
     @Override
@@ -232,6 +269,11 @@ final class JoinTree {
     @Override
     public String debugString(final int indent) {
       return source.getAlias().toString(FormatOptions.noEscape());
+    }
+
+    @Override
+    public Set<Expression> joinEquivalenceSet() {
+      return ImmutableSet.of(); // Leaf nodes don't have join equivalence sets
     }
 
     @Override

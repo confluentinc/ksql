@@ -20,20 +20,17 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.common.KafkaFuture;
@@ -81,7 +78,7 @@ public class ServerMetadataResourceTest {
   @Test
   public void shouldReturnServerMetadata() {
     // When:
-    final Response response = serverMetadataResource.getServerMetadata();
+    final EndpointResponse response = serverMetadataResource.getServerMetadata();
 
     // Then:
     assertThat(response.getStatus(), equalTo(200));
@@ -99,7 +96,7 @@ public class ServerMetadataResourceTest {
   @Test
   public void shouldReturnServerClusterId() {
     // When:
-    final Response response = serverMetadataResource.getServerClusterId();
+    final EndpointResponse response = serverMetadataResource.getServerClusterId();
 
     // Then:
     assertThat(response.getStatus(), equalTo(200));
@@ -109,27 +106,5 @@ public class ServerMetadataResourceTest {
         serverClusterId,
         equalTo(ServerClusterId.of(KAFKA_CLUSTER_ID, KSQL_SERVICE_ID))
     );
-  }
-
-
-  @Test
-  public void shouldGetKafkaClusterIdWithTimeout()
-      throws InterruptedException, ExecutionException, TimeoutException{
-    // When:
-    serverMetadataResource.getServerMetadata();
-
-    // Then:
-    verify(future).get(30, TimeUnit.SECONDS);
-  }
-
-  @Test
-  public void shouldGetKafkaClusterIdOnce() {
-    // When:
-    serverMetadataResource.getServerMetadata();
-    serverMetadataResource.getServerMetadata();
-
-    // Then:
-    verify(adminClient).describeCluster();
-    verifyNoMoreInteractions(adminClient);
   }
 }

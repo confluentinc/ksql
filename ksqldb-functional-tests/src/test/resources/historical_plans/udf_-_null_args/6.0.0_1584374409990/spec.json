@@ -1,50 +1,64 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1584374409990,
+  "path" : "query-validation-tests/udf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR, KSQL_COL_1 VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : "0"
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "",
-    "value" : "doStuffLongString,doStuffLongLongString"
-  } ],
-  "postConditions" : {
-    "sources" : [ {
-      "name" : "OUTPUT",
-      "type" : "stream",
-      "schema" : "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING"
+  "testCase" : {
+    "name" : "null args",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "0"
     } ],
-    "topics" : {
-      "topics" : [ {
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "doStuffLongString,doStuffLongLongString"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT\n  TEST_UDF(INPUT.ID, null) KSQL_COL_0,\n  TEST_UDF(INPUT.ID, INPUT.ID, null) KSQL_COL_1\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
         "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "DELIMITED"
-        },
-        "partitions" : 4
-      } ]
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

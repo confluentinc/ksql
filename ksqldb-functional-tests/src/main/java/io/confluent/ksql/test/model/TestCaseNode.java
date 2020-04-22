@@ -18,6 +18,7 @@ package io.confluent.ksql.test.model;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -32,7 +33,7 @@ import java.util.Optional;
  * JSON serializable Pojo representing a test case.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public final class TestCaseNode {
+public class TestCaseNode {
 
   private final String name;
   private final VersionBoundsNode versionBounds;
@@ -76,46 +77,57 @@ public final class TestCaseNode {
     validate();
   }
 
+  @JsonIgnore
   public boolean isEnabled() {
     return enabled;
   }
 
+  @JsonProperty("name")
   public String name() {
     return name;
   }
 
+  @JsonIgnore
   public VersionBoundsNode versionBounds() {
     return versionBounds;
   }
 
+  @JsonIgnore
   public List<String> formats() {
     return formats;
   }
 
+  @JsonProperty("statements")
   public List<String> statements() {
     return statements;
   }
 
+  @JsonIgnore
   public Optional<ExpectedExceptionNode> expectedException() {
     return expectedException;
   }
 
+  @JsonProperty("topics")
   public List<TopicNode> topics() {
     return topics;
   }
 
+  @JsonProperty("inputs")
   public List<RecordNode> inputs() {
     return inputs;
   }
 
+  @JsonProperty("outputs")
   public List<RecordNode> outputs() {
     return outputs;
   }
 
+  @JsonProperty("post")
   public Optional<PostConditionsNode> postConditions() {
     return postConditions;
   }
 
+  @JsonProperty("properties")
   public Map<String, Object> properties() {
     return properties;
   }

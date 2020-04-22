@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.AuthenticationPluginHandler;
@@ -27,10 +30,12 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -40,7 +45,6 @@ import io.vertx.ext.web.handler.BodyHandler;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,10 +59,10 @@ public class ServerVerticle extends AbstractVerticle {
   private static final Logger log = LoggerFactory.getLogger(ServerVerticle.class);
 
   public static final Set<String> NON_PROXIED_ENDPOINTS = ImmutableSet
-      .of("/query-stream", "/inserts-stream", "/close-query", "/ksql");
-
-  // Quick switch so we can easily revert to not serving ported endpoints directly
-  private static final boolean SERVE_PORTED_ENDPOINTS = true;
+      .of("/query-stream", "/inserts-stream", "/close-query",
+          "/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
+          "/status/:type/:entity/:action", "/status", "/lag", "/healthcheck", "/v1/metadata",
+          "/v1/metadata/id", "/ws/query");
 
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
@@ -114,9 +118,12 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
-    if (SERVE_PORTED_ENDPOINTS) {
-      PortedEndpoints.setupFailureHandler(router);
-    }
+    // /chc endpoints need to be first because they need to be accessible even before
+    // preconditions have been satisfied
+    router.route(HttpMethod.GET, "/chc/ready").handler(ServerVerticle::chcHandler);
+    router.route(HttpMethod.GET, "/chc/live").handler(ServerVerticle::chcHandler);
+
+    PortedEndpoints.setupFailureHandler(router);
 
     KsqlCorsHandler.setupCorsHandler(server, router);
 
@@ -139,14 +146,8 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
 
-    if (SERVE_PORTED_ENDPOINTS) {
-      PortedEndpoints.setupEndpoints(endpoints, server, router);
-    }
-
-    if (proxyHandler != null) {
-      proxyHandler.setupRoutes(router);
-    }
-
+    PortedEndpoints.setupEndpoints(endpoints, server, router);
+    
     return router;
   }
 
@@ -170,9 +171,9 @@ public class ServerVerticle extends AbstractVerticle {
         );
       } else {
         final int errorCode;
-        if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+        if (statusCode == UNAUTHORIZED.code()) {
           errorCode = ErrorCodes.ERROR_FAILED_AUTHENTICATION;
-        } else if (statusCode == HttpStatus.SC_FORBIDDEN) {
+        } else if (statusCode == FORBIDDEN.code()) {
           errorCode = ErrorCodes.ERROR_FAILED_AUTHORIZATION;
         } else {
           errorCode = ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
@@ -242,7 +243,7 @@ public class ServerVerticle extends AbstractVerticle {
       // Fail the request as unauthorized - this will occur if no auth plugin but Jaas handler
       // is configured, but auth header is not basic auth
       routingContext
-          .fail(HttpStatus.SC_UNAUTHORIZED,
+          .fail(UNAUTHORIZED.code(),
               new KsqlApiException("Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION));
     }
   }
@@ -292,6 +293,11 @@ public class ServerVerticle extends AbstractVerticle {
     // Un-pause body handling as async auth provider calls have completed by this point
     routingContext.request().resume();
     routingContext.next();
+  }
+
+  private static void chcHandler(final RoutingContext routingContext) {
+    routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
+        .end(new JsonObject().toBuffer());
   }
 
   // Applies the handler to all non proxied endpoints

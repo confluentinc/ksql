@@ -1,73 +1,87 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572084595,
+  "path" : "query-validation-tests/case-expression.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ORDERUNITS DOUBLE> NOT NULL",
     "CSAS_S1_0.S1" : "STRUCT<CASE_RESAULT VARCHAR> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ORDERUNITS" : 6.0
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ORDERUNITS" : 3.0
-    }
-  }, {
-    "topic" : "test_topic",
-    "key" : "",
-    "value" : {
-      "ORDERUNITS" : 1.0
-    }
-  } ],
-  "outputs" : [ {
-    "topic" : "S1",
-    "key" : "",
-    "value" : {
-      "CASE_RESAULT" : "large"
-    }
-  }, {
-    "topic" : "S1",
-    "key" : "",
-    "value" : {
-      "CASE_RESAULT" : "medium"
-    }
-  }, {
-    "topic" : "S1",
-    "key" : "",
-    "value" : {
-      "CASE_RESAULT" : "small"
-    }
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "S1",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "test_topic",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "searched case expression",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ORDERUNITS" : 6.0
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ORDERUNITS" : 3.0
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ORDERUNITS" : 1.0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : "",
+      "value" : {
+        "CASE_RESAULT" : "large"
+      }
+    }, {
+      "topic" : "S1",
+      "key" : "",
+      "value" : {
+        "CASE_RESAULT" : "medium"
+      }
+    }, {
+      "topic" : "S1",
+      "key" : "",
+      "value" : {
+        "CASE_RESAULT" : "small"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM ORDERS (ORDERUNITS DOUBLE) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S1 AS SELECT (CASE WHEN (ORDERS.ORDERUNITS < 2.0) THEN 'small' WHEN (ORDERS.ORDERUNITS < 4.0) THEN 'medium' ELSE 'large' END) CASE_RESAULT\nFROM ORDERS ORDERS\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

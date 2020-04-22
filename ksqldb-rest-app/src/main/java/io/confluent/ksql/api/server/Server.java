@@ -41,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,7 +68,7 @@ public class Server {
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private WorkerExecutor workerExecutor;
-  private int jettyPort = -1;
+  private volatile int jettyPort = -1;
   private List<URI> listeners = new ArrayList<>();
 
   public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints,
@@ -171,7 +172,7 @@ public class Server {
     return workerExecutor;
   }
 
-  synchronized SocketAddress getProxyTarget() {
+  SocketAddress getProxyTarget() {
     if (jettyPort == -1) {
       throw new IllegalStateException("jetty port not set");
     }
@@ -235,7 +236,7 @@ public class Server {
     return ImmutableList.copyOf(listeners);
   }
 
-  public synchronized void setJettyPort(final int jettyPort) {
+  public void setJettyPort(final int jettyPort) {
     this.jettyPort = jettyPort;
   }
 
@@ -246,7 +247,10 @@ public class Server {
         .setHost(host)
         .setPort(port)
         .setReuseAddress(true)
-        .setReusePort(true);
+        .setReusePort(true)
+        .setIdleTimeout(60).setIdleTimeoutUnit(TimeUnit.SECONDS)
+        .setPerMessageWebSocketCompressionSupported(true)
+        .setPerFrameWebSocketCompressionSupported(true);
 
     if (tls) {
       options.setUseAlpn(true).setSsl(true);

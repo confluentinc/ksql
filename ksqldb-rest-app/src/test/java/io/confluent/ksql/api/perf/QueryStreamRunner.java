@@ -24,13 +24,17 @@ import io.confluent.ksql.api.endpoints.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.PushQueryHandle;
-import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.core.Context;
+import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.codec.BodyCodec;
@@ -116,8 +120,76 @@ public class QueryStreamRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeTerminate(
         final ClusterTerminateRequest request,
-        final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+        final WorkerExecutor workerExecutor,
+        final ApiSecurityContext apiSecurityContext) {
       return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
+        WorkerExecutor workerExecutor,
+        CompletableFuture<Void> connectionClosedFuture,
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeHeartbeat(HeartbeatMessage heartbeatMessage,
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeClusterStatus(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeStatus(String type, String entity,
+        String action, ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeAllStatuses(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeLagReport(
+        LagReportingMessage lagReportingMessage, ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeCheckHealth(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeServerMetadata(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+
     }
 
     synchronized void closePublishers() {

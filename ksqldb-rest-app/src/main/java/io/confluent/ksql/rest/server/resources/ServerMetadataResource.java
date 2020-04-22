@@ -15,38 +15,29 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerMetadata;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
 import java.util.Objects;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
-@Path("/v1/metadata")
-@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public final class ServerMetadataResource {
+
   private final ServerMetadata serverMetadata;
 
   private ServerMetadataResource(final ServerMetadata serverMetadata) {
     this.serverMetadata = Objects.requireNonNull(serverMetadata, "serverMetadata");
   }
 
-  @GET
-  public Response getServerMetadata() {
-    return Response.ok(serverMetadata).build();
+  public EndpointResponse getServerMetadata() {
+    return EndpointResponse.ok(serverMetadata);
   }
 
-  @GET
-  @Path("/id")
-  public Response getServerClusterId() {
-    return Response.ok(serverMetadata.getClusterId()).build();
+  public EndpointResponse getServerClusterId() {
+    return EndpointResponse.ok(serverMetadata.getClusterId());
   }
 
   public static ServerMetadataResource create(

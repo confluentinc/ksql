@@ -1,87 +1,105 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572097396,
+  "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "BIGINT",
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "BIGINT",
     "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ID1 BIGINT, ID2 BIGINT> NOT NULL"
   },
-  "inputs" : [ {
-    "topic" : "T1",
-    "key" : "0",
-    "value" : 1,
-    "timestamp" : 0
-  }, {
-    "topic" : "T2",
-    "key" : "0",
-    "value" : 2,
-    "timestamp" : 10
-  }, {
-    "topic" : "T1",
-    "key" : "0",
-    "value" : null,
-    "timestamp" : 20
-  }, {
-    "topic" : "T2",
-    "key" : "0",
-    "value" : null,
-    "timestamp" : 30
-  }, {
-    "topic" : "T1",
-    "key" : "0",
-    "value" : null,
-    "timestamp" : 40
-  } ],
-  "outputs" : [ {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : {
-      "ID1" : 1,
-      "ID2" : 2
-    },
-    "timestamp" : 10
-  }, {
-    "topic" : "OUTPUT",
-    "key" : "0",
-    "value" : null,
-    "timestamp" : 20
-  } ],
-  "postConditions" : {
-    "topics" : {
-      "topics" : [ {
-        "name" : "OUTPUT",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "T1",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      }, {
-        "name" : "T2",
-        "keyFormat" : {
-          "formatInfo" : {
-            "format" : "KAFKA"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        },
-        "partitions" : 4
-      } ]
+  "testCase" : {
+    "name" : "table to table unwrapped single field value schema on inputs",
+    "inputs" : [ {
+      "topic" : "T1",
+      "key" : "0",
+      "value" : 1,
+      "timestamp" : 0
+    }, {
+      "topic" : "T2",
+      "key" : "0",
+      "value" : 2,
+      "timestamp" : 10
+    }, {
+      "topic" : "T1",
+      "key" : "0",
+      "value" : null,
+      "timestamp" : 20
+    }, {
+      "topic" : "T2",
+      "key" : "0",
+      "value" : null,
+      "timestamp" : 30
+    }, {
+      "topic" : "T1",
+      "key" : "0",
+      "value" : null,
+      "timestamp" : 40
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "ID1" : 1,
+        "ID2" : 2
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : null,
+      "timestamp" : 20
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "T1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "T2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE T1 (ID BIGINT) WITH (KAFKA_TOPIC='T1', VALUE_FORMAT='JSON', WRAP_SINGLE_VALUE=false);", "CREATE TABLE T2 (ID BIGINT) WITH (KAFKA_TOPIC='T2', VALUE_FORMAT='JSON', WRAP_SINGLE_VALUE=false);", "CREATE TABLE OUTPUT AS SELECT\n  T1.ID ID1,\n  T2.ID ID2\nFROM T1 T1\nINNER JOIN T2 T2 ON ((T1.ROWKEY = T2.ROWKEY))\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "T1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "T2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
     }
   }
 }

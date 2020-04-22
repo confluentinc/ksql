@@ -1,9 +1,9 @@
 # KLIP 23 - Use PRIMARY KEYs for tables
 
 **Author**: @big-andy-coates |
-**Release Target**: TBD |
-**Status**: In Discussion |
-**Discussion**: TBD
+**Release Target**: 0.9 |
+**Status**: Merged |
+**Discussion**: [Github PR](https://github.com/confluentinc/ksql/pull/5008)
 
 **tl;dr:** In ksqlDB, Tables and Streams currently use the `KEY` keyword to identify columns that
 come from the Kafka message key, rather than the value. We propose introducing a syntax only change

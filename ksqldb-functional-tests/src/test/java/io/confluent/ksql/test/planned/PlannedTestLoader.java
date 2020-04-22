@@ -15,39 +15,57 @@
 
 package io.confluent.ksql.test.planned;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.test.loader.TestLoader;
 import io.confluent.ksql.test.tools.TestCase;
-import io.confluent.ksql.test.tools.VersionedTest;
-import java.util.Objects;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
- * Loads test cases that include physical plan for any QTT test case that should be tested
- * against a saved physical plan (according to {@link PlannedTestUtils#isPlannedTestCase})
+ * Loads test cases that include physical plan for any QTT test case that should be tested against a
+ * saved physical plan (according to {@link PlannedTestUtils#isPlannedTestCase})
  */
-public class PlannedTestLoader implements TestLoader<VersionedTest> {
+public final class PlannedTestLoader {
 
-  private final TestLoader<TestCase> innerLoader;
+  private final TestCasePlanLoader planLoader;
+  private final Predicate<Path> predicate;
 
-  private PlannedTestLoader(
-      final TestLoader<TestCase> innerLoader
+  public PlannedTestLoader() {
+    this(new TestCasePlanLoader(), defaultPredicate());
+  }
+
+  @VisibleForTesting
+  public PlannedTestLoader(
+      final TestCasePlanLoader planLoader,
+      final Predicate<Path> predicate
   ) {
-    this.innerLoader = Objects.requireNonNull(innerLoader, "innerLoader");
+    this.planLoader = requireNonNull(planLoader, "planLoader");
+    this.predicate = requireNonNull(predicate, "predicate");
   }
 
-  public static PlannedTestLoader of(final TestLoader<TestCase> innerLoader) {
-    return new PlannedTestLoader(innerLoader);
+  public Stream<TestCase> loadTests() {
+    return planLoader.load(predicate)
+        .map(PlannedTestUtils::buildPlannedTestCase);
   }
 
-  @Override
-  public Stream<VersionedTest> load() {
-    return innerLoader.load()
-        .filter(PlannedTestUtils::isPlannedTestCase)
-        .flatMap(PlannedTestLoader::buildHistoricalTestCases);
+  public static Stream<TestCase> load() {
+    return new PlannedTestLoader().loadTests();
   }
 
-  private static Stream<VersionedTest> buildHistoricalTestCases(final TestCase testCase) {
-    return TestCasePlanLoader.allForTestCase(testCase).stream()
-          .map(plan -> PlannedTestUtils.buildPlannedTestCase(testCase, plan));
+  @SuppressWarnings("UnstableApiUsage")
+  private static Predicate<Path> defaultPredicate() {
+    final List<String> whiteList = TestLoader.getWhiteList();
+    if (whiteList.isEmpty()) {
+      return path -> true;
+    }
+
+    return whiteList.stream()
+            .map(com.google.common.io.Files::getNameWithoutExtension)
+            .map(item -> (Predicate<Path>) path -> path.startsWith(item + "_-_"))
+            .reduce(path -> false, Predicate::or);
   }
 }

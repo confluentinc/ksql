@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
+import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.LagReportingResource;
@@ -66,6 +67,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final Optional<ClusterStatusResource> clusterStatusResource;
   private final StatusResource statusResource;
   private final Optional<LagReportingResource> lagReportingResource;
+  private final HealthCheckResource healthCheckResource;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   public KsqlServerEndpoints(
@@ -79,7 +81,9 @@ public class KsqlServerEndpoints implements Endpoints {
       final Optional<HeartbeatResource> heartbeatResource,
       final Optional<ClusterStatusResource> clusterStatusResource,
       final StatusResource statusResource,
-      final Optional<LagReportingResource> lagReportingResource) {
+      final Optional<LagReportingResource> lagReportingResource,
+      final HealthCheckResource healthCheckResource) {
+
     // CHECKSTYLE_RULES.ON: ParameterNumber
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
@@ -94,6 +98,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.clusterStatusResource = Objects.requireNonNull(clusterStatusResource);
     this.statusResource = Objects.requireNonNull(statusResource);
     this.lagReportingResource = Objects.requireNonNull(lagReportingResource);
+    this.healthCheckResource = Objects.requireNonNull(healthCheckResource);
   }
 
   @Override
@@ -207,6 +212,13 @@ public class KsqlServerEndpoints implements Endpoints {
             EndpointResponse.create(resource.receiveHostLag(lagReportingMessage))))
         .orElseGet(() -> CompletableFuture
             .completedFuture(EndpointResponse.create(HttpStatus.SC_NOT_FOUND, "Not found", null)));
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeCheckHealth(
+      final ApiSecurityContext apiSecurityContext) {
+    return CompletableFuture
+        .completedFuture(EndpointResponse.create(healthCheckResource.checkHealth()));
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

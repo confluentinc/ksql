@@ -59,7 +59,7 @@ class PortedEndpoints {
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
       .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
-          "/status/:type/:entity/:action", "/status", "/lag");
+          "/status/:type/:entity/:action", "/status", "/lag", "/healthcheck");
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
@@ -119,6 +119,10 @@ class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(MediaType.APPLICATION_JSON)
         .handler(new PortedEndpoints(endpoints, server)::handleLagReportRequest);
+    router.route(HttpMethod.GET, "/healthcheck")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(new PortedEndpoints(endpoints, server)::handleHealthcheckRequest);
   }
 
   static void setupFailureHandler(final Router router) {
@@ -202,6 +206,13 @@ class PortedEndpoints {
     handlePortedOldApiRequest(server, routingContext, LagReportingMessage.class,
         (request, apiSecurityContext) ->
             endpoints.executeLagReport(request, DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
+  void handleHealthcheckRequest(final RoutingContext routingContext) {
+    handlePortedOldApiRequest(server, routingContext, null,
+        (request, apiSecurityContext) ->
+            endpoints.executeCheckHealth(DefaultApiSecurityContext.create(routingContext))
     );
   }
 

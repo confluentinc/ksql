@@ -190,6 +190,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Optional<HeartbeatResource> heartbeatResource;
   private final Optional<ClusterStatusResource> clusterStatusResource;
   private final Optional<LagReportingResource> lagReportingResource;
+  private final HealthCheckResource healthCheckResource;
 
   // We embed this in here for now
   private Vertx vertx = null;
@@ -354,6 +355,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     } else {
       this.lagReportingResource = Optional.empty();
     }
+    this.healthCheckResource = HealthCheckResource.create(
+        ksqlResource,
+        serviceContext,
+        this.config,
+        this.ksqlConfigNoPort);
 
     sanityCheckPluginConfig(ksqlConfig.originals());
   }
@@ -366,12 +372,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
-    config.register(HealthCheckResource.create(
-        ksqlResource,
-        serviceContext,
-        this.config,
-        this.ksqlConfigNoPort)
-    );
+    config.register(healthCheckResource);
 
     if (heartbeatResource.isPresent()) {
       config.register(heartbeatResource.get());
@@ -432,7 +433,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         heartbeatResource,
         clusterStatusResource,
         statusResource,
-        lagReportingResource
+        lagReportingResource,
+        healthCheckResource
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,

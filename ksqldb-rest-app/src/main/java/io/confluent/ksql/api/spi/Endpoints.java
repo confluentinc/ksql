@@ -89,4 +89,6 @@ public interface Endpoints {
   CompletableFuture<EndpointResponse> executeLagReport(LagReportingMessage lagReportingMessage,
       ApiSecurityContext apiSecurityContext);
 
+  CompletableFuture<EndpointResponse> executeCheckHealth(ApiSecurityContext apiSecurityContext);
+
 }

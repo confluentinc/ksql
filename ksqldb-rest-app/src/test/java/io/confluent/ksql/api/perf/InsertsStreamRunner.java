@@ -225,6 +225,12 @@ public class InsertsStreamRunner extends BasePerfRunner {
         LagReportingMessage lagReportingMessage, ApiSecurityContext apiSecurityContext) {
       return null;
     }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeCheckHealth(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
   }
 
   private class InsertsSubscriber extends BaseSubscriber<JsonObject> implements

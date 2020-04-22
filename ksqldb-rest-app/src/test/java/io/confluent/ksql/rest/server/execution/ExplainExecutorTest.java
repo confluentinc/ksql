@@ -46,7 +46,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.Optional;
 
-import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -184,7 +183,7 @@ public class ExplainExecutorTest {
     when(metadata.getTopologyDescription()).thenReturn("topology");
     when(metadata.getExecutionPlan()).thenReturn("plan");
     when(metadata.getStatementString()).thenReturn("sql");
-    when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.PUSH);
+    when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.PERSISTENT);
 
     final KsqlTopic sinkTopic = mock(KsqlTopic.class);
     when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));

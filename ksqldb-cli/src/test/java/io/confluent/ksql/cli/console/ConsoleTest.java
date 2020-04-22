@@ -312,7 +312,7 @@ public class ConsoleTest {
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1 emit changes", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), queryStatusCount, KsqlConstants.KsqlQueryType.TRANSIENT));
+            "select * from t1 emit changes", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), queryStatusCount, KsqlConstants.KsqlQueryType.PUSH));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -336,7 +336,7 @@ public class ConsoleTest {
           + "      \"RUNNING\" : 1," + NEWLINE
           + "      \"ERROR\" : 2" + NEWLINE
           + "    }," + NEWLINE
-          + "    \"queryType\" : \"TRANSIENT\"," + NEWLINE
+          + "    \"queryType\" : \"PUSH\"," + NEWLINE
           + "    \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -345,7 +345,7 @@ public class ConsoleTest {
       assertThat(output, is("" + NEWLINE
           + " Query ID | Query Type | Status            | Sink Name | Sink Kafka Topic | Query String                  " + NEWLINE
           + "----------------------------------------------------------------------------------------------------" + NEWLINE
-          + " 0        | TRANSIENT  | " + STATUS_COUNT_STRING + " | Test      | Test topic       | select * from t1 emit changes " + NEWLINE
+          + " 0        | PUSH       | " + STATUS_COUNT_STRING + " | Test      | Test topic       | select * from t1 emit changes " + NEWLINE
           + "----------------------------------------------------------------------------------------------------" + NEWLINE
           + "For detailed information on a Query run: EXPLAIN <Query ID>;" + NEWLINE));
     }
@@ -368,10 +368,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PUSH)
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PUSH)
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -421,7 +421,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
-          + "      \"queryType\" : \"PUSH\"," + NEWLINE
+          + "      \"queryType\" : \"PERSISTENT\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
@@ -433,7 +433,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
-          + "      \"queryType\" : \"PUSH\"," + NEWLINE
+          + "      \"queryType\" : \"PERSISTENT\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
@@ -1038,10 +1038,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PUSH)
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PUSH)
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -1090,7 +1090,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
-          + "      \"queryType\" : \"PUSH\"," + NEWLINE
+          + "      \"queryType\" : \"PERSISTENT\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
@@ -1102,7 +1102,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
-          + "      \"queryType\" : \"PUSH\"," + NEWLINE
+          + "      \"queryType\" : \"PERSISTENT\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE

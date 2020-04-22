@@ -106,6 +106,6 @@ public class TransientQueryMetadataTest {
 
   @Test
   public void shouldReturnPushQueryTypeByDefault() {
-    assertThat(query.getQueryType(), is(KsqlQueryType.TRANSIENT));
+    assertThat(query.getQueryType(), is(KsqlQueryType.PUSH));
   }
 }

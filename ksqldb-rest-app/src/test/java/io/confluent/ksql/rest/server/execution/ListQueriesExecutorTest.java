@@ -450,7 +450,7 @@ public class ListQueriesExecutorTest {
   ) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     mockQuery(id, state, metadata);
-    when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.PUSH);
+    when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.PERSISTENT);
     when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     final KsqlTopic sinkTopic = mock(KsqlTopic.class);
     when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
@@ -466,7 +466,7 @@ public class ListQueriesExecutorTest {
   ) {
     final TransientQueryMetadata metadata = mock(TransientQueryMetadata.class);
     mockQuery(id, state, metadata);
-    when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.TRANSIENT);
+    when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.PUSH);
 
     return metadata;
   }

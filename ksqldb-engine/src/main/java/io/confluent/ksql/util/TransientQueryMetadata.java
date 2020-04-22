@@ -83,7 +83,7 @@ public class TransientQueryMetadata extends QueryMetadata {
   
   @Override
   public KsqlQueryType getQueryType() {
-    return KsqlQueryType.TRANSIENT;
+    return KsqlQueryType.PUSH;
   }
 
   @Override

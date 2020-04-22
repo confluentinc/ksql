@@ -43,7 +43,7 @@ public class QueriesTableBuilderTest {
         ImmutableSet.of("SINK"),
         new QueryId("0"),
         queryStatusCount,
-        KsqlConstants.KsqlQueryType.TRANSIENT);
+        KsqlConstants.KsqlQueryType.PUSH);
 
     // When:
     final Table table = buildTableWithSingleQuery(query);
@@ -51,7 +51,7 @@ public class QueriesTableBuilderTest {
     // Then:
     assertThat(table.headers(), contains("Query ID", "Query Type", "Status", "Sink Name", "Sink Kafka Topic", "Query String"));
     assertThat(table.rows(), hasSize(1));
-    assertThat(table.rows().get(0), contains("0", "TRANSIENT", STATUS, "SINK", "SINK", exampleQuery));
+    assertThat(table.rows().get(0), contains("0", KsqlConstants.KsqlQueryType.PUSH.toString(), STATUS, "SINK", "SINK", exampleQuery));
   }
 
   @Test
@@ -63,7 +63,7 @@ public class QueriesTableBuilderTest {
         ImmutableSet.of("S2"),
         new QueryId("CSAS_S2_0"),
         queryStatusCount,
-        KsqlConstants.KsqlQueryType.PUSH);
+        KsqlConstants.KsqlQueryType.PERSISTENT);
 
 
     // When:
@@ -72,7 +72,7 @@ public class QueriesTableBuilderTest {
     // Then:
     assertThat(table.headers(), contains("Query ID", "Query Type", "Status", "Sink Name", "Sink Kafka Topic", "Query String"));
     assertThat(table.rows(), hasSize(1));
-    assertThat(table.rows().get(0), contains("CSAS_S2_0", "PUSH", STATUS, "S2", "S2", "CREATE STREAM S2 AS SELECT * FROM S1 EMIT CHANGES;"));
+    assertThat(table.rows().get(0), contains("CSAS_S2_0", KsqlConstants.KsqlQueryType.PERSISTENT.toString(), STATUS, "S2", "S2", "CREATE STREAM S2 AS SELECT * FROM S1 EMIT CHANGES;"));
   }
 
   private Table buildTableWithSingleQuery(RunningQuery query) {

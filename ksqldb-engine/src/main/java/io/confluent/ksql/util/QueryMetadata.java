@@ -179,7 +179,7 @@ public abstract class QueryMetadata {
   }
 
   public KsqlQueryType getQueryType() {
-    return KsqlQueryType.PUSH;
+    return KsqlQueryType.PERSISTENT;
   }
 
   /**

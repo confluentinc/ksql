@@ -42,7 +42,7 @@ Example
 ```sql
 ksql> show queries;
 
- Query ID    | Query Type | Status    | Sink Name | Sink Kafka Topic | Query String                                                                                                                                
+ Query ID    | Query Type       | Status    | Sink Name | Sink Kafka Topic | Query String                                                                                                                                
 ------------------------------------------------------------------------------------------------------------
  CSAS_TEST_0 | PERSISTENT       | RUNNING:2 | TEST      | TEST             | CREATE STREAM TEST WITH (KAFKA_TOPIC='TEST', PARTITIONS=1, REPLICAS=1) AS SELECT *FROM KSQL_PROCESSING_LOG KSQL_PROCESSING_LOG EMIT CHANGES; 
 ------------------------------------------------------------------------------------------------------------

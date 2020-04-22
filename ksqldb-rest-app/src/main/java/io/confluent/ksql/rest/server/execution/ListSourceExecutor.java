@@ -232,7 +232,7 @@ public final class ListSourceExecutor {
             QueryStatusCount.fromStreamsStateCounts(
                 Collections.singletonMap(
                     KafkaStreams.State.valueOf(q.getState()), 1)),
-            KsqlConstants.KsqlQueryType.PUSH)).collect(Collectors.toList());
+            KsqlConstants.KsqlQueryType.PERSISTENT)).collect(Collectors.toList());
   }
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {

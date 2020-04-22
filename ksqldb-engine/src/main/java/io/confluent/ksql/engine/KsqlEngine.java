@@ -44,7 +44,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.Closeable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

@@ -37,7 +37,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -220,13 +219,13 @@ public class QueryDescriptionFactoryTest {
   }
 
   @Test
-  public void shouldHavePushQueryTypePersistentQuery() {
-    assertThat(persistentQueryDescription.getQueryType(), is(KsqlQueryType.PUSH));
+  public void shouldHavePersistentQueryTypePersistentQueryDescription() {
+    assertThat(persistentQueryDescription.getQueryType(), is(KsqlQueryType.PERSISTENT));
   }
 
   @Test
-  public void shouldHaveTransientQueryTypeTransientQuery() {
-    assertThat(transientQueryDescription.getQueryType(), is(KsqlQueryType.TRANSIENT));
+  public void shouldHavePushQueryTypeTransientQueryDescription() {
+    assertThat(transientQueryDescription.getQueryType(), is(KsqlQueryType.PUSH));
   }
 
   @Test

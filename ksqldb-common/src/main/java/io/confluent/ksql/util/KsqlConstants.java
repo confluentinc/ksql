@@ -47,8 +47,8 @@ public final class KsqlConstants {
       AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
 
   public enum KsqlQueryType {
-    PUSH,
-    TRANSIENT
+    PERSISTENT,
+    PUSH
   }
 
   public enum KsqlQueryStatus {

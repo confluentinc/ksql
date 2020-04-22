@@ -330,7 +330,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
     final Queries queries = (Queries) response.getResponse().get(0);
     return queries.getQueries().stream()
-        .filter(query -> query.getQueryType() == KsqlConstants.KsqlQueryType.PUSH)
+        .filter(query -> query.getQueryType() == KsqlConstants.KsqlQueryType.PERSISTENT)
         .map(RunningQuery::getId)
         .map(QueryId::toString)
         .collect(Collectors.toSet());

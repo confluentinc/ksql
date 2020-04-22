@@ -213,7 +213,7 @@ public class QueryMetadataTest {
   }
 
   @Test
-  public void shouldReturnPushQueryTypeByDefault() {
-    assertThat(query.getQueryType(), is(KsqlQueryType.PUSH));
+  public void shouldReturnPersistentQueryTypeByDefault() {
+    assertThat(query.getQueryType(), is(KsqlQueryType.PERSISTENT));
   }
 }

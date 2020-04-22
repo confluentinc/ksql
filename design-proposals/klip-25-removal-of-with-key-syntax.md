@@ -76,7 +76,7 @@ track these `key-fields`. KsqDB also tries to keep track of the key field in der
 too, for example:
 
 ```sql
-CREATE TABLE FOO AS ID, COUNT() FROM BAR GROUP BY ID;
+CREATE TABLE FOO AS SELECT ID, COUNT() FROM BAR GROUP BY ID;
 -- Foo has key-field 'ID'
 ```
 
@@ -84,7 +84,7 @@ In the above, KsqlDB will detect that `FOO``s `ID` column is equivalent to `ROWK
 only handle a single field. If there are multiple, only the first is tracked, for example:
 
 ```sql
-CREATE TABLE FOO AS ID AS ID1, ID AS ID2, COUNT() FROM BAR GROUP BY ID;
+CREATE TABLE FOO AS SELECT ID AS ID1, ID AS ID2, COUNT() FROM BAR GROUP BY ID;
 -- Foo has key-field 'ID1'
 -- `ID2` is not a key field, even though its a duplicate of `ID1`
 ```

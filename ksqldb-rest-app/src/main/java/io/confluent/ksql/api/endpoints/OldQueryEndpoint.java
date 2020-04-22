@@ -47,9 +47,7 @@ public class OldQueryEndpoint {
     if (response.getEntity() instanceof StreamingOutput) {
       return StreamedEndpointResponse.create(((StreamingOutput) response.getEntity()));
     } else {
-      return EndpointResponse
-          .create(response.getStatus(), response.getStatusInfo().getReasonPhrase(),
-              response.getEntity());
+      return EndpointResponse.create(response);
     }
 
 

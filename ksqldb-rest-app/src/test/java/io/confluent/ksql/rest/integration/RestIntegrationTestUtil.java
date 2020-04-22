@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
@@ -85,6 +86,17 @@ public final class RestIntegrationTestUtil {
       throwOnNoError(res);
 
       return res.getErrorMessage();
+    }
+  }
+
+  static ServerInfo makeInfoRequest(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<ServerInfo> res = restClient.getServerInfo();
+
+      throwOnError(res);
+
+      return res.getResponse();
     }
   }
 

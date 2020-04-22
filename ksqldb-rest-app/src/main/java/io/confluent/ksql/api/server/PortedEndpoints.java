@@ -52,7 +52,7 @@ import org.apache.http.HttpStatus;
 class PortedEndpoints {
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
-      .of("/ksql", "/ksql/terminate", "/query");
+      .of("/ksql", "/ksql/terminate", "/query", "/info");
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
@@ -86,6 +86,10 @@ class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(MediaType.APPLICATION_JSON)
         .handler(new PortedEndpoints(endpoints, server)::handleQueryRequest);
+    router.route(HttpMethod.GET, "/info")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(new PortedEndpoints(endpoints, server)::handleInfoRequest);
   }
 
   static void setupFailureHandler(final Router router) {
@@ -125,18 +129,29 @@ class PortedEndpoints {
     );
   }
 
+  void handleInfoRequest(final RoutingContext routingContext) {
+    handlePortedOldApiRequest(server, routingContext, null,
+        (request, apiSecurityContext) ->
+            endpoints.executeInfo(DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
   private static <T> void handlePortedOldApiRequest(final Server server,
       final RoutingContext routingContext,
       final Class<T> requestClass,
       final BiFunction<T, ApiSecurityContext, CompletableFuture<EndpointResponse>> requestor) {
     final HttpServerResponse response = routingContext.response();
     final T requestObject;
-    try {
-      requestObject = OBJECT_MAPPER.readValue(routingContext.getBody().getBytes(), requestClass);
-    } catch (Exception e) {
-      routingContext.fail(HttpStatus.SC_BAD_REQUEST,
-          new KsqlApiException("Malformed JSON", ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
-      return;
+    if (requestClass != null) {
+      try {
+        requestObject = OBJECT_MAPPER.readValue(routingContext.getBody().getBytes(), requestClass);
+      } catch (Exception e) {
+        routingContext.fail(HttpStatus.SC_BAD_REQUEST,
+            new KsqlApiException("Malformed JSON", ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
+        return;
+      }
+    } else {
+      requestObject = null;
     }
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));

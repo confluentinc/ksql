@@ -38,6 +38,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -45,6 +46,7 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.server.ServerVerticle;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
@@ -225,6 +227,15 @@ public class RestApiTest {
     // Then:
     assertThat(messages, hasSize(HEADER + LIMIT));
     assertValidJsonMessages(messages);
+  }
+
+  @Test
+  public void shouldExecuteInfoRequest() {
+    // When:
+    final ServerInfo response = RestIntegrationTestUtil.makeInfoRequest(REST_APP);
+
+    // Then:
+    assertThat(response.getVersion(), is(notNullValue()));
   }
 
   @Test

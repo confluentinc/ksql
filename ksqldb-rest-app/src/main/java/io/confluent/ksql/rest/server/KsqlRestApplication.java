@@ -186,6 +186,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final RoutingFilterFactory routingFilterFactory;
   private final PullQueryExecutor pullQueryExecutor;
   private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
+  private final ServerInfoResource serverInfoResource;
 
   // We embed this in here for now
   private Vertx vertx = null;
@@ -335,6 +336,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
     this.routingFilterFactory = initializeRoutingFilterFactory(
         ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
+    this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
 
     sanityCheckPluginConfig(ksqlConfig.originals());
   }
@@ -342,7 +344,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   @Override
   public void setupResources(final Configurable<?> config, final KsqlRestConfig appConfig) {
     config.register(rootDocument);
-    config.register(new ServerInfoResource(serviceContext, ksqlConfigNoPort));
+    config.register(serverInfoResource);
     config.register(ServerMetadataResource.create(serviceContext, ksqlConfigNoPort));
     config.register(statusResource);
     config.register(ksqlResource);
@@ -409,7 +411,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         pullQueryExecutor,
         ksqlSecurityContextProvider,
         ksqlResource,
-        streamedQueryResource
+        streamedQueryResource,
+        serverInfoResource
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,

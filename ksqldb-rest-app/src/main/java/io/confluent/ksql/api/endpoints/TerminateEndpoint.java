@@ -37,8 +37,7 @@ public class TerminateEndpoint {
 
     final Response response = ksqlResource.terminateCluster(ksqlSecurityContext, request);
 
-    return EndpointResponse.create(response.getStatus(), response.getStatusInfo().getReasonPhrase(),
-        response.getEntity());
+    return EndpointResponse.create(response);
   }
 
 }

@@ -784,7 +784,7 @@ public class SchemaKStreamTest {
 
     // When/Then:
     assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
-        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
+        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, `key` STRING, `val` BIGINT] | "
             + "Logger: query.node.source\n"
             + "\tparent plan"));
   }
@@ -809,7 +809,7 @@ public class SchemaKStreamTest {
 
     // When/Then:
     assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
-        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
+        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, `key` STRING, `val` BIGINT] | "
             + "Logger: query.node.source\n"));
   }
 
@@ -839,7 +839,7 @@ public class SchemaKStreamTest {
 
     // When/Then:
     assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
-        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
+        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, `key` STRING, `val` BIGINT] | "
             + "Logger: query.node.source\n"
             + "\tparent 1 plan"
             + "\tparent 2 plan"));

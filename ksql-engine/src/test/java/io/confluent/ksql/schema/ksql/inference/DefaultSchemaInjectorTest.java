@@ -277,7 +277,7 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(result.getStatementText(), is(
-        "CREATE STREAM cs ("
+        "CREATE STREAM `cs` ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
             + "DOUBLEFIELD DOUBLE, "
@@ -302,7 +302,7 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(result.getStatementText(), is(
-        "CREATE TABLE ct ("
+        "CREATE TABLE `ct` ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
             + "DOUBLEFIELD DOUBLE, "
@@ -329,7 +329,7 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(result.getStatementText(), is(
-        "CREATE STREAM cs ("
+        "CREATE STREAM `cs` ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
             + "DOUBLEFIELD DOUBLE, "
@@ -356,7 +356,7 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(result.getStatementText(), is(
-        "CREATE TABLE ct ("
+        "CREATE TABLE `ct` ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
             + "DOUBLEFIELD DOUBLE, "

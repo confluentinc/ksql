@@ -39,7 +39,7 @@ public final class ProcessingLogServerUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingLogServerUtils.class);
   private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(IdentifierUtil::needsQuotes, Option.AS_COLUMN_LIST);
+      new SqlSchemaFormatter(w -> !IdentifierUtil.isValid(w), Option.AS_COLUMN_LIST);
 
   private ProcessingLogServerUtils() {
   }

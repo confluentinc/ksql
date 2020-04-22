@@ -60,7 +60,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
   /**
    * Construct instance.
    *
-   * <p>The {@code reservedWordPredicate} allows this formatter, which lives in the common module,
+   * <p>The {@code addQuotesPredicate} allows this formatter, which lives in the common module,
    * to be wired up to the set of reserved words defined in the parser module. Wire up to
    * {@code ParserUtil::isReservedWord}.
    *
@@ -72,11 +72,11 @@ public class SqlSchemaFormatter implements SchemaFormatter {
    * quotes. NB: this also makes the field name case-sensitive. So care must be taken to ensure
    * field names have the correct case.
    *
-   * @param reservedWordPredicate predicate to determine if a word is reserved in the SQL syntax.
+   * @param addQuotesPredicate predicate to determine if a word should be quoted.
    * @param options the options to use when formatting the SQL.
    */
   public SqlSchemaFormatter(
-      final Predicate<String> reservedWordPredicate,
+      final Predicate<String> addQuotesPredicate,
       final Option... options
   ) {
     this.options = options.length == 0
@@ -84,7 +84,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
         : EnumSet.of(options[0], options);
 
     this.formatOptions = FormatOptions.of(
-        requireNonNull(reservedWordPredicate, "reservedWordPredicate")
+        requireNonNull(addQuotesPredicate, "addQuotesPredicate")
     );
   }
 

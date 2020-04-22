@@ -225,7 +225,7 @@ public class SqlFormatterTest {
     final String sql = SqlFormatter.formatSql(createStream);
 
     // Then:
-    assertThat(sql, is("CREATE STREAM TEST (ROWKEY STRING KEY, Foo STRING) "
+    assertThat(sql, is("CREATE STREAM TEST (ROWKEY STRING KEY, `Foo` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 
@@ -242,7 +242,7 @@ public class SqlFormatterTest {
     final String sql = SqlFormatter.formatSql(createStream);
 
     // Then:
-    assertThat(sql, is("CREATE STREAM TEST (Foo STRING, Bar STRING) "
+    assertThat(sql, is("CREATE STREAM TEST (`Foo` STRING, `Bar` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 
@@ -259,7 +259,7 @@ public class SqlFormatterTest {
     final String sql = SqlFormatter.formatSql(createTable);
 
     // Then:
-    assertThat(sql, is("CREATE TABLE TEST (ROWKEY STRING KEY, Foo STRING) "
+    assertThat(sql, is("CREATE TABLE TEST (ROWKEY STRING KEY, `Foo` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 
@@ -276,7 +276,7 @@ public class SqlFormatterTest {
     final String sql = SqlFormatter.formatSql(createTable);
 
     // Then:
-    assertThat(sql, is("CREATE TABLE TEST (Foo STRING, Bar STRING) "
+    assertThat(sql, is("CREATE TABLE TEST (`Foo` STRING, `Bar` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 

@@ -30,10 +30,12 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -115,6 +117,11 @@ public class ServerVerticle extends AbstractVerticle {
 
   private Router setupRouter() {
     final Router router = Router.router(vertx);
+
+    // /chc endpoints need to be first because they need to be accessible even before
+    // preconditions have been satisfied
+    router.route(HttpMethod.GET, "/chc/ready").handler(ServerVerticle::chcHandler);
+    router.route(HttpMethod.GET, "/chc/live").handler(ServerVerticle::chcHandler);
 
     PortedEndpoints.setupFailureHandler(router);
 
@@ -286,6 +293,11 @@ public class ServerVerticle extends AbstractVerticle {
     // Un-pause body handling as async auth provider calls have completed by this point
     routingContext.request().resume();
     routingContext.next();
+  }
+
+  private static void chcHandler(final RoutingContext routingContext) {
+    routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
+        .end(new JsonObject().toBuffer());
   }
 
   // Applies the handler to all non proxied endpoints

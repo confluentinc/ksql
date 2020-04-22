@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -56,9 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
@@ -110,12 +109,9 @@ public class DefaultSchemaInjectorTest {
           .build())),
       new TableElement(Namespace.VALUE,
           ColumnName.of("decimalField"), new Type(SqlTypes.decimal(4, 2))
-  ));
+      ));
 
   private static final int SCHEMA_ID = 5;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Statement statement;
@@ -223,12 +219,15 @@ public class DefaultSchemaInjectorTest {
     when(schemaSupplier.getValueSchema(any(), any()))
         .thenReturn(SchemaResult.failure(new KsqlException("schema missing or incompatible")));
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("schema missing or incompatible");
-
     // When:
-    injector.inject(ctStatement);
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> injector.inject(ctStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "schema missing or incompatible"));
   }
 
   @Test
@@ -413,12 +412,15 @@ public class DefaultSchemaInjectorTest {
     when(schemaSupplier.getValueSchema(any(), any()))
         .thenThrow(new KsqlException("Oh no!"));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Oh no");
-
     // When:
-    injector.inject(csStatement);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(csStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Oh no"));
   }
 
   @SuppressWarnings("SameParameterValue")

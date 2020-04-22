@@ -247,7 +247,7 @@ public class JaasAuthProviderTest {
         final Handler<Promise<User>> blockingCodeHandler = invocation.getArgument(0);
         final Handler<AsyncResult<User>> resultHandler = invocation.getArgument(1);
         final Promise<User> promise = Promise.promise();
-        promise.future().setHandler(resultHandler);
+        promise.future().onComplete(resultHandler);
         blockingCodeHandler.handle(promise);
         return null;
       }

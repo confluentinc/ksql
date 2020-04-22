@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.util;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -26,9 +28,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ComparisonUtilTest {
 
@@ -61,9 +61,6 @@ public class ComparisonUtilTest {
       ImmutableList.of(false, false, false, false, false, false, false, false, false) // Struct
   );
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void shouldAssertTrueForValidComparisons() {
     // When:
@@ -88,8 +85,8 @@ public class ComparisonUtilTest {
     // When:
     int i = 0;
     int j = 0;
-    for (final SqlType leftType: typesTable) {
-      for (final SqlType rightType: typesTable) {
+    for (final SqlType leftType : typesTable) {
+      for (final SqlType rightType : typesTable) {
         assertThat(ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL,
             rightType), is(expectedResults.get(i).get(j)));
         j++;
@@ -102,22 +99,28 @@ public class ComparisonUtilTest {
   @SuppressWarnings("ConstantConditions")
   @Test
   public void shouldNotCompareLeftNullSchema() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Comparison with NULL not supported: NULL = STRING");
-
     // When:
-    ComparisonUtil.isValidComparison(null, ComparisonExpression.Type.EQUAL, SqlTypes.STRING);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> ComparisonUtil.isValidComparison(null, ComparisonExpression.Type.EQUAL, SqlTypes.STRING)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Comparison with NULL not supported: NULL = STRING"));
   }
 
   @SuppressWarnings("ConstantConditions")
   @Test
   public void shouldNotCompareLeftRightSchema() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Comparison with NULL not supported: STRING = NULL");
-
     // When:
-    ComparisonUtil.isValidComparison(SqlTypes.STRING, ComparisonExpression.Type.EQUAL, null);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> ComparisonUtil.isValidComparison(SqlTypes.STRING, ComparisonExpression.Type.EQUAL, null)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Comparison with NULL not supported: STRING = NULL"));
   }
 }

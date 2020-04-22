@@ -21,7 +21,9 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -76,9 +78,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -103,11 +103,11 @@ public class JoinNodeTest {
       .build();
 
   private static final LogicalSchema RIGHT2_SOURCE_SCHEMA = LogicalSchema.builder()
-          .withRowTime()
-          .keyColumn(ColumnName.of("right2Key"), SqlTypes.BIGINT)
-          .valueColumn(ColumnName.of("C0"), SqlTypes.STRING)
-          .valueColumn(ColumnName.of("R2"), SqlTypes.BIGINT)
-          .build();
+      .withRowTime()
+      .keyColumn(ColumnName.of("right2Key"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("C0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("R2"), SqlTypes.BIGINT)
+      .build();
 
   private static final SourceName LEFT_ALIAS = SourceName.of("left");
   private static final SourceName RIGHT_ALIAS = SourceName.of("right");
@@ -122,7 +122,7 @@ public class JoinNodeTest {
   );
 
   private static final LogicalSchema RIGHT2_NODE_SCHEMA = prependAlias(
-          RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
   );
 
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
@@ -141,9 +141,6 @@ public class JoinNodeTest {
   private static final PlanNodeId nodeId = new PlanNodeId("join");
   private static final QueryContext.Stacker CONTEXT_STACKER =
       new QueryContext.Stacker().push(nodeId.toString());
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private DataSource leftSource;
@@ -254,19 +251,20 @@ public class JoinNodeTest {
     // Given:
     setupTopicClientExpectations(1, 2);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Can't join T1 with T2 since the number of partitions don't match. T1 "
-            + "partitions = 1; T2 partitions = 2. Please repartition either one so that the "
-            + "number of partitions match."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> buildJoin(
+            "SELECT t1.col0, t2.col0, t2.col1 "
+                + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0 EMIT CHANGES;"
+        )
     );
 
-    // When:
-    buildJoin(
-          "SELECT t1.col0, t2.col0, t2.col1 "
-              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0 EMIT CHANGES;"
-    );
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Can't join T1 with T2 since the number of partitions don't match. T1 "
+            + "partitions = 1; T2 partitions = 2. Please repartition either one so that the "
+            + "number of partitions match."));
   }
 
   @Test
@@ -367,14 +365,15 @@ public class JoinNodeTest {
         Optional.empty()
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Stream-Stream joins must have a WITHIN clause specified. None was provided."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.buildStream(ksqlStreamBuilder)
     );
 
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Stream-Stream joins must have a WITHIN clause specified. None was provided."));
   }
 
   @Test
@@ -394,14 +393,15 @@ public class JoinNodeTest {
         WITHIN_EXPRESSION
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Can't join left with right since the number of partitions don't match."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.buildStream(ksqlStreamBuilder)
     );
 
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Can't join left with right since the number of partitions don't match."));
   }
 
   @Test
@@ -496,14 +496,15 @@ public class JoinNodeTest {
         Optional.empty()
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Full outer joins between streams and tables are not supported."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.buildStream(ksqlStreamBuilder)
     );
 
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Full outer joins between streams and tables are not supported."));
   }
 
   @Test
@@ -522,14 +523,15 @@ public class JoinNodeTest {
         Optional.of(withinExpression)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "A window definition was provided for a Stream-Table join."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.buildStream(ksqlStreamBuilder)
     );
 
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "A window definition was provided for a Stream-Table join."));
   }
 
   @Test
@@ -620,14 +622,15 @@ public class JoinNodeTest {
         Optional.of(withinExpression)
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "A window definition was provided for a Table-Table join."
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.buildStream(ksqlStreamBuilder)
     );
 
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "A window definition was provided for a Table-Table join."));
   }
 
   @Test
@@ -728,16 +731,16 @@ public class JoinNodeTest {
   public void shouldResolveUnaliasedSelectStarWithMultipleJoins() {
     // Given:
     final JoinNode joinNode = new JoinNode(
-            nodeId,
+        nodeId,
+        JoinType.LEFT,
+        left,
+        new JoinNode(
+            new PlanNodeId("foo"),
             JoinType.LEFT,
-            left,
-            new JoinNode(
-                    new PlanNodeId("foo"),
-                    JoinType.LEFT,
-                    right,
-                    right2,
-                    Optional.empty()
-            ), Optional.empty()
+            right,
+            right2,
+            Optional.empty()
+        ), Optional.empty()
     );
 
     when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
@@ -760,17 +763,17 @@ public class JoinNodeTest {
   public void shouldResolveUnaliasedSelectStarWithMultipleJoinsOnLeftSide() {
     // Given:
     final JoinNode joinNode = new JoinNode(
-            nodeId,
+        nodeId,
+        JoinType.LEFT,
+        new JoinNode(
+            new PlanNodeId("foo"),
             JoinType.LEFT,
-            new JoinNode(
-                    new PlanNodeId("foo"),
-                    JoinType.LEFT,
-                    right,
-                    right2,
-                    Optional.empty()
-            ),
-            left,
+            right,
+            right2,
             Optional.empty()
+        ),
+        left,
+        Optional.empty()
     );
 
     when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
@@ -817,16 +820,16 @@ public class JoinNodeTest {
   public void shouldResolveNestedAliasedSelectStarByCallingOnlyCorrectParentWithMultiJoins() {
     // Given:
     final JoinNode joinNode = new JoinNode(
-            nodeId,
+        nodeId,
+        JoinType.LEFT,
+        left,
+        new JoinNode(
+            new PlanNodeId("foo"),
             JoinType.LEFT,
-            left,
-            new JoinNode(
-                    new PlanNodeId("foo"),
-                    JoinType.LEFT,
-                    right,
-                    right2,
-                    Optional.empty()
-            ), Optional.empty()
+            right,
+            right2,
+            Optional.empty()
+        ), Optional.empty()
     );
 
     when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));

@@ -23,9 +23,11 @@ import static io.confluent.ksql.execution.testutil.TestExpressions.COL7;
 import static io.confluent.ksql.execution.testutil.TestExpressions.MAPCOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.SCHEMA;
 import static io.confluent.ksql.execution.testutil.TestExpressions.literal;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -79,7 +81,6 @@ import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -100,9 +101,6 @@ public class ExpressionTypeManagerTest {
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() {
@@ -174,13 +172,17 @@ public class ExpressionTypeManagerTest {
     final ComparisonExpression expr = new ComparisonExpression(Type.GREATER_THAN,
         TestExpressions.COL0, COL1
     );
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("Cannot compare COL0 (BIGINT) to COL1 (STRING) with GREATER_THAN");
 
     // When:
-    expressionTypeManager.getExpressionSqlType(expr);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expr)
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot compare COL0 (BIGINT) to COL1 (STRING) with GREATER_THAN"
+    ));
   }
 
   @Test
@@ -191,41 +193,56 @@ public class ExpressionTypeManagerTest {
         new BooleanLiteral("true"),
         new BooleanLiteral("false")
     );
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot compare true (BOOLEAN) to false (BOOLEAN) with "
-        + "GREATER_THAN");
 
     // When:
-    expressionTypeManager.getExpressionSqlType(expr);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expr)
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot compare true (BOOLEAN) to false (BOOLEAN) with "
+            + "GREATER_THAN"
+    ));
   }
 
   @Test
   public void shouldFailForComplexTypeComparison() {
     // Given:
     final Expression expression = new ComparisonExpression(Type.GREATER_THAN, MAPCOL, ADDRESS);
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 (STRUCT<`NUMBER` BIGINT, "
-            + "`STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>) "
-            + "with GREATER_THAN");
 
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 (STRUCT<`NUMBER` BIGINT, "
+            + "`STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>) "
+            + "with GREATER_THAN"
+    ));
   }
 
   @Test
   public void shouldFailForCheckingComplexTypeEquality() {
     // Given:
     final Expression expression = new ComparisonExpression(Type.EQUAL, MAPCOL, ADDRESS);
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 "
-        + "(STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, "
-        + "`ZIPCODE` BIGINT>) with EQUAL");
 
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
 
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 "
+            + "(STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, "
+            + "`ZIPCODE` BIGINT>) with EQUAL"
+    ));
   }
 
   @Test
@@ -236,11 +253,11 @@ public class ExpressionTypeManagerTest {
         ColumnName.of("bar")
     );
 
-    // Then:
-    expectedException.expect(IllegalStateException.class);
-
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    assertThrows(
+        IllegalStateException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
   }
 
   @Test
@@ -334,12 +351,15 @@ public class ExpressionTypeManagerTest {
         "ZIP"
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not find field 'ZIP' in 'COL6'.");
-
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not find field 'ZIP' in 'COL6'."));
   }
 
   @Test
@@ -383,12 +403,15 @@ public class ExpressionTypeManagerTest {
         )
     );
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot construct an array with all NULL elements");
-
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot construct an array with all NULL elements"));
   }
 
   @Test
@@ -401,12 +424,15 @@ public class ExpressionTypeManagerTest {
         )
     );
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot construct an array with mismatching types");
-
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot construct an array with mismatching types"));
   }
 
   @Test
@@ -435,12 +461,15 @@ public class ExpressionTypeManagerTest {
         )
     );
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Only STRING keys are supported in maps");
-
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Only STRING keys are supported in maps"));
   }
 
   @Test
@@ -455,12 +484,15 @@ public class ExpressionTypeManagerTest {
         )
     );
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot construct a map with mismatching value types");
-
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot construct a map with mismatching value types"));
   }
 
   @Test
@@ -473,12 +505,15 @@ public class ExpressionTypeManagerTest {
         )
     );
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot construct a map with all NULL values");
-
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot construct a map with all NULL values"));
   }
 
   @Test
@@ -628,15 +663,19 @@ public class ExpressionTypeManagerTest {
         ),
         Optional.empty()
     );
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
         "WHEN operand type should be boolean."
             + System.lineSeparator()
             + "Type for '(COL0 + 10)' is BIGINT"
-    );
-
-    // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    ));
   }
 
   @Test
@@ -655,17 +694,21 @@ public class ExpressionTypeManagerTest {
         ),
         Optional.empty()
     );
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
         "Invalid Case expression. Type for all 'THEN' clauses should be the same."
             + System.lineSeparator()
             + "THEN expression 'WHEN (COL0 = 10) THEN 10' has type: INTEGER."
             + System.lineSeparator()
             + "Previous THEN expression(s) type: STRING."
-    );
-
-    // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    ));
 
   }
 
@@ -681,35 +724,39 @@ public class ExpressionTypeManagerTest {
         ),
         Optional.of(new BooleanLiteral("true"))
     );
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
         "Invalid Case expression. Type for the default clause should be the same as for 'THEN' clauses."
             + System.lineSeparator()
             + "THEN type: STRING."
             + System.lineSeparator()
             + "DEFAULT type: BOOLEAN."
-    );
-
-    // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    ));
   }
 
   @Test
   public void shouldThrowOnTimeLiteral() {
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    expressionTypeManager.getExpressionSqlType(new TimeLiteral("TIME '00:00:00'"));
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> expressionTypeManager.getExpressionSqlType(new TimeLiteral("TIME '00:00:00'"))
+    );
   }
 
   @Test
   public void shouldThrowOnTimestampLiteral() {
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    expressionTypeManager.getExpressionSqlType(new TimestampLiteral("TIMESTAMP '00:00:00'"));
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> expressionTypeManager.getExpressionSqlType(new TimestampLiteral("TIMESTAMP '00:00:00'"))
+    );
   }
 
   @Test
@@ -720,11 +767,11 @@ public class ExpressionTypeManagerTest {
         new InListExpression(ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2)))
     );
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
   }
 
   @Test
@@ -735,11 +782,11 @@ public class ExpressionTypeManagerTest {
         Optional.empty()
     );
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
   }
 
   private void givenUdfWithNameAndReturnType(final String name, final SqlType returnType) {

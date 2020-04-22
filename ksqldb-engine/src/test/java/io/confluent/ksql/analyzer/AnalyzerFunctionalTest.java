@@ -17,8 +17,10 @@ package io.confluent.ksql.analyzer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -54,9 +56,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -79,9 +79,6 @@ public class AnalyzerFunctionalTest {
 
   private MutableMetaStore jsonMetaStore;
   private MutableMetaStore avroMetaStore;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Sink sink;
@@ -143,7 +140,7 @@ public class AnalyzerFunctionalTest {
         is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
   }
 
-    @Test
+  @Test
   public void shouldUseExplicitNamespaceWhenFormatIsInheritedForAvro() {
     final String simpleQuery = "create stream s1 with (VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1') as select * from test1;";
 
@@ -155,9 +152,9 @@ public class AnalyzerFunctionalTest {
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-      assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-          is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
-              .of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")))));
+    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
+        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
+            .of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")))));
   }
 
   @Test
@@ -229,10 +226,15 @@ public class AnalyzerFunctionalTest {
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("JSON does not support the following configs: [fullSchemaName]");
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+    );
 
-    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "JSON does not support the following configs: [fullSchemaName]"));
   }
 
   @Test
@@ -246,10 +248,16 @@ public class AnalyzerFunctionalTest {
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("fullSchemaName cannot be empty. Format configuration: {fullSchemaName=}");
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+    );
 
-    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "fullSchemaName cannot be empty. Format configuration: {fullSchemaName=}"
+    ));
   }
 
   @Test
@@ -280,12 +288,15 @@ public class AnalyzerFunctionalTest {
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Can not join 'TEST1' to 'TEST1': self joins are not yet supported.");
-
     // When:
-    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Can not join 'TEST1' to 'TEST1': self joins are not yet supported."));
   }
 
   @Test
@@ -300,14 +311,17 @@ public class AnalyzerFunctionalTest {
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid comparison expression ''foo'' in join "
-        + "'(T1.ROWKEY = 'foo')'. Each side of the join comparision must contain references "
-        + "from exactly one source.");
-
     // When:
-    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid comparison expression ''foo'' in join "
+            + "'(T1.ROWKEY = 'foo')'. Each side of the join comparision must contain references "
+            + "from exactly one source."));
   }
 
   @Test
@@ -322,14 +336,17 @@ public class AnalyzerFunctionalTest {
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid comparison expression '(T1.ROWKEY + T2.ROWKEY)' in "
-        + "join '((T1.ROWKEY + T2.ROWKEY) = T1.ROWKEY)'. Each side of the join comparision must "
-        + "contain references from exactly one source.");
-
     // When:
-    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid comparison expression '(T1.ROWKEY + T2.ROWKEY)' in "
+            + "join '((T1.ROWKEY + T2.ROWKEY) = T1.ROWKEY)'. Each side of the join comparision must "
+            + "contain references from exactly one source."));
   }
 
   @Test
@@ -344,13 +361,16 @@ public class AnalyzerFunctionalTest {
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Each side of the join must reference exactly one source "
-        + "and not the same source. Left side references `T1` and right references `T1`");
-
     // When:
-    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Each side of the join must reference exactly one source "
+            + "and not the same source. Left side references `T1` and right references `T1`"));
   }
 
   @SuppressWarnings("unchecked")

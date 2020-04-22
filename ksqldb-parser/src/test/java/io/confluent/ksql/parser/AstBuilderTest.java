@@ -36,6 +36,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
@@ -529,6 +530,18 @@ public class AstBuilderTest {
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+  }
+
+  @Test
+  public void shouldSupportQuotedExplainStatements() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("EXPLAIN `CSAS_FOO-BAR`;");
+
+    // When:
+    final Explain explain = (Explain) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(explain.getQueryId(), is(Optional.of("CSAS_FOO-BAR")));
   }
 
   private static SingleStatementContext givenQuery(final String sql) {

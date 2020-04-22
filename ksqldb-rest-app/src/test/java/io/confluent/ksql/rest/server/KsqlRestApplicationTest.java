@@ -49,7 +49,6 @@ import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
-import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -97,8 +96,6 @@ public class KsqlRestApplicationTest {
   private ProcessingLogConfig processingLogConfig;
   @Mock
   private CommandRunner commandRunner;
-  @Mock
-  private RootDocument rootDocument;
   @Mock
   private StatusResource statusResource;
   @Mock
@@ -464,7 +461,6 @@ public class KsqlRestApplicationTest {
         restConfig,
         commandRunner,
         commandQueue,
-        rootDocument,
         statusResource,
         streamedQueryResource,
         ksqlResource,

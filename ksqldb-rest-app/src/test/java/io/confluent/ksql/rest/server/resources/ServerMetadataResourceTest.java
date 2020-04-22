@@ -107,5 +107,4 @@ public class ServerMetadataResourceTest {
         equalTo(ServerClusterId.of(KAFKA_CLUSTER_ID, KSQL_SERVICE_ID))
     );
   }
-  
 }

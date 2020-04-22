@@ -16,28 +16,27 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.vertx.core.http.ServerWebSocket;
 import java.io.IOException;
 import java.util.Collection;
 import javax.websocket.CloseReason.CloseCodes;
-import javax.websocket.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(WebSocketSubscriber.class);
-  private final Session session;
-  private final ObjectMapper mapper;
+  private final ServerWebSocket websocket;
 
   private Flow.Subscription subscription;
-  private volatile boolean closed = false;
+  private volatile boolean closed;
+  private volatile boolean drainHandlerSet;
 
-  WebSocketSubscriber(final Session session, final ObjectMapper mapper) {
-    this.session = session;
-    this.mapper = mapper;
+  WebSocketSubscriber(final ServerWebSocket websocket) {
+    this.websocket = websocket;
   }
 
   public void onSubscribe(final Flow.Subscription subscription) {
@@ -52,53 +51,45 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
       // logging too many async callback errors after close
       if (!closed) {
         try {
-          final String buffer = mapper.writeValueAsString(row);
-          session.getAsyncRemote().sendText(
-              buffer, result -> {
-                if (!result.isOK()) {
-                  log.warn(
-                      "Error sending websocket message for session {}",
-                      session.getId(),
-                      result.getException()
-                  );
-                }
-              });
-
+          final String buffer = ApiJsonMapper.INSTANCE.get().writeValueAsString(row);
+          websocket.writeTextMessage(buffer);
+          if (websocket.writeQueueFull()) {
+            drainHandlerSet = true;
+            websocket.drainHandler(v -> websocketDrained());
+          }
         } catch (final JsonProcessingException e) {
-          log.warn("Error serializing row in session {}", session.getId(), e);
+          log.warn("Error serializing row to websocket", e);
         }
       }
     }
-    if (!closed) {
-      subscription.request(1);
-    }
+    checkRequestTokens();
   }
 
   @Override
   public void onError(final Throwable e) {
-    log.error("error in session {}", session.getId(), e);
+    log.error("error in websocket", e);
 
     final String msg = e.getMessage() == null || e.getMessage().trim().isEmpty()
         ? "KSQL exception: " + e.getClass().getSimpleName()
         : e.getMessage();
 
-    SessionUtil.closeSilently(session, CloseCodes.UNEXPECTED_CONDITION, msg);
+    SessionUtil.closeSilently(websocket, CloseCodes.UNEXPECTED_CONDITION, msg);
   }
 
   @Override
   public void onComplete() {
-    SessionUtil.closeSilently(session, CloseCodes.NORMAL_CLOSURE, "done");
+    SessionUtil.closeSilently(websocket, CloseCodes.NORMAL_CLOSURE, "done");
   }
 
   @Override
   public void onSchema(final LogicalSchema schema) {
     try {
-      session.getBasicRemote().sendText(
-          mapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema))
-      );
+      websocket
+          .writeTextMessage(ApiJsonMapper.INSTANCE.get()
+              .writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema)));
     } catch (final IOException e) {
       log.error("Error sending schema", e);
-      SessionUtil.closeSilently(session, CloseCodes.PROTOCOL_ERROR, "Unable to send schema");
+      SessionUtil.closeSilently(websocket, CloseCodes.PROTOCOL_ERROR, "Unable to send schema");
     }
   }
 
@@ -109,4 +100,16 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
       subscription.cancel();
     }
   }
+
+  private void checkRequestTokens() {
+    if (!closed && !drainHandlerSet) {
+      subscription.request(1);
+    }
+  }
+
+  private void websocketDrained() {
+    drainHandlerSet = false;
+    checkRequestTokens();
+  }
+
 }

@@ -132,10 +132,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.websocket.DeploymentException;
-import javax.websocket.server.ServerEndpoint;
-import javax.websocket.server.ServerEndpointConfig;
-import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
@@ -145,7 +141,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.hk2.utilities.Binder;
 import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
@@ -189,6 +184,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Optional<LagReportingResource> lagReportingResource;
   private final HealthCheckResource healthCheckResource;
   private volatile ServerMetadataResource serverMetadataResource;
+  private volatile WSQueryEndpoint wsQueryEndpoint;
+  private volatile ListeningScheduledExecutorService oldApiWebsocketExecutor;
 
   // We embed this in here for now
   private Vertx vertx = null;
@@ -378,6 +375,40 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       config.register(lagReportingResource.get());
     }
     config.register(new ServerStateDynamicBinding(serverState));
+
+    final StatementParser statementParser = new StatementParser(ksqlEngine);
+    final Optional<KsqlAuthorizationValidator> authorizationValidator =
+        KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
+    final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
+        KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
+        ErrorMessages.class
+    ));
+
+    final KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(ksqlConfigNoPort.originals());
+
+    oldApiWebsocketExecutor = MoreExecutors.listeningDecorator(
+        Executors.newScheduledThreadPool(
+            ksqlRestConfig.getInt(KsqlRestConfig.KSQL_WEBSOCKETS_NUM_THREADS),
+            new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("websockets-query-thread-%d")
+                .build()
+        )
+    );
+
+    this.wsQueryEndpoint = new WSQueryEndpoint(
+        ksqlConfigNoPort,
+        statementParser,
+        ksqlEngine,
+        commandStore,
+        oldApiWebsocketExecutor,
+        versionCheckerAgent::updateLastRequestTime,
+        Duration.ofMillis(ksqlRestConfig.getLong(
+            KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+        authorizationValidator,
+        errorHandler,
+        pullQueryExecutor
+    );
   }
 
   @Override
@@ -430,7 +461,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         statusResource,
         lagReportingResource,
         healthCheckResource,
-        serverMetadataResource
+        serverMetadataResource,
+        wsQueryEndpoint
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,
@@ -579,6 +611,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       vertx = null;
     }
 
+    if (oldApiWebsocketExecutor != null) {
+      oldApiWebsocketExecutor.shutdown();
+    }
+
     shutdownAdditionalAgents();
   }
 
@@ -648,64 +684,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     securityExtension.getAuthorizationProvider().ifPresent(
         ac -> config.register(new KsqlAuthorizationFilter(ac))
     );
-  }
-
-  @SuppressWarnings("UnstableApiUsage")
-  @Override
-  protected void registerWebSocketEndpoints(final ServerContainer container) {
-    try {
-      final ListeningScheduledExecutorService exec = MoreExecutors.listeningDecorator(
-          Executors.newScheduledThreadPool(
-              config.getInt(KsqlRestConfig.KSQL_WEBSOCKETS_NUM_THREADS),
-              new ThreadFactoryBuilder()
-                  .setDaemon(true)
-                  .setNameFormat("websockets-query-thread-%d")
-                  .build()
-          )
-      );
-
-      final StatementParser statementParser = new StatementParser(ksqlEngine);
-      final Optional<KsqlAuthorizationValidator> authorizationValidator =
-          KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
-      final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
-          KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
-          ErrorMessages.class
-      ));
-
-      container.addEndpoint(
-          ServerEndpointConfig.Builder
-              .create(
-                  WSQueryEndpoint.class,
-                  WSQueryEndpoint.class.getAnnotation(ServerEndpoint.class).value()
-              )
-              .configurator(new Configurator() {
-                @Override
-                @SuppressWarnings("unchecked")
-                public <T> T getEndpointInstance(final Class<T> endpointClass) {
-                  return (T) new WSQueryEndpoint(
-                      buildConfigWithPort(),
-                      ApiJsonMapper.INSTANCE.get(),
-                      statementParser,
-                      ksqlEngine,
-                      commandStore,
-                      exec,
-                      versionCheckerAgent::updateLastRequestTime,
-                      Duration.ofMillis(config.getLong(
-                          KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-                      authorizationValidator,
-                      errorHandler,
-                      securityExtension,
-                      serverState,
-                      serviceContext.getSchemaRegistryClientFactory(),
-                      pullQueryExecutor
-                  );
-                }
-              })
-              .build()
-      );
-    } catch (final DeploymentException e) {
-      log.error("Unable to create websockets endpoint", e);
-    }
   }
 
   static KsqlRestApplication buildApplication(

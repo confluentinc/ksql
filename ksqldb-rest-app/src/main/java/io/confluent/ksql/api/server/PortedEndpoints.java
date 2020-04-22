@@ -44,6 +44,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -61,7 +62,7 @@ class PortedEndpoints {
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
       .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
           "/status/:type/:entity/:action", "/status", "/lag", "/healthcheck", "/v1/metadata",
-          "/v1/metadata/id");
+          "/v1/metadata/id", "/ws/query");
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
@@ -135,6 +136,8 @@ class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(MediaType.APPLICATION_JSON)
         .handler(new PortedEndpoints(endpoints, server)::handleServerMetadataClusterIdRequest);
+    router.route(HttpMethod.GET, "/ws/query")
+        .handler(new PortedEndpoints(endpoints, server)::handleWebsocket);
   }
 
   static void setupFailureHandler(final Router router) {
@@ -248,6 +251,14 @@ class PortedEndpoints {
     // (This preserves behaviour of the old API)
     routingContext.response().putHeader("location", "/info")
         .setStatusCode(TEMPORARY_REDIRECT.code()).end();
+  }
+
+  void handleWebsocket(final RoutingContext routingContext) {
+    final ApiSecurityContext apiSecurityContext = DefaultApiSecurityContext.create(routingContext);
+    final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
+    endpoints
+        .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
+            server.getWorkerExecutor(), apiSecurityContext);
   }
 
   private static <T> void handlePortedOldApiRequest(final Server server,

@@ -31,7 +31,7 @@ public class TableFunctionFactory {
 
   public TableFunctionFactory(final UdfMetadata metadata) {
     this.metadata = Objects.requireNonNull(metadata, "metadata");
-    this.udtfIndex = new UdfIndex<>(metadata.getName());
+    this.udtfIndex = new UdfIndex<>(metadata.getName(), true);
   }
 
   public UdfMetadata getMetadata() {

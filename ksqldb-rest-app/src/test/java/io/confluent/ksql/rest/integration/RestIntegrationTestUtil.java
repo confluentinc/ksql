@@ -24,6 +24,7 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -93,6 +94,28 @@ public final class RestIntegrationTestUtil {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
 
       final RestResponse<ServerInfo> res = restClient.getServerInfo();
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static CommandStatus makeStatusRequest(final TestKsqlRestApp restApp, final String commandId) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<CommandStatus> res = restClient.getStatus(commandId);
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static CommandStatuses makeStatusesRequest(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<CommandStatuses> res = restClient.getAllStatuses();
 
       throwOnError(res);
 

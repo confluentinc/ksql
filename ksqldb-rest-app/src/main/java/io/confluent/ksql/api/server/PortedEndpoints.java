@@ -38,6 +38,7 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.Router;
@@ -56,7 +57,8 @@ import org.apache.http.HttpStatus;
 class PortedEndpoints {
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
-      .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus");
+      .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
+          "/status/:type/:entity/:action", "/status");
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
@@ -103,6 +105,14 @@ class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(MediaType.APPLICATION_JSON)
         .handler(new PortedEndpoints(endpoints, server)::handleClusterStatusRequest);
+    router.route(HttpMethod.GET, "/status/:type/:entity/:action")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(new PortedEndpoints(endpoints, server)::handleStatusRequest);
+    router.route(HttpMethod.GET, "/status")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(new PortedEndpoints(endpoints, server)::handleAllStatusesRequest);
   }
 
   static void setupFailureHandler(final Router router) {
@@ -156,11 +166,29 @@ class PortedEndpoints {
     );
   }
 
-
   void handleHeartbeatRequest(final RoutingContext routingContext) {
     handlePortedOldApiRequest(server, routingContext, HeartbeatMessage.class,
         (request, apiSecurityContext) ->
             endpoints.executeHeartbeat(request, DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
+  void handleStatusRequest(final RoutingContext routingContext) {
+    final HttpServerRequest request = routingContext.request();
+    final String type = request.getParam("type");
+    final String entity = request.getParam("entity");
+    final String action = request.getParam("action");
+    handlePortedOldApiRequest(server, routingContext, null,
+        (r, apiSecurityContext) ->
+            endpoints.executeStatus(type, entity, action,
+                DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
+  void handleAllStatusesRequest(final RoutingContext routingContext) {
+    handlePortedOldApiRequest(server, routingContext, null,
+        (r, apiSecurityContext) ->
+            endpoints.executeAllStatuses(DefaultApiSecurityContext.create(routingContext))
     );
   }
 

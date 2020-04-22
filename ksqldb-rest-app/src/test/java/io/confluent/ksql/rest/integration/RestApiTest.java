@@ -46,6 +46,12 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.server.ServerVerticle;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.rest.entity.CommandId;
+import io.confluent.ksql.rest.entity.CommandId.Action;
+import io.confluent.ksql.rest.entity.CommandId.Type;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatus.Status;
+import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -236,6 +242,28 @@ public class RestApiTest {
 
     // Then:
     assertThat(response.getVersion(), is(notNullValue()));
+  }
+
+  @Test
+  public void shouldExecuteStatusRequest() {
+
+    // When:
+    String commandId = "stream/`" + PAGE_VIEW_STREAM + "`/create";
+    final CommandStatus response = RestIntegrationTestUtil.makeStatusRequest(REST_APP, commandId);
+
+    // Then:
+    assertThat(response.getStatus(), is(Status.SUCCESS));
+  }
+
+  @Test
+  public void shouldExecuteStatusesRequest() {
+
+    // When:
+    final CommandStatuses response = RestIntegrationTestUtil.makeStatusesRequest(REST_APP);
+
+    // Then:
+    CommandId expected = new CommandId(Type.STREAM, "`" + PAGE_VIEW_STREAM + "`", Action.CREATE);
+    assertThat(response.containsKey(expected), is(true));
   }
 
   @Test

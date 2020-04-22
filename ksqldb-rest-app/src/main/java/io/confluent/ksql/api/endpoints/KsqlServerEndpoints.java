@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
+import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -61,6 +62,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final ServerInfoResource serverInfoResource;
   private final Optional<HeartbeatResource> heartbeatResource;
   private final Optional<ClusterStatusResource> clusterStatusResource;
+  private final StatusResource statusResource;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
@@ -71,7 +73,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final StreamedQueryResource streamedQueryResource,
       final ServerInfoResource serverInfoResource,
       final Optional<HeartbeatResource> heartbeatResource,
-      final Optional<ClusterStatusResource> clusterStatusResource) {
+      final Optional<ClusterStatusResource> clusterStatusResource,
+      final StatusResource statusResource) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor);
@@ -83,6 +86,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.serverInfoResource = Objects.requireNonNull(serverInfoResource);
     this.heartbeatResource = Objects.requireNonNull(heartbeatResource);
     this.clusterStatusResource = Objects.requireNonNull(clusterStatusResource);
+    this.statusResource = Objects.requireNonNull(statusResource);
   }
 
   @Override
@@ -172,6 +176,20 @@ public class KsqlServerEndpoints implements Endpoints {
             EndpointResponse.create(resource.checkClusterStatus())))
         .orElseGet(() -> CompletableFuture
             .completedFuture(EndpointResponse.create(HttpStatus.SC_NOT_FOUND, "Not found", null)));
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeStatus(final String type, final String entity,
+      final String action, final ApiSecurityContext apiSecurityContext) {
+    return CompletableFuture
+        .completedFuture(EndpointResponse.create(statusResource.getStatus(type, entity, action)));
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeAllStatuses(
+      final ApiSecurityContext apiSecurityContext) {
+    return CompletableFuture
+        .completedFuture(EndpointResponse.create(statusResource.getAllStatuses()));
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

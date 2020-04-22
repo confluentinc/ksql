@@ -34,7 +34,6 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
@@ -66,12 +65,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.regex.PatternSyntaxException;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
@@ -79,9 +73,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-@Path("/ksql")
-@Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
-@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class KsqlResource implements KsqlConfigurable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
@@ -111,7 +102,6 @@ public class KsqlResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private KsqlHostInfo localHost;
   private URL localUrl;
-
 
   public KsqlResource(
       final KsqlEngine ksqlEngine,
@@ -200,8 +190,6 @@ public class KsqlResource implements KsqlConfigurable {
     );
   }
 
-  @POST
-  @Path("/terminate")
   public Response terminateCluster(
       @Context final KsqlSecurityContext securityContext,
       final ClusterTerminateRequest request
@@ -229,7 +217,6 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
-  @POST
   public Response handleKsqlStatements(
       @Context final KsqlSecurityContext securityContext,
       final KsqlRequest request

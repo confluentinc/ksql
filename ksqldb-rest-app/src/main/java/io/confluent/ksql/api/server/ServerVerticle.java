@@ -56,10 +56,7 @@ public class ServerVerticle extends AbstractVerticle {
 
   public static final Set<String> NON_PROXIED_ENDPOINTS = ImmutableSet
       .of("/query-stream", "/inserts-stream", "/close-query",
-          "/ksql", "/ksql/terminate", "/query", "/info");
-
-  // Quick switch so we can easily revert to not serving ported endpoints directly
-  private static final boolean SERVE_PORTED_ENDPOINTS = true;
+          "/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus");
 
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
@@ -115,9 +112,7 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
-    if (SERVE_PORTED_ENDPOINTS) {
-      PortedEndpoints.setupFailureHandler(router);
-    }
+    PortedEndpoints.setupFailureHandler(router);
 
     KsqlCorsHandler.setupCorsHandler(server, router);
 
@@ -140,9 +135,7 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
 
-    if (SERVE_PORTED_ENDPOINTS) {
-      PortedEndpoints.setupEndpoints(endpoints, server, router);
-    }
+    PortedEndpoints.setupEndpoints(endpoints, server, router);
 
     if (proxyHandler != null) {
       proxyHandler.setupRoutes(router);

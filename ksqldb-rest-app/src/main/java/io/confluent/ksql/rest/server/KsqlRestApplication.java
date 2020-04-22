@@ -187,6 +187,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final PullQueryExecutor pullQueryExecutor;
   private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
   private final ServerInfoResource serverInfoResource;
+  private final Optional<HeartbeatResource> heartbeatResource;
+  private final Optional<ClusterStatusResource> clusterStatusResource;
 
   // We embed this in here for now
   private Vertx vertx = null;
@@ -336,7 +338,16 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
     this.routingFilterFactory = initializeRoutingFilterFactory(
         ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
+
     this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
+    if (heartbeatAgent.isPresent()) {
+      this.heartbeatResource = Optional.of(new HeartbeatResource(heartbeatAgent.get()));
+      this.clusterStatusResource = Optional.of(new ClusterStatusResource(
+          ksqlEngine, heartbeatAgent.get(), lagReportingAgent));
+    } else {
+      this.heartbeatResource = Optional.empty();
+      this.clusterStatusResource = Optional.empty();
+    }
 
     sanityCheckPluginConfig(ksqlConfig.originals());
   }
@@ -356,10 +367,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         this.ksqlConfigNoPort)
     );
 
-    if (heartbeatAgent.isPresent()) {
-      config.register(new HeartbeatResource(heartbeatAgent.get()));
-      config.register(new ClusterStatusResource(
-          ksqlEngine, heartbeatAgent.get(), lagReportingAgent));
+    if (heartbeatResource.isPresent()) {
+      config.register(heartbeatResource.get());
+      config.register(clusterStatusResource.get());
     }
     if (lagReportingAgent.isPresent()) {
       config.register(new LagReportingResource(lagReportingAgent.get()));
@@ -412,7 +422,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlSecurityContextProvider,
         ksqlResource,
         streamedQueryResource,
-        serverInfoResource
+        serverInfoResource,
+        heartbeatResource,
+        clusterStatusResource
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,

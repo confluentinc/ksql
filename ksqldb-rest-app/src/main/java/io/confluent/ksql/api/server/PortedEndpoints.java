@@ -28,9 +28,11 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.StreamedEndpointResponse;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
@@ -45,14 +47,16 @@ import java.io.BufferedOutputStream;
 import java.io.OutputStream;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.http.HttpStatus;
 
 class PortedEndpoints {
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
-      .of("/ksql", "/ksql/terminate", "/query", "/info");
+      .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus");
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
@@ -90,6 +94,15 @@ class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(MediaType.APPLICATION_JSON)
         .handler(new PortedEndpoints(endpoints, server)::handleInfoRequest);
+    router.route(HttpMethod.POST, "/heartbeat")
+        .handler(BodyHandler.create())
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(new PortedEndpoints(endpoints, server)::handleHeartbeatRequest);
+    router.route(HttpMethod.GET, "/clusterStatus")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(MediaType.APPLICATION_JSON)
+        .handler(new PortedEndpoints(endpoints, server)::handleClusterStatusRequest);
   }
 
   static void setupFailureHandler(final Router router) {
@@ -136,6 +149,21 @@ class PortedEndpoints {
     );
   }
 
+  void handleClusterStatusRequest(final RoutingContext routingContext) {
+    handlePortedOldApiRequest(server, routingContext, null,
+        (request, apiSecurityContext) ->
+            endpoints.executeClusterStatus(DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
+
+  void handleHeartbeatRequest(final RoutingContext routingContext) {
+    handlePortedOldApiRequest(server, routingContext, HeartbeatMessage.class,
+        (request, apiSecurityContext) ->
+            endpoints.executeHeartbeat(request, DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
   private static <T> void handlePortedOldApiRequest(final Server server,
       final RoutingContext routingContext,
       final Class<T> requestClass,
@@ -156,24 +184,40 @@ class PortedEndpoints {
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
     completableFuture.thenAccept(endpointResponse -> {
+      handleOldApiResponse(server, routingContext, response, endpointResponse);
+    }).exceptionally(t -> {
+      if (t instanceof CompletionException) {
+        t = t.getCause();
+      }
+      final Response errResponse = new KsqlExceptionMapper().toResponse(t);
+      handleOldApiResponse(server, routingContext, response, EndpointResponse.create(errResponse));
+      return null;
+    });
+  }
 
-      response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
+  private static void handleOldApiResponse(final Server server, final RoutingContext routingContext,
+      final HttpServerResponse response,
+      final EndpointResponse endpointResponse) {
+    response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
 
-      response.setStatusCode(endpointResponse.getStatusCode())
-          .setStatusMessage(endpointResponse.getStatusMessage());
+    response.setStatusCode(endpointResponse.getStatusCode())
+        .setStatusMessage(endpointResponse.getStatusMessage());
 
-      // What the old API returns in it's response is something of a mishmash - sometimes it's
-      // a plain String, other times it's an object that needs to be JSON encoded, other times
-      // it represents a stream.
-      if (endpointResponse instanceof StreamedEndpointResponse) {
-        if (routingContext.request().version() == HttpVersion.HTTP_2) {
-          // The old /query endpoint uses chunked encoding which is not supported in HTTP2
-          routingContext.response().setStatusCode(HttpStatus.SC_METHOD_NOT_ALLOWED)
-              .setStatusMessage("The /query endpoint is not available using HTTP2").end();
-          return;
-        }
-        response.putHeader(TRANSFER_ENCODING, CHUNKED_ENCODING);
-        streamEndpointResponse(server, response, (StreamedEndpointResponse) endpointResponse);
+    // What the old API returns in it's response is something of a mishmash - sometimes it's
+    // a plain String, other times it's an object that needs to be JSON encoded, other times
+    // it represents a stream.
+    if (endpointResponse instanceof StreamedEndpointResponse) {
+      if (routingContext.request().version() == HttpVersion.HTTP_2) {
+        // The old /query endpoint uses chunked encoding which is not supported in HTTP2
+        routingContext.response().setStatusCode(HttpStatus.SC_METHOD_NOT_ALLOWED)
+            .setStatusMessage("The /query endpoint is not available using HTTP2").end();
+        return;
+      }
+      response.putHeader(TRANSFER_ENCODING, CHUNKED_ENCODING);
+      streamEndpointResponse(server, response, (StreamedEndpointResponse) endpointResponse);
+    } else {
+      if (endpointResponse.getResponseBody() == null) {
+        response.end();
       } else {
         final Buffer responseBody;
         if (endpointResponse.getResponseBody() instanceof String) {
@@ -191,10 +235,7 @@ class PortedEndpoints {
         }
         response.end(responseBody);
       }
-    }).exceptionally(t -> {
-      routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR, t);
-      return null;
-    });
+    }
   }
 
   private static void streamEndpointResponse(final Server server, final HttpServerResponse response,

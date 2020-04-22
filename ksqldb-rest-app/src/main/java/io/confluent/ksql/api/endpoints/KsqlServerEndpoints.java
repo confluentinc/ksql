@@ -23,8 +23,11 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
+import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
@@ -36,9 +39,11 @@ import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.http.HttpStatus;
 import org.reactivestreams.Subscriber;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -54,6 +59,8 @@ public class KsqlServerEndpoints implements Endpoints {
   private final TerminateEndpoint terminateEndpoint;
   private final OldQueryEndpoint streamedQueryEndpoint;
   private final ServerInfoResource serverInfoResource;
+  private final Optional<HeartbeatResource> heartbeatResource;
+  private final Optional<ClusterStatusResource> clusterStatusResource;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
@@ -62,7 +69,9 @@ public class KsqlServerEndpoints implements Endpoints {
       final KsqlSecurityContextProvider ksqlSecurityContextProvider,
       final KsqlResource ksqlResource,
       final StreamedQueryResource streamedQueryResource,
-      final ServerInfoResource serverInfoResource) {
+      final ServerInfoResource serverInfoResource,
+      final Optional<HeartbeatResource> heartbeatResource,
+      final Optional<ClusterStatusResource> clusterStatusResource) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor);
@@ -72,6 +81,8 @@ public class KsqlServerEndpoints implements Endpoints {
     this.terminateEndpoint = new TerminateEndpoint(ksqlResource);
     this.streamedQueryEndpoint = new OldQueryEndpoint(streamedQueryResource);
     this.serverInfoResource = Objects.requireNonNull(serverInfoResource);
+    this.heartbeatResource = Objects.requireNonNull(heartbeatResource);
+    this.clusterStatusResource = Objects.requireNonNull(clusterStatusResource);
   }
 
   @Override
@@ -140,6 +151,27 @@ public class KsqlServerEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext) {
     return CompletableFuture
         .completedFuture(EndpointResponse.create(serverInfoResource.get()));
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeHeartbeat(
+      final HeartbeatMessage heartbeatMessage,
+      final ApiSecurityContext apiSecurityContext) {
+    return heartbeatResource.map(resource -> CompletableFuture
+        .completedFuture(
+            EndpointResponse.create(resource.registerHeartbeat(heartbeatMessage))))
+        .orElseGet(() -> CompletableFuture
+            .completedFuture(EndpointResponse.create(HttpStatus.SC_NOT_FOUND, "Not found", null)));
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeClusterStatus(
+      final ApiSecurityContext apiSecurityContext) {
+    return clusterStatusResource.map(resource -> CompletableFuture
+        .completedFuture(
+            EndpointResponse.create(resource.checkClusterStatus())))
+        .orElseGet(() -> CompletableFuture
+            .completedFuture(EndpointResponse.create(HttpStatus.SC_NOT_FOUND, "Not found", null)));
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

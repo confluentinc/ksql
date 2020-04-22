@@ -22,7 +22,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
 import java.util.function.Supplier;
-import javax.ws.rs.GET;
 import javax.ws.rs.core.Response;
 
 public class ServerInfoResource {
@@ -39,7 +38,6 @@ public class ServerInfoResource {
     )::get;
   }
 
-  @GET
   public Response get() {
     return Response.ok(serverInfo.get()).build();
   }

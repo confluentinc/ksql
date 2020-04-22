@@ -10,7 +10,7 @@ A common way that you might implement this architecture is to feed event streams
 Why ksqlDB?
 -----------
 
-Scaling stateful services is challenging. Coupling a stateful service with the responsibility of triggering side-effects makes it even harder. It’s up to you to manage both as if they were one, even though they might have completely different needs. If you want to change how side-effects behave, you also need to redeploy your stateful stream processor. ksqlDB helps simplify this by splitting things up: stateful stream processing is managed on a cluster of servers, while side-effects run inside your stateless application.
+Scaling stateful services is challenging. Coupling a stateful service with the responsibility of triggering side-effects makes it even harder. It’s up to you to manage both as if they were one, even though they might have completely different needs. If you want to change how side-effects behave, you also need to redeploy your stateful stream processor. ksqlDB helps simplify this by splitting things up: stateful stream processing is managed on a cluster of servers, while side-effects run inside your stateless microservice.
 
 ![easy](../img/microservice-easy.png){: class="centered-img" style="width: 70%"}
 
@@ -25,7 +25,7 @@ This tutorial shows how to create an event-driven microservice that identifies s
 
 ### Start the stack
 
-To get started, creating the following `docker-compose.yml` file. This file specifies all the infrastructure that you'll need to run this tutorial:
+To get started, create the following `docker-compose.yml` file. This specifies all the infrastructure that you'll need to run this tutorial:
 
 ```yaml
 ---
@@ -134,7 +134,7 @@ Before you issue more commands, tell ksqlDB to start all queries from earliest p
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-We want to model a stream of credit card transactions from which we'll find anomalous activity. To do that, create a ksqlDB stream to represent the transactions. Each transaction has a few key pieces of information, like the card number, amount, and email address that it's associated with. Because this topic does not exist, ksqlDB creates it on your behalf.
+We want to model a stream of credit card transactions from which we'll look for anomalous activity. To do that, create a ksqlDB stream to represent the transactions. Each transaction has a few key pieces of information, like the card number, amount, and email address that it's associated with. Because the specified topic (`transactions)` does not exist yet, ksqlDB creates it on your behalf.
 
 ```sql
 CREATE STREAM transactions (
@@ -159,7 +159,7 @@ The stream is also configured to use the `Avro` format for the value part of the
 
 ### Seed some transaction events
 
-With the stream in place, seed it with some initial events:
+With the stream in place, seed it with some initial events. Run these statements at the CLI:
 
 ```sql
 INSERT INTO transactions (
@@ -255,7 +255,7 @@ INSERT INTO transactions (
 
 ### Create the anomalies table
 
-If a single credit card is transacted many times within a short duration, there's probably something suspicious going on. A table is an ideal choice to model this because you want to aggregate events over time and find some activity that spans multiple events. Run the following statement:
+If a single credit card is transacted many times within a short duration, there's probably something suspicious going on. A table is an ideal choice to model this because you want to aggregate events over time and find activity that spans multiple events. Run the following statement:
 
 ```sql
 CREATE TABLE possible_anomalies WITH (
@@ -285,13 +285,13 @@ Let's break down what this does:
 - The underlying Kafka topic for this table is explicitly set to `possible_anomalies`.
 - The Avro schema that ksqlDB generates for the value portion of its records is recorded under the namespace `io.ksqldb.tutorial.PossibleAnomaly`. We'll use this later in the microservice.
 
-Let's what anomalies the table picked up. Run the following to select a stream of events emitted from the table:
+Let's see what anomalies the table picked up. Run the following to select a stream of events emitted from the table:
 
 ```sql
 SELECT * FROM possible_anomalies EMIT CHANGES;
 ```
 
-This should yield a single row. Three transactions for card number `358579699410099` were recorded with timestamps within a 30 second tumbling window:
+This should yield a single row. Three transactions for card number `358579699410099` were recorded with timestamps within a single 30 second tumbling window:
 
 ```
 +------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+
@@ -306,13 +306,13 @@ This should yield a single row. Three transactions for card number `358579699410
 |                  |                  |                  |                  |                  |                  |                  |                  |c89dc]            |                  |                  |
 ```
 
-You can also print out the contents of the underlying Kafka topic for this table, which we will programmatically access later in the microservice:
+You can also print out the contents of the underlying Kafka topic for this table, which we will programmatically access in the microservice:
 
 ```sql
 PRINT 'possible_anomalies' FROM BEGINNING;
 ```
 
-### Create a microservice with Kafka
+### Create a Kafka client project
 
 Notice that so far, all the heavy lifting happens inside of ksqlDB. ksqlDB takes care of the stateful stream processing. Triggering side-effects will be delegated to a light-weight service that consumes from a Kafka topic. We want to send an email each time an anomaly is found. To do that, we'll implement a simple, scalable microservice. In practice, you might use [Kafka Streams](https://kafka.apache.org/documentation/streams/) to handle this piece, but to keep things simple, we'll just use a Kafka consumer client.
 
@@ -464,7 +464,7 @@ mvn schema-registry:download
 
 You should now have a file called `src/main/avro/possible_anomalies-value.avsc`. This is the Avro schema generated by ksqlDB for the value portion of the Kafka records of the `possible_anomalies` topic.
 
-Next, compile the Avro schema into a Java file. The [Avro Maven plugin](https://avro.apache.org/docs/current/gettingstartedjava.html) (already added to the `pom.xml` file, too)` makes this simple:
+Next, compile the Avro schema into a Java file. The [Avro Maven plugin](https://avro.apache.org/docs/current/gettingstartedjava.html) (already added to the `pom.xml` file, too) makes this simple:
 
 ```
 mvn generate-sources
@@ -472,9 +472,9 @@ mvn generate-sources
 
 You should now have a file called `target/generated-sources/io/ksqldb/tutorial/PossibleAnomaly.java` containing the compiled Java code.
 
-### Write the client code
+### Write the Kafka consumer code
 
-Now we can write the code that triggers side effects when anomalies are found. Add the following Java file at `src/main/java/io/ksqldb/tutorial/EmailSender.java`. This is a simple program that consumes events from Kafka and sends an email with SendGrid for each one it finds. There are a few constants to fill in, including a SendGrid API key.
+Now we can write the code that triggers side effects when anomalies are found. Add the following Java file at `src/main/java/io/ksqldb/tutorial/EmailSender.java`. This is a simple program that consumes events from Kafka and sends an email with SendGrid for each one it finds. There are a few constants to fill in, including a SendGrid API key. You can get one by signing up for SendGrid, if you wish.
 
 ```java
 package io.ksqldb.tutorial;
@@ -604,7 +604,7 @@ mvn exec:java -Dexec.mainClass="io.ksqldb.tutorial.EmailSender"
 
 If everything is configured correctly, emails will be sent whenever an anomaly is detected. There are a few things to note with this simple implementation.
 
-First, if you can start more instances of this microservice, the partitions of the `possible_anomalies` topic will be load balanced across them. This takes advantage of the standard Kafka consumer groups behavior.
+First, if you start more instances of this microservice, the partitions of the `possible_anomalies` topic will be load balanced across them. This takes advantage of the standard [Kafka consumer groups](https://kafka.apache.org/documentation/#intro_consumers) behavior.
 
 Second, this microservice is configured to checkpoint its progress every `100` milliseconds through the `ENABLE_AUTO_COMMIT_CONFIG` configuration. That means any successfully processed messages will not be reprocessed if the microservice is taken down and turned on again.
 

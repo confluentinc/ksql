@@ -33,7 +33,7 @@ public class UdfFactory {
              final UdfMetadata metadata) {
     this.udfClass = Objects.requireNonNull(udfClass, "udfClass can't be null");
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
-    this.udfIndex = new UdfIndex<>(metadata.getName());
+    this.udfIndex = new UdfIndex<>(metadata.getName(), true);
   }
 
   synchronized void addFunction(final KsqlScalarFunction ksqlFunction) {

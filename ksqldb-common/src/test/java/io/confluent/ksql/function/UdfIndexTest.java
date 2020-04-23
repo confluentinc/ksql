@@ -59,7 +59,7 @@ public class UdfIndexTest {
 
   @Before
   public void setUp() {
-    udfIndex = new UdfIndex<>("name");
+    udfIndex = new UdfIndex<>("name", true);
   }
 
   @Test
@@ -739,6 +739,39 @@ public class UdfIndexTest {
         + "other(ARRAY<A>)"
         + lineSeparator()
         + "other(VARCHAR paramName, INT paramName)"));
+  }
+
+  @Test
+  public void shouldSupportMatchAndImplicitCastEnabled() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, false, DOUBLE)
+    );
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(INTEGER));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldThrowIfNoExactMatchAndImplicitCastDisabled() {
+    // Given:
+    udfIndex = new UdfIndex<>("name", false);
+    givenFunctions(
+            function(OTHER, false, DOUBLE)
+    );
+
+    // When:
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> udfIndex.getFunction(ImmutableList.of(SqlTypes.INTEGER))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+            + "(INTEGER)"));
   }
 
   private void givenFunctions(final KsqlScalarFunction... functions) {

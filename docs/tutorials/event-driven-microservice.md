@@ -509,13 +509,18 @@ import java.io.IOException;
 
 public class EmailSender {
 
+    // Matches the broker port specified in the Docker Compose file.
     private final static String BOOTSTRAP_SERVERS = "localhost:29092";
+    // Matches the Schema Registry port specified in the Docker Compose file.
     private final static String SCHEMA_REGISTRY_URL = "http://localhost:8081";
+    // Matches the topic name specified in the ksqlDB CREATE TABLE statement.
     private final static String TOPIC = "possible_anomalies";
-    private final static String FROM_EMAIL = "test@example.com";
-    private final static String SENDGRID_API_KEY = "";
-    private final static SendGrid sg = new SendGrid(SENDGRID_API_KEY);
+    // For you to fill in: which address SendGrid should send from.
+    private final static String FROM_EMAIL = "<< FILL ME IN >>";
+    // For you to fill in: the SendGrid API key to use their service.
+    private final static String SENDGRID_API_KEY = "<< FILL ME IN >>";
 
+    private final static SendGrid sg = new SendGrid(SENDGRID_API_KEY);
     private final static DateTimeFormatter formatter =
             DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
                     .withLocale(Locale.US)

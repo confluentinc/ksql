@@ -3,7 +3,7 @@
 **Author**: @big-andy-coates |
 **Release Target**: TBD |
 **Status**: Accepted |
-**Discussion**: TBC
+**Discussion**: [Github PR](https://github.com/confluentinc/ksql/pull/5117)
 
 **tl;dr:** The `WITH(KEY)` syntax is the cause of much confusion and errors as it requires users to
 have an _exact_ copy of the Kafka record's key in a field in the value. It allows users to provide

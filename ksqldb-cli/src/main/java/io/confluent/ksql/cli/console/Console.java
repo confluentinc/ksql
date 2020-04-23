@@ -457,10 +457,6 @@ public class Console implements Closeable {
   ) {
     final FieldType possibleFieldType = field.getType().orElse(null);
 
-    if (possibleFieldType == FieldType.SYSTEM) {
-      return String.format("%-16s %s", field.getSchema().toTypeString(), "(system)");
-    }
-
     if (possibleFieldType == FieldType.KEY) {
       final String wt = windowType
           .map(v -> " (Window type: " + v + ")")

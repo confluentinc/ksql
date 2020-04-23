@@ -55,7 +55,6 @@ public final class TableRowsEntityFactory {
     }
 
     return builder
-        .valueColumns(schema.metadata())
         .valueColumns(schema.value())
         .build();
   }
@@ -69,8 +68,6 @@ public final class TableRowsEntityFactory {
       rowList.add(window.start().toEpochMilli());
       rowList.add(window.end().toEpochMilli());
     });
-
-    rowList.add(row.rowTime());
 
     rowList.addAll(row.value().values());
 

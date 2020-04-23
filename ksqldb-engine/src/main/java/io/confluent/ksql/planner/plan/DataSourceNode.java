@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -34,9 +35,7 @@ import io.confluent.ksql.structured.SchemaKSourceFactory;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Immutable
@@ -140,19 +139,26 @@ public class DataSourceNode extends PlanNode {
         .withMetaAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   private static Stream<ColumnName> orderColumns(
       final List<Column> columns,
       final LogicalSchema schema
   ) {
-    // When doing a `select *` system and key columns should be at the front of the column list
+    // When doing a `select *` key columns should be at the front of the column list
     // but are added at the back during processing for performance reasons.
     // Switch them around here:
-    final Map<Boolean, List<Column>> partitioned = columns.stream().collect(Collectors
-        .groupingBy(c -> SchemaUtil.isSystemColumn(c.name()) || schema.isKeyColumn(c.name())));
+    final Stream<Column> keys = columns.stream()
+        .filter(c -> schema.isKeyColumn(c.name()));
 
-    final List<Column> all = partitioned.get(true);
-    all.addAll(partitioned.get(false));
-    return all.stream().map(Column::name);
+    final Stream<Column> windowBounds = columns.stream()
+        .filter(c -> SchemaUtil.isWindowBound(c.name()));
+
+    final Stream<Column> values = columns.stream()
+        .filter(c -> !SchemaUtil.isWindowBound(c.name()))
+        .filter(c -> !schema.isKeyColumn(c.name()))
+        .filter(c -> !schema.isMetaColumn(c.name()));
+
+    return Streams.concat(keys, windowBounds, values).map(Column::name);
   }
 
   @Immutable

@@ -71,7 +71,7 @@ class ColumnReferenceValidator {
     }
 
     @Override
-    public Void visitColumnReference(
+    public Void visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
         final Object context
     ) {

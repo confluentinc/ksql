@@ -604,7 +604,7 @@ class Analyzer {
 
       new TraversalExpressionVisitor<Void>() {
         @Override
-        public Void visitColumnReference(
+        public Void visitUnqualifiedColumnReference(
             final UnqualifiedColumnReferenceExp node,
             final Void context
         ) {

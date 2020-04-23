@@ -425,7 +425,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    public Expression visitColumnReference(
+    public Expression visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
         final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);

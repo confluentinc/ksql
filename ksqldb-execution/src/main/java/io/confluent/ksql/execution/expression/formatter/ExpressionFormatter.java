@@ -197,7 +197,7 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitColumnReference(
+    public String visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
         final Context context
     ) {

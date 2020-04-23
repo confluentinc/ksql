@@ -1,4 +1,4 @@
-# KLIP Number - Title
+# KLIP 25 - Removal of WITH(KEY) syntax
 
 **Author**: @big-andy-coates |
 **Release Target**: TBD |

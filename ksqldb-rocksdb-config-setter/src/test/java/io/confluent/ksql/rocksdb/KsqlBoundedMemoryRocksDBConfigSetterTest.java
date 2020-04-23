@@ -162,7 +162,8 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
   @Test
   public void shouldSetConfig() {
     // Given:
-    rocksDBConfig.configure(CONFIG_PROPS, rocksOptions, cacheFactory, bufferManagerFactory);
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(
+        CONFIG_PROPS, rocksOptions, cacheFactory, bufferManagerFactory);
 
     // When:
     rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());

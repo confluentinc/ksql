@@ -507,34 +507,12 @@
                     <compilerVersion>1.8</compilerVersion>
                     <source>1.8</source>
                     <target>1.8</target>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-serial,-options,-path</arg>
+                        <arg>-parameters</arg>
+                        <arg>${compile.warnings-flag}</arg>
+                    </compilerArgs>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-serial,-options,-path</arg>
-                                <arg>-parameters</arg>
-                                <arg>${compile.warnings-flag}</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>test-compile</id>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                        <configuration>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-options,-path</arg>
-                                <arg>-parameters</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

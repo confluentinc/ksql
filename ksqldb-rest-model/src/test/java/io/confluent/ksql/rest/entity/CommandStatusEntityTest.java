@@ -17,13 +17,13 @@ package io.confluent.ksql.rest.entity;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.ApiJsonMapper;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressFBWarnings("NP_NULL_PARAM_DEREF_NONVIRTUAL")
 public class CommandStatusEntityTest {
@@ -69,9 +69,6 @@ public class CommandStatusEntityTest {
   private static final CommandStatusEntity ENTITY_WITHOUT_SEQUENCE_NUMBER =
       new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, COMMAND_STATUS, null);
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void shouldSerializeToJson() throws Exception {
     // When:
@@ -113,21 +110,27 @@ public class CommandStatusEntityTest {
 
   @Test
   public void shouldThrowOnNullCommandId() {
-    // Given:
-    expectedException.expect(NullPointerException.class);
-    expectedException.expectMessage("commandId");
-
     // When:
-    new CommandStatusEntity(STATEMENT_TEXT, null, COMMAND_STATUS, COMMAND_SEQUENCE_NUMBER);
+    final Exception e = assertThrows(
+        NullPointerException.class,
+        () -> new CommandStatusEntity(STATEMENT_TEXT, null, COMMAND_STATUS, COMMAND_SEQUENCE_NUMBER)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "commandId"));
   }
 
   @Test
   public void shouldThrowOnNullCommandStatus() {
-    // Given:
-    expectedException.expect(NullPointerException.class);
-    expectedException.expectMessage("commandStatus");
-
     // When:
-    new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, null, COMMAND_SEQUENCE_NUMBER);
+    final Exception e = assertThrows(
+        NullPointerException.class,
+        () -> new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, null, COMMAND_SEQUENCE_NUMBER)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "commandStatus"));
   }
 }

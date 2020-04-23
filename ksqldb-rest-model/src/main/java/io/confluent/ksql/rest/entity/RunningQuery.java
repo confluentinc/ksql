@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -32,6 +34,7 @@ public class RunningQuery {
   private final Set<String> sinkKafkaTopics;
   private final QueryId id;
   private final QueryStatusCount statusCount;
+  private final KsqlConstants.KsqlQueryType queryType;
 
   @JsonCreator
   public RunningQuery(
@@ -39,13 +42,15 @@ public class RunningQuery {
       @JsonProperty("sinks") final Set<String> sinks,
       @JsonProperty("sinkKafkaTopics") final Set<String> sinkKafkaTopics,
       @JsonProperty("id") final QueryId id,
-      @JsonProperty("statusCount") final QueryStatusCount statusCount
+      @JsonProperty("statusCount") final QueryStatusCount statusCount,
+      @JsonProperty("queryType") final KsqlQueryType queryType
   ) {
     this.queryString = Objects.requireNonNull(queryString, "queryString");
     this.sinkKafkaTopics = Objects.requireNonNull(sinkKafkaTopics, "sinkKafkaTopics");
     this.sinks = Objects.requireNonNull(sinks, "sinks");
     this.id = Objects.requireNonNull(id, "id");
     this.statusCount = Objects.requireNonNull(statusCount, "statusCount");
+    this.queryType = Objects.requireNonNull(queryType, "queryType");
   }
 
   public String getQueryString() {
@@ -77,6 +82,10 @@ public class RunningQuery {
 
   public QueryStatusCount getStatusCount() {
     return statusCount;
+  }
+
+  public KsqlQueryType getQueryType() {
+    return queryType;
   }
 
   @Override

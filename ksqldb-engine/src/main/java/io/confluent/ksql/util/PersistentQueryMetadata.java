@@ -38,7 +38,6 @@ import org.apache.kafka.streams.Topology;
  */
 public class PersistentQueryMetadata extends QueryMetadata {
 
-  private final QueryId id;
   private final KsqlTopic resultTopic;
   private final SourceName sinkName;
   private final QuerySchemas schemas;
@@ -77,9 +76,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
         streamsProperties,
         overriddenProperties,
         closeCallback,
-        closeTimeout);
+        closeTimeout,
+        id);
 
-    this.id = requireNonNull(id, "id");
     this.resultTopic = requireNonNull(resultTopic, "resultTopic");
     this.sinkName = Objects.requireNonNull(sinkName, "sinkName");
     this.schemas = requireNonNull(schemas, "schemas");
@@ -94,7 +93,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final Consumer<QueryMetadata> closeCallback
   ) {
     super(other, closeCallback);
-    this.id = other.id;
     this.resultTopic = other.resultTopic;
     this.sinkName = other.sinkName;
     this.schemas = other.schemas;
@@ -109,10 +107,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public DataSourceType getDataSourceType() {
     return dataSourceType;
-  }
-
-  public QueryId getQueryId() {
-    return id;
   }
 
   public KsqlTopic getResultTopic() {

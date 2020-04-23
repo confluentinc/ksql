@@ -18,21 +18,18 @@ package io.confluent.ksql.serde.connect;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 
 public class ConnectSchemaTranslatorTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private final ConnectSchemaTranslator schemaTranslator = new ConnectSchemaTranslator();
 
@@ -51,13 +48,13 @@ public class ConnectSchemaTranslatorTest {
     assertThat(ksqlSchema.schema().type(), equalTo(Schema.Type.STRUCT));
     assertThat(ksqlSchema.fields().size(), equalTo(connectSchema.fields().size()));
     for (int i = 0; i < ksqlSchema.fields().size(); i++) {
-        assertThat(
-            ksqlSchema.fields().get(i).name(),
-            equalTo(connectSchema.fields().get(i).name().toUpperCase()));
-        assertThat(
-            ksqlSchema.fields().get(i).schema().type(),
-            equalTo(connectSchema.fields().get(i).schema().type()));
-        assertThat(ksqlSchema.fields().get(i).schema().isOptional(), is(true));
+      assertThat(
+          ksqlSchema.fields().get(i).name(),
+          equalTo(connectSchema.fields().get(i).name().toUpperCase()));
+      assertThat(
+          ksqlSchema.fields().get(i).schema().type(),
+          equalTo(connectSchema.fields().get(i).schema().type()));
+      assertThat(ksqlSchema.fields().get(i).schema().isOptional(), is(true));
     }
   }
 
@@ -205,15 +202,17 @@ public class ConnectSchemaTranslatorTest {
         .field("bytesField", Schema.BYTES_SCHEMA)
         .build();
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("Schema for the message value does not include any columns with "
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> schemaTranslator.toKsqlSchema(connectSchema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schema for the message value does not include any columns with "
             + "types that ksqlDB supports."
             + System.lineSeparator()
-            + "schema: bytesField BYTES");
-
-    // When:
-    schemaTranslator.toKsqlSchema(connectSchema);
+            + "schema: bytesField BYTES"));
   }
 }

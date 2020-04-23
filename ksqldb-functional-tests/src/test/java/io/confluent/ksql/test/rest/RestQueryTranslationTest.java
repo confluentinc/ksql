@@ -146,7 +146,7 @@ public class RestQueryTranslationTest {
     public Stream<RestTestCase> buildTests(final Path testPath) {
       return tests
           .stream()
-          .flatMap(node -> builder.buildTests(node, testPath).stream());
+          .flatMap(node -> RestTestCaseBuilder.buildTests(node, testPath).stream());
     }
   }
 }

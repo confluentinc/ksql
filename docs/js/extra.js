@@ -31,11 +31,29 @@
     var nav = document.querySelector('nav');
     var select = document.createElement('select');
 
+    var segs = window.location.pathname.split('/');
+    var currVersion = segs.reduce(function(acc, seg) {
+      if (LANGS.indexOf(acc.prev) > -1) {
+        acc.version = seg;
+      }
+      acc.prev = seg;
+      return acc;
+    }, {prev: '', version: null}).version;
+
+    if (!currVersion) {
+      console.warn('Version selector could not infer the current version. Are you running in a local development environment?');
+      return;
+    }
+
+    if (currVersion === 'latest') {
+      currVersion = config.defaultVersion;
+    }
+
     config.versions.forEach(function(v) {
       var option = document.createElement('option');
       option.value = v;
       option.innerText = v;
-      option.selected = v === config.defaultVersion;
+      option.selected = v === currVersion;
 
       select.append(option);
     });

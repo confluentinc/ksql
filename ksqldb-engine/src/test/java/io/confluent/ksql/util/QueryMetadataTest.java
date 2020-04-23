@@ -27,8 +27,10 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
@@ -47,6 +49,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryMetadataTest {
 
   private static final String QUERY_APPLICATION_ID = "Query1";
+  private static final QueryId QUERY_ID = new QueryId("queryId");
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
@@ -81,7 +84,8 @@ public class QueryMetadataTest {
         Collections.emptyMap(),
         Collections.emptyMap(),
         closeCallback,
-        closeTimeout) {
+        closeTimeout,
+        QUERY_ID) {
       @Override
       public void stop() {
         doClose(cleanUp);
@@ -206,5 +210,10 @@ public class QueryMetadataTest {
   @Test
   public void shouldReturnSchema() {
     assertThat(query.getLogicalSchema(), is(SOME_SCHEMA));
+  }
+
+  @Test
+  public void shouldReturnPersistentQueryTypeByDefault() {
+    assertThat(query.getQueryType(), is(KsqlQueryType.PERSISTENT));
   }
 }

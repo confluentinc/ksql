@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.execution.plan.Formats;
@@ -27,9 +30,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class CreateSourceCommandTest {
 
@@ -39,9 +40,6 @@ public class CreateSourceCommandTest {
   private static final ColumnName K0 = ColumnName.of("k0");
   private static final ColumnName K1 = ColumnName.of("k1");
   private static final ColumnName KEY_FIELD = ColumnName.of("keyField");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
 
   @Test(expected = UnsupportedOperationException.class)
@@ -77,26 +75,31 @@ public class CreateSourceCommandTest {
         .valueColumn(keyField, SqlTypes.STRING)
         .build();
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("The KEY field (keyField) identified in the "
-        + "WITH clause is of a different type to the actual key column.");
-    expectedException.expectMessage(
-        "Use of the KEY field is deprecated. Remove the KEY field from the WITH clause and "
-            + "specify the name of the key column by adding 'keyField STRING KEY' to the schema.");
-    expectedException.expectMessage("KEY field type: STRING");
-    expectedException.expectMessage("key column type: INTEGER");
-
     // When:
-    new TestCommand(
-        SOURCE_NAME,
-        schema,
-        Optional.of(keyField),
-        Optional.empty(),
-        TOPIC_NAME,
-        FORAMTS,
-        Optional.empty()
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> new TestCommand(
+            SOURCE_NAME,
+            schema,
+            Optional.of(keyField),
+            Optional.empty(),
+            TOPIC_NAME,
+            FORAMTS,
+            Optional.empty()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The KEY field (keyField) identified in the "
+            + "WITH clause is of a different type to the actual key column."));
+    assertThat(e.getMessage(), containsString(
+        "Use of the KEY field is deprecated. Remove the KEY field from the WITH clause and "
+            + "specify the name of the key column by adding 'keyField STRING KEY' to the schema."));
+    assertThat(e.getMessage(), containsString(
+        "KEY field type: STRING"));
+    assertThat(e.getMessage(), containsString(
+        "key column type: INTEGER"));
   }
 
   @Test
@@ -129,20 +132,23 @@ public class CreateSourceCommandTest {
         .valueColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.INTEGER)
         .build();
 
-    // Expect:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Schema contains system columns in value schema");
-
     // When:
-    new TestCommand(
-        SOURCE_NAME,
-        schema,
-        Optional.empty(),
-        Optional.empty(),
-        TOPIC_NAME,
-        FORAMTS,
-        Optional.empty()
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new TestCommand(
+            SOURCE_NAME,
+            schema,
+            Optional.empty(),
+            Optional.empty(),
+            TOPIC_NAME,
+            FORAMTS,
+            Optional.empty()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schema contains system columns in value schema"));
   }
 
   @Test
@@ -153,20 +159,23 @@ public class CreateSourceCommandTest {
         .valueColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.INTEGER)
         .build();
 
-    // Expect:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Schema contains system columns in value schema");
-
     // When:
-    new TestCommand(
-        SOURCE_NAME,
-        schema,
-        Optional.empty(),
-        Optional.empty(),
-        TOPIC_NAME,
-        FORAMTS,
-        Optional.empty()
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new TestCommand(
+            SOURCE_NAME,
+            schema,
+            Optional.empty(),
+            Optional.empty(),
+            TOPIC_NAME,
+            FORAMTS,
+            Optional.empty()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schema contains system columns in value schema"));
   }
 
   private static final class TestCommand extends CreateSourceCommand {

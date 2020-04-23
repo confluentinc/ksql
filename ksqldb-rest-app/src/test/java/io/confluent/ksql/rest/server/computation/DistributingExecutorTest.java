@@ -15,9 +15,11 @@
 package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -69,9 +71,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InOrder;
@@ -102,9 +102,6 @@ public class DistributingExecutorTest {
           KSQL_CONFIG
       );
   private static final CommandIdAssigner IDGEN = new CommandIdAssigner();
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private CommandQueue queue;
@@ -194,11 +191,11 @@ public class DistributingExecutorTest {
     // Given:
     doThrow(TimeoutException.class).when(transactionalProducer).initTransactions();
 
-    // Expect:
-    expectedException.expect(KsqlServerException.class);
-    
-    // Then:
-    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+    // When:
+    assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
     verify(transactionalProducer, times(0)).abortTransaction();
   }
 
@@ -233,14 +230,17 @@ public class DistributingExecutorTest {
     final KsqlException cause = new KsqlException("fail");
 
     when(queue.enqueueCommand(any(), any(), any())).thenThrow(cause);
-    // Expect:
-    expectedException.expect(KsqlServerException.class);
-    expectedException.expectMessage(
-        "Could not write the statement 'statement' into the command topic.");
-    expectedException.expectCause(is(cause));
 
     // When:
-    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not write the statement 'statement' into the command topic."));
+    assertThat(e.getCause(), (is(cause)));
     verify(transactionalProducer, times(1)).abortTransaction();
   }
 
@@ -253,12 +253,15 @@ public class DistributingExecutorTest {
         ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
     when(schemaInjector.inject(any())).thenThrow(new KsqlException("Could not infer!"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not infer!");
-
     // When:
-    distributor.execute(configured, executionContext, securityContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> distributor.execute(configured, executionContext, securityContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not infer!"));
   }
 
   @Test
@@ -274,11 +277,11 @@ public class DistributingExecutorTest {
     doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
         .checkAuthorization(eq(userSecurityContext), any(), eq(configured.getStatement()));
 
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-
     // When:
-    distributor.execute(configured, executionContext, userSecurityContext);
+    assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> distributor.execute(configured, executionContext, userSecurityContext)
+    );
   }
 
   @Test
@@ -298,12 +301,14 @@ public class DistributingExecutorTest {
                 securityContext.getServiceContext() == serviceContext),
             any(), any());
 
-    // Expect:
-    expectedException.expect(KsqlServerException.class);
-    expectedException.expectCause(is(instanceOf(KsqlTopicAuthorizationException.class)));
-
     // When:
-    distributor.execute(configured, executionContext, userSecurityContext);
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(configured, executionContext, userSecurityContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (is(instanceOf(KsqlTopicAuthorizationException.class))));
   }
 
   @Test
@@ -315,12 +320,15 @@ public class DistributingExecutorTest {
         ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
     doReturn(null).when(metaStore).getSource(SourceName.of("s1"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot insert into an unknown stream/table: `s1`");
-
     // When:
-    distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot insert into an unknown stream/table: `s1`"));
   }
 
   @Test
@@ -334,13 +342,16 @@ public class DistributingExecutorTest {
     doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
     when(dataSource.getKafkaTopicName()).thenReturn("_confluent-ksql-default__command-topic");
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot insert into read-only topic: "
-        + "_confluent-ksql-default__command-topic");
-
     // When:
-    distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot insert into read-only topic: "
+            + "_confluent-ksql-default__command-topic"));
   }
 
   @Test
@@ -354,12 +365,15 @@ public class DistributingExecutorTest {
     doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
     when(dataSource.getKafkaTopicName()).thenReturn("default_ksql_processing_log");
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot insert into read-only topic: "
-        + "default_ksql_processing_log");
-
     // When:
-    distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot insert into read-only topic: "
+            + "default_ksql_processing_log"));
   }
 }

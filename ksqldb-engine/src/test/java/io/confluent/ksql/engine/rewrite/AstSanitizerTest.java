@@ -16,10 +16,12 @@
 package io.confluent.ksql.engine.rewrite;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -41,9 +43,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class AstSanitizerTest {
 
@@ -53,20 +53,20 @@ public class AstSanitizerTest {
   private static final SourceName TEST1_NAME = SourceName.of("TEST1");
   private static final SourceName TEST2_NAME = SourceName.of("TEST2");
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void shouldThrowIfSourceDoesNotExist() {
     // Given:
     final Statement stmt = givenQuery("SELECT * FROM UNKNOWN;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
-
     // When:
-    AstSanitizer.sanitize(stmt, META_STORE);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist."));
   }
 
   @Test
@@ -74,12 +74,16 @@ public class AstSanitizerTest {
     // Given:
     final Statement stmt = givenQuery("SELECT * FROM UNKNOWN JOIN TEST2"
         + " ON UNKNOWN.col1 = test2.col1;");
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
 
     // When:
-    AstSanitizer.sanitize(stmt, META_STORE);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist."));
   }
 
   @Test
@@ -88,12 +92,15 @@ public class AstSanitizerTest {
     final Statement stmt = givenQuery("SELECT * FROM TEST1 JOIN UNKNOWN"
         + " ON test1.col1 = UNKNOWN.col1;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
-
     // When:
-    AstSanitizer.sanitize(stmt, META_STORE);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist."));
   }
 
   @Test
@@ -101,12 +108,15 @@ public class AstSanitizerTest {
     // Given:
     final Statement stmt = givenQuery("SELECT * FROM Unknown;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist");
-
     // When:
-    AstSanitizer.sanitize(stmt, META_STORE);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist"));
   }
 
   @Test
@@ -115,12 +125,15 @@ public class AstSanitizerTest {
     final Statement stmt =
         givenQuery("SELECT * FROM UNKNOWN JOIN TEST2 T2 WITHIN 1 SECOND ON UNKNOWN.ID = T2.ID;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist");
-
     // When:
-    AstSanitizer.sanitize(stmt, META_STORE);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist"));
   }
 
   @Test
@@ -129,12 +142,15 @@ public class AstSanitizerTest {
     final Statement stmt =
         givenQuery("SELECT * FROM TEST1 T1 JOIN UNKNOWN WITHIN 1 SECOND ON T1.ID = UNKNOWN.ID;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist");
-
     // When:
-    AstSanitizer.sanitize(stmt, META_STORE);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist"));
   }
 
   @Test
@@ -190,12 +206,15 @@ public class AstSanitizerTest {
     final Statement stmt = givenQuery(
         "SELECT COL0 FROM TEST1 JOIN TEST2 ON TEST1.COL0=TEST2.COL0;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Column 'COL0' is ambiguous.");
-
     // When:
-    AstSanitizer.sanitize(stmt, META_STORE);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Column 'COL0' is ambiguous."));
   }
 
   @Test

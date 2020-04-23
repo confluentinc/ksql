@@ -73,14 +73,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SqlFormatterTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private AliasedRelation leftAlias;
   private AliasedRelation rightAlias;
@@ -171,8 +166,8 @@ public class SqlFormatterTest {
     right2Alias = new AliasedRelation(right2, SourceName.of("R2"));
 
     criteria = new JoinOn(new ComparisonExpression(ComparisonExpression.Type.EQUAL,
-                                                   new StringLiteral("left.col0"),
-                                                   new StringLiteral("right.col0")));
+        new StringLiteral("left.col0"),
+        new StringLiteral("right.col0")));
     criteria2 = new JoinOn(new ComparisonExpression(ComparisonExpression.Type.EQUAL,
         new StringLiteral("left.col0"),
         new StringLiteral("right2.col0")));
@@ -357,7 +352,7 @@ public class SqlFormatterTest {
         Optional.of(new WithinExpression(10, TimeUnit.SECONDS)))));
 
     final String expected = "`left` L\nLEFT OUTER JOIN `right` R WITHIN 10 SECONDS ON "
-                            + "(('left.col0' = 'right.col0'))";
+        + "(('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 
@@ -385,7 +380,7 @@ public class SqlFormatterTest {
         Optional.of(new WithinExpression(10, TimeUnit.SECONDS)))));
 
     final String expected = "`left` L\nINNER JOIN `right` R WITHIN 10 SECONDS ON "
-                            + "(('left.col0' = 'right.col0'))";
+        + "(('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 
@@ -413,7 +408,7 @@ public class SqlFormatterTest {
         Optional.of(new WithinExpression(10, TimeUnit.SECONDS)))));
 
     final String expected = "`left` L\nFULL OUTER JOIN `right` R WITHIN 10 SECONDS ON"
-                            + " (('left.col0' = 'right.col0'))";
+        + " (('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 

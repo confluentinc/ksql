@@ -31,8 +31,10 @@ import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
 import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -82,9 +84,7 @@ import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -130,9 +130,6 @@ public class CreateSourceFactoryTest {
 
   private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet
       .of(SerdeOption.UNWRAP_SINGLE_VALUES);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KafkaTopicClient topicClient;
@@ -333,13 +330,15 @@ public class CreateSourceFactoryTest {
     final CreateStream statement
         = new CreateStream(SOME_NAME, TableElements.of(), true, withProperties);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "The statement does not define any columns.");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The statement does not define any columns."));
   }
 
   @Test
@@ -348,13 +347,15 @@ public class CreateSourceFactoryTest {
     final CreateTable statement
         = new CreateTable(SOME_NAME, TableElements.of(), true, withProperties);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "The statement does not define any columns.");
-
     // When:
-    createSourceFactory.createTableCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createTableCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The statement does not define any columns."));
   }
 
   @Test
@@ -388,12 +389,15 @@ public class CreateSourceFactoryTest {
     final CreateStream statement =
         new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Kafka topic does not exist: " + TOPIC_NAME);
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Kafka topic does not exist: " + TOPIC_NAME));
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -416,14 +420,16 @@ public class CreateSourceFactoryTest {
     givenProperty(CreateConfigs.KEY_NAME_PROPERTY, new StringLiteral("`will-not-find-me`"));
     final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "The KEY column set in the WITH clause does not exist in the schema: "
-            + "'will-not-find-me'");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The KEY column set in the WITH clause does not exist in the schema: "
+            + "'will-not-find-me'"));
   }
 
   @Test
@@ -436,14 +442,16 @@ public class CreateSourceFactoryTest {
     final CreateStream statement =
         new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "The TIMESTAMP column set in the WITH clause does not exist in the schema: "
-            + "'will-not-find-me'");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The TIMESTAMP column set in the WITH clause does not exist in the schema: "
+            + "'will-not-find-me'"));
   }
 
   @Test
@@ -613,11 +621,15 @@ public class CreateSourceFactoryTest {
         NoopProcessingLogContext.INSTANCE
     )).thenThrow(new RuntimeException("Boom!"));
 
-    // Expect:
-    expectedException.expectMessage("Boom!");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Boom!"));
   }
 
   @Test
@@ -636,11 +648,15 @@ public class CreateSourceFactoryTest {
         NoopProcessingLogContext.INSTANCE
     )).thenThrow(new RuntimeException("Boom!"));
 
-    // Expect:
-    expectedException.expectMessage("Boom!");
-
     // When:
-    createSourceFactory.createTableCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> createSourceFactory.createTableCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Boom!"));
   }
 
   @Test
@@ -751,12 +767,15 @@ public class CreateSourceFactoryTest {
         withProperties
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'ROWTIME' is a reserved column name.");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'ROWTIME' is a reserved column name."));
   }
 
   @Test
@@ -769,12 +788,15 @@ public class CreateSourceFactoryTest {
         withProperties
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'ROWTIME' is a reserved column name.");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'ROWTIME' is a reserved column name."));
   }
 
   @Test
@@ -787,12 +809,15 @@ public class CreateSourceFactoryTest {
         withProperties
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'WINDOWSTART' is a reserved column name.");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'WINDOWSTART' is a reserved column name."));
   }
 
   @Test
@@ -805,12 +830,15 @@ public class CreateSourceFactoryTest {
         withProperties
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'WINDOWEND' is a reserved column name.");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'WINDOWEND' is a reserved column name."));
   }
 
   @Test
@@ -823,13 +851,15 @@ public class CreateSourceFactoryTest {
         withProperties
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "'ROWKEY' is a reserved column name. It can only be used for KEY columns.");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'ROWKEY' is a reserved column name. It can only be used for KEY columns."));
   }
 
   @Test
@@ -864,7 +894,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(cmd.getSchema().key(), contains(
-       keyColumn(ROWKEY_NAME, SqlTypes.INTEGER)
+        keyColumn(ROWKEY_NAME, SqlTypes.INTEGER)
     ));
   }
 

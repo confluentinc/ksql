@@ -5,7 +5,7 @@ An event-driven microservice is a pattern in which a piece of code only communic
 
 ![hard](../img/microservice-hard.png){: class="centered-img" style="width: 90%"}
 
-A common way that you might implement this architecture is to feed event streams into Kafka, read them with a stream processing framework, and trigger side-effects whenever something of interest happens — like sending an email with [Twilio SendGrid](https://sendgrid.com/). This works, but it's up to you to blend your stream processing, state, and side-effects logic in a maintainable way. Is there a better approach?
+A common way that you might implement this architecture is to feed event streams into {{ site.ak }}, read them with a stream processing framework, and trigger side-effects whenever something of interest happens — like sending an email with [Twilio SendGrid](https://sendgrid.com/). This works, but it's up to you to blend your stream processing, state, and side-effects logic in a maintainable way. Is there a better approach?
 
 Why ksqlDB?
 -----------
@@ -21,7 +21,7 @@ Implement it
 
 Imagine that you work at a financial services company which clears many credit card transactions each day. You want to prevent malicious activity in your customer base. When a high number of transactions occurs in a narrow window of time, you want to notify the cardholder of suspicious activity.
 
-This tutorial shows how to create an event-driven microservice that identifies suspicious activity and notifies customers. It demonstrates finding anomolies with ksqlDB and sending alert emails using a simple Kafka consumer with SendGrid.
+This tutorial shows how to create an event-driven microservice that identifies suspicious activity and notifies customers. It demonstrates finding anomalies with ksqlDB and sending alert emails using a simple Kafka consumer with SendGrid.
 
 ### Start the stack
 
@@ -134,7 +134,7 @@ Before you issue more commands, tell ksqlDB to start all queries from earliest p
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-We want to model a stream of credit card transactions from which we'll look for anomalous activity. To do that, create a ksqlDB stream to represent the transactions. Each transaction has a few key pieces of information, like the card number, amount, and email address that it's associated with. Because the specified topic (`transactions)` does not exist yet, ksqlDB creates it on your behalf.
+We want to model a stream of credit card transactions from which we'll look for anomalous activity. To do that, create a ksqlDB stream to represent the transactions. Each transaction has a few key pieces of information, like the card number, amount, and email address that it's associated with. Because the specified topic (`transactions`) does not exist yet, ksqlDB creates it on your behalf.
 
 ```sql
 CREATE STREAM transactions (
@@ -153,7 +153,7 @@ CREATE STREAM transactions (
 );
 ```
 
-Notice that this stream is configured with a custom `timestamp` to signal that [event-time](../../concepts/time-and-windows-in-ksqldb-queries/#event-time) should be used instead of [processing-time](../../concepts/time-and-windows-in-ksqldb-queries/#processing-time). What this means is that when ksqlDB does time-related operations over the stream, it will use the `timestamp` column to measure time, not the current time of the operating system. This makes it possible to handle out of order events.
+Notice that this stream is configured with a custom `timestamp` to signal that [event-time](../../concepts/time-and-windows-in-ksqldb-queries/#event-time) should be used instead of [processing-time](../../concepts/time-and-windows-in-ksqldb-queries/#processing-time). What this means is that when ksqlDB does time-related operations over the stream, it uses the `timestamp` column to measure time, not the current time of the operating system. This makes it possible to handle out-of-order events.
 
 The stream is also configured to use the `Avro` format for the value part of the underlying Kafka records that it generates. Becuse ksqlDB has been configured with Schema Registry (as part of the Docker Compose file), the schemas of each stream and table are centrally tracked. We'll make use of this in our microservice later.
 
@@ -276,22 +276,22 @@ CREATE TABLE possible_anomalies WITH (
     EMIT CHANGES;
 ```
 
-Let's break down what this does:
+Here's what this statement does:
 
 - For each credit card number, 30 second [tumbling windows](../../concepts/time-and-windows-in-ksqldb-queries/#tumbling-window) are created to group activity. A new row is inserted into the table when at least 3 transactions take place inside a given window.
 - The individual transaction IDs and amounts that make up the window are collected as lists.
 - The last transaction's email address is "carried forward" with `latest_by_offset`.
 - Column aliases are surrounded by backticks, which tells ksqlDB to use exactly that case. ksqlDB uppercases identity names by default.
-- The underlying Kafka topic for this table is explicitly set to `possible_anomalies`.
-- The Avro schema that ksqlDB generates for the value portion of its records is recorded under the namespace `io.ksqldb.tutorial.PossibleAnomaly`. We'll use this later in the microservice.
+- The underlying {{ site.ak }} topic for this table is explicitly set to `possible_anomalies`.
+- The Avro schema that ksqlDB generates for the value portion of its records is recorded under the namespace `io.ksqldb.tutorial.PossibleAnomaly`. You'll use this later in the microservice.
 
-Let's see what anomalies the table picked up. Run the following to select a stream of events emitted from the table:
+Check what anomalies the table picked up. Run the following statement to select a stream of events emitted from the table:
 
 ```sql
 SELECT * FROM possible_anomalies EMIT CHANGES;
 ```
 
-This should yield a single row. Three transactions for card number `358579699410099` were recorded with timestamps within a single 30 second tumbling window:
+This should yield a single row. Three transactions for card number `358579699410099` were recorded with timestamps within a single 30-second tumbling window:
 
 ```
 +------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+
@@ -314,7 +314,7 @@ PRINT 'possible_anomalies' FROM BEGINNING;
 
 ### Create a Kafka client project
 
-Notice that so far, all the heavy lifting happens inside of ksqlDB. ksqlDB takes care of the stateful stream processing. Triggering side-effects will be delegated to a light-weight service that consumes from a Kafka topic. We want to send an email each time an anomaly is found. To do that, we'll implement a simple, scalable microservice. In practice, you might use [Kafka Streams](https://kafka.apache.org/documentation/streams/) to handle this piece, but to keep things simple, we'll just use a Kafka consumer client.
+Notice that so far, all the heavy lifting happens inside of ksqlDB. ksqlDB takes care of the stateful stream processing. Triggering side-effects will be delegated to a light-weight service that consumes from a Kafka topic. You want to send an email each time an anomaly is found. To do that, you'll implement a simple, scalable microservice. In practice, you might use [Kafka Streams](https://kafka.apache.org/documentation/streams/) to handle this piece, but to keep things simple, just use a {{ site.ak }} consumer client.
 
 Start by creating a `pom.xml` file for your microservice. This simple microservice will run a loop, reading from the anomalies Kafka topic and sending an email for each event it receives. Dependencies are declared on Kafka, Avro, SendGrid, and a few other things:
 
@@ -441,7 +441,7 @@ Create the directory structure for the rest of the project:
 mkdir -p src/main/java/io/ksqldb/tutorial src/main/resources src/main/avro
 ```
 
-To ensure that our microservice will log output to the console, create the following at `src/main/resources/log4j.properties`:
+To ensure that your microservice logs output to the console, create the following file at `src/main/resources/log4j.properties`:
 
 ```
 # Root logger option
@@ -456,13 +456,13 @@ log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1
 
 ### Download and compile the Avro schemas
 
-Before you can begin coding your microservice, you'll need access to the Avro schemas that the Kafka topic is serialized with. Confluent has [a Maven plugin](https://docs.confluent.io/current/schema-registry/develop/maven-plugin.html) that makes this simple, which you might have already noticed is present in the `pom.xml` file. Run the following command, which downloads the required Avro schema out of Schema Registry to your local machine:
+Before you can begin coding your microservice, you'll need access to the Avro schemas that the {{ site.ak }} topic is serialized with. Confluent has [a Maven plugin](https://docs.confluent.io/current/schema-registry/develop/maven-plugin.html) that makes this simple, which you might have already noticed is present in the `pom.xml` file. Run the following command, which downloads the required Avro schema out of {{ site.sr }} to your local machine:
 
 ```
 mvn schema-registry:download
 ```
 
-You should now have a file called `src/main/avro/possible_anomalies-value.avsc`. This is the Avro schema generated by ksqlDB for the value portion of the Kafka records of the `possible_anomalies` topic.
+You should now have a file called `src/main/avro/possible_anomalies-value.avsc`. This is the Avro schema generated by ksqlDB for the value portion of the {{ site.ak }} records of the `possible_anomalies` topic.
 
 Next, compile the Avro schema into a Java file. The [Avro Maven plugin](https://avro.apache.org/docs/current/gettingstartedjava.html) (already added to the `pom.xml` file, too) makes this simple:
 
@@ -608,6 +608,6 @@ First, if you start more instances of this microservice, the partitions of the `
 
 Second, this microservice is configured to checkpoint its progress every `100` milliseconds through the `ENABLE_AUTO_COMMIT_CONFIG` configuration. That means any successfully processed messages will not be reprocessed if the microservice is taken down and turned on again.
 
-Finally, note that ksqlDB emits a new event every time a tumbling window changes. ksqlDB uses a model called refinements to continutally emit new changes to stateful aggregations. For example, if an anomaly was detected because 3 credit card transactions were found in a given interval, an event would be emitted from the table. If a 4th was detected in the same interval, another event will be emitted. Because SendGrid does not (at the time of writing) support idempotent email submission, you would need to have a small piece of logic in your program to prevent sending an email multiple times for the same period. We've ommitted this for brevity.
+Finally, note that ksqlDB emits a new event every time a tumbling window changes. ksqlDB uses a model called "refinements" to continually emit new changes to stateful aggregations. For example, if an anomaly was detected because three credit card transactions were found in a given interval, an event would be emitted from the table. If a fourth is detected in the same interval, another event is emitted. Because SendGrid does not (at the time of writing) support idempotent email submission, you would need to have a small piece of logic in your program to prevent sending an email multiple times for the same period. This is omitted for brevity.
 
 If you wish, you can continue the example by inserting more events into the `transactions` topics.

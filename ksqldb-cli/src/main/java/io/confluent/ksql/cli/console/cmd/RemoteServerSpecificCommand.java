@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
-import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_ACCEPTABLE;
 
 import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.rest.Errors;
@@ -29,7 +29,6 @@ import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
 import javax.net.ssl.SSLException;
-import javax.ws.rs.ProcessingException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 
@@ -92,7 +91,7 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       final RestResponse<?> restResponse = restClient.getServerInfo();
       if (restResponse.isErroneous()) {
         final KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
-        if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {
+        if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.code()) {
           writer.format("This CLI version no longer supported: %s%n%n", ksqlError);
           return;
         }
@@ -102,10 +101,6 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
     } catch (final IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
     } catch (final KsqlRestClientException exception) {
-      if (!(exception.getCause() instanceof ProcessingException)) {
-        throw exception;
-      }
-
       writer.println();
       writer.println(StringUtils.center("ERROR", CONSOLE_WIDTH, "*"));
 

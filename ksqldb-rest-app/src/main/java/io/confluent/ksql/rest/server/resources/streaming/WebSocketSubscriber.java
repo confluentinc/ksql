@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.NORMAL_CLOSURE;
+import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.PROTOCOL_ERROR;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.util.EntityUtil;
@@ -22,7 +26,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.vertx.core.http.ServerWebSocket;
 import java.io.IOException;
 import java.util.Collection;
-import javax.websocket.CloseReason.CloseCodes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,12 +76,12 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
         ? "KSQL exception: " + e.getClass().getSimpleName()
         : e.getMessage();
 
-    SessionUtil.closeSilently(websocket, CloseCodes.UNEXPECTED_CONDITION, msg);
+    SessionUtil.closeSilently(websocket, INTERNAL_SERVER_ERROR.code(), msg);
   }
 
   @Override
   public void onComplete() {
-    SessionUtil.closeSilently(websocket, CloseCodes.NORMAL_CLOSURE, "done");
+    SessionUtil.closeSilently(websocket, NORMAL_CLOSURE.code(), "done");
   }
 
   @Override
@@ -89,7 +92,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
               .writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema)));
     } catch (final IOException e) {
       log.error("Error sending schema", e);
-      SessionUtil.closeSilently(websocket, CloseCodes.PROTOCOL_ERROR, "Unable to send schema");
+      SessionUtil.closeSilently(websocket, PROTOCOL_ERROR.code(), "Unable to send schema");
     }
   }
 

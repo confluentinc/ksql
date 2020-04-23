@@ -16,11 +16,9 @@
 package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.rest.server.KsqlRestApplication.convertToApiServerConfig;
-import static io.confluent.ksql.rest.server.KsqlRestApplication.convertToLocalListener;
 import static java.util.Objects.requireNonNull;
 import static org.easymock.EasyMock.niceMock;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -45,9 +43,7 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
-import io.confluent.rest.ApplicationServer;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,7 +59,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.eclipse.jetty.websocket.api.util.WSURI;
 import org.junit.rules.ExternalResource;
 
 /**
@@ -92,7 +87,6 @@ public class TestKsqlRestApp extends ExternalResource {
   protected final Supplier<ServiceContext> serviceContext;
   protected final List<URL> listeners = new ArrayList<>();
   protected final Optional<BasicCredentials> credentials;
-  protected ExecutableServer<KsqlRestConfig> restServer;
   protected KsqlExecutionContext ksqlEngine;
   protected KsqlRestApplication ksqlRestApplication;
 
@@ -148,20 +142,14 @@ public class TestKsqlRestApp extends ExternalResource {
 
   @SuppressWarnings("unused") // Part of public API
   public URI getWsListener() {
-    try {
-      return WSURI.toWebsocket(getHttpListener());
-    } catch (final URISyntaxException e) {
-      throw new RuntimeException("Invalid WS listener", e);
-    }
+    String suri = getHttpListener().toString().toLowerCase().replace("http:", "ws:");
+    return URI.create(suri);
   }
 
   @SuppressWarnings("unused") // Part of public API
   public URI getWssListener() {
-    try {
-      return WSURI.toWebsocket(getHttpsListener());
-    } catch (final URISyntaxException e) {
-      throw new RuntimeException("Invalid WS listener", e);
-    }
+    String suri = getHttpsListener().toString().toLowerCase().replace("https:", "wss:");
+    return URI.create(suri);
   }
 
   public KsqlRestClient buildKsqlClient() {
@@ -224,7 +212,7 @@ public class TestKsqlRestApp extends ExternalResource {
     initialize();
 
     try {
-      restServer.startAsync();
+      ksqlRestApplication.startAsync();
       listeners.addAll(ksqlRestApplication.getListeners());
     } catch (final Exception var2) {
       throw new RuntimeException("Failed to start Ksql rest server", var2);
@@ -235,21 +223,21 @@ public class TestKsqlRestApp extends ExternalResource {
 
   @Override
   protected void after() {
-    if (restServer == null) {
+    if (ksqlRestApplication == null) {
       return;
     }
 
     listeners.clear();
     try {
-      restServer.triggerShutdown();
+      ksqlRestApplication.triggerShutdown();
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
-    restServer = null;
+    ksqlRestApplication = null;
   }
 
   protected void initialize() {
-    if (restServer != null) {
+    if (ksqlRestApplication != null) {
       after();
     }
 
@@ -265,10 +253,6 @@ public class TestKsqlRestApp extends ExternalResource {
           serviceContext.get(),
           MockSchemaRegistryClient::new);
 
-      restServer = new ExecutableServer<>(
-          new ApplicationServer<>(convertToLocalListener(config)),
-          ImmutableList.of(ksqlRestApplication)
-      );
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
     }

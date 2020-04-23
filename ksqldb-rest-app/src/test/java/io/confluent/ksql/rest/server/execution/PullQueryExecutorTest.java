@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessag
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -38,7 +39,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -103,7 +103,7 @@ public class PullQueryExecutorTest {
 
       // Then:
       expectedException.expect(KsqlRestException.class);
-      expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+      expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
       expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
           "The following statement types should be issued to the websocket endpoint '/query'"
       ))));

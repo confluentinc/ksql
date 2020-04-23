@@ -302,4 +302,5 @@ public class CorsTest extends BaseApiTest {
     return sendCorsRequest(httpMethod, uri,
         MultiMap.caseInsensitiveMultiMap().add("origin", origin));
   }
+  
 }

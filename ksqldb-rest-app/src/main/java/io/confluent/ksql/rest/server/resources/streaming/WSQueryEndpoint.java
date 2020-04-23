@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.INVALID_MESSAGE_TYPE;
+import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AGAIN_LATER;
+
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -43,7 +47,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
-import javax.websocket.CloseReason.CloseCodes;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -152,11 +155,11 @@ public class WSQueryEndpoint {
         log.debug("Interrupted while waiting for command queue "
                 + "to reach specified command sequence number",
             e);
-        SessionUtil.closeSilently(webSocket, CloseCodes.UNEXPECTED_CONDITION, e.getMessage());
+        SessionUtil.closeSilently(webSocket, INTERNAL_SERVER_ERROR.code(), e.getMessage());
         return;
       } catch (final TimeoutException e) {
         log.debug("Timeout while processing request", e);
-        SessionUtil.closeSilently(webSocket, CloseCodes.TRY_AGAIN_LATER, e.getMessage());
+        SessionUtil.closeSilently(webSocket, TRY_AGAIN_LATER.code(), e.getMessage());
         return;
       }
 
@@ -190,11 +193,11 @@ public class WSQueryEndpoint {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(
           webSocket,
-          CloseCodes.CANNOT_ACCEPT,
+          INVALID_MESSAGE_TYPE.code(),
           errorHandler.kafkaAuthorizationErrorMessage(e));
     } catch (final Exception e) {
       log.debug("Error processing request", e);
-      SessionUtil.closeSilently(webSocket, CloseCodes.CANNOT_ACCEPT, e.getMessage());
+      SessionUtil.closeSilently(webSocket, INVALID_MESSAGE_TYPE.code(), e.getMessage());
     }
   }
 

@@ -99,6 +99,14 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Only required to provide LoginModule implementation in tests -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-jaas</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

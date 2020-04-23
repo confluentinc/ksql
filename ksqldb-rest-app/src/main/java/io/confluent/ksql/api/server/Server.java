@@ -29,7 +29,6 @@ import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.net.JksOptions;
-import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -63,16 +62,14 @@ public class Server {
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private final int maxPushQueryCount;
   private final Set<String> deploymentIds = new HashSet<>();
-  private final boolean proxyEnabled;
   private final KsqlSecurityExtension securityExtension;
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private WorkerExecutor workerExecutor;
-  private volatile int jettyPort = -1;
   private List<URI> listeners = new ArrayList<>();
 
   public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints,
-      final boolean proxyEnabled, final KsqlSecurityExtension securityExtension,
+      final KsqlSecurityExtension securityExtension,
       final Optional<AuthenticationPlugin> authenticationPlugin,
       final ServerState serverState) {
     this.vertx = Objects.requireNonNull(vertx);
@@ -82,7 +79,6 @@ public class Server {
     this.authenticationPlugin = Objects.requireNonNull(authenticationPlugin);
     this.serverState = Objects.requireNonNull(serverState);
     this.maxPushQueryCount = config.getInt(ApiServerConfig.MAX_PUSH_QUERIES);
-    this.proxyEnabled = proxyEnabled;
   }
 
   public synchronized void start() {
@@ -110,7 +106,7 @@ public class Server {
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
                 listener.getScheme().equalsIgnoreCase("https")),
-            this, proxyEnabled);
+            this);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {
@@ -172,13 +168,6 @@ public class Server {
     return workerExecutor;
   }
 
-  SocketAddress getProxyTarget() {
-    if (jettyPort == -1) {
-      throw new IllegalStateException("jetty port not set");
-    }
-    return SocketAddress.inetSocketAddress(jettyPort, "127.0.0.1");
-  }
-
   synchronized void registerQuery(final PushQueryHolder query) {
     Objects.requireNonNull(query);
     if (queries.size() == maxPushQueryCount) {
@@ -234,10 +223,6 @@ public class Server {
 
   public synchronized List<URI> getListeners() {
     return ImmutableList.copyOf(listeners);
-  }
-
-  public void setJettyPort(final int jettyPort) {
-    this.jettyPort = jettyPort;
   }
 
   private static HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig,

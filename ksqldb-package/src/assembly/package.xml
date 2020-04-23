@@ -18,7 +18,7 @@
           xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2
           http://maven.apache.org/xsd/assembly-1.1.2.xsd">
     <!-- Assembles a package that can run ksql given dependency packages. This is used to
-         construct packages OS packages where underlying libraries, like rest-utils, can be shared
+         construct packages OS packages where underlying libraries can be shared
          -->
     <id>package</id>
     <formats>
@@ -81,7 +81,6 @@
                  disable transitive filtering. -->
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-                <exclude>io.confluent:rest-utils</exclude>
                 <exclude>io.confluent:common-config</exclude>
                 <exclude>io.confluent:common-metrics</exclude>
             </excludes>

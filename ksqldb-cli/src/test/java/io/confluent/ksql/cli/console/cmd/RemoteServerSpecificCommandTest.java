@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,12 +34,11 @@ import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.util.Event;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 import javax.net.ssl.SSLException;
-import javax.ws.rs.ProcessingException;
-import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,7 +67,7 @@ public class RemoteServerSpecificCommandTest {
     terminal = new PrintWriter(out);
     command = RemoteServerSpecificCommand.create(restClient, resetCliForNewServer);
 
-    when(restClient.getServerInfo()).thenReturn(RestResponse.successful(Code.OK, SERVER_INFO));
+    when(restClient.getServerInfo()).thenReturn(RestResponse.successful(OK.code(), SERVER_INFO));
     when(restClient.getServerAddress()).thenReturn(new URI(INITIAL_SERVER_ADDRESS));
   }
 
@@ -103,7 +104,7 @@ public class RemoteServerSpecificCommandTest {
   public void shouldPrintErrorWhenCantConnectToNewAddress() {
     // Given:
     when(restClient.getServerInfo()).thenThrow(
-        new KsqlRestClientException("Failed to connect", new ProcessingException("Boom")));
+        new KsqlRestClientException("Failed to connect", new IOException("Boom")));
 
     // When:
     command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
@@ -126,7 +127,7 @@ public class RemoteServerSpecificCommandTest {
   public void shouldPrintErrorOnErrorResponseFromRestClient() {
     // Given:
     when(restClient.getServerInfo()).thenReturn(RestResponse.erroneous(
-        Code.INTERNAL_SERVER_ERROR, "it is broken"));
+        INTERNAL_SERVER_ERROR.code(), "it is broken"));
 
     // When:
     command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
@@ -187,12 +188,12 @@ public class RemoteServerSpecificCommandTest {
 
   private static Exception genericConnectionIssue() {
     return new KsqlRestClientException("failed",
-        new ProcessingException("oh no"));
+        new IOException("oh no"));
   }
 
   private static Exception sslConnectionIssue() {
     return new KsqlRestClientException("failed",
-        new ProcessingException("oh no",
+        new IOException("oh no",
             new SSLException("blah")));
   }
 }

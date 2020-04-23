@@ -332,14 +332,13 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  static List<String> makeWsRequest(
+  public static List<String> makeWsRequest(
       final URI baseUri,
       final String sql,
       final Optional<String> mediaType,
       final Optional<String> contentType,
       final Optional<Credentials> credentials
   ) {
-
     Vertx vertx = Vertx.vertx();
     HttpClient httpClient = null;
     try {

@@ -30,8 +30,11 @@ import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.st
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -158,7 +161,6 @@ import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
-import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
@@ -177,7 +179,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
-import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -404,7 +405,7 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(CoreMatchers.is(Code.SERVICE_UNAVAILABLE)));
+    expectedException.expect(exceptionStatusCode(CoreMatchers.is(SERVICE_UNAVAILABLE.code())));
     expectedException
         .expect(exceptionErrorMessage(errorMessage(Matchers.is("Server initializing"))));
 
@@ -433,7 +434,7 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(CoreMatchers.is(Code.SERVICE_UNAVAILABLE)));
+    expectedException.expect(exceptionStatusCode(CoreMatchers.is(SERVICE_UNAVAILABLE.code())));
     expectedException
         .expect(exceptionErrorMessage(errorMessage(Matchers.is("Server initializing"))));
 
@@ -597,7 +598,7 @@ public class KsqlResourceTest {
   public void shouldFailForIncorrectCSASStatementResultType() {
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead."))));
@@ -612,7 +613,7 @@ public class KsqlResourceTest {
   public void shouldFailForIncorrectCSASStatementResultTypeWithGroupBy() {
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead."))));
@@ -627,7 +628,7 @@ public class KsqlResourceTest {
   public void shouldFailForIncorrectCTASStatementResultType() {
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
         "Invalid result type. Your SELECT query produces a STREAM. "
             + "Please use CREATE STREAM AS SELECT statement instead."))));
@@ -642,7 +643,7 @@ public class KsqlResourceTest {
   public void shouldFailForIncorrectDropStreamStatement() {
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
-        "DROP TABLE test_stream;", Code.BAD_REQUEST);
+        "DROP TABLE test_stream;", BAD_REQUEST.code());
 
     // Then:
     assertThat(result.getMessage().toLowerCase(),
@@ -653,7 +654,7 @@ public class KsqlResourceTest {
   public void shouldFailForIncorrectDropTableStatement() {
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
-        "DROP STREAM test_table;", Code.BAD_REQUEST);
+        "DROP STREAM test_table;", BAD_REQUEST.code());
 
     // Then:
     assertThat(result.getMessage().toLowerCase(),
@@ -666,7 +667,7 @@ public class KsqlResourceTest {
     final KsqlErrorMessage response = makeFailingRequest(
         "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
             + "VALUE_FORMAT = 'avro', KEY = 'unknownField');",
-        Code.BAD_REQUEST);
+        BAD_REQUEST.code());
 
     // Then:
     assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
@@ -677,7 +678,7 @@ public class KsqlResourceTest {
   public void shouldFailBarePushQuery() {
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
         "The following statement types should be issued to the websocket endpoint '/query':"
             + System.lineSeparator()
@@ -695,7 +696,7 @@ public class KsqlResourceTest {
   public void shouldFailBarePullQuery() {
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
         "The following statement types should be issued to the websocket endpoint '/query':"
             + System.lineSeparator()
@@ -713,7 +714,7 @@ public class KsqlResourceTest {
   public void shouldFailPrintTopic() {
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
         "The following statement types should be issued to the websocket endpoint '/query':"
             + System.lineSeparator()
@@ -774,7 +775,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
         "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON');",
-        Code.BAD_REQUEST);
+        BAD_REQUEST.code());
 
     // Then:
     assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
@@ -801,7 +802,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
         "DROP STREAM TEST_STREAM DELETE TOPIC;",
-        Code.FORBIDDEN);
+        FORBIDDEN.code());
 
     // Then:
     assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
@@ -814,7 +815,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
         "DESCRIBE i_do_not_exist;",
-        Code.BAD_REQUEST);
+        BAD_REQUEST.code());
 
     // Then:
     assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
@@ -827,7 +828,7 @@ public class KsqlResourceTest {
   public void shouldNotDistributeCreateStatementIfTopicDoesNotExist() {
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException
         .expect(exceptionErrorMessage(errorMessage(is("Kafka topic does not exist: unknown"))));
 
@@ -918,7 +919,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
         "CREATE STREAM orders2 AS SELECT * FROM orders1;",
-        Code.BAD_REQUEST);
+        BAD_REQUEST.code());
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
@@ -935,7 +936,7 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException
         .expect(exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
     expectedException
@@ -979,7 +980,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
         "CREATE STREAM S WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
-        Code.BAD_REQUEST);
+        BAD_REQUEST.code());
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
@@ -997,7 +998,7 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException
         .expect(exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
     expectedException
@@ -1011,7 +1012,7 @@ public class KsqlResourceTest {
   public void shouldFailIfNoSchemaAndNotInferred() {
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException
         .expect(exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
     expectedException
@@ -1030,7 +1031,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
         "CREATE STREAM S1 WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM test_stream;",
-        Code.BAD_REQUEST);
+        BAD_REQUEST.code());
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
@@ -1120,7 +1121,7 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    expectedException.expect(exceptionStatusCode(is(SERVICE_UNAVAILABLE.code())));
     expectedException
         .expect(exceptionErrorMessage(errorMessage(is("The server is shutting down"))));
     expectedException
@@ -1145,7 +1146,7 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    expectedException.expect(exceptionStatusCode(is(SERVICE_UNAVAILABLE.code())));
     expectedException.expect(exceptionErrorMessage(errorMessage(
         containsString("Timed out"))));
     expectedException.expect(exceptionErrorMessage(errorMessage(
@@ -1168,7 +1169,7 @@ public class KsqlResourceTest {
         "CREATE STREAM S AS SELECT * FROM test_stream; "
             + "CREATE STREAM S2 AS SELECT * FROM S;"
             + "CREATE STREAM S2 AS SELECT * FROM S;", // <-- duplicate will fail.
-        Code.BAD_REQUEST
+        BAD_REQUEST.code()
     );
 
     // Then:
@@ -1223,7 +1224,7 @@ public class KsqlResourceTest {
   public void shouldThrowOnTerminateUnknownQuery() {
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
         "Unknown queryId: UNKNOWN_QUERY_ID"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
@@ -1243,7 +1244,7 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(errorMessage(containsString(
         "Unknown queryId:"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
@@ -1313,7 +1314,7 @@ public class KsqlResourceTest {
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
-        ksqlString, Code.BAD_REQUEST);
+        ksqlString, BAD_REQUEST.code());
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
@@ -1331,7 +1332,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
         "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
-        Code.INTERNAL_SERVER_ERROR);
+        INTERNAL_SERVER_ERROR.code());
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
@@ -1353,7 +1354,7 @@ public class KsqlResourceTest {
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
-        ksqlString, Code.INTERNAL_SERVER_ERROR);
+        ksqlString, INTERNAL_SERVER_ERROR.code());
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
@@ -1407,7 +1408,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlErrorMessage response = makeFailingRequest(
         "SET 'ksql.unknown.property' = '1';",
-        Code.BAD_REQUEST);
+        BAD_REQUEST.code());
 
     // Then:
     assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
@@ -1420,7 +1421,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlErrorMessage response = makeFailingRequest(
         "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid value';",
-        Code.BAD_REQUEST);
+        BAD_REQUEST.code());
 
     // Then:
     assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
@@ -1461,7 +1462,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlErrorMessage response = makeFailingRequest(
         "UNSET 'ksql.unknown.property';",
-        Code.BAD_REQUEST);
+        BAD_REQUEST.code());
 
     // Then:
     assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
@@ -1500,7 +1501,7 @@ public class KsqlResourceTest {
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
-        "CREATE STREAM new_stream AS SELECT * FROM test_stream;", Code.BAD_REQUEST);
+        "CREATE STREAM new_stream AS SELECT * FROM test_stream;", BAD_REQUEST.code());
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
@@ -1523,7 +1524,7 @@ public class KsqlResourceTest {
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
-        ksqlString, Code.BAD_REQUEST);
+        ksqlString, BAD_REQUEST.code());
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
@@ -1724,7 +1725,7 @@ public class KsqlResourceTest {
 
     // When:
     final KsqlErrorMessage result =
-        makeFailingRequestWithSequenceNumber("list properties;", 2L, Code.SERVICE_UNAVAILABLE);
+        makeFailingRequestWithSequenceNumber("list properties;", 2L, SERVICE_UNAVAILABLE.code());
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT));
@@ -1795,7 +1796,7 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
         "Invalid pattern: [Invalid Regex"))));
 
@@ -1812,7 +1813,7 @@ public class KsqlResourceTest {
     // When:
     makeFailingRequest(
         "LIST TOPICS;",
-        Code.BAD_REQUEST);
+        BAD_REQUEST.code());
 
     // Then:
     verify(commandStore, never()).enqueueCommand(any(), any(), any(Producer.class));
@@ -1826,9 +1827,10 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(
-        errorMessage(containsString("Cannot add stream 'SOURCE': A stream with the same name already exists"))));
+        errorMessage(containsString(
+            "Cannot add stream 'SOURCE': A stream with the same name already exists"))));
 
     // When:
     final String createSql =
@@ -1844,9 +1846,10 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(
-        errorMessage(containsString("Cannot add table 'SOURCE': A table with the same name already exists"))));
+        errorMessage(containsString(
+            "Cannot add table 'SOURCE': A table with the same name already exists"))));
 
     // When:
     final String createSql =
@@ -1862,7 +1865,7 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(
         errorMessage(containsString(
             "Cannot add stream 'SINK': A table with the same name already exists"))));
@@ -1881,7 +1884,7 @@ public class KsqlResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(
         errorMessage(containsString(
             "Cannot add table 'SINK': A stream with the same name already exists"))));
@@ -1901,7 +1904,7 @@ public class KsqlResourceTest {
 
     // Expect:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.INTERNAL_SERVER_ERROR)));
+    expectedException.expect(exceptionStatusCode(is(INTERNAL_SERVER_ERROR.code())));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
         "Could not write the statement '" + statement
             + "' into the command topic.\nCaused by: blah"))));
@@ -1997,22 +2000,22 @@ public class KsqlResourceTest {
     ).collect(Collectors.toList());
   }
 
-  private KsqlErrorMessage makeFailingRequest(final String ksql, final Code errorCode) {
+  private KsqlErrorMessage makeFailingRequest(final String ksql, final int errorCode) {
     return makeFailingRequestWithSequenceNumber(ksql, null, errorCode);
   }
 
   private KsqlErrorMessage makeFailingRequestWithSequenceNumber(
       final String ksql,
       final Long seqNum,
-      final Code errorCode) {
+      final int errorCode) {
     return makeFailingRequest(new KsqlRequest(ksql, emptyMap(), emptyMap(), seqNum), errorCode);
   }
 
-  private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final Code errorCode) {
+  private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final int errorCode) {
     try {
       final EndpointResponse response = ksqlResource
           .handleKsqlStatements(securityContext, ksqlRequest);
-      assertThat(response.getStatus(), is(errorCode.getCode()));
+      assertThat(response.getStatus(), is(errorCode));
       assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
       return (KsqlErrorMessage) response.getEntity();
     } catch (final KsqlRestException e) {
@@ -2219,7 +2222,7 @@ public class KsqlResourceTest {
     final Map<String, Object> configMap = new HashMap<>(KsqlConfigTestUtil.baseTestConfig());
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     configMap.put("ksql.command.topic.suffix", "commands");
-    configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
+    configMap.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088");
     configMap.put(StreamsConfig.APPLICATION_SERVER_CONFIG, APPLICATION_SERVER);
 
     final Properties properties = new Properties();

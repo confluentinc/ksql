@@ -55,7 +55,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
-import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map;
@@ -169,7 +168,7 @@ public class KsqlRestApplicationTest {
         any(),
         any())
     ).thenReturn(response);
-    
+
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     logCreateStatement = ProcessingLogServerUtils.processingLogStreamCreateStatement(
@@ -177,7 +176,7 @@ public class KsqlRestApplicationTest {
         ksqlConfig
     );
 
-    givenAppWithRestConfig(ImmutableMap.of(RestConfig.LISTENERS_CONFIG, "http://localhost:0"));
+    givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"));
   }
 
   @Test
@@ -384,7 +383,7 @@ public class KsqlRestApplicationTest {
   public void shouldConfigureIQWithInterNodeListenerIfSet() {
     // Given:
     givenAppWithRestConfig(ImmutableMap.of(
-        RestConfig.LISTENERS_CONFIG, "http://localhost:0",
+        KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0",
         KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"
     ));
 
@@ -402,7 +401,7 @@ public class KsqlRestApplicationTest {
   public void shouldConfigureIQWithFirstListenerIfInterNodeNotSet() {
     // Given:
     givenAppWithRestConfig(ImmutableMap.of(
-        RestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"
+        KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"
     ));
 
     // When:

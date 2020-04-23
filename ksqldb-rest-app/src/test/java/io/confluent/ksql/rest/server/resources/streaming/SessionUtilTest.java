@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.INVALID_MESSAGE_TYPE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
@@ -24,7 +25,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
 import io.vertx.core.http.ServerWebSocket;
-import javax.websocket.CloseReason.CloseCodes;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -49,7 +49,7 @@ public class SessionUtilTest {
         .close(any(Short.class), any(String.class));
 
     // When:
-    SessionUtil.closeSilently(websocket, CloseCodes.CANNOT_ACCEPT, "reason");
+    SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), "reason");
 
     // Then:
     verify(websocket).close(any(Short.class), any(String.class));
@@ -62,7 +62,7 @@ public class SessionUtilTest {
     final String reason = "some short reason";
 
     // When:
-    SessionUtil.closeSilently(websocket, CloseCodes.CANNOT_ACCEPT, reason);
+    SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), reason);
 
     // Then:
     verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
@@ -77,7 +77,7 @@ public class SessionUtilTest {
     assertThat("invalid test", reason.getBytes(UTF_8).length, greaterThan(123));
 
     // When:
-    SessionUtil.closeSilently(websocket, CloseCodes.CANNOT_ACCEPT, reason);
+    SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), reason);
 
     // Then:
     verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
@@ -96,7 +96,7 @@ public class SessionUtilTest {
     assertThat("invalid test", reason.getBytes(UTF_8).length, greaterThan(123));
 
     // When:
-    SessionUtil.closeSilently(websocket, CloseCodes.CANNOT_ACCEPT, reason);
+    SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), reason);
 
     // Then:
     verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
@@ -108,7 +108,7 @@ public class SessionUtilTest {
   @Test
   public void shouldHandleNullMessage() throws Exception {
     // When:
-    SessionUtil.closeSilently(websocket, CloseCodes.CANNOT_ACCEPT, null);
+    SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), null);
 
     // Then:
     verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());

@@ -13,9 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
-
-import io.confluent.ksql.schema.ksql.FormatOptions;
+package io.confluent.ksql.schema.utils;
 
 public final class Identifiers {
 

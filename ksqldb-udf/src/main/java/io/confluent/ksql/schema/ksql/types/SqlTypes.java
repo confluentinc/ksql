@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
-import io.confluent.ksql.schema.ksql.SqlBaseType;
-
 public final class SqlTypes {
 
   private SqlTypes() {

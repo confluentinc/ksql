@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.schema.utils;
 
 import java.util.Objects;
 

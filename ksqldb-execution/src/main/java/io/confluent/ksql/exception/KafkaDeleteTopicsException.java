@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.exception;
 
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.schema.utils.Pair;
 import java.util.List;
 
 public class KafkaDeleteTopicsException extends KafkaTopicClientException {

@@ -54,7 +54,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.schema.utils.Pair;
 import io.confluent.ksql.util.UserDataProvider;
 import java.io.IOException;
 import java.util.List;

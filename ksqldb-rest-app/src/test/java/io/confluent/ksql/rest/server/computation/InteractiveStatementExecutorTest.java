@@ -69,7 +69,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.schema.utils.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.List;

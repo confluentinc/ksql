@@ -21,7 +21,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.schema.utils.Pair;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;

@@ -18,11 +18,8 @@ package io.confluent.ksql.schema.ksql.types;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.DataException;
-import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.schema.utils.DataException;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -62,7 +59,7 @@ public final class SqlPrimitiveType extends SqlType {
           final SqlBaseType sqlType = SqlBaseType.valueOf(typeName.toUpperCase());
           return SqlPrimitiveType.of(sqlType);
         } catch (final IllegalArgumentException e) {
-          throw new KsqlException("Unknown primitive type: " + typeName, e);
+          throw new DataException("Unknown primitive type: " + typeName, e);
         }
     }
   }
@@ -70,27 +67,13 @@ public final class SqlPrimitiveType extends SqlType {
   public static SqlPrimitiveType of(final SqlBaseType sqlType) {
     final SqlPrimitiveType primitive = TYPES.get(Objects.requireNonNull(sqlType, "sqlType"));
     if (primitive == null) {
-      throw new KsqlException("Invalid primitive type: " + sqlType);
+      throw new DataException("Invalid primitive type: " + sqlType);
     }
     return primitive;
   }
 
   private SqlPrimitiveType(final SqlBaseType baseType) {
     super(baseType);
-  }
-
-  @Override
-  public void validateValue(final Object value) {
-    if (value == null) {
-      return;
-    }
-
-    final SqlBaseType actualType = SchemaConverters.javaToSqlConverter()
-        .toSqlType(value.getClass());
-
-    if (!baseType().equals(actualType)) {
-      throw new DataException("Expected " + baseType() + ", got " + actualType);
-    }
   }
 
   @Override

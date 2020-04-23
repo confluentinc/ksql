@@ -17,8 +17,8 @@ package io.confluent.ksql.name;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.util.Identifiers;
+import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.schema.utils.Identifiers;
 import java.util.Objects;
 
 /**

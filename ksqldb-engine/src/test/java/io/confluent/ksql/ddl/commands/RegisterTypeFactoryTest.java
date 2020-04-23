@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.tree.RegisterType;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import java.util.Optional;

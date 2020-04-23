@@ -16,12 +16,8 @@
 package io.confluent.ksql.schema.ksql.types;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.DataException;
-import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
-import io.confluent.ksql.util.DecimalUtil;
-import java.math.BigDecimal;
+import io.confluent.ksql.schema.utils.DataException;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.Objects;
 
 @Immutable
@@ -39,7 +35,17 @@ public final class SqlDecimal extends SqlType {
     this.precision = precision;
     this.scale = scale;
 
-    DecimalUtil.validateParameters(precision, scale);
+    validateParameters(precision, scale);
+  }
+
+  public static void validateParameters(final int precision, final int scale) {
+    checkCondition(precision > 0, String.format("DECIMAL precision must be >= 1: DECIMAL(%d,%d)",
+                                                precision, scale));
+    checkCondition(scale >= 0,
+                   String.format("DECIMAL scale must be >= 0: DECIMAL(%d,%d)", precision, scale));
+    checkCondition(precision >= scale,
+                   String.format("DECIMAL precision must be >= scale: DECIMAL(%d,%d)",
+                                 precision, scale));
   }
 
   public int getPrecision() {
@@ -48,29 +54,6 @@ public final class SqlDecimal extends SqlType {
 
   public int getScale() {
     return scale;
-  }
-
-  @Override
-  public void validateValue(final Object value) {
-    if (value == null) {
-      return;
-    }
-
-    if (!(value instanceof BigDecimal)) {
-      final SqlBaseType sqlBaseType = SchemaConverters.javaToSqlConverter()
-          .toSqlType(value.getClass());
-
-      throw new DataException("Expected DECIMAL, got " + sqlBaseType);
-    }
-
-    final BigDecimal decimal = (BigDecimal) value;
-    if (decimal.precision() != precision) {
-      throw new DataException("Expected " + this + ", got precision " + decimal.precision());
-    }
-
-    if (decimal.scale() != scale) {
-      throw new DataException("Expected " + this + ", got scale " + decimal.scale());
-    }
   }
 
   @Override
@@ -171,4 +154,11 @@ public final class SqlDecimal extends SqlType {
     final int scale = Math.max(left.scale, right.scale);
     return SqlDecimal.of(precision, scale);
   }
+
+  private static void checkCondition(final boolean expression, final String message) {
+    if (!expression) {
+      throw new DataException(message);
+    }
+  }
+
 }

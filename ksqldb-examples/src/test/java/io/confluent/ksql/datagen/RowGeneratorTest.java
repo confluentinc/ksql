@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.schema.utils.Pair;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;

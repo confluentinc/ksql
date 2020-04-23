@@ -13,18 +13,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.ksql;
+package io.confluent.ksql.schema.ksql.types;
+
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.utils.FormatOptions;
+import java.util.Objects;
 
 /**
- * Issue with data.
+ * Base for all SQL types in KSQL.
  */
-public class DataException extends RuntimeException {
+@Immutable
+public abstract class SqlType {
 
-  public DataException(final String msg) {
-    super(msg);
+  private final SqlBaseType baseType;
+
+  SqlType(final SqlBaseType baseType) {
+    this.baseType = Objects.requireNonNull(baseType, "baseType");
   }
 
-  public DataException(final String msg, final Throwable cause) {
-    super(msg, cause);
+  public SqlBaseType baseType() {
+    return baseType;
   }
+
+  public abstract String toString(FormatOptions formatOptions);
 }

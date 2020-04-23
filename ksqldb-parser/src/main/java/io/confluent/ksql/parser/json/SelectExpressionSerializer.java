@@ -19,7 +19,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.io.IOException;
 

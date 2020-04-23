@@ -33,6 +33,7 @@ import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
@@ -198,7 +199,7 @@ public class SchemaConvertersTest {
   @Test
   public void shouldGetSqlTypeForAllJavaTypes() {
     SQL_TO_JAVA.inverse().forEach((java, sqlType) -> {
-      assertThat(SchemaConverters.javaToSqlConverter().toSqlType(java), is(sqlType));
+      assertThat(javaToSqlConverter().toSqlType(java), is(sqlType));
     });
   }
 
@@ -208,7 +209,7 @@ public class SchemaConvertersTest {
         ArrayList.class,
         ImmutableList.class
     ).forEach(javaType -> {
-      assertThat(SchemaConverters.javaToSqlConverter().toSqlType(javaType), is(SqlBaseType.ARRAY));
+      assertThat(javaToSqlConverter().toSqlType(javaType), is(SqlBaseType.ARRAY));
     });
   }
 
@@ -218,7 +219,7 @@ public class SchemaConvertersTest {
         HashMap.class,
         ImmutableMap.class
     ).forEach(javaType -> {
-      assertThat(SchemaConverters.javaToSqlConverter().toSqlType(javaType), is(SqlBaseType.MAP));
+      assertThat(javaToSqlConverter().toSqlType(javaType), is(SqlBaseType.MAP));
     });
   }
 
@@ -266,31 +267,31 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldConvertJavaBooleanToSqlBoolean() {
-    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Boolean.class),
-        is(SqlBaseType.BOOLEAN));
+    assertThat(javaToSqlConverter().toSqlType(Boolean.class),
+               is(SqlBaseType.BOOLEAN));
   }
 
   @Test
   public void shouldConvertJavaIntegerToSqlInteger() {
-    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Integer.class),
-        is(SqlBaseType.INTEGER));
+    assertThat(javaToSqlConverter().toSqlType(Integer.class),
+               is(SqlBaseType.INTEGER));
   }
 
   @Test
   public void shouldConvertJavaLongToSqlBigInt() {
-    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Long.class), is(SqlBaseType.BIGINT));
+    assertThat(javaToSqlConverter().toSqlType(Long.class), is(SqlBaseType.BIGINT));
   }
 
   @Test
   public void shouldConvertJavaDoubleToSqlDouble() {
-    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Double.class),
-        is(SqlBaseType.DOUBLE));
+    assertThat(javaToSqlConverter().toSqlType(Double.class),
+               is(SqlBaseType.DOUBLE));
   }
 
   @Test
   public void shouldConvertJavaStringToSqlString() {
-    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(String.class),
-        is(SqlBaseType.STRING));
+    assertThat(javaToSqlConverter().toSqlType(String.class),
+               is(SqlBaseType.STRING));
   }
 
   @Test

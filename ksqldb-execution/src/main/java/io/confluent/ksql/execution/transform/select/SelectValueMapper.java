@@ -24,7 +24,7 @@ import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;

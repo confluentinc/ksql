@@ -19,7 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.schema.utils.Identifiers;
 import org.junit.Test;
 
 public class IdentifiersTest {

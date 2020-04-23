@@ -54,7 +54,7 @@ Next KLIP number: **23**
 | [KLIP-11: Redesign KSQL query language](klip-11-DQL.md)                            | Proposal       | N/A     |
 | [KLIP-12: Implement High-Availability for Pull queries](klip-12-pull-high-availability.md)| Proposal       | N/A     |
 | [KLIP-13: Introduce KSQL command to print connect worker properties to the console](klip-13-introduce-KSQL-command-to-print-connect-worker-properties-to-the-console.md) | Merged | 5.5 |
-| [KLIP-14: ROWTIME as Pseudocolumn](klip-14-rowtime-as-pseudocolumn.md)             | Approved       | N/A     |
+| [KLIP-14: ROWTIME as Pseudocolumn](klip-14-rowtime-as-pseudocolumn.md)             | Merged       | 0.9 / release after 5.5 |
 | [KLIP-15: KSQLDB new API and Client(klip-15-new-api-and-client.md                  | Proposal       | N/A     |
 | [KLIP-16: Introduce 'K$' dynamic views                                             | Proposal       | N/A     |
 | [KLIP-17: Remove 'INSERT INTO' in favour of SQL Union](klip-17-sql-union.md)       | Proposed [Discussion](https://github.com/confluentinc/ksql/pull/4125)       | N/A     |

@@ -155,7 +155,7 @@ CREATE STREAM transactions (
 
 Notice that this stream is configured with a custom `timestamp` to signal that [event-time](../../concepts/time-and-windows-in-ksqldb-queries/#event-time) should be used instead of [processing-time](../../concepts/time-and-windows-in-ksqldb-queries/#processing-time). What this means is that when ksqlDB does time-related operations over the stream, it uses the `timestamp` column to measure time, not the current time of the operating system. This makes it possible to handle out-of-order events.
 
-The stream is also configured to use the `Avro` format for the value part of the underlying Kafka records that it generates. Becuse ksqlDB has been configured with Schema Registry (as part of the Docker Compose file), the schemas of each stream and table are centrally tracked. We'll make use of this in our microservice later.
+The stream is also configured to use the `Avro` format for the value part of the underlying {{ site.ak }} records that it generates. Because ksqlDB has been configured with {{ site.sr }} (as part of the Docker Compose file), the schemas of each stream and table are centrally tracked. We'll make use of this in our microservice later.
 
 ### Seed some transaction events
 
@@ -306,7 +306,7 @@ This should yield a single row. Three transactions for card number `358579699410
 |                  |                  |                  |                  |                  |                  |                  |                  |c89dc]            |                  |                  |
 ```
 
-You can also print out the contents of the underlying Kafka topic for this table, which we will programmatically access in the microservice:
+You can also print out the contents of the underlying {{ site.ak }} topic for this table, which you will programmatically access in the microservice:
 
 ```sql
 PRINT 'possible_anomalies' FROM BEGINNING;
@@ -316,7 +316,7 @@ PRINT 'possible_anomalies' FROM BEGINNING;
 
 Notice that so far, all the heavy lifting happens inside of ksqlDB. ksqlDB takes care of the stateful stream processing. Triggering side-effects will be delegated to a light-weight service that consumes from a Kafka topic. You want to send an email each time an anomaly is found. To do that, you'll implement a simple, scalable microservice. In practice, you might use [Kafka Streams](https://kafka.apache.org/documentation/streams/) to handle this piece, but to keep things simple, just use a {{ site.ak }} consumer client.
 
-Start by creating a `pom.xml` file for your microservice. This simple microservice will run a loop, reading from the anomalies Kafka topic and sending an email for each event it receives. Dependencies are declared on Kafka, Avro, SendGrid, and a few other things:
+Start by creating a `pom.xml` file for your microservice. This simple microservice will run a loop, reading from the `anomalies` {{ site.ak }} topic and sending an email for each event it receives. Dependencies are declared on {{ site.ak }}, Avro, SendGrid, and a few other things:
 
 ```xml
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -474,7 +474,7 @@ You should now have a file called `target/generated-sources/io/ksqldb/tutorial/P
 
 ### Write the Kafka consumer code
 
-Now we can write the code that triggers side effects when anomalies are found. Add the following Java file at `src/main/java/io/ksqldb/tutorial/EmailSender.java`. This is a simple program that consumes events from Kafka and sends an email with SendGrid for each one it finds. There are a few constants to fill in, including a SendGrid API key. You can get one by signing up for SendGrid, if you wish.
+Now we can write the code that triggers side effects when anomalies are found. Add the following Java file at `src/main/java/io/ksqldb/tutorial/EmailSender.java`. This is a simple program that consumes events from {{ site.ak }} and sends an email with SendGrid for each one it finds. There are a few constants to fill in, including a SendGrid API key. You can get one by signing up for SendGrid.
 
 ```java
 package io.ksqldb.tutorial;

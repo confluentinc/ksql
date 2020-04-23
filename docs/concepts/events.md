@@ -49,6 +49,7 @@ ksqlDB aims to raise the abstraction from working with a lower-level stream
 processor. Usually, an event is called a "row", as if it were a row in a
 relational database. Each row is composed of a series of columns. Most columns
 represent fields in the value of an event, but there are a few extra columns.
-In particular, there are the `ROWKEY` and `ROWTIME` columns that represent the
-key and time of the event. These system columns are present on every row.
-In addition, windowed sources have `WINDOWSTART` and `WINDOWEND` columns.
+In particular, there is the `ROWKEY` system columns represents the
+key of the event, and the `ROWTIME` pseudo column that represents the time of
+the event. These columns are available on every row.
+In addition, windowed sources have `WINDOWSTART` and `WINDOWEND` system columns.

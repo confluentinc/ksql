@@ -36,7 +36,8 @@ Any column that doesn't get a value explicitly is set to `null`. If no columns
 are specified, a value for every column is expected in the same order as the
 schema, with `ROWKEY` as the first column. If columns are specified, the order
 doesn’t matter. You can specify `ROWTIME` as an explicit column, but it’s not
-required when you omit the column specifications.
+required when you omit the column specifications, defaulting to the local
+machine time.
 
 For more information, see
 [INSERT INTO VALUES](../../developer-guide/ksqldb-reference/insert-values.md).

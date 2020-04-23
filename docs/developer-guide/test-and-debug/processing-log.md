@@ -242,7 +242,6 @@ ksql> describe PROCESSING_LOG;
 Name                 : PROCESSING_LOG
 Field   | Type
 ---------------------------------------------------------------------------------------------------------------------------
- ROWTIME | BIGINT           (system)
  ROWKEY  | VARCHAR(STRING)  (key)
  LOGGER  | VARCHAR(STRING)
  LEVEL   | VARCHAR(STRING)

@@ -91,7 +91,6 @@ Your output should resemble:
 Name                 : PAGEVIEWS
  Field    | Type
 --------------------------------------
- ROWTIME  | BIGINT           (system)
  ROWKEY   | VARCHAR(STRING)  (key)
  VIEWTIME | BIGINT
  USERID   | VARCHAR(STRING)

@@ -41,6 +41,7 @@ import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.net.URI;
@@ -284,6 +285,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
     final Queries queries = (Queries) response.getResponse().get(0);
     return queries.getQueries().stream()
+        .filter(query -> query.getQueryType() == KsqlConstants.KsqlQueryType.PERSISTENT)
         .map(RunningQuery::getId)
         .map(QueryId::toString)
         .collect(Collectors.toSet());

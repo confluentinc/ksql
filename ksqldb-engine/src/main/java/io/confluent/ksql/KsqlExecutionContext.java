@@ -79,6 +79,13 @@ public interface KsqlExecutionContext {
   List<PersistentQueryMetadata> getPersistentQueries();
 
   /**
+   * Retrieves the list of all running queries.
+   *
+   * @return the list of all queries
+   */
+  List<QueryMetadata> getAllLiveQueries();
+
+  /**
    * Parse the statement(s) in supplied {@code sql}.
    *
    * <p>Note: the state of the execution context will not be changed.

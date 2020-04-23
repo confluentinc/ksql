@@ -1996,7 +1996,7 @@ public class KsqlResourceTest {
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
             QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(KafkaStreams.State.valueOf(md.getState()), 1)))
+                Collections.singletonMap(KafkaStreams.State.valueOf(md.getState()), 1)), KsqlConstants.KsqlQueryType.PERSISTENT)
     ).collect(Collectors.toList());
   }
 

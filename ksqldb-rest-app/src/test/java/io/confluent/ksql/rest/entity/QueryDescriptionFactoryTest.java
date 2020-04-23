@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.entity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isEmptyString;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -39,6 +38,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QuerySchemas;
@@ -78,7 +78,8 @@ public class QueryDescriptionFactoryTest {
 
   private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");
   private static final Map<String, Object> PROP_OVERRIDES = Collections.singletonMap("k2", "v2");
-  private static final QueryId QUERY_ID = new QueryId("query_id");
+  private static final String APPLICATION_ID = "app id";
+  private static final QueryId QUERY_ID = new QueryId(APPLICATION_ID);
   private static final ImmutableSet<SourceName> SOURCE_NAMES = ImmutableSet.of(SourceName.of("s1"), SourceName.of("s2"));
   private static final String SQL_TEXT = "test statement";
   private static final String TOPOLOGY_TEXT = "Topology Text";
@@ -114,7 +115,7 @@ public class QueryDescriptionFactoryTest {
         SOURCE_NAMES,
         "execution plan",
         queryQueue,
-        "app id",
+        APPLICATION_ID,
         topology,
         STREAMS_PROPS,
         PROP_OVERRIDES,
@@ -133,7 +134,7 @@ public class QueryDescriptionFactoryTest {
         QUERY_ID,
         DataSourceType.KSTREAM,
         Optional.empty(),
-        "app id",
+        APPLICATION_ID,
         sinkTopic,
         topology,
         QuerySchemas.of(new LinkedHashMap<>()),
@@ -146,8 +147,8 @@ public class QueryDescriptionFactoryTest {
   }
 
   @Test
-  public void shouldHaveEmptyQueryIdFromTransientQuery() {
-    assertThat(transientQueryDescription.getId().toString(), is(isEmptyString()));
+  public void shouldHaveApplicationIdAsQueryIdFromTransientQuery() {
+    assertThat(transientQueryDescription.getId().toString(), is(APPLICATION_ID));
   }
 
   @Test
@@ -215,6 +216,16 @@ public class QueryDescriptionFactoryTest {
   @Test
   public void shouldNotReportTransientQueriesStatus() {
     assertThat(transientQueryDescription.getState(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldHavePersistentQueryTypePersistentQueryDescription() {
+    assertThat(persistentQueryDescription.getQueryType(), is(KsqlQueryType.PERSISTENT));
+  }
+
+  @Test
+  public void shouldHavePushQueryTypeTransientQueryDescription() {
+    assertThat(transientQueryDescription.getQueryType(), is(KsqlQueryType.PUSH));
   }
 
   @Test

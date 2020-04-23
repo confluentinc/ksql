@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 
@@ -230,7 +231,8 @@ public final class ListSourceExecutor {
             q.getQueryId(),
             QueryStatusCount.fromStreamsStateCounts(
                 Collections.singletonMap(
-                    KafkaStreams.State.valueOf(q.getState()), 1)))).collect(Collectors.toList());
+                    KafkaStreams.State.valueOf(q.getState()), 1)),
+            KsqlConstants.KsqlQueryType.PERSISTENT)).collect(Collectors.toList());
   }
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {

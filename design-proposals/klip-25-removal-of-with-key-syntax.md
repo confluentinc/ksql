@@ -2,7 +2,7 @@
 
 **Author**: @big-andy-coates |
 **Release Target**: TBD |
-**Status**: In Discussion |
+**Status**: Accepted |
 **Discussion**: TBC
 
 **tl;dr:** The `WITH(KEY)` syntax is the cause of much confusion and errors as it requires users to

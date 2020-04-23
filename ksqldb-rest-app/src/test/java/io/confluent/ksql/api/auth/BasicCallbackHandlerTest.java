@@ -15,15 +15,14 @@
 
 package io.confluent.ksql.api.auth;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.verify;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -42,9 +41,6 @@ public class BasicCallbackHandlerTest {
   private Callback unknownCallback;
 
   private BasicCallbackHandler callbackHandler;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {

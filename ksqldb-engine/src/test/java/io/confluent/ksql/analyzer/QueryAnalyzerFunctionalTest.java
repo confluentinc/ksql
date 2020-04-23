@@ -17,8 +17,10 @@ package io.confluent.ksql.analyzer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
@@ -34,9 +36,7 @@ import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.io.File;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 /**
  * DO NOT ADD NEW TESTS TO THIS FILE
@@ -47,9 +47,6 @@ import org.junit.rules.ExpectedException;
  */
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class QueryAnalyzerFunctionalTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
@@ -83,12 +80,16 @@ public class QueryAnalyzerFunctionalTest {
     // Given:
     final Query query = givenQuery("select itemid, sum(orderunits) from orders EMIT CHANGES;");
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Use of aggregate function SUM requires a GROUP BY clause.");
-
     // When:
-    queryAnalyzer.analyze(query, Optional.empty());
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> queryAnalyzer.analyze(query, Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Use of aggregate function SUM requires a GROUP BY clause."
+    ));
   }
 
   @Test

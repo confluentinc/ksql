@@ -21,6 +21,7 @@ import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableCauseMatcher.hasCause;
 
 import com.google.common.collect.ImmutableMap;
@@ -45,10 +46,8 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
@@ -75,9 +74,6 @@ public class SslFunctionalTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   private Map<String, String> clientProps;
 
   @BeforeClass
@@ -96,15 +92,18 @@ public class SslFunctionalTest {
   public void shouldNotBeAbleToUseCliIfClientDoesNotTrustServerCert() {
 
     // Given:
-    givenClientConfguredWithoutTruststore();
+    givenClientConfguredWithoutTruststore();// Then:
 
-    // Then:
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectCause(is(instanceOf(ExecutionException.class)));
-    expectedException.expectCause(hasCause(is(instanceOf(SSLHandshakeException.class))));
 
     // When:
-    canMakeCliRequest();
+    final Exception e = assertThrows(
+        KsqlRestClientException.class,
+        () -> canMakeCliRequest()
+    );
+
+    // Then:
+    assertThat(e.getCause(), (is(instanceOf(ExecutionException.class))));
+    assertThat(e.getCause(), (hasCause(is(instanceOf(SSLHandshakeException.class)))));
   }
 
   @Test
@@ -124,11 +123,11 @@ public class SslFunctionalTest {
     // Given:
     givenClientConfguredWithoutTruststore();
 
-    // Then:
-    expectedException.expect(SSLHandshakeException.class);
-
     // When:
-    WebsocketUtils.makeWsRequest(JSON_KSQL_REQUEST, clientProps, REST_APP);
+    assertThrows(
+        SSLHandshakeException.class,
+        () -> WebsocketUtils.makeWsRequest(JSON_KSQL_REQUEST, clientProps, REST_APP)
+    );
   }
 
   @Test

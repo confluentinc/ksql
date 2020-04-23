@@ -15,8 +15,11 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -60,9 +63,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -82,9 +83,6 @@ public class SchemaRegisterInjectorTest {
           + "\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":"
           + "[{\"name\":\"F1\",\"type\":[\"null\",\"string\"],\"default\":null}],"
           + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private ServiceContext serviceContext;
@@ -214,12 +212,15 @@ public class SchemaRegisterInjectorTest {
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
     when(executionSandbox.execute(any(), eq(statement))).thenReturn(ExecuteResult.of("fail!"));
 
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Could not determine output schema for query due to error: Optional[fail!]");
-
     // When:
-    injector.inject(statement);
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not determine output schema for query due to error: Optional[fail!]"));
   }
 
   @Test
@@ -229,13 +230,16 @@ public class SchemaRegisterInjectorTest {
     when(schemaRegistryClient.register(anyString(), any(ParsedSchema.class)))
         .thenThrow(new IOException("FUBAR"));
 
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Could not register schema for topic");
-    expectedException.expectCause(hasProperty("message", is("FUBAR")));
-
     // When:
-    injector.inject(statement);
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not register schema for topic"));
+    assertThat(e.getCause(), (hasProperty("message", is("FUBAR"))));
   }
 
   @Test

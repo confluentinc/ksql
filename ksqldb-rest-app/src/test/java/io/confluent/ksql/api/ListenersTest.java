@@ -16,8 +16,10 @@
 package io.confluent.ksql.api;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
@@ -27,14 +29,9 @@ import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ListenersTest extends BaseApiTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldSupportOneListener() {
@@ -88,12 +85,15 @@ public class ListenersTest extends BaseApiTest {
     // Given:
     init();
 
-    // Then:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("https listener specified but no keystore provided");
-
     // When:
-    createServer(createConfig("https://localhost:8089", false));
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> createServer(createConfig("https://localhost:8089", false))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "https listener specified but no keystore provided"));
 
   }
 
@@ -102,12 +102,15 @@ public class ListenersTest extends BaseApiTest {
     // Given:
     init();
 
-    // Then:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("Invalid URI scheme should be http or https");
-
     // When:
-    createServer(createConfig("ftp://localhost:8088", false));
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> createServer(createConfig("ftp://localhost:8088", false))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid URI scheme should be http or https"));
   }
 
   @Test
@@ -115,12 +118,15 @@ public class ListenersTest extends BaseApiTest {
     // Given:
     init();
 
-    // Then:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("Invalid listener URI");
-
     // When:
-    createServer(createConfig("http:: uiqhwduihqwduhi:8989", false));
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> createServer(createConfig("http:: uiqhwduihqwduhi:8989", false))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid listener URI"));
   }
 
   private ApiServerConfig createConfig(String listeners, boolean tls) {
@@ -145,5 +151,5 @@ public class ListenersTest extends BaseApiTest {
     stopServer();
     stopClient();
   }
-  
+
 }

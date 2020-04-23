@@ -27,19 +27,14 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TableElementTest {
 
   private static final Optional<NodeLocation> A_LOCATION =
       Optional.of(new NodeLocation(2, 4));
-  
-  private static final ColumnName NAME = ColumnName.of("name");
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+  private static final ColumnName NAME = ColumnName.of("name");
 
   @SuppressWarnings("UnstableApiUsage")
   @Test

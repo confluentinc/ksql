@@ -20,8 +20,10 @@ import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.st
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
@@ -33,9 +35,8 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import org.junit.Rule;
+import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -44,9 +45,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class PrintTopicValidatorTest {
 
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlExecutionContext ksqlEngine;
@@ -63,21 +61,23 @@ public class PrintTopicValidatorTest {
         CONFIG
     );
 
-    // When::
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
-    expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
+    // When:
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> CustomValidators.PRINT_TOPIC.validate(
+            query,
+            mock(SessionProperties.class),
+            ksqlEngine,
+            serviceContext
+        )
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));
+    assertThat(e, exceptionStatementErrorMessage(errorMessage(containsString(
         "The following statement types should be issued to the websocket endpoint '/query'"
     ))));
-    expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
+    assertThat(e, exceptionStatementErrorMessage(statement(containsString(
         "PRINT 'topic';"))));
-
-    // When:
-    CustomValidators.PRINT_TOPIC.validate(
-        query,
-        mock(SessionProperties.class),
-        ksqlEngine,
-        serviceContext
-    );
   }
 }

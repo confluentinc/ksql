@@ -15,11 +15,11 @@
         {"topic": "RIGHT", "key": 0, "value": {"B": -1, "C": -2}, "timestamp": 11}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 10, "R_ROWTIME": 11, "L_A": 0, "R_A": 0, "L_B": 1, "R_B": -1, "L_C": 2, "R_C": -2}, "timestamp":  11}
+        {"topic": "OUTPUT", "key": 0, "value": {"L_A": 0, "R_A": 0, "L_B": 1, "R_B": -1, "L_C": 2, "R_C": -2}, "timestamp":  11}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "A INT KEY, L_ROWTIME BIGINT, L_A INT, L_B INT, L_C INT, R_ROWTIME BIGINT, R_A INT, R_B INT, R_C INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "A INT KEY, L_A INT, L_B INT, L_C INT, R_A INT, R_B INT, R_C INT"}
         ],
         "topics": {
           "blacklist": ".*-repartition"
@@ -41,11 +41,11 @@
         {"topic": "RIGHT", "key": 0, "value": {"B": -1, "C": -2}, "timestamp": 11}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 10, "R_ROWTIME": 11, "L_A": 0, "R_A": 0, "L_B": 1, "R_B": -1, "L_C": 2, "R_C": -2}, "timestamp":  11}
+        {"topic": "OUTPUT", "key": 0, "value": {"L_A": 0, "R_A": 0, "L_B": 1, "R_B": -1, "L_C": 2, "R_C": -2}, "timestamp":  11}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "A INT KEY, L_ROWTIME BIGINT, L_A INT, L_B INT, L_C INT, R_ROWTIME BIGINT, R_A INT, R_B INT, R_C INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "A INT KEY, L_A INT, L_B INT, L_C INT, R_A INT, R_B INT, R_C INT"}
         ],
         "topics": {
           "blacklist": ".*-repartition"
@@ -385,13 +385,13 @@
         {"topic": "left_topic", "key": 0, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "zero", "T_VALUE": 0, "F1": "blah", "T_ROWTIME": 0}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "foo", "T_VALUE": 100, "F1": "blah", "T_ROWTIME": 13000}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "foo", "T_VALUE": 100, "F1": "a", "T_ROWTIME": 13000}, "timestamp": 15000}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "zero", "T_VALUE": 0, "F1": "blah"}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "foo", "T_VALUE": 100, "F1": "blah"}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "foo", "T_VALUE": 100, "F1": "a"}, "timestamp": 15000}
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, T_ROWTIME BIGINT, T_ID BIGINT, T_NAME STRING, T_VALUE BIGINT, F1 STRING"}
+          {"name": "INNER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, T_ID BIGINT, T_NAME STRING, T_VALUE BIGINT, F1 STRING"}
         ]
       }
     },
@@ -417,13 +417,13 @@
         {"topic": "left_topic", "key": 0, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWTIME": 10000, "NAME": "zero"}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWTIME": 10000, "NAME": "foo"}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_F2": 10, "T_ROWTIME": 15000, "NAME": "foo"}, "timestamp": 15000}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "NAME": "zero"}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "NAME": "foo"}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_F2": 10, "NAME": "foo"}, "timestamp": 15000}
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, T_ROWTIME BIGINT, T_ID BIGINT, T_F1 STRING, T_F2 BIGINT, NAME STRING"}
+          {"name": "INNER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, T_ID BIGINT, T_F1 STRING, T_F2 BIGINT, NAME STRING"}
         ]
       }
     },
@@ -448,13 +448,13 @@
         {"topic": "left_topic", "key": 0, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWTIME": 10000, "TT_ID": 0, "TT_NAME": "zero", "TT_VALUE": 0, "TT_ROWTIME": 0, "F1_2": "blah", "NAME_2": "zero"}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWTIME": 10000, "TT_ID": 0, "TT_NAME": "foo", "TT_VALUE": 100, "TT_ROWTIME": 13000, "F1_2": "blah", "NAME_2": "foo"}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_F2": 10, "T_ROWTIME": 15000, "TT_ID": 0, "TT_NAME": "foo", "TT_VALUE": 100, "TT_ROWTIME": 13000, "F1_2": "a", "NAME_2": "foo"}, "timestamp": 15000}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "TT_ID": 0, "TT_NAME": "zero", "TT_VALUE": 0, "F1_2": "blah", "NAME_2": "zero"}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "TT_ID": 0, "TT_NAME": "foo", "TT_VALUE": 100, "F1_2": "blah", "NAME_2": "foo"}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_F2": 10, "TT_ID": 0, "TT_NAME": "foo", "TT_VALUE": 100, "F1_2": "a", "NAME_2": "foo"}, "timestamp": 15000}
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, T_ROWTIME BIGINT, T_ID BIGINT, T_F1 STRING, T_F2 BIGINT, F1_2 STRING, TT_ROWTIME BIGINT, TT_ID BIGINT, TT_NAME STRING, TT_VALUE BIGINT, NAME_2 STRING"}
+          {"name": "INNER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, T_ID BIGINT, T_F1 STRING, T_F2 BIGINT, F1_2 STRING, TT_ID BIGINT, TT_NAME STRING, TT_VALUE BIGINT, NAME_2 STRING"}
         ]
       }
     },
@@ -488,13 +488,13 @@
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog", "window": {"start": 16000, "end": 27000, "type": "time"}, "key": 100, "value": {"T_ROWTIME": 16000, "T_ID": 100, "T_F1": "newblah"}, "timestamp": 16000},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "window": {"start": 17000, "end": 28000, "type": "time"}, "key": 90, "value": {"TT_ROWTIME": 17000, "TT_ID": 90, "TT_NAME": "ninety"}, "timestamp": 17000},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "window": {"start": 30000, "end": 41000, "type": "time"}, "key": 0, "value": {"TT_ROWTIME": 30000, "TT_ID": 0, "TT_NAME": "bar"}, "timestamp": 30000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_ROWTIME": 10000, "TT_ID": 0, "TT_NAME": "zero", "TT_ROWTIME": 0}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_ROWTIME": 10000, "TT_ID": 0, "TT_NAME": "foo", "TT_ROWTIME": 13000}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_ROWTIME": 15000, "TT_ID": 0, "TT_NAME": "foo", "TT_ROWTIME": 13000}, "timestamp": 15000}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "TT_ID": 0, "TT_NAME": "zero"}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "TT_ID": 0, "TT_NAME": "foo"}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "TT_ID": 0, "TT_NAME": "foo"}, "timestamp": 15000}
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, TT_ROWTIME BIGINT, TT_ID BIGINT, TT_NAME STRING, T_ROWTIME BIGINT, T_ID BIGINT, T_F1 STRING"}
+          {"name": "INNER_JOIN", "type": "stream", "schema": "ID BIGINT KEY, TT_ID BIGINT, TT_NAME STRING, T_ID BIGINT, T_F1 STRING"}
         ]
       }
     },
@@ -1471,7 +1471,7 @@
       "statements": [
         "CREATE STREAM INPUT_STREAM (K STRING KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');",
         "CREATE TABLE INPUT_TABLE (ID BIGINT PRIMARY KEY, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.SF = T.ID;"
+        "CREATE STREAM OUTPUT AS SELECT *, S.ROWTIME, T.ROWTIME FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.SF = T.ID;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -1491,7 +1491,7 @@
             "name": "OUTPUT",
             "type": "stream",
             "keyFormat": {"format": "KAFKA"},
-            "schema": "SF BIGINT KEY, S_ROWTIME BIGINT, S_K STRING, S_SF BIGINT, T_ROWTIME BIGINT, T_ID BIGINT, T_TF INT"
+            "schema": "SF BIGINT KEY, S_K STRING, S_SF BIGINT, T_ID BIGINT, T_TF INT, S_ROWTIME BIGINT, T_ROWTIME BIGINT"
           }
         ]
       }
@@ -1664,7 +1664,7 @@
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, V bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Hopping', WINDOW_SIZE='5 SECONDS');",
         "CREATE STREAM S2 (ID INT KEY, V bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
-        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ID = S2.ID;"
+        "CREATE STREAM OUTPUT as SELECT *, S1.ROWTIME, S2.ROWTIME FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ID = S2.ID;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -1686,7 +1686,7 @@
             "name": "OUTPUT",
             "type": "stream",
             "keyFormat": {"format": "KAFKA", "windowType": "HOPPING", "windowSize": 5000},
-            "schema": "`ID` INTEGER KEY, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_V` BIGINT, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_V` BIGINT"
+            "schema": "`ID` INTEGER KEY, `S1_ID` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_V` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_V` BIGINT, S1_ROWTIME BIGINT, S2_ROWTIME BIGINT"
           }
         ]
       }
@@ -1760,7 +1760,7 @@
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, A bigint, B STRUCT<C INT>) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE STREAM S2 (ID INT KEY, X bigint, Y STRUCT<Z INT>) WITH (kafka_topic='right_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.B->C = S2.Y->Z;"
+        "CREATE STREAM OUTPUT as SELECT *, S1.ROWTIME, S2.ROWTIME FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.B->C = S2.Y->Z;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -1782,7 +1782,7 @@
             "name": "OUTPUT",
             "type": "stream",
             "keyFormat": {"format": "KAFKA"},
-            "schema": "C INTEGER KEY, S1_ROWTIME BIGINT, S1_ID INTEGER, S1_A BIGINT, S1_B STRUCT<C INTEGER>, S2_ROWTIME BIGINT, S2_ID INTEGER, S2_X BIGINT, S2_Y STRUCT<Z INTEGER>"
+            "schema": "C INTEGER KEY, S1_ID INTEGER, S1_A BIGINT, S1_B STRUCT<C INTEGER>, S2_ID INTEGER, S2_X BIGINT, S2_Y STRUCT<Z INTEGER>, S1_ROWTIME BIGINT, S2_ROWTIME BIGINT"
           }
         ]
       }
@@ -2196,9 +2196,9 @@
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "zero", "T_VALUE": 0, "F1": "blah", "T_ROWKEY": 0, "T_ROWTIME": 0}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "foo", "T_VALUE": 100, "F1": "blah", "T_ROWKEY": 0, "T_ROWTIME": 13000}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "foo", "T_VALUE": 100, "F1": "a", "T_ROWKEY": 0, "T_ROWTIME": 13000}, "timestamp": 15000}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "zero", "T_VALUE": 0, "F1": "blah", "T_ROWKEY": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "foo", "T_VALUE": 100, "F1": "blah", "T_ROWKEY": 0}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_NAME": "foo", "T_VALUE": 100, "F1": "a", "T_ROWKEY": 0}, "timestamp": 15000}
       ]
     },
     {
@@ -2220,9 +2220,9 @@
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWKEY": 0, "T_ROWTIME": 10000, "NAME": "zero"}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWKEY": 0, "T_ROWTIME": 10000, "NAME": "foo"}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_F2": 10, "T_ROWKEY": 0, "T_ROWTIME": 15000, "NAME": "foo"}, "timestamp": 15000}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWKEY": 0, "NAME": "zero"}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWKEY": 0, "NAME": "foo"}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_F2": 10, "T_ROWKEY": 0, "NAME": "foo"}, "timestamp": 15000}
       ],
       "post": {
         "issues": [
@@ -2260,9 +2260,9 @@
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog", "window": {"start": 16000, "end": 27000, "type": "time"}, "key": 100, "value": {"T_ROWTIME": 16000, "T_ROWKEY": 100, "T_ID": 100, "T_F1": "newblah"}, "timestamp": 16000},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "window": {"start": 17000, "end": 28000, "type": "time"}, "key": 90, "value": {"TT_ROWTIME": 17000, "TT_ROWKEY": 90, "TT_ID": 90, "TT_NAME": "ninety"}, "timestamp": 17000},
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "window": {"start": 30000, "end": 41000, "type": "time"}, "key": 0, "value": {"TT_ROWTIME": 30000, "TT_ROWKEY": 0, "TT_ID": 0, "TT_NAME": "bar"}, "timestamp": 30000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_ROWKEY": 0, "T_ROWTIME": 10000, "TT_ID": 0, "TT_NAME": "zero", "TT_ROWKEY": 0, "TT_ROWTIME": 0}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_ROWKEY": 0, "T_ROWTIME": 10000, "TT_ID": 0, "TT_NAME": "foo", "TT_ROWKEY": 0, "TT_ROWTIME": 13000}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_ROWKEY": 0, "T_ROWTIME": 15000, "TT_ID": 0, "TT_NAME": "foo", "TT_ROWKEY": 0, "TT_ROWTIME": 13000}, "timestamp": 15000}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_ROWKEY": 0, "TT_ID": 0, "TT_NAME": "zero", "TT_ROWKEY": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_ROWKEY": 0, "TT_ID": 0, "TT_NAME": "foo", "TT_ROWKEY": 0}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_ROWKEY": 0, "TT_ID": 0, "TT_NAME": "foo", "TT_ROWKEY": 0}, "timestamp": 15000}
       ],
       "post": {
         "sources": [
@@ -3780,7 +3780,7 @@
       "statements": [
         "CREATE STREAM INPUT_STREAM (ROWKEY BIGINT KEY, SF INT) WITH (kafka_topic='stream_topic', value_format='JSON');",
         "CREATE TABLE INPUT_TABLE (ROWKEY BIGINT PRIMARY KEY, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.ROWKEY = T.ROWKEY;"
+        "CREATE STREAM OUTPUT AS SELECT *, S.ROWTIME, T.ROWTIME FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.ROWKEY = T.ROWKEY;"
       ],
       "inputs": [
         {"topic": "table_topic", "key": 26589, "value": {"TF": 1}, "timestamp": 0},
@@ -3797,7 +3797,7 @@
             "name": "OUTPUT",
             "type": "stream",
             "keyFormat": {"format": "KAFKA"},
-            "schema": "ROWKEY BIGINT KEY, S_ROWTIME BIGINT, S_ROWKEY BIGINT, S_SF INT, T_ROWTIME BIGINT, T_ROWKEY BIGINT, T_TF INT"
+            "schema": "ROWKEY BIGINT KEY, S_ROWKEY BIGINT, S_SF INT, T_ROWKEY BIGINT, T_TF INT, S_ROWTIME BIGINT, T_ROWTIME BIGINT"
           }
         ]
       }
@@ -3807,7 +3807,7 @@
       "statements": [
         "CREATE STREAM INPUT_STREAM (ROWKEY STRING KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');",
         "CREATE TABLE INPUT_TABLE (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, TF INT) WITH (kafka_topic='table_topic', value_format='JSON', key='ID');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.SF = T.ID;"
+        "CREATE STREAM OUTPUT AS SELECT *, S.ROWTIME, T.ROWTIME FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.SF = T.ID;"
       ],
       "inputs": [
         {"topic": "table_topic", "key": 26589, "value": {"ID": 26589, "TF": 1}, "timestamp": 0},
@@ -3824,7 +3824,7 @@
             "name": "OUTPUT",
             "type": "stream",
             "keyFormat": {"format": "KAFKA"},
-            "schema": "ROWKEY BIGINT KEY, S_ROWTIME BIGINT, S_ROWKEY STRING, S_SF BIGINT, T_ROWTIME BIGINT, T_ROWKEY BIGINT, T_ID BIGINT, T_TF INT"
+            "schema": "ROWKEY BIGINT KEY, S_ROWKEY STRING, S_SF BIGINT, T_ROWKEY BIGINT, T_ID BIGINT, T_TF INT, S_ROWTIME BIGINT, T_ROWTIME BIGINT"
           }
         ]
       }
@@ -3976,7 +3976,7 @@
       "statements": [
         "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Hopping', WINDOW_SIZE='5 SECONDS');",
         "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
-        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ROWKEY = S2.ROWKEY;"
+        "CREATE STREAM OUTPUT as SELECT *, S1.ROWTIME, S2.ROWTIME FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ROWKEY = S2.ROWKEY;"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 5000, "type": "time"}},
@@ -3995,7 +3995,7 @@
             "name": "OUTPUT",
             "type": "stream",
             "keyFormat": {"format": "KAFKA", "windowType": "HOPPING", "windowSize": 5000},
-            "schema": "`ROWKEY` INTEGER KEY, `S1_ROWTIME` BIGINT, `S1_ROWKEY` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_ROWTIME` BIGINT, `S2_ROWKEY` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"
+            "schema": "`ROWKEY` INTEGER KEY, `S1_ROWKEY` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_ROWKEY` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT"
           }
         ]
       }

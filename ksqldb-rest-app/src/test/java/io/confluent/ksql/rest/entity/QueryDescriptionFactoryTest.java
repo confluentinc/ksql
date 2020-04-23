@@ -195,7 +195,6 @@ public class QueryDescriptionFactoryTest {
   @Test
   public void shouldExposeAllFieldsForPersistentQueries() {
     assertThat(persistentQueryDescription.getFields(), contains(
-        new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null), Optional.of(FieldType.SYSTEM)),
         new FieldInfo("k0", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.of(FieldType.KEY)),
         new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty()),
         new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())));

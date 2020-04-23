@@ -25,10 +25,24 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
 
   private static final String CONFIG_PREFIX = "ksql.plugins.rocksdb.";
 
-  public static final String TOTAL_OFF_HEAP_MEMORY_CONFIG = CONFIG_PREFIX + "total.memory";
+  public static final String BLOCK_CACHE_SIZE = CONFIG_PREFIX + "cache.size";
   private static final String TOTAL_OFF_HEAP_MEMORY_DOC =
       "All RocksDB instances across all KSQL queries (i.e., all Kafka Streams applications) "
-      + "will be limited to sharing this much memory (in bytes).";
+      + "will be limited to sharing this much memory (in bytes) for block cache.";
+
+  public static final String WRITE_BUFFER_LIMIT = CONFIG_PREFIX + "write.buffer.size";
+  private static final String WRITE_BUFFER_LIMIT_DOC =
+      "All RocksDB instances across all KSQL queries (i.e. all Kafka Streams applications) "
+          + "will be limited to sharing this much write buffer memory.";
+  private static final int WRITE_BUFFER_LIMIT_DEFAULT = -1;
+
+  public static final String STRICT_CACHE_LIMIT = CONFIG_PREFIX + "cache.limit.strict";
+  private static final String STRICT_CACHE_LIMIT_DOC = "Apply a strict limit to the cache size";
+
+  public static final String ACCOUNT_WRITE_BUFFER_AGAINST_CACHE
+      = CONFIG_PREFIX + "write.buffer.cache.use";
+  private static final String ACCOUNT_WRITE_BUFFER_AGAINST_CACHE_DOC =
+      "Account write buffer usage against the block cache";
 
   public static final String N_BACKGROUND_THREADS_CONFIG =
       CONFIG_PREFIX + "num.background.threads";
@@ -44,11 +58,29 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
-          TOTAL_OFF_HEAP_MEMORY_CONFIG,
+          BLOCK_CACHE_SIZE,
           Type.LONG,
           ConfigDef.NO_DEFAULT_VALUE,
           Importance.HIGH,
           TOTAL_OFF_HEAP_MEMORY_DOC)
+      .define(
+          WRITE_BUFFER_LIMIT,
+          Type.LONG,
+          WRITE_BUFFER_LIMIT_DEFAULT,
+          Importance.HIGH,
+          WRITE_BUFFER_LIMIT_DOC)
+      .define(
+          ACCOUNT_WRITE_BUFFER_AGAINST_CACHE,
+          Type.BOOLEAN,
+          false,
+          Importance.MEDIUM,
+          ACCOUNT_WRITE_BUFFER_AGAINST_CACHE_DOC)
+      .define(
+          STRICT_CACHE_LIMIT,
+          Type.BOOLEAN,
+          false,
+          Importance.MEDIUM,
+          STRICT_CACHE_LIMIT_DOC)
       .define(
           N_BACKGROUND_THREADS_CONFIG,
           Type.INT,

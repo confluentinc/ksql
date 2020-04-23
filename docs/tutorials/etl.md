@@ -608,3 +608,11 @@ Your output should resemble:
 ```
 
 Try inserting more rows into Postgres and each MongoDB collection. Notice how the results update quickly in the Elasticsearch index.
+
+### Tear down the stack
+
+When you're done, tear down the stack by running:
+
+```
+docker-compose down
+```

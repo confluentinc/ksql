@@ -366,6 +366,14 @@ Your output should resemble:
 
 Try inserting more rows into the MySQL prompt. Query ksqlDB and watch the results propagate in real-time.
 
+### Tear down the stack
+
+When you're done, tear down the stack by running:
+
+```
+docker-compose down
+```
+
 ### Running this in production
 
 In practice, you won't want to query your materialized views from the ksqlDB prompt.

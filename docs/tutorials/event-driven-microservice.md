@@ -611,3 +611,11 @@ Second, this microservice is configured to checkpoint its progress every `100` m
 Finally, note that ksqlDB emits a new event every time a tumbling window changes. ksqlDB uses a model called "refinements" to continually emit new changes to stateful aggregations. For example, if an anomaly was detected because three credit card transactions were found in a given interval, an event would be emitted from the table. If a fourth is detected in the same interval, another event is emitted. Because SendGrid does not (at the time of writing) support idempotent email submission, you would need to have a small piece of logic in your program to prevent sending an email multiple times for the same period. This is omitted for brevity.
 
 If you wish, you can continue the example by inserting more events into the `transactions` topics.
+
+### Tear down the stack
+
+When you're done, tear down the stack by running:
+
+```
+docker-compose down
+```

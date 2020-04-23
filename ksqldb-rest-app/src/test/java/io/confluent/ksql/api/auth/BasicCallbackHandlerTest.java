@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.auth;
 
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.verify;
 
 import javax.security.auth.callback.Callback;

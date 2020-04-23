@@ -126,7 +126,7 @@ CREATE TABLE JDBC_USERS WITH(value_format='AVRO', kafka_topic='jdbc-users');
 Select everything from the topic to see how it gets auto populated:
 
 ```sql
-SELECT * FROM JDBC_USERS EMIT CHANGES;
+SELECT ROWTIME, * FROM JDBC_USERS EMIT CHANGES;
 ```
 
 You output should resemble:

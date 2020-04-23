@@ -52,13 +52,13 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
@@ -437,14 +437,6 @@ public class ConsoleTest {
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
-          + "      \"name\" : \"ROWTIME\"," + NEWLINE
-          + "      \"schema\" : {" + NEWLINE
-          + "        \"type\" : \"BIGINT\"," + NEWLINE
-          + "        \"fields\" : null," + NEWLINE
-          + "        \"memberSchema\" : null" + NEWLINE
-          + "      }," + NEWLINE
-          + "      \"type\" : \"SYSTEM\"" + NEWLINE
-          + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
@@ -542,19 +534,18 @@ public class ConsoleTest {
     } else {
       assertThat(output, is("" + NEWLINE
           + "Name                 : TestSource" + NEWLINE
-          + " Field   | Type                           " + NEWLINE
-          + "------------------------------------------" + NEWLINE
-          + " ROWTIME | BIGINT           (system)      " + NEWLINE
-          + " ROWKEY  | VARCHAR(STRING)  (primary key) " + NEWLINE
-          + " f_0     | BOOLEAN                        " + NEWLINE
-          + " f_1     | INTEGER                        " + NEWLINE
-          + " f_2     | BIGINT                         " + NEWLINE
-          + " f_3     | DOUBLE                         " + NEWLINE
-          + " f_4     | VARCHAR(STRING)                " + NEWLINE
-          + " f_5     | ARRAY<VARCHAR(STRING)>         " + NEWLINE
-          + " f_6     | MAP<STRING, BIGINT>            " + NEWLINE
-          + " f_7     | STRUCT<a DOUBLE>               " + NEWLINE
-          + "------------------------------------------" + NEWLINE
+          + " Field  | Type                           " + NEWLINE
+          + "-----------------------------------------" + NEWLINE
+          + " ROWKEY | VARCHAR(STRING)  (primary key) " + NEWLINE
+          + " f_0    | BOOLEAN                        " + NEWLINE
+          + " f_1    | INTEGER                        " + NEWLINE
+          + " f_2    | BIGINT                         " + NEWLINE
+          + " f_3    | DOUBLE                         " + NEWLINE
+          + " f_4    | VARCHAR(STRING)                " + NEWLINE
+          + " f_5    | ARRAY<VARCHAR(STRING)>         " + NEWLINE
+          + " f_6    | MAP<STRING, BIGINT>            " + NEWLINE
+          + " f_7    | STRUCT<a DOUBLE>               " + NEWLINE
+          + "-----------------------------------------" + NEWLINE
           + "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;"
           + NEWLINE));
     }
@@ -642,14 +633,6 @@ public class ConsoleTest {
           + "    \"readQueries\" : [ ]," + NEWLINE
           + "    \"writeQueries\" : [ ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
-          + "      \"name\" : \"ROWTIME\"," + NEWLINE
-          + "      \"schema\" : {" + NEWLINE
-          + "        \"type\" : \"BIGINT\"," + NEWLINE
-          + "        \"fields\" : null," + NEWLINE
-          + "        \"memberSchema\" : null" + NEWLINE
-          + "      }," + NEWLINE
-          + "      \"type\" : \"SYSTEM\"" + NEWLINE
-          + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
@@ -1106,14 +1089,6 @@ public class ConsoleTest {
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
-          + "      \"name\" : \"ROWTIME\"," + NEWLINE
-          + "      \"schema\" : {" + NEWLINE
-          + "        \"type\" : \"BIGINT\"," + NEWLINE
-          + "        \"fields\" : null," + NEWLINE
-          + "        \"memberSchema\" : null" + NEWLINE
-          + "      }," + NEWLINE
-          + "      \"type\" : \"SYSTEM\"" + NEWLINE
-          + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
@@ -1155,12 +1130,11 @@ public class ConsoleTest {
           + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)" + NEWLINE
           + "Statement            : sql statement text" + NEWLINE
           + "" + NEWLINE
-          + " Field   | Type                           " + NEWLINE
-          + "------------------------------------------" + NEWLINE
-          + " ROWTIME | BIGINT           (system)      " + NEWLINE
-          + " ROWKEY  | VARCHAR(STRING)  (primary key) " + NEWLINE
-          + " f_0     | VARCHAR(STRING)                " + NEWLINE
-          + "------------------------------------------" + NEWLINE
+          + " Field  | Type                           " + NEWLINE
+          + "-----------------------------------------" + NEWLINE
+          + " ROWKEY | VARCHAR(STRING)  (primary key) " + NEWLINE
+          + " f_0    | VARCHAR(STRING)                " + NEWLINE
+          + "-----------------------------------------" + NEWLINE
           + "" + NEWLINE
           + "Queries that read from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE

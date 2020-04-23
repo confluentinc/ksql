@@ -19,6 +19,7 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.SqlTypeWalker;
@@ -39,6 +40,7 @@ public final class EntityUtil {
 
   public static List<FieldInfo> buildSourceSchemaEntity(final LogicalSchema schema) {
     final List<FieldInfo> allFields = schema.columns().stream()
+        .filter(f -> f.namespace() != Namespace.META)
         .map(EntityUtil::toFieldInfo)
         .collect(Collectors.toList());
 
@@ -95,7 +97,7 @@ public final class EntityUtil {
         case KEY:
           return Optional.of(FieldType.KEY);
         case META:
-          return Optional.of(FieldType.SYSTEM);
+          throw new IllegalArgumentException("pseudo columns should not be exposed");
         default:
           return Optional.empty();
       }

@@ -66,12 +66,12 @@ column (`userId`) and assign the key before performing the join.
 
 ```sql
     -- clicks stream, with an unknown key.
-    -- the schema of stream clicks is: ROWTIME BIGINT | ROWKEY STRING | USERID BIGINT | URL STRING
+    -- the schema of stream clicks is: ROWKEY STRING | USERID BIGINT | URL STRING
     CREATE STREAM clicks (userId BIGINT, url STRING) WITH(kafka_topic='clickstream', value_format='json');
 
     -- the primary key of table users is a BIGINT. 
     -- The userId column in the value matches the key, so can be used as an alias for ROWKEY in queries to make them more readable.
-    -- the schema of table users is: ROWTIME BIGINT | ROWKEY BIGINT | USERID BIGINT | FULLNAME STRING
+    -- the schema of table users is: ROWKEY BIGINT | USERID BIGINT | FULLNAME STRING
     CREATE TABLE  users (ROWKEY BIGINT PRIMARY KEY, userId BIGINT, fullName STRING) WITH(kafka_topic='users', value_format='json', key='userId');
 
     -- join of users table with clicks stream, joining on the table's primary key alias and the stream's userId column: 

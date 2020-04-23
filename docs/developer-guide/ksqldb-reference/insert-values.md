@@ -36,7 +36,8 @@ the order does not matter.
 
 !!! note
 	`ROWTIME` may be specified as an explicit column but isn't required
-    when you omit the column specifications.
+   when you omit the column specifications. If not supplied, it defaults
+   to the local machine time.
 
 Example
 -------
@@ -46,7 +47,7 @@ The following statements are valid for a source with a schema like
 
 ```sql
 -- inserts (1234, "key", "key", "A")
-INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, 'key', 'key', 'A');
+INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1510923225000, 'key', 'key', 'A');
 
 -- inserts (current_time(), "key", "key", "A")
 INSERT INTO foo VALUES ('key', 'key', 'A');

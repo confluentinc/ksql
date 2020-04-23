@@ -55,7 +55,6 @@ Your output should resemble:
 ```
  Field   | Type
 -------------------------------------
- ROWTIME | BIGINT           (system)
  ROWKEY  | VARCHAR(STRING)  (key)
  IP      | VARCHAR(STRING)  (key)
  KBYTES  | BIGINT
@@ -82,7 +81,6 @@ Kafka output topic   : IP_SUM (partitions: 4, replication: 1)
 
  Field   | Type
 -------------------------------------
- ROWTIME | BIGINT           (system)
  ROWKEY  | VARCHAR(STRING)  (key)
  IP      | VARCHAR(STRING)  (key)
  KBYTES  | BIGINT

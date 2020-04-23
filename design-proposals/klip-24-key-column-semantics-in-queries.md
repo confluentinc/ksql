@@ -6,8 +6,8 @@
 **Discussion**: TBD
 
 **tl;dr:** Persistent queries do not allow the key column in the projection as key columns are
-currently _implicitly_ copied across. This KLIP proposes flipping this so that the key column is
-_not_ implicitly copied across, and is therefore _required_ in persistent query projections.
+currently _implicitly_ copied across. This is not intuitive to anyone familiar with SQL. This KLIP
+proposes flipping this so that the key column is _not_ implicitly copied across.
 
 ## Motivation and background
 
@@ -47,9 +47,7 @@ columns named `ID` and hence the query fails.
 We propose that the above `CREATE TABLE` statement should work, as the projection is equivalent to
 `select *`, which works.
 
-### Select star
-
-The differences with a 'select *' projection are more subtle.
+### Non-join select star
 
 For non-join queries, both transient and persistent queries select all the columns in the schema:
 
@@ -63,8 +61,13 @@ CREATE TABLE OUTPUT AS SELECT * FROM INPUT;
 -- resulting schema: ID INT KEY, V0 INT, V1 INT (Same as above)
 ```
 
+### Joins
+
+The differences with joins is more subtle.
+
 With a join query, a transient query selects all columns from all sources. A persistent query adds
-all columns from all sources, but also adds an additional copy of the left key column.
+all columns from all sources, and also adds an additional column that stores the result of the join
+criteria.
 
 ```sql
 SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
@@ -73,17 +76,79 @@ SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
 -- vs --
 
 CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
--- resulting schema: ID INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
+-- resulting schema (any key name enabled): ID INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
+-- resulting schema (any key name disabled): ROWKEY INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 ```
 
-Note the addition of an additional `ID` column in the case of the persistent query.
+Note the addition of an additional `ID` or `ROWKEY` column in the case of the persistent query.
 
-We propose that the join should not duplicate the left join column `I1.ID` into both the `ID` key
-and `I1_ID` value column.
+#### Inner and left outer joins on column references
 
-Only the key column should exist and it should be called either (TBD):
-  - `ID`, or
-  - `I1_ID`.
+For inner and left outer joins where the left join criteria is a column reference the the
+additional `ID` column is a duplicate of the `I1.ID` column.
+
+We propose that such joins should not duplicate the left join column `I1.ID` into both the `ID` key
+and `I1_ID` value column. Instead, the key column should be named `I1_ID` and no copy should be stored
+in the value.
+
+#### Full outer joins and non-column joins
+
+Where the join is a full outer join, or where the left join criteria is not a column reference, the
+problem is more nuanced.
+
+```sql
+-- inner join on expression:
+CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON ABS(I1.ID) = I2.ID;
+
+-- full outer join:
+CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
+```
+
+For both of the above joins the data stored in the Kafka record's key by ksqlDB / Streams does
+not correspond to any column within either source. This is problematic.
+
+This KLIP proposes that the projection should include _all the columns expected in the result_.
+Logically, this must include this new key column. Yet, this new key column is an artifact of the
+current join implementation, so what should it be called and how should the user include it in the
+projection?
+
+The synthesised column is currently named `ROWKEY`. However, the 'any key name' feature removes the
+`ROWKEY` system column in favour of user supplied names or system generated ones in the form
+`KSQL_COL_x`.
+
+If we are to require users to explicitly include this synthesised column in any projection with
+explicit columns, i.e. non select-star projections, then the user must be able to determine the name
+and be able to provide their own. This precludes the user of a system generated name such as
+`KSQL_COL_0`.
+
+Though not ideal, we propose that in the short term the synthesised column will be named `ROWKEY`,
+as this is a name users are already familiar with. For example, the above examples that used `*` in
+their projections could be expanded to the following explicit column lists:
+
+```sql
+-- inner join on expression:
+CREATE TABLE OUTPUT AS SELECT ROWKEY, I1.ID, I1.V0, I1.V1, I2.ID, I2.V0, I2.V1 INT FROM INPUT I1 JOIN INPUT_2 I2 ON ABS(I1.ID) = I2.ID;
+-- resulting schema: ROWKEY INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
+
+-- full outer join:
+CREATE TABLE OUTPUT AS SELECT ROWKEY, I1.ID, I1.V0, I1.V1, I2.ID, I2.V0, I2.V1 FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
+-- resulting schema: ROWKEY INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
+```
+
+Requiring the user to include a synthesised column in the projection is not idea. However, we
+propose this is best short term solution given the current functionality.
+
+Key to this solution is the ability for users to provide their own name for the synthesised key
+column. For example:
+
+```sql
+CREATE TABLE OUTPUT AS SELECT ROWKEY AS ID, I1.V0, I1.V1, I2.V0, I2.V1 INT FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
+-- resulting schema: ID INT KEY, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT
+```
+
+A more correct implementation might store both sides of the join criteria in the key for all join
+types. However, such an approach would require support for multiple key columns and extensive
+changes in Streams. See [rejected alternatives](#rejected_alternatives) for more info.
 
 ### Removal of non-standard Aliasing
 
@@ -384,4 +449,57 @@ in downstream queries.
 
 This was rejected for this KLIP as it would involve considerably more work. This may be picked up in
 a future KLIP.
+
+### Storing all join columns in the key of the result
+
+A more correct solution for handling columns within a join may look to store all join columns in the
+Kafka record's key, for example:
+
+```sql
+SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
+-- resulting columns: I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
+
+CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
+-- resulting schema: I1_ID INT KEY, I2_ID INT KEY, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT
+```
+
+Note that both `I1_ID` and `I2_ID` are marked as key columns. Such an approach may be required if
+ksqlDB is to support join criterion other than the current equality.
+
+However, this is rejected as a solution for now for the following reasons:
+  a. Such a solution requires ksqlDB to support multiple key columns. It currently does not, and this
+     KLIP is part of the work moving towards such support. Hence its a chicken and egg problem.
+  b. Such a solution requires Streams to be able to correctly handle the multiple key columns
+     correctly, which it currently does not.  This is particularly challenging for outer joins,
+     where some key columns may initially be `null` and later populated. Any solution needs to ensure
+     correct partitioning and update semantics for such rows.
+
+### System generated naming for the synthesised join column
+
+Where a join introduces a synthesised key column the column would have a system generated name.
+Two naming strategies were rejected:
+
+#### `KSQL_COL_x`
+
+The synthesised column would take on a generated name in the form `KSQL_COL_x`, where `x` is an
+integer and the name is guaranteed to be unique, i.e. to not clash with any other system generated
+column names.
+
+This was rejected as the name would be hard for the user to know by looking at the query, i.e. the
+presence of other columns with generated names may affect the name of the synthesised column. This
+was deemed to make this solution unworkable.
+
+#### Data driven naming
+
+The synthesised column would take on a name generated from the join criteria. For example, a join
+such as `A JOIN B ON A.ID = B.ID` would result in a key column named `A_ID__B_ID`.
+
+While this is deterministic and offers improved protection against column name clashes than a static
+naming strategy, it was rejected as:
+  a. it adds additional complexity to the code
+  b. it adds additional cognitive load for users, i.e. the need to know the naming strategy and work
+     out the name from the criteria.
+  c. a change in the join criteria requires a change in the projection.
+  d. name clashes are still possible.
+
 

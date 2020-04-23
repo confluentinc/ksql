@@ -146,7 +146,7 @@ public final class AstSanitizer {
         final SourceName source = ((QualifiedColumnReferenceExp) expression).getQualifier();
         final ColumnName name = ((QualifiedColumnReferenceExp) expression).getColumnName();
         if (dataSourceExtractor.isJoin()
-            && dataSourceExtractor.getCommonColumnNames().contains(name)) {
+            && dataSourceExtractor.getClashingColumnNames().contains(name)) {
           alias = ColumnNames.generatedJoinColumnAlias(source, name);
         } else {
           alias = name;
@@ -242,8 +242,8 @@ public final class AstSanitizer {
     public Optional<Expression> visitColumnReference(
         final UnqualifiedColumnReferenceExp expression,
         final Context<Void> ctx) {
-      final ColumnName columnName = expression.getColumnName();
       try {
+        final ColumnName columnName = expression.getColumnName();
         final SourceName sourceName = dataSourceExtractor.getAliasFor(columnName);
         return Optional.of(
             new QualifiedColumnReferenceExp(

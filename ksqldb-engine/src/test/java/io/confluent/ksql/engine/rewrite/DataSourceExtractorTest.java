@@ -16,18 +16,17 @@
 package io.confluent.ksql.engine.rewrite;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -56,15 +55,6 @@ public class DataSourceExtractorTest {
   @Before
   public void setUp() {
     extractor = new DataSourceExtractor(META_STORE);
-  }
-
-  private void assertContainsAlias(final SourceName... alias) {
-    assertThat(
-        extractor.getAllSources()
-            .stream()
-            .map(AliasedDataSource::getAlias)
-            .collect(Collectors.toList()),
-        containsInAnyOrder(alias));
   }
 
   @Test
@@ -132,7 +122,6 @@ public class DataSourceExtractorTest {
 
     // Then:
     assertContainsAlias(T1, T2);
-
   }
 
   @Test
@@ -167,6 +156,42 @@ public class DataSourceExtractorTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "UNKNOWN does not exist."));
+  }
+
+  @Test
+  public void shouldDetectClashingColumnNames() {
+    // Given:
+    final AstNode stmt = givenQuery("SELECT * FROM TEST1 t1 JOIN TEST2 t2"
+        + " ON test1.col1 = test2.col1;");
+
+    // When:
+    extractor.extractDataSources(stmt);
+
+    // Then:
+    assertThat(extractor.getClashingColumnNames(), hasItems(ColumnName.of("COL0")));
+  }
+
+  @Test
+  public void shouldDetectClashingColumnNamesEvenIfOneJoinSourceHasNoClash() {
+    // Given:
+    final AstNode stmt = givenQuery("SELECT * FROM ORDERS "
+        + "JOIN TEST1 t1 ON ORDERS.ITEMID = T1.COL1 "
+        + "JOIN TEST2 t2 ON test1.col1 = test2.col1;");
+
+    // When:
+    extractor.extractDataSources(stmt);
+
+    // Then:
+    assertThat(extractor.getClashingColumnNames(), hasItems(ColumnName.of("COL0")));
+  }
+
+  private void assertContainsAlias(final SourceName... alias) {
+    assertThat(
+        extractor.getAllSources()
+            .stream()
+            .map(AliasedDataSource::getAlias)
+            .collect(Collectors.toList()),
+        containsInAnyOrder(alias));
   }
 
   private static AstNode givenQuery(final String sql) {

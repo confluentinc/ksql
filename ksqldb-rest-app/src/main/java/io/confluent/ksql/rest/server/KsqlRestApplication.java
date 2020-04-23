@@ -699,7 +699,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
       final ServiceContext serviceContext,
-      //final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 

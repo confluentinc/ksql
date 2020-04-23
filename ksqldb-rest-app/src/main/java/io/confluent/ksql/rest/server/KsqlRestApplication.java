@@ -96,6 +96,7 @@ import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.vertx.core.Vertx;
@@ -532,10 +533,7 @@ public final class KsqlRestApplication implements Executable {
     }).collect(Collectors.toList());
   }
 
-  static KsqlRestApplication buildApplication(
-      final KsqlRestConfig restConfig,
-      final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory
-  ) {
+  public static KsqlRestApplication buildApplication(final KsqlRestConfig restConfig) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
@@ -546,7 +544,7 @@ public final class KsqlRestApplication implements Executable {
     return buildApplication(
         "",
         restConfig,
-        versionCheckerFactory,
+        KsqlVersionCheckerAgent::new,
         Integer.MAX_VALUE,
         serviceContext,
         schemaRegistryClientFactory
@@ -826,14 +824,14 @@ public final class KsqlRestApplication implements Executable {
   }
 
   private static Optional<AuthenticationPlugin> loadAuthenticationPlugin(
-      final KsqlConfig ksqlConfig) {
+      final KsqlConfig ksqlRestConfig) {
     final Optional<AuthenticationPlugin> authenticationPlugin = Optional.ofNullable(
-        ksqlConfig.getConfiguredInstance(
-            KsqlConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS,
+        ksqlRestConfig.getConfiguredInstance(
+            KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS,
             AuthenticationPlugin.class
         ));
     authenticationPlugin.ifPresent(securityHandlerPlugin ->
-        securityHandlerPlugin.configure(ksqlConfig.originals())
+        securityHandlerPlugin.configure(ksqlRestConfig.originals())
     );
     return authenticationPlugin;
   }

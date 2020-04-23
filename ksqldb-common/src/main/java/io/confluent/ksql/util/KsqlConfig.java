@@ -152,11 +152,6 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
       + "provides authorization to KSQL servers.";
 
-  public static final String KSQL_AUTHENTICATION_PLUGIN_CLASS = "ksql.authentication.plugin.class";
-  public static final String KSQL_AUTHENTICATION_PLUGIN_DEFAULT = null;
-  public static final String KSQL_AUTHENTICATION_PLUGIN_DOC = "An extension class that allows "
-      + " custom authentication to be plugged in.";
-
   public static final String KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR = "ksql.access.validator.enable";
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
   public static final String KSQL_ACCESS_VALIDATOR_OFF = "off";
@@ -498,12 +493,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SECURITY_EXTENSION_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
-        ).define(
-            KSQL_AUTHENTICATION_PLUGIN_CLASS,
-            Type.CLASS,
-            KSQL_AUTHENTICATION_PLUGIN_DEFAULT,
-            ConfigDef.Importance.LOW,
-            KSQL_AUTHENTICATION_PLUGIN_DOC
         ).define(
             KSQL_WRAP_SINGLE_VALUES,
             ConfigDef.Type.BOOLEAN,

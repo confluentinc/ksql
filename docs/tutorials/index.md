@@ -9,6 +9,7 @@ keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 - [Quickstart](ksqldb-quickstart.md)
 - [Build a materialized view/cache](materialized.md)
 - [Build a streaming ETL pipeline](etl.md)
+- [Build an event-driven microservice](event-driven-microservice.md)
 - [ksqlDB Examples](examples.md)
 - [ksqlDB with Embedded Connect](embedded-connect.md)
 - [Integrating with PostgreSQL](connect-integration.md)

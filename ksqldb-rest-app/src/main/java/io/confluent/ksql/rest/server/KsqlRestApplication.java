@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -29,6 +28,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
+import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.endpoints.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
@@ -50,7 +50,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
-import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -62,9 +61,7 @@ import io.confluent.ksql.rest.server.HeartbeatAgent.Builder;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
-import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
-import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
@@ -79,7 +76,6 @@ import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.rest.server.state.ServerState;
-import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
@@ -103,8 +99,6 @@ import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
-import io.confluent.rest.RestConfig;
-import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import java.io.Console;
@@ -123,36 +117,26 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.websocket.DeploymentException;
-import javax.websocket.server.ServerEndpoint;
-import javax.websocket.server.ServerEndpointConfig;
-import javax.websocket.server.ServerEndpointConfig.Configurator;
-import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
-import org.glassfish.hk2.utilities.Binder;
-import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public final class KsqlRestApplication extends ExecutableApplication<KsqlRestConfig> {
+public final class KsqlRestApplication implements Executable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
@@ -169,7 +153,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final KsqlResource ksqlResource;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
-  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
   private final KsqlSecurityExtension securityExtension;
   private final Optional<AuthenticationPlugin> authenticationPlugin;
@@ -180,7 +163,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   private final Optional<HeartbeatAgent> heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
-  private final RoutingFilterFactory routingFilterFactory;
   private final PullQueryExecutor pullQueryExecutor;
   private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
   private final ServerInfoResource serverInfoResource;
@@ -189,11 +171,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Optional<LagReportingResource> lagReportingResource;
   private final HealthCheckResource healthCheckResource;
   private volatile ServerMetadataResource serverMetadataResource;
-
-  // We embed this in here for now
-  private Vertx vertx = null;
+  private volatile WSQueryEndpoint wsQueryEndpoint;
+  @SuppressWarnings("UnstableApiUsage")
+  private volatile ListeningScheduledExecutorService oldApiWebsocketExecutor;
+  private final Vertx vertx;
   private Server apiServer = null;
   private ApiServerConfig apiServerConfig;
+  private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -201,12 +185,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
-  }
-
-  public static KsqlRestConfig convertToLocalListener(final KsqlRestConfig config) {
-    final Map<String, Object> origs = config.getOriginals();
-    origs.put(KsqlRestConfig.LISTENERS_CONFIG, "http://127.0.0.1:0");
-    return new KsqlRestConfig(origs);
   }
 
   /*
@@ -262,19 +240,19 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       origs.put(ApiServerConfig.AUTHENTICATION_REALM_CONFIG, authRealm);
     }
 
-    final List<String> unauthedPaths = config.getList(RestConfig.AUTHENTICATION_SKIP_PATHS);
+    final List<String> unauthedPaths = config.getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS);
     if (unauthedPaths != null) {
       origs.put(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
     }
 
     final String corsAllowedOrigin = config
-        .getString(RestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG);
+        .getString(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG);
     origs.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, corsAllowedOrigin);
     final String corsAllowedHeaders = config
-        .getString(RestConfig.ACCESS_CONTROL_ALLOW_HEADERS);
+        .getString(KsqlRestConfig.ACCESS_CONTROL_ALLOW_HEADERS);
     origs.put(ApiServerConfig.CORS_ALLOWED_HEADERS, corsAllowedHeaders);
     final String corsAllowedMethods = config
-        .getString(RestConfig.ACCESS_CONTROL_ALLOW_METHODS);
+        .getString(KsqlRestConfig.ACCESS_CONTROL_ALLOW_METHODS);
     origs.put(ApiServerConfig.CORS_ALLOWED_METHODS, corsAllowedMethods);
 
     return new KsqlRestConfig(origs);
@@ -294,7 +272,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final StreamedQueryResource streamedQueryResource,
       final KsqlResource ksqlResource,
       final VersionCheckerAgent versionCheckerAgent,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
       final KsqlSecurityContextProvider ksqlSecurityContextProvider,
       final KsqlSecurityExtension securityExtension,
       final Optional<AuthenticationPlugin> authenticationPlugin,
@@ -307,8 +284,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent
   ) {
-    super(restConfig);
-
+    log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfigNoPort = requireNonNull(ksqlConfig, "ksqlConfig");
     this.restConfig = requireNonNull(restConfig, "restConfig");
@@ -322,8 +298,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.preconditions = requireNonNull(preconditions, "preconditions");
     this.versionCheckerAgent = requireNonNull(versionCheckerAgent, "versionCheckerAgent");
-    this.serviceContextBinderFactory =
-        requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
     this.ksqlSecurityContextProvider = requireNonNull(ksqlSecurityContextProvider,
         "ksqlSecurityContextProvider");
     this.securityExtension = requireNonNull(securityExtension, "securityExtension");
@@ -334,8 +308,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
-    this.routingFilterFactory = initializeRoutingFilterFactory(
-        ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
+    this.vertx = Vertx.vertx(
+        new VertxOptions().setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
+            .setMaxWorkerExecuteTime(Long.MAX_VALUE));
+    this.vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
     if (heartbeatAgent.isPresent()) {
@@ -354,49 +330,81 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.healthCheckResource = HealthCheckResource.create(
         ksqlResource,
         serviceContext,
-        this.config,
+        this.restConfig,
         this.ksqlConfigNoPort);
-
-    sanityCheckPluginConfig(ksqlConfig.originals());
-  }
-
-  @Override
-  public void setupResources(final Configurable<?> config, final KsqlRestConfig appConfig) {
-    config.register(serverInfoResource);
-    this.serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfigNoPort);
-    config.register(serverMetadataResource);
-    config.register(statusResource);
-    config.register(ksqlResource);
-    config.register(streamedQueryResource);
-    config.register(healthCheckResource);
-
-    if (heartbeatResource.isPresent()) {
-      config.register(heartbeatResource.get());
-      config.register(clusterStatusResource.get());
-    }
-    if (lagReportingAgent.isPresent()) {
-      config.register(lagReportingResource.get());
-    }
-    config.register(new ServerStateDynamicBinding(serverState));
+    log.debug("ksqlDB API server instance created");
   }
 
   @Override
   public void startAsync() {
+    log.debug("Starting the ksqlDB API server");
+    this.serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfigNoPort);
+    final StatementParser statementParser = new StatementParser(ksqlEngine);
+    final Optional<KsqlAuthorizationValidator> authorizationValidator =
+        KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
+    final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
+        KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
+        ErrorMessages.class
+    ));
+
+    final KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(ksqlConfigNoPort.originals());
+
+    oldApiWebsocketExecutor = MoreExecutors.listeningDecorator(
+        Executors.newScheduledThreadPool(
+            ksqlRestConfig.getInt(KsqlRestConfig.KSQL_WEBSOCKETS_NUM_THREADS),
+            new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("websockets-query-thread-%d")
+                .build()
+        )
+    );
+
+    this.wsQueryEndpoint = new WSQueryEndpoint(
+        ksqlConfigNoPort,
+        statementParser,
+        ksqlEngine,
+        commandStore,
+        oldApiWebsocketExecutor,
+        versionCheckerAgent::updateLastRequestTime,
+        Duration.ofMillis(ksqlRestConfig.getLong(
+            KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+        authorizationValidator,
+        errorHandler,
+        pullQueryExecutor
+    );
+
     startAsyncThread = Thread.currentThread();
     try {
-      startApiServer(ksqlConfigNoPort);
+      final Endpoints endpoints = new KsqlServerEndpoints(
+          ksqlEngine,
+          ksqlConfigNoPort,
+          pullQueryExecutor,
+          ksqlSecurityContextProvider,
+          ksqlResource,
+          streamedQueryResource,
+          serverInfoResource,
+          heartbeatResource,
+          clusterStatusResource,
+          statusResource,
+          lagReportingResource,
+          healthCheckResource,
+          serverMetadataResource,
+          wsQueryEndpoint
+      );
+      apiServerConfig = new ApiServerConfig(ksqlConfigNoPort.originals());
+      apiServer = new Server(vertx, apiServerConfig, endpoints, securityExtension,
+          authenticationPlugin, serverState);
+      apiServer.start();
 
       final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
       configurables.forEach(c -> c.configure(ksqlConfigWithPort));
 
       startKsql(ksqlConfigWithPort);
       final Properties metricsProperties = new Properties();
-      metricsProperties.putAll(getConfiguration().getOriginals());
-      if (versionCheckerAgent != null) {
-        versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
-      }
+      metricsProperties.putAll(restConfig.getOriginals());
+      versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
 
-      log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
+      log.info("ksqlDB API server listening on {}", StringUtils.join(getListeners(), ", "));
       displayWelcomeMessage();
     } catch (AbortApplicationStartException e) {
       log.error("Aborting application start", e);
@@ -409,35 +417,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   void startKsql(final KsqlConfig ksqlConfigWithPort) {
     waitForPreconditions();
     initialize(ksqlConfigWithPort);
-  }
-
-  void startApiServer(final KsqlConfig ksqlConfigWithPort) {
-    vertx = Vertx.vertx(
-        new VertxOptions().setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
-            .setMaxWorkerExecuteTime(Long.MAX_VALUE));
-    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
-
-    final Endpoints endpoints = new KsqlServerEndpoints(
-        ksqlEngine,
-        ksqlConfigWithPort,
-        pullQueryExecutor,
-        ksqlSecurityContextProvider,
-        ksqlResource,
-        streamedQueryResource,
-        serverInfoResource,
-        heartbeatResource,
-        clusterStatusResource,
-        statusResource,
-        lagReportingResource,
-        healthCheckResource,
-        serverMetadataResource
-    );
-    apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
-    apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension,
-        authenticationPlugin, serverState);
-    apiServer.setJettyPort(getJettyPort());
-    apiServer.start();
-    log.info("KSQL New API Server started");
   }
 
   @VisibleForTesting
@@ -462,7 +441,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private void checkPreconditions() {
     for (final KsqlServerPrecondition precondition : preconditions) {
       final Optional<KsqlErrorMessage> error = precondition.checkPrecondition(
-          config,
+          restConfig,
           serviceContext
       );
       if (error.isPresent()) {
@@ -534,6 +513,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   @SuppressWarnings("checkstyle:NPathComplexity")
   @Override
   public void triggerShutdown() {
+    log.debug("ksqlDB triggerShutdown called");
     // First, make sure the server wasn't stuck in startup.  Set the shutdown flag and interrupt the
     // startup thread if it's been hanging.
     shuttingDown.set(true);
@@ -574,12 +554,30 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       apiServer.stop();
       apiServer = null;
     }
+
     if (vertx != null) {
       vertx.close();
-      vertx = null;
+    }
+
+    if (oldApiWebsocketExecutor != null) {
+      oldApiWebsocketExecutor.shutdown();
     }
 
     shutdownAdditionalAgents();
+
+    log.debug("ksqlDB triggerShutdown complete");
+
+    terminatedFuture.complete(null);
+  }
+
+  @Override
+  public void awaitTerminated() throws InterruptedException {
+    try {
+      terminatedFuture.get();
+    } catch (ExecutionException e) {
+      log.error("Exception in awaitTerminated", e);
+      throw new KsqlException(e.getCause());
+    }
   }
 
   private void shutdownAdditionalAgents() {
@@ -599,11 +597,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     }
   }
 
-  @Override
-  public void onShutdown() {
-    triggerShutdown();
-  }
-
   // Current tests require URIs as URLs, even though they're not URLs
   List<URL> getListeners() {
     return apiServer.getListeners().stream().map(uri -> {
@@ -613,99 +606,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         throw new KsqlException(e);
       }
     }).collect(Collectors.toList());
-  }
-
-  int getJettyPort() {
-    final Connector[] connectors = server.getConnectors();
-    if (connectors.length != 1) {
-      throw new IllegalStateException("Should be only one connector");
-    }
-    if (!(connectors[0] instanceof ServerConnector)) {
-      throw new IllegalStateException("Not a ServerConnector");
-    }
-    final ServerConnector serverConnector = (ServerConnector) connectors[0];
-    return serverConnector.getLocalPort();
-  }
-
-  @Override
-  public void configureBaseApplication(
-      final Configurable<?> config,
-      final Map<String, String> metricTags) {
-    // Would call this but it registers additional, unwanted exception mappers
-    // super.configureBaseApplication(config, metricTags);
-    // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
-    final JacksonMessageBodyProvider jsonProvider =
-        new JacksonMessageBodyProvider(ApiJsonMapper.INSTANCE.get());
-    config.register(jsonProvider);
-    config.register(JsonParseExceptionMapper.class);
-    config.register(serviceContextBinderFactory.apply(ksqlConfigNoPort, securityExtension));
-
-    // Don't want to buffer rows when streaming JSON in a request to the query resource
-    config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
-    config.property(ServerProperties.WADL_FEATURE_DISABLE, true);
-
-    // Controls the access to all REST endpoints
-    securityExtension.getAuthorizationProvider().ifPresent(
-        ac -> config.register(new KsqlAuthorizationFilter(ac))
-    );
-  }
-
-  @SuppressWarnings("UnstableApiUsage")
-  @Override
-  protected void registerWebSocketEndpoints(final ServerContainer container) {
-    try {
-      final ListeningScheduledExecutorService exec = MoreExecutors.listeningDecorator(
-          Executors.newScheduledThreadPool(
-              config.getInt(KsqlRestConfig.KSQL_WEBSOCKETS_NUM_THREADS),
-              new ThreadFactoryBuilder()
-                  .setDaemon(true)
-                  .setNameFormat("websockets-query-thread-%d")
-                  .build()
-          )
-      );
-
-      final StatementParser statementParser = new StatementParser(ksqlEngine);
-      final Optional<KsqlAuthorizationValidator> authorizationValidator =
-          KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
-      final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
-          KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
-          ErrorMessages.class
-      ));
-
-      container.addEndpoint(
-          ServerEndpointConfig.Builder
-              .create(
-                  WSQueryEndpoint.class,
-                  WSQueryEndpoint.class.getAnnotation(ServerEndpoint.class).value()
-              )
-              .configurator(new Configurator() {
-                @Override
-                @SuppressWarnings("unchecked")
-                public <T> T getEndpointInstance(final Class<T> endpointClass) {
-                  return (T) new WSQueryEndpoint(
-                      buildConfigWithPort(),
-                      ApiJsonMapper.INSTANCE.get(),
-                      statementParser,
-                      ksqlEngine,
-                      commandStore,
-                      exec,
-                      versionCheckerAgent::updateLastRequestTime,
-                      Duration.ofMillis(config.getLong(
-                          KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-                      authorizationValidator,
-                      errorHandler,
-                      securityExtension,
-                      serverState,
-                      serviceContext.getSchemaRegistryClientFactory(),
-                      pullQueryExecutor
-                  );
-                }
-              })
-              .build()
-      );
-    } catch (final DeploymentException e) {
-      log.error("Unable to create websockets endpoint", e);
-    }
   }
 
   static KsqlRestApplication buildApplication(
@@ -725,8 +625,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         versionCheckerFactory,
         Integer.MAX_VALUE,
         serviceContext,
-        (config, securityExtension) ->
-            new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory),
         schemaRegistryClientFactory
     );
   }
@@ -738,7 +636,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
       final ServiceContext serviceContext,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
@@ -883,7 +780,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         streamedQueryResource,
         ksqlResource,
         versionChecker,
-        serviceContextBinderFactory,
         ksqlSecurityContextProvider,
         securityExtension,
         securityHandlerPlugin,
@@ -1136,40 +1032,18 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
   private static KsqlRestConfig injectPathsWithoutAuthentication(final KsqlRestConfig restConfig) {
     final Set<String> authenticationSkipPaths = new HashSet<>(
-        restConfig.getList(RestConfig.AUTHENTICATION_SKIP_PATHS)
+        restConfig.getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS)
     );
 
-    authenticationSkipPaths.addAll(KsqlAuthorizationFilter.getPathsWithoutAuthorization());
+    authenticationSkipPaths.addAll(KsqlAuthorizationProviderHandler.PATHS_WITHOUT_AUTHORIZATION);
 
     final Map<String, Object> restConfigs = restConfig.getOriginals();
 
     // REST paths that are public and do not require authentication
-    restConfigs.put(RestConfig.AUTHENTICATION_SKIP_PATHS,
+    restConfigs.put(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS,
         Joiner.on(",").join(authenticationSkipPaths));
 
     return new KsqlRestConfig(restConfigs);
-  }
-
-  /*
-  Temporary sanity check to prevent broken security configuration until we have migrated the full
-  API from Jetty to Vert.x
-   */
-  private static void sanityCheckPluginConfig(final Map<String, ?> config) {
-    final Object ksqlAuthPluginClass = config.get(KsqlConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS);
-    final Object restServletInitializors = config
-        .get(RestConfig.REST_SERVLET_INITIALIZERS_CLASSES_CONFIG);
-    final Object wsServletInitializors = config
-        .get(RestConfig.WEBSOCKET_SERVLET_INITIALIZERS_CLASSES_CONFIG);
-    final boolean hasKsqlPluginConfig = ksqlAuthPluginClass != null;
-    final boolean hasJettyPluginConfig =
-        restServletInitializors != null || wsServletInitializors != null;
-
-    if (hasKsqlPluginConfig != hasJettyPluginConfig) {
-      throw new ConfigException(
-          KsqlConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS + " must be specified together with "
-              + RestConfig.REST_SERVLET_INITIALIZERS_CLASSES_CONFIG + " / "
-              + RestConfig.WEBSOCKET_SERVLET_INITIALIZERS_CLASSES_CONFIG);
-    }
   }
 
 }

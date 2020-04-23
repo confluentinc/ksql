@@ -22,7 +22,6 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
-import static junit.framework.TestCase.fail;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
 import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
@@ -72,21 +71,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.websocket.CloseReason.CloseCodes;
-import javax.ws.rs.core.MediaType;
 import org.apache.http.HttpStatus;
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
-import org.eclipse.jetty.websocket.api.annotations.WebSocket;
-import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -105,6 +92,8 @@ public class RestApiTest {
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+
+  private static final String APPLICATION_JSON_TYPE = "application/json";
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final Credentials SUPER_USER = VALID_USER1;
@@ -208,8 +197,8 @@ public class RestApiTest {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
-        Versions.KSQL_V1_JSON_TYPE,
-        Versions.KSQL_V1_JSON_TYPE
+        Versions.KSQL_V1_JSON,
+        Versions.KSQL_V1_JSON
     );
 
     // Then:
@@ -222,8 +211,8 @@ public class RestApiTest {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
-        MediaType.APPLICATION_JSON_TYPE,
-        MediaType.APPLICATION_JSON_TYPE
+        "application/json",
+        "application/json"
     );
 
     // Then:
@@ -319,8 +308,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
-        Versions.KSQL_V1_JSON_TYPE,
-        Versions.KSQL_V1_JSON_TYPE
+        Versions.KSQL_V1_JSON,
+        Versions.KSQL_V1_JSON
     );
 
     // Then:
@@ -340,8 +329,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT, ROWKEY from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
-        MediaType.APPLICATION_JSON_TYPE,
-        MediaType.APPLICATION_JSON_TYPE
+        APPLICATION_JSON_TYPE,
+        APPLICATION_JSON_TYPE
     );
 
     // Then:
@@ -361,8 +350,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT ROWKEY from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
-        MediaType.APPLICATION_JSON_TYPE,
-        MediaType.APPLICATION_JSON_TYPE
+        APPLICATION_JSON_TYPE,
+        APPLICATION_JSON_TYPE
     );
 
     // Then:
@@ -381,8 +370,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
-        MediaType.APPLICATION_JSON_TYPE,
-        MediaType.APPLICATION_JSON_TYPE
+        APPLICATION_JSON_TYPE,
+        APPLICATION_JSON_TYPE
     );
 
     // Then:
@@ -432,8 +421,8 @@ public class RestApiTest {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "PRINT '" + PAGE_VIEW_TOPIC + "' FROM BEGINNING LIMIT " + LIMIT + ";",
-        MediaType.APPLICATION_JSON_TYPE,
-        MediaType.APPLICATION_JSON_TYPE);
+        APPLICATION_JSON_TYPE,
+        APPLICATION_JSON_TYPE);
 
     // Then:
     assertThat(messages, hasSize(LIMIT));
@@ -503,29 +492,16 @@ public class RestApiTest {
 
   private static List<String> makeWebSocketRequest(
       final String sql,
-      final MediaType mediaType,
-      final MediaType contentType
+      final String mediaType,
+      final String contentType
   ) {
-    final WebSocketListener listener = new WebSocketListener();
-
-    final WebSocketClient wsClient = RestIntegrationTestUtil.makeWsRequest(
+    return RestIntegrationTestUtil.makeWsRequest(
         REST_APP.getWsListener(),
         sql,
-        listener,
         Optional.of(mediaType),
         Optional.of(contentType),
         Optional.of(SUPER_USER)
     );
-
-    try {
-      return listener.awaitMessages();
-    } finally {
-      try {
-        wsClient.stop();
-      } catch (final Exception e) {
-        fail("Failed to close ws");
-      }
-    }
   }
 
   private static void assertValidJsonMessages(final Iterable<String> messages) {
@@ -538,49 +514,4 @@ public class RestApiTest {
     }
   }
 
-  @SuppressWarnings("unused") // Invoked via reflection
-  @WebSocket
-  public static class WebSocketListener {
-
-    final CountDownLatch latch = new CountDownLatch(1);
-    final AtomicReference<Throwable> error = new AtomicReference<>();
-    final List<String> messages = new CopyOnWriteArrayList<>();
-
-    @OnWebSocketMessage
-    public void onMessage(final Session session, final String text) {
-      messages.add(text);
-    }
-
-    @OnWebSocketClose
-    public void onClose(final int statusCode, final String reason) {
-      if (statusCode != CloseCodes.NORMAL_CLOSURE.getCode()) {
-        error.set(new RuntimeException("non-normal close: " + reason + ", code: " + statusCode));
-      }
-      latch.countDown();
-    }
-
-    @OnWebSocketError
-    public void onError(final Throwable t) {
-      error.set(t);
-      latch.countDown();
-    }
-
-    List<String> awaitMessages() {
-      assertThat("Response received", await(), is(true));
-
-      if (error.get() != null) {
-        throw new AssertionError("Error in web socket listener:", error.get());
-      }
-
-      return messages;
-    }
-
-    private boolean await() {
-      try {
-        return latch.await(30, TimeUnit.SECONDS);
-      } catch (final Exception e) {
-        throw new AssertionError("Timed out waiting for WS response", e);
-      }
-    }
-  }
 }

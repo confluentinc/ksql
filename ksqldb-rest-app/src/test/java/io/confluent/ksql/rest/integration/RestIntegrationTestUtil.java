@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
+import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -37,26 +41,27 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.WebsocketVersion;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
-import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 public final class RestIntegrationTestUtil {
 
@@ -327,33 +332,55 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  static WebSocketClient makeWsRequest(
+  public static List<String> makeWsRequest(
       final URI baseUri,
       final String sql,
-      final Object listener,
-      final Optional<MediaType> mediaType,
-      final Optional<MediaType> contentType,
+      final Optional<String> mediaType,
+      final Optional<String> contentType,
       final Optional<Credentials> credentials
   ) {
+    Vertx vertx = Vertx.vertx();
+    HttpClient httpClient = null;
     try {
-      final WebSocketClient wsClient = new WebSocketClient();
-      wsClient.start();
+      httpClient = vertx.createHttpClient();
 
-      final ClientUpgradeRequest request = new ClientUpgradeRequest();
+      final String uri = baseUri.toString() + "/ws/query?request=" + buildStreamingRequest(sql);
 
-      credentials.ifPresent(creds -> request
-          .setHeader(HttpHeaders.AUTHORIZATION, "Basic " + buildBasicAuthHeader(creds)));
+      final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 
-      mediaType.ifPresent(mt -> request.setHeader(HttpHeaders.ACCEPT, mt.toString()));
-      contentType.ifPresent(ct -> request.setHeader(HttpHeaders.CONTENT_TYPE, ct.toString()));
+      credentials.ifPresent(
+          creds -> headers.add(AUTHORIZATION.toString(), "Basic " + buildBasicAuthHeader(creds)));
 
-      final URI wsUri = baseUri.resolve("/ws/query?request=" + buildStreamingRequest(sql));
+      mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
+      contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));
 
-      wsClient.connect(listener, wsUri, request);
+      CompletableFuture<List<String>> completableFuture = new CompletableFuture<>();
 
-      return wsClient;
-    } catch (final Exception e) {
-      throw new RuntimeException("failed to create ws client", e);
+      httpClient.webSocketAbs(uri, headers, WebsocketVersion.V07,
+          Collections.emptyList(), ar -> {
+            if (ar.succeeded()) {
+              List<String> messages = new ArrayList<>();
+              ar.result().frameHandler(frame -> {
+                if (frame.isText()) {
+                  messages.add(frame.textData());
+                }
+              });
+              ar.result().endHandler(v -> {
+                completableFuture.complete(messages);
+              });
+            } else {
+              completableFuture.completeExceptionally(ar.cause());
+            }
+          });
+      return completableFuture.get();
+
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    } finally {
+      if (httpClient != null) {
+        httpClient.close();
+      }
+      vertx.close();
     }
   }
 

@@ -21,25 +21,100 @@ import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
-import io.confluent.rest.RestConfig;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KsqlRestConfig extends RestConfig {
+public class KsqlRestConfig extends AbstractConfig {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(KsqlRestConfig.class);
+
+  public static final String LISTENERS_CONFIG = "listeners";
+  protected static final String LISTENERS_DOC =
+      "List of listeners. http and https are supported. Each listener must include the protocol, "
+          + "hostname, and port. For example: http://myhost:8080, https://0.0.0.0:8081";
+  protected static final String LISTENERS_DEFAULT = "http://0.0.0.0:8088";
+
+  public static final String AUTHENTICATION_SKIP_PATHS = "authentication.skip.paths";
+  public static final String AUTHENTICATION_SKIP_PATHS_DOC = "Comma separated list of paths that "
+      + "can be "
+      + "accessed without authentication";
+  public static final String AUTHENTICATION_SKIP_PATHS_DEFAULT = "";
+
+  public static final String ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG = "access.control.allow.origin";
+  protected static final String ACCESS_CONTROL_ALLOW_ORIGIN_DOC = "Set value for "
+      + "Access-Control-Allow-Origin header";
+  protected static final String ACCESS_CONTROL_ALLOW_ORIGIN_DEFAULT = "";
+
+  public static final String ACCESS_CONTROL_ALLOW_METHODS = "access.control.allow.methods";
+  protected static final String ACCESS_CONTROL_ALLOW_METHODS_DOC = "Set value to "
+      + "Access-Control-Allow-Origin header for specified methods";
+  protected static final String ACCESS_CONTROL_ALLOW_METHODS_DEFAULT = "";
+
+  public static final String ACCESS_CONTROL_ALLOW_HEADERS = "access.control.allow.headers";
+  protected static final String ACCESS_CONTROL_ALLOW_HEADERS_DOC = "Set value to "
+      + "Access-Control-Allow-Origin header for specified headers. Leave blank to use "
+      + "default.";
+  protected static final String ACCESS_CONTROL_ALLOW_HEADERS_DEFAULT = "";
+
+  public static final String AUTHENTICATION_METHOD_CONFIG = "authentication.method";
+  public static final String AUTHENTICATION_METHOD_NONE = "NONE";
+  public static final String AUTHENTICATION_METHOD_BASIC = "BASIC";
+  public static final String AUTHENTICATION_METHOD_BEARER = "BEARER";
+  public static final String AUTHENTICATION_METHOD_DOC = "Method of authentication. Must be BASIC "
+      + "or BEARER to enable authentication. For BASIC, you must supply a valid JAAS config file "
+      + "for the 'java.security.auth.login.config' system property for the appropriate "
+      + "authentication provider";
+  public static final ValidString AUTHENTICATION_METHOD_VALIDATOR =
+      ValidString.in(AUTHENTICATION_METHOD_NONE, AUTHENTICATION_METHOD_BASIC,
+          AUTHENTICATION_METHOD_BEARER);
+
+  public static final String AUTHENTICATION_REALM_CONFIG = "authentication.realm";
+  public static final String AUTHENTICATION_REALM_DOC =
+      "Security realm to be used in authentication.";
+
+  public static final String AUTHENTICATION_ROLES_CONFIG = "authentication.roles";
+  public static final String AUTHENTICATION_ROLES_DOC = "Valid roles to authenticate against.";
+  public static final List<String> AUTHENTICATION_ROLES_DEFAULT =
+      Collections.unmodifiableList(Arrays.asList("*"));
+
+  public static final String SSL_KEYSTORE_LOCATION_CONFIG = "ssl.keystore.location";
+  protected static final String SSL_KEYSTORE_LOCATION_DOC =
+      "Location of the keystore file to use for SSL. This is required for HTTPS.";
+  protected static final String SSL_KEYSTORE_LOCATION_DEFAULT = "";
+  public static final String SSL_KEYSTORE_PASSWORD_CONFIG = "ssl.keystore.password";
+  protected static final String SSL_KEYSTORE_PASSWORD_DOC =
+      "The store password for the keystore file.";
+  protected static final String SSL_KEYSTORE_PASSWORD_DEFAULT = "";
+
+  public static final String SSL_TRUSTSTORE_LOCATION_CONFIG = "ssl.truststore.location";
+  protected static final String SSL_TRUSTSTORE_LOCATION_DOC =
+      "Location of the trust store. Required only to authenticate HTTPS clients.";
+  protected static final String SSL_TRUSTSTORE_LOCATION_DEFAULT = "";
+  public static final String SSL_TRUSTSTORE_PASSWORD_CONFIG = "ssl.truststore.password";
+  protected static final String SSL_TRUSTSTORE_PASSWORD_DOC =
+      "The store password for the trust store file.";
+  protected static final String SSL_TRUSTSTORE_PASSWORD_DEFAULT = "";
+
+  public static final String SSL_CLIENT_AUTH_CONFIG = "ssl.client.auth";
+  protected static final String SSL_CLIENT_AUTH_DOC =
+      "Whether or not to require the https client to authenticate via the server's trust store.";
+  protected static final boolean SSL_CLIENT_AUTH_DEFAULT = false;
 
   private static final String KSQL_CONFIG_PREFIX = "ksql.";
 
@@ -161,123 +236,205 @@ public class KsqlRestConfig extends RestConfig {
   private static final ConfigDef CONFIG_DEF;
 
   static {
-    CONFIG_DEF = baseConfigDef().define(
-        ADVERTISED_LISTENER_CONFIG,
-        Type.STRING,
-        null,
-        ConfigValidators.nullsAllowed(ConfigValidators.validUrl()),
-        Importance.HIGH,
-        ADVERTISED_LISTENER_DOC
-    ).define(
-        STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG,
-        Type.LONG,
-        1000L,
-        Importance.LOW,
-        STREAMED_QUERY_DISCONNECT_CHECK_MS_DOC
-    ).define(
-        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG,
-        Type.LONG,
-        5000L,
-        Importance.LOW,
-        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC
-    ).define(
-        INSTALL_DIR_CONFIG,
-        Type.STRING,
-        "",
-        Importance.LOW,
-        INSTALL_DIR_DOC
-    ).define(
-        KSQL_WEBSOCKETS_NUM_THREADS,
-        Type.INT,
-        5,
-        Importance.LOW,
-        KSQL_WEBSOCKETS_NUM_THREADS_DOC
-    ).define(
-        KSQL_SERVER_PRECONDITIONS,
-        Type.LIST,
-        "",
-        Importance.LOW,
-        KSQL_SERVER_PRECONDITIONS_DOC
-    ).define(
-        KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER,
-        ConfigDef.Type.BOOLEAN,
-        false,
-        Importance.LOW,
-        KSQL_SERVER_UNCAUGHT_EXCEPTION_HANDLER_DOC
-    ).define(
-        KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG,
-        Type.LONG,
-        5000L,
-        Importance.LOW,
-        KSQL_HEALTHCHECK_INTERVAL_MS_DOC
-    )
-    .define(
-        KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS,
-        Type.LONG,
-        15000L,
-        Importance.LOW,
-        KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS_DOC
-    ).define(
-        KSQL_SERVER_ERROR_MESSAGES,
-        Type.CLASS,
-        DefaultErrorMessages.class,
-        Importance.LOW,
-        KSQL_SERVER_ERRORS_DOC
-    ).define(
-        KSQL_HEARTBEAT_ENABLE_CONFIG,
-        Type.BOOLEAN,
-        false,
-        Importance.MEDIUM,
-        KSQL_HEARTBEAT_ENABLE_DOC
-    ).define(
-        KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG,
-        Type.LONG,
-        100L,
-        Importance.MEDIUM,
-        KSQL_HEARTBEAT_SEND_INTERVAL_MS_DOC
-    ).define(
-        KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG,
-        Type.LONG,
-        200L,
-        Importance.MEDIUM,
-        KSQL_HEARTBEAT_CHECK_INTERVAL_MS_DOC
-    ).define(
-        KSQL_HEARTBEAT_WINDOW_MS_CONFIG,
-        Type.LONG,
-        2000L,
-        Importance.MEDIUM,
-        KSQL_HEARTBEAT_WINDOW_MS_DOC
-    ).define(
-        KSQL_HEARTBEAT_MISSED_THRESHOLD_CONFIG,
-        Type.LONG,
-        3L,
-        Importance.MEDIUM,
-        KSQL_HEARTBEAT_MISSED_THRESHOLD_DOC
-    ).define(
-        KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG,
-        Type.LONG,
-        2000L,
-        Importance.MEDIUM,
-        KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_DOC
-    ).define(
-        KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG,
-        Type.INT,
-        3,
-        Importance.MEDIUM,
-        KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG_DOC
-    ).define(
-        KSQL_LAG_REPORTING_ENABLE_CONFIG,
-        Type.BOOLEAN,
-        false,
-        Importance.MEDIUM,
-        KSQL_LAG_REPORTING_ENABLE_DOC
-    ).define(
-        KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG,
-        Type.LONG,
-        5000L,
-        Importance.MEDIUM,
-        KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC
-    );
+    CONFIG_DEF = new ConfigDef()
+        .define(
+            AUTHENTICATION_SKIP_PATHS,
+            Type.LIST,
+            AUTHENTICATION_SKIP_PATHS_DEFAULT,
+            Importance.LOW,
+            AUTHENTICATION_SKIP_PATHS_DOC
+        ).define(
+            AUTHENTICATION_METHOD_CONFIG,
+            Type.STRING,
+            AUTHENTICATION_METHOD_NONE,
+            AUTHENTICATION_METHOD_VALIDATOR,
+            Importance.LOW,
+            AUTHENTICATION_METHOD_DOC
+        ).define(
+            AUTHENTICATION_REALM_CONFIG,
+            Type.STRING,
+            "",
+            Importance.LOW,
+            AUTHENTICATION_REALM_DOC
+        ).define(
+            AUTHENTICATION_ROLES_CONFIG,
+            Type.LIST,
+            AUTHENTICATION_ROLES_DEFAULT,
+            Importance.LOW,
+            AUTHENTICATION_ROLES_DOC
+        )
+        .define(
+            LISTENERS_CONFIG,
+            Type.LIST,
+            LISTENERS_DEFAULT,
+            Importance.HIGH,
+            LISTENERS_DOC
+        ).define(
+            ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG,
+            Type.STRING,
+            ACCESS_CONTROL_ALLOW_ORIGIN_DEFAULT,
+            Importance.LOW,
+            ACCESS_CONTROL_ALLOW_ORIGIN_DOC
+        ).define(
+            ACCESS_CONTROL_ALLOW_METHODS,
+            Type.STRING,
+            ACCESS_CONTROL_ALLOW_METHODS_DEFAULT,
+            Importance.LOW,
+            ACCESS_CONTROL_ALLOW_METHODS_DOC
+        ).define(
+            ACCESS_CONTROL_ALLOW_HEADERS,
+            Type.STRING,
+            ACCESS_CONTROL_ALLOW_HEADERS_DEFAULT,
+            Importance.LOW,
+            ACCESS_CONTROL_ALLOW_HEADERS_DOC
+        ).define(
+            SSL_KEYSTORE_LOCATION_CONFIG,
+            Type.STRING,
+            SSL_KEYSTORE_LOCATION_DEFAULT,
+            Importance.HIGH,
+            SSL_KEYSTORE_LOCATION_DOC
+        ).define(
+            SSL_KEYSTORE_PASSWORD_CONFIG,
+            Type.PASSWORD,
+            SSL_KEYSTORE_PASSWORD_DEFAULT,
+            Importance.HIGH,
+            SSL_KEYSTORE_PASSWORD_DOC
+        ).define(
+            SSL_TRUSTSTORE_LOCATION_CONFIG,
+            Type.STRING,
+            SSL_TRUSTSTORE_LOCATION_DEFAULT,
+            Importance.HIGH,
+            SSL_TRUSTSTORE_LOCATION_DOC
+        ).define(
+            SSL_TRUSTSTORE_PASSWORD_CONFIG,
+            Type.PASSWORD,
+            SSL_TRUSTSTORE_PASSWORD_DEFAULT,
+            Importance.HIGH,
+            SSL_TRUSTSTORE_PASSWORD_DOC)
+        .define(
+            SSL_CLIENT_AUTH_CONFIG,
+            Type.BOOLEAN,
+            SSL_CLIENT_AUTH_DEFAULT,
+            Importance.MEDIUM,
+            SSL_CLIENT_AUTH_DOC
+        )
+        .define(
+            ADVERTISED_LISTENER_CONFIG,
+            Type.STRING,
+            null,
+            ConfigValidators.nullsAllowed(ConfigValidators.validUrl()),
+            Importance.HIGH,
+            ADVERTISED_LISTENER_DOC
+        ).define(
+            STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG,
+            Type.LONG,
+            1000L,
+            Importance.LOW,
+            STREAMED_QUERY_DISCONNECT_CHECK_MS_DOC
+        ).define(
+            DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG,
+            Type.LONG,
+            5000L,
+            Importance.LOW,
+            DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC
+        ).define(
+            INSTALL_DIR_CONFIG,
+            Type.STRING,
+            "",
+            Importance.LOW,
+            INSTALL_DIR_DOC
+        ).define(
+            KSQL_WEBSOCKETS_NUM_THREADS,
+            Type.INT,
+            5,
+            Importance.LOW,
+            KSQL_WEBSOCKETS_NUM_THREADS_DOC
+        ).define(
+            KSQL_SERVER_PRECONDITIONS,
+            Type.LIST,
+            "",
+            Importance.LOW,
+            KSQL_SERVER_PRECONDITIONS_DOC
+        ).define(
+            KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER,
+            ConfigDef.Type.BOOLEAN,
+            false,
+            Importance.LOW,
+            KSQL_SERVER_UNCAUGHT_EXCEPTION_HANDLER_DOC
+        ).define(
+            KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG,
+            Type.LONG,
+            5000L,
+            Importance.LOW,
+            KSQL_HEALTHCHECK_INTERVAL_MS_DOC
+        )
+        .define(
+            KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS,
+            Type.LONG,
+            15000L,
+            Importance.LOW,
+            KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS_DOC
+        ).define(
+            KSQL_SERVER_ERROR_MESSAGES,
+            Type.CLASS,
+            DefaultErrorMessages.class,
+            Importance.LOW,
+            KSQL_SERVER_ERRORS_DOC
+        ).define(
+            KSQL_HEARTBEAT_ENABLE_CONFIG,
+            Type.BOOLEAN,
+            false,
+            Importance.MEDIUM,
+            KSQL_HEARTBEAT_ENABLE_DOC
+        ).define(
+            KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG,
+            Type.LONG,
+            100L,
+            Importance.MEDIUM,
+            KSQL_HEARTBEAT_SEND_INTERVAL_MS_DOC
+        ).define(
+            KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG,
+            Type.LONG,
+            200L,
+            Importance.MEDIUM,
+            KSQL_HEARTBEAT_CHECK_INTERVAL_MS_DOC
+        ).define(
+            KSQL_HEARTBEAT_WINDOW_MS_CONFIG,
+            Type.LONG,
+            2000L,
+            Importance.MEDIUM,
+            KSQL_HEARTBEAT_WINDOW_MS_DOC
+        ).define(
+            KSQL_HEARTBEAT_MISSED_THRESHOLD_CONFIG,
+            Type.LONG,
+            3L,
+            Importance.MEDIUM,
+            KSQL_HEARTBEAT_MISSED_THRESHOLD_DOC
+        ).define(
+            KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG,
+            Type.LONG,
+            2000L,
+            Importance.MEDIUM,
+            KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_DOC
+        ).define(
+            KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG,
+            Type.INT,
+            3,
+            Importance.MEDIUM,
+            KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG_DOC
+        ).define(
+            KSQL_LAG_REPORTING_ENABLE_CONFIG,
+            Type.BOOLEAN,
+            false,
+            Importance.MEDIUM,
+            KSQL_LAG_REPORTING_ENABLE_DOC
+        ).define(
+            KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG,
+            Type.LONG,
+            5000L,
+            Importance.MEDIUM,
+            KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC
+        );
   }
 
   public KsqlRestConfig(final Map<?, ?> props) {

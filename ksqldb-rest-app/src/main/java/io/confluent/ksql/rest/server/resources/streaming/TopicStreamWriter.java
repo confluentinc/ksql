@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.services.ServiceContext;
 import java.io.IOException;
@@ -32,7 +33,6 @@ import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.utils.Bytes;

@@ -21,7 +21,7 @@
 
     <parent>
         <groupId>io.confluent</groupId>
-        <artifactId>rest-utils-parent</artifactId>
+        <artifactId>common</artifactId>
         <version>6.0.0-SNAPSHOT</version>
     </parent>
 
@@ -128,6 +128,8 @@
         <ce.kafka.version>5.5.0-ce-SNAPSHOT</ce.kafka.version>
         <confluent.version>5.5.0-SNAPSHOT</confluent.version>
         <compile.warnings-flag>-Werror</compile.warnings-flag>
+        <!-- Only used to provide login module implementation for tests -->
+        <jetty.version>9.4.28.v20200408</jetty.version>
     </properties>
 
     <dependencyManagement>
@@ -259,12 +261,6 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>${confluent.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>rest-utils</artifactId>
                 <version>${confluent.version}</version>
             </dependency>
 
@@ -436,12 +432,6 @@
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
                 <version>${icu.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-client</artifactId>
-                <version>${jetty.version}</version>
             </dependency>
 
             <!-- Required for running tests -->

@@ -116,7 +116,7 @@ public class BaseApiTest {
   }
 
   protected void createServer(ApiServerConfig serverConfig) {
-    server = new Server(vertx, serverConfig, testEndpoints, false,
+    server = new Server(vertx, serverConfig, testEndpoints,
         new KsqlDefaultSecurityExtension(), Optional.empty(), serverState);
     server.start();
   }

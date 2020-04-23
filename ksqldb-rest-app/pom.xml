@@ -65,11 +65,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>rest-utils</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>com.github.rvesse</groupId>
             <artifactId>airline</artifactId>
         </dependency>
@@ -162,6 +157,14 @@
             <groupId>com.kjetland</groupId>
             <artifactId>mbknor-jackson-jsonschema_2.12</artifactId>
             <version>1.0.34</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Only required to provide LoginModule implementation in tests -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-jaas</artifactId>
+            <version>${jetty.version}</version>
             <scope>test</scope>
         </dependency>
 

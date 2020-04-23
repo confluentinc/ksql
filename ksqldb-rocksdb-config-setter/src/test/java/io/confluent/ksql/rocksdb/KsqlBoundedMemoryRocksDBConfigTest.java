@@ -28,7 +28,7 @@ import org.junit.Test;
 
 public class KsqlBoundedMemoryRocksDBConfigTest {
 
-  private static final long TOTAL_OFF_HEAP_MEMORY = 16 * 1024 * 1024 * 1024L;
+  private static final long CACHE_SIZE = 16 * 1024 * 1024 * 1024L;
   private static final int NUM_BACKGROUND_THREADS = 4;
   private static final double INDEX_FILTER_BLOCK_RATIO = 0.1;
 
@@ -36,7 +36,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
   public void shouldCreateConfig() {
     // Given:
     final Map<String, Object> configs = ImmutableMap.of(
-        "ksql.plugins.rocksdb.total.memory", TOTAL_OFF_HEAP_MEMORY,
+        "ksql.plugins.rocksdb.cache.size", CACHE_SIZE,
         "ksql.plugins.rocksdb.num.background.threads", NUM_BACKGROUND_THREADS,
         "ksql.plugins.rocksdb.index.filter.block.ratio", INDEX_FILTER_BLOCK_RATIO
     );
@@ -46,8 +46,8 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
 
     // Then:
     assertThat(
-        pluginConfig.getLong(KsqlBoundedMemoryRocksDBConfig.TOTAL_OFF_HEAP_MEMORY_CONFIG),
-        is(TOTAL_OFF_HEAP_MEMORY));
+        pluginConfig.getLong(KsqlBoundedMemoryRocksDBConfig.BLOCK_CACHE_SIZE),
+        is(CACHE_SIZE));
     assertThat(
         pluginConfig.getInt(KsqlBoundedMemoryRocksDBConfig.N_BACKGROUND_THREADS_CONFIG),
         is(NUM_BACKGROUND_THREADS));
@@ -63,7 +63,6 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
         "ksql.plugins.rocksdb.num.background.threads", NUM_BACKGROUND_THREADS
     );
 
-    // Expect:
     // When:
     final Exception e = assertThrows(
         ConfigException.class,
@@ -72,7 +71,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Missing required configuration \"ksql.plugins.rocksdb.total.memory\" "
+        "Missing required configuration \"ksql.plugins.rocksdb.cache.size\" "
             + "which has no default value."));
   }
 
@@ -80,7 +79,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
   public void shouldDefaultNumThreadsConfig() {
     // Given:
     final Map<String, Object> configs = ImmutableMap.of(
-        "ksql.plugins.rocksdb.total.memory", TOTAL_OFF_HEAP_MEMORY
+        "ksql.plugins.rocksdb.cache.size", CACHE_SIZE
     );
 
     // When:
@@ -96,7 +95,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
   public void shouldDefaultIndexFilterBlockRatioConfig() {
     // Given:
     final Map<String, Object> configs = ImmutableMap.of(
-        "ksql.plugins.rocksdb.total.memory", TOTAL_OFF_HEAP_MEMORY
+        "ksql.plugins.rocksdb.cache.size", CACHE_SIZE
     );
 
     // When:

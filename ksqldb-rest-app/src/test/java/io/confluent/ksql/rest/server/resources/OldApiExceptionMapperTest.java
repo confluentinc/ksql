@@ -25,7 +25,6 @@ import io.confluent.ksql.api.server.OldApiExceptionMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import javax.ws.rs.WebApplicationException;
 import org.junit.Test;
 
 public class OldApiExceptionMapperTest {
@@ -36,18 +35,6 @@ public class OldApiExceptionMapperTest {
     assertThat(
         OldApiExceptionMapper.mapException(new KsqlRestException(response)),
         sameInstance(response));
-  }
-
-  @Test
-  public void shouldReturnCorrectResponseForWebAppException() {
-    final WebApplicationException webApplicationException = new WebApplicationException("error msg",
-        403);
-    final EndpointResponse response = OldApiExceptionMapper.mapException(webApplicationException);
-    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    final KsqlErrorMessage errorMessage = (KsqlErrorMessage) response.getEntity();
-    assertThat(errorMessage.getMessage(), equalTo("error msg"));
-    assertThat(errorMessage.getErrorCode(), equalTo(40300));
-    assertThat(response.getStatus(), equalTo(403));
   }
 
   @Test

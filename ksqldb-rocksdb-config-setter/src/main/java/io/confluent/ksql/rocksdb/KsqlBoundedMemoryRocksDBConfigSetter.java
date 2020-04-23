@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.state.RocksDBConfigSetter;
 import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.Cache;
 import org.rocksdb.Options;
 
 /**
@@ -39,11 +40,20 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
 
   @Override
   public void configure(final Map<String, ?> config) {
-    configure(config, new Options());
+    configure(
+        config,
+        new Options(),
+        org.rocksdb.LRUCache::new,
+        org.rocksdb.WriteBufferManager::new
+    );
   }
 
   @VisibleForTesting
-  static void configure(final Map<String, ?> config, final Options options) {
+  static void configure(
+      final Map<String, ?> config,
+      final Options options,
+      final LruCacheFactory cacheFactory,
+      final WriteBufferManagerFactory bufferManagerFactory) {
     if (configured.getAndSet(true)) {
       throw new IllegalStateException(
           "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure.");
@@ -53,7 +63,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
       final KsqlBoundedMemoryRocksDBConfig pluginConfig =
           new KsqlBoundedMemoryRocksDBConfig(config);
 
-      limitTotalMemory(pluginConfig);
+      limitTotalMemory(pluginConfig, cacheFactory, bufferManagerFactory);
       configureNumThreads(pluginConfig, options);
     } catch (final IllegalArgumentException e) {
       reset();
@@ -66,16 +76,38 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
     configured.set(false);
   }
 
-  private static void limitTotalMemory(final KsqlBoundedMemoryRocksDBConfig config) {
-    final long totalOffHeapMemory =
-        config.getLong(KsqlBoundedMemoryRocksDBConfig.TOTAL_OFF_HEAP_MEMORY_CONFIG);
-    final long totalMemtableMemory = totalOffHeapMemory / 2;
+  private static void limitTotalMemory(
+      final KsqlBoundedMemoryRocksDBConfig config,
+      final LruCacheFactory cacheFactory,
+      final WriteBufferManagerFactory bufferManagerFactory
+  ) {
+    final long blockCacheSize =
+        config.getLong(KsqlBoundedMemoryRocksDBConfig.BLOCK_CACHE_SIZE);
+    final long totalMemtableMemory =
+        config.getLong(KsqlBoundedMemoryRocksDBConfig.WRITE_BUFFER_LIMIT) == -1
+            ? blockCacheSize / 2
+            : config.getLong(KsqlBoundedMemoryRocksDBConfig.WRITE_BUFFER_LIMIT);
+    final boolean useCacheForMemtable =
+        config.getBoolean(KsqlBoundedMemoryRocksDBConfig.ACCOUNT_WRITE_BUFFER_AGAINST_CACHE);
+    final boolean strictCacheLimit =
+        config.getBoolean(KsqlBoundedMemoryRocksDBConfig.STRICT_CACHE_LIMIT);
 
     final double indexFilterBlockRatio =
         config.getDouble(KsqlBoundedMemoryRocksDBConfig.INDEX_FILTER_BLOCK_RATIO_CONFIG);
 
-    cache = new org.rocksdb.LRUCache(totalOffHeapMemory, -1, false, indexFilterBlockRatio);
-    writeBufferManager = new org.rocksdb.WriteBufferManager(totalMemtableMemory, cache);
+    cache = cacheFactory.create(
+        blockCacheSize,
+        -1,
+        strictCacheLimit,
+        indexFilterBlockRatio
+    );
+
+    final Cache cacheForWriteBuffer = useCacheForMemtable
+        ? cache : cacheFactory.create(totalMemtableMemory, -1, false, 0);
+    writeBufferManager = bufferManagerFactory.create(
+        totalMemtableMemory,
+        cacheForWriteBuffer
+    );
   }
 
   private static void configureNumThreads(
@@ -114,5 +146,17 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
 
   @Override
   public void close(final String storeName, final Options options) {
+  }
+
+  interface LruCacheFactory {
+    org.rocksdb.LRUCache create(
+        long size, int shardBits, boolean strict, double indexFilterBlockRatio);
+  }
+
+  interface WriteBufferManagerFactory {
+    org.rocksdb.WriteBufferManager create(
+        long maxMemory,
+        org.rocksdb.Cache cache
+    );
   }
 }

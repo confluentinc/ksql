@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,14 +13,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.entity;
+package io.confluent.ksql.api.server;
 
-public final class Versions {
-  public static final String KSQL_V1_JSON = "application/vnd.ksql.v1+json";
+import java.io.IOException;
+import java.io.OutputStream;
 
-  public static final String KSQL_V1_WS = "1";
-  public static final String KSQL_V1_WS_PARAM = "version";
+public interface StreamingOutput {
 
-  private Versions() {
-  }
+  void write(OutputStream output) throws IOException;
 }

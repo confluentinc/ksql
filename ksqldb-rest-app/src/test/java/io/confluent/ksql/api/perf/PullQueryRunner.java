@@ -33,8 +33,10 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
+import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
 import java.util.ArrayList;
@@ -199,6 +201,12 @@ public class PullQueryRunner extends BasePerfRunner {
     public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
         ApiSecurityContext apiSecurityContext) {
       return null;
+    }
+
+    @Override
+    public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+
     }
 
     synchronized void closePublishers() {

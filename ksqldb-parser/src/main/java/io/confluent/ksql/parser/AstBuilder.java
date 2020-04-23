@@ -158,7 +158,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -1175,7 +1174,7 @@ public class AstBuilder {
     public Node visitExplain(final SqlBaseParser.ExplainContext ctx) {
       final IdentifierContext queryIdentifier = ctx.identifier();
       final Optional<String> queryId = Optional.ofNullable(queryIdentifier)
-          .map(RuleContext::getText);
+          .map(ParserUtil::getIdentifierText);
 
       final Optional<Statement> statement = Optional.ofNullable(ctx.statement())
           .map(s -> (Statement) visit(s));

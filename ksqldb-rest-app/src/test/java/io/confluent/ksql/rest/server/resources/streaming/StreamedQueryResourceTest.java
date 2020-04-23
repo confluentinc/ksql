@@ -21,7 +21,9 @@ import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -40,6 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -90,15 +93,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.codehaus.plexus.util.StringUtils;
-import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -225,7 +225,7 @@ public class StreamedQueryResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    expectedException.expect(exceptionStatusCode(is(SERVICE_UNAVAILABLE.code())));
     expectedException
         .expect(exceptionErrorMessage(errorMessage(Matchers.is("Server initializing"))));
 
@@ -245,7 +245,7 @@ public class StreamedQueryResourceTest {
 
     // Expect
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(errorMessage(is("some error message"))));
     expectedException.expect(
         exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
@@ -293,7 +293,7 @@ public class StreamedQueryResourceTest {
 
     // Expect
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    expectedException.expect(exceptionStatusCode(is(SERVICE_UNAVAILABLE.code())));
     expectedException.expect(exceptionErrorMessage(errorMessage(
         containsString("Timed out while waiting for a previous command to execute"))));
     expectedException.expect(
@@ -619,7 +619,7 @@ public class StreamedQueryResourceTest {
 
     // Then:
     expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(HttpStatus.Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatusCode(is(BAD_REQUEST.code())));
     expectedException.expect(exceptionErrorMessage(
         errorMessage(containsString(
             "Could not find topic 'TEST_TOPIC', "

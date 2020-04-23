@@ -22,9 +22,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -46,14 +44,11 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
-import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
-import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -67,8 +62,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
-import javax.ws.rs.core.Configurable;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -136,7 +129,6 @@ public class KsqlRestApplicationTest {
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
 
-  private Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   private String logCreateStatement;
   private KsqlRestApplication app;
   private KsqlRestConfig restConfig;
@@ -148,7 +140,6 @@ public class KsqlRestApplicationTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    schemaRegistryClientFactory = () -> schemaRegistryClient;
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
         .thenReturn(true);
     when(processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME))
@@ -205,32 +196,6 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(securityExtension).close();
-  }
-
-  @Test
-  public void shouldNotRegisterAuthorizationFilterWithoutAuthorizationProvider() {
-    // Given:
-    final Configurable<?> configurable = mock(Configurable.class);
-
-    // When:
-    app.configureBaseApplication(configurable, Collections.emptyMap());
-
-    // Then:
-    verify(configurable, times(0)).register(any(KsqlAuthorizationFilter.class));
-  }
-
-  @Test
-  public void shouldRegisterAuthorizationFilterWithAuthorizationProvider() {
-    // Given:
-    final Configurable<?> configurable = mock(Configurable.class);
-    final KsqlAuthorizationProvider provider = mock(KsqlAuthorizationProvider.class);
-    when(securityExtension.getAuthorizationProvider()).thenReturn(Optional.of(provider));
-
-    // When:
-    app.configureBaseApplication(configurable, Collections.emptyMap());
-
-    // Then:
-    verify(configurable).register(any(KsqlAuthorizationFilter.class));
   }
 
   @Test
@@ -465,8 +430,6 @@ public class KsqlRestApplicationTest {
         streamedQueryResource,
         ksqlResource,
         versionCheckerAgent,
-        (config, securityExtension) ->
-            new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory),
         apiSecurityContext -> new KsqlSecurityContext(Optional.empty(), serviceContext),
         securityExtension,
         Optional.empty(),

@@ -20,15 +20,12 @@ import static io.confluent.ksql.rest.server.KsqlRestApplication.convertToLocalLi
 import static java.util.Objects.requireNonNull;
 import static org.easymock.EasyMock.niceMock;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -39,11 +36,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
-import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.services.TestDefaultKsqlClientFactory;
-import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
-import io.confluent.ksql.security.KsqlSecurityContext;
-import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
@@ -53,7 +46,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.ApplicationServer;
-import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -68,17 +60,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.eclipse.jetty.websocket.api.util.WSURI;
-import org.glassfish.hk2.api.Factory;
-import org.glassfish.hk2.utilities.Binder;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
-import org.glassfish.jersey.process.internal.RequestScoped;
 import org.junit.rules.ExternalResource;
 
 /**
@@ -105,7 +90,6 @@ public class TestKsqlRestApp extends ExternalResource {
   protected final Map<String, ?> baseConfig;
   protected final Supplier<String> bootstrapServers;
   protected final Supplier<ServiceContext> serviceContext;
-  protected final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
   protected final List<URL> listeners = new ArrayList<>();
   protected final Optional<BasicCredentials> credentials;
   protected ExecutableServer<KsqlRestConfig> restServer;
@@ -121,14 +105,11 @@ public class TestKsqlRestApp extends ExternalResource {
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
       final Optional<BasicCredentials> credentials
   ) {
     this.baseConfig = buildBaseConfig(additionalProps);
     this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
-    this.serviceContextBinderFactory =
-        requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
     this.credentials = requireNonNull(credentials, "credentials");
   }
 
@@ -234,15 +215,6 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  public static Client buildClient() {
-    final ObjectMapper objectMapper = ApiJsonMapper.INSTANCE.get().copy();
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
-    objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);
-
-    final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
-    return ClientBuilder.newBuilder().register(jsonProvider).build();
-  }
-
   public ServiceContext getServiceContext() {
     return serviceContext.get();
   }
@@ -291,7 +263,6 @@ public class TestKsqlRestApp extends ExternalResource {
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
-          serviceContextBinderFactory,
           MockSchemaRegistryClient::new);
 
       restServer = new ExecutableServer<>(
@@ -450,7 +421,6 @@ public class TestKsqlRestApp extends ExternalResource {
     private final Map<String, Object> additionalProps = new HashMap<>();
 
     private Supplier<ServiceContext> serviceContext;
-    private BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> securityContextBinder;
 
     private Optional<BasicCredentials> credentials = Optional.empty();
 
@@ -459,9 +429,6 @@ public class TestKsqlRestApp extends ExternalResource {
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
               DisabledKsqlClient::instance);
-      this.securityContextBinder = (config, securityExtension) ->
-          new KsqlSecurityContextBinder(config, securityExtension,
-              new KsqlSchemaRegistryClientFactory(config, Collections.emptyMap())::get);
     }
 
     @SuppressWarnings("unused") // Part of public API
@@ -487,27 +454,6 @@ public class TestKsqlRestApp extends ExternalResource {
 
     public Builder withStaticServiceContext(final Supplier<ServiceContext> serviceContext) {
       this.serviceContext = serviceContext;
-      this.securityContextBinder = (config, extension) -> new AbstractBinder() {
-        @Override
-        protected void configure() {
-          final Factory<KsqlSecurityContext> factory = new Factory<KsqlSecurityContext>() {
-            @Override
-            public KsqlSecurityContext provide() {
-              return new KsqlSecurityContext(Optional.empty(), serviceContext.get());
-            }
-
-            @Override
-            public void dispose(final KsqlSecurityContext securityContext) {
-              // do nothing because context is shared
-            }
-          };
-
-          bindFactory(factory)
-              .to(KsqlSecurityContext.class)
-              .in(RequestScoped.class);
-        }
-      };
-
       return this;
     }
 
@@ -532,7 +478,6 @@ public class TestKsqlRestApp extends ExternalResource {
           bootstrapServers,
           additionalProps,
           serviceContext,
-          securityContextBinder,
           credentials
       );
     }
@@ -542,7 +487,6 @@ public class TestKsqlRestApp extends ExternalResource {
           bootstrapServers,
           additionalProps,
           serviceContext,
-          securityContextBinder,
           credentials,
           latch
       );

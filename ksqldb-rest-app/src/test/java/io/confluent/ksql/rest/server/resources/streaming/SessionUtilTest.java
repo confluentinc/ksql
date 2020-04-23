@@ -23,9 +23,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
-import javax.websocket.CloseReason;
+import io.vertx.core.http.ServerWebSocket;
 import javax.websocket.CloseReason.CloseCodes;
-import javax.websocket.Session;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -37,20 +36,23 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SessionUtilTest {
 
   @Mock
-  private Session session;
+  private ServerWebSocket websocket;
   @Captor
-  private ArgumentCaptor<CloseReason> reasonCaptor;
+  private ArgumentCaptor<Short> codeCaptor;
+  @Captor
+  private ArgumentCaptor<String> reasonCaptor;
 
   @Test
   public void shouldCloseQuietly() throws Exception {
     // Given:
-    doThrow(new RuntimeException("Boom")).when(session).close(any(CloseReason.class));
+    doThrow(new RuntimeException("Boom")).when(websocket)
+        .close(any(Short.class), any(String.class));
 
     // When:
-    SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, "reason");
+    SessionUtil.closeSilently(websocket, CloseCodes.CANNOT_ACCEPT, "reason");
 
     // Then:
-    verify(session).close(any());
+    verify(websocket).close(any(Short.class), any(String.class));
     // And exception swallowed.
   }
 
@@ -60,11 +62,11 @@ public class SessionUtilTest {
     final String reason = "some short reason";
 
     // When:
-    SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, reason);
+    SessionUtil.closeSilently(websocket, CloseCodes.CANNOT_ACCEPT, reason);
 
     // Then:
-    verify(session).close(reasonCaptor.capture());
-    assertThat(reasonCaptor.getValue().getReasonPhrase(), is(reason));
+    verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
+    assertThat(reasonCaptor.getValue(), is(reason));
   }
 
   @Test
@@ -75,14 +77,14 @@ public class SessionUtilTest {
     assertThat("invalid test", reason.getBytes(UTF_8).length, greaterThan(123));
 
     // When:
-    SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, reason);
+    SessionUtil.closeSilently(websocket, CloseCodes.CANNOT_ACCEPT, reason);
 
     // Then:
-    verify(session).close(reasonCaptor.capture());
-    assertThat(reasonCaptor.getValue().getReasonPhrase(), is(
+    verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
+    assertThat(reasonCaptor.getValue(), is(
         "A long message that is longer than the maximum size that the CloseReason class "
             + "will allow-------------------------------..."));
-    assertThat(reasonCaptor.getValue().getReasonPhrase().getBytes(UTF_8).length,
+    assertThat(reasonCaptor.getValue().getBytes(UTF_8).length,
         is(123));
   }
 
@@ -94,11 +96,11 @@ public class SessionUtilTest {
     assertThat("invalid test", reason.getBytes(UTF_8).length, greaterThan(123));
 
     // When:
-    SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, reason);
+    SessionUtil.closeSilently(websocket, CloseCodes.CANNOT_ACCEPT, reason);
 
     // Then:
-    verify(session).close(reasonCaptor.capture());
-    assertThat(reasonCaptor.getValue().getReasonPhrase(), is(
+    verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
+    assertThat(reasonCaptor.getValue(), is(
         "A long message that is longer than the maximum size that the CloseReason class will "
             + "allow €€€€€€€€€€..."));
   }
@@ -106,10 +108,10 @@ public class SessionUtilTest {
   @Test
   public void shouldHandleNullMessage() throws Exception {
     // When:
-    SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, null);
+    SessionUtil.closeSilently(websocket, CloseCodes.CANNOT_ACCEPT, null);
 
     // Then:
-    verify(session).close(reasonCaptor.capture());
-    assertThat(reasonCaptor.getValue().getReasonPhrase(), is(""));
+    verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
+    assertThat(reasonCaptor.getValue(), is(""));
   }
 }

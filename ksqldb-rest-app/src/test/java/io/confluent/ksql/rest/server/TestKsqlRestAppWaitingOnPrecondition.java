@@ -16,15 +16,11 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import org.glassfish.hk2.utilities.Binder;
 
 /**
  * A {@link TestKsqlRestApp} for testing behavior of a server stuck waiting on a precondition.
@@ -42,12 +38,10 @@ public class TestKsqlRestAppWaitingOnPrecondition extends TestKsqlRestApp {
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
       final Optional<BasicCredentials> credentials,
       final CountDownLatch latch
   ) {
-    super(bootstrapServers, additionalProps, serviceContext, serviceContextBinderFactory,
-        credentials);
+    super(bootstrapServers, additionalProps, serviceContext, credentials);
     this.latch = latch;
   }
 

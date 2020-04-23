@@ -316,7 +316,7 @@ PRINT 'possible_anomalies' FROM BEGINNING;
 
 Notice that so far, all the heavy lifting happens inside of ksqlDB. ksqlDB takes care of the stateful stream processing. Triggering side-effects will be delegated to a light-weight service that consumes from a Kafka topic. You want to send an email each time an anomaly is found. To do that, you'll implement a simple, scalable microservice. In practice, you might use [Kafka Streams](https://kafka.apache.org/documentation/streams/) to handle this piece, but to keep things simple, just use a {{ site.ak }} consumer client.
 
-Start by creating a `pom.xml` file for your microservice. This simple microservice will run a loop, reading from the `anomalies` {{ site.ak }} topic and sending an email for each event it receives. Dependencies are declared on {{ site.ak }}, Avro, SendGrid, and a few other things:
+Start by creating a `pom.xml` file for your microservice. This simple microservice will run a loop, reading from the `possible_anomalies` {{ site.ak }} topic and sending an email for each event it receives. Dependencies are declared on {{ site.ak }}, Avro, SendGrid, and a few other things:
 
 ```xml
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">

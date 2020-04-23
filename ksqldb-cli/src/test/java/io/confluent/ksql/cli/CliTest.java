@@ -1177,7 +1177,7 @@ public class CliTest {
     verify(mockRestClient).makeKsqlRequest(statementText, seqNum);
   }
 
-  @SuppressWarnings({"unchecked"})
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private static Matcher<String>[] prependWithKey(final List<?> values) {
 
     final Matcher<String>[] allMatchers = new Matcher[values.size() + 1];

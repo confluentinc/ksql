@@ -62,7 +62,6 @@ public class KsMaterializedWindowTableTest {
   private static final Duration WINDOW_SIZE = Duration.ofMinutes(1);
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("K0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();

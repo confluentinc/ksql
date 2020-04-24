@@ -92,7 +92,6 @@ public class QueryExecutorTest {
   private static final Map<String, Object> OVERRIDES = Collections.emptyMap();
 
   private static final LogicalSchema SINK_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("col0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)

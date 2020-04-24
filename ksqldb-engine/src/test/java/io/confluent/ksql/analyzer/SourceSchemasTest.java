@@ -44,7 +44,6 @@ public class SourceSchemasTest {
   private static final ColumnName V2 = ColumnName.of("V2");
 
   private static final LogicalSchema SCHEMA_1 = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .keyColumn(K0, SqlTypes.INTEGER)
       .valueColumn(COMMON_VALUE_FIELD_NAME, SqlTypes.STRING)
@@ -52,7 +51,6 @@ public class SourceSchemasTest {
       .build();
 
   private static final LogicalSchema SCHEMA_2 = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .keyColumn(K1, SqlTypes.STRING)
       .valueColumn(COMMON_VALUE_FIELD_NAME, SqlTypes.STRING)

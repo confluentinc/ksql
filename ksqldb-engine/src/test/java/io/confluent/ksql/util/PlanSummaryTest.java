@@ -47,7 +47,6 @@ public class PlanSummaryTest {
   private static final QueryId QUERY_ID = new QueryId("QID");
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("L0"), SqlTypes.INTEGER)
       .build();
@@ -79,7 +78,6 @@ public class PlanSummaryTest {
   public void shouldSummarizeWithSource() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("L1"), SqlTypes.STRING)
         .build();
@@ -100,13 +98,11 @@ public class PlanSummaryTest {
   public void shouldSummarizePlanWithMultipleSources() {
     // Given:
     final LogicalSchema sourceSchema2 = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("L0_2"), SqlTypes.STRING)
         .build();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("L1"), SqlTypes.STRING)
         .build();

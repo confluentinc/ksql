@@ -335,7 +335,6 @@ public class GroupByParamsFactoryTest {
         : SchemaUtil.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(expectedKeyColName, SqlTypes.INTEGER)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));
@@ -360,7 +359,6 @@ public class GroupByParamsFactoryTest {
         : SchemaUtil.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(expectedKeyColName, SqlTypes.INTEGER)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));
@@ -388,7 +386,6 @@ public class GroupByParamsFactoryTest {
         : SchemaUtil.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(expectedKeyColName, SqlTypes.INTEGER)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));
@@ -410,7 +407,6 @@ public class GroupByParamsFactoryTest {
         : SchemaUtil.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(expectedKeyColName, SqlTypes.INTEGER)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));
@@ -432,7 +428,6 @@ public class GroupByParamsFactoryTest {
         : SchemaUtil.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(expectedKeyColName, SqlTypes.STRING)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));
@@ -452,7 +447,6 @@ public class GroupByParamsFactoryTest {
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(keyAlias, SqlTypes.STRING)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));

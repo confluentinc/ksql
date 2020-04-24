@@ -68,7 +68,6 @@ public class MetaStoreModelTest {
       .put(Column.class, Column.of(ColumnName.of("someField"), SqlTypes.INTEGER, Namespace.VALUE, 1))
       .put(SqlType.class, SqlTypes.INTEGER)
       .put(LogicalSchema.class, LogicalSchema.builder()
-          .withRowTime()
           .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
           .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
           .build())

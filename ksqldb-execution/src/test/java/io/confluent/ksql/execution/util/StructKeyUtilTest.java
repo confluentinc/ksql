@@ -32,7 +32,6 @@ import org.junit.Test;
 public class StructKeyUtilTest {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("Bob"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("DOES_NOT_MATTER"), SqlTypes.STRING)
       .build();

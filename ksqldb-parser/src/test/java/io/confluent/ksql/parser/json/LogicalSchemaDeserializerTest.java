@@ -93,7 +93,6 @@ public class LogicalSchemaDeserializerTest {
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .build()));

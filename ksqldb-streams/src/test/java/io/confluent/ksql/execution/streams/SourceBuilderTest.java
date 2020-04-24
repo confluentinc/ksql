@@ -111,10 +111,10 @@ public class SourceBuilderTest {
       .put(K0.text(), A_KEY);
 
   private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
-      .withMetaAndKeyColsInValue(false);
+      .withPseudoAndKeyColsInValue(false);
 
   private static final LogicalSchema WINDOWED_SCHEMA = SOURCE_SCHEMA
-      .withMetaAndKeyColsInValue(true);
+      .withPseudoAndKeyColsInValue(true);
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 

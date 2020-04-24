@@ -233,7 +233,6 @@ public class TableElementsTest {
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .build()
@@ -253,7 +252,6 @@ public class TableElementsTest {
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .withRowTime()
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
         .build()
@@ -273,7 +271,6 @@ public class TableElementsTest {
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .withRowTime()
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
         .build()

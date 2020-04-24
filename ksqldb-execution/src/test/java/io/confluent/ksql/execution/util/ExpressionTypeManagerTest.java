@@ -520,7 +520,6 @@ public class ExpressionTypeManagerTest {
   public void shouldEvaluateTypeForStructExpression() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(COL0, SqlTypes.array(SqlTypes.INTEGER))
         .build();
@@ -551,7 +550,6 @@ public class ExpressionTypeManagerTest {
     final SqlStruct inner = SqlTypes.struct().field("IN0", SqlTypes.INTEGER).build();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(COL0, SqlTypes.array(inner))
         .build();
@@ -580,7 +578,6 @@ public class ExpressionTypeManagerTest {
         .build();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(COL0, inner)
         .build();

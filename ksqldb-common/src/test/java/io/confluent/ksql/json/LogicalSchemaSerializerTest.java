@@ -40,7 +40,6 @@ public class LogicalSchemaSerializerTest {
   public void shouldSerializeSchemaWithImplicitColumns() throws Exception {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .build();

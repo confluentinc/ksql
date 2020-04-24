@@ -63,18 +63,16 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StreamSelectKeyBuilderV1Test {
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build()
-      .withMetaAndKeyColsInValue(false);
+      .withPseudoAndKeyColsInValue(false);
 
   private static final UnqualifiedColumnReferenceExp KEY =
       new UnqualifiedColumnReferenceExp(ColumnName.of("BOI"));
 
   private static final LogicalSchema RESULT_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)

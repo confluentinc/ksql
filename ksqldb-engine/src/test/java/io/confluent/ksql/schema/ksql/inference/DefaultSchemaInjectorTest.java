@@ -81,7 +81,6 @@ public class DefaultSchemaInjectorTest {
   private static final String SQL_TEXT = "Some SQL";
 
   private static final List<? extends SimpleColumn> SUPPORTED_SCHEMAS = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("intField"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bigIntField"), SqlTypes.BIGINT)

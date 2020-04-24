@@ -209,7 +209,6 @@ public class KsqlResourceTest {
       0L);
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("val"), SqlTypes.STRING)
       .build();
@@ -252,7 +251,6 @@ public class KsqlResourceTest {
   );
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
       .build();
@@ -470,7 +468,6 @@ public class KsqlResourceTest {
   public void shouldShowStreamsExtended() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
         .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
@@ -501,7 +498,6 @@ public class KsqlResourceTest {
   public void shouldShowTablesExtended() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
         .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
@@ -2176,7 +2172,6 @@ public class KsqlResourceTest {
 
   private void addTestTopicAndSources() {
     final LogicalSchema schema1 = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("S1_F1"), SqlTypes.BOOLEAN)
         .build();
@@ -2186,7 +2181,6 @@ public class KsqlResourceTest {
         "TEST_TABLE", "KAFKA_TOPIC_1", schema1);
 
     final LogicalSchema schema2 = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("S2_F1"), SqlTypes.STRING)
         .build();

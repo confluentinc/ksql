@@ -115,7 +115,6 @@ public class CreateSourceFactoryTest {
       TableElements.of(EXPLICIT_KEY, ELEMENT1, ELEMENT2);
 
   private static final LogicalSchema EXPECTED_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ROWKEY_NAME, SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("hojjat"), BIGINT)
@@ -460,7 +459,6 @@ public class CreateSourceFactoryTest {
     givenCommandFactoriesWithMocks();
     final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
@@ -597,7 +595,6 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(result.getSchema(), is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("hojjat"), BIGINT)

@@ -70,7 +70,6 @@ public class QueryDescriptionFactoryTest {
       .build();
 
   private static final LogicalSchema PERSISTENT_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)

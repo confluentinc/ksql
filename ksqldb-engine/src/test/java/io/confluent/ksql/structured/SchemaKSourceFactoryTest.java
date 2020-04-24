@@ -61,7 +61,6 @@ public class SchemaKSourceFactoryTest {
   private static final KeyField KEY_FIELD = KeyField.none();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("FOO"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("BAR"), SqlTypes.STRING)

@@ -56,7 +56,6 @@ public class RepartitionNodeTest {
       Optional.of(ColumnName.of("SomeAlias"));
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(K0, SqlTypes.DOUBLE)
       .valueColumn(V0, SqlTypes.DOUBLE)
       .valueColumn(V1, SqlTypes.DOUBLE)

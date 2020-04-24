@@ -110,7 +110,6 @@ public class ConsoleTest {
   private static final String AGGREGATE_STATUS = "ERROR";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
       .build();
@@ -1510,7 +1509,6 @@ public class ConsoleTest {
 
   private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {
     final Builder schemaBuilder = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
 
     for (int idx = 0; idx < fieldTypes.length; idx++) {

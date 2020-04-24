@@ -135,7 +135,6 @@ public class DescribeConnectorExecutorTest {
     );
     when(source.getSchema()).thenReturn(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("foo"), SqlPrimitiveType.of( SqlBaseType.STRING))
             .build());

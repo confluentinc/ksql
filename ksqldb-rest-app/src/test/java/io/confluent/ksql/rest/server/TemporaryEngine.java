@@ -61,7 +61,6 @@ import org.junit.rules.ExternalResource;
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("val"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("val2"), SqlTypes.decimal(2, 1))

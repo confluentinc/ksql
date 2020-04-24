@@ -62,13 +62,12 @@ import org.mockito.junit.MockitoRule;
 @SuppressWarnings("unchecked")
 public class StreamSelectBuilderTest {
 
-  private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
-      .withRowTime()
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("foo"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("bar"), SqlTypes.BIGINT)
       .build()
-      .withMetaAndKeyColsInValue(false);
+      .withPseudoAndKeyColsInValue(false);
 
   private static final Expression EXPRESSION1 = new StringLiteral("baz");
   private static final Expression EXPRESSION2 = new IntegerLiteral(123);
@@ -170,7 +169,6 @@ public class StreamSelectBuilderTest {
     assertThat(
         result.getSchema(),
         is(LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("expr1"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("expr2"), SqlTypes.INTEGER)

@@ -72,7 +72,6 @@ public class SourceDescriptionFactoryTest {
       final String kafkaTopicName,
       final Optional<TimestampColumn> timestampColumn) {
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("field0"), SqlTypes.INTEGER)
         .build();

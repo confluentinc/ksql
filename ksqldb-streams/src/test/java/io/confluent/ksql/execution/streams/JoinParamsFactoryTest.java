@@ -36,7 +36,6 @@ public class JoinParamsFactoryTest {
 
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("LK"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
@@ -54,7 +53,7 @@ public class JoinParamsFactoryTest {
         .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
         .build()
-        .withMetaAndKeyColsInValue(false);
+        .withPseudoAndKeyColsInValue(false);
 
     // When:
     final Exception e = assertThrows(

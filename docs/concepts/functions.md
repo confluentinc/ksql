@@ -242,7 +242,7 @@ dependency in your POM file:
     <dependency>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-udf</artifactId>
-        <version>{{ site.release }}</version>
+        <version>{{ site.cprelease }}</version>
     </dependency>
 </dependencies>
 ```
@@ -783,7 +783,7 @@ dependency in your POM file:
     <dependency>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-udf</artifactId>
-        <version>{{ site.release }}</version>
+        <version>{{ site.cprelease }}</version>
     </dependency>
 </dependencies>
 ```

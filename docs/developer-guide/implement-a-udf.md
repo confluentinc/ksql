@@ -82,7 +82,7 @@ mkdir ksqldb-udf-demo && cd ksqldb-udf-demo
 ### Create the Source Code Directory
 
 From the root directory for your UDF, create the source code directory.
-In this example, the package name is `my.company.ksql.udfdemo`.
+In this example, the package name is `my.company.ksqldb.udfdemo`.
 
 ```bash
 mkdir -p src/main/java/my/company/ksql/udfdemo
@@ -99,7 +99,7 @@ available functions. For more information, see
 Copy the following code into a new file, named `Multiply.java`:
 
 ```java
-package my.company.ksql.udfdemo;
+package my.company.ksqldb.udfdemo;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -143,7 +143,7 @@ Project Object Model (POM) file for the Maven build, and name it
     <modelVersion>4.0.0</modelVersion>
 
     <!-- Specify the package details for the custom UDF -->
-    <groupId>my.company.ksql.udfdemo</groupId>
+    <groupId>my.company.ksqldb.udfdemo</groupId>
     <artifactId>ksqldb-udf-demo</artifactId>
     <version>1.0</version>
 
@@ -157,7 +157,7 @@ Project Object Model (POM) file for the Maven build, and name it
 
     <!-- Specify build properties -->
     <properties>
-        <exec.mainClass>my.company.ksql.udfdemo.thisisignored</exec.mainClass>
+        <exec.mainClass>my.company.ksqldb.udfdemo.thisisignored</exec.mainClass>
         <java.version>1.8</java.version>
         <kafka.version>{{ site.kafkarelease }}</kafka.version>
         <kafka.scala.version>{{ site.scalaversion }}</kafka.scala.version>

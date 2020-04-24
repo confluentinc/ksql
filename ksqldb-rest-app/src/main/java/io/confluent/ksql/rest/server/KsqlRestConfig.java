@@ -46,6 +46,8 @@ import org.slf4j.LoggerFactory;
 
 public class KsqlRestConfig extends AbstractConfig {
 
+  private static final Logger log = LoggerFactory.getLogger(KsqlRestConfig.class);
+
   private static final Logger LOGGER = LoggerFactory.getLogger(KsqlRestConfig.class);
 
   public static final String LISTENERS_CONFIG = "listeners";
@@ -104,6 +106,7 @@ public class KsqlRestConfig extends AbstractConfig {
   protected static final String SSL_TRUSTSTORE_LOCATION_DEFAULT = "";
   protected static final String SSL_TRUSTSTORE_PASSWORD_DEFAULT = "";
 
+  public static final String SSL_CLIENT_AUTH_CONFIG = "ssl.client.auth";
   public static final String SSL_CLIENT_AUTHENTICATION_CONFIG = "ssl.client.authentication";
   public static final String SSL_CLIENT_AUTHENTICATION_NONE = "NONE";
   public static final String SSL_CLIENT_AUTHENTICATION_REQUESTED = "REQUESTED";
@@ -338,6 +341,12 @@ public class KsqlRestConfig extends AbstractConfig {
             SSL_CLIENT_AUTHENTICATION_VALIDATOR,
             Importance.MEDIUM,
             SSL_CLIENT_AUTHENTICATION_DOC
+        ).define(
+            SSL_CLIENT_AUTH_CONFIG,
+            Type.BOOLEAN,
+            false,
+            Importance.MEDIUM,
+            ""
         ).define(
             ADVERTISED_LISTENER_CONFIG,
             Type.STRING,
@@ -635,7 +644,28 @@ public class KsqlRestConfig extends AbstractConfig {
   }
 
   public ClientAuth getClientAuth() {
-    final String clientAuth = getString(SSL_CLIENT_AUTHENTICATION_CONFIG);
+
+    String clientAuth = getString(SSL_CLIENT_AUTHENTICATION_CONFIG);
+    if (originals().containsKey(SSL_CLIENT_AUTH_CONFIG)) {
+      if (originals().containsKey(SSL_CLIENT_AUTHENTICATION_CONFIG)) {
+        log.warn(
+            "The {} configuration is deprecated. Since a value has been supplied for the {} "
+                + "configuration, that will be used instead",
+            SSL_CLIENT_AUTH_CONFIG,
+            SSL_CLIENT_AUTHENTICATION_CONFIG
+        );
+      } else {
+        log.warn(
+            "The configuration {} is deprecated and should be replaced with {}",
+            SSL_CLIENT_AUTH_CONFIG,
+            SSL_CLIENT_AUTHENTICATION_CONFIG
+        );
+        clientAuth = getBoolean(SSL_CLIENT_AUTH_CONFIG)
+            ? SSL_CLIENT_AUTHENTICATION_REQUIRED
+            : SSL_CLIENT_AUTHENTICATION_NONE;
+      }
+    }
+
     switch (clientAuth) {
       case SSL_CLIENT_AUTHENTICATION_NONE:
         return ClientAuth.NONE;

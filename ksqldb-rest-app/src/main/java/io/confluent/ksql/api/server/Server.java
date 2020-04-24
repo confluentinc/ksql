@@ -244,7 +244,7 @@ public class Server {
       options.setUseAlpn(true).setSsl(true);
 
       final String keyStorePath = ksqlRestConfig
-          .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+          .getString(KsqlRestConfig.SSL_KEYSTORE_LOCATION_CONFIG);
       final Password keyStorePassword = ksqlRestConfig
           .getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
       if (keyStorePath != null && !keyStorePath.isEmpty()) {

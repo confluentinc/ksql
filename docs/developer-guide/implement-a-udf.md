@@ -40,7 +40,7 @@ Create the `ksql` extensions directory,
 `<path-to-confluent>/etc/ksqldb/ext`:
 
 ```bash
-mkdir confluent-{{ site.release }}/etc/ksqldb/ext
+mkdir confluent-{{ site.cprelease }}/etc/ksqldb/ext
 ```
 
 Edit the `ksql-server.properties` configuration file in
@@ -48,7 +48,7 @@ Edit the `ksql-server.properties` configuration file in
 `ext` directory:
 
 ```
-ksql.extension.dir=/home/my-home-dir/confluent-{{ site.release }}/etc/ksqldb/ext
+ksql.extension.dir=/home/my-home-dir/confluent-{{ site.cprelease }}/etc/ksqldb/ext
 ```
 
 !!! note
@@ -260,9 +260,9 @@ output there. Copy the JAR file,
 `ksqldb-udf-demo-1.0-jar-with-dependencies.jar`, from the `target`
 directory to the `ext` directory of your ksqlDB installation. For example,
 if your {{ site.cp }} installation is at
-`/home/my-home-dir/confluent-{{ site.release }}`,
+`/home/my-home-dir/confluent-{{ site.cprelease }}`,
 copy the JAR to
-`/home/my-home-dir/confluent-{{ site.release }}/etc/ksqldb/ext`.
+`/home/my-home-dir/confluent-{{ site.cprelease }}/etc/ksqldb/ext`.
 
 ```bash
 cp target/ksqldb-udf-demo-1.0-jar-with-dependencies.jar <path-to-confluent>/etc/ksqldb/ext
@@ -329,7 +329,7 @@ Your output should resemble:
 Name        : MULTIPLY
 Overview    : multiplies 2 numbers
 Type        : scalar
-Jar         : /home/my-home-dir/confluent-{{ site.release }}/etc/ksqldb/ext/ksqldb-udf-demo-1.0-jar-with-dependencies.jar
+Jar         : /home/my-home-dir/confluent-{{ site.cprelease }}/etc/ksqldb/ext/ksqldb-udf-demo-1.0-jar-with-dependencies.jar
 Variations  : 
 
     Variation   : MULTIPLY(BIGINT, BIGINT)

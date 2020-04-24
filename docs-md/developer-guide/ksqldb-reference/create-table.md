@@ -34,7 +34,7 @@ The WITH clause supports the following properties:
 |        Property         |                                            Description                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this source. The topic must either already exist in Kafka, or PARTITIONS must be specified to create the topic. Command will fail if the topic exists with different partition/replica counts. |
-| VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats: `JSON`, `DELIMITED` (comma-separated value), `AVRO` and `KAFKA`. For more information, see [Serialization Formats](../serialization.md#serialization-formats). |
+| VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats: `JSON`, `JSON_SR`, `DELIMITED` (comma-separated value), `AVRO`, `KAFKA`, and `PROTOBUF`. For more information, see [Serialization Formats](../serialization.md#serialization-formats). |
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a TABLE without an existing topic (the command will fail if the topic does not exist). |
 | REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is set, then the default Kafka cluster configuration for replicas will be used for creating a new topic. |
 | VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
@@ -46,10 +46,10 @@ The WITH clause supports the following properties:
 | WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed, i.e., was created using ksqlDB using a query that contains a `WINDOW` clause, and the `WINDOW_TYPE` property is TUMBLING or HOPPING, then the WINDOW_SIZE property should be set. The property is a string with two literals, window size (a number) and window size unit (a time unit). For example: `10 SECONDS`. |
 
 !!! note
-	  - To use Avro, you must have {{ site.sr }} enabled and
+	  - To use Avro or Protobuf, you must have {{ site.sr }} enabled and
     `ksql.schema.registry.url` must be set in the ksqlDB server configuration
-    file. See [Configure Avro and {{ site.sr }} for ksqlDB](../../operate-and-deploy/installation/server-config/avro-schema.md).
-    - Avro field names are not case sensitive in ksqlDB. This matches the ksqlDB column name behavior.
+    file. See [Configure ksqlDB for Avro or Protobuf](../../operate-and-deploy/installation/server-config/avro-schema.md).
+    - Avro and Protobuf field names are not case sensitive in ksqlDB. This matches the ksqlDB column name behavior.
 
 Example
 -------

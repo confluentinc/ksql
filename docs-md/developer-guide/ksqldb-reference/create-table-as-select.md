@@ -48,7 +48,7 @@ The WITH clause supports the following properties:
 |     Property      |                                             Description                                              |
 | ----------------- | ---------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC       | The name of the Kafka topic that backs this table. If this property is not set, then the name of the table will be used as default. |
-| VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. Supported formats: `JSON`, `DELIMITED` (comma-separated value), `AVRO` and `KAFKA`. If this property is not set, then the format of the input stream/table is used. For more information, see [Serialization Formats](../serialization.md#serialization-formats). |
+| VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. Supported formats: `JSON`, `JSON_SR`, `DELIMITED` (comma-separated value), `AVRO`, `KAFKA`, and `PROTOBUF`. If this property is not set, then the format of the input stream/table is used. For more information, see [Serialization Formats](../serialization.md#serialization-formats). |
 | VALUE_DELIMITER   | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
 | PARTITIONS        | The number of partitions in the backing topic. If this property is not set, then the number of partitions of the input stream/table will be used. In join queries, the property values are taken from the left-side stream or table. The `ksql.sink.partitions` property can be set in the properties file the ksqlDB Server is started with, or by using the `SET` statement. |
 | REPLICAS          | The replication factor for the topic. If this property is not set, then the number of replicas of the input stream or table will be used. In join queries, the property values are taken from the left-side stream or table. The `ksql.sink.replicas` property can be set in the properties file the ksqlDB Server is started with, or by using the `SET` statement. |
@@ -58,10 +58,10 @@ The WITH clause supports the following properties:
 
 
 !!! note
-	  - To use Avro, you must have {{ site.sr }} enabled and
+	  - To use Avro or Protobuf, you must have {{ site.sr }} enabled and
     `ksql.schema.registry.url` must be set in the ksqlDB server configuration
-    file. See [Configure Avro and {{ site.sr }} for ksqlDB](../../operate-and-deploy/installation/server-config/avro-schema.md#configure-avro-and-schema-registry-for-ksql).
-    - Avro field names are not case sensitive in ksqlDB. This matches the ksqlDB
+    file. See [Configure ksqlDB for Avro or Protobuf](../../operate-and-deploy/installation/server-config/avro-schema.md#configure-avro-and-schema-registry-for-ksql).
+    - Avro and Protobuf field names are not case sensitive in ksqlDB. This matches the ksqlDB
     column name behavior.
 
 Example

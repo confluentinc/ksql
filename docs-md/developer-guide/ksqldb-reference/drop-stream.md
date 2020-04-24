@@ -22,8 +22,8 @@ Description
 Drops an existing stream.
 
 If the DELETE TOPIC clause is present, the stream's source topic is
-marked for deletion. If the topic format is `AVRO`, the corresponding
-Avro schema is deleted. Topic deletion is asynchronous, and actual
+marked for deletion. If the topic format is `AVRO` or `PROTOBUF`, the
+corresponding schema is deleted. Topic deletion is asynchronous, and actual
 removal from brokers may take some time to complete.
 
 !!! note

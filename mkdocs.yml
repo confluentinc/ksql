@@ -125,7 +125,7 @@ nav:
           - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
           - Server Configuration:
               - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
-              - Configure Avro and Confluent Schema Registry for ksqlDB: operate-and-deploy/installation/server-config/avro-schema.md
+              - Configure ksqlDB for Avro or Protobuf: operate-and-deploy/installation/server-config/avro-schema.md
               - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
               # - Integrate ksqlDB with Confluent Control Center: installation/server-config/integrate-ksql-with-confluent-control-center.md # leave in docs.confluent.io
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md

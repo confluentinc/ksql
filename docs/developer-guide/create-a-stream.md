@@ -52,7 +52,6 @@ CREATE STREAM pageviews
    pageid VARCHAR)
   WITH (KAFKA_TOPIC='pageviews',
         VALUE_FORMAT='DELIMITED')
-  EMIT CHANGES;
 ```
 
 Your output should resemble:
@@ -163,7 +162,6 @@ CREATE STREAM pageviews_timestamped
         VALUE_FORMAT='DELIMITED',
         KEY='pageid',
         TIMESTAMP='viewtime')
-  EMIT CHANGES;
 ```
 
 Confirm that the TIMESTAMP field is `viewtime` by using the DESCRIBE
@@ -206,7 +204,6 @@ CREATE STREAM pageviews
         PARTITIONS=4,
         REPLICAS=3
         VALUE_FORMAT='DELIMITED')
-  EMIT CHANGES;
 ```
 
 This will create the pageviews topics for you with the supplied partition and replica count.

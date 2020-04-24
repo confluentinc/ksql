@@ -150,8 +150,8 @@ If you want to use the value of one of the topic's columns as the Kafka
 message timestamp, set the TIMESTAMP property in the WITH clause.
 
 For example, if you want to use the value of the `viewtime` column as
-the message timestamp, you can rewrite the previous CREATE STREAM AS
-SELECT statement like this:
+the message timestamp, you can rewrite the previous CREATE STREAM statement
+like this:
 
 ```sql
 CREATE STREAM pageviews_timestamped

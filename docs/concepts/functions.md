@@ -216,7 +216,7 @@ If you're using Gradle to build your UDF or UDAF, specify the
 `ksqldb-udf` dependency:
 
 ```bash
-compile 'io.confluent.ksql:ksqldb-udf:{{ site.release }}'
+compile 'io.confluent.ksql:ksqldb-udf:{{ site.cprelease }}'
 ```
 
 To compile with the latest version of `ksqldb-udf`:
@@ -757,7 +757,7 @@ If you're using Gradle to build your UDF or UDAF, specify the `ksqldb-udf`
 dependency:
 
 ```bash
-compile 'io.confluent.ksql:ksqldb-udf:|release|'
+compile 'io.confluent.ksql:ksqldb-udf:{{ site.cprelease }}'
 ```
 
 To compile with the latest version of `ksqldb-udf`:

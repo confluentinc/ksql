@@ -213,19 +213,19 @@ public class Multiply {
 ```
 
 If you're using Gradle to build your UDF or UDAF, specify the
-`ksql-udf` dependency:
+`ksqldb-udf` dependency:
 
 ```bash
-compile 'io.confluent.ksql:ksql-udf:{{ site.release }}'
+compile 'io.confluent.ksql:ksqldb-udf:{{ site.release }}'
 ```
 
-To compile with the latest version of `ksql-udf`:
+To compile with the latest version of `ksqldb-udf`:
 
 ```bash
-compile 'io.confluent.ksql:ksql-udf:+'
+compile 'io.confluent.ksql:ksqldb-udf:+'
 ```
 
-If you're using Maven to build your UDF or UDAF, specify the `ksql-udf`
+If you're using Maven to build your UDF or UDAF, specify the `ksqldb-udf`
 dependency in your POM file:
 
 ```xml
@@ -237,11 +237,11 @@ dependency in your POM file:
         </repository>
     </repositories>
 
-<!-- Specify the ksql-udf dependency -->
+<!-- Specify the ksqldb-udf dependency -->
 <dependencies>
     <dependency>
         <groupId>io.confluent.ksql</groupId>
-        <artifactId>ksql-udf</artifactId>
+        <artifactId>ksqldb-udf</artifactId>
         <version>{{ site.release }}</version>
     </dependency>
 </dependencies>
@@ -753,20 +753,20 @@ public class SplitString {
 }
 ```
 
-If you're using Gradle to build your UDF or UDAF, specify the `ksql-udf`
+If you're using Gradle to build your UDF or UDAF, specify the `ksqldb-udf`
 dependency:
 
 ```bash
-compile 'io.confluent.ksql:ksql-udf:|release|'
+compile 'io.confluent.ksql:ksqldb-udf:|release|'
 ```
 
-To compile with the latest version of `ksql-udf`:
+To compile with the latest version of `ksqldb-udf`:
 
 ```bash
-compile 'io.confluent.ksql:ksql-udf:+'
+compile 'io.confluent.ksql:ksqldb-udf:+'
 ```
 
-If you're using Maven to build your function, specify the `ksql-udf`
+If you're using Maven to build your function, specify the `ksqldb-udf`
 dependency in your POM file:
 
 ```xml
@@ -778,11 +778,11 @@ dependency in your POM file:
         </repository>
     </repositories>
 
-<!-- Specify the ksql-udf dependency -->
+<!-- Specify the ksqldb-udf dependency -->
 <dependencies>
     <dependency>
         <groupId>io.confluent.ksql</groupId>
-        <artifactId>ksql-udf</artifactId>
+        <artifactId>ksqldb-udf</artifactId>
         <version>{{ site.release }}</version>
     </dependency>
 </dependencies>

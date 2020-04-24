@@ -20,10 +20,10 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -91,7 +91,7 @@ public final class TableElements implements Iterable<TableElement> {
 
       final boolean noKey = elements.stream().noneMatch(e -> e.getNamespace().isKey());
       if (noKey) {
-        builder.keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+        builder.keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
       }
     }
 

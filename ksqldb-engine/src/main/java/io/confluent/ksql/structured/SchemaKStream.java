@@ -47,13 +47,13 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -190,7 +190,7 @@ public class SchemaKStream<K> {
 
     final Optional<ColumnName> filtered = found
         // System columns can not be key fields:
-        .filter(f -> !SchemaUtil.isSystemColumn(f.name()))
+        .filter(f -> !SystemColumns.isSystemColumn(f.name()))
         .map(Column::name);
 
     return KeyField.of(filtered);
@@ -359,7 +359,7 @@ public class SchemaKStream<K> {
 
     final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
     final KeyField newKeyField = isKeyColumn(columnName) ? keyField : KeyField.of(columnName);
-    return SchemaUtil.isPseudoColumn(columnName) ? KeyField.none() : newKeyField;
+    return SystemColumns.isPseudoColumn(columnName) ? KeyField.none() : newKeyField;
   }
 
   boolean repartitionNotNeeded(

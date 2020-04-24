@@ -41,10 +41,10 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Struct;
@@ -74,7 +74,7 @@ public class PartitionByParamsFactoryTest {
       .valueColumn(COL1, SqlTypes.INTEGER)
       .valueColumn(COL2, SqlTypes.INTEGER)
       .valueColumn(COL3, COL3_TYPE)
-      .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+      .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
       .valueColumn(COL0, SqlTypes.STRING)
       .build();
 
@@ -148,7 +148,7 @@ public class PartitionByParamsFactoryTest {
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)
         .valueColumn(COL3, COL3_TYPE)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(COL0, SqlTypes.STRING)
         .build()));
   }
@@ -176,7 +176,7 @@ public class PartitionByParamsFactoryTest {
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)
         .valueColumn(COL3, COL3_TYPE)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(COL0, SqlTypes.STRING)
         .build()));
   }
@@ -204,7 +204,7 @@ public class PartitionByParamsFactoryTest {
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)
         .valueColumn(COL3, COL3_TYPE)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(COL0, SqlTypes.STRING)
         .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER)
         .build()));
@@ -230,7 +230,7 @@ public class PartitionByParamsFactoryTest {
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)
         .valueColumn(COL3, COL3_TYPE)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(COL0, SqlTypes.STRING)
         .build()));
   }

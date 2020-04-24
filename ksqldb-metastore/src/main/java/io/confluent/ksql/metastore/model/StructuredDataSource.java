@@ -25,8 +25,8 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -66,7 +66,7 @@ abstract class StructuredDataSource<K> implements DataSource {
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
     this.casTarget = casTarget;
 
-    if (schema.valueContainsAny(SchemaUtil.systemColumnNames())) {
+    if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
       throw new IllegalArgumentException("Schema contains system columns in value schema");
     }
 

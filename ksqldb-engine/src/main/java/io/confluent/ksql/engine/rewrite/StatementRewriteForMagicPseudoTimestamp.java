@@ -26,7 +26,7 @@ import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,8 +35,8 @@ import java.util.Set;
 public class StatementRewriteForMagicPseudoTimestamp {
 
   private static final Set<ColumnName> SUPPORTED_COLUMNS = ImmutableSet.<ColumnName>builder()
-      .addAll(SchemaUtil.windowBoundsColumnNames())
-      .add(SchemaUtil.ROWTIME_NAME)
+      .addAll(SystemColumns.windowBoundsColumnNames())
+      .add(SystemColumns.ROWTIME_NAME)
       .build();
 
 

@@ -38,6 +38,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -49,7 +50,6 @@ import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -70,7 +70,7 @@ public class TestExecutorTest {
   private static final String SINK_TOPIC_NAME = "sink_topic";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .build();
 

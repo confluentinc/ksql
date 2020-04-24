@@ -25,6 +25,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -52,7 +53,7 @@ public final class MetaStoreFixture {
     final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
 
     final LogicalSchema test1Schema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
@@ -101,7 +102,7 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStream1);
 
     final LogicalSchema test2Schema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
@@ -148,7 +149,7 @@ public final class MetaStoreFixture {
         .build();
 
     final LogicalSchema ordersSchema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
@@ -179,7 +180,7 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStreamOrders);
 
     final LogicalSchema testTable3 = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
@@ -218,7 +219,7 @@ public final class MetaStoreFixture {
         .build();
 
     final LogicalSchema nestedArrayStructMapSchema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(itemInfoSchema))
         .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(itemInfoSchema))
         .valueColumn(ColumnName.of("NESTED_ORDER_COL"), nestedOrdersSchema)
@@ -264,7 +265,7 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStream4);
 
     final LogicalSchema sensorReadingsSchema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ID"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("SENSOR_NAME"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("ARR1"), SqlTypes.array(SqlTypes.BIGINT))

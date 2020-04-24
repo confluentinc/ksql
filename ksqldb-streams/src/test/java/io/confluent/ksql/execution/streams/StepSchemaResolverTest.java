@@ -60,15 +60,15 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -165,8 +165,8 @@ public class StepSchemaResolverTest {
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
-            .valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE)
-            .valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE)
+            .valueColumn(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWBOUND_TYPE)
+            .valueColumn(SystemColumns.WINDOWEND_NAME, SystemColumns.WINDOWBOUND_TYPE)
             .build())
     );
   }
@@ -254,7 +254,7 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
   }
@@ -338,7 +338,7 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()
     ));
@@ -468,7 +468,7 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
   }

@@ -17,11 +17,11 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
-import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
-import static io.confluent.ksql.util.SchemaUtil.ROWTIME_TYPE;
-import static io.confluent.ksql.util.SchemaUtil.WINDOWBOUND_TYPE;
-import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
-import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_TYPE;
+import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWBOUND_TYPE;
+import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
@@ -30,7 +30,6 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -222,7 +221,7 @@ public final class LogicalSchema {
 
     int valueIndex = 0;
     for (final Column c : value) {
-      if (SchemaUtil.isSystemColumn(c.name())) {
+      if (SystemColumns.isSystemColumn(c.name())) {
         continue;
       }
 

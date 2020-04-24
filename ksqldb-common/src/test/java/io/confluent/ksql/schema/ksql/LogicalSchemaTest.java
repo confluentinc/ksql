@@ -17,14 +17,14 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BOOLEAN;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.DOUBLE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
-import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
-import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
-import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -39,7 +39,6 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -543,13 +542,13 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldMatchMetaColumnName() {
-    assertThat(SchemaUtil.isPseudoColumn(ROWTIME_NAME), is(true));
+    assertThat(SystemColumns.isPseudoColumn(ROWTIME_NAME), is(true));
     assertThat(SOME_SCHEMA.isKeyColumn(ROWTIME_NAME), is(false));
   }
 
   @Test
   public void shouldMatchKeyColumnName() {
-    assertThat(SchemaUtil.isPseudoColumn(K0), is(false));
+    assertThat(SystemColumns.isPseudoColumn(K0), is(false));
     assertThat(SOME_SCHEMA.isKeyColumn(K0), is(true));
   }
 
@@ -557,14 +556,14 @@ public class LogicalSchemaTest {
   public void shouldNotMatchValueColumnsAsBeingMetaOrKeyColumns() {
     SOME_SCHEMA.value().forEach(column ->
     {
-      assertThat(SchemaUtil.isPseudoColumn(column.name()), is(false));
+      assertThat(SystemColumns.isPseudoColumn(column.name()), is(false));
       assertThat(SOME_SCHEMA.isKeyColumn(column.name()), is(false));
     });
   }
 
   @Test
   public void shouldNotMatchRandomColumnNameAsBeingMetaOrKeyColumns() {
-    assertThat(SchemaUtil.isPseudoColumn(ColumnName.of("well_this_ain't_in_the_schema")), is(false));
+    assertThat(SystemColumns.isPseudoColumn(ColumnName.of("well_this_ain't_in_the_schema")), is(false));
     assertThat(SOME_SCHEMA.isKeyColumn(ColumnName.of("well_this_ain't_in_the_schema")), is(false));
   }
 

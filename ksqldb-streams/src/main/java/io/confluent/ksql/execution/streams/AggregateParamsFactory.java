@@ -26,11 +26,11 @@ import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -174,8 +174,8 @@ public class AggregateParamsFactory {
 
     if (addWindowBounds) {
       // Add window bounds columns, as populated by WindowBoundsPopulator
-      schemaBuilder.valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE);
-      schemaBuilder.valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE);
+      schemaBuilder.valueColumn(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWBOUND_TYPE);
+      schemaBuilder.valueColumn(SystemColumns.WINDOWEND_NAME, SystemColumns.WINDOWBOUND_TYPE);
     }
 
     return schemaBuilder.build();

@@ -39,9 +39,7 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.name.ColumnAliasGenerator;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.GroupBy;
@@ -64,15 +62,17 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
+import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -222,7 +222,7 @@ public class LogicalPlanner {
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching(
         (expression, alias) ->
             expression.equals(groupBySingle)
-                && !SchemaUtil.isSystemColumn(alias)
+                && !SystemColumns.isSystemColumn(alias)
                 && !schema.isKeyColumn(alias),
         projectionExpressions);
 
@@ -602,7 +602,7 @@ public class LogicalPlanner {
         keyName = groupBy.getAlias()
             .orElseGet(keyColNameGen::nextKsqlColAlias);
       } else {
-        keyName = SchemaUtil.ROWKEY_NAME;
+        keyName = SystemColumns.ROWKEY_NAME;
       }
       keyType = SqlTypes.STRING;
     } else {
@@ -619,7 +619,7 @@ public class LogicalPlanner {
       } else {
         keyName = exactlyMatchesKeyColumns(expression, sourceSchema)
             ? ((ColumnReferenceExp) expression).getColumnName()
-            : SchemaUtil.ROWKEY_NAME;
+            : SystemColumns.ROWKEY_NAME;
       }
 
       final ExpressionTypeManager typeManager =
@@ -648,7 +648,7 @@ public class LogicalPlanner {
           .getExpressionSqlType(partitionBy.getExpression());
 
       return LogicalSchema.builder()
-          .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
+          .keyColumn(SystemColumns.ROWKEY_NAME, keyType)
           .valueColumns(sourceSchema.value())
           .build();
     }

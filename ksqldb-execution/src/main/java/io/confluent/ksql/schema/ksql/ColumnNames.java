@@ -13,15 +13,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.name;
+package io.confluent.ksql.schema.ksql;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.List;

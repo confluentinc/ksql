@@ -45,6 +45,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
@@ -57,7 +58,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ReservedInternalTopics;
-import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -294,7 +294,7 @@ public class InsertValuesExecutor {
       }
     }
 
-    final long ts = (long) values.getOrDefault(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
+    final long ts = (long) values.getOrDefault(SystemColumns.ROWTIME_NAME, clock.getAsLong());
 
     final Struct key = buildKey(dataSource.getSchema(), values);
     final GenericRow value = buildValue(dataSource.getSchema(), values);
@@ -306,7 +306,7 @@ public class InsertValuesExecutor {
     // The set of columns users can supply values for includes the ROWTIME pseudocolumn,
     // so include it in the schema:
     return schema.asBuilder()
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SchemaUtil.ROWTIME_TYPE)
+        .valueColumn(SystemColumns.ROWTIME_NAME, SystemColumns.ROWTIME_TYPE)
         .build();
   }
 

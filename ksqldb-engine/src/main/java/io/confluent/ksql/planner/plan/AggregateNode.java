@@ -37,17 +37,17 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -349,7 +349,7 @@ public class AggregateNode extends PlanNode {
         }
 
         final boolean isAggregate = ColumnNames.isAggregate(node.getColumnName());
-        final boolean windowBounds = SchemaUtil.isWindowBound(node.getColumnName());
+        final boolean windowBounds = SystemColumns.isWindowBound(node.getColumnName());
 
         if (isAggregate && windowBounds) {
           throw new KsqlException("Window bound " + node + " is not available as a parameter "

@@ -40,8 +40,8 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -229,7 +229,7 @@ public class Analysis implements ImmutableAnalysis {
   @Override
   public QualifiedColumnReferenceExp getDefaultArgument() {
     final SourceName alias = allDataSources.get(0).getAlias();
-    return new QualifiedColumnReferenceExp(alias, SchemaUtil.ROWTIME_NAME);
+    return new QualifiedColumnReferenceExp(alias, SystemColumns.ROWTIME_NAME);
   }
 
   void setProperties(final CreateSourceAsProperties properties) {

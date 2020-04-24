@@ -28,15 +28,15 @@ import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
-import io.confluent.ksql.name.ColumnAliasGenerator;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -203,7 +203,7 @@ final class GroupByParamsFactory {
           singleColumnName = keyAliasGenerator.uniqueAliasFor(groupByExp);
         }
       } else {
-        singleColumnName = SchemaUtil.ROWKEY_NAME;
+        singleColumnName = SystemColumns.ROWKEY_NAME;
       }
 
       return buildSchemaWithKeyType(sourceSchema, singleColumnName, keyType);
@@ -267,7 +267,7 @@ final class GroupByParamsFactory {
     final ColumnName keyName = alias
         .orElseGet(() -> ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
             ? ColumnNames.columnAliasGenerator(Stream.of(sourceSchema)).nextKsqlColAlias()
-            : SchemaUtil.ROWKEY_NAME);
+            : SystemColumns.ROWKEY_NAME);
 
     return buildSchemaWithKeyType(sourceSchema, keyName, SqlTypes.STRING);
   }

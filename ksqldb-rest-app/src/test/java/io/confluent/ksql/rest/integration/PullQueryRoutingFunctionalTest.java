@@ -48,13 +48,13 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.UserDataProvider;
 import java.io.IOException;
 import java.util.List;
@@ -124,7 +124,7 @@ public class PullQueryRoutingFunctionalTest {
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+          .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
       SerdeOption.none()

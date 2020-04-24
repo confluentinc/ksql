@@ -29,6 +29,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -37,7 +38,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
-import io.confluent.ksql.util.SchemaUtil;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Optional;
@@ -68,7 +68,7 @@ public class MetaStoreModelTest {
       .put(Column.class, Column.of(ColumnName.of("someField"), SqlTypes.INTEGER, Namespace.VALUE, 1))
       .put(SqlType.class, SqlTypes.INTEGER)
       .put(LogicalSchema.class, LogicalSchema.builder()
-          .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+          .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
           .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
           .build())
       .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())))

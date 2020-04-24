@@ -30,8 +30,8 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.GroupBy;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -169,7 +169,7 @@ public class AggregateAnalyzer {
       }
 
       // For non-windowed sources, with a windowed GROUP BY, they are only supported in selects:
-      if (SchemaUtil.isWindowBound(node.getColumnName())) {
+      if (SystemColumns.isWindowBound(node.getColumnName())) {
         throw new KsqlException(
             "Window bounds column " + node + " can only be used in the SELECT clause of "
                 + "windowed aggregations and can not be passed to aggregate functions."
@@ -192,7 +192,7 @@ public class AggregateAnalyzer {
 
       // Add in window bounds columns as implicit group by columns:
       final Set<UnqualifiedColumnReferenceExp> windowBoundColumnRefs =
-          SchemaUtil.windowBoundsColumnNames().stream()
+          SystemColumns.windowBoundsColumnNames().stream()
               .map(UnqualifiedColumnReferenceExp::new)
               .collect(Collectors.toSet());
 
@@ -346,7 +346,7 @@ public class AggregateAnalyzer {
     ) {
       dereferenceCollector.accept(aggFunctionName, node);
 
-      if (!SchemaUtil.isWindowBound(node.getColumnName())) {
+      if (!SystemColumns.isWindowBound(node.getColumnName())) {
         aggregateAnalysis.addRequiredColumn(node);
       }
       return null;

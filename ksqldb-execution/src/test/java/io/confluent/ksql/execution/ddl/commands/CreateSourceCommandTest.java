@@ -25,10 +25,10 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -46,7 +46,7 @@ public class CreateSourceCommandTest {
   public void shouldThrowOnMultipleKeyColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .keyColumn(K0, SqlTypes.STRING)
         .keyColumn(K1, SqlTypes.STRING)
         .valueColumn(ColumnName.of("V0"), SqlTypes.STRING)
@@ -128,7 +128,7 @@ public class CreateSourceCommandTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
-        .valueColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.INTEGER)
+        .valueColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.INTEGER)
         .build();
 
     // When:
@@ -155,7 +155,7 @@ public class CreateSourceCommandTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
-        .valueColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.INTEGER)
+        .valueColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.INTEGER)
         .build();
 
     // When:

@@ -27,19 +27,18 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.ImmutableTester;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import org.junit.Test;
 
 public class PhysicalSchemaTest {
 
   private static final LogicalSchema SCHEMA_WITH_MULTIPLE_FIELDS = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
       .valueColumn(ColumnName.of("f1"), SqlTypes.BOOLEAN)
       .build();
 
   private static final LogicalSchema SCHEMA_WITH_SINGLE_FIELD = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
       .build();
 

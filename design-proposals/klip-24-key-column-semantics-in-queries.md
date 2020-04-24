@@ -501,5 +501,6 @@ naming strategy, it was rejected as:
      out the name from the criteria.
   c. a change in the join criteria requires a change in the projection.
   d. name clashes are still possible.
+  e. generating a name from expressions would be tricky
 
 

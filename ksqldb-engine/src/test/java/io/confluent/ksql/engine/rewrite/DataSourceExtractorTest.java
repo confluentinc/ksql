@@ -18,7 +18,6 @@ package io.confluent.ksql.engine.rewrite;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -34,6 +33,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Before;
@@ -49,6 +49,7 @@ public class DataSourceExtractorTest {
 
   private static final MetaStore META_STORE = MetaStoreFixture
       .getNewMetaStore(mock(FunctionRegistry.class));
+  private static final ColumnName COL0 = ColumnName.of("COL0");
 
   private DataSourceExtractor extractor;
 
@@ -168,7 +169,7 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    assertThat(extractor.getClashingColumnNames(), hasItems(ColumnName.of("COL0")));
+    assertThat("should clash", extractor.isClashingColumnName(COL0));
   }
 
   @Test
@@ -182,7 +183,36 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    assertThat(extractor.getClashingColumnNames(), hasItems(ColumnName.of("COL0")));
+    assertThat("should clash", extractor.isClashingColumnName(COL0));
+  }
+
+  @Test
+  public void shouldDetectNoneClashingColumnNames() {
+    // Given:
+    final AstNode stmt = givenQuery("SELECT * FROM ORDERS "
+        + "JOIN TEST1 t1 ON ORDERS.ITEMID = T1.COL1 "
+        + "JOIN TEST2 t2 ON test1.col1 = test2.col1;");
+
+    // When:
+    extractor.extractDataSources(stmt);
+
+    // Then:
+    assertThat("should not clash", !extractor.isClashingColumnName(ColumnName.of("ORDERTIME")));
+  }
+
+  @Test
+  public void shouldIncludePseudoColumnsInClashingNames() {
+    // Given:
+    final AstNode stmt = givenQuery("SELECT * FROM TEST1 t1 JOIN TEST2 t2"
+        + " ON test1.col1 = test2.col1;");
+
+    // When:
+    extractor.extractDataSources(stmt);
+
+    // Then:
+    SchemaUtil.pseudoColumnNames().forEach(pseudoCol ->
+        assertThat(pseudoCol + " should clash", extractor.isClashingColumnName(pseudoCol))
+    );
   }
 
   private void assertContainsAlias(final SourceName... alias) {

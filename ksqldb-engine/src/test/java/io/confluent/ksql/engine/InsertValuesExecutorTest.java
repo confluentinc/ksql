@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -105,20 +106,17 @@ public class InsertValuesExecutorTest {
   private static final ColumnName INT_COL = ColumnName.of("INT");
 
   private static final LogicalSchema SINGLE_VALUE_COLUMN_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
       .valueColumn(COL1, SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema BIG_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING) // named COL0 for auto-ROWKEY
       .valueColumn(INT_COL, SqlTypes.INTEGER)
@@ -193,7 +191,7 @@ public class InsertValuesExecutorTest {
   public void shouldHandleFullRow() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        valueFieldNames(SCHEMA),
+        valueColumnNames(SCHEMA),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
@@ -215,7 +213,7 @@ public class InsertValuesExecutorTest {
     givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        valueFieldNames(SINGLE_VALUE_COLUMN_SCHEMA),
+        valueColumnNames(SINGLE_VALUE_COLUMN_SCHEMA),
         ImmutableList.of(new StringLiteral("new"))
     );
 
@@ -238,7 +236,7 @@ public class InsertValuesExecutorTest {
     ;
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        valueFieldNames(SINGLE_VALUE_COLUMN_SCHEMA),
+        valueColumnNames(SINGLE_VALUE_COLUMN_SCHEMA),
         ImmutableList.of(new StringLiteral("new"))
     );
 
@@ -418,7 +416,7 @@ public class InsertValuesExecutorTest {
     givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allFieldNames(BIG_SCHEMA),
+        allColumnNames(BIG_SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -546,7 +544,7 @@ public class InsertValuesExecutorTest {
         PreparedStatement.of(
             "",
             new InsertValues(SourceName.of("TOPIC"),
-                allFieldNames(SCHEMA),
+                allColumnNames(SCHEMA),
                 ImmutableList.of(
                     new LongLiteral(1L),
                     new StringLiteral("str"),
@@ -578,7 +576,7 @@ public class InsertValuesExecutorTest {
         PreparedStatement.of(
             "",
             new InsertValues(SourceName.of("TOPIC"),
-                allFieldNames(SCHEMA),
+                allColumnNames(SCHEMA),
                 ImmutableList.of(
                     new LongLiteral(1L),
                     new StringLiteral("str"),
@@ -604,7 +602,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowOnProducerSendError() throws ExecutionException, InterruptedException {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allFieldNames(SCHEMA),
+        allColumnNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -632,7 +630,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowOnSerializingKeyError() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allFieldNames(SCHEMA),
+        allColumnNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -655,7 +653,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowOnSerializingValueError() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allFieldNames(SCHEMA),
+        allColumnNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -679,7 +677,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowOnTopicAuthorizationException() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allFieldNames(SCHEMA),
+        allColumnNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -899,7 +897,7 @@ public class InsertValuesExecutorTest {
   public void shouldBuildCorrectSerde() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        valueFieldNames(SCHEMA),
+        valueColumnNames(SCHEMA),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
@@ -1011,11 +1009,18 @@ public class InsertValuesExecutorTest {
     return key;
   }
 
-  private static List<ColumnName> valueFieldNames(final LogicalSchema schema) {
+  private static List<ColumnName> valueColumnNames(final LogicalSchema schema) {
     return schema.value().stream().map(Column::name).collect(Collectors.toList());
   }
 
-  private static List<ColumnName> allFieldNames(final LogicalSchema schema) {
-    return schema.columns().stream().map(Column::name).collect(Collectors.toList());
+  private static List<ColumnName> allColumnNames(final LogicalSchema schema) {
+    final Builder<ColumnName> builder = ImmutableList.<ColumnName>builder()
+        .add(SchemaUtil.ROWTIME_NAME);
+
+    schema.columns().stream()
+        .map(Column::name)
+        .forEach(builder::add);
+
+    return builder.build();
   }
 }

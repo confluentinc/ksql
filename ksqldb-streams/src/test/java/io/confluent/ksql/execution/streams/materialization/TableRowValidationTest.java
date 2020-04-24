@@ -27,7 +27,6 @@ import org.junit.Test;
 public class TableRowValidationTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
@@ -71,17 +70,5 @@ public class TableRowValidationTest {
   @Test
   public void shouldNotThrowOnMatching() {
     TableRowValidation.validate(SCHEMA, A_KEY, A_VALUE);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnNoMetaColumnsInSchema() {
-    // Given:
-    final LogicalSchema noMetaColumns = LogicalSchema.builder()
-        .keyColumns(SCHEMA.key())
-        .valueColumns(SCHEMA.value())
-        .build();
-
-    // When:
-    TableRowValidation.validate(noMetaColumns, A_KEY, A_VALUE);
   }
 }

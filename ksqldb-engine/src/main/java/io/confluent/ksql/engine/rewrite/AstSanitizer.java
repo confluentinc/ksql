@@ -145,8 +145,7 @@ public final class AstSanitizer {
       if (expression instanceof QualifiedColumnReferenceExp) {
         final SourceName source = ((QualifiedColumnReferenceExp) expression).getQualifier();
         final ColumnName name = ((QualifiedColumnReferenceExp) expression).getColumnName();
-        if (dataSourceExtractor.isJoin()
-            && dataSourceExtractor.getClashingColumnNames().contains(name)) {
+        if (dataSourceExtractor.isClashingColumnName(name)) {
           alias = ColumnNames.generatedJoinColumnAlias(source, name);
         } else {
           alias = name;

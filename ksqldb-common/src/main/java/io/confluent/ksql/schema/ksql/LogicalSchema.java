@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
+import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
+import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
+import static io.confluent.ksql.util.SchemaUtil.ROWTIME_TYPE;
 import static io.confluent.ksql.util.SchemaUtil.WINDOWBOUND_TYPE;
 import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
 import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
@@ -25,7 +29,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
@@ -48,17 +51,18 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 @Immutable
 public final class LogicalSchema {
 
-  private static final Column IMPLICIT_TIME_COLUMN = Column
-      .of(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT, Column.Namespace.META, 0);
-
   private final ImmutableList<Column> columns;
 
   public static Builder builder() {
-    return new Builder();
+    return new Builder(ImmutableList.of());
   }
 
   private LogicalSchema(final ImmutableList<Column> columns) {
     this.columns = Objects.requireNonNull(columns, "columns");
+  }
+
+  public Builder asBuilder() {
+    return new Builder(columns);
   }
 
   public ConnectSchema keyConnectSchema() {
@@ -67,14 +71,6 @@ public final class LogicalSchema {
 
   public ConnectSchema valueConnectSchema() {
     return toConnectSchema(value());
-  }
-
-  /**
-   * @return the schema of the metadata.
-   */
-  public List<Column> metadata() {
-    return byNamespace()
-        .get(Namespace.META);
   }
 
   /**
@@ -90,7 +86,7 @@ public final class LogicalSchema {
    */
   public List<Column> value() {
     return byNamespace()
-        .get(Namespace.VALUE);
+        .get(VALUE);
   }
 
   /**
@@ -107,7 +103,7 @@ public final class LogicalSchema {
    * @return the column if found, else {@code Optional.empty()}.
    */
   public Optional<Column> findColumn(final ColumnName columnName) {
-    return findColumnMatching(withRef(columnName));
+    return findColumnMatching(withName(columnName));
   }
 
   /**
@@ -117,7 +113,7 @@ public final class LogicalSchema {
    * @return the value column if found, else {@code Optional.empty()}.
    */
   public Optional<Column> findValueColumn(final ColumnName columnName) {
-    return findColumnMatching(withNamespace(Namespace.VALUE).and(withRef(columnName)));
+    return findColumnMatching(withNamespace(VALUE).and(withName(columnName)));
   }
 
   /**
@@ -133,7 +129,7 @@ public final class LogicalSchema {
   }
 
   /**
-   * Copies metadata and key columns to the value schema.
+   * Copies pseudo and key columns to the value schema.
    *
    * <p>If the columns already exist in the value schema the function returns the same schema.
    *
@@ -141,26 +137,17 @@ public final class LogicalSchema {
    * WINDOWEND} columns will added to the value schema to represent the window bounds.
    * @return the new schema.
    */
-  public LogicalSchema withMetaAndKeyColsInValue(final boolean windowed) {
+  public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
     return rebuild(true, windowed);
   }
 
   /**
-   * Remove metadata and key columns from the value schema.
+   * Remove pseudo and key columns from the value schema.
    *
    * @return the new schema with the columns removed.
    */
-  public LogicalSchema withoutMetaAndKeyColsInValue() {
+  public LogicalSchema withoutPseudoAndKeyColsInValue() {
     return rebuild(false, false);
-  }
-
-  /**
-   * @param columnName the column name to check
-   * @return {@code true} if the column matches the name of any metadata column.
-   */
-  public boolean isMetaColumn(final ColumnName columnName) {
-    return findColumnMatching(withNamespace(Namespace.META).and(withName(columnName)))
-        .isPresent();
   }
 
   /**
@@ -195,18 +182,15 @@ public final class LogicalSchema {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    // Meta columns deliberately excluded.
-
     return columns.stream()
-        .filter(withNamespace(Namespace.META).negate())
         .map(c -> c.toString(formatOptions))
         .collect(Collectors.joining(", "));
   }
 
   private Optional<Column> findColumnMatching(final Predicate<Column> predicate) {
     // At the moment, it's possible for some column names to have multiple matches, e.g.
-    // ROWKEY and ROWTIME. Order of preference on namespace is KEY, VALUE then META,
-    // as per Namespace enum ordinal.
+    // ROWKEY and ROWTIME. Order of preference on namespace is KEY then VALUE, as per Namespace
+    // enum ordinal.
 
     return columns.stream()
         .filter(predicate)
@@ -224,59 +208,47 @@ public final class LogicalSchema {
   }
 
   private LogicalSchema rebuild(
-      final boolean withMetaAndKeyColsInValue,
+      final boolean withPseudoAndKeyColsInValue,
       final boolean windowedKey
   ) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
-    final List<Column> metadata = byNamespace.get(Namespace.META);
     final List<Column> key = byNamespace.get(Namespace.KEY);
-    final List<Column> value = byNamespace.get(Namespace.VALUE);
+    final List<Column> value = byNamespace.get(VALUE);
 
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
-    builder.addAll(metadata);
     builder.addAll(key);
 
     int valueIndex = 0;
     for (final Column c : value) {
-      if (c.name().equals(WINDOWSTART_NAME)
-          || c.name().equals(WINDOWEND_NAME)
-      ) {
+      if (SchemaUtil.isSystemColumn(c.name())) {
         continue;
       }
 
-      if (findColumnMatching(
-          (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY)).and(withRef(c.name()))
-          )).isPresent()) {
+      if (findColumnMatching(withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
         continue;
       }
 
-      builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
+      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
     }
 
-    if (withMetaAndKeyColsInValue) {
-      for (final Column c : metadata) {
-        builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
-      }
+    if (withPseudoAndKeyColsInValue) {
+      builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
 
       for (final Column c : key) {
-        builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
+        builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
       }
 
       if (windowedKey) {
         builder.add(
-            Column.of(WINDOWSTART_NAME, WINDOWBOUND_TYPE, Namespace.VALUE, valueIndex++));
+            Column.of(WINDOWSTART_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex++));
         builder.add(
-            Column.of(WINDOWEND_NAME, WINDOWBOUND_TYPE, Namespace.VALUE, valueIndex));
+            Column.of(WINDOWEND_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex));
       }
     }
 
     return new LogicalSchema(builder.build());
-  }
-
-  private static Predicate<Column> withRef(final ColumnName ref) {
-    return c -> c.name().equals(ref);
   }
 
   private static Predicate<Column> withName(final ColumnName name) {
@@ -301,15 +273,20 @@ public final class LogicalSchema {
     return (ConnectSchema) builder.build();
   }
 
-  public static class Builder {
+  public static final class Builder {
 
     private final ImmutableList.Builder<Column> columns = ImmutableList.builder();
     private final Set<ColumnName> seenKeys = new HashSet<>();
     private final Set<ColumnName> seenValues = new HashSet<>();
 
-    public Builder withRowTime() {
-      columns.add(IMPLICIT_TIME_COLUMN);
-      return this;
+    private Builder(final ImmutableList<Column> columns) {
+      columns.forEach(col -> {
+        if (col.namespace() == KEY) {
+          keyColumn(col.name(), col.type());
+        } else {
+          valueColumn(col.name(), col.type());
+        }
+      });
     }
 
     public Builder keyColumns(final Iterable<? extends SimpleColumn> columns) {
@@ -336,7 +313,7 @@ public final class LogicalSchema {
     }
 
     public Builder valueColumn(final ColumnName name, final SqlType type) {
-      addColumn(Column.of(name, type, Column.Namespace.VALUE, seenValues.size()));
+      addColumn(Column.of(name, type, VALUE, seenValues.size()));
       return this;
     }
 
@@ -359,7 +336,7 @@ public final class LogicalSchema {
           break;
 
         default:
-          break;
+          throw new UnsupportedOperationException("Unsupported column type: " + column);
       }
 
       columns.add(column);

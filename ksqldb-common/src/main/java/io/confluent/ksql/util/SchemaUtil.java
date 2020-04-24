@@ -47,6 +47,7 @@ public final class SchemaUtil {
 
   public static final ColumnName ROWKEY_NAME = ColumnName.of("ROWKEY");
   public static final ColumnName ROWTIME_NAME = ColumnName.of("ROWTIME");
+  public static final SqlType ROWTIME_TYPE = SqlTypes.BIGINT;
   public static final ColumnName WINDOWSTART_NAME = ColumnName.of("WINDOWSTART");
   public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
   public static final SqlType WINDOWBOUND_TYPE = SqlTypes.BIGINT;
@@ -56,8 +57,12 @@ public final class SchemaUtil {
       WINDOWEND_NAME
   );
 
+  private static final Set<ColumnName> PSEUDO_COLUMN_NAMES = ImmutableSet.of(
+      ROWTIME_NAME
+  );
+
   private static final Set<ColumnName> SYSTEM_COLUMN_NAMES = ImmutableSet.<ColumnName>builder()
-      .add(ROWTIME_NAME)
+      .addAll(PSEUDO_COLUMN_NAMES)
       .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
       .build();
 
@@ -81,6 +86,14 @@ public final class SchemaUtil {
 
   public static Set<ColumnName> windowBoundsColumnNames() {
     return WINDOW_BOUNDS_COLUMN_NAMES;
+  }
+
+  public static boolean isPseudoColumn(final ColumnName columnName) {
+    return pseudoColumnNames().contains(columnName);
+  }
+
+  public static Set<ColumnName> pseudoColumnNames() {
+    return PSEUDO_COLUMN_NAMES;
   }
 
   public static boolean isSystemColumn(final ColumnName columnName) {

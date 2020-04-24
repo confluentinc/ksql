@@ -31,7 +31,7 @@ import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -61,14 +61,19 @@ class DataSourceExtractor {
   }
 
   /**
-   * @return the set of column names that existing in more than one source.
+   * @param name the column name to test.
+   * @return {@code true} if the name exists in more than one source.
    */
-  public Set<ColumnName> getClashingColumnNames() {
-    return Collections.unmodifiableSet(clashingColumns);
-  }
+  public boolean isClashingColumnName(final ColumnName name) {
+    if (!isJoin) {
+      return false;
+    }
 
-  public boolean isJoin() {
-    return isJoin;
+    if (SchemaUtil.isPseudoColumn(name)) {
+      return true;
+    }
+
+    return clashingColumns.contains(name);
   }
 
   public SourceName getAliasFor(final ColumnName columnName) {

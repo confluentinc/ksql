@@ -264,25 +264,25 @@ public class InsertValuesExecutor {
         ? implicitColumns(dataSource, insertValues.getValues())
         : insertValues.getColumns();
 
-    final LogicalSchema schema = dataSource.getSchema();
+    final LogicalSchema schemaWithRowTime = withRowTime(dataSource.getSchema());
 
     for (ColumnName col : columns) {
-      if (!schema.findColumn(col).isPresent()) {
+      if (!schemaWithRowTime.findColumn(col).isPresent()) {
         throw new KsqlException("Column name " + col + " does not exist.");
       }
     }
 
     final Map<ColumnName, Object> values = resolveValues(
-        insertValues, columns, schema, functionRegistry, config);
+        insertValues, columns, schemaWithRowTime, functionRegistry, config);
 
     handleExplicitKeyField(
         values,
         dataSource.getKeyField(),
-        Iterables.getOnlyElement(dataSource.getSchema().key())
+        Iterables.getOnlyElement(schemaWithRowTime.key())
     );
 
     if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {
-      final String noValue = dataSource.getSchema().key().stream()
+      final String noValue = schemaWithRowTime.key().stream()
           .map(Column::name)
           .filter(colName -> !values.containsKey(colName))
           .map(ColumnName::text)
@@ -296,10 +296,18 @@ public class InsertValuesExecutor {
 
     final long ts = (long) values.getOrDefault(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
 
-    final Struct key = buildKey(schema, values);
-    final GenericRow value = buildValue(schema, values);
+    final Struct key = buildKey(dataSource.getSchema(), values);
+    final GenericRow value = buildValue(dataSource.getSchema(), values);
 
     return RowData.of(ts, key, value);
+  }
+
+  private static LogicalSchema withRowTime(final LogicalSchema schema) {
+    // The set of columns users can supply values for includes the ROWTIME pseudocolumn,
+    // so include it in the schema:
+    return schema.asBuilder()
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SchemaUtil.ROWTIME_TYPE)
+        .build();
   }
 
   private static Struct buildKey(

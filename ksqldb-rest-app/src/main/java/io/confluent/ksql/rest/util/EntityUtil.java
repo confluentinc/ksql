@@ -40,7 +40,6 @@ public final class EntityUtil {
 
   public static List<FieldInfo> buildSourceSchemaEntity(final LogicalSchema schema) {
     final List<FieldInfo> allFields = schema.columns().stream()
-        .filter(f -> f.namespace() != Namespace.META)
         .map(EntityUtil::toFieldInfo)
         .collect(Collectors.toList());
 
@@ -93,14 +92,9 @@ public final class EntityUtil {
     }
 
     private static Optional<FieldType> toFieldType(final Column.Namespace ns) {
-      switch (ns) {
-        case KEY:
-          return Optional.of(FieldType.KEY);
-        case META:
-          throw new IllegalArgumentException("pseudo columns should not be exposed");
-        default:
-          return Optional.empty();
-      }
+      return ns == Namespace.KEY
+          ? Optional.of(FieldType.KEY)
+          : Optional.empty();
     }
   }
 }

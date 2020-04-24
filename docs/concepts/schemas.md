@@ -181,7 +181,3 @@ STRUCT('FOO' := 10, 'BAR' := true)
 
 KsqlDB supports custom types using the `CREATE TYPE` statements.
 See the [`CREATE TYPE` docs](../developer-guide/ksqldb-reference/create-type) for more information.
-
-TODO:
-
-- schema evolution with ksqlDB and Avro

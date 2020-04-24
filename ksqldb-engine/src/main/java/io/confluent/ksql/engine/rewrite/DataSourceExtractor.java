@@ -43,7 +43,8 @@ class DataSourceExtractor {
   private final MetaStore metaStore;
 
   private final Set<AliasedDataSource> allSources = new HashSet<>();
-  private Set<ColumnName> commonColumnNames;
+  private final Set<ColumnName> allColumns = new HashSet<>();
+  private final Set<ColumnName> clashingColumns = new HashSet<>();
 
   private boolean isJoin = false;
 
@@ -59,8 +60,11 @@ class DataSourceExtractor {
     return ImmutableSet.copyOf(allSources);
   }
 
-  public Set<ColumnName> getCommonColumnNames() {
-    return Collections.unmodifiableSet(commonColumnNames);
+  /**
+   * @return the set of column names that existing in more than one source.
+   */
+  public Set<ColumnName> getClashingColumnNames() {
+    return Collections.unmodifiableSet(clashingColumns);
   }
 
   public boolean isJoin() {
@@ -109,11 +113,9 @@ class DataSourceExtractor {
           .map(Column::name)
           .collect(Collectors.toSet());
 
-      if (commonColumnNames == null) {
-        commonColumnNames = columns;
-      } else {
-        commonColumnNames = Sets.intersection(commonColumnNames, columns);
-      }
+      clashingColumns.addAll(Sets.intersection(allColumns, columns));
+
+      allColumns.addAll(columns);
 
       return null;
     }

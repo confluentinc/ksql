@@ -562,8 +562,7 @@ public class LogicalPlanner {
         functionRegistry
     );
 
-    final Builder builder = LogicalSchema.builder()
-        .withRowTime();
+    final Builder builder = LogicalSchema.builder();
 
     builder.keyColumns(schema.key());
 
@@ -586,7 +585,7 @@ public class LogicalPlanner {
 
     final LogicalSchema projectionSchema = buildProjectionSchema(
         sourceSchema
-            .withMetaAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
+            .withPseudoAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
         projectionExpressions
     );
 
@@ -630,7 +629,6 @@ public class LogicalPlanner {
     }
 
     return LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(keyName, keyType)
         .valueColumns(projectionSchema.value())
         .build();
@@ -650,7 +648,6 @@ public class LogicalPlanner {
           .getExpressionSqlType(partitionBy.getExpression());
 
       return LogicalSchema.builder()
-          .withRowTime()
           .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
           .valueColumns(sourceSchema.value())
           .build();

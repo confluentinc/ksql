@@ -125,7 +125,6 @@ public final class PartitionByParamsFactory {
         );
 
     final Builder builder = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(newKeyName, keyType)
         .valueColumns(sourceSchema.value());
 

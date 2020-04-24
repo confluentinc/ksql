@@ -265,7 +265,7 @@ public class Analysis implements ImmutableAnalysis {
 
     return ds.getDataSource()
         .getSchema()
-        .withMetaAndKeyColsInValue(windowedSource || windowedGroupBy);
+        .withPseudoAndKeyColsInValue(windowedSource || windowedGroupBy);
   }
 
   @Immutable

@@ -222,7 +222,6 @@ public final class StepSchemaResolver {
         .getExpressionSqlType(step.getKeyExpression());
 
     return LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();
@@ -280,7 +279,7 @@ public final class StepSchemaResolver {
       final boolean windowed
   ) {
     return schema
-        .withMetaAndKeyColsInValue(windowed);
+        .withPseudoAndKeyColsInValue(windowed);
   }
 
   private LogicalSchema buildSelectSchema(

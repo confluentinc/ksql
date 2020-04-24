@@ -51,8 +51,7 @@ public final class Selection<K> {
       final LogicalSchema sourceSchema,
       final SelectValueMapper<?> mapper
   ) {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder()
-        .withRowTime();
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
     final List<Column> keyCols = sourceSchema.key();
 

@@ -40,7 +40,6 @@ public final class JoinParamsFactory {
     throwOnKeyMismatch(leftSchema, rightSchema);
 
     return LogicalSchema.builder()
-        .withRowTime()
         .keyColumns(leftSchema.key())
         .valueColumns(leftSchema.value())
         .valueColumns(rightSchema.value())

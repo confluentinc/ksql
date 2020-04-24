@@ -97,7 +97,7 @@ public class RepartitionNode extends PlanNode {
     final boolean sourceNameMatches = !sourceName.isPresent() || sourceName.equals(getSourceName());
     if (sourceNameMatches && valueOnly) {
       // Override set of value columns to take into account the repartition:
-      return getSchema().withoutMetaAndKeyColsInValue().value().stream().map(Column::name);
+      return getSchema().withoutPseudoAndKeyColsInValue().value().stream().map(Column::name);
     }
 
     // Set of all columns not changed by a repartition:

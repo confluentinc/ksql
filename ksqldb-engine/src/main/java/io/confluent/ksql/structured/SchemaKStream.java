@@ -359,7 +359,7 @@ public class SchemaKStream<K> {
 
     final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
     final KeyField newKeyField = isKeyColumn(columnName) ? keyField : KeyField.of(columnName);
-    return getSchema().isMetaColumn(columnName) ? KeyField.none() : newKeyField;
+    return SchemaUtil.isPseudoColumn(columnName) ? KeyField.none() : newKeyField;
   }
 
   boolean repartitionNotNeeded(

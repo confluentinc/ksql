@@ -83,14 +83,12 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String AUTHENTICATION_METHOD_CONFIG = "authentication.method";
   public static final String AUTHENTICATION_METHOD_NONE = "NONE";
   public static final String AUTHENTICATION_METHOD_BASIC = "BASIC";
-  public static final String AUTHENTICATION_METHOD_BEARER = "BEARER";
   public static final String AUTHENTICATION_METHOD_DOC = "Method of authentication. Must be BASIC "
-      + "or BEARER to enable authentication. For BASIC, you must supply a valid JAAS config file "
+      + "to enable authentication. For BASIC, you must supply a valid JAAS config file "
       + "for the 'java.security.auth.login.config' system property for the appropriate "
       + "authentication provider";
   public static final ValidString AUTHENTICATION_METHOD_VALIDATOR =
-      ValidString.in(AUTHENTICATION_METHOD_NONE, AUTHENTICATION_METHOD_BASIC,
-          AUTHENTICATION_METHOD_BEARER);
+      ValidString.in(AUTHENTICATION_METHOD_NONE, AUTHENTICATION_METHOD_BASIC);
 
   public static final String AUTHENTICATION_REALM_CONFIG = "authentication.realm";
   public static final String AUTHENTICATION_REALM_DOC =

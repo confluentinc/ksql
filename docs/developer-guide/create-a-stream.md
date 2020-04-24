@@ -21,10 +21,10 @@ query results from other streams.
 Create a Stream from an existing Kafka topic
 --------------------------------------------
 
-Use the CREATE STREAM statement to create a stream from an existing underlying
-Kafka topic. The Kafka topic must exist already in your Kafka cluster.
+Use the [CREATE STREAM](./create-stream) statement to create a stream from an existing underlying
+Kafka topic.
 
-The following examples show how to create streams from a Kafka topic,
+The following examples show how to create streams from an existing Kafka topic,
 named `pageviews`. To see these examples in action, create the
 `pageviews` topic by following the procedure in
 [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
@@ -36,7 +36,7 @@ The following example creates a stream that has three columns from the
 
 ksqlDB can't infer the topic value's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
-data format is `DELIMITED`. Other options are `Avro`, `JSON` and `KAFKA`.
+data format is `DELIMITED`. Other options are `Avro`, `JSON`, `JSON_SR`, `PROTOBUF`, and `KAFKA`.
 See [Serialization Formats](serialization.md#serialization-formats) for more
 details.
 
@@ -90,8 +90,7 @@ Your output should resemble:
 Name                 : PAGEVIEWS
  Field    | Type
 --------------------------------------
- ROWTIME  | BIGINT           (system)
- ROWKEY   | VARCHAR(STRING)  (system)
+ ROWKEY   | VARCHAR(STRING)  (key)
  VIEWTIME | BIGINT
  USERID   | VARCHAR(STRING)
  PAGEID   | VARCHAR(STRING)
@@ -151,8 +150,8 @@ If you want to use the value of one of the topic's columns as the Kafka
 message timestamp, set the TIMESTAMP property in the WITH clause.
 
 For example, if you want to use the value of the `viewtime` column as
-the message timestamp, you can rewrite the previous CREATE STREAM statement
-like this:
+the message timestamp, you can rewrite the previous CREATE STREAM AS
+SELECT statement like this:
 
 ```sql
 CREATE STREAM pageviews_timestamped
@@ -279,8 +278,8 @@ PRINT pageviews_intro;
 Your output should resemble:
 
 ```
-Key format: KAFKA (BIGINT or DOUBLE)
-Value format: KAFKA (STRING)
+Key format: KAFKA_BIGINT or KAFKA_DOUBLE
+Value format: KAFKA_STRING
 rowtime: 10/30/18 10:15:51 PM GMT, key: 294851, value: 1540937751186,User_8,Page_12
 rowtime: 10/30/18 10:15:55 PM GMT, key: 295051, value: 1540937755255,User_1,Page_15
 rowtime: 10/30/18 10:15:57 PM GMT, key: 295111, value: 1540937757265,User_8,Page_10
@@ -294,6 +293,13 @@ Press Ctrl+C to stop printing the stream.
 
 !!! note
 		The query continues to run after you stop printing the stream.
+
+!!! note
+    KsqlDB has determined that the key format is either `KAFKA_BIGINT` or `KAFKA_DOUBLE`.
+    KsqlDB has not narrowed it further because it is not possible to rule out
+    either format just by inspecting the key's serialized bytes. In this case we know the key is
+    a `BIGINT`. For other cases you may know the key type or you may need to speak to the author
+    of the data.
 
 Use the SHOW QUERIES statement to view the query that ksqlDB created for
 the `pageviews_intro` stream:
@@ -360,4 +366,3 @@ Next Steps
 -   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 -   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
 
-Page last revised on: {{ git_revision_date }}

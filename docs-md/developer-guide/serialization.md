@@ -396,8 +396,6 @@ can change the system default. For more information, see
       avoiding unwrapped single-field schemas if the field can have a `null`
       value.
 
-TODO: Is the next para redundant?
-
 A `null` value in a table's topic is treated as a tombstone, which
 indicates that a row has been removed. If a table's source topic has an
 unwrapped single-field key schema and the value is `null`, it's treated

@@ -96,8 +96,7 @@ public class KsqlServerMain {
 
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
     final Executable restApp = KsqlRestApplication
-        .buildApplication(KsqlRestApplication.convertToApiServerConfig(restConfig),
-            KsqlVersionCheckerAgent::new);
+        .buildApplication(restConfig, KsqlVersionCheckerAgent::new);
 
     final String connectConfigFile =
         ksqlConfig.getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);

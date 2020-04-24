@@ -67,7 +67,8 @@ public class SslClientAuthFunctionalTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperties(ServerKeyStore.keyStoreProps())
-      .withProperty(SslConfigs.SSL_CLIENT_AUTH_CONFIG, true)
+      .withProperty(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+          KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0")
       .build();
 

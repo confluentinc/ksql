@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlConfig;
+import io.vertx.core.http.ClientAuth;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -531,6 +532,144 @@ public class KsqlRestConfigTest {
     verifyLogsInterNodeListener(expected, QUOTED_FIRST_LISTENER_CONFIG);
     verifyLogsWildcardWarning(expected);
     verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveClientAuthenticationNone() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
+        .build()
+    );
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.NONE));
+  }
+
+  @Test
+  public void shouldResolveClientAuthenticationRequest() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUESTED)
+        .build()
+    );
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.REQUEST));
+  }
+
+  @Test
+  public void shouldResolveClientAuthenticationRequired() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
+        .build()
+    );
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.REQUIRED));
+  }
+
+  @Test
+  public void shouldDefaultClientAuthenticationNone() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.of());
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.NONE));
+  }
+
+  @Test
+  public void shouldUseClientAuthIfNoClientAuthenticationProvided() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTH_CONFIG,
+            true)
+        .build());
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.REQUIRED));
+  }
+
+  @Test
+  public void shouldUseClientAuthIfNoClientAuthenticationProvidedNone() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTH_CONFIG,
+            false)
+        .build());
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.NONE));
+  }
+
+  @Test
+  public void shouldUseClientAuthenticationIfClientAuthProvidedRequired() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTH_CONFIG, false)
+        .put(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
+        .build());
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.REQUIRED));
+  }
+
+  @Test
+  public void shouldUseClientAuthenticationIfClientAuthProvidedRequested() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTH_CONFIG, false)
+        .put(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUESTED)
+        .build());
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.REQUEST));
+  }
+
+  @Test
+  public void shouldUseClientAuthenticationIfClientAuthProvidedNone() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.SSL_CLIENT_AUTH_CONFIG, true)
+        .put(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
+        .build());
+
+    // When:
+    final ClientAuth clientAuth = config.getClientAuth();
+
+    // Then:
+    assertThat(clientAuth, is(ClientAuth.NONE));
   }
 
   private void verifyLogsInterNodeListener(final URL listener, final String sourceConfig) {

@@ -159,12 +159,12 @@ For example:
 
 ```sql
 -- without alias:
-CREATE TABLE OUTPUT AS SELECT ID FROM INPUT PARTITION BY V0 - V1;
+CREATE STREAM OUTPUT AS SELECT ID FROM INPUT PARTITION BY V0 - V1;
 -- resulting schema: KSQL_COL_0 INT KEY, ID;
 -- note the system generated column name.
 
 -- with alias
-CREATE TABLE OUTPUT AS SELECT ID FROM INPUT PARTITION BY V0 - V1 AS NEW_KEY;
+CREATE STREAM OUTPUT AS SELECT ID FROM INPUT PARTITION BY V0 - V1 AS NEW_KEY;
 -- resulting schema: NEW_KEY INT KEY, ID;
 ```
 
@@ -172,7 +172,7 @@ However, the same functionality can be achieved using standard sql if the key co
 in the projection, for example:
 
 ```sql
-CREATE TABLE OUTPUT AS SELECT V0 - V1 AS NEW_KEY, ID FROM INPUT PARTITION BY V0 - V1;
+CREATE STREAM OUTPUT AS SELECT V0 - V1 AS NEW_KEY, ID FROM INPUT PARTITION BY V0 - V1;
 -- resulting schema: NEW_KEY INT KEY, ID;
 ```
 
@@ -260,11 +260,11 @@ With the proposed syntax the `ID AS V2` would be treated an aliased key column, 
 schema 'V2 INT KEY, V0 INT, V1 INT'. So, how does the user create an copy of the key in the value,
 if that's what they need to do?
 
-We propose introducing a `COPY` function, (name TBD - maybe 'AS_VALUE'?), that can be used to
+We propose introducing a `AS_VALUE` function that can be used to
 indicate the key column should be copied as a value column. For example,
 
 ```sql
-CREATE TABLE OUTPUT AS SELECT ID, V0, V1, COPY(ID) AS V2 FROM INPUT;
+CREATE TABLE OUTPUT AS SELECT ID, V0, V1, AS_VALUE(ID) AS V2 FROM INPUT;
 -- resulting schema: ID INT KEY, V0 INT, V1 INT, V2 INT
 ```
 

@@ -76,7 +76,7 @@ build it by defining a Maven POM file.
 Create the directory that holds your UDF or UDAF project:
 
 ```bash
-mkdir ksql-udf-demo && cd ksql-udf-demo
+mkdir ksqldb-udf-demo && cd ksqldb-udf-demo
 ```
 
 ### Create the Source Code Directory
@@ -144,7 +144,7 @@ Project Object Model (POM) file for the Maven build, and name it
 
     <!-- Specify the package details for the custom UDF -->
     <groupId>my.company.ksql.udfdemo</groupId>
-    <artifactId>ksql-udf-demo</artifactId>
+    <artifactId>ksqldb-udf-demo</artifactId>
     <version>1.0</version>
 
     <!-- Specify the repository for Confluent dependencies -->
@@ -166,12 +166,12 @@ Project Object Model (POM) file for the Maven build, and name it
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <!-- Specify the ksql-udf dependency -->
+    <!-- Specify the ksqldb-udf dependency -->
     <dependencies>
         <!-- ksql dependency is needed to write your own UDF -->
         <dependency>
             <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-udf</artifactId>
+            <artifactId>ksqldb-udf</artifactId>
             <version>${confluent.version}</version>
         </dependency>
     </dependencies>
@@ -244,8 +244,8 @@ After a great deal of build info, your output should resemble:
 
 ```
 ...
-[INFO] --- maven-assembly-plugin:2.5.2:single (assemble-all) @ ksql-udf-demo ---
-[INFO] Building jar: /home/my-home-dir/ksql-udf-demo/target/ksql-udf-demo-1.0-jar-with-dependencies.jar
+[INFO] --- maven-assembly-plugin:2.5.2:single (assemble-all) @ ksqldb-udf-demo ---
+[INFO] Building jar: /home/my-home-dir/ksqldb-udf-demo/target/ksqldb-udf-demo-1.0-jar-with-dependencies.jar
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
@@ -257,7 +257,7 @@ After a great deal of build info, your output should resemble:
 
 The Maven build creates a directory named `target` and saves the build
 output there. Copy the JAR file,
-`ksql-udf-demo-1.0-jar-with-dependencies.jar`, from the `target`
+`ksqldb-udf-demo-1.0-jar-with-dependencies.jar`, from the `target`
 directory to the `ext` directory of your ksqlDB installation. For example,
 if your {{ site.cp }} installation is at
 `/home/my-home-dir/confluent-{{ site.release }}`,
@@ -265,7 +265,7 @@ copy the JAR to
 `/home/my-home-dir/confluent-{{ site.release }}/etc/ksqldb/ext`.
 
 ```bash
-cp target/ksql-udf-demo-1.0-jar-with-dependencies.jar <path-to-confluent>/etc/ksqldb/ext
+cp target/ksqldb-udf-demo-1.0-jar-with-dependencies.jar <path-to-confluent>/etc/ksqldb/ext
 ```
 
 The custom UDF is deployed and ready to run.
@@ -329,7 +329,7 @@ Your output should resemble:
 Name        : MULTIPLY
 Overview    : multiplies 2 numbers
 Type        : scalar
-Jar         : /home/my-home-dir/confluent-{{ site.release }}/etc/ksqldb/ext/ksql-udf-demo-1.0-jar-with-dependencies.jar
+Jar         : /home/my-home-dir/confluent-{{ site.release }}/etc/ksqldb/ext/ksqldb-udf-demo-1.0-jar-with-dependencies.jar
 Variations  : 
 
     Variation   : MULTIPLY(BIGINT, BIGINT)

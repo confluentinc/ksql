@@ -255,7 +255,8 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String MAX_PUSH_QUERIES_DOC =
       "The maximum number of push queries allowed on the server at any one time";
 
-  public static final String KSQL_AUTHENTICATION_PLUGIN_CLASS = "ksql.authentication.plugin.class";
+  public static final String KSQL_AUTHENTICATION_PLUGIN_CLASS =
+      KSQL_CONFIG_PREFIX + "authentication.plugin.class";
   public static final String KSQL_AUTHENTICATION_PLUGIN_DEFAULT = null;
   public static final String KSQL_AUTHENTICATION_PLUGIN_DOC = "An extension class that allows "
       + " custom authentication to be plugged in.";

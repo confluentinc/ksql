@@ -618,7 +618,7 @@ public final class KsqlRestApplication implements Executable {
             RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
-        ksqlConfig);
+        restConfig);
 
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
         KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
@@ -824,7 +824,7 @@ public final class KsqlRestApplication implements Executable {
   }
 
   private static Optional<AuthenticationPlugin> loadAuthenticationPlugin(
-      final KsqlConfig ksqlRestConfig) {
+      final KsqlRestConfig ksqlRestConfig) {
     final Optional<AuthenticationPlugin> authenticationPlugin = Optional.ofNullable(
         ksqlRestConfig.getConfiguredInstance(
             KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS,

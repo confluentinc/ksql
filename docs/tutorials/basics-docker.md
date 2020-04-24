@@ -1513,10 +1513,3 @@ User_6   {"registertime":1498248577697,"gender":"OTHER","regionid":"Region_8","u
 User_8   {"registertime":1494834474504,"gender":"MALE","regionid":"Region_5","userid":"User_8"}
 ```
 
-Next Steps
-==========
-
-- Try the end-to-end
-[Clickstream Analysis demo](clickstream-docker.md),
-which shows how to build an application that performs real-time user
-analytics.

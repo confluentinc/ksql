@@ -28,9 +28,3 @@ local and Docker-based versions.
 
 - The [ksqlDB Examples](tutorials/examples.md) show commonly used SQL queries
   and statements used in ksqlDB applications.
-- [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](tutorials/clickstream-docker.md)
-  Shows how to use ksqlDB, ElasticSearch, and Grafana to analyze
-  data feeds and build a real-time dashboard for reporting and
-  alerting.
-
-Page last revised on: {{ git_revision_date }}

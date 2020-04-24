@@ -624,3 +624,11 @@ When you're done, tear down the stack by running:
 ```
 docker-compose down
 ```
+
+Next steps
+----------
+
+Want to learn more? Try another use case tutorial:
+
+- [Materialized view/cache](materialized.md)
+- [Streaming ETL pipeline](etl.md)

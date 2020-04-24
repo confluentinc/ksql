@@ -379,3 +379,11 @@ docker-compose down
 In practice, you won't want to query your materialized views from the ksqlDB prompt.
 It's much more useful to query them from within your applications. To do that, you can
 submit queries to ksqlDB's servers through its [REST API](../../developer-guide/api/).
+
+Next steps
+----------
+
+Want to learn more? Try another use case tutorial:
+
+- [Streaming ETL pipeline](etl.md)
+- [Event-driven microservice](event-driven-microservice.md)

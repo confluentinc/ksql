@@ -340,7 +340,7 @@ public class AggregateAnalyzer {
     }
 
     @Override
-    public Void visitColumnReference(
+    public Void visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
         final Void context
     ) {

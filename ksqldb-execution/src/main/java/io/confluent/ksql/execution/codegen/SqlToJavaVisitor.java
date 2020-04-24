@@ -308,7 +308,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitColumnReference(
+    public Pair<String, SqlType> visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
         final Void context
     ) {

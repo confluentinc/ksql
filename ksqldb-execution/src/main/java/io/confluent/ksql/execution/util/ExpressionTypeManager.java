@@ -177,7 +177,7 @@ public class ExpressionTypeManager {
     }
 
     @Override
-    public Void visitColumnReference(
+    public Void visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
       final Optional<Column> possibleColumn = schema.findValueColumn(node.getColumnName());

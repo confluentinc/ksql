@@ -158,10 +158,11 @@ public class EntityUtilTest {
   }
 
   @Test
-  public void shouldSupportSchemasWithMetaColumns() {
+  public void shouldNotExposeMetaColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .withRowTime()
+        .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
 
     // When:
@@ -169,9 +170,6 @@ public class EntityUtilTest {
 
     // Then:
     assertThat(fields, hasSize(1));
-    assertThat(fields.get(0).getName(), equalTo("ROWTIME"));
-    assertThat(fields.get(0).getSchema().getTypeName(), equalTo("BIGINT"));
-    assertThat(fields.get(0).getType(), equalTo(Optional.of(FieldType.SYSTEM)));
   }
 
   @Test

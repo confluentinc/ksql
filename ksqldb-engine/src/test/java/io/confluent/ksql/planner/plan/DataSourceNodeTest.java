@@ -18,6 +18,8 @@ package io.confluent.ksql.planner.plan;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
+import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
+import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -46,7 +48,6 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -94,6 +95,7 @@ public class DataSourceNodeTest {
   private static final ColumnName KEY = ColumnName.of("key");
 
   private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(K0, SqlTypes.INTEGER)
       .valueColumn(FIELD1, SqlTypes.INTEGER)
       .valueColumn(FIELD2, SqlTypes.STRING)
@@ -156,7 +158,6 @@ public class DataSourceNodeTest {
   public void before() {
     realBuilder = new StreamsBuilder();
 
-    when(ksqlStreamBuilder.getQueryId()).thenReturn(new QueryId("fooQuery"));
     when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(realConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
@@ -396,6 +397,23 @@ public class DataSourceNodeTest {
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(K0, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY));
+  }
+
+  @Test
+  public void shouldResolveSelectStartToAllColumnsIncludingWindowBounds() {
+    // Given:
+    givenWindowedSource(true);
+    givenNodeWithMockSource();
+
+    // When:
+    final Stream<ColumnName> result = node.resolveSelectStar(Optional.empty(), false);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(
+        columns,
+        contains(K0, WINDOWSTART_NAME, WINDOWEND_NAME, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY)
+    );
   }
 
   private void givenNodeWithMockSource() {

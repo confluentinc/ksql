@@ -21,12 +21,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
-import io.confluent.ksql.util.Version;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class CommandTest {

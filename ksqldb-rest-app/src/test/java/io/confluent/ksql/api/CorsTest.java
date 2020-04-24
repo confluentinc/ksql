@@ -19,7 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.MultiMap;
@@ -86,7 +86,7 @@ public class CorsTest extends BaseApiTest {
 
     // Given:
     init();
-    config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, ORIGIN);
+    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, ORIGIN);
 
     // When
     HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, "/ws/foo", ORIGIN);
@@ -104,7 +104,7 @@ public class CorsTest extends BaseApiTest {
 
     // Given:
     init();
-    config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, ORIGIN);
+    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, ORIGIN);
 
     // When
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
@@ -178,7 +178,7 @@ public class CorsTest extends BaseApiTest {
 
   @Test
   public void shouldAcceptPreflightRequestOriginExactMatchSpecifiedHeaders() throws Exception {
-    config.put(ApiServerConfig.CORS_ALLOWED_HEADERS, "foo-header,bar-header");
+    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_HEADERS, "foo-header,bar-header");
     shouldAcceptPreflightRequest(ORIGIN, ORIGIN,
         "foo-header,bar-header",
         DEFAULT_ACCESS_CONTROL_ALLOW_METHODS);
@@ -186,7 +186,7 @@ public class CorsTest extends BaseApiTest {
 
   @Test
   public void shouldAcceptPreflightRequestOriginExactMatchSpecifiedMethods() throws Exception {
-    config.put(ApiServerConfig.CORS_ALLOWED_METHODS, "DELETE,PATCH");
+    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_METHODS, "DELETE,PATCH");
     shouldAcceptPreflightRequest(ORIGIN, ORIGIN,
         DEFAULT_ACCESS_CONTROL_ALLOW_HEADERS,
         "DELETE,PATCH");
@@ -196,7 +196,7 @@ public class CorsTest extends BaseApiTest {
       throws Exception {
 
     // Given:
-    config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, allowedOrigins);
+    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins);
     init();
 
     // When
@@ -213,7 +213,7 @@ public class CorsTest extends BaseApiTest {
       throws Exception {
 
     // Given:
-    config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, allowedOrigins);
+    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins);
     init();
 
     // When
@@ -227,7 +227,7 @@ public class CorsTest extends BaseApiTest {
       throws Exception {
 
     // Given:
-    config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, allowedOrigins);
+    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins);
     init();
 
     // When:
@@ -243,7 +243,7 @@ public class CorsTest extends BaseApiTest {
       final String accessControlAllowHeaders, final String accessControlAllowMethods)
       throws Exception {
 
-    config.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, allowedOrigins);
+    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins);
     init();
 
     // Given
@@ -268,7 +268,7 @@ public class CorsTest extends BaseApiTest {
   }
 
   private void init() {
-    ApiServerConfig serverConfig = new ApiServerConfig(config);
+    KsqlRestConfig serverConfig = new KsqlRestConfig(config);
     createServer(serverConfig);
     this.client = createClient();
   }

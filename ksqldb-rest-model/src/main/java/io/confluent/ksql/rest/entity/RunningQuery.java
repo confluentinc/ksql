@@ -22,7 +22,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;

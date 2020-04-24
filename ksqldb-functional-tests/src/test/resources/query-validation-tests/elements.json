@@ -763,7 +763,7 @@
         {"topic": "input_1", "key": "1", "value": {"F0": 4}, "timestamp": 10},
         {"topic": "input_2", "key": "1", "value": {"F0": 4}, "timestamp": 11}
       ],
-      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I1_ROWTIME": 10, "I1_ROWKEY": "1", "I1_F0": 4}, "timestamp": 11}]
+      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I1_ROWKEY": "1", "I1_F0": 4}, "timestamp": 11}]
     },
     {
       "name": "join qualified select star right",
@@ -776,7 +776,7 @@
         {"topic": "input_1", "key": "1", "value": {"F0": 4}, "timestamp": 10},
         {"topic": "input_2", "key": "1", "value": {"F0": 4}, "timestamp": 11}
       ],
-      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I2_ROWTIME": 11, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
+      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
     },
     {
       "name": "join unqualified select star",
@@ -789,7 +789,7 @@
         {"topic": "input_1", "key": "1", "value": {"F0": 4}, "timestamp": 10},
         {"topic": "input_2", "key": "1", "value": {"F0": 4}, "timestamp": 11}
       ],
-      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I1_ROWTIME": 10, "I1_ROWKEY": "1", "I1_F0": 4, "I2_ROWTIME": 11, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
+      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I1_ROWKEY": "1", "I1_F0": 4, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
     },
     {
       "name": "join unknown qualified select star",

@@ -4,6 +4,26 @@
   ],
   "tests": [
     {
+      "name": "explicit ROWTIME",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT ROWTIME, * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` STRING, `ID` INTEGER"}},
+          {"row":{"columns":[12345, "11", 100]}},
+          {"row":{"columns":[12365, "11", 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
       "name": "non-windowed stream - STRING key",
       "statements": [
         "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -16,9 +36,9 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` STRING, `ID` INTEGER"}},
-          {"row":{"columns":[12345, "11", 100]}},
-          {"row":{"columns":[12365, "11", 101]}},
+          {"header":{"schema":"`ROWKEY` STRING, `ID` INTEGER"}},
+          {"row":{"columns":["11", 100]}},
+          {"row":{"columns":["11", 101]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -36,9 +56,9 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` INTEGER, `ID` INTEGER"}},
-          {"row":{"columns":[12345, 11, 100]}},
-          {"row":{"columns":[12365, 11, 101]}},
+          {"header":{"schema":"`ROWKEY` INTEGER, `ID` INTEGER"}},
+          {"row":{"columns":[11, 100]}},
+          {"row":{"columns":[11, 101]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -56,9 +76,9 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` BIGINT, `ID` INTEGER"}},
-          {"row":{"columns":[12345, 11, 100]}},
-          {"row":{"columns":[12365, 11, 101]}},
+          {"header":{"schema":"`ROWKEY` BIGINT, `ID` INTEGER"}},
+          {"row":{"columns":[11, 100]}},
+          {"row":{"columns":[11, 101]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -76,9 +96,9 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` DOUBLE, `ID` INTEGER"}},
-          {"row":{"columns":[12345, 11.0, 100]}},
-          {"row":{"columns":[12365, 11.0, 101]}},
+          {"header":{"schema":"`ROWKEY` DOUBLE, `ID` INTEGER"}},
+          {"row":{"columns":[11.0, 100]}},
+          {"row":{"columns":[11.0, 101]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -98,9 +118,9 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` STRING, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":[12345, "11", 12000, 13000, 1]}},
-          {"row":{"columns":[12365, "11", 12000, 13000, 2]}},
+          {"header":{"schema":"`ROWKEY` STRING, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 12000, 13000, 1]}},
+          {"row":{"columns":["11", 12000, 13000, 2]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -120,9 +140,9 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":[12345, 11, 12000, 13000, 1]}},
-          {"row":{"columns":[12365, 11, 12000, 13000, 2]}},
+          {"header":{"schema":"`ROWKEY` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[11, 12000, 13000, 1]}},
+          {"row":{"columns":[11, 12000, 13000, 2]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -142,9 +162,9 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":[12345, 11, 12000, 13000, 1]}},
-          {"row":{"columns":[12365, 11, 12000, 13000, 2]}},
+          {"header":{"schema":"`ROWKEY` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[11, 12000, 13000, 1]}},
+          {"row":{"columns":[11, 12000, 13000, 2]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -164,9 +184,30 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` DOUBLE, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":[12345, 11.1, 12000, 13000, 1]}},
-          {"row":{"columns":[12365, 11.1, 12000, 13000, 2]}},
+          {"header":{"schema":"`ROWKEY` DOUBLE, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[11.1, 12000, 13000, 1]}},
+          {"row":{"columns":[11.1, 12000, 13000, 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "join with ROWTIME",
+      "statements": [
+        "CREATE STREAM INPUT_1 (ROWKEY STRING KEY, ID INT) WITH (kafka_topic='test_topic_1', value_format='JSON');",
+        "CREATE STREAM INPUT_2 (ROWKEY STRING KEY, ID INT) WITH (kafka_topic='test_topic_2', value_format='JSON');",
+        "SELECT *, I1.ROWTIME, I2.ROWTIME FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 60 SECONDS ON I1.ROWKEY = I2.ROWKEY EMIT CHANGES LIMIT 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic_1", "timestamp": 12345, "key": "x", "value": {"id": 100}},
+        {"topic": "test_topic_2", "timestamp": 12365, "key": "x", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`I1_ROWKEY` STRING, `I1_ID` INTEGER, `I2_ROWKEY` STRING, `I2_ID` INTEGER, `I1_ROWTIME` BIGINT, `I2_ROWTIME` BIGINT"}},
+          {"row":{"columns":["x", 100, "x", 101, 12345, 12365]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -186,8 +227,8 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`I1_ROWTIME` BIGINT, `I1_ROWKEY` STRING, `I1_ID` INTEGER, `I2_ROWTIME` BIGINT, `I2_ROWKEY` STRING, `I2_ID` INTEGER"}},
-          {"row":{"columns":[12345, "x", 100, 12365, "x", 101]}},
+          {"header":{"schema":"`I1_ROWKEY` STRING, `I1_ID` INTEGER, `I2_ROWKEY` STRING, `I2_ID` INTEGER"}},
+          {"row":{"columns":["x", 100, "x", 101]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -207,8 +248,8 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`I1_ROWTIME` BIGINT, `I1_ROWKEY` DOUBLE, `I1_ID` INTEGER, `I2_ROWTIME` BIGINT, `I2_ROWKEY` DOUBLE, `I2_ID` INTEGER"}},
-          {"row":{"columns":[12345, 11.1, 100, 12365, 11.1, 101]}},
+          {"header":{"schema":"`I1_ROWKEY` DOUBLE, `I1_ID` INTEGER, `I2_ROWKEY` DOUBLE, `I2_ID` INTEGER"}},
+          {"row":{"columns":[11.1, 100, 11.1, 101]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -225,8 +266,8 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `ID` INTEGER"}},
-          {"row":{"columns":[34555, 11, 12345, 34555, 100]}},
+          {"header":{"schema":"`ROWKEY` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `ID` INTEGER"}},
+          {"row":{"columns":[11, 12345, 34555, 100]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -245,8 +286,8 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` DOUBLE, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `ID` INTEGER"}},
-          {"row":{"columns":[12345, 11.1, 12000, 13000, 100]}},
+          {"header":{"schema":"`ROWKEY` DOUBLE, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `ID` INTEGER"}},
+          {"row":{"columns":[11.1, 12000, 13000, 100]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -293,9 +334,36 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_ROWTIME` BIGINT, `S2_ROWKEY` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"}},
-          {"row":{"columns":[0, 1, 0, 5000, 0, 1, 0, 5000, 1, 0, 1, 0, 2000, 4]}},
-          {"row":{"columns":[2000, 1, 2000, 7000, 2000, 1, 2000, 7000, 3, 2000, 1, 2000, 4000, 5]}},
+          {"header":{"schema":"`ROWKEY` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `S1_ROWKEY` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_ROWKEY` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"}},
+          {"row":{"columns":[1, 0, 5000, 1, 0, 5000, 1, 1, 0, 2000, 4]}},
+          {"row":{"columns":[1, 2000, 7000, 1, 2000, 7000, 3, 1, 2000, 4000, 5]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed join - with rowtime",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Hopping', WINDOW_SIZE='5 SECONDS');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
+        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ROWKEY = S2.ROWKEY;",
+        "SELECT ROWTIME, * FROM OUTPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 5000, "type": "time"}},
+        {"topic": "left_topic", "key": 1, "value": {"ID": 2}, "timestamp": 1000, "window": {"start": 1000, "end": 6000, "type": "time"}},
+        {"topic": "left_topic", "key": 1, "value": {"ID": 3}, "timestamp": 2000, "window": {"start": 2000, "end": 7000, "type": "time"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 5}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `S1_ROWKEY` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_ROWKEY` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"}},
+          {"row":{"columns":[0, 1, 0, 5000, 1, 0, 5000, 1, 1, 0, 2000, 4]}},
+          {"row":{"columns":[2000, 1, 2000, 7000, 1, 2000, 7000, 3, 1, 2000, 4000, 5]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]

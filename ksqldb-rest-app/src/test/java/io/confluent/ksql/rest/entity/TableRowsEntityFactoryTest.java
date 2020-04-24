@@ -32,7 +32,6 @@ import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
 import java.util.List;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -88,7 +87,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(output, hasSize(1));
-    assertThat(output.get(0), contains("x", ROWTIME, false));
+    assertThat(output.get(0), contains("x", false));
   }
 
   @Test
@@ -119,9 +118,9 @@ public class TableRowsEntityFactoryTest {
     // Then:
     assertThat(output, hasSize(2));
     assertThat(output.get(0),
-        contains("x", now.toEpochMilli(), now.plusMillis(2).toEpochMilli(), ROWTIME, true));
+        contains("x", now.toEpochMilli(), now.plusMillis(2).toEpochMilli(), true));
     assertThat(output.get(1),
-        contains("y", now.toEpochMilli(), now.plusMillis(1).toEpochMilli(), ROWTIME, false));
+        contains("y", now.toEpochMilli(), now.plusMillis(1).toEpochMilli(), false));
   }
 
   @Test
@@ -137,7 +136,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(output, hasSize(1));
-    assertThat(output.get(0), contains("k", ROWTIME, null, null, null, null));
+    assertThat(output.get(0), contains("k", null, null, null, null));
   }
 
   @Test
@@ -149,7 +148,6 @@ public class TableRowsEntityFactoryTest {
     assertThat(result, is(LogicalSchema.builder()
         .keyColumn(K0, SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
         .build()
@@ -167,7 +165,6 @@ public class TableRowsEntityFactoryTest {
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
         .keyColumn(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
         .build()

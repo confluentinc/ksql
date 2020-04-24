@@ -45,9 +45,11 @@ Each column is defined by:
    If a column is not marked as a `KEY` column, ksqlDB loads it from the Kafka message's value.
    Unlike a table's `PRIMARY KEY`, a stream's keys can be NULL.
 
-ksqlDB adds the implicit columns `ROWTIME` and `ROWKEY` to every stream
-and table, which represent the corresponding Kafka message timestamp and
-message key, respectively. The timestamp has milliseconds accuracy.
+ksqlDB adds an implicit `ROWKEY` system column to every stream and table, which represents the
+corresponding Kafka message key. An implicit `ROWTIME` pseudo column is also available on every
+stream and table, which represents the corresponding Kafka message timestamp. The timestamp has
+milliseconds accuracy, and generally represents the _event time_ of a stream row and the
+_last modified time_ of a table row.
 
 The WITH clause supports the following properties:
 

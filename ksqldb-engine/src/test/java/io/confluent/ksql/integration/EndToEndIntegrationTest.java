@@ -173,8 +173,8 @@ public class EndToEndIntegrationTest {
 
     final Set<Object> actualUsers = rows.stream()
         .filter(Objects::nonNull)
-        .peek(row -> assertThat(row.values(), hasSize(6)))
-        .map(row -> row.get(1))
+        .peek(row -> assertThat(row.values(), hasSize(5)))
+        .map(row -> row.get(0))
         .collect(Collectors.toSet());
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
@@ -249,12 +249,12 @@ public class EndToEndIntegrationTest {
       final List<Object> columns = result.value.values();
       log.debug("pageview join: {}", columns);
 
-      assertThat(columns, hasSize(6));
+      assertThat(columns, hasSize(5));
 
-      final String user = (String) columns.get(2);
+      final String user = (String) columns.get(1);
       actualUsers.add(user);
 
-      final String page = (String) columns.get(3);
+      final String page = (String) columns.get(2);
       actualPages.add(page);
     }
 
@@ -299,8 +299,8 @@ public class EndToEndIntegrationTest {
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
     assertThat(PRODUCED_COUNT.get(), greaterThan(0));
-    assertThat(columns.get(3).toString(), startsWith("PAGE_"));
-    assertThat(columns.get(4).toString(), startsWith("USER_"));
+    assertThat(columns.get(2).toString(), startsWith("PAGE_"));
+    assertThat(columns.get(3).toString(), startsWith("USER_"));
   }
 
   @Test
@@ -326,9 +326,9 @@ public class EndToEndIntegrationTest {
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
     assertThat(PRODUCED_COUNT.get(), greaterThan(0));
-    assertThat(columns.get(1).toString(), startsWith("USER_"));
-    assertThat(columns.get(2).toString(), startsWith("PAGE_"));
-    assertThat(columns.get(3).toString(), either(is("FEMALE")).or(is("MALE")));
+    assertThat(columns.get(0).toString(), startsWith("USER_"));
+    assertThat(columns.get(1).toString(), startsWith("PAGE_"));
+    assertThat(columns.get(2).toString(), either(is("FEMALE")).or(is("MALE")));
   }
 
   @Test

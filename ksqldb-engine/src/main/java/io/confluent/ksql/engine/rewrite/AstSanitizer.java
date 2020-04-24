@@ -239,7 +239,7 @@ public final class AstSanitizer {
     }
 
     @Override
-    public Optional<Expression> visitColumnReference(
+    public Optional<Expression> visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp expression,
         final Context<Void> ctx) {
       try {

@@ -115,7 +115,7 @@ For more information, see
 ### ksqlDB Timestamp Formats
 
 Time-based operations, like windowing, process records according to the
-timestamp in `ROWTIME`. By default, the implicit `ROWTIME` column is the
+timestamp in `ROWTIME`. By default, the implicit `ROWTIME` pseudo column is the
 timestamp of a message in a Kafka topic. Timestamps have an accuracy of
 one millisecond.
 

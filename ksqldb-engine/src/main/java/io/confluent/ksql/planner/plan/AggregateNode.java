@@ -335,7 +335,7 @@ public class AggregateNode extends PlanNode {
       }
 
       @Override
-      public Optional<Expression> visitColumnReference(
+      public Optional<Expression> visitUnqualifiedColumnReference(
           final UnqualifiedColumnReferenceExp node,
           final Context<Void> context
       ) {

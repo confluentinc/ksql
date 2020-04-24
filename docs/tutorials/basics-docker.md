@@ -252,9 +252,7 @@ Your output should resemble:
 ```
 
 !!! tip
-    You can run `DESCRIBE pageviews_original;` to see the schema for the
-    stream. Notice that ksqlDB created an additional column, named
-    `ROWTIME`, which corresponds with the Kafka message timestamp.
+    You can run `DESCRIBE pageviews_original;` to see the schema for the stream.
 
 ### 2. Create a ksqlDB table
 
@@ -341,7 +339,7 @@ different query types. Note that exact data output may vary because
 of the randomness of the data generation.
 
 ```sql
-SELECT * from users_original emit changes limit 5;
+SELECT ROWTIME, * from users_original emit changes limit 5;
 ```
 
 Your output should resemble:
@@ -358,6 +356,11 @@ Your output should resemble:
 Limit Reached
 Query terminated
 ```
+
+!!! note
+    Note the use of the pseudo column `ROWTIME` in the above query to access each rows timestamp.
+    `ROWTIME` is not included by default when the `*` in the projection is expanded, but can be
+    included explicitly when needed.
 
 !!! note
     Push queries on tables output the full history of the table that is stored
@@ -478,12 +481,12 @@ SELECT * FROM pageviews_enriched emit changes;
 Your output should resemble:
 
 ```
-+-------------+------------+------------+------------+------------+------------+
-|ROWTIME      |ROWKEY      |USERID      |PAGEID      |REGIONID    |GENDER      |
-+-------------+------------+------------+------------+------------+------------+
-|1581079706741|User_5      |User_5      |Page_53     |Region_3    |FEMALE      |
-|1581079707742|User_2      |User_2      |Page_86     |Region_5    |OTHER       |
-|1581079708745|User_9      |User_9      |Page_75     |Region_1    |OTHER       |
++------------+------------+------------+------------+------------+
+|ROWKEY      |USERID      |PAGEID      |REGIONID    |GENDER      |
++------------+------------+------------+------------+------------+
+|User_5      |User_5      |Page_53     |Region_3    |FEMALE      |
+|User_2      |User_2      |Page_86     |Region_5    |OTHER       |
+|User_9      |User_9      |Page_75     |Region_1    |OTHER       |
 
 ^CQuery terminated
 ```
@@ -582,14 +585,14 @@ SELECT * FROM pageviews_regions EMIT CHANGES LIMIT 5;
 Your output should resemble:
 
 ```
-+---------------+-----------------+---------------+---------------+---------------+---------------+---------------+
-|ROWTIME        |ROWKEY           |WINDOWSTART    |WINDOWEND      |GENDER         |REGIONID       |NUMUSERS       |
-+---------------+-----------------+---------------+---------------+---------------+---------------+---------------+
-|1581080500530  |OTHER|+|Region_9 |1581080490000  |1581080520000  |OTHER          |Region_9       |1              |
-|1581080501530  |OTHER|+|Region_5 |1581080490000  |1581080520000  |OTHER          |Region_5       |2              |
-|1581080510532  |MALE|+|Region_7  |1581080490000  |1581080520000  |MALE           |Region_7       |4              |
-|1581080513532  |FEMALE|+|Region_1|1581080490000  |1581080520000  |FEMALE         |Region_1       |2              |
-|1581080516533  |MALE|+|Region_2  |1581080490000  |1581080520000  |MALE           |Region_2       |3              |
++-----------------+---------------+---------------+---------------+---------------+---------------+
+|ROWKEY           |WINDOWSTART    |WINDOWEND      |GENDER         |REGIONID       |NUMUSERS       |
++-----------------+---------------+---------------+---------------+---------------+---------------+
+|OTHER|+|Region_9 |1581080490000  |1581080520000  |OTHER          |Region_9       |1              |
+|OTHER|+|Region_5 |1581080490000  |1581080520000  |OTHER          |Region_5       |2              |
+|MALE|+|Region_7  |1581080490000  |1581080520000  |MALE           |Region_7       |4              |
+|FEMALE|+|Region_1|1581080490000  |1581080520000  |FEMALE         |Region_1       |2              |
+|MALE|+|Region_2  |1581080490000  |1581080520000  |MALE           |Region_2       |3              |
 Limit Reached
 Query terminated
 ```
@@ -620,14 +623,14 @@ SELECT * FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9';
 Your output should resemble:
 
 ```
-+------------------+------------------+------------------+------------------+------------------+------------------+------------------+
-|ROWKEY            |WINDOWSTART       |WINDOWEND         |ROWTIME           |GENDER            |REGIONID          |NUMUSERS          |
-+------------------+------------------+------------------+------------------+------------------+------------------+------------------+
-|OTHER|+|Region_9  |1581080490000     |1581080520000     |1581080500530     |OTHER             |Region_9          |1                 |
-|OTHER|+|Region_9  |1581080550000     |1581080580000     |1581080576526     |OTHER             |Region_9          |4                 |
-|OTHER|+|Region_9  |1581080580000     |1581080610000     |1581080606525     |OTHER             |Region_9          |4                 |
-|OTHER|+|Region_9  |1581080610000     |1581080640000     |1581080622524     |OTHER             |Region_9          |3                 |
-|OTHER|+|Region_9  |1581080640000     |1581080670000     |1581080667528     |OTHER             |Region_9          |6                 |
++------------------+------------------+------------------+------------------+------------------+------------------+
+|ROWKEY            |WINDOWSTART       |WINDOWEND         |GENDER            |REGIONID          |NUMUSERS          |
++------------------+------------------+------------------+------------------+------------------+------------------+
+|OTHER|+|Region_9  |1581080490000     |1581080520000     |OTHER             |Region_9          |1                 |
+|OTHER|+|Region_9  |1581080550000     |1581080580000     |OTHER             |Region_9          |4                 |
+|OTHER|+|Region_9  |1581080580000     |1581080610000     |OTHER             |Region_9          |4                 |
+|OTHER|+|Region_9  |1581080610000     |1581080640000     |OTHER             |Region_9          |3                 |
+|OTHER|+|Region_9  |1581080640000     |1581080670000     |OTHER             |Region_9          |6                 |
 ...
 ```
 
@@ -724,7 +727,6 @@ EMIT CHANGES;
 
  Field    | Type                                              
 --------------------------------------------------------------
- ROWTIME  | BIGINT           (system)                         
  ROWKEY   | VARCHAR(STRING)  (key) (Window type: TUMBLING)
  GENDER   | VARCHAR(STRING)                                   
  REGIONID | VARCHAR(STRING)                                   
@@ -806,8 +808,7 @@ Your output should resemble:
 Name                 : ORDERS
  Field      | Type
 ----------------------------------------------------------------------------------
- ROWTIME    | BIGINT           (system)
- ROWKEY     | INT              (system)
+ ROWKEY     | INT              (key)
  ORDERTIME  | BIGINT
  ORDERID    | INTEGER
  ITEMID     | VARCHAR(STRING)
@@ -914,7 +915,7 @@ Query the streams to confirm that events are present in the topics.
 For the `NEW_ORDERS` stream, run:
 
 ```sql
-SELECT * FROM NEW_ORDERS EMIT CHANGES LIMIT 3;
+SELECT ROWTIME, * FROM NEW_ORDERS EMIT CHANGES LIMIT 3;
 ```
 
 Your output should resemble:
@@ -939,11 +940,11 @@ SELECT * FROM SHIPMENTS EMIT CHANGES LIMIT 2;
 Your output should resemble:
 
 ```
-+-------------------------+-------------------------+-------------------------+-------------------------+
-|ROWTIME                  |ROWKEY                   |SHIPMENT_ID              |WAREHOUSE                |
-+-------------------------+-------------------------+-------------------------+-------------------------+
-|1581083340711            |1                        |42                       |Nashville                |
-|1581083384229            |3                        |43                       |Palo Alto                |
++-------------------------+-------------------------+-------------------------+
+|ROWKEY                   |SHIPMENT_ID              |WAREHOUSE                |
++-------------------------+-------------------------+-------------------------+
+|1                        |42                       |Nashville                |
+|3                        |43                       |Palo Alto                |
 Limit Reached
 Query terminated
 ```
@@ -1238,8 +1239,7 @@ Your output should resemble:
 Name                 : ALL_ORDERS
  Field      | Type                                                                
 ----------------------------------------------------------------------------------
- ROWTIME    | BIGINT           (system)                                           
- ROWKEY     | INTEGER          (system)                                           
+ ROWKEY     | INTEGER          (key)
  SRC        | VARCHAR(STRING)                                                     
  ORDERTIME  | BIGINT                                                              
  ORDERID    | INTEGER                                                             
@@ -1279,12 +1279,12 @@ SELECT * FROM ALL_ORDERS EMIT CHANGES;
 Your output should resemble:
 
 ```
-+--------------+----------+-----------+--------------+----------+-------------+----------------------+---------------------------------------------+
-|ROWTIME       |ROWKEY    |SRC        |ORDERTIME     |ORDERID   |ITEMID       |ORDERUNITS            |ADDRESS                                      |
-+--------------+----------+-----------+--------------+----------+-------------+----------------------+---------------------------------------------+
-|1581085344272 |510       |3RD PARTY  |1503198352036 |510       |Item_643     |1.653210222047296     |{CITY=City_94, STATE=State_72, ZIPCODE=61274}|
-|1581085344293 |546       |LOCAL      |1498476865306 |546       |Item_234     |9.284691223615178     |{CITY=City_44, STATE=State_29, ZIPCODE=84678}|
-|1581085344776 |511       |3RD PARTY  |1489945722538 |511       |Item_264     |8.213163488516212     |{CITY=City_36, STATE=State_13, ZIPCODE=44821}|
++----------+-----------+--------------+----------+-------------+----------------------+---------------------------------------------+
+|ROWKEY    |SRC        |ORDERTIME     |ORDERID   |ITEMID       |ORDERUNITS            |ADDRESS                                      |
++----------+-----------+--------------+----------+-------------+----------------------+---------------------------------------------+
+|510       |3RD PARTY  |1503198352036 |510       |Item_643     |1.653210222047296     |{CITY=City_94, STATE=State_72, ZIPCODE=61274}|
+|546       |LOCAL      |1498476865306 |546       |Item_234     |9.284691223615178     |{CITY=City_44, STATE=State_29, ZIPCODE=84678}|
+|511       |3RD PARTY  |1489945722538 |511       |Item_264     |8.213163488516212     |{CITY=City_36, STATE=State_13, ZIPCODE=44821}|
 …
 ```
 

@@ -25,7 +25,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;

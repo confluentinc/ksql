@@ -72,8 +72,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.junit.After;
@@ -320,13 +318,10 @@ public class RestApiTest {
     assertThat(messages.get(0),
         is("["
             + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"},"
-            + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
             + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
             + "]"));
 
-    final Pattern rowPattern = Pattern.compile("\\{\"row\":\\{\"columns\":\\[\"USER_1\",\\d+,1]}}");
-    final Matcher matcher = rowPattern.matcher(messages.get(1));
-    assertThat(messages.get(1) + " should match pattern " + rowPattern, matcher.matches());
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
   }
 
   @Test

@@ -124,9 +124,9 @@
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
-        <kafka.version>5.5.0-ccs-SNAPSHOT</kafka.version>
-        <ce.kafka.version>5.5.0-ce-SNAPSHOT</ce.kafka.version>
-        <confluent.version>5.5.0-SNAPSHOT</confluent.version>
+        <kafka.version>5.5.0-ccs</kafka.version>
+        <ce.kafka.version>5.5.0-ce</ce.kafka.version>
+        <confluent.version>5.5.0</confluent.version>
         <compile.warnings-flag>-Werror</compile.warnings-flag>
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.28.v20200408</jetty.version>

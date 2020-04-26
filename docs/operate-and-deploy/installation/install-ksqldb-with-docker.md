@@ -493,4 +493,3 @@ Next Steps
 ----------
 
 -   [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../../tutorials/basics-docker.md)
--   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../../tutorials/clickstream-docker.md)

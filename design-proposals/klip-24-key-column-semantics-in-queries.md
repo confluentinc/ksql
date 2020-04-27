@@ -35,7 +35,8 @@ SELECT ID, V0, V1 FROM INPUT;
 
 -- vs --
 
-CREATE TABLE OUTPUT AS SELECT ID, V0, V1 FROM INPUT;
+CREATE TABLE OUTPUT AS
+   SELECT ID, V0, V1 FROM INPUT;
 -- fails with error about duplicate 'ID' column.
 ```
 
@@ -57,7 +58,8 @@ SELECT * FROM INPUT;
 
 -- vs --
 
-CREATE TABLE OUTPUT AS SELECT * FROM INPUT;
+CREATE TABLE OUTPUT AS
+   SELECT * FROM INPUT;
 -- resulting schema: ID INT KEY, V0 INT, V1 INT (Same as above)
 ```
 
@@ -75,7 +77,8 @@ SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
 
 -- vs --
 
-CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
+CREATE TABLE OUTPUT AS
+   SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
 -- resulting schema (any key name enabled): ID INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 -- resulting schema (any key name disabled): ROWKEY INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 ```
@@ -84,7 +87,7 @@ Note the addition of an additional `ID` or `ROWKEY` column in the case of the pe
 
 #### Inner and left outer joins on column references
 
-For inner and left outer joins where the left join criteria is a column reference the the
+For inner and left outer joins where the left join criteria is a column reference the
 additional `ID` column is a duplicate of the `I1.ID` column.
 
 We propose that such joins should not duplicate the left join column `I1.ID` into both the `ID` key
@@ -96,16 +99,39 @@ in the value.
 Where the join is a full outer join, or where the left join criteria is not a column reference, the
 problem is more nuanced.
 
-```sql
--- inner join on expression:
-CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON ABS(I1.ID) = I2.ID;
+First, consider a full outer join on columns from the left and right sources:
 
+```sql
 -- full outer join:
-CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
+CREATE TABLE OUTPUT AS
+   SELECT * FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
 ```
 
-For both of the above joins the data stored in the Kafka record's key by ksqlDB / Streams does
-not correspond to any column within either source. This is problematic.
+The data stored in the Kafka message's key will be equal to either the left join column, the right
+join column or both, depending on whether only one side matches or both:
+
+|                  | I1.ID | I2.ID | Message Key |
+| ---------------- | ----- | ----- | ----------- |
+| both sides match | 10    | 10    | 10          |
+| left side only   | 10    | null  | 10          |
+| right side only  | null  | 10    | 10          |
+
+As you can see, the message key is not equivalent to either of the source columns. This is
+problematic.
+
+The same is also true of other join types where no sides within the join criteria are a simple
+column reference, a.k.a. non-column joins. For example:
+
+
+```sql
+-- inner join on expression:
+CREATE TABLE OUTPUT AS
+   SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON ABS(I1.ID) = ABS(I2.ID);
+```
+
+Again, the message key is not equivalent to any column for the sources involved in the join. (Note:
+if either side of the join criteria is a simple column reference, then the Kafka message's key is
+equivalent to that column, and hence no additional column is synthesised by the join).
 
 This KLIP proposes that the projection should include _all the columns expected in the result_.
 Logically, this must include this new key column. Yet, this new key column is an artifact of the
@@ -126,12 +152,14 @@ as this is a name users are already familiar with. For example, the above exampl
 their projections could be expanded to the following explicit column lists:
 
 ```sql
--- inner join on expression:
-CREATE TABLE OUTPUT AS SELECT ROWKEY, I1.ID, I1.V0, I1.V1, I2.ID, I2.V0, I2.V1 INT FROM INPUT I1 JOIN INPUT_2 I2 ON ABS(I1.ID) = I2.ID;
+-- full outer join:
+CREATE TABLE OUTPUT AS
+   SELECT ROWKEY, I1.ID, I1.V0, I1.V1, I2.ID, I2.V0, I2.V1 FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
 -- resulting schema: ROWKEY INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 
--- full outer join:
-CREATE TABLE OUTPUT AS SELECT ROWKEY, I1.ID, I1.V0, I1.V1, I2.ID, I2.V0, I2.V1 FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
+-- inner join on expression:
+CREATE TABLE OUTPUT AS
+   SELECT ROWKEY, I1.ID, I1.V0, I1.V1, I2.ID, I2.V0, I2.V1 INT FROM INPUT I1 JOIN INPUT_2 I2 ON ABS(I1.ID) = I2.ID;
 -- resulting schema: ROWKEY INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 ```
 
@@ -142,7 +170,8 @@ Key to this solution is the ability for users to provide their own name for the 
 column. For example:
 
 ```sql
-CREATE TABLE OUTPUT AS SELECT ROWKEY AS ID, I1.V0, I1.V1, I2.V0, I2.V1 INT FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
+CREATE TABLE OUTPUT AS
+   SELECT ROWKEY AS ID, I1.V0, I1.V1, I2.V0, I2.V1 INT FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
 -- resulting schema: ID INT KEY, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT
 ```
 
@@ -159,12 +188,14 @@ For example:
 
 ```sql
 -- without alias:
-CREATE STREAM OUTPUT AS SELECT ID FROM INPUT PARTITION BY V0 - V1;
+CREATE STREAM OUTPUT AS
+   SELECT ID FROM INPUT PARTITION BY V0 - V1;
 -- resulting schema: KSQL_COL_0 INT KEY, ID;
 -- note the system generated column name.
 
 -- with alias
-CREATE STREAM OUTPUT AS SELECT ID FROM INPUT PARTITION BY V0 - V1 AS NEW_KEY;
+CREATE STREAM OUTPUT AS
+   SELECT ID FROM INPUT PARTITION BY V0 - V1 AS NEW_KEY;
 -- resulting schema: NEW_KEY INT KEY, ID;
 ```
 
@@ -172,7 +203,8 @@ However, the same functionality can be achieved using standard sql if the key co
 in the projection, for example:
 
 ```sql
-CREATE STREAM OUTPUT AS SELECT V0 - V1 AS NEW_KEY, ID FROM INPUT PARTITION BY V0 - V1;
+CREATE STREAM OUTPUT AS
+   SELECT V0 - V1 AS NEW_KEY, ID FROM INPUT PARTITION BY V0 - V1;
 -- resulting schema: NEW_KEY INT KEY, ID;
 ```
 
@@ -188,28 +220,28 @@ fail with duplicate column errors:
 ```sql
 -- Before 'any key name':
 CREATE STREAM INPUT (ROWKEY INT KEY, V0 INT, V1 INT) WITH (...);
-CREATE TABLE OUTPUT AS SELECT V0, COUNT(*) AS COUNT FROM INPUT GROUP BY V0;
--- resulting schema: ROwKEY INT KEY, V0 INT, COUNT BIGINT
+
+CREATE TABLE OUTPUT AS
+   SELECT V0, COUNT(*) AS COUNT FROM INPUT GROUP BY V0;
+-- resulting schema: ROWKEY INT KEY, V0 INT, COUNT BIGINT
 -- Note: ROWKEY & V0 store the same data, which isn't ideal.
 
 -- vs --
 
 -- After 'any key name':
 CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (...);
-CREATE TABLE OUTPUT AS SELECT V0, COUNT(*) AS COUNT FROM INPUT GROUP BY V0;
--- fails with duplicate column error on 'V0'.
 
--- Note: the equivalent query would have failed before the any-key-name work:
-CREATE TABLE OUTPUT AS SELECT ROWKEY, COUNT(*) AS COUNT FROM INPUT GROUP BY V0;
--- fails with duplicate column error on 'ROWKEY'.
+CREATE TABLE OUTPUT AS
+   SELECT V0, COUNT(*) AS COUNT FROM INPUT GROUP BY V0;
+-- fails with duplicate column error on 'V0'.
 ```
 
 As you can see from above, the common pattern of selecting the group by key and the aggregate fails.
 To 'fix' the query the user must remove `V0` from the projection - which is counter intuitive, as
 the user wishes this column in the result.
 
-We propose that this query should work, without any modification, and without storing duplicate
-data.
+We propose that the last query above should work, without any modification, and without storing
+duplicate data.
 
 ### Requiring the key column in a projection in persistent queries
 
@@ -225,16 +257,20 @@ key column in the projection of persistent queries.
 For example, the following statements, which previously executed, will now fail:
 
 ```sql
-CREATE TABLE OUTPUT AS SELECT V0, V1 FROM INPUT;
+CREATE TABLE OUTPUT AS
+   SELECT V0, V1 FROM INPUT;
 -- fails as key column not in projection.
 
-CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY V1;
+CREATE TABLE OUTPUT AS
+   SELECT COUNT(*) FROM INPUT GROUP BY V1;
 -- fails as key column not in projection.
 
-CREATE STREAM OUTPUT AS SELECT V0, ID FROM INPUT PARTITION BY V1;
+CREATE STREAM OUTPUT AS
+   SELECT V0, ID FROM INPUT PARTITION BY V1;
 -- fails as key column not in projection.
 
-CREATE TABLE OUTPUT AS SELECT I1.V0, I2.V2 FROM INPUT I1 JOIN INPUT I2 ON I1.ID = I2.ID;
+CREATE TABLE OUTPUT AS
+   SELECT I1.V0, I2.V2 FROM INPUT I1 JOIN INPUT I2 ON I1.ID = I2.ID;
 -- fails as key column not in projection.
 ```
 
@@ -252,7 +288,8 @@ into the value?'. With current syntax you can do:
 
 ```sql
 -- current syntax:
-CREATE TABLE OUTPUT AS SELECT V0, V1, ID AS V2 FROM INPUT;
+CREATE TABLE OUTPUT AS
+   SELECT V0, V1, ID AS V2 FROM INPUT;
 -- resulting schema: ID INT KEY, V0 INT, V1 INT, V2 INT
 ```
 
@@ -264,7 +301,8 @@ We propose introducing a `AS_VALUE` function that can be used to
 indicate the key column should be copied as a value column. For example,
 
 ```sql
-CREATE TABLE OUTPUT AS SELECT ID, V0, V1, AS_VALUE(ID) AS V2 FROM INPUT;
+CREATE TABLE OUTPUT AS
+   SELECT ID, V0, V1, AS_VALUE(ID) AS V2 FROM INPUT;
 -- resulting schema: ID INT KEY, V0 INT, V1 INT, V2 INT
 ```
 
@@ -281,7 +319,8 @@ query the key is generated by concatenating the string representation of the gro
 For example:
 
 ```sql
-CREATE TABLE OUTPUT AS SELECT V0, ABS(V1) AS V1, COUNT(*) AS COUNT FROM INPUT GROUP BY V0, ABS(V1);
+CREATE TABLE OUTPUT AS
+   SELECT V0, ABS(V1) AS V1, COUNT(*) AS COUNT FROM INPUT GROUP BY V0, ABS(V1);
 -- resulting schema: KSQL_COL_0 STRING KEY, V0 INT, V1 INT, COUNT BIGINT
 -- where KSQL_COL_0 contains data in the form V0 + "|+|" + ABS(V1)
 ```
@@ -340,11 +379,13 @@ example:
 
 ```sql
 -- old syntax that worked:
-CREATE TABLE OUTPUT AS SELECT COUNT() AS COUNT FROM INPUT GROUP BY V0;
+CREATE TABLE OUTPUT AS
+   SELECT COUNT() AS COUNT FROM INPUT GROUP BY V0;
 -- will now fail with an error explaining the projection must include the key column `V0`.sql
 
 -- corrected query:
-CREATE TABLE OUTPUT AS SELECT V0, COUNT() AS COUNT FROM INPUT GROUP BY V0;
+CREATE TABLE OUTPUT AS
+   SELECT V0, COUNT() AS COUNT FROM INPUT GROUP BY V0;
 -- resulting schema: V0 INT KEY, COUNT BIGINT
 ```
 
@@ -354,18 +395,21 @@ example:
 
 ```sql
 -- 'any key' aliasing syntax that will be dropped:
-CREATE TABLE OUTPUT AS SELECT COUNT() AS COUNT FROM INPUT GROUP BY V0 AS K;
+CREATE TABLE OUTPUT AS
+   SELECT COUNT() AS COUNT FROM INPUT GROUP BY V0 AS K;
 -- resulting schema: K INT KEY, COUNT BIGINT
 
 -- proposed key column aliasing in projection:
-CREATE TABLE OUTPUT AS SELECT V0 AS K, COUNT() AS COUNT FROM INPUT GROUP BY V0;
+CREATE TABLE OUTPUT AS
+   SELECT V0 AS K, COUNT() AS COUNT FROM INPUT GROUP BY V0;
 -- resulting schema: K INT KEY, COUNT BIGINT
 ```
 
 3. Removal of duplicate left join column on `select *` joins. For example:
 
 ```sql
-CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 JOIN INPUT I2 ON I1.ID = I2.ID;
+CREATE TABLE OUTPUT AS
+   SELECT * FROM INPUT I1 JOIN INPUT I2 ON I1.ID = I2.ID;
 -- current result schema: ID INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 -- note join key is duplicated in ID, I1_ID and I2_ID columns.
 
@@ -381,7 +425,8 @@ CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 JOIN INPUT I2 ON I1.ID = I2.ID;
 A new `COPY` method will be added to allow users to copy the key column into the value. For example:
 
 ```sql
-CREATE TABLE OUTPUT AS SELECT ID, V0, V1, COPY(ID) AS V2 FROM INPUT;
+CREATE TABLE OUTPUT AS
+   SELECT ID, V0, V1, COPY(ID) AS V2 FROM INPUT;
 -- resulting schema: ID INT KEY, V0 INT, V1 INT, V2 INT
 ```
 
@@ -459,7 +504,8 @@ Kafka record's key, for example:
 SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
 -- resulting columns: I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 
-CREATE TABLE OUTPUT AS SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
+CREATE TABLE OUTPUT AS
+   SELECT * FROM INPUT I1 JOIN INPUT_2 I2 ON I1.ID = I2.ID;
 -- resulting schema: I1_ID INT KEY, I2_ID INT KEY, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT
 ```
 

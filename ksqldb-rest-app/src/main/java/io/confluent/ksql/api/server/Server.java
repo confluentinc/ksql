@@ -68,8 +68,8 @@ public class Server {
   private final KsqlSecurityExtension securityExtension;
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
+  private final List<URI> listeners = new ArrayList<>();
   private WorkerExecutor workerExecutor;
-  private List<URI> listeners = new ArrayList<>();
 
   public Server(final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
       final KsqlSecurityExtension securityExtension,
@@ -190,10 +190,6 @@ public class Server {
 
   public Set<PushQueryId> getQueryIDs() {
     return new HashSet<>(queries.keySet());
-  }
-
-  Vertx getVertx() {
-    return vertx;
   }
 
   KsqlSecurityExtension getSecurityExtension() {

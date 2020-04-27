@@ -287,7 +287,7 @@ public class UdtfLoaderTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot load UDF bigDecimalNoSchemaProvider. BigDecimal return type is not supported without a schema provider method."));
+        "Cannot load UDF bigDecimalNoSchemaProvider. DECIMAL return type is not supported without a schema annotation"));
   }
 
   @UdtfDescription(name = "badReturnUdtf", description = "whatever")

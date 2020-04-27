@@ -151,6 +151,8 @@ public class UdfLoader {
         .handleUdfReturnSchema(
             theClass,
             javaReturnSchema,
+            udfAnnotation.schema(),
+            typeParser,
             udfAnnotation.schemaProvider(),
             udfDescriptionAnnotation.name(),
             method.isVarArgs()

@@ -849,7 +849,6 @@ public class ApiTest extends BaseApiTest {
         queryResponse.responseObject);
   }
 
-
   private static void validateInsertStreamError(final int errorCode, final String message,
       final JsonObject error, final long sequence) {
     assertThat(error.size(), is(4));

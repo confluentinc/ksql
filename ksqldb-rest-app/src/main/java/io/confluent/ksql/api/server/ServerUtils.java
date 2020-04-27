@@ -23,6 +23,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
@@ -65,6 +66,17 @@ public final class ServerUtils {
       }
     }
     return out.toString();
+  }
+
+  public static boolean checkHttp2(final RoutingContext routingContext) {
+    if (routingContext.request().version() != HttpVersion.HTTP_2) {
+      routingContext.fail(BAD_REQUEST.code(),
+          new KsqlApiException("This endpoint is only available when using HTTP2",
+              ErrorCodes.ERROR_HTTP2_ONLY));
+      return false;
+    } else {
+      return true;
+    }
   }
 
   private static class HttpResponseErrorHandler implements PojoDeserializerErrorHandler {

@@ -804,17 +804,6 @@ public class ApiTest extends BaseApiTest {
 
   @Test
   @CoreApiTest
-  public void shouldRejectCloseQueryUsingHttp11() throws Exception {
-
-    // Given:
-    JsonObject requestBody = new JsonObject().put("queryId", "query12345");
-
-    // Then:
-    shouldRejectRequestUsingHttp11("/close-query", requestBody);
-  }
-
-  @Test
-  @CoreApiTest
   public void shouldRejectInsertsUsingHttp11() throws Exception {
 
     // Given:

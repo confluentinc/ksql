@@ -258,7 +258,7 @@ public final class TestCasePlanLoader {
       final TestInfoGatherer listener = new TestInfoGatherer();
       testExecutor.buildAndExecuteQuery(testCase, listener);
       return listener;
-    } catch (final AssertionError e) {
+    } catch (final AssertionError | Exception e) {
       throw new AssertionError("Failed to run test case: " + e.getMessage()
           + System.lineSeparator()
           + "failed test: " + testCase.getName()

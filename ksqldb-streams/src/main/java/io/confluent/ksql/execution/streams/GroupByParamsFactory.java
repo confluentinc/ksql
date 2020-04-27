@@ -102,7 +102,6 @@ final class GroupByParamsFactory {
       final SqlType keyType
   ) {
     return LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(keyName, keyType)
         .valueColumns(sourceSchema.value())
         .build();

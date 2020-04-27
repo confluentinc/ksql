@@ -89,21 +89,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class JoinNodeTest {
 
   private static final LogicalSchema LEFT_SOURCE_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("leftKey"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("C0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("L1"), SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema RIGHT_SOURCE_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("rightKey"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("C0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("R1"), SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema RIGHT2_SOURCE_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("right2Key"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("C0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("R2"), SqlTypes.BIGINT)
@@ -114,15 +111,15 @@ public class JoinNodeTest {
   private static final SourceName RIGHT2_ALIAS = SourceName.of("right2");
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = prependAlias(
-      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = prependAlias(
-      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
   private static final LogicalSchema RIGHT2_NODE_SCHEMA = prependAlias(
-      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
@@ -646,7 +643,6 @@ public class JoinNodeTest {
 
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("leftKey"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_L1"), SqlTypes.STRING)
@@ -695,7 +691,6 @@ public class JoinNodeTest {
 
     // Then:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("leftKey"), SqlTypes.BIGINT)
         .valueColumns(LEFT_NODE_SCHEMA.value())
         .valueColumns(RIGHT_NODE_SCHEMA.value())
@@ -931,8 +926,7 @@ public class JoinNodeTest {
   }
 
   private static LogicalSchema prependAlias(final SourceName alias, final LogicalSchema schema) {
-    final LogicalSchema.Builder builder = LogicalSchema.builder()
-        .withRowTime();
+    final LogicalSchema.Builder builder = LogicalSchema.builder();
     builder.keyColumns(schema.key());
     for (final Column c : schema.value()) {
       builder.valueColumn(ColumnNames.generatedJoinColumnAlias(alias, c.name()), c.type());

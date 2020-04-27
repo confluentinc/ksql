@@ -144,7 +144,6 @@ public class PartitionByParamsFactoryTest {
 
     // Then:
     assertThat(resultSchema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)
@@ -173,7 +172,6 @@ public class PartitionByParamsFactoryTest {
 
     // Then:
     assertThat(resultSchema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("someField"), SqlTypes.BIGINT)
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)
@@ -202,7 +200,6 @@ public class PartitionByParamsFactoryTest {
 
     // Then:
     assertThat(resultSchema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER)
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)
@@ -229,7 +226,6 @@ public class PartitionByParamsFactoryTest {
 
     // Then:
     assertThat(resultSchema, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(newKeyName, SqlTypes.INTEGER)
         .valueColumn(COL1, SqlTypes.INTEGER)
         .valueColumn(COL2, SqlTypes.INTEGER)

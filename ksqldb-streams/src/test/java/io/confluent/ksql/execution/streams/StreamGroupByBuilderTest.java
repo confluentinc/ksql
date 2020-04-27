@@ -61,15 +61,13 @@ public class StreamGroupByBuilderTest {
   private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil
       .keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
-      .withMetaAndKeyColsInValue(false);
+      .withPseudoAndKeyColsInValue(false);
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumns(SCHEMA.value())
       .build();

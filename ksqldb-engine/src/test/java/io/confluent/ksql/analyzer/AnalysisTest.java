@@ -50,7 +50,6 @@ public class AnalysisTest {
   private static final WindowInfo A_WINDOW = WindowInfo.of(WindowType.SESSION, Optional.empty());
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("bob"), SqlTypes.BIGINT)
       .build();
@@ -86,7 +85,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
     ));
   }
 
@@ -103,7 +102,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(true)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
     ));
   }
 
@@ -121,7 +120,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
     ));
   }
 
@@ -138,7 +137,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
     ));
   }
 
@@ -155,7 +154,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(true)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
     ));
   }
 
@@ -173,7 +172,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(true)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
     ));
   }
 

@@ -51,7 +51,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsMaterializedTableTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("K0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();

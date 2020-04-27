@@ -45,7 +45,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class UdafUtilTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("FOO"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)

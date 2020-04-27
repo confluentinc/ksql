@@ -35,7 +35,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StructuredDataSourceTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .build();
@@ -59,7 +58,6 @@ public class StructuredDataSourceTest {
   public void shouldThrowIfSchemaContainsRowTime() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
         .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
@@ -92,7 +90,6 @@ public class StructuredDataSourceTest {
   public void shouldThrowIfSchemaContainsWindowStart() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
         .valueColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
@@ -109,7 +106,6 @@ public class StructuredDataSourceTest {
   public void shouldThrowIfSchemaContainsWindowEnd() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
         .valueColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)

@@ -700,7 +700,6 @@ public class CliTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumns(ORDER_DATA_PROVIDER.schema().logicalSchema().key())
             .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)

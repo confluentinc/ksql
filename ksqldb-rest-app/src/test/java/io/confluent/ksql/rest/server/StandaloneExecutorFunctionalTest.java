@@ -151,7 +151,6 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
@@ -194,7 +193,6 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
@@ -299,7 +297,6 @@ public class StandaloneExecutorFunctionalTest {
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
     final LogicalSchema logical = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("ORDERID"), SqlTypes.struct()
             .field("fred", SqlTypes.INTEGER)

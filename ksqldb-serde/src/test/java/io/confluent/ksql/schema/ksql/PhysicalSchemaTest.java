@@ -33,14 +33,12 @@ import org.junit.Test;
 public class PhysicalSchemaTest {
 
   private static final LogicalSchema SCHEMA_WITH_MULTIPLE_FIELDS = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
       .valueColumn(ColumnName.of("f1"), SqlTypes.BOOLEAN)
       .build();
 
   private static final LogicalSchema SCHEMA_WITH_SINGLE_FIELD = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
       .build();

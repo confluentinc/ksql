@@ -114,6 +114,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+@SuppressWarnings("UnstableApiUsage")
 public final class PullQueryExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
@@ -843,7 +844,7 @@ public final class PullQueryExecutor {
       final boolean windowed = windowType.isPresent();
 
       intermediateSchema = input.schema
-          .withMetaAndKeyColsInValue(windowed);
+          .withPseudoAndKeyColsInValue(windowed);
 
       preSelectTransform = row -> {
         final Struct key = row.key();
@@ -932,7 +933,7 @@ public final class PullQueryExecutor {
 
     // Copy meta & key columns into the value schema as SelectValueMapper expects it:
     final LogicalSchema schema = input.schema
-        .withMetaAndKeyColsInValue(windowType.isPresent());
+        .withPseudoAndKeyColsInValue(windowType.isPresent());
 
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, executionContext.getMetaStore());

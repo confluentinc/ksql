@@ -88,7 +88,6 @@ public final class TableElements implements Iterable<TableElement> {
     final Builder builder = LogicalSchema.builder();
 
     if (withImplicitColumns) {
-      builder.withRowTime();
 
       final boolean noKey = elements.stream().noneMatch(e -> e.getNamespace().isKey());
       if (noKey) {

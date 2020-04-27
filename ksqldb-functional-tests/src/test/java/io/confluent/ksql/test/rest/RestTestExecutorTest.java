@@ -15,6 +15,14 @@
 
 package io.confluent.ksql.test.rest;
 
+import static com.google.common.collect.ImmutableList.of;
+import static io.confluent.ksql.GenericRow.genericRow;
+import static io.confluent.ksql.rest.entity.StreamedRow.header;
+import static io.confluent.ksql.rest.entity.StreamedRow.row;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
@@ -28,18 +36,9 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableList.of;
-import static io.confluent.ksql.GenericRow.genericRow;
-import static io.confluent.ksql.rest.entity.StreamedRow.header;
-import static io.confluent.ksql.rest.entity.StreamedRow.row;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThrows;
-
 public class RestTestExecutorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("col0"), SqlTypes.STRING)
       .build();

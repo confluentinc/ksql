@@ -94,7 +94,6 @@ public class AvroUtilTest {
       toKsqlSchema(SINGLE_FIELD_AVRO_SCHEMA_STRING);
 
   private static final LogicalSchema SCHEMA_WITH_MAPS = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("notmap"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("mapcol"), SqlTypes.map(SqlTypes.INTEGER))
@@ -320,7 +319,6 @@ public class AvroUtilTest {
         .connectToSqlConverter();
 
     final Builder builder = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
 
     connectSchema.fields()

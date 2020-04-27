@@ -56,15 +56,13 @@ import org.mockito.junit.MockitoRule;
 public class TableGroupByBuilderTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
-      .withMetaAndKeyColsInValue(false);
+      .withPseudoAndKeyColsInValue(false);
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumns(SCHEMA.value())
       .build();

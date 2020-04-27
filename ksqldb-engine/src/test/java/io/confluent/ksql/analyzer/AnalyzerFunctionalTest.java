@@ -171,7 +171,6 @@ public class AnalyzerFunctionalTest {
     );
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BIGINT)
         .build();
@@ -380,7 +379,6 @@ public class AnalyzerFunctionalTest {
 
   private void registerKafkaSource() {
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(COL0, SqlTypes.BIGINT)
         .build();

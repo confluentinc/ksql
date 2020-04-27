@@ -127,7 +127,7 @@ public class DataSourceNode extends PlanNode {
     }
 
     return valueOnly
-        ? getSchema().withoutMetaAndKeyColsInValue().value().stream().map(Column::name)
+        ? getSchema().withoutPseudoAndKeyColsInValue().value().stream().map(Column::name)
         : orderColumns(getSchema().value(), getSchema());
   }
 
@@ -136,7 +136,7 @@ public class DataSourceNode extends PlanNode {
     // It users a KS valueMapper to add the key fields
     // and a KS transformValues to add the implicit fields
     return dataSource.getSchema()
-        .withMetaAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
+        .withPseudoAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -155,8 +155,8 @@ public class DataSourceNode extends PlanNode {
 
     final Stream<Column> values = columns.stream()
         .filter(c -> !SchemaUtil.isWindowBound(c.name()))
-        .filter(c -> !schema.isKeyColumn(c.name()))
-        .filter(c -> !schema.isMetaColumn(c.name()));
+        .filter(c -> !SchemaUtil.isPseudoColumn(c.name()))
+        .filter(c -> !schema.isKeyColumn(c.name()));
 
     return Streams.concat(keys, windowBounds, values).map(Column::name);
   }

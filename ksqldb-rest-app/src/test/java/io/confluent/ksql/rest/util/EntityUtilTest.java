@@ -161,7 +161,6 @@ public class EntityUtilTest {
   public void shouldNotExposeMetaColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
 

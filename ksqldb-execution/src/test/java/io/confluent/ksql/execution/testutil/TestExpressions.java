@@ -23,7 +23,6 @@ public final class TestExpressions {
       .build();
 
   public final static LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)

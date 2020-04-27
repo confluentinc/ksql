@@ -29,8 +29,7 @@ public final class Column implements SimpleColumn {
   // The order of the enum defines the order of precedence of {@code LogicalScheam.findColumn}.
   public enum Namespace {
     KEY,
-    VALUE,
-    META
+    VALUE
   }
 
   private final ColumnName name;

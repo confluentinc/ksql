@@ -42,7 +42,7 @@ public class DdlCommandExecTest {
   private static final SourceName STREAM_NAME = SourceName.of("s1");
   private static final SourceName TABLE_NAME = SourceName.of("t1");
   private static final String TOPIC_NAME = "topic";
-  private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("F1"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)

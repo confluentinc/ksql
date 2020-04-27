@@ -59,7 +59,6 @@ public class KafkaSerdeFactoryTest {
   public void shouldThrowOnValidateIfMultipleFields() {
     // Given:
     final PersistenceSchema schema = getPersistenceSchema(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("f1"), SqlTypes.BIGINT)
@@ -228,7 +227,6 @@ public class KafkaSerdeFactoryTest {
 
   private static PersistenceSchema schemaWithFieldOfType(final SqlType fieldSchema) {
     final LogicalSchema logical = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), fieldSchema)
         .build();

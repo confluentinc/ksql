@@ -71,7 +71,6 @@ public class ProjectNodeTest {
   private static final String KEY_FIELD_NAME = "col0";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(COL_0, SqlTypes.STRING)
       .valueColumn(COL_1, SqlTypes.STRING)

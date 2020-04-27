@@ -84,7 +84,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StepSchemaResolverTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("APPLE"), SqlTypes.BIGINT)
@@ -137,7 +136,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
@@ -164,7 +162,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
@@ -192,7 +189,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("JUICE"), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("PLANTAIN"), SqlTypes.STRING)
@@ -217,7 +213,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("APPLE"), SqlTypes.BIGINT)
@@ -259,7 +254,6 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
@@ -283,7 +277,6 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ORANGE_COL, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
@@ -307,7 +300,6 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("NEW_KEY"), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
@@ -346,7 +338,6 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()
@@ -371,7 +362,6 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(keyExpression.getColumnName(), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()
@@ -396,7 +386,6 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("RED"), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()
@@ -417,7 +406,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(false)));
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(false)));
   }
 
   @Test
@@ -435,7 +424,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(true)));
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(true)));
   }
 
   @Test
@@ -456,7 +445,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
@@ -480,7 +468,6 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
@@ -504,7 +491,6 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ORANGE_COL, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
@@ -528,7 +514,6 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("NEW_KEY"), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
@@ -552,7 +537,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("JUICE"), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("PLANTAIN"), SqlTypes.STRING)
@@ -592,7 +576,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(false)));
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(false)));
   }
 
   @Test
@@ -611,7 +595,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(true)));
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(true)));
   }
 
   private void givenTableFunction(final String name, final SqlType returnType) {

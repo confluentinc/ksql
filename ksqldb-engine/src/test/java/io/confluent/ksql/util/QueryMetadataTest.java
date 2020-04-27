@@ -51,7 +51,6 @@ public class QueryMetadataTest {
   private static final String QUERY_APPLICATION_ID = "Query1";
   private static final QueryId QUERY_ID = new QueryId("queryId");
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f0"), SqlTypes.STRING)
       .build();

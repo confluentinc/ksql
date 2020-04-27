@@ -95,7 +95,6 @@ public class QueryStreamWriterTest {
     limitHandlerCapture = newCapture();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
         .build();

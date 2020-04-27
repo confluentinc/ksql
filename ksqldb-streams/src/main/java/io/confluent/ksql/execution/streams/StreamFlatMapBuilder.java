@@ -105,8 +105,7 @@ public final class StreamFlatMapBuilder {
       final List<FunctionCall> tableFunctions,
       final FunctionRegistry functionRegistry
   ) {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder()
-        .withRowTime();
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
     final List<Column> cols = inputSchema.value();
 

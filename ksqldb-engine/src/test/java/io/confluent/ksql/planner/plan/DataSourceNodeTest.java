@@ -95,7 +95,6 @@ public class DataSourceNodeTest {
   private static final ColumnName KEY = ColumnName.of("key");
 
   private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(K0, SqlTypes.INTEGER)
       .valueColumn(FIELD1, SqlTypes.INTEGER)
       .valueColumn(FIELD2, SqlTypes.STRING)
@@ -268,7 +267,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withMetaAndKeyColsInValue(false)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(false)));
   }
 
   @Test
@@ -281,7 +280,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withMetaAndKeyColsInValue(true)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(true)));
   }
 
   @Test

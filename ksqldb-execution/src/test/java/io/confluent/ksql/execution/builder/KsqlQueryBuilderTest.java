@@ -66,7 +66,6 @@ public class KsqlQueryBuilderTest {
 
   private static final PhysicalSchema SOME_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .withRowTime()
           .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
           .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
           .build(),

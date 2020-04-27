@@ -76,7 +76,7 @@ public class SinkBuilderTest {
   private static final FormatInfo KEY_FORMAT = FormatInfo.of(FormatFactory.KAFKA.name());
   private static final FormatInfo VALUE_FORMAT = FormatInfo.of(FormatFactory.JSON.name());
   private static final PhysicalSchema PHYSICAL_SCHEMA =
-      PhysicalSchema.from(SCHEMA.withoutMetaAndKeyColsInValue(), SerdeOption.none());
+      PhysicalSchema.from(SCHEMA.withoutPseudoAndKeyColsInValue(), SerdeOption.none());
 
   @Mock
   private KsqlQueryBuilder queryBuilder;

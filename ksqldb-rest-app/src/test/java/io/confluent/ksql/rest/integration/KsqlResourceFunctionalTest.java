@@ -154,7 +154,6 @@ public class KsqlResourceFunctionalTest {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("AUTHOR"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("TITLE"), SqlTypes.STRING)

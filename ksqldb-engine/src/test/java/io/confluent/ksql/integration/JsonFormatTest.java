@@ -120,7 +120,6 @@ public class JsonFormatTest {
     TEST_HARNESS.produceRows(inputTopic, orderDataProvider, JSON);
 
     final LogicalSchema messageSchema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("MESSAGE"), SqlTypes.STRING)
         .build();

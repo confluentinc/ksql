@@ -108,7 +108,7 @@ public class RestQueryTranslationTest {
   public void shouldBuildAndExecuteQueries() {
     try (RestTestExecutor testExecutor = testExecutor()) {
       testExecutor.buildAndExecuteQuery(testCase);
-    } catch (final AssertionError e) {
+    } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()
           + System.lineSeparator()
           + "failed test: " + testCase.getName()

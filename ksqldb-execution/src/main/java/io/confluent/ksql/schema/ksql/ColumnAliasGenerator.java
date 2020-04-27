@@ -13,10 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.name;
+package io.confluent.ksql.schema.ksql;
 
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 
 /**
  * Generator of column names.

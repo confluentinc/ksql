@@ -22,11 +22,11 @@ import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafUndoAggre
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -248,8 +248,8 @@ public class AggregateParamsFactoryTest {
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
                 .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.INTEGER)
                 .valueColumn(ColumnNames.aggregateColumn(1), SqlTypes.STRING)
-                .valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE)
-                .valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE)
+                .valueColumn(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWBOUND_TYPE)
+                .valueColumn(SystemColumns.WINDOWEND_NAME, SystemColumns.WINDOWBOUND_TYPE)
                 .build()
         )
     );

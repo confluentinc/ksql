@@ -57,6 +57,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -68,7 +69,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -166,10 +166,10 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(query.getLogicalSchema().value(),
-        not(hasItem(hasFullName(SchemaUtil.ROWTIME_NAME))));
+        not(hasItem(hasFullName(SystemColumns.ROWTIME_NAME))));
 
     assertThat(query.getLogicalSchema().value(),
-        not(hasItem(hasFullName(SchemaUtil.ROWKEY_NAME))));
+        not(hasItem(hasFullName(SystemColumns.ROWKEY_NAME))));
   }
 
   @Test

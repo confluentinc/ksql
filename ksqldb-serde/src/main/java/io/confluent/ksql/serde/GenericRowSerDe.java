@@ -26,8 +26,9 @@ import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -54,10 +55,10 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
    *
    * <p>Count covers the following additional columns:
    * <ol>
-   *   <li>{@link SchemaUtil#ROWTIME_NAME}</li>
+   *   <li>{@link SystemColumns#ROWTIME_NAME}</li>
    *   <li>A single key column. (Which is the most common case)</li>
-   *   <li>{@link SchemaUtil#WINDOWSTART_NAME}</li>
-   *   <li>{@link SchemaUtil#WINDOWEND_NAME}</li>
+   *   <li>{@link SystemColumns#WINDOWSTART_NAME}</li>
+   *   <li>{@link SystemColumns#WINDOWEND_NAME}</li>
    * </ol>
    *
    */
@@ -156,7 +157,9 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
   }
 
   private static Class<?> getTargetType(final PersistenceSchema schema) {
-    return SchemaUtil.getJavaType(schema.serializedSchema());
+    return SchemaConverters.sqlToJavaConverter().toJavaType(
+        SchemaConverters.connectToSqlConverter().toSqlType(schema.serializedSchema())
+    );
   }
 
   private static <K> Serde<GenericRow> unwrapped(final Serde<K> innerSerde) {

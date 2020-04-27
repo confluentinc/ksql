@@ -21,14 +21,14 @@ import static io.confluent.ksql.model.WindowType.TUMBLING;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWKEY_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
-import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
-import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
-import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
-import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -65,6 +65,7 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
@@ -76,7 +77,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -459,7 +459,7 @@ public class CreateSourceFactoryTest {
     givenCommandFactoriesWithMocks();
     final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
     when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
@@ -595,7 +595,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(result.getSchema(), is(LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("hojjat"), BIGINT)
         .build()

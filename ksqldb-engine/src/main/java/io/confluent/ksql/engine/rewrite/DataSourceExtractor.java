@@ -30,8 +30,8 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -69,7 +69,7 @@ class DataSourceExtractor {
       return false;
     }
 
-    if (SchemaUtil.isPseudoColumn(name)) {
+    if (SystemColumns.isPseudoColumn(name)) {
       return true;
     }
 

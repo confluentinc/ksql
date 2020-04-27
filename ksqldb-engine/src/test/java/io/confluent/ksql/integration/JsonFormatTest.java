@@ -36,6 +36,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.DisabledKsqlClient;
@@ -46,7 +47,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -120,7 +120,7 @@ public class JsonFormatTest {
     TEST_HARNESS.produceRows(inputTopic, orderDataProvider, JSON);
 
     final LogicalSchema messageSchema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("MESSAGE"), SqlTypes.STRING)
         .build();
 

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.name;
+package io.confluent.ksql.schema.ksql;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -24,9 +24,10 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
-import io.confluent.ksql.name.ColumnNames.AliasGenerator;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.ColumnNames.AliasGenerator;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;

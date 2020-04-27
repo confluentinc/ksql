@@ -30,10 +30,10 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKSourceFactory;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -151,11 +151,11 @@ public class DataSourceNode extends PlanNode {
         .filter(c -> schema.isKeyColumn(c.name()));
 
     final Stream<Column> windowBounds = columns.stream()
-        .filter(c -> SchemaUtil.isWindowBound(c.name()));
+        .filter(c -> SystemColumns.isWindowBound(c.name()));
 
     final Stream<Column> values = columns.stream()
-        .filter(c -> !SchemaUtil.isWindowBound(c.name()))
-        .filter(c -> !SchemaUtil.isPseudoColumn(c.name()))
+        .filter(c -> !SystemColumns.isWindowBound(c.name()))
+        .filter(c -> !SystemColumns.isPseudoColumn(c.name()))
         .filter(c -> !schema.isKeyColumn(c.name()));
 
     return Streams.concat(keys, windowBounds, values).map(Column::name);

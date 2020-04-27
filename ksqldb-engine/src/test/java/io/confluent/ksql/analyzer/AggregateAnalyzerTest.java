@@ -40,8 +40,8 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -56,7 +56,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AggregateAnalyzerTest {
 
   private static final UnqualifiedColumnReferenceExp DEFAULT_ARGUMENT =
-      new UnqualifiedColumnReferenceExp(SchemaUtil.ROWTIME_NAME);
+      new UnqualifiedColumnReferenceExp(SystemColumns.ROWTIME_NAME);
 
   private static final UnqualifiedColumnReferenceExp GROUP_BY_0 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"));
@@ -374,7 +374,7 @@ public class AggregateAnalyzerTest {
   public void shouldNotCaptureWindowStartAsRequiredColumn() {
     // Given:
     givenWindowExpression();
-    givenSelectExpression(new UnqualifiedColumnReferenceExp(SchemaUtil.WINDOWSTART_NAME));
+    givenSelectExpression(new UnqualifiedColumnReferenceExp(SystemColumns.WINDOWSTART_NAME));
 
     // When:
     final AggregateAnalysisResult result = analyzer.analyze(analysis, selects);
@@ -384,14 +384,14 @@ public class AggregateAnalyzerTest {
         .map(ColumnReferenceExp::getColumnName)
         .collect(Collectors.toList());
 
-    assertThat(requiredColumnNames, not(hasItem(SchemaUtil.WINDOWSTART_NAME)));
+    assertThat(requiredColumnNames, not(hasItem(SystemColumns.WINDOWSTART_NAME)));
   }
 
   @Test
   public void shouldNotCaptureWindowEndAsRequiredColumn() {
     // Given:
     givenWindowExpression();
-    givenSelectExpression(new UnqualifiedColumnReferenceExp(SchemaUtil.WINDOWEND_NAME));
+    givenSelectExpression(new UnqualifiedColumnReferenceExp(SystemColumns.WINDOWEND_NAME));
 
     // When:
     final AggregateAnalysisResult result = analyzer.analyze(analysis, selects);
@@ -401,7 +401,7 @@ public class AggregateAnalyzerTest {
         .map(ColumnReferenceExp::getColumnName)
         .collect(Collectors.toList());
 
-    assertThat(requiredColumnNames, not(hasItem(SchemaUtil.WINDOWEND_NAME)));
+    assertThat(requiredColumnNames, not(hasItem(SystemColumns.WINDOWEND_NAME)));
   }
 
   @Test
@@ -409,7 +409,7 @@ public class AggregateAnalyzerTest {
     // Given:
     givenSelectExpression(new QualifiedColumnReferenceExp(
         SourceName.of("Fred"),
-        SchemaUtil.WINDOWEND_NAME
+        SystemColumns.WINDOWEND_NAME
     ));
 
     // When:

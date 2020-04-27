@@ -23,8 +23,8 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

@@ -18,8 +18,8 @@ package io.confluent.ksql.rest.entity;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -50,8 +50,8 @@ public final class TableRowsEntityFactory {
         .keyColumns(schema.key());
 
     if (windowed) {
-      builder.keyColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.BIGINT);
-      builder.keyColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.BIGINT);
+      builder.keyColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.BIGINT);
+      builder.keyColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.BIGINT);
     }
 
     return builder

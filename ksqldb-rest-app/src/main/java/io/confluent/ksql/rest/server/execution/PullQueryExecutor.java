@@ -85,6 +85,7 @@ import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
@@ -96,7 +97,6 @@ import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
 import java.util.List;
@@ -790,7 +790,7 @@ public final class PullQueryExecutor {
     }
 
     final ColumnName columnName = column.getColumnName();
-    if (columnName.equals(SchemaUtil.WINDOWSTART_NAME)) {
+    if (columnName.equals(SystemColumns.WINDOWSTART_NAME)) {
       return ComparisonTarget.WINDOWSTART;
     }
 
@@ -829,7 +829,7 @@ public final class PullQueryExecutor {
       final Stacker contextStacker
   ) {
     final boolean noSystemColumns = analysis.getSelectColumnNames().stream()
-        .noneMatch(SchemaUtil::isSystemColumn);
+        .noneMatch(SystemColumns::isSystemColumn);
 
     final boolean noKeyColumns = analysis.getSelectColumnNames().stream()
         .noneMatch(input.schema::isKeyColumn);
@@ -942,8 +942,8 @@ public final class PullQueryExecutor {
       final SqlType type = expressionTypeManager.getExpressionSqlType(select.getExpression());
 
       if (input.schema.isKeyColumn(select.getAlias())
-          || select.getAlias().equals(SchemaUtil.WINDOWSTART_NAME)
-          || select.getAlias().equals(SchemaUtil.WINDOWEND_NAME)
+          || select.getAlias().equals(SystemColumns.WINDOWSTART_NAME)
+          || select.getAlias().equals(SystemColumns.WINDOWEND_NAME)
       ) {
         schemaBuilder.keyColumn(select.getAlias(), type);
       } else {

@@ -38,11 +38,11 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -190,7 +190,7 @@ public class GroupByParamsFactoryTest {
     // Then:
     final ColumnName expectedKeyColName = anyKeyName
         ? ColumnName.of("KSQL_COL_1")
-        : SchemaUtil.ROWKEY_NAME;
+        : SystemColumns.ROWKEY_NAME;
 
     assertThat(result, is(structKey(expectedKeyColName, 10)));
   }
@@ -209,7 +209,7 @@ public class GroupByParamsFactoryTest {
     // Then:
     final ColumnName expectedKeyColName = anyKeyName
         ? keyAlias
-        : SchemaUtil.ROWKEY_NAME;
+        : SystemColumns.ROWKEY_NAME;
 
     assertThat(result, is(structKey(expectedKeyColName, 10)));
   }
@@ -226,7 +226,7 @@ public class GroupByParamsFactoryTest {
     // Then:
     final ColumnName expectedKeyColName = anyKeyName
         ? ColumnName.of("KSQL_COL_1")
-        : SchemaUtil.ROWKEY_NAME;
+        : SystemColumns.ROWKEY_NAME;
 
     assertThat(result, is(structKey(expectedKeyColName, "99|+|-100")));
   }
@@ -332,7 +332,7 @@ public class GroupByParamsFactoryTest {
     // Then:
     final ColumnName expectedKeyColName = anyKeyName
         ? ColumnName.of("Bob")
-        : SchemaUtil.ROWKEY_NAME;
+        : SystemColumns.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()
         .keyColumn(expectedKeyColName, SqlTypes.INTEGER)
@@ -356,7 +356,7 @@ public class GroupByParamsFactoryTest {
     // Then:
     final ColumnName expectedKeyColName = anyKeyName
         ? ColumnName.of("someField")
-        : SchemaUtil.ROWKEY_NAME;
+        : SystemColumns.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()
         .keyColumn(expectedKeyColName, SqlTypes.INTEGER)
@@ -383,7 +383,7 @@ public class GroupByParamsFactoryTest {
     // Then:
     final ColumnName expectedKeyColName = anyKeyName
         ? keyAlias
-        : SchemaUtil.ROWKEY_NAME;
+        : SystemColumns.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()
         .keyColumn(expectedKeyColName, SqlTypes.INTEGER)
@@ -404,7 +404,7 @@ public class GroupByParamsFactoryTest {
     // Then:
     final ColumnName expectedKeyColName = anyKeyName
         ? ColumnName.of("KSQL_COL_1")
-        : SchemaUtil.ROWKEY_NAME;
+        : SystemColumns.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()
         .keyColumn(expectedKeyColName, SqlTypes.INTEGER)
@@ -425,7 +425,7 @@ public class GroupByParamsFactoryTest {
     // Then:
     final ColumnName expectedKeyColName = anyKeyName
         ? ColumnName.of("KSQL_COL_1")
-        : SchemaUtil.ROWKEY_NAME;
+        : SystemColumns.ROWKEY_NAME;
 
     assertThat(schema, is(LogicalSchema.builder()
         .keyColumn(expectedKeyColName, SqlTypes.STRING)

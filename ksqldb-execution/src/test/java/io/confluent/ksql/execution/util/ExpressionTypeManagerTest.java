@@ -72,11 +72,11 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
@@ -520,7 +520,7 @@ public class ExpressionTypeManagerTest {
   public void shouldEvaluateTypeForStructExpression() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(COL0, SqlTypes.array(SqlTypes.INTEGER))
         .build();
 
@@ -550,7 +550,7 @@ public class ExpressionTypeManagerTest {
     final SqlStruct inner = SqlTypes.struct().field("IN0", SqlTypes.INTEGER).build();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(COL0, SqlTypes.array(inner))
         .build();
 
@@ -578,7 +578,7 @@ public class ExpressionTypeManagerTest {
         .build();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(COL0, inner)
         .build();
 

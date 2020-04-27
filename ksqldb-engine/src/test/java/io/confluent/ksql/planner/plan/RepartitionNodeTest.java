@@ -31,8 +31,8 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -61,7 +61,7 @@ public class RepartitionNodeTest {
       .valueColumn(V1, SqlTypes.DOUBLE)
       .valueColumn(V2, SqlTypes.DOUBLE)
       .valueColumn(K0, SqlTypes.DOUBLE)
-      .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+      .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
       .build();
 
   private static final List<ColumnName> PARENT_COL_NAMES = ImmutableList.of(

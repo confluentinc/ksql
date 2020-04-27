@@ -22,7 +22,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -46,7 +46,7 @@ public class SingleColumn extends SelectItem {
   ) {
     super(location);
 
-    SchemaUtil.systemColumnNames()
+    SystemColumns.systemColumnNames()
         .forEach(columnName -> checkForReservedToken(expression, alias, columnName));
 
     this.expression = requireNonNull(expression, "expression");

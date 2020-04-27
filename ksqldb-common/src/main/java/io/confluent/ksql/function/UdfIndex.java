@@ -20,10 +20,10 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -358,7 +358,7 @@ public class UdfIndex<T extends FunctionSignature> {
         return reserveGenerics(type, argument, reservedGenerics);
       }
 
-      return SchemaUtil.areCompatible(argument, type, allowCasts);
+      return ParamTypes.areCompatible(argument, type, allowCasts);
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 

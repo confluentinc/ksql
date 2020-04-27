@@ -39,12 +39,12 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
@@ -73,10 +73,10 @@ public class StreamSelectKeyBuilderV1Test {
       new UnqualifiedColumnReferenceExp(ColumnName.of("BOI"));
 
   private static final LogicalSchema RESULT_SCHEMA = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of(SchemaUtil.ROWTIME_NAME.text()), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of(SystemColumns.ROWTIME_NAME.text()), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .build();
 
@@ -86,7 +86,7 @@ public class StreamSelectKeyBuilderV1Test {
   private static final long A_BIG = 3000;
 
   private static final Struct SOURCE_KEY = StructKeyUtil
-      .keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .build("dre");
 
   @Mock

@@ -21,6 +21,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Map;
@@ -28,7 +29,7 @@ import java.util.Map;
 public class UserDataProvider extends TestDataProvider<String> {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("REGISTERTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("GENDER"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("REGIONID"), SqlTypes.STRING)

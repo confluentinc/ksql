@@ -20,6 +20,7 @@ import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.types.DecimalType;
 import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -27,7 +28,6 @@ import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -198,7 +198,7 @@ public final class FunctionLoaderUtils {
     return (parameters, arguments) -> {
       if (schemaProvider != null) {
         final SqlType returnType = schemaProvider.apply(arguments);
-        if (!(SchemaUtil.areCompatible(returnType, javaReturnSchema))) {
+        if (!(ParamTypes.areCompatible(returnType, javaReturnSchema))) {
           throw new KsqlException(String.format(
               "Return type %s of UDF %s does not match the declared "
                   + "return type %s.",

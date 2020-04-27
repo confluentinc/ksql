@@ -48,10 +48,10 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -222,7 +222,7 @@ public final class StepSchemaResolver {
         .getExpressionSqlType(step.getKeyExpression());
 
     return LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
+        .keyColumn(SystemColumns.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();
   }

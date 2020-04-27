@@ -40,6 +40,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -48,7 +49,6 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.UserDataProvider;
 import java.time.Duration;
 import java.time.Instant;
@@ -689,7 +689,7 @@ public class KsMaterializationFunctionalTest {
 
   private static Struct asKeyStruct(final String rowKey, final PhysicalSchema physicalSchema) {
     final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
-    key.put(SchemaUtil.ROWKEY_NAME.text(), rowKey);
+    key.put(SystemColumns.ROWKEY_NAME.text(), rowKey);
     return key;
   }
 
@@ -699,7 +699,7 @@ public class KsMaterializationFunctionalTest {
       final SqlType columnType0
   ) {
     return LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of(columnName0), columnType0)
         .build();
   }
@@ -710,7 +710,7 @@ public class KsMaterializationFunctionalTest {
       final String columnName1, final SqlType columnType1
   ) {
     return LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of(columnName0), columnType0)
         .valueColumn(ColumnName.of(columnName1), columnType1)
         .build();
@@ -723,7 +723,7 @@ public class KsMaterializationFunctionalTest {
       final String columnName2, final SqlType columnType2
   ) {
     return LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of(columnName0), columnType0)
         .valueColumn(ColumnName.of(columnName1), columnType1)
         .valueColumn(ColumnName.of(columnName2), columnType2)

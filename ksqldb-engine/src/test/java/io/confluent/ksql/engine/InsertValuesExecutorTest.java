@@ -59,6 +59,7 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -71,7 +72,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
@@ -274,7 +274,7 @@ public class InsertValuesExecutorTest {
   public void shouldHandleRowTimeWithoutKey() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of(SchemaUtil.ROWTIME_NAME, COL0, COL1),
+        ImmutableList.of(SystemColumns.ROWTIME_NAME, COL0, COL1),
         ImmutableList.of(
             new LongLiteral(1234L),
             new StringLiteral("str"),
@@ -1015,7 +1015,7 @@ public class InsertValuesExecutorTest {
 
   private static List<ColumnName> allColumnNames(final LogicalSchema schema) {
     final Builder<ColumnName> builder = ImmutableList.<ColumnName>builder()
-        .add(SchemaUtil.ROWTIME_NAME);
+        .add(SystemColumns.ROWTIME_NAME);
 
     schema.columns().stream()
         .map(Column::name)

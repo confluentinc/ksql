@@ -74,11 +74,11 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
-import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1509,7 +1509,7 @@ public class ConsoleTest {
 
   private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {
     final Builder schemaBuilder = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
 
     for (int idx = 0; idx < fieldTypes.length; idx++) {
       schemaBuilder.valueColumn(ColumnName.of("f_" + idx), fieldTypes[idx]);

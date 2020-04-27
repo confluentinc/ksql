@@ -37,10 +37,10 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -71,7 +71,7 @@ public class ProjectNodeTest {
   private static final String KEY_FIELD_NAME = "col0";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(COL_0, SqlTypes.STRING)
       .valueColumn(COL_1, SqlTypes.STRING)
       .valueColumn(ALIASED_COL_2, SqlTypes.STRING)

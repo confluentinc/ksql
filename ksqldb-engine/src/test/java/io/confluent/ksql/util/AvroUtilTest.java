@@ -40,6 +40,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -94,7 +95,7 @@ public class AvroUtilTest {
       toKsqlSchema(SINGLE_FIELD_AVRO_SCHEMA_STRING);
 
   private static final LogicalSchema SCHEMA_WITH_MAPS = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("notmap"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("mapcol"), SqlTypes.map(SqlTypes.INTEGER))
       .build();
@@ -319,7 +320,7 @@ public class AvroUtilTest {
         .connectToSqlConverter();
 
     final Builder builder = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
 
     connectSchema.fields()
         .forEach(f -> builder.valueColumn(ColumnName.of(f.name()), converter.toSqlType(f.schema())));

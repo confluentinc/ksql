@@ -15,19 +15,18 @@
 
 package io.confluent.ksql.parser.tree;
 
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.util.SchemaUtil;
-import java.util.Optional;
-import org.junit.Test;
-
-import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
 import static java.util.Optional.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
+
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.exception.ParseFailedException;
+import java.util.Optional;
+import org.junit.Test;
 
 public class SingleColumnTest {
 

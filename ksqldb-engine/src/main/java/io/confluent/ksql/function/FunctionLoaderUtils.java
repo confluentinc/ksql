@@ -17,9 +17,9 @@ package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.function.UdfUtil;
-import io.confluent.ksql.function.types.DecimalType;
 import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -180,17 +180,27 @@ public final class FunctionLoaderUtils {
   static SchemaProvider handleUdfReturnSchema(
       final Class theClass,
       final ParamType javaReturnSchema,
+      final String annotationSchema,
+      final SqlTypeParser parser,
       final String schemaProviderFunctionName,
       final String functionName,
       final boolean isVariadic
   ) {
     final Function<List<SqlType>, SqlType> schemaProvider;
-    if (!schemaProviderFunctionName.equals("")) {
+    if (!Udf.NO_SCHEMA_PROVIDER.equals(schemaProviderFunctionName)) {
       schemaProvider = handleUdfSchemaProviderAnnotation(
           schemaProviderFunctionName, theClass, functionName);
-    } else if (javaReturnSchema instanceof DecimalType) {
-      throw new KsqlException(String.format("Cannot load UDF %s. BigDecimal return type "
-          + "is not supported without a schema provider method.", functionName));
+    } else if (!Udf.NO_SCHEMA.equals(annotationSchema)) {
+      schemaProvider = args -> parser.parse(annotationSchema).getSqlType();
+    } else if (!GenericsUtil.hasGenerics(javaReturnSchema)) {
+      final SqlType sqlType;
+      try {
+        sqlType = SchemaConverters.functionToSqlConverter().toSqlType(javaReturnSchema);
+      } catch (final Exception e) {
+        throw new KsqlException("Cannot load UDF " + functionName + ". "
+            + javaReturnSchema + " return type is not supported without a schema annotation.");
+      }
+      schemaProvider = args -> sqlType;
     } else {
       schemaProvider = null;
     }
@@ -208,10 +218,6 @@ public final class FunctionLoaderUtils {
           ));
         }
         return returnType;
-      }
-
-      if (!GenericsUtil.hasGenerics(javaReturnSchema)) {
-        return SchemaConverters.functionToSqlConverter().toSqlType(javaReturnSchema);
       }
 
       final Map<GenericType, SqlType> genericMapping = new HashMap<>();
@@ -283,5 +289,4 @@ public final class FunctionLoaderUtils {
       ), e);
     }
   }
-
 }

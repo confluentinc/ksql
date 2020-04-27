@@ -142,6 +142,8 @@ public class UdtfLoader {
         .handleUdfReturnSchema(
             method.getDeclaringClass(),
             outputType,
+            udtfAnnotation.schema(),
+            typeParser,
             udtfAnnotation.schemaProvider(),
             functionName.name(),
             method.isVarArgs());

@@ -23,8 +23,8 @@ public class AsValue {
       + "column to be copied into the value schema. Has no affect if used anywhere else.";
 
   @Udf
-  public <T> T asValue(@UdfParameter final T val) {
-    return val;
+  public <T> T asValue(final T keyColumn) {
+    return keyColumn;
   }
 }
 

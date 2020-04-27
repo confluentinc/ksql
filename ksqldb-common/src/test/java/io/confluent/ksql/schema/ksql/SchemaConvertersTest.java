@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.function.types.DecimalType;
+import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -37,6 +39,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -276,5 +279,19 @@ public class SchemaConvertersTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Unexpected java type: " + double.class));
+  }
+
+  @Test
+  public void shouldRoundTripSqlAndFunctionType() {
+
+    final SqlStruct.Builder struct = SqlTypes.struct();
+    struct.field("field1", SqlTypes.DECIMAL);
+    struct.field("field2", SqlTypes.array(SqlTypes.STRING));
+    struct.build();
+    
+    assertThat(
+        SchemaConverters.functionToSqlConverter().toSqlType(
+            SchemaConverters.sqlToFunctionConverter().toFunctionType(struct.build())),
+            is(struct.build()));
   }
 }

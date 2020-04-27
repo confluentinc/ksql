@@ -359,6 +359,7 @@ public final class SchemaConverters {
             .put(ParamTypes.INTEGER, SqlTypes.INTEGER)
             .put(ParamTypes.LONG, SqlTypes.BIGINT)
             .put(ParamTypes.DOUBLE, SqlTypes.DOUBLE)
+            .put(ParamTypes.DECIMAL, SqlTypes.DECIMAL)
             .build();
 
     @Override

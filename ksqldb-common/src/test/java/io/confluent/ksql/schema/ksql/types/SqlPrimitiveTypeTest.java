@@ -28,6 +28,8 @@ import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -48,6 +50,8 @@ public class SqlPrimitiveTypeTest {
             SqlPrimitiveType.of(SqlBaseType.DOUBLE))
         .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.STRING),
             SqlPrimitiveType.of(SqlBaseType.STRING))
+        .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.DECIMAL),
+                SqlPrimitiveType.of(SqlBaseType.DECIMAL))
         .addEqualityGroup(SqlArray.of(SqlPrimitiveType.of(SqlBaseType.STRING)))
         .testEquals();
   }
@@ -145,7 +149,8 @@ public class SqlPrimitiveTypeTest {
         "BOOLEAN",
         "BIGINT",
         "DOUBLE",
-        "STRING"
+        "STRING",
+        "DECIMAL"
     );
 
     // When:
@@ -174,7 +179,8 @@ public class SqlPrimitiveTypeTest {
         SqlBaseType.INTEGER,
         SqlBaseType.BIGINT,
         SqlBaseType.DOUBLE,
-        SqlBaseType.STRING
+        SqlBaseType.STRING,
+        SqlBaseType.DECIMAL
     ).forEach(type -> {
       // Then:
       assertThat(SqlPrimitiveType.of(type).toString(), is(type.toString()));
@@ -188,6 +194,7 @@ public class SqlPrimitiveTypeTest {
     SqlPrimitiveType.of(SqlBaseType.BIGINT).validateValue(33L);
     SqlPrimitiveType.of(SqlBaseType.DOUBLE).validateValue(45.0D);
     SqlPrimitiveType.of(SqlBaseType.STRING).validateValue("");
+    SqlPrimitiveType.of(SqlBaseType.DECIMAL).validateValue(new BigDecimal(3));
   }
 
   @SuppressWarnings("UnnecessaryBoxing")

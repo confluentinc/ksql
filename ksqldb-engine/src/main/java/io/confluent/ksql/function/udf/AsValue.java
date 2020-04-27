@@ -23,27 +23,7 @@ public class AsValue {
       + "column to be copied into the value schema. Has no affect if used anywhere else.";
 
   @Udf
-  public Boolean asValue(@UdfParameter final Boolean val) {
-    return val;
-  }
-
-  @Udf
-  public Integer asValue(@UdfParameter final Integer val) {
-    return val;
-  }
-
-  @Udf
-  public Long asValue(@UdfParameter final Long val) {
-    return val;
-  }
-
-  @Udf
-  public Double asValue(@UdfParameter final Double val) {
-    return val;
-  }
-
-  @Udf
-  public String asValue(@UdfParameter final String val) {
+  public <T> T asValue(@UdfParameter final T val) {
     return val;
   }
 }

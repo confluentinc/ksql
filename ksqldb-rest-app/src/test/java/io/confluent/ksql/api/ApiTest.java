@@ -60,27 +60,6 @@ public class ApiTest extends BaseApiTest {
 
   @Test
   @CoreApiTest
-  public void shouldRejectInsertsStreamUsingHttp11() throws Exception {
-
-    client.close();
-    httpVersion = HttpVersion.HTTP_1_1;
-    client = createClient();
-
-    // Given
-    JsonObject closeQueryRequestBody = new JsonObject().put("queryId", "query12345");
-
-    // When
-    HttpResponse<Buffer> response = sendRequest("/query-stream", closeQueryRequestBody.toBuffer());
-
-    // Then
-    assertThat(response.statusCode(), is(400));
-    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_HTTP2_ONLY, "This endpoint is only available when using HTTP2",
-        queryResponse.responseObject);
-  }
-
-  @Test
-  @CoreApiTest
   public void shouldExecutePullQuery() throws Exception {
 
     // Given

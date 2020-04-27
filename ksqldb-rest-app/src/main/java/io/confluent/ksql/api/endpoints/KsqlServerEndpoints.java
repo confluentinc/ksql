@@ -64,9 +64,8 @@ public class KsqlServerEndpoints implements Endpoints {
   private final PullQueryExecutor pullQueryExecutor;
   private final ReservedInternalTopics reservedInternalTopics;
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
-  private final KsqlStatementsEndpoint ksqlStatementsEndpoint;
-  private final TerminateEndpoint terminateEndpoint;
-  private final OldQueryEndpoint streamedQueryEndpoint;
+  private final KsqlResource ksqlResource;
+  private final StreamedQueryResource streamedQueryResource;
   private final ServerInfoResource serverInfoResource;
   private final Optional<HeartbeatResource> heartbeatResource;
   private final Optional<ClusterStatusResource> clusterStatusResource;
@@ -99,9 +98,8 @@ public class KsqlServerEndpoints implements Endpoints {
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor);
     this.reservedInternalTopics = new ReservedInternalTopics(ksqlConfig);
     this.ksqlSecurityContextProvider = Objects.requireNonNull(ksqlSecurityContextProvider);
-    this.ksqlStatementsEndpoint = new KsqlStatementsEndpoint(ksqlResource);
-    this.terminateEndpoint = new TerminateEndpoint(ksqlResource);
-    this.streamedQueryEndpoint = new OldQueryEndpoint(streamedQueryResource);
+    this.ksqlResource = Objects.requireNonNull(ksqlResource);
+    this.streamedQueryResource = Objects.requireNonNull(streamedQueryResource);
     this.serverInfoResource = Objects.requireNonNull(serverInfoResource);
     this.heartbeatResource = Objects.requireNonNull(heartbeatResource);
     this.clusterStatusResource = Objects.requireNonNull(clusterStatusResource);
@@ -144,7 +142,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext) {
 
     return executeOldApiEndpointOnWorker(apiSecurityContext,
-        ksqlSecurityContext -> ksqlStatementsEndpoint.executeStatements(
+        ksqlSecurityContext -> ksqlResource.handleKsqlStatements(
             ksqlSecurityContext,
             request), workerExecutor);
   }
@@ -154,9 +152,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final CompletableFuture<Void> connectionClosedFuture,
       final ApiSecurityContext apiSecurityContext) {
-
     return executeOldApiEndpointOnWorker(apiSecurityContext,
-        ksqlSecurityContext -> streamedQueryEndpoint.executeQuery(
+        ksqlSecurityContext -> streamedQueryResource.streamQuery(
             ksqlSecurityContext,
             request,
             connectionClosedFuture), workerExecutor);
@@ -168,7 +165,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
     return executeOldApiEndpointOnWorker(apiSecurityContext,
-        ksqlSecurityContext -> terminateEndpoint.executeTerminate(
+        ksqlSecurityContext -> ksqlResource.terminateCluster(
             ksqlSecurityContext,
             request), workerExecutor);
   }

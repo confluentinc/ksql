@@ -52,7 +52,6 @@ CREATE STREAM pageviews
    pageid VARCHAR)
   WITH (KAFKA_TOPIC='pageviews',
         VALUE_FORMAT='DELIMITED')
-  EMIT CHANGES;
 ```
 
 Your output should resemble:
@@ -151,8 +150,8 @@ If you want to use the value of one of the topic's columns as the Kafka
 message timestamp, set the TIMESTAMP property in the WITH clause.
 
 For example, if you want to use the value of the `viewtime` column as
-the message timestamp, you can rewrite the previous CREATE STREAM AS
-SELECT statement like this:
+the message timestamp, you can rewrite the previous CREATE STREAM statement
+like this:
 
 ```sql
 CREATE STREAM pageviews_timestamped
@@ -163,7 +162,6 @@ CREATE STREAM pageviews_timestamped
         VALUE_FORMAT='DELIMITED',
         KEY='pageid',
         TIMESTAMP='viewtime')
-  EMIT CHANGES;
 ```
 
 Confirm that the TIMESTAMP field is `viewtime` by using the DESCRIBE
@@ -206,7 +204,6 @@ CREATE STREAM pageviews
         PARTITIONS=4,
         REPLICAS=3
         VALUE_FORMAT='DELIMITED')
-  EMIT CHANGES;
 ```
 
 This will create the pageviews topics for you with the supplied partition and replica count.
@@ -367,5 +364,4 @@ Next Steps
 ----------
 
 -   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
--   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
 

@@ -21,7 +21,6 @@ import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUE
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_HTTP2_ONLY;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
@@ -39,7 +38,6 @@ import io.confluent.ksql.api.utils.SendStream;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
@@ -789,30 +787,6 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.getHeader("content-type"), is("application/json"));
   }
 
-  @Test
-  @CoreApiTest
-  public void shouldRejectQueryUsingHttp11() throws Exception {
-
-    // Given:
-    JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
-    JsonObject properties = new JsonObject().put("prop1", "val1").put("prop2", 23);
-    requestBody.put("properties", properties);
-
-    // Then
-    shouldRejectRequestUsingHttp11("/query-stream", requestBody);
-  }
-
-  @Test
-  @CoreApiTest
-  public void shouldRejectInsertsUsingHttp11() throws Exception {
-
-    // Given:
-    JsonObject requestBody = new JsonObject().put("target", "test-stream");
-
-    // Then:
-    shouldRejectRequestUsingHttp11("/inserts-stream", requestBody);
-  }
-
   private void shouldRejectMalformedJsonInArgs(String uri) throws Exception {
 
     // Given
@@ -872,22 +846,6 @@ public class ApiTest extends BaseApiTest {
     validateError(ERROR_CODE_INTERNAL_ERROR,
         "The server encountered an internal error when processing the query." +
             " Please consult the server logs for more information.",
-        queryResponse.responseObject);
-  }
-
-  private void shouldRejectRequestUsingHttp11(final String uri, final JsonObject request)
-      throws Exception {
-    client.close();
-    httpVersion = HttpVersion.HTTP_1_1;
-    client = createClient();
-
-    // When
-    HttpResponse<Buffer> response = sendRequest(uri, request.toBuffer());
-
-    // Then
-    assertThat(response.statusCode(), is(400));
-    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_HTTP2_ONLY, "This endpoint is only available when using HTTP2",
         queryResponse.responseObject);
   }
 

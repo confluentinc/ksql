@@ -71,7 +71,6 @@ public class BaseApiTest {
   protected Server server;
   protected TestEndpoints testEndpoints;
   protected ServerState serverState;
-  protected HttpVersion httpVersion = HttpVersion.HTTP_2;
 
   @Before
   public void setUp() {
@@ -130,16 +129,11 @@ public class BaseApiTest {
   }
 
   protected WebClientOptions createClientOptions() {
-    WebClientOptions webClientOptions = new WebClientOptions()
+    return new WebClientOptions()
         .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
         .setDefaultHost("localhost")
         .setDefaultPort(server.getListeners().get(0).getPort())
         .setReusePort(true);
-    webClientOptions.setProtocolVersion(httpVersion);
-    if (httpVersion == HttpVersion.HTTP_2) {
-      webClientOptions.setHttp2ClearTextUpgrade(false);
-    }
-    return webClientOptions;
   }
 
   protected WebClient createClient() {

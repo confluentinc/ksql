@@ -18,10 +18,15 @@ package io.confluent.ksql.test.tools;
 import static com.google.common.io.Files.getNameWithoutExtension;
 
 import com.google.common.collect.Streams;
+import com.google.gson.internal.$Gson$Preconditions;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.ksql.ddl.commands.DdlCommandExec;
+import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
@@ -29,6 +34,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -36,6 +42,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.topic.TopicFactory;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -109,10 +116,13 @@ public final class TestCaseBuilderUtil {
     topics.forEach(topic -> allTopics.put(topic.getName(), topic));
 
     // Infer topics if not added already:
-    statements.stream()
-        .map(sql -> createTopicFromStatement(sql, functionRegistry))
-        .filter(Objects::nonNull)
-        .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
+    final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
+    for (String sql : statements) {
+      Topic topicFromStatement = createTopicFromStatement(sql, metaStore);
+      if (topicFromStatement != null) {
+        allTopics.putIfAbsent(topicFromStatement.getName(), topicFromStatement);
+      }
+    }
 
     // Get topics from inputs and outputs fields:
     Streams.concat(inputs.stream(), outputs.stream())
@@ -124,14 +134,9 @@ public final class TestCaseBuilderUtil {
 
   private static Topic createTopicFromStatement(
       final String sql,
-      final FunctionRegistry functionRegistry
+      final MutableMetaStore metaStore
   ) {
     final KsqlParser parser = new DefaultKsqlParser();
-    final MetaStoreImpl metaStore = new MetaStoreImpl(functionRegistry);
-
-    final Predicate<ParsedStatement> onlyCSandCT = stmt ->
-        stmt.getStatement().statement() instanceof SqlBaseParser.CreateStreamContext
-            || stmt.getStatement().statement() instanceof SqlBaseParser.CreateTableContext;
 
     final Function<PreparedStatement<?>, Topic> extractTopic = (PreparedStatement<?> stmt) -> {
       final CreateSource statement = (CreateSource) stmt.getStatement();
@@ -164,11 +169,19 @@ public final class TestCaseBuilderUtil {
         throw new IllegalArgumentException("SQL contains more than one statement: " + sql);
       }
 
-      final List<Topic> topics = parsed.stream()
-          .filter(onlyCSandCT)
-          .map(stmt -> parser.prepare(stmt, metaStore))
-          .map(extractTopic)
-          .collect(Collectors.toList());
+      final List<Topic> topics = new ArrayList<>();
+      for (ParsedStatement stmt : parsed) {
+        // in order to extract the topics, we may need to also register type statements
+        if (stmt.getStatement().statement() instanceof SqlBaseParser.RegisterTypeContext) {
+          final PreparedStatement<?> prepare = parser.prepare(stmt, metaStore);
+          registerType(prepare, metaStore);
+        }
+
+        if (isCsOrCT(stmt)) {
+          final PreparedStatement<?> prepare = parser.prepare(stmt, metaStore);
+          topics.add(extractTopic.apply(prepare));
+        }
+      }
 
       return topics.isEmpty() ? null : topics.get(0);
     } catch (final Exception e) {
@@ -177,6 +190,18 @@ public final class TestCaseBuilderUtil {
       e.printStackTrace(System.out);
       return null;
     }
+  }
+
+  private static void registerType(final PreparedStatement<?> prepare, final MetaStore metaStore) {
+    if (prepare.getStatement() instanceof RegisterType) {
+      final RegisterType statement = (RegisterType) prepare.getStatement();
+      metaStore.registerType(statement.getName(), statement.getType().getSqlType());
+    }
+  }
+
+  private static boolean isCsOrCT(final ParsedStatement stmt) {
+    return stmt.getStatement().statement() instanceof SqlBaseParser.CreateStreamContext
+        || stmt.getStatement().statement() instanceof SqlBaseParser.CreateTableContext;
   }
 
   private static String filePrefix(final String testPath) {

@@ -35,8 +35,6 @@ public interface ClientOptions {
 
   ClientOptions setBasicAuthCredentials(String username, String password);
 
-  ClientOptions unsetBasicAuthCredentials();
-
   String getHost();
 
   int getPort();

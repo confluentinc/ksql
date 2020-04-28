@@ -25,12 +25,12 @@ public class ClientOptionsImpl implements ClientOptions {
   private boolean useTls = false;
   private boolean useClientAuth = false;
   private boolean useBasicAuth = false;
-  private String trustStorePath = "";
-  private String trustStorePassword = "";
-  private String keyStorePath = "";
-  private String keyStorePassword = "";
-  private String basicAuthUsername = "";
-  private String basicAuthPassword = "";
+  private String trustStorePath;
+  private String trustStorePassword;
+  private String keyStorePath;
+  private String keyStorePassword;
+  private String basicAuthUsername;
+  private String basicAuthPassword;
 
   public ClientOptionsImpl() {
   }
@@ -48,17 +48,17 @@ public class ClientOptionsImpl implements ClientOptions {
     this.useTls = useTls;
     this.useClientAuth = useClientAuth;
     this.useBasicAuth = useBasicAuth;
-    this.trustStorePath = Objects.requireNonNull(trustStorePath);
-    this.trustStorePassword = Objects.requireNonNull(trustStorePassword);
-    this.keyStorePath = Objects.requireNonNull(keyStorePath);
-    this.keyStorePassword = Objects.requireNonNull(keyStorePassword);
-    this.basicAuthUsername = Objects.requireNonNull(basicAuthUsername);
-    this.basicAuthPassword = Objects.requireNonNull(basicAuthPassword);
+    this.trustStorePath = trustStorePath;
+    this.trustStorePassword = trustStorePassword;
+    this.keyStorePath = keyStorePath;
+    this.keyStorePassword = keyStorePassword;
+    this.basicAuthUsername = basicAuthUsername;
+    this.basicAuthPassword = basicAuthPassword;
   }
 
   @Override
   public ClientOptions setHost(final String host) {
-    this.host = Objects.requireNonNull(host);
+    this.host = host;
     return this;
   }
 
@@ -82,50 +82,39 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public ClientOptions setTrustStore(final String trustStorePath) {
-    this.trustStorePath = Objects.requireNonNull(trustStorePath);
+    this.trustStorePath = trustStorePath;
     return this;
   }
 
   @Override
   public ClientOptions setTrustStorePassword(final String trustStorePassword) {
-    this.trustStorePassword = Objects.requireNonNull(trustStorePassword);
+    this.trustStorePassword = trustStorePassword;
     return this;
   }
 
   @Override
   public ClientOptions setKeyStore(final String keyStorePath) {
-    this.keyStorePath = Objects.requireNonNull(keyStorePath);
+    this.keyStorePath = keyStorePath;
     return this;
   }
 
   @Override
   public ClientOptions setKeyStorePassword(final String keyStorePassword) {
-    this.keyStorePassword = Objects.requireNonNull(keyStorePassword);
+    this.keyStorePassword = keyStorePassword;
     return this;
   }
 
   @Override
   public ClientOptions setBasicAuthCredentials(final String username, final String password) {
-    Objects.requireNonNull(username);
-    Objects.requireNonNull(password);
-
-    this.useBasicAuth = true;
+    this.useBasicAuth = username == null && password == null;
     this.basicAuthUsername = username;
     this.basicAuthPassword = password;
     return this;
   }
 
   @Override
-  public ClientOptions unsetBasicAuthCredentials() {
-    this.useBasicAuth = false;
-    this.basicAuthUsername = "";
-    this.basicAuthPassword = "";
-    return this;
-  }
-
-  @Override
   public String getHost() {
-    return host;
+    return host == null ? "" : host;
   }
 
   @Override
@@ -150,32 +139,32 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public String getTrustStore() {
-    return trustStorePath;
+    return trustStorePath == null ? "" : trustStorePath;
   }
 
   @Override
   public String getTrustStorePassword() {
-    return trustStorePassword;
+    return trustStorePassword == null ? "" : trustStorePassword;
   }
 
   @Override
   public String getKeyStore() {
-    return keyStorePath;
+    return keyStorePath == null ? "" : keyStorePath;
   }
 
   @Override
   public String getKeyStorePassword() {
-    return keyStorePassword;
+    return keyStorePassword == null ? "" : keyStorePassword;
   }
 
   @Override
   public String getBasicAuthUsername() {
-    return basicAuthUsername;
+    return basicAuthUsername == null ? "" : basicAuthUsername;
   }
 
   @Override
   public String getBasicAuthPassword() {
-    return basicAuthPassword;
+    return basicAuthPassword == null ? "" : basicAuthPassword;
   }
 
   @Override

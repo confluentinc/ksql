@@ -91,7 +91,7 @@ ksqlDB supports the following formats:
 -   Avro message values. Avro keys are not yet supported.
     Requires {{ site.sr }} and `ksql.schema.registry.url` in the ksqlDB
     server configuration file. For more information, see
-    [Configure ksqlDB for Avro or Protobuf](operate-and-deploy/installation/server-config/avro-schema.md).
+    [Configure ksqlDB for Avro, Protobuf, and JSON schemas](operate-and-deploy/installation/server-config/avro-schema.md).
 -   Protocol Buffers (Protobuf) 
 -   KAFKA (for example, a `BIGINT` that's serialized using Kafka's
     standard `LongSerializer`).
@@ -172,7 +172,7 @@ How do I use Avro data and integrate with Confluent Schema Registry?
 
 Configure the `ksql.schema.registry.url` property in the ksqlDB server
 configuration to point to {{ site.sr }} (see
-[Configure ksqlDB for Avro or Protobuf](operate-and-deploy/installation/server-config/avro-schema.md#configure-avro-and-schema-registry-for-ksql)).
+[Configure ksqlDB for Avro, Protobuf, and JSON schemas](operate-and-deploy/installation/server-config/avro-schema.md#configure-avro-and-schema-registry-for-ksql)).
 
 !!! important
 	-   To use Avro data with ksqlDB you must have {{ site.sr }}

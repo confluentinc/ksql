@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
-import static io.confluent.ksql.util.Identifiers.ensureTrimmed;
+import static io.confluent.ksql.schema.utils.Identifiers.ensureTrimmed;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.util.Identifiers;
+import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.schema.utils.Identifiers;
 import java.util.Objects;
 
 @Immutable

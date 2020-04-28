@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.Objects;
 
 /**

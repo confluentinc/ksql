@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.utils;
 
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.schema.utils.Pair;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;

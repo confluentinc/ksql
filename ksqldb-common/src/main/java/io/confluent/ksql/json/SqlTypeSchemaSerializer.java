@@ -18,8 +18,8 @@ package io.confluent.ksql.json;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import java.io.IOException;
 
 public class SqlTypeSchemaSerializer extends JsonSerializer<SqlType> {

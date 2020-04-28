@@ -13,15 +13,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.ksql;
+package io.confluent.ksql.schema.utils;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.util.KsqlConstants;
 import java.util.function.Predicate;
 
 public final class FormatOptions {
 
+  public static final String ESCAPE = "`";
   private final Predicate<String> addQuotesPredicate;
 
   public static FormatOptions none() {
@@ -76,6 +76,6 @@ public final class FormatOptions {
    *         back quotes
    */
   public String escape(final String word) {
-    return shouldQuote(word) ? KsqlConstants.ESCAPE + word + KsqlConstants.ESCAPE : word;
+    return shouldQuote(word) ? ESCAPE + word + ESCAPE : word;
   }
 }

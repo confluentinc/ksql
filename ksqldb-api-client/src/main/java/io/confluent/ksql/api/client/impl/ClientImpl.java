@@ -104,7 +104,7 @@ public class ClientImpl implements Client {
 
   @Override
   public Publisher<InsertAck> streamInserts(
-      String streamName, Publisher<List<Object>> insertsPublisher) {
+      final String streamName, final Publisher<List<Object>> insertsPublisher) {
     return null; // not yet implemented
   }
 

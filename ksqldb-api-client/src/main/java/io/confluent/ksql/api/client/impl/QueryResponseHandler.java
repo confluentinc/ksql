@@ -56,9 +56,9 @@ abstract class QueryResponseHandler<T> {
 
   protected abstract void handleBodyEnd();
 
-  protected abstract void handleMetadata(final QueryResponseMetadata queryResponseMetadata);
+  protected abstract void handleMetadata(QueryResponseMetadata queryResponseMetadata);
 
-  protected abstract void handleRow(final Buffer buff);
+  protected abstract void handleRow(Buffer buff);
 
   private void handleArgs(final Buffer buff) {
     hasReadArguments = true;

@@ -77,7 +77,7 @@ public class RowImpl implements Row {
 
   @Override
   public Integer getInt(final int columnIndex) {
-    Number number = (Number)getObject(columnIndex);
+    final Number number = (Number)getObject(columnIndex);
     if (number == null) {
       return null;
     } else {
@@ -92,7 +92,7 @@ public class RowImpl implements Row {
 
   @Override
   public Long getLong(final int columnIndex) {
-    Number number = (Number)getObject(columnIndex);
+    final Number number = (Number)getObject(columnIndex);
     if (number == null) {
       return null;
     } else {
@@ -107,7 +107,7 @@ public class RowImpl implements Row {
 
   @Override
   public Double getDouble(final int columnIndex) {
-    Number number = (Number)getObject(columnIndex);
+    final Number number = (Number)getObject(columnIndex);
     if (number == null) {
       return null;
     } else {

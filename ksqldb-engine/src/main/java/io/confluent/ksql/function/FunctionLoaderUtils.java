@@ -17,10 +17,10 @@ package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.function.UdfUtil;
-import io.confluent.ksql.function.types.DecimalType;
 import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -180,17 +180,25 @@ public final class FunctionLoaderUtils {
   static SchemaProvider handleUdfReturnSchema(
       final Class theClass,
       final ParamType javaReturnSchema,
+      final String annotationSchema,
+      final SqlTypeParser parser,
       final String schemaProviderFunctionName,
       final String functionName,
       final boolean isVariadic
   ) {
     final Function<List<SqlType>, SqlType> schemaProvider;
-    if (!schemaProviderFunctionName.equals("")) {
+    if (!Udf.NO_SCHEMA_PROVIDER.equals(schemaProviderFunctionName)) {
       schemaProvider = handleUdfSchemaProviderAnnotation(
           schemaProviderFunctionName, theClass, functionName);
-    } else if (javaReturnSchema instanceof DecimalType) {
-      throw new KsqlException(String.format("Cannot load UDF %s. BigDecimal return type "
-          + "is not supported without a schema provider method.", functionName));
+    } else if (!Udf.NO_SCHEMA.equals(annotationSchema)) {
+      final SqlType sqlType = parser.parse(annotationSchema).getSqlType();
+      schemaProvider = args -> sqlType;
+    } else if (!GenericsUtil.hasGenerics(javaReturnSchema)) {
+      // it is important to do this eagerly and not in the lambda so that
+      // we can fail early (when loading the UDF) instead of when the user
+      // attempts to use the UDF
+      final SqlType sqlType = fromJavaType(javaReturnSchema, functionName);
+      schemaProvider = args -> sqlType;
     } else {
       schemaProvider = null;
     }
@@ -210,10 +218,6 @@ public final class FunctionLoaderUtils {
         return returnType;
       }
 
-      if (!GenericsUtil.hasGenerics(javaReturnSchema)) {
-        return SchemaConverters.functionToSqlConverter().toSqlType(javaReturnSchema);
-      }
-
       final Map<GenericType, SqlType> genericMapping = new HashMap<>();
       for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
         final ParamType schema = parameters.get(i);
@@ -231,7 +235,15 @@ public final class FunctionLoaderUtils {
     };
   }
 
-
+  private static SqlType fromJavaType(final ParamType javaReturnSchema, final String functionName) {
+    try {
+      return SchemaConverters.functionToSqlConverter().toSqlType(javaReturnSchema);
+    } catch (final Exception e) {
+      throw new KsqlException("Cannot load UDF " + functionName + ". " + javaReturnSchema
+          + " return type is not supported without an explicit schema or schema provider set"
+          + " in the method annotation.");
+    }
+  }
 
   private static Function<List<SqlType>, SqlType> handleUdfSchemaProviderAnnotation(
       final String schemaProviderName,
@@ -283,5 +295,4 @@ public final class FunctionLoaderUtils {
       ), e);
     }
   }
-
 }

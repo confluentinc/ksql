@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.vertx.core.buffer.Buffer;
 import java.io.IOException;
@@ -41,9 +40,6 @@ public final class PojoCodec {
       final Class<T> clazz) {
     try {
       return Optional.of(OBJECT_MAPPER.readValue(buffer.getBytes(), clazz));
-    } catch (UnrecognizedPropertyException e) {
-      errorHandler.onExtraParam(e.getPropertyName());
-      return Optional.empty();
     } catch (MismatchedInputException e) {
       // This is super ugly but I can't see how else to extract the property name
       final int startIndex = e.getMessage().indexOf('\'');

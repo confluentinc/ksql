@@ -1,6 +1,6 @@
 {
   "comments": [
-    "NOTE: these tests only attempt to cover multi-join scenarios; ensuring the valV0ity of the ",
+    "NOTE: these tests only attempt to cover multi-join scenarios; ensuring the validity of the ",
     "sub-join topologies is delegated to joins.json"
   ],
   "tests": [

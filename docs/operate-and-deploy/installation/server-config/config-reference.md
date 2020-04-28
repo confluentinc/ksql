@@ -166,8 +166,8 @@ can't be decoded according to that data format, ksqlDB considers this
 message to be corrupt.
 
 For example, a message is corrupt if ksqlDB expects message values to be in
-JSON format, but they are in DELIMITED format. The default value in ksqlDB is
-`false`, which means a corrupt message results in a log entry, and ksqlDB
+JSON format, but it's in DELIMITED format instead. The default value in ksqlDB
+is `false`, which means a corrupt message results in a log entry, and ksqlDB
 continues processing. To change this default behavior and instead have
 {{ site.kstreams }} threads shut down when corrupt messages are encountered,
 add the following setting to your ksqlDB Server properties file:

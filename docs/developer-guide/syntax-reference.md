@@ -58,6 +58,9 @@ Use the following syntax to declare nested data:
 STRUCT<FieldName FieldType, ...>
 ```
 
+!!! note
+    ksqlDB doesn't support reading nested data from CSV-formatted data.
+
 The `STRUCT` type requires you to specify a list of fields. For each
 field, you specify the field name and field type. The field type can be
 any of the supported ksqlDB types, including the complex types `MAP`,

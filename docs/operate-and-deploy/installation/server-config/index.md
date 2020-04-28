@@ -7,7 +7,7 @@ description: Learn about the configuration settings you can use to set up ksqlDB
 
 - [Configure Security for ksqlDB](security.md)
 - [ksqlDB Configuration Parameter Reference](config-reference.md)
-- [Configure ksqlDB for Avro or Protobuf](avro-schema.md)
+- [Configure ksqlDB for Avro, Protobuf, and JSON schemas](avro-schema.md)
 - [Integrate ksqlDB with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md)
 
 ksqlDB configuration parameters can be set for ksqlDB Server and for queries,

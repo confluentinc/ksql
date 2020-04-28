@@ -191,15 +191,13 @@ public final class FunctionLoaderUtils {
       schemaProvider = handleUdfSchemaProviderAnnotation(
           schemaProviderFunctionName, theClass, functionName);
     } else if (!Udf.NO_SCHEMA.equals(annotationSchema)) {
-      schemaProvider = args -> parser.parse(annotationSchema).getSqlType();
+      final SqlType sqlType = parser.parse(annotationSchema).getSqlType();
+      schemaProvider = args -> sqlType;
     } else if (!GenericsUtil.hasGenerics(javaReturnSchema)) {
-      final SqlType sqlType;
-      try {
-        sqlType = SchemaConverters.functionToSqlConverter().toSqlType(javaReturnSchema);
-      } catch (final Exception e) {
-        throw new KsqlException("Cannot load UDF " + functionName + ". "
-            + javaReturnSchema + " return type is not supported without a schema annotation.");
-      }
+      // it is important to do this eagerly and not in the lambda so that
+      // we can fail early (when loading the UDF) instead of when the user
+      // attempts to use the UDF
+      final SqlType sqlType = fromJavaType(javaReturnSchema, functionName);
       schemaProvider = args -> sqlType;
     } else {
       schemaProvider = null;
@@ -237,7 +235,15 @@ public final class FunctionLoaderUtils {
     };
   }
 
-
+  private static SqlType fromJavaType(final ParamType javaReturnSchema, final String functionName) {
+    try {
+      return SchemaConverters.functionToSqlConverter().toSqlType(javaReturnSchema);
+    } catch (final Exception e) {
+      throw new KsqlException("Cannot load UDF " + functionName + ". " + javaReturnSchema
+          + " return type is not supported without an explicit schema or schema provider set"
+          + " in the method annotation.");
+    }
+  }
 
   private static Function<List<SqlType>, SqlType> handleUdfSchemaProviderAnnotation(
       final String schemaProviderName,

@@ -317,7 +317,7 @@ public class UdfLoaderTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Cannot load UDF MissingAnnotation. DECIMAL return type is " +
-            "not supported without a schema annotation."));
+            "not supported without an explicit schema"));
 
   }
 
@@ -376,7 +376,7 @@ public class UdfLoaderTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Cannot load UDF ReturnDecimalWithoutSchemaProvider. DECIMAL return type is not " +
-            "supported without a schema annotation."));
+            "supported without an explicit schema"));
   }
 
   @Test

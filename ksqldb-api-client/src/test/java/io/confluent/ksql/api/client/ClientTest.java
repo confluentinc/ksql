@@ -219,7 +219,7 @@ public class ClientTest extends BaseApiTest {
   }
 
   protected Client createJavaClient() {
-    return new ClientImpl(createJavaClientOptions(), vertx);
+    return Client.create(createJavaClientOptions(), vertx);
   }
 
   protected ClientOptions createJavaClientOptions() {

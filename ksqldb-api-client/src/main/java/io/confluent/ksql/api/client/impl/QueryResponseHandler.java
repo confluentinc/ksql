@@ -60,6 +60,10 @@ abstract class QueryResponseHandler<T> {
 
   protected abstract void handleRow(Buffer buff);
 
+  protected void checkContext() {
+    VertxUtils.checkContext(context);
+  }
+
   private void handleArgs(final Buffer buff) {
     hasReadArguments = true;
 
@@ -76,9 +80,5 @@ abstract class QueryResponseHandler<T> {
     }
 
     handleMetadata(queryResponseMetadata);
-  }
-
-  private void checkContext() {
-    VertxUtils.checkContext(context);
   }
 }

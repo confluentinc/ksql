@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientImpl;
+import io.vertx.core.Vertx;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -67,5 +68,9 @@ public interface Client {
 
   static Client create(ClientOptions clientOptions) {
     return new ClientImpl(clientOptions);
+  }
+
+  static Client create(ClientOptions clientOptions, Vertx vertx) {
+    return new ClientImpl(clientOptions, vertx);
   }
 }

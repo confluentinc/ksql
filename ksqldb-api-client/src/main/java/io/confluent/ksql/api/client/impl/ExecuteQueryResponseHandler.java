@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
@@ -23,6 +24,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>> {
@@ -30,6 +32,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>>
   private final List<Row> rows;
   private List<String> columnNames;
   private List<String> columnTypes;
+  private Map<String, Integer> columnNameToIndex;
 
   ExecuteQueryResponseHandler(final Context context, final RecordParser recordParser,
       final CompletableFuture<List<Row>> cf) {
@@ -41,12 +44,13 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>>
   protected void handleMetadata(final QueryResponseMetadata queryResponseMetadata) {
     columnNames = queryResponseMetadata.columnNames;
     columnTypes = queryResponseMetadata.columnTypes;
+    columnNameToIndex = RowUtil.valueToIndexMap(columnNames);
   }
 
   @Override
   protected void handleRow(final Buffer buff) {
     final JsonArray values = new JsonArray(buff);
-    rows.add(new RowImpl(columnNames, columnTypes, values));
+    rows.add(new RowImpl(columnNames, columnTypes, values, columnNameToIndex));
   }
 
   @Override

@@ -19,8 +19,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.api.client.util.RowUtil;
 import io.vertx.core.json.JsonArray;
 import java.util.List;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -28,13 +30,14 @@ public class RowImplTest {
 
   private static final List<String> COLUMN_NAMES = ImmutableList.of("f_str", "f_int", "f_long", "f_double", "f_bool");
   private static final List<String> COLUMN_TYPES = ImmutableList.of("STRING", "INTEGER", "BIGINT", "DOUBLE", "BOOLEAN");
+  private static final Map<String, Integer> COLUMN_NAME_TO_INDEX = RowUtil.valueToIndexMap(COLUMN_NAMES);
   private static final JsonArray VALUES = new JsonArray(ImmutableList.of("foo", 2, 1234L, 34.43, false));
 
   private RowImpl row;
 
   @Before
   public void setUp() {
-    row = new RowImpl(COLUMN_NAMES, COLUMN_TYPES, VALUES);
+    row = new RowImpl(COLUMN_NAMES, COLUMN_TYPES, VALUES, COLUMN_NAME_TO_INDEX);
   }
 
   @Test

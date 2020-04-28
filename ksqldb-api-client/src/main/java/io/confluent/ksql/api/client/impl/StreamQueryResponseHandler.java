@@ -17,17 +17,20 @@ package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.QueryResult;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class StreamQueryResponseHandler extends QueryResponseHandler<QueryResult> {
 
   private QueryResultImpl queryResult;
+  private Map<String, Integer> columnNameToIndex;
   private boolean paused;
 
   StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
@@ -40,6 +43,7 @@ public class StreamQueryResponseHandler extends QueryResponseHandler<QueryResult
     this.queryResult = new QueryResultImpl(context, queryResponseMetadata.queryId,
         Collections.unmodifiableList(queryResponseMetadata.columnNames),
         Collections.unmodifiableList(queryResponseMetadata.columnTypes));
+    this.columnNameToIndex = RowUtil.valueToIndexMap(queryResponseMetadata.columnNames);
     cf.complete(queryResult);
   }
 
@@ -50,7 +54,12 @@ public class StreamQueryResponseHandler extends QueryResponseHandler<QueryResult
     }
 
     final JsonArray values = new JsonArray(buff);
-    final Row row = new RowImpl(queryResult.columnNames(), queryResult.columnTypes(), values);
+    final Row row = new RowImpl(
+        queryResult.columnNames(),
+        queryResult.columnTypes(),
+        values,
+        columnNameToIndex
+    );
     final boolean full = queryResult.accept(row);
     if (full && !paused) {
       recordParser.pause();
@@ -64,6 +73,8 @@ public class StreamQueryResponseHandler extends QueryResponseHandler<QueryResult
   }
 
   private void publisherReceptive() {
+    checkContext();
+
     paused = false;
     recordParser.resume();
   }

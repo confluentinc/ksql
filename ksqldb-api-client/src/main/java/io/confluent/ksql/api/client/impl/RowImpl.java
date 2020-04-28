@@ -17,9 +17,9 @@ package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.Row;
 import io.vertx.core.json.JsonArray;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class RowImpl implements Row {
 
@@ -32,12 +32,12 @@ public class RowImpl implements Row {
   public RowImpl(
       final List<String> columnNames,
       final List<String> columnTypes,
-      final JsonArray values) {
-    this.columnNames = columnNames;
-    this.columnTypes = columnTypes;
-    this.values = values.getList();
-
-    this.columnNameToIndex = valueToIndexMap(columnNames);
+      final JsonArray values,
+      final Map<String, Integer> columnNameToIndex) {
+    this.columnNames = Objects.requireNonNull(columnNames);
+    this.columnTypes = Objects.requireNonNull(columnTypes);
+    this.values = Objects.requireNonNull(values).getList();
+    this.columnNameToIndex = Objects.requireNonNull(columnNameToIndex);
   }
 
   @Override
@@ -136,14 +136,5 @@ public class RowImpl implements Row {
       throw new IllegalArgumentException("No column exists with name: " + columnName);
     }
     return index;
-  }
-
-  // Given list of values, return map of value to index in list. Returned indices are 1-indexed.
-  private static Map<String, Integer> valueToIndexMap(final List<String> values) {
-    final Map<String, Integer> valueToIndex = new HashMap<>();
-    for (int i = 0; i < values.size(); i++) {
-      valueToIndex.put(values.get(i), i + 1);
-    }
-    return valueToIndex;
   }
 }

@@ -135,7 +135,7 @@ public class ClientImpl implements Client {
         serverSocketAddress, clientOptions.getPort(), clientOptions.getHost(),
         "/query-stream",
         response -> handleResponse(response, cf, responseHandlerSupplier))
-        .exceptionHandler(e -> handleRequestException(e, cf));
+        .exceptionHandler(cf::completeExceptionally);
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
     }
@@ -151,10 +151,6 @@ public class ClientImpl implements Client {
     final String base64creds =
         Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
     return request.putHeader(AUTHORIZATION.toString(), "Basic " + base64creds);
-  }
-
-  private static void handleRequestException(final Throwable t, final CompletableFuture<?> cf) {
-    cf.completeExceptionally(t);
   }
 
   private static <T> void handleResponse(

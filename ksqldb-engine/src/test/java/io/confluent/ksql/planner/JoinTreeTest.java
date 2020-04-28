@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
@@ -32,6 +33,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.JoinTree.Join;
 import io.confluent.ksql.planner.JoinTree.Leaf;
 import io.confluent.ksql.planner.JoinTree.Node;
+import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import org.junit.Before;
@@ -132,7 +134,46 @@ public class JoinTreeTest {
   }
 
   @Test
+  public void shouldComputeEmptyEquivalenceSetForOuterJoins() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+
+    when(j1.getType()).thenReturn(JoinType.OUTER);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1);
+
+    // When:
+    final Node root = JoinTree.build(joins);
+
+    // Then:
+    assertThat(root.joinEquivalenceSet(), is(empty()));
+  }
+
+  @Test
+  public void shouldIgnoreOuterJoinsWhenComputingEquivalenceSets() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getType()).thenReturn(JoinType.OUTER);
+    when(j2.getLeftJoinExpression()).thenReturn(e1);
+    when(j2.getRightJoinExpression()).thenReturn(e3);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    // When:
+    final Node root = JoinTree.build(joins);
+
+    // Then:
+    assertThat(root.joinEquivalenceSet(), containsInAnyOrder(e1, e3));
+  }
+
+  @Test
   public void shouldComputeEquivalenceSetWithOverlap() {
+    // Given:
     when(j1.getLeftSource()).thenReturn(a);
     when(j1.getRightSource()).thenReturn(b);
     when(j2.getLeftSource()).thenReturn(a);
@@ -154,6 +195,7 @@ public class JoinTreeTest {
 
   @Test
   public void shouldComputeEquivalenceSetWithoutOverlap() {
+    // Given:
     when(j1.getLeftSource()).thenReturn(a);
     when(j1.getRightSource()).thenReturn(b);
     when(j2.getLeftSource()).thenReturn(a);

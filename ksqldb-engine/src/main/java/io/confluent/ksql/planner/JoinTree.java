@@ -20,6 +20,7 @@ import com.google.common.collect.Sets;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -198,6 +199,13 @@ final class JoinTree {
       //
       // We always include both sides of the current join in the output set,
       // since we know the key will be the equivalence of those
+
+      if (info.getType() == JoinType.OUTER) {
+        // The key column of OUTER joins are not equivalent to either join
+        // expression, (as either can be null), and hence return an empty equivalence
+        // set.
+        return ImmutableSet.of();
+      }
 
       final Set<Expression> keys = ImmutableSet.of(
           info.getLeftJoinExpression(),

@@ -583,16 +583,19 @@
         {"topic": "right", "key": 0, "value": {"V0": 6}, "timestamp": 100001}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": null, "S2_V0": 2, "T3_V0": 3}, "timestamp":  11},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": null, "value": {"S1_V0": null, "S1_ROWTIME": null, "S1_ID": null, "S2_V0": 2, "S2_ROWTIME": 11, "S2_ID": 0}, "timestamp":  11},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 1, "S1_ROWTIME": 12, "S1_ID": 0, "S2_V0": 2, "S2_ROWTIME": 11, "S2_ID": 0}, "timestamp":  12},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 1, "S1_ROWTIME": 12, "S1_ID": 0, "S2_V0": 4, "S2_ROWTIME": 13, "S2_ID": 0}, "timestamp":  13},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 5, "S1_ROWTIME": 100000, "S1_ID": 0, "S2_V0": null, "S2_ROWTIME": null, "S2_ID": null}, "timestamp":  100000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 5, "S1_ROWTIME": 100000, "S1_ID": 0, "S2_V0": 6, "S2_ROWTIME": 100001, "S2_ID": 0}, "timestamp":  100001},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 2, "T3_V0": 3}, "timestamp":  12},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 4, "T3_V0": 3}, "timestamp":  13},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_V0": null, "T3_V0": 3}, "timestamp":  100000},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_V0": 6, "T3_V0": 3}, "timestamp":  100001}
       ],
       "post": {
-        "topics": {"blacklist": ".*-repartition"},
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, S1_V0 BIGINT, S2_V0 BIGINT, T3_V0 BIGINT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "S1_ID INT KEY, S1_V0 BIGINT, S2_V0 BIGINT, T3_V0 BIGINT"}
         ]
       }
     },

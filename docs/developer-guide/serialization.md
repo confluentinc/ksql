@@ -144,7 +144,7 @@ top-level primitives, arrays, and maps.
 
 The format requires ksqlDB to be configured to store and retrieve the Avro
 schemas from the {{ site.srlong }}. For more information, see
-[Configure ksqlDB for Avro or Protobuf](../operate-and-deploy/installation/server-config/avro-schema.md).
+[Configure ksqlDB for Avro, Protobuf, and JSON schemas](../operate-and-deploy/installation/server-config/avro-schema.md).
 
 #### Avro Records
 

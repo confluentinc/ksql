@@ -52,6 +52,7 @@ public class ClientTest extends BaseApiTest {
   protected static final List<String> DEFAULT_COLUMN_TYPES = BaseApiTest.DEFAULT_COLUMN_TYPES.getList();
   protected static final Map<String, Object> DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES =
       BaseApiTest.DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES.getMap();
+  protected static final String DEFAULT_PUSH_QUERY_WITH_LIMIT = "select * from foo emit changes limit 10;";
 
   protected Context context;
   protected Client client;
@@ -83,29 +84,31 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldStreamQueryAsync() throws Exception {
+  public void shouldStreamPushQueryAsync() throws Exception {
     // When
-    final CompletableFuture<QueryResult> cf = client.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES);
-    assertThatEventually(cf::isDone, equalTo(true));
-    assertThat(cf.isCompletedExceptionally(), equalTo(false));
-    final QueryResult queryResult = cf.get();
+    final QueryResult queryResult =
+        client.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
 
     // Then
-    verifyPushQueryMetadata(queryResult);
+    assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(queryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
     shouldDeliver(queryResult, DEFAULT_ROWS.size());
+
+    String queryId = queryResult.queryID();
+    assertThat(queryId, is(notNullValue()));
+    verifyPushQueryServerState(DEFAULT_PUSH_QUERY, queryId);
   }
 
   @Test
-  public void shouldStreamQuerySync() throws Exception {
+  public void shouldStreamPushQuerySync() throws Exception {
     // When
-    final CompletableFuture<QueryResult> cf = client.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES);
-    assertThatEventually(cf::isDone, equalTo(true));
-    assertThat(cf.isCompletedExceptionally(), equalTo(false));
-    final QueryResult queryResult = cf.get();
+    final QueryResult queryResult =
+        client.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
 
     // Then
-    verifyPushQueryMetadata(queryResult);
+    assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(queryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
       final Row row = queryResult.poll();
@@ -113,6 +116,45 @@ public class ClientTest extends BaseApiTest {
       assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
       assertThat(row.columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
     }
+
+    String queryId = queryResult.queryID();
+    assertThat(queryId, is(notNullValue()));
+    verifyPushQueryServerState(DEFAULT_PUSH_QUERY, queryId);
+  }
+
+  @Test
+  public void shouldStreamPullQueryAsync() throws Exception {
+    // When
+    final QueryResult queryResult =
+        client.streamQuery(DEFAULT_PULL_QUERY).get();
+
+    // Then
+    assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(queryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+
+    shouldDeliver(queryResult, DEFAULT_ROWS.size());
+
+    verifyPullQueryServerState();
+  }
+
+  @Test
+  public void shouldStreamPullQuerySync() throws Exception {
+    // When
+    final QueryResult queryResult =
+        client.streamQuery(DEFAULT_PULL_QUERY).get();
+
+    // Then
+    assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(queryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+
+    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
+      final Row row = queryResult.poll();
+      assertThat(row.values(), equalTo(rowWithIndex(i).getList()));
+      assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
+      assertThat(row.columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
+    }
+
+    verifyPullQueryServerState();
   }
 
   @Test
@@ -130,25 +172,11 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldFailStreamQueryOnPullQuery() throws Exception {
-    assertErrorWhen(
-        () -> client.streamQuery(DEFAULT_PULL_QUERY),
-        "Expecting push query but was pull query"
-    );
-  }
-
-  @Test
   public void shouldExecutePullQuery() throws Exception {
     // When
-    final CompletableFuture<List<Row>> cf = client.executeQuery(DEFAULT_PULL_QUERY);
-    assertThatEventually(cf::isDone, equalTo(true));
-    assertThat(cf.isCompletedExceptionally(), equalTo(false));
-    final List<Row> rows = cf.get();
+    final List<Row> rows = client.executeQuery(DEFAULT_PULL_QUERY).get();
 
     // Then
-    assertThat(testEndpoints.getLastSql(), is(DEFAULT_PULL_QUERY));
-    assertThat(testEndpoints.getLastProperties().getMap(), is(Collections.emptyMap()));
-
     assertThat(rows, hasSize(DEFAULT_ROWS.size()));
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
       assertThat(rows.get(i).values(), equalTo(rowWithIndex(i).getList()));
@@ -156,7 +184,24 @@ public class ClientTest extends BaseApiTest {
       assertThat(rows.get(i).columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
     }
 
-    assertThat(server.getQueryIDs(), hasSize(0));
+    verifyPullQueryServerState();
+  }
+
+  @Test
+  public void shouldExecutePushQuery() throws Exception {
+    // When
+    final List<Row> rows =
+        client.executeQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+
+    // Then
+    assertThat(rows, hasSize(DEFAULT_ROWS.size()));
+    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
+      assertThat(rows.get(i).values(), equalTo(rowWithIndex(i).getList()));
+      assertThat(rows.get(i).columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
+      assertThat(rows.get(i).columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
+    }
+
+    verifyPushQueryServerState(DEFAULT_PUSH_QUERY_WITH_LIMIT);
   }
 
   @Test
@@ -173,14 +218,6 @@ public class ClientTest extends BaseApiTest {
     );
   }
 
-  @Test
-  public void shouldFailExecuteQueryOnPushQuery() throws Exception {
-    assertErrorWhen(
-        () -> client.executeQuery(DEFAULT_PUSH_QUERY),
-        "Expecting pull query but was push query"
-    );
-  }
-
   protected Client createJavaClient() {
     return new ClientImpl(createJavaClientOptions(), vertx);
   }
@@ -192,17 +229,25 @@ public class ClientTest extends BaseApiTest {
         .setUseTls(false);
   }
 
-  private void verifyPushQueryMetadata(final QueryResult queryResult) {
-    assertThat(testEndpoints.getLastSql(), is(DEFAULT_PUSH_QUERY));
+  private void verifyPushQueryServerState(final String sql) {
+    verifyPushQueryServerState(sql, null);
+  }
+
+  private void verifyPushQueryServerState(final String sql, final String queryId) {
+    assertThat(testEndpoints.getLastSql(), is(sql));
     assertThat(testEndpoints.getLastProperties(), is(BaseApiTest.DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES));
 
-    assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
-    assertThat(queryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    if (queryId != null) {
+      assertThat(server.getQueryIDs(), hasSize(1));
+      assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(true));
+    }
+  }
 
-    String queryId = queryResult.queryID();
-    assertThat(queryId, is(notNullValue()));
-    assertThat(server.getQueryIDs(), hasSize(1));
-    assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(true));
+  private void verifyPullQueryServerState() {
+    assertThat(testEndpoints.getLastSql(), is(DEFAULT_PULL_QUERY));
+    assertThat(testEndpoints.getLastProperties().getMap(), is(Collections.emptyMap()));
+
+    assertThat(server.getQueryIDs(), hasSize(0));
   }
 
   private void shouldDeliver(final Publisher<Row> publisher, final int numRows) {

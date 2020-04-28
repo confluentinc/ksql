@@ -80,7 +80,7 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    return makeQueryRequest(sql, properties, PushQueryResponseHandler::new);
+    return makeQueryRequest(sql, properties, StreamQueryResponseHandler::new);
   }
 
   @Override
@@ -93,7 +93,7 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    return makeQueryRequest(sql, properties, PullQueryResponseHandler::new);
+    return makeQueryRequest(sql, properties, ExecuteQueryResponseHandler::new);
   }
 
   @Override

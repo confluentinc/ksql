@@ -24,7 +24,7 @@ import org.reactivestreams.Publisher;
 public interface Client {
 
   /**
-   * Execute a push query.
+   * Execute a query (push or pull) and receive the results one row at a time.
    *
    * @param sql statement of query to execute.
    * @return query result.
@@ -32,7 +32,7 @@ public interface Client {
   CompletableFuture<QueryResult> streamQuery(String sql);
 
   /**
-   * Execute a push query.
+   * Execute a query (push or pull) and receive the results one row at a time.
    *
    * @param sql statement of query to execute.
    * @param properties query properties.
@@ -41,7 +41,8 @@ public interface Client {
   CompletableFuture<QueryResult> streamQuery(String sql, Map<String, Object> properties);
 
   /**
-   * Execute a pull query.
+   * Execute a query (push or pull) and receive all result rows together, once the query has
+   * completed.
    *
    * @param sql statement of query to execute.
    * @return query result.
@@ -49,7 +50,8 @@ public interface Client {
   CompletableFuture<List<Row>> executeQuery(String sql);
 
   /**
-   * Execute a pull query.
+   * Execute a query (push or pull) and receive all result rows together, once the query has
+   * completed.
    *
    * @param sql statement of query to execute.
    * @param properties query properties.

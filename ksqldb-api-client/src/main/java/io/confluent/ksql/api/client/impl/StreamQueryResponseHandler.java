@@ -15,52 +15,56 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import io.confluent.ksql.api.client.QueryResult;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.parsetools.RecordParser;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
-public class PullQueryResponseHandler extends QueryResponseHandler<List<Row>> {
+public class StreamQueryResponseHandler extends QueryResponseHandler<QueryResult> {
 
-  private final List<Row> rows;
-  private List<String> columnNames;
-  private List<String> columnTypes;
+  private QueryResultImpl queryResult;
+  private boolean paused;
 
-  PullQueryResponseHandler(final Context context, final RecordParser recordParser,
-      final CompletableFuture<List<Row>> cf) {
+  StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
+      final CompletableFuture<QueryResult> cf) {
     super(context, recordParser, cf);
-    this.rows = new ArrayList<>();
   }
 
   @Override
   protected void handleMetadata(final QueryResponseMetadata queryResponseMetadata) {
-    if (queryResponseMetadata.queryId != null && !queryResponseMetadata.queryId.isEmpty()) {
-      cf.completeExceptionally(
-          new KsqlRestClientException("Expecting pull query but was push query"));
-    }
-
-    columnNames = queryResponseMetadata.columnNames;
-    columnTypes = queryResponseMetadata.columnTypes;
+    this.queryResult = new QueryResultImpl(context, queryResponseMetadata.queryId,
+        Collections.unmodifiableList(queryResponseMetadata.columnNames),
+        Collections.unmodifiableList(queryResponseMetadata.columnTypes));
+    cf.complete(queryResult);
   }
 
   @Override
   protected void handleRow(final Buffer buff) {
+    if (queryResult == null) {
+      throw new IllegalStateException("handleRow called before metadata processed");
+    }
+
     final JsonArray values = new JsonArray(buff);
-    rows.add(new RowImpl(columnNames, columnTypes, values));
+    final Row row = new RowImpl(queryResult.columnNames(), queryResult.columnTypes(), values);
+    final boolean full = queryResult.accept(row);
+    if (full && !paused) {
+      recordParser.pause();
+      queryResult.drainHandler(this::publisherReceptive);
+      paused = true;
+    }
   }
 
   @Override
   protected void handleBodyEnd() {
-    if (!hasReadArguments) {
-      throw new IllegalStateException("Body ended before metadata received");
-    }
+  }
 
-    cf.complete(rows);
+  private void publisherReceptive() {
+    paused = false;
+    recordParser.resume();
   }
 }

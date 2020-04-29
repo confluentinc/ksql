@@ -18,10 +18,7 @@ package io.confluent.ksql.test.tools;
 import static com.google.common.io.Files.getNameWithoutExtension;
 
 import com.google.common.collect.Streams;
-import com.google.gson.internal.$Gson$Preconditions;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.ksql.ddl.commands.DdlCommandExec;
-import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -50,7 +47,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -118,7 +114,7 @@ public final class TestCaseBuilderUtil {
     // Infer topics if not added already:
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
     for (String sql : statements) {
-      Topic topicFromStatement = createTopicFromStatement(sql, metaStore);
+      final Topic topicFromStatement = createTopicFromStatement(sql, metaStore);
       if (topicFromStatement != null) {
         allTopics.putIfAbsent(topicFromStatement.getName(), topicFromStatement);
       }

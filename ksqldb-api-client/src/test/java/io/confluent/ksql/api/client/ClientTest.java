@@ -23,9 +23,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.api.BaseApiTest;
-import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.confluent.ksql.api.client.impl.ClientOptionsImpl;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.parser.exception.ParseFailedException;
@@ -35,10 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
+import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -158,17 +155,20 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldHandleErrorResponseFromStreamQuery() throws Exception {
+  public void shouldHandleErrorResponseFromStreamQuery() {
     // Given
     ParseFailedException pfe = new ParseFailedException("invalid query blah");
     testEndpoints.setCreateQueryPublisherException(pfe);
 
-    // When/Then
-    assertErrorWhen(
-        () -> client.streamQuery("bad query", DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES),
-        "Received 400 response from server",
-        "invalid query blah"
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.streamQuery("bad query", DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get()
     );
+
+    // Then
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("invalid query blah"));
   }
 
   @Test
@@ -205,17 +205,20 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldHandleErrorResponseFromExecuteQuery() throws Exception {
+  public void shouldHandleErrorResponseFromExecuteQuery() {
     // Given
     ParseFailedException pfe = new ParseFailedException("invalid query blah");
     testEndpoints.setCreateQueryPublisherException(pfe);
 
-    // When/Then
-    assertErrorWhen(
-        () -> client.executeQuery("bad query"),
-        "Received 400 response from server",
-        "invalid query blah"
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeQuery("bad query").get()
     );
+
+    // Then
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("invalid query blah"));
   }
 
   protected Client createJavaClient() {
@@ -265,43 +268,6 @@ public class ClientTest extends BaseApiTest {
     }
     assertThat(subscriber.isCompleted(), equalTo(false));
     assertThat(subscriber.getError(), is(nullValue()));
-  }
-
-  private void assertErrorWhen(
-      final Supplier<CompletableFuture<?>> queryRequest,
-      final String... errorMessages
-  ) throws Exception {
-    // Given
-    CountDownLatch latch = new CountDownLatch(1);
-
-    // When
-    final CompletableFuture<?> cf = queryRequest.get()
-        .exceptionally(error -> {
-
-          // Then
-          assertThat(error, notNullValue());
-          for (final String msg : errorMessages) {
-            assertThat(error.getMessage(), containsString(msg));
-          }
-
-          latch.countDown();
-          return null;
-        });
-    awaitLatch(latch, cf);
-  }
-
-  private static void awaitLatch(CountDownLatch latch, CompletableFuture<?> cf) throws Exception {
-    // Log reason for any failures, else output of failed tests is uninformative
-    cf.exceptionally(failure -> {
-      System.out.println("Failure reason: " + failure.getMessage());
-      return null;
-    });
-
-    awaitLatch(latch);
-  }
-
-  private static void awaitLatch(CountDownLatch latch) throws Exception {
-    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
   }
 
   private static class TestSubscriber<T> implements Subscriber<T> {

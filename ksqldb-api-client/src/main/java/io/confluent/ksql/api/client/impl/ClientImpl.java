@@ -50,6 +50,7 @@ public class ClientImpl implements Client {
   private final Vertx vertx;
   private final HttpClient httpClient;
   private final SocketAddress serverSocketAddress;
+  private final String basicAuthHeader;
   private final boolean ownedVertx;
 
   public ClientImpl(final ClientOptions clientOptions) {
@@ -66,6 +67,7 @@ public class ClientImpl implements Client {
     this.vertx = vertx;
     this.ownedVertx = ownedVertx;
     this.httpClient = createHttpClient(vertx, clientOptions);
+    this.basicAuthHeader = createBasicAuthHeader(clientOptions);
     this.serverSocketAddress = io.vertx.core.net.SocketAddress
         .inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
   }
@@ -145,12 +147,7 @@ public class ClientImpl implements Client {
   }
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
-    final String creds = clientOptions.getBasicAuthUsername()
-        + ":"
-        + clientOptions.getBasicAuthPassword();
-    final String base64creds =
-        Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
-    return request.putHeader(AUTHORIZATION.toString(), "Basic " + base64creds);
+    return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
   }
 
   private static <T> void handleResponse(
@@ -199,5 +196,18 @@ public class ClientImpl implements Client {
       );
     }
     return vertx.createHttpClient(options);
+  }
+
+  private static String createBasicAuthHeader(final ClientOptions clientOptions) {
+    if (!clientOptions.isUseBasicAuth()) {
+      return "";
+    }
+
+    final String creds = clientOptions.getBasicAuthUsername()
+        + ":"
+        + clientOptions.getBasicAuthPassword();
+    final String base64creds =
+        Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
+    return "Basic " + base64creds;
   }
 }

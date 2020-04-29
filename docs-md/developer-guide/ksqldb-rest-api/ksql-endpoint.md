@@ -72,7 +72,8 @@ Response JSON Object:
 - **streams[i].topic** (string): The topic backing the stream.
 - **streams[i].format** (string): The serialization format of the data in the
   stream. One of JSON, AVRO, or DELIMITED.
-- **streams[i].type** (string): Exclusively typed as STREAM.
+- **streams[i].type** (string): The source type. Will always be `STREAM`.
+
 
 **LIST TABLES, SHOW TABLES**
 

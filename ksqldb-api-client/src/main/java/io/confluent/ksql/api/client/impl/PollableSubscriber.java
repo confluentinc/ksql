@@ -18,9 +18,11 @@ package io.confluent.ksql.api.client.impl;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.vertx.core.Context;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import org.reactivestreams.Subscription;
 
 public class PollableSubscriber extends BaseSubscriber<Row> {
@@ -30,12 +32,14 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   private static final long MAX_POLL_NANOS = TimeUnit.MILLISECONDS.toNanos(100);
 
   private final BlockingQueue<Row> queue = new LinkedBlockingQueue<>();
+  private final Consumer<Exception> errorHandler;
   private int tokens;
-  private Throwable error;
   private volatile boolean closed;
 
-  public PollableSubscriber(final Context context) {
+  public PollableSubscriber(final Context context, final Consumer<Exception> errorHandler) {
     super(context);
+
+    this.errorHandler = Objects.requireNonNull(errorHandler);
   }
 
   @Override
@@ -49,17 +53,16 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   }
 
   @Override
-  protected synchronized void handleError(final Throwable t) {
-    System.out.println("pollable subscriber encountered error: " + t);
-    error = t;
+  protected void handleError(final Throwable t) {
+    errorHandler.accept(new Exception(t));
   }
 
   @Override
-  protected synchronized void handleComplete() {
+  protected void handleComplete() {
     close();
   }
 
-  public synchronized Row poll(final long timeout, final TimeUnit timeUnit) throws Throwable {
+  public synchronized Row poll(final long timeout, final TimeUnit timeUnit) {
     if (closed) {
       return null;
     }
@@ -82,11 +85,6 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
           tokens--;
           checkRequestTokens();
           return row;
-        }
-        if (error != null) {
-          final Throwable error = this.error;
-          this.error = null;
-          throw error;
         }
       } catch (InterruptedException e) {
         return null;

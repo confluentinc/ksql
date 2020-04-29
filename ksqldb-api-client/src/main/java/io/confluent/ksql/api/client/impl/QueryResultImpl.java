@@ -38,7 +38,7 @@ class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
     this.queryId = queryId;
     this.columnNames = columnNames;
     this.columnTypes = columnTypes;
-    this.pollableSubscriber = new PollableSubscriber(ctx);
+    this.pollableSubscriber = new PollableSubscriber(ctx, this::sendError);
   }
 
   @Override
@@ -80,12 +80,7 @@ class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
       subscribing = false;
       polling = true;
     }
-    try {
-      return pollableSubscriber.poll(timeout, timeUnit);
-    } catch (final Throwable t) {
-      sendError(new Exception("Failed to poll", t));
-      return null;
-    }
+    return pollableSubscriber.poll(timeout, timeUnit);
   }
 
   @Override

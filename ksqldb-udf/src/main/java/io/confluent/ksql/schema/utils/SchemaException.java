@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,25 +13,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.exception;
+package io.confluent.ksql.schema.utils;
 
-import io.confluent.ksql.util.Pair;
-import java.util.List;
+/**
+ * Issue with schema.
+ */
+public class SchemaException extends RuntimeException {
 
-public class KafkaDeleteTopicsException extends KafkaTopicClientException {
-
-  private final List<Pair<String, Throwable>> exceptionList;
-
-  public KafkaDeleteTopicsException(
-      final String message,
-      final List<Pair<String, Throwable>> failList
-  ) {
-    super(message);
-    exceptionList = failList;
+  public SchemaException(final String msg) {
+    super(msg);
   }
 
-  public final List<Pair<String, Throwable>> getExceptionList() {
-    return exceptionList;
+  public SchemaException(final String msg, final Throwable cause) {
+    super(msg, cause);
   }
-
 }

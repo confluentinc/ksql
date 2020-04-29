@@ -28,8 +28,6 @@ import io.confluent.ksql.test.util.ImmutableTester;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.Window;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,6 +35,7 @@ import org.junit.runners.Parameterized;
 /**
  * Meta test to ensure all sql types meet certain requirements
  */
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(Parameterized.class)
 public class SqlTypesTest {
 
@@ -61,8 +60,6 @@ public class SqlTypesTest {
   @Test
   public void shouldBeImmutable() {
     new ImmutableTester()
-        .withKnownImmutableType(Window.class)
-        .withKnownImmutableType(JoinWindows.class)
         .test(modelClass);
   }
 
@@ -80,7 +77,7 @@ public class SqlTypesTest {
         .testStaticMethods(modelClass, Visibility.PACKAGE);
   }
 
-  @SuppressWarnings({"unchecked", "UnstableApiUsage"})
+  @SuppressWarnings({"unchecked", "UnstableApiUsage", "rawtypes"})
   private static NullPointerTester getNullPointerTester() {
     final NullPointerTester tester = new NullPointerTester();
     DEFAULTS.forEach((type, value) -> {

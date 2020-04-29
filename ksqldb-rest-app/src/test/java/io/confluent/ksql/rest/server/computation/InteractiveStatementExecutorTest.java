@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -69,7 +68,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.schema.utils.Pair;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.List;
@@ -471,7 +470,7 @@ public class InteractiveStatementExecutorTest {
   public void shouldHandlePriorStatements() {
     // Given:
     final TestUtils testUtils = new TestUtils();
-    final List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
+    final List<Pair<CommandId, Command>> priorCommands = TestUtils.getAllPriorCommandRecords();
     final CommandId csCommandId = new CommandId(CommandId.Type.STREAM,
         "_CSASStreamGen",
         CommandId.Action.CREATE);

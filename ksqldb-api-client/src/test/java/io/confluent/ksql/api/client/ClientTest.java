@@ -29,7 +29,6 @@ import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.client.impl.ClientOptionsImpl;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.vertx.core.Context;
 import io.vertx.ext.web.client.WebClient;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,21 +50,19 @@ public class ClientTest extends BaseApiTest {
       BaseApiTest.DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES.getMap();
   protected static final String DEFAULT_PUSH_QUERY_WITH_LIMIT = "select * from foo emit changes limit 10;";
 
-  protected Context context;
   protected Client client;
 
   @Override
   public void setUp() {
     super.setUp();
 
-    context = vertx.getOrCreateContext();
+    // Use Java client for these tests, rather than WebClient as in BaseApiTest
+    this.client = createJavaClient();
   }
 
   @Override
   protected WebClient createClient() {
-    // Use Java client for these tests, rather than a vanilla WebClient
-    this.client = createJavaClient();
-
+    // Ensure these tests use Java client rather than WebClient
     return null;
   }
 
@@ -300,19 +297,19 @@ public class ClientTest extends BaseApiTest {
       this.completed = true;
     }
 
-    public boolean isCompleted() {
+    public synchronized boolean isCompleted() {
       return completed;
     }
 
-    public Throwable getError() {
+    public synchronized Throwable getError() {
       return error;
     }
 
-    public List<T> getValues() {
+    public synchronized List<T> getValues() {
       return values;
     }
 
-    public Subscription getSub() {
+    public synchronized Subscription getSub() {
       return sub;
     }
   }

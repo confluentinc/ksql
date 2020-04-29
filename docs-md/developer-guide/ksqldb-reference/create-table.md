@@ -25,10 +25,6 @@ ksqlDB adds the implicit columns `ROWTIME` and `ROWKEY` to every stream
 and table, which represent the corresponding Kafka message timestamp and
 message key, respectively. The timestamp has milliseconds accuracy.
 
-When creating a table from a Kafka topic, ksqlDB requries the message key
-to be a `VARCHAR` aka `STRING`. If the message key is not of this type
-follow the instructions in [Key Requirements](../syntax-reference.md#key-requirements).
-
 The WITH clause supports the following properties:
 
 |        Property         |                                            Description                                            |

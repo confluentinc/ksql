@@ -25,6 +25,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -103,6 +104,7 @@ public class StandaloneExecutor implements Executable {
     this.failOnNoQueries = failOnNoQueries;
     this.versionChecker = requireNonNull(versionChecker, "versionChecker");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
+    MetricCollectors.addConfigurableReporter(ksqlConfig);
   }
 
   public void startAsync() {

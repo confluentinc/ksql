@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,6 +24,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -34,6 +37,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -57,11 +61,15 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
+
+import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -175,8 +183,14 @@ public class KsqlRestApplicationTest {
         processingLogConfig,
         ksqlConfig
     );
+    MetricCollectors.initialize();
 
     givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"));
+  }
+
+  @After
+  public void tearDown() {
+    MetricCollectors.cleanUp();
   }
 
   @Test
@@ -195,6 +209,19 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(securityExtension).close();
+  }
+
+  @Test
+  public void shouldAddConfigurableMetricsReportersIfPresentInKsqlConfig() {
+    // When:
+    final MetricsReporter mockReporter = mock(MetricsReporter.class);
+    when(ksqlConfig.getConfiguredInstances(any(), any()))
+        .thenReturn(Collections.singletonList(mockReporter));
+    givenAppWithRestConfig(Collections.emptyMap());
+
+    // Then:
+    final List<MetricsReporter> reporters = MetricCollectors.getMetrics().reporters();
+    assertThat(reporters, hasItem(mockReporter));
   }
 
   @Test

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -43,6 +44,7 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -94,7 +96,9 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.test.TestUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -279,6 +283,7 @@ public class StandaloneExecutorTest {
     when(sandBoxTopicInjector.inject(any()))
         .thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
+    MetricCollectors.initialize();
 
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
@@ -293,12 +298,41 @@ public class StandaloneExecutorTest {
     );
   }
 
+  @After
+  public void tearDown() {
+    MetricCollectors.cleanUp();
+  }
+
   @Test
   public void shouldStartTheVersionCheckerAgent() {
     // When:
     standaloneExecutor.startAsync();
 
     verify(versionChecker).start(eq(KsqlModuleType.SERVER), any());
+  }
+
+  @Test
+  public void shouldAddConfigurableMetricsReportersIfPresentInKsqlConfig() {
+    // When:
+    final MetricsReporter mockReporter = mock(MetricsReporter.class);
+    final KsqlConfig mockKsqlConfig = mock(KsqlConfig.class);
+    when(mockKsqlConfig.getConfiguredInstances(any(), any()))
+        .thenReturn(Collections.singletonList(mockReporter));
+    standaloneExecutor = new StandaloneExecutor(
+        serviceContext,
+        processingLogConfig,
+        mockKsqlConfig,
+        ksqlEngine,
+        queriesFile.toString(),
+        udfLoader,
+        false,
+        versionChecker,
+        injectorFactory
+    );
+
+    // Then:
+    final List<MetricsReporter> reporters = MetricCollectors.getMetrics().reporters();
+    assertThat(reporters, hasItem(mockReporter));
   }
 
   @Test

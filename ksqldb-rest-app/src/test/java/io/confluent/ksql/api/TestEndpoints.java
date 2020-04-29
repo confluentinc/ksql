@@ -19,6 +19,7 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.reactive.BufferedPublisher;
@@ -41,7 +42,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import org.reactivestreams.Subscriber;
 
-public class TestEndpoints implements Endpoints {
+public class TestEndpoints implements Endpoints, InternalEndpoints {
 
   private Supplier<RowGenerator> rowGeneratorFactory;
   private TestInsertsSubscriber insertsSubscriber;

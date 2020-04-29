@@ -24,6 +24,7 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -65,7 +66,9 @@ public class PullQueryRunner extends BasePerfRunner {
   @Override
   protected void configure() {
     this.pullQueryEndpoints = new PullQueryEndpoints();
-    setNumWarmupRuns(5).setNumRuns(5).setRunMs(10000).setEndpoints(pullQueryEndpoints);
+    setNumWarmupRuns(5).setNumRuns(5).setRunMs(10000)
+        .setEndpoints(pullQueryEndpoints)
+        .setInternalEndpoints(pullQueryEndpoints);
   }
 
   @Override
@@ -106,7 +109,7 @@ public class PullQueryRunner extends BasePerfRunner {
     return results;
   }
 
-  private static class PullQueryEndpoints implements Endpoints {
+  private static class PullQueryEndpoints implements Endpoints, InternalEndpoints {
 
     private final Set<PullQueryPublisher> publishers = new HashSet<>();
 

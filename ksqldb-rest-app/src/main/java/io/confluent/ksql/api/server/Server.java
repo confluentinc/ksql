@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityExtension;
@@ -65,26 +66,32 @@ public class Server {
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private final int maxPushQueryCount;
   private final Set<String> deploymentIds = new HashSet<>();
+  private final InternalEndpoints internalEndpoints;
   private final KsqlSecurityExtension securityExtension;
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final List<URI> listeners = new ArrayList<>();
   private WorkerExecutor workerExecutor;
 
-  public Server(final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
+  public Server(final Vertx vertx, final KsqlRestConfig config,
+      final Endpoints endpoints,
+      final InternalEndpoints internalEndpoints,
       final KsqlSecurityExtension securityExtension,
       final Optional<AuthenticationPlugin> authenticationPlugin,
       final ServerState serverState) {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
+    this.internalEndpoints = Objects.requireNonNull(internalEndpoints);
     this.securityExtension = Objects.requireNonNull(securityExtension);
     this.authenticationPlugin = Objects.requireNonNull(authenticationPlugin);
     this.serverState = Objects.requireNonNull(serverState);
     this.maxPushQueryCount = config.getInt(KsqlRestConfig.MAX_PUSH_QUERIES);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|NPathComplexity
   public synchronized void start() {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity|NPathComplexity
     if (!deploymentIds.isEmpty()) {
       throw new IllegalStateException("Already started");
     }
@@ -95,8 +102,13 @@ public class Server {
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");
 
     final List<URI> listenUris = parseListeners(config);
+    final Optional<URI> internalListenUri = parseInternalListener(config, listenUris);
+    // If there's no special internal endpoint listen URI, then just bind them with the rest of the
+    // endpoints.
+    final Optional<InternalEndpoints> combinedInternalEndpointsOptional =
+        Optional.ofNullable(!internalListenUri.isPresent() ? internalEndpoints : null);
 
-    final int instances = config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
+    final int instances = 2; //config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
 
@@ -107,6 +119,7 @@ public class Server {
       for (int i = 0; i < instances; i++) {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
+            combinedInternalEndpointsOptional,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
                 listener.getScheme().equalsIgnoreCase("https")),
             this);
@@ -127,6 +140,19 @@ public class Server {
         deployFutures.add(deployFuture);
       }
     }
+
+    // Install separate internal listener if configured separately
+    internalListenUri.ifPresent(listener -> {
+      for (int i = 0; i < instances; i++) {
+        final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
+        final InternalServerVerticle serverVerticle = new InternalServerVerticle(internalEndpoints,
+            createHttpServerOptions(config, listener.getHost(), listener.getPort(),
+                listener.getScheme().equalsIgnoreCase("https")),
+            this);
+        vertx.deployVerticle(serverVerticle, vcf);
+        deployFutures.add(vcf);
+      }
+    });
 
     final CompletableFuture<Void> allDeployFuture = CompletableFuture.allOf(deployFutures
         .toArray(new CompletableFuture<?>[0]));
@@ -265,8 +291,30 @@ public class Server {
 
   private static List<URI> parseListeners(final KsqlRestConfig config) {
     final List<String> sListeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);
+    return parseListenerStrings(config, sListeners);
+  }
+
+  private static Optional<URI> parseInternalListener(
+      final KsqlRestConfig config,
+      final List<URI> listenUris
+  ) {
+    if (config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG) == null) {
+      return Optional.empty();
+    }
+    final URI uri = parseListenerStrings(config,
+        ImmutableList.of(config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG))).get(0);
+    if (listenUris.contains(uri)) {
+      return Optional.empty();
+    } else {
+      return Optional.of(uri);
+    }
+  }
+
+  private static List<URI> parseListenerStrings(
+      final KsqlRestConfig config,
+      final List<String> stringListeners) {
     final List<URI> listeners = new ArrayList<>();
-    for (String listenerName : sListeners) {
+    for (String listenerName : stringListeners) {
       try {
         final URI uri = new URI(listenerName);
         final String scheme = uri.getScheme();

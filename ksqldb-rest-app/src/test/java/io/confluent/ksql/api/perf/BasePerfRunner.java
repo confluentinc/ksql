@@ -17,6 +17,7 @@ package io.confluent.ksql.api.perf;
 
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
@@ -42,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class BasePerfRunner {
 
   private Endpoints endpoints;
+  private InternalEndpoints internalEndpoints;
   private final AtomicInteger counter = new AtomicInteger();
   private long totalTime;
   private int totalCount;
@@ -96,6 +98,11 @@ public abstract class BasePerfRunner {
 
   protected BasePerfRunner setEndpoints(Endpoints endpoints) {
     this.endpoints = endpoints;
+    return this;
+  }
+
+  protected BasePerfRunner setInternalEndpoints(InternalEndpoints internalEndpoints) {
+    this.internalEndpoints = internalEndpoints;
     return this;
   }
 
@@ -170,8 +177,8 @@ public abstract class BasePerfRunner {
     KsqlRestConfig serverConfig = createServerConfig();
     final ServerState serverState = new ServerState();
     serverState.setReady();
-    server = new Server(vertx, serverConfig, endpoints, new KsqlDefaultSecurityExtension(),
-        Optional.empty(), serverState);
+    server = new Server(vertx, serverConfig, endpoints, internalEndpoints,
+        new KsqlDefaultSecurityExtension(), Optional.empty(), serverState);
     server.start();
     client = createClient();
   }

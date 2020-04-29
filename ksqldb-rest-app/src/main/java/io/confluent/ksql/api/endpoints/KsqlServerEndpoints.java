@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.api.endpoints;
 
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
@@ -25,15 +23,10 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
-import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
-import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
-import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
-import io.confluent.ksql.rest.server.resources.LagReportingResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
@@ -49,7 +42,6 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -67,10 +59,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final KsqlResource ksqlResource;
   private final StreamedQueryResource streamedQueryResource;
   private final ServerInfoResource serverInfoResource;
-  private final Optional<HeartbeatResource> heartbeatResource;
-  private final Optional<ClusterStatusResource> clusterStatusResource;
   private final StatusResource statusResource;
-  private final Optional<LagReportingResource> lagReportingResource;
   private final HealthCheckResource healthCheckResource;
   private final ServerMetadataResource serverMetadataResource;
   private final WSQueryEndpoint wsQueryEndpoint;
@@ -84,10 +73,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final KsqlResource ksqlResource,
       final StreamedQueryResource streamedQueryResource,
       final ServerInfoResource serverInfoResource,
-      final Optional<HeartbeatResource> heartbeatResource,
-      final Optional<ClusterStatusResource> clusterStatusResource,
       final StatusResource statusResource,
-      final Optional<LagReportingResource> lagReportingResource,
       final HealthCheckResource healthCheckResource,
       final ServerMetadataResource serverMetadataResource,
       final WSQueryEndpoint wsQueryEndpoint) {
@@ -101,10 +87,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.ksqlResource = Objects.requireNonNull(ksqlResource);
     this.streamedQueryResource = Objects.requireNonNull(streamedQueryResource);
     this.serverInfoResource = Objects.requireNonNull(serverInfoResource);
-    this.heartbeatResource = Objects.requireNonNull(heartbeatResource);
-    this.clusterStatusResource = Objects.requireNonNull(clusterStatusResource);
     this.statusResource = Objects.requireNonNull(statusResource);
-    this.lagReportingResource = Objects.requireNonNull(lagReportingResource);
     this.healthCheckResource = Objects.requireNonNull(healthCheckResource);
     this.serverMetadataResource = Objects.requireNonNull(serverMetadataResource);
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
@@ -178,25 +161,6 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<EndpointResponse> executeHeartbeat(
-      final HeartbeatMessage heartbeatMessage,
-      final ApiSecurityContext apiSecurityContext) {
-    return heartbeatResource.map(resource -> executeOldApiEndpoint(apiSecurityContext,
-        ksqlSecurityContext -> resource.registerHeartbeat(heartbeatMessage)))
-        .orElseGet(() -> CompletableFuture
-            .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
-  }
-
-  @Override
-  public CompletableFuture<EndpointResponse> executeClusterStatus(
-      final ApiSecurityContext apiSecurityContext) {
-    return clusterStatusResource.map(resource -> executeOldApiEndpoint(apiSecurityContext,
-        ksqlSecurityContext -> resource.checkClusterStatus()))
-        .orElseGet(() -> CompletableFuture
-            .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
-  }
-
-  @Override
   public CompletableFuture<EndpointResponse> executeStatus(final String type, final String entity,
       final String action, final ApiSecurityContext apiSecurityContext) {
     return executeOldApiEndpoint(apiSecurityContext,
@@ -208,15 +172,6 @@ public class KsqlServerEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext) {
     return executeOldApiEndpoint(apiSecurityContext,
         ksqlSecurityContext -> statusResource.getAllStatuses());
-  }
-
-  @Override
-  public CompletableFuture<EndpointResponse> executeLagReport(
-      final LagReportingMessage lagReportingMessage, final ApiSecurityContext apiSecurityContext) {
-    return lagReportingResource.map(resource -> executeOldApiEndpoint(apiSecurityContext,
-        ksqlSecurityContext -> resource.receiveHostLag(lagReportingMessage)))
-        .orElseGet(() -> CompletableFuture
-            .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
   }
 
   @Override

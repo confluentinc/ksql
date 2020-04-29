@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -57,7 +58,7 @@ import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class PortedEndpoints {
+final class PortedEndpoints {
 
   private static final Logger log = LoggerFactory.getLogger(PortedEndpoints.class);
 
@@ -66,6 +67,9 @@ class PortedEndpoints {
           "/status/:type/:entity/:action", "/status", "/lag", "/healthcheck", "/v1/metadata",
           "/v1/metadata/id", "/ws/query");
 
+  private static final Set<String> PORTED_ENDPOINTS_INTERNAL = ImmutableSet
+      .of("/heartbeat", "/clusterStatus", "/lag");
+
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
 
@@ -73,75 +77,75 @@ class PortedEndpoints {
 
   private static final String CHUNKED_ENCODING = "chunked";
 
-  private final Endpoints endpoints;
-  private final Server server;
-
-  PortedEndpoints(final Endpoints endpoints, final Server server) {
-    this.endpoints = endpoints;
-    this.server = server;
-  }
+  private PortedEndpoints() {}
 
   static void setupEndpoints(final Endpoints endpoints, final Server server,
       final Router router) {
     router.route(HttpMethod.GET, "/")
-        .handler(new PortedEndpoints(endpoints, server)::handleInfoRedirect);
+        .handler(new PublicPortedEndpoints(endpoints, server)::handleInfoRedirect);
     router.route(HttpMethod.POST, "/ksql")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
         .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleKsqlRequest);
+        .handler(new PublicPortedEndpoints(endpoints, server)::handleKsqlRequest);
     router.route(HttpMethod.POST, "/ksql/terminate")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
         .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleTerminateRequest);
+        .handler(new PublicPortedEndpoints(endpoints, server)::handleTerminateRequest);
     router.route(HttpMethod.POST, "/query")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
         .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleQueryRequest);
+        .handler(new PublicPortedEndpoints(endpoints, server)::handleQueryRequest);
     router.route(HttpMethod.GET, "/info")
         .produces(Versions.KSQL_V1_JSON)
         .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleInfoRequest);
+        .handler(new PublicPortedEndpoints(endpoints, server)::handleInfoRequest);
+    router.route(HttpMethod.GET, "/status/:type/:entity/:action")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(JSON_CONTENT_TYPE)
+        .handler(new PublicPortedEndpoints(endpoints, server)::handleStatusRequest);
+    router.route(HttpMethod.GET, "/status")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(JSON_CONTENT_TYPE)
+        .handler(new PublicPortedEndpoints(endpoints, server)::handleAllStatusesRequest);
+    router.route(HttpMethod.GET, "/healthcheck")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(JSON_CONTENT_TYPE)
+        .handler(new PublicPortedEndpoints(endpoints, server)::handleHealthcheckRequest);
+    router.route(HttpMethod.GET, "/v1/metadata")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(JSON_CONTENT_TYPE)
+        .handler(new PublicPortedEndpoints(endpoints, server)::handleServerMetadataRequest);
+    router.route(HttpMethod.GET, "/v1/metadata/id")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(JSON_CONTENT_TYPE)
+        .handler(new PublicPortedEndpoints(endpoints, server)
+            ::handleServerMetadataClusterIdRequest);
+    router.route(HttpMethod.GET, "/ws/query")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(JSON_CONTENT_TYPE)
+        .handler(new PublicPortedEndpoints(endpoints, server)::handleWebsocket);
+  }
+
+  static void setupEndpointsInternal(final InternalEndpoints internalEndpoints,
+      final Server server, final Router router) {
     router.route(HttpMethod.POST, "/heartbeat")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
         .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleHeartbeatRequest);
+        .handler(new InternalPortedEndpoints(internalEndpoints, server)::handleHeartbeatRequest);
     router.route(HttpMethod.GET, "/clusterStatus")
         .produces(Versions.KSQL_V1_JSON)
         .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleClusterStatusRequest);
-    router.route(HttpMethod.GET, "/status/:type/:entity/:action")
-        .produces(Versions.KSQL_V1_JSON)
-        .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleStatusRequest);
-    router.route(HttpMethod.GET, "/status")
-        .produces(Versions.KSQL_V1_JSON)
-        .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleAllStatusesRequest);
+        .handler(new InternalPortedEndpoints(internalEndpoints, server)
+            ::handleClusterStatusRequest);
     router.route(HttpMethod.POST, "/lag")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
         .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleLagReportRequest);
-    router.route(HttpMethod.GET, "/healthcheck")
-        .produces(Versions.KSQL_V1_JSON)
-        .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleHealthcheckRequest);
-    router.route(HttpMethod.GET, "/v1/metadata")
-        .produces(Versions.KSQL_V1_JSON)
-        .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleServerMetadataRequest);
-    router.route(HttpMethod.GET, "/v1/metadata/id")
-        .produces(Versions.KSQL_V1_JSON)
-        .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleServerMetadataClusterIdRequest);
-    router.route(HttpMethod.GET, "/ws/query")
-        .produces(Versions.KSQL_V1_JSON)
-        .produces(JSON_CONTENT_TYPE)
-        .handler(new PortedEndpoints(endpoints, server)::handleWebsocket);
+        .handler(new InternalPortedEndpoints(internalEndpoints, server)::handleLagReportRequest);
   }
 
   static void setupFailureHandler(final Router router) {
@@ -150,119 +154,147 @@ class PortedEndpoints {
     }
   }
 
-  void handleKsqlRequest(final RoutingContext routingContext) {
-    handlePortedOldApiRequest(server, routingContext, KsqlRequest.class,
-        (ksqlRequest, apiSecurityContext) ->
-            endpoints
-                .executeKsqlRequest(ksqlRequest, server.getWorkerExecutor(),
-                    DefaultApiSecurityContext.create(routingContext))
-    );
+  static void setupFailureHandlerInternal(final Router router) {
+    for (String path : PORTED_ENDPOINTS_INTERNAL) {
+      router.route(path).failureHandler(PortedEndpoints::oldApiFailureHandler);
+    }
   }
 
-  void handleTerminateRequest(final RoutingContext routingContext) {
-    handlePortedOldApiRequest(server, routingContext, ClusterTerminateRequest.class,
-        (request, apiSecurityContext) ->
-            endpoints
-                .executeTerminate(request, server.getWorkerExecutor(),
-                    DefaultApiSecurityContext.create(routingContext))
-    );
+  private static class PublicPortedEndpoints {
+    private final Endpoints endpoints;
+    private final Server server;
+
+    PublicPortedEndpoints(final Endpoints endpoints, final Server server) {
+      this.endpoints = endpoints;
+      this.server = server;
+    }
+
+    void handleKsqlRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, KsqlRequest.class,
+          (ksqlRequest, apiSecurityContext) ->
+              endpoints
+                  .executeKsqlRequest(ksqlRequest, server.getWorkerExecutor(),
+                      DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleTerminateRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, ClusterTerminateRequest.class,
+          (request, apiSecurityContext) ->
+              endpoints
+                  .executeTerminate(request, server.getWorkerExecutor(),
+                      DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleQueryRequest(final RoutingContext routingContext) {
+
+      final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
+      routingContext.request().connection()
+          .closeHandler(v -> connectionClosedFuture.complete(null));
+
+      handlePortedOldApiRequest(server, routingContext, KsqlRequest.class,
+          (request, apiSecurityContext) ->
+              endpoints
+                  .executeQueryRequest(request, server.getWorkerExecutor(), connectionClosedFuture,
+                      DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleInfoRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, null,
+          (request, apiSecurityContext) ->
+              endpoints.executeInfo(DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleStatusRequest(final RoutingContext routingContext) {
+      final HttpServerRequest request = routingContext.request();
+      final String type = request.getParam("type");
+      final String entity = request.getParam("entity");
+      final String action = request.getParam("action");
+      handlePortedOldApiRequest(server, routingContext, null,
+          (r, apiSecurityContext) ->
+              endpoints.executeStatus(type, entity, action,
+                  DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleAllStatusesRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, null,
+          (r, apiSecurityContext) ->
+              endpoints.executeAllStatuses(DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleHealthcheckRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, null,
+          (request, apiSecurityContext) ->
+              endpoints.executeCheckHealth(DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleServerMetadataRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, null,
+          (request, apiSecurityContext) ->
+              endpoints.executeServerMetadata(DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleServerMetadataClusterIdRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, null,
+          (request, apiSecurityContext) ->
+              endpoints
+                  .executeServerMetadataClusterId(DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleInfoRedirect(final RoutingContext routingContext) {
+      // We redirect to the /info endpoint.
+      // (This preserves behaviour of the old API)
+      routingContext.response().putHeader("location", "/info")
+          .setStatusCode(TEMPORARY_REDIRECT.code()).end();
+    }
+
+    void handleWebsocket(final RoutingContext routingContext) {
+      final ApiSecurityContext apiSecurityContext =
+          DefaultApiSecurityContext.create(routingContext);
+      final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
+      endpoints
+          .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
+              server.getWorkerExecutor(), apiSecurityContext);
+    }
   }
 
-  void handleQueryRequest(final RoutingContext routingContext) {
+  private static class InternalPortedEndpoints {
+    private final InternalEndpoints endpoints;
+    private final Server server;
 
-    final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
-    routingContext.request().connection().closeHandler(v -> connectionClosedFuture.complete(null));
+    InternalPortedEndpoints(final InternalEndpoints endpoints, final Server server) {
+      this.server = server;
+      this.endpoints = endpoints;
+    }
 
-    handlePortedOldApiRequest(server, routingContext, KsqlRequest.class,
-        (request, apiSecurityContext) ->
-            endpoints
-                .executeQueryRequest(request, server.getWorkerExecutor(), connectionClosedFuture,
-                    DefaultApiSecurityContext.create(routingContext))
-    );
-  }
+    void handleClusterStatusRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, null,
+          (request, apiSecurityContext) ->
+              endpoints.executeClusterStatus(DefaultApiSecurityContext.create(routingContext))
+      );
+    }
 
-  void handleInfoRequest(final RoutingContext routingContext) {
-    handlePortedOldApiRequest(server, routingContext, null,
-        (request, apiSecurityContext) ->
-            endpoints.executeInfo(DefaultApiSecurityContext.create(routingContext))
-    );
-  }
+    void handleHeartbeatRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, HeartbeatMessage.class,
+          (request, apiSecurityContext) ->
+              endpoints.executeHeartbeat(request, DefaultApiSecurityContext.create(routingContext))
+      );
+    }
 
-  void handleClusterStatusRequest(final RoutingContext routingContext) {
-    handlePortedOldApiRequest(server, routingContext, null,
-        (request, apiSecurityContext) ->
-            endpoints.executeClusterStatus(DefaultApiSecurityContext.create(routingContext))
-    );
-  }
-
-  void handleHeartbeatRequest(final RoutingContext routingContext) {
-    handlePortedOldApiRequest(server, routingContext, HeartbeatMessage.class,
-        (request, apiSecurityContext) ->
-            endpoints.executeHeartbeat(request, DefaultApiSecurityContext.create(routingContext))
-    );
-  }
-
-  void handleStatusRequest(final RoutingContext routingContext) {
-    final HttpServerRequest request = routingContext.request();
-    final String type = request.getParam("type");
-    final String entity = request.getParam("entity");
-    final String action = request.getParam("action");
-    handlePortedOldApiRequest(server, routingContext, null,
-        (r, apiSecurityContext) ->
-            endpoints.executeStatus(type, entity, action,
-                DefaultApiSecurityContext.create(routingContext))
-    );
-  }
-
-  void handleAllStatusesRequest(final RoutingContext routingContext) {
-    handlePortedOldApiRequest(server, routingContext, null,
-        (r, apiSecurityContext) ->
-            endpoints.executeAllStatuses(DefaultApiSecurityContext.create(routingContext))
-    );
-  }
-
-  void handleLagReportRequest(final RoutingContext routingContext) {
-    handlePortedOldApiRequest(server, routingContext, LagReportingMessage.class,
-        (request, apiSecurityContext) ->
-            endpoints.executeLagReport(request, DefaultApiSecurityContext.create(routingContext))
-    );
-  }
-
-  void handleHealthcheckRequest(final RoutingContext routingContext) {
-    handlePortedOldApiRequest(server, routingContext, null,
-        (request, apiSecurityContext) ->
-            endpoints.executeCheckHealth(DefaultApiSecurityContext.create(routingContext))
-    );
-  }
-
-  void handleServerMetadataRequest(final RoutingContext routingContext) {
-    handlePortedOldApiRequest(server, routingContext, null,
-        (request, apiSecurityContext) ->
-            endpoints.executeServerMetadata(DefaultApiSecurityContext.create(routingContext))
-    );
-  }
-
-  void handleServerMetadataClusterIdRequest(final RoutingContext routingContext) {
-    handlePortedOldApiRequest(server, routingContext, null,
-        (request, apiSecurityContext) ->
-            endpoints
-                .executeServerMetadataClusterId(DefaultApiSecurityContext.create(routingContext))
-    );
-  }
-
-  void handleInfoRedirect(final RoutingContext routingContext) {
-    // We redirect to the /info endpoint.
-    // (This preserves behaviour of the old API)
-    routingContext.response().putHeader("location", "/info")
-        .setStatusCode(TEMPORARY_REDIRECT.code()).end();
-  }
-
-  void handleWebsocket(final RoutingContext routingContext) {
-    final ApiSecurityContext apiSecurityContext = DefaultApiSecurityContext.create(routingContext);
-    final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
-    endpoints
-        .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
-            server.getWorkerExecutor(), apiSecurityContext);
+    void handleLagReportRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, LagReportingMessage.class,
+          (request, apiSecurityContext) ->
+              endpoints.executeLagReport(request, DefaultApiSecurityContext.create(routingContext))
+      );
+    }
   }
 
   private static <T> void handlePortedOldApiRequest(final Server server,

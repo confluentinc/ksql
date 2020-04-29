@@ -32,8 +32,10 @@ import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.endpoints.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
+import io.confluent.ksql.api.endpoints.KsqlServerInternalEndpoints;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -309,15 +311,18 @@ public final class KsqlRestApplication implements Executable {
           ksqlResource,
           streamedQueryResource,
           serverInfoResource,
-          heartbeatResource,
-          clusterStatusResource,
           statusResource,
-          lagReportingResource,
           healthCheckResource,
           serverMetadataResource,
           wsQueryEndpoint
       );
-      apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
+      final InternalEndpoints internalEndpoints = new KsqlServerInternalEndpoints(
+          ksqlSecurityContextProvider,
+          heartbeatResource,
+          clusterStatusResource,
+          lagReportingResource
+      );
+      apiServer = new Server(vertx, ksqlRestConfig, endpoints, internalEndpoints, securityExtension,
           authenticationPlugin, serverState);
       apiServer.start();
 

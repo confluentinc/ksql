@@ -137,6 +137,16 @@ public class KsqlRestConfig extends AbstractConfig {
           + "Unlike listeners, it is not valid to use the 0.0.0.0 (IPv4) or [::] (IPv6) "
           + "wildcard addresses.";
 
+  public static final String INTERNAL_LISTENER_CONFIG =
+      KSQL_CONFIG_PREFIX + "internal.listener";
+  private static final String INTERNAL_LISTENER_DOC =
+      "The listener used for binding internal endpoints, if different to the '"
+          + LISTENERS_CONFIG + "' config property. "
+          + "This likely should refer to the same port as advertised listener, if set. "
+          + "In IaaS environments, this may need to be different from the interface to which"
+          + "the server binds. If this is not set, the first value from listeners will be used. "
+          + "If set, the internal endpoints don't use authentication.";
+
   static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG =
       "query.stream.disconnect.check";
 
@@ -358,6 +368,13 @@ public class KsqlRestConfig extends AbstractConfig {
             ConfigValidators.nullsAllowed(ConfigValidators.validUrl()),
             Importance.HIGH,
             ADVERTISED_LISTENER_DOC
+        ).define(
+            INTERNAL_LISTENER_CONFIG,
+            Type.STRING,
+            null,
+            ConfigValidators.nullsAllowed(ConfigValidators.validUrl()),
+            Importance.HIGH,
+            INTERNAL_LISTENER_DOC
         ).define(
             STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG,
             Type.LONG,

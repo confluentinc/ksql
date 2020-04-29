@@ -89,9 +89,7 @@ public class Server {
     this.maxPushQueryCount = config.getInt(KsqlRestConfig.MAX_PUSH_QUERIES);
   }
 
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|NPathComplexity
   public synchronized void start() {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity|NPathComplexity
     if (!deploymentIds.isEmpty()) {
       throw new IllegalStateException("Already started");
     }
@@ -108,12 +106,33 @@ public class Server {
     final Optional<InternalEndpoints> combinedInternalEndpointsOptional =
         Optional.ofNullable(!internalListenUri.isPresent() ? internalEndpoints : null);
 
-    final int instances = 2; //config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
+    final int instances = config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
+    deployFutures.addAll(setupPublicEndpoints(instances, listenUris,
+        combinedInternalEndpointsOptional));
+    deployFutures.addAll(setupInternalEndpoints(instances, internalListenUri));
 
+    final CompletableFuture<Void> allDeployFuture = CompletableFuture.allOf(deployFutures
+        .toArray(new CompletableFuture<?>[0]));
+
+    try {
+      allDeployFuture.get();
+      for (CompletableFuture<String> deployFuture : deployFutures) {
+        deploymentIds.add(deployFuture.get());
+      }
+    } catch (Exception e) {
+      throw new KsqlException("Failed to start API server", e);
+    }
+    log.info("API server started");
+  }
+
+  private List<CompletableFuture<String>> setupPublicEndpoints(
+      final int instances,
+      final List<URI> listenUris,
+      final Optional<InternalEndpoints> combinedInternalEndpointsOptional) {
+    final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
     final Map<URI, URI> uris = new ConcurrentHashMap<>();
-
     for (URI listener : listenUris) {
 
       for (int i = 0; i < instances; i++) {
@@ -140,7 +159,16 @@ public class Server {
         deployFutures.add(deployFuture);
       }
     }
+    for (URI uri : listenUris) {
+      listeners.add(uris.get(uri));
+    }
+    return deployFutures;
+  }
 
+  private List<CompletableFuture<String>> setupInternalEndpoints(
+      final int instances,
+      final Optional<URI> internalListenUri) {
+    final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
     // Install separate internal listener if configured separately
     internalListenUri.ifPresent(listener -> {
       for (int i = 0; i < instances; i++) {
@@ -153,22 +181,7 @@ public class Server {
         deployFutures.add(vcf);
       }
     });
-
-    final CompletableFuture<Void> allDeployFuture = CompletableFuture.allOf(deployFutures
-        .toArray(new CompletableFuture<?>[0]));
-
-    try {
-      allDeployFuture.get();
-      for (CompletableFuture<String> deployFuture : deployFutures) {
-        deploymentIds.add(deployFuture.get());
-      }
-    } catch (Exception e) {
-      throw new KsqlException("Failed to start API server", e);
-    }
-    for (URI uri : listenUris) {
-      listeners.add(uris.get(uri));
-    }
-    log.info("API server started");
+    return deployFutures;
   }
 
   public synchronized void stop() {

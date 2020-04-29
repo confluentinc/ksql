@@ -39,7 +39,7 @@ public class InternalServerVerticle extends AbstractServerVerticle {
 
     PortedEndpoints.setupFailureHandlerInternal(router);
 
-    router.route().failureHandler(AbstractServerVerticle::failureHandler);
+    router.route().failureHandler(RequestFailureHandler::handleFailure);
 
     PortedEndpoints.setupEndpointsInternal(internalEndpoints, server, router);
 

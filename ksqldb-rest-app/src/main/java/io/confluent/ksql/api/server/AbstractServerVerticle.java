@@ -15,32 +15,12 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
-import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
-
-import io.confluent.ksql.api.auth.AuthenticationPlugin;
-import io.confluent.ksql.api.auth.AuthenticationPluginHandler;
-import io.confluent.ksql.api.auth.JaasAuthProvider;
-import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.AuthHandler;
-import io.vertx.ext.web.handler.BasicAuthHandler;
 import java.util.Objects;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,10 +28,8 @@ import org.slf4j.LoggerFactory;
  * The server deploys multiple server verticles. This is where the HTTP2 requests are handled. The
  * actual implementation of the endpoints is provided by an implementation of {@code Endpoints}.
  */
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public abstract class AbstractServerVerticle extends AbstractVerticle {
 
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final Logger log = LoggerFactory.getLogger(AbstractServerVerticle.class);
 
   protected final HttpServerOptions httpServerOptions;
@@ -93,145 +71,7 @@ public abstract class AbstractServerVerticle extends AbstractVerticle {
 
   abstract Router setupRouter();
 
-  protected static void failureHandler(final RoutingContext routingContext) {
-
-    log.error(String.format("Failed to handle request %d %s", routingContext.statusCode(),
-        routingContext.request().path()),
-        routingContext.failure());
-
-    final int statusCode = routingContext.statusCode();
-    final Throwable failure = routingContext.failure();
-
-    if (failure != null) {
-      if (failure instanceof KsqlApiException) {
-        final KsqlApiException ksqlApiException = (KsqlApiException) failure;
-        handleError(
-            routingContext.response(),
-            statusCode,
-            ksqlApiException.getErrorCode(),
-            ksqlApiException.getMessage()
-        );
-      } else {
-        final int errorCode;
-        if (statusCode == UNAUTHORIZED.code()) {
-          errorCode = ErrorCodes.ERROR_FAILED_AUTHENTICATION;
-        } else if (statusCode == FORBIDDEN.code()) {
-          errorCode = ErrorCodes.ERROR_FAILED_AUTHORIZATION;
-        } else {
-          errorCode = ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
-        }
-        handleError(
-            routingContext.response(),
-            statusCode,
-            errorCode,
-            failure.getMessage()
-        );
-      }
-    } else {
-      routingContext.response().setStatusCode(statusCode).end();
-    }
-  }
-
-  private static void handleError(final HttpServerResponse response, final int statusCode,
-      final int errorCode, final String errMsg) {
-    final ErrorResponse errorResponse = new ErrorResponse(errorCode, errMsg);
-    final Buffer buffer = errorResponse.toBuffer();
-    response.setStatusCode(statusCode).end(buffer);
-  }
-
   private static void unhandledExceptionHandler(final Throwable t) {
     log.error("Unhandled exception", t);
   }
-
-  protected void setupAuthHandlers(final Router router) {
-    final Optional<AuthHandler> jaasAuthHandler = getJaasAuthHandler(server);
-    final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
-    final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
-    final Optional<Handler<RoutingContext>> pluginHandler =
-        authenticationPlugin.map(plugin -> new AuthenticationPluginHandler(server, plugin));
-
-    if (jaasAuthHandler.isPresent() || authenticationPlugin.isPresent()) {
-      router.route().handler(AbstractServerVerticle::pauseHandler);
-
-      router.route().handler(rc -> wrappedAuthHandler(rc, jaasAuthHandler, pluginHandler));
-
-      // For authorization use auth provider configured via security extension (if any)
-      securityExtension.getAuthorizationProvider()
-          .ifPresent(ksqlAuthorizationProvider -> router.route()
-              .handler(new KsqlAuthorizationProviderHandler(server.getWorkerExecutor(),
-                  ksqlAuthorizationProvider)));
-
-      router.route().handler(AbstractServerVerticle::resumeHandler);
-    }
-  }
-
-  private static void wrappedAuthHandler(final RoutingContext routingContext,
-      final Optional<AuthHandler> jaasAuthHandler,
-      final Optional<Handler<RoutingContext>> pluginHandler) {
-    if (jaasAuthHandler.isPresent()) {
-      // If we have a Jaas handler configured and we have Basic credentials then we should auth
-      // with that
-      final String authHeader = routingContext.request().getHeader("Authorization");
-      if (authHeader != null && authHeader.toLowerCase().startsWith("basic ")) {
-        jaasAuthHandler.get().handle(routingContext);
-        return;
-      }
-    }
-    // Fall through to authing with any authentication plugin
-    if (pluginHandler.isPresent()) {
-      pluginHandler.get().handle(routingContext);
-    } else {
-      // Fail the request as unauthorized - this will occur if no auth plugin but Jaas handler
-      // is configured, but auth header is not basic auth
-      routingContext
-          .fail(UNAUTHORIZED.code(),
-              new KsqlApiException("Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION));
-    }
-  }
-
-  private static Optional<AuthHandler> getJaasAuthHandler(final Server server) {
-    final String authMethod = server.getConfig()
-        .getString(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG);
-    switch (authMethod) {
-      case KsqlRestConfig.AUTHENTICATION_METHOD_BASIC:
-        return Optional.of(basicAuthHandler(server));
-      case KsqlRestConfig.AUTHENTICATION_METHOD_NONE:
-        return Optional.empty();
-      default:
-        throw new IllegalStateException(String.format(
-            "Unexpected value for %s: %s",
-            KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG,
-            authMethod
-        ));
-    }
-  }
-
-  private static AuthHandler basicAuthHandler(final Server server) {
-    final AuthProvider authProvider = new JaasAuthProvider(server, server.getConfig());
-    final String realm = server.getConfig().getString(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG);
-    final AuthHandler basicAuthHandler = BasicAuthHandler.create(authProvider, realm);
-    // It doesn't matter what we set here as we actually do the authorisation at the
-    // authentication stage and cache the result, but we must add an authority or
-    // no authorisation will be done
-    basicAuthHandler.addAuthority("ksql");
-    return basicAuthHandler;
-  }
-
-  private static void pauseHandler(final RoutingContext routingContext) {
-    // prevent auth handler from reading request body
-    routingContext.request().pause();
-    routingContext.next();
-  }
-
-  protected static void resumeHandler(final RoutingContext routingContext) {
-    // Un-pause body handling as async auth provider calls have completed by this point
-    routingContext.request().resume();
-    routingContext.next();
-  }
-
-  protected static void chcHandler(final RoutingContext routingContext) {
-    routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
-        .end(new JsonObject().toBuffer());
-  }
-
 }

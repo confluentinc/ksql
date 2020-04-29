@@ -17,9 +17,12 @@ package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.InternalEndpoints;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.util.Objects;
 import java.util.Optional;
@@ -46,15 +49,15 @@ public class ServerVerticle extends AbstractServerVerticle {
 
     // /chc endpoints need to be before server state handler but after CORS handler as they
     // need to be usable from browser with cross origin policy
-    router.route(HttpMethod.GET, "/chc/ready").handler(AbstractServerVerticle::chcHandler);
-    router.route(HttpMethod.GET, "/chc/live").handler(AbstractServerVerticle::chcHandler);
+    router.route(HttpMethod.GET, "/chc/ready").handler(ServerVerticle::chcHandler);
+    router.route(HttpMethod.GET, "/chc/live").handler(ServerVerticle::chcHandler);
 
     PortedEndpoints.setupFailureHandler(router);
     internalEndpoints.ifPresent(ie ->  PortedEndpoints.setupFailureHandlerInternal(router));
 
-    router.route().failureHandler(AbstractServerVerticle::failureHandler);
+    router.route().failureHandler(RequestFailureHandler::handleFailure);
 
-    setupAuthHandlers(router);
+    RequestAuthenticationHandler.setupAuthHandlers(server, router);
 
     router.route().handler(new ServerStateHandler(server.getServerState()));
 
@@ -75,5 +78,10 @@ public class ServerVerticle extends AbstractServerVerticle {
     internalEndpoints.ifPresent(ie -> PortedEndpoints.setupEndpointsInternal(ie, server, router));
 
     return router;
+  }
+
+  private static void chcHandler(final RoutingContext routingContext) {
+    routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
+        .end(new JsonObject().toBuffer());
   }
 }

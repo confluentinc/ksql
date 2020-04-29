@@ -142,10 +142,10 @@ public class KsqlRestConfig extends AbstractConfig {
   private static final String INTERNAL_LISTENER_DOC =
       "The listener used for binding internal endpoints, if different to the '"
           + LISTENERS_CONFIG + "' config property. "
-          + "This likely should refer to the same port as advertised listener, if set. "
+          + "This is the same endpoint referred to by ksql.advertised.listener, which is also used "
+          + "for internal requests."
           + "In IaaS environments, this may need to be different from the interface to which"
-          + "the server binds. If this is not set, the first value from listeners will be used. "
-          + "If set, the internal endpoints don't use authentication.";
+          + "the other endpoints bind.";
 
   static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG =
       "query.stream.disconnect.check";

@@ -201,6 +201,22 @@ For more information, see [Single field (un)wrapping](#single-field-unwrapping).
 The format is case-insensitive when matching a SQL field name with an
 Avro record's field name. The first case-insensitive match is used.
 
+### Protobuf
+
+Protobuf handles `null` values differently than AVRO and JSON. Protobuf doesn't
+have the concept of a `null` value, so the conversion between PROTOBUF and Java
+({{ site.kconnectlong }}) objects is undefined. Usually, Protobuf resolves a
+"missing field" to the default value of its type.
+
+- **String:** the default value is the empty string.
+- **Byte:** the default value is empty bytes.
+- **Bool:** the default value is `false`.
+- **Numeric type:** the default value is zero.
+- **Enum:** the default value is the first defined enum value, which must be zero.
+- **Message field:** the field is not set. Its exact value is language-dependent.
+  See the generated code guide for details.
+
+
 ### KAFKA
 
 The `KAFKA` format supports`INT`, `BIGINT`, `DOUBLE` and `STRING`
@@ -236,8 +252,18 @@ For example, if your Kafka messages have a `long` key, you can make them
 available to ksqlDB by using a statement like:
 
 ```sql
-CREATE STREAM USERS (ROWKEY BIGINT KEY, NAME STRING) WITH (KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', ...);
+CREATE STREAM USERS (ROWKEY BIGINT KEY, NAME STRING) WITH (VALUE_FORMAT='JSON', ...);
 ```
+
+Or if are integrating ksqlDB with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html)
+and using a value format that is compatible, (currently Avro, Json and Protobuf), then you can just
+supply the key column, and ksqlDB will load the value columns from the Schema Registry:
+
+```sql
+CREATE STREAM USERS (ROWKEY BIGINT KEY) WITH (VALUE_FORMAT='JSON', ...);
+```
+
+The key columns must be supplied as ksqlDB currently only supports `KAFKA` format keys.
 
 Decimal Serialization
 ---------------------

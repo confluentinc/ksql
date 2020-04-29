@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.client;
 
+import io.confluent.ksql.api.client.impl.ClientOptionsImpl;
+
 public interface ClientOptions {
 
   ClientOptions setHost(String host);
@@ -58,4 +60,8 @@ public interface ClientOptions {
   String getBasicAuthPassword();
 
   ClientOptions copy();
+
+  static ClientOptions create() {
+    return new ClientOptionsImpl();
+  }
 }

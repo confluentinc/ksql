@@ -84,7 +84,8 @@ Response JSON Object:
 - **tables[i].topic** (string): The topic backing the table.
 - **tables[i].format** (string): The serialization format of the data in the
   table. One of JSON, AVRO, or DELIMITED.
-- **tables[i].type** (string): Exclusively typed as TABLE.
+- **streams[i].type** (string): The source type. Will always be `TABLE`.
+
 - **tables[i].isWindowed** (boolean): `true` if the table provides windowed results; otherwise, `false`.
 
 **LIST QUERIES, SHOW QUERIES**

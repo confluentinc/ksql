@@ -15,14 +15,11 @@
 
 package io.confluent.ksql.api.client.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.api.client.util.JsonMapper;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.concurrent.CompletableFuture;
 
@@ -68,11 +65,8 @@ abstract class QueryResponseHandler<T> {
     hasReadArguments = true;
 
     final QueryResponseMetadata queryResponseMetadata;
-    final ObjectMapper objectMapper = DatabindCodec.mapper();
-    objectMapper.registerModule(new GuavaModule());
-    objectMapper.registerSubtypes(ImmutableList.class);
     try {
-      queryResponseMetadata = objectMapper
+      queryResponseMetadata = JsonMapper.get()
           .readValue(buff.getBytes(), QueryResponseMetadata.class);
     } catch (Exception e) {
       cf.completeExceptionally(e);

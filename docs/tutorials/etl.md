@@ -7,7 +7,7 @@ Maybe you need to do something simple, like transform the events to strip out an
 
 A streaming ETL pipeline enables streaming events between arbitrary sources and sinks, and it helps you make changes to the data while it’s in-flight.
 
-![hard](../img/etl-hard.png){: class="centered-img"}
+![hard](../img/etl-hard.png){: class="centered-img" style="width: 90%"}
 
 One way you might do this is to capture the changelogs of upstream Postgres and MongoDB databases using the [Debezium](https://debezium.io) {{ site.ak }} connectors. The changelog can be stored in {{ site.ak }}, where a series of deployed programs transforms, aggregates, and joins the data together. The processed data can be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
 
@@ -18,7 +18,7 @@ Gluing all of the above services together is certainly a challenge. Along with y
 
 ksqlDB helps streamline how you write and deploy streaming data pipelines by boiling it down to just two things: storage ({{ site.ak }}) and compute (ksqlDB).
 
-![easy](../img/etl-easy.png){: class="centered-img" style="width: 80%"}
+![easy](../img/etl-easy.png){: class="centered-img" style="width: 70%"}
 
 Using ksqlDB, you can run any {{ site.kconnectlong }} connector by embedding it in ksqlDB's servers. You can transform, join, and aggregate all of your streams together by using a coherent, powerful SQL language. This gives you a slender architecture for managing the end-to-end flow of your data pipeline.
 
@@ -108,7 +108,7 @@ services:
       discovery.type: single-node
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.4.0
+    image: confluentinc/cp-zookeeper:{{ site.cprelease }}
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -118,7 +118,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:5.4.0
+    image: confluentinc/cp-enterprise-kafka:{{ site.cprelease }}
     hostname: broker
     container_name: broker
     depends_on:
@@ -136,7 +136,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:5.4.1
+    image: confluentinc/cp-schema-registry:{{ site.cprelease }}
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
@@ -468,7 +468,7 @@ You can take this further by enriching all shipments with more information about
 ```sql
 CREATE STREAM shipped_orders WITH (
     kafka_topic = 'shipped_orders'
-) AS
+)   AS
     SELECT o.order_id,
            s.shipment_id,
            o.customer_id,
@@ -608,3 +608,19 @@ Your output should resemble:
 ```
 
 Try inserting more rows into Postgres and each MongoDB collection. Notice how the results update quickly in the Elasticsearch index.
+
+### Tear down the stack
+
+When you're done, tear down the stack by running:
+
+```
+docker-compose down
+```
+
+Next steps
+----------
+
+Want to learn more? Try another use case tutorial:
+
+- [Materialized view/cache](materialized.md)
+- [Event-driven microservice](event-driven-microservice.md)

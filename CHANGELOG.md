@@ -245,5 +245,6 @@ This change splits "SHOW TOPICS" into two commands:
 
 ## Earlier releases
 
-Note: Release notes for releases prior to ksqlDB v0.6.0 can be found at [docs/changelog.rst](docs/changelog.rst).
+Release notes for KSQL releases prior to ksqlDB v0.6.0 can be found at
+[docs/changelog.rst](https://github.com/confluentinc/ksql/blob/5.4.1-post/docs/changelog.rst).
 

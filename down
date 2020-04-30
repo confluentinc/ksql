@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# exit when any command fails
+set -e
+
+echo -e "## Bringing down contains:\n"
+docker-compose down -v

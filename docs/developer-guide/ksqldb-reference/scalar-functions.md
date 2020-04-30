@@ -12,59 +12,57 @@ keywords: ksqlDB, function, scalar
   - [ENTRIES](#entries)
   - [EXP](#exp)
   - [FLOOR](#floor)
-  - [GENERATE_SERIES](#generateseries)
-  - [GEO_DISTANCE](#geodistance)
+  - [GENERATE_SERIES](#generate_series)
+  - [GEO_DISTANCE](#geo_distance)
   - [LN](#ln)
   - [RANDOM](#random)
   - [ROUND](#round)
   - [SIGN](#sign)
   - [SQRT](#sqrt)
 - [Collections](#collections)
-  - [ARRAY_CONTAINS](#arraycontains)
-  - [JSON_ARRAY_CONTAINS](#jsonarraycontains)
+  - [ARRAY_LENGTH](#array_length)
+  - [ARRAY_CONTAINS](#array_contains)
+  - [JSON_ARRAY_CONTAINS](#json_array_contains)
   - [ARRAY](#array)
   - [MAP](#map)
-  - [AS_MAP](#asmap)
+  - [AS_MAP](#as_map)
   - [ELT](#elt)
   - [FIELD](#field)
   - [SLICE](#slice)
 - [Strings](#strings)
   - [CONCAT](#concat)
   - [EXTRACTJSONFIELD](#extractjsonfield)
+  - [IFNULL](#ifnull)
   - [INITCAP](#initcap)
   - [LCASE](#lcase)
   - [LEN](#len)
   - [MASK](#mask)
-  - [MASK_KEEP_LEFT](#maskkeepleft)
-  - [MASK_KEEP_RIGHT](#maskkeepright)
-  - [MASK_LEFT](#maskleft)
-  - [MASK_RIGHT](#maskright)
+  - [MASK_KEEP_LEFT](#mask_keep_left)
+  - [MASK_KEEP_RIGHT](#mask_keep_right)
+  - [MASK_LEFT](#mask_left)
+  - [MASK_RIGHT](#mask_right)
   - [REPLACE](#replace)
-  - [REGEXP_EXTRACT](#regexpextract)
   - [SPLIT](#split)
   - [SUBSTRING](#substring)
   - [TRIM](#trim)
   - [UCASE](#ucase)
-- [Nulls](#nulls)
-  - [COALESCE](#coalesce)
-  - [IFNULL](#ifnull)
 - [Date and Time](#date-and-time)
-  - [UNIX_DAT](#unixdat)
-  - [UNIX_TIMESTAMP](#unixtimestamp)
+  - [UNIX_DATE](#unix_date)
+  - [UNIX_TIMESTAMP](#unix_timestamp)
   - [DATETOSTRING](#datetostring)
   - [STRINGTODATE](#stringtodate)
   - [STRINGTOTIMESTAMP](#stringtotimestamp)
   - [TIMESTAMPTOSTRING](#timestamptostring)
 - [URL](#url)
-  - [URL_DECODE_PARAM](#urldecodeparam)
-  - [URL_ENCODE_PARAM](#urlencodeparam)
-  - [URL_EXTRACT_FRAGMENT](#urlextractfragment)
-  - [URL_EXTRACT_HOST](#urlextracthost)
-  - [URL_EXTRACT_PARAMETER](#urlextractparameter)
-  - [URL_EXTRACT_PATH](#urlextractpath)
-  - [URL_EXTRACT_PORT](#urlextractport)
-  - [URL_EXTRACT_PROTOCOL](#urlextractprotocol)
-  - [URL_EXTRACT_QUERY](#urlextractquery)
+  - [URL_DECODE_PARAM](#url_decode_param)
+  - [URL_ENCODE_PARAM](#url_encode_param)
+  - [URL_EXTRACT_FRAGMENT](#url_extract_fragment)
+  - [URL_EXTRACT_HOST](#url_extract_host)
+  - [URL_EXTRACT_PARAMETER](#url_extract_parameter)
+  - [URL_EXTRACT_PATH](#url_extract_path)
+  - [URL_EXTRACT_PORT](#url_extract_port)
+  - [URL_EXTRACT_PROTOCOL](#url_extract_protocol)
+  - [URL_EXTRACT_QUERY](#url_extract_query)
 
 Numeric Functions
 =================
@@ -114,7 +112,8 @@ GENERATE_SERIES
 `GENERATE_SERIES(start, end)`
 `GENERATE_SERIES(start, end, step)`
 
-Constructs an array of values between `start` and `end` (inclusive).       
+Constructs an array of values between `start` and `end` (inclusive).
+
 Parameters `start` and `end` can be an `INT` or `BIGINT`.
 
 `step`, if supplied, specifies the step size. The step can be positive or negative.
@@ -181,6 +180,15 @@ The square root of a value.
 Collections
 ===========
 
+ARRAY_LENGTH
+------------
+
+`ARRAY_LENGTH(ARRAY[1, 2, 3])`
+
+Given an array, return the number of elements in the array.
+
+If the supplied parameter is NULL the method returns NULL.
+
 ARRAY_CONTAINS
 --------------
 
@@ -193,12 +201,9 @@ Accepts any `ARRAY` type. The type of the second param must match the element ty
 JSON_ARRAY_CONTAINS
 -------------------
 
-`JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)`
+`ARRAYCONTAINS('[1, 2, 3]', 3)`
 
-Given a `STRING` containing a JSON array, checks if a search value is contained in the array.
-
-Returns `false` if the first parameter does not contain a JSON array.
-
+Given JSON or AVRO array checks if a search value contains in it.
 ARRAY
 -----
 
@@ -297,6 +302,15 @@ instance number from the above JSON object as a INT.
 
     `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT, ...) WITH (VALUE_FORMAT=JSON, ...)`
 
+IFNULL
+------
+
+`IFNULL(col1, retval)`
+
+If the provided VARCHAR is NULL, return `retval`, otherwise, return the
+value. Only VARCHAR values are supported for the input. The return value
+must be a VARCHAR.
+
 INITCAP
 -------
 
@@ -388,20 +402,6 @@ REPLACE
 
 Replace all instances of a substring in a string with a new string.
 
-REGEXP_EXTRACT
--------
-
-`REGEXP_EXTRACT('.*', col1)`
-`REGEXP_EXTRACT('(([AEIOU]).)', col1, 2)`
-
-Extract the first subtring matched by the regex pattern from the input.
-
-A capturing group number can also be specified in order to return that specific group. If a number isn't specified,
-the entire substring is returned by default.
-
-For example, `REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2)`
-returns "there".
-
 SPLIT
 -----
 
@@ -423,7 +423,7 @@ SUBSTRING
 ---------
 
 `SUBSTRING(col1, 2, 5)`
-`SUBSTRING(str, pos, [len])`
+`SUBSTRING(str, pos, [len]`
 
 Returns a substring of `str` that starts at
 `pos` (first character is at position 1) and
@@ -446,27 +446,6 @@ UCASE
 `UCASE(col1)`
 
 Convert a string to uppercase.
-
-Nulls
-=====
-
-COALESCE
---------
-
-`COALESCE(a, b, c, d)`
-
-Returns the first non-null parameter. All parameters must be of the same type.
-
-Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
-complex type are not inspected. The behaviour is the same: the first non-null element is returned.
-
-IFNULL
-------
-
-`IFNULL(col1, retval)`
-
-If the provided VARCHAR is NULL, return `retval`, otherwise, return `col1`.
-Only VARCHAR values are supported for the input. The return value must be a VARCHAR.
 
 Date and Time
 =============

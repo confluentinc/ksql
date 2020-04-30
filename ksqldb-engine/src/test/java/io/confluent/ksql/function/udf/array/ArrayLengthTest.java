@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.array;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Before;
@@ -32,8 +33,8 @@ public class ArrayLengthTest {
   }
 
   @Test
-  public void shouldReturnZeroForNullArray() {
-    assertThat(udf.calcArrayLength(null), is(0));
+  public void shouldReturnNullForNullArray() {
+    assertThat(udf.calcArrayLength(null), is(nullValue()));
   }
 
   @Test

@@ -70,13 +70,7 @@ pip install mkdocs-material
 Build the docs
 --------------
 
-In your local clone of the ksqlDB repo, navigate to the `docs` directory.
-
-```bash
-cd docs
-```
-
-Build the docs and start a server to enable viewing them.
+In your local clone of the ksqlDB repo, build the docs and start a server to enable viewing them:
 
 ```bash
 mkdocs serve

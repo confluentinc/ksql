@@ -156,7 +156,7 @@
         <dependency>
             <groupId>com.kjetland</groupId>
             <artifactId>mbknor-jackson-jsonschema_2.12</artifactId>
-            <version>1.0.34</version>
+            <version>1.0.39</version>
             <scope>test</scope>
         </dependency>
 

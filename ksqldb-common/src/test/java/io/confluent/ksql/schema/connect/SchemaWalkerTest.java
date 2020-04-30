@@ -16,7 +16,9 @@
 package io.confluent.ksql.schema.connect;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -33,18 +35,13 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaWalkerTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SchemaWalker.Visitor<String, Integer> visitor;
@@ -351,12 +348,14 @@ public class SchemaWalkerTest {
     final Schema schema = mock(Schema.class);
     when(schema.type()).thenReturn(unknownType);
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("Unsupported schema type: bob");
-
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final UnsupportedOperationException e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> SchemaWalker.visit(schema, visitor)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported schema type: bob"));
   }
 
   public static Stream<Schema> primitiveSchemas() {

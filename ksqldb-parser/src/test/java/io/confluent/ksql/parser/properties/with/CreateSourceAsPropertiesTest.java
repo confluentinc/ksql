@@ -15,9 +15,13 @@
 
 package io.confluent.ksql.parser.properties.with;
 
+import static com.google.common.collect.ImmutableMap.of;
+import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.from;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
@@ -30,14 +34,9 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class CreateSourceAsPropertiesTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldHandleNoProperties() {
@@ -97,14 +96,15 @@ public class CreateSourceAsPropertiesTest {
 
   @Test
   public void shouldThrowOnInvalidTimestampFormat() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid datatime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i");
-
     // When:
-    CreateSourceAsProperties.from(
-        ImmutableMap.of(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY, new StringLiteral("invalid")));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> from(
+            of(TIMESTAMP_FORMAT_PROPERTY, new StringLiteral("invalid")))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid datatime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i"));
   }
 
   @Test
@@ -180,14 +180,16 @@ public class CreateSourceAsPropertiesTest {
 
   @Test
   public void shouldFailIfInvalidConfig() {
-    // Expect:
-    expectedException.expectMessage("Invalid config variable(s) in the WITH clause: FOO");
-    expectedException.expect(KsqlException.class);
-
     // When:
-    CreateSourceAsProperties.from(
-        ImmutableMap.of("foo", new StringLiteral("bar"))
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> from(
+            of("foo", new StringLiteral("bar"))
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid config variable(s) in the WITH clause: FOO"));
   }
 
   @Test

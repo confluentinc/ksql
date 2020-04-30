@@ -20,8 +20,10 @@ import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -38,9 +40,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -49,9 +49,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlSerdeFactoriesTest {
 
   private static final Class<SomeType> SOME_TYPE = SomeType.class;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Function<FormatInfo, KsqlSerdeFactory> factoryMethod;
@@ -91,11 +88,14 @@ public class KsqlSerdeFactoriesTest {
     doThrow(new RuntimeException("Boom!"))
         .when(ksqlSerdeFactory).validate(any());
 
-    // Expect:
-    expectedException.expectMessage("Boom!");
-
     // When:
-    factory.validate(formatInfo, schema);
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> factory.validate(formatInfo, schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Boom!"));
   }
 
   @Test
@@ -132,7 +132,7 @@ public class KsqlSerdeFactoriesTest {
   @Test
   public void shouldCreateSerde() {
     // Given:
-    when(ksqlSerdeFactory.createSerde(any(), any(), any(), any())).thenReturn((Serde)serde);
+    when(ksqlSerdeFactory.createSerde(any(), any(), any(), any())).thenReturn((Serde) serde);
 
     // When:
     final Serde<SomeType> result = factory.create(

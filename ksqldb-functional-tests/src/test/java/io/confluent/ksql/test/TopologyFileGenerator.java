@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -29,13 +29,11 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
-import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutor;
 import io.confluent.ksql.test.tools.TestExecutorUtil;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
-import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;

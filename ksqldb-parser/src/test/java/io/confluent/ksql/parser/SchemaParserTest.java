@@ -18,7 +18,9 @@ package io.confluent.ksql.parser;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Type;
@@ -31,9 +33,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -43,9 +43,6 @@ public class SchemaParserTest {
 
   private static final ColumnName FOO = ColumnName.of("FOO");
   private static final ColumnName BAR = ColumnName.of("BAR");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private TypeRegistry typeRegistry;
@@ -132,11 +129,14 @@ public class SchemaParserTest {
     final String schema = "foo-bar INTEGER";
 
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Error parsing schema \"foo-bar INTEGER\" at 1:4: extraneous input '-' ");
-
     // When:
-    parser.parse(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> parser.parse(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Error parsing schema \"foo-bar INTEGER\" at 1:4: extraneous input '-' "));
   }
 
   @Test
@@ -145,10 +145,13 @@ public class SchemaParserTest {
     final String schema = "CREATE INTEGER";
 
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Error parsing schema \"CREATE INTEGER\" at 1:1: extraneous input 'CREATE' ");
-
     // When:
-    parser.parse(schema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> parser.parse(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Error parsing schema \"CREATE INTEGER\" at 1:1: extraneous input 'CREATE' "));
   }
 }

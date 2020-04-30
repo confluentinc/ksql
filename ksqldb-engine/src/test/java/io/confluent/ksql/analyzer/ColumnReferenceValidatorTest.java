@@ -17,6 +17,8 @@ package io.confluent.ksql.analyzer;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,9 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -51,9 +51,6 @@ public class ColumnReferenceValidatorTest {
   );
 
   private static final Expression OTHER_EXP = new StringLiteral("foo");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SourceSchemas sourceSchemas;
@@ -92,13 +89,15 @@ public class ColumnReferenceValidatorTest {
     when(sourceSchemas.sourcesWithField(any(), any()))
         .thenReturn(sourceNames("multiple", "sources"));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Column 'just-name' is ambiguous. Could be any of: multiple.just-name, sources.just-name");
-
     // When:
-    analyzer.analyzeExpression(expression);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyzeExpression(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Column 'just-name' is ambiguous. Could be any of: multiple.just-name, sources.just-name"));
   }
 
   @Test
@@ -135,13 +134,14 @@ public class ColumnReferenceValidatorTest {
     when(sourceSchemas.sourcesWithField(any(), any()))
         .thenReturn(ImmutableSet.of());
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Column 'just-name' cannot be resolved.");
-
     // When:
-    analyzer.analyzeExpression(expression);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyzeExpression(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Column 'just-name' cannot be resolved."));
   }
 
   private static Set<SourceName> sourceNames(final String... names) {

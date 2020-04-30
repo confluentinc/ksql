@@ -15,12 +15,16 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static com.google.common.collect.ImmutableMap.of;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static io.confluent.ksql.rest.server.execution.CustomExecutors.EXPLAIN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,7 +45,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -50,8 +53,6 @@ public class ExplainExecutorTest {
 
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldExplainQueryId() {
@@ -137,17 +138,20 @@ public class ExplainExecutorTest {
 
   @Test
   public void shouldFailOnNonQueryExplain() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("The provided statement does not run a ksql query");
-
     // When:
-    CustomExecutors.EXPLAIN.execute(
-        engine.configure("Explain SHOW TOPICS;"),
-        ImmutableMap.of(),
-        engine.getEngine(),
-        engine.getServiceContext()
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> EXPLAIN.execute(
+            engine.configure("Explain SHOW TOPICS;"),
+            of(),
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The provided statement does not run a ksql query"));
   }
 
   @SuppressWarnings("SameParameterValue")

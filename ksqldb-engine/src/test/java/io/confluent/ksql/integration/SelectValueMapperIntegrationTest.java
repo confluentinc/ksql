@@ -16,8 +16,8 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.SelectExpression;

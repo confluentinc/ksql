@@ -19,17 +19,16 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 public class LocalPropertyValidatorTest {
 
   private static final Collection<String> IMMUTABLE_PROPS =
       ImmutableList.of("immutable-1", "immutable-2");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private LocalPropertyValidator validator;
 
@@ -40,10 +39,16 @@ public class LocalPropertyValidatorTest {
 
   @Test
   public void shouldThrowOnImmutableProp() {
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Cannot override property 'immutable-2'");
+    // When:
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> validator.validate("immutable-2", "anything")
+    );
 
-    validator.validate("immutable-2", "anything");
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot override property 'immutable-2'"
+    ));
   }
 
   @Test
@@ -53,10 +58,16 @@ public class LocalPropertyValidatorTest {
 
   @Test
   public void shouldThrowOnNoneOffsetReset() {
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("'none' is not valid for this property within KSQL");
+    // When:
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> validator.validate(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none")
+    );
 
-    validator.validate(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none");
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'none' is not valid for this property within KSQL"
+    ));
   }
 
   @Test

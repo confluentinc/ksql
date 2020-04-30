@@ -76,7 +76,10 @@ public final class KsqlPlanSchemaGenerator {
             .put(KsqlWindowExpression.class, String.class)
             .put(Duration.class, Long.class)
             .build(),
-        Collections.emptyMap()
+        Collections.emptyMap(),
+        null,
+        true,
+        null
     );
   }
 

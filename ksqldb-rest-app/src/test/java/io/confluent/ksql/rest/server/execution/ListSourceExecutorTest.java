@@ -15,12 +15,16 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static com.google.common.collect.ImmutableMap.of;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static io.confluent.ksql.rest.server.execution.CustomExecutors.SHOW_COLUMNS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -64,7 +68,6 @@ import org.apache.kafka.common.TopicPartitionInfo;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -74,8 +77,6 @@ public class ListSourceExecutorTest {
 
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private TopicDescription topicWith1PartitionAndRfOf1;
@@ -237,9 +238,9 @@ public class ListSourceExecutorTest {
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)
         CustomExecutors.SHOW_COLUMNS.execute(
             ConfiguredStatement.of(
-              PreparedStatement.of(
-                  "DESCRIBE SINK;",
-                  new ShowColumns(SourceName.of("SINK"), false)),
+                PreparedStatement.of(
+                    "DESCRIBE SINK;",
+                    new ShowColumns(SourceName.of("SINK"), false)),
                 ImmutableMap.of(),
                 engine.getKsqlConfig()
             ),
@@ -266,17 +267,19 @@ public class ListSourceExecutorTest {
 
   @Test
   public void shouldThrowOnDescribeMissingSource() {
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Could not find STREAM/TABLE 'S' in the Metastore");
-
     // When:
-    CustomExecutors.SHOW_COLUMNS.execute(
-        engine.configure("DESCRIBE S;"),
-        ImmutableMap.of(),
-        engine.getEngine(),
-        engine.getServiceContext()
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> SHOW_COLUMNS.execute(
+            engine.configure("DESCRIBE S;"),
+            of(),
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not find STREAM/TABLE 'S' in the Metastore"));
   }
 
   @Test

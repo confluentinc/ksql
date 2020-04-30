@@ -16,13 +16,16 @@
 package io.confluent.ksql.util;
 
 import static io.confluent.ksql.util.LimitedProxyBuilder.anyParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.forClass;
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 import static io.confluent.ksql.util.LimitedProxyBuilder.noParams;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -33,10 +36,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -50,30 +51,35 @@ public final class LimitedProxyBuilderTest {
   @RunWith(MockitoJUnitRunner.class)
   public static class CommonTests {
 
-    @Rule
-    public final ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void shouldThrowOnNoneInterface() {
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage("Type not an interface: " + String.class);
-
       // When:
-      LimitedProxyBuilder.forClass(String.class);
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> forClass(String.class)
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Type not an interface: " + String.class));
     }
 
     @Test
     public void shouldThrowOnDuplicateRegistration() {
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage("method(s) already registered:");
-      expectedException.expectMessage("void noReturnValue(String,long)");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .swallow("noReturnValue", methodParams(String.class, long.class))
-          .forward("noReturnValue", methodParams(String.class, long.class), null);
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> LimitedProxyBuilder.forClass(TestInterface.class)
+              .swallow("noReturnValue", methodParams(String.class, long.class))
+              .forward("noReturnValue", methodParams(String.class, long.class), null)
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString(
+          "method(s) already registered:"
+      ));
+      assertThat(e.getMessage(), containsString(
+          "void noReturnValue(String,long)"
+      ));
     }
 
     @Test
@@ -81,12 +87,14 @@ public final class LimitedProxyBuilderTest {
       // Given:
       final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class).build();
 
-      // Expect:
-      expectedException.expect(UnsupportedOperationException.class);
-      expectedException.expectMessage("noReturnValue(String,long)");
-
       // When:
-      proxy.noReturnValue("", 1);
+      final Exception e = assertThrows(
+          UnsupportedOperationException.class,
+          () -> proxy.noReturnValue("", 1)
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("noReturnValue(String,long)"));
     }
 
     @Test
@@ -170,68 +178,84 @@ public final class LimitedProxyBuilderTest {
 
     @Test
     public void shouldThrowIfUnknownMethodName() {
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage(
-          "Interface 'TestInterface' does not have method: unknown(*)");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .swallow("unknown", anyParams())
-          .build();
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> forClass(TestInterface.class)
+              .swallow("unknown", anyParams())
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Interface 'TestInterface' does not have method: unknown(*)"));
     }
 
     @Test
     public void shouldThrowIfIUnknownMethodParams() {
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage(
-          "Interface 'TestInterface' does not have method: noReturnValue(TimeUnit)");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .swallow("noReturnValue", methodParams(TimeUnit.class))
-          .build();
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> forClass(TestInterface.class)
+              .swallow("noReturnValue", methodParams(TimeUnit.class))
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Interface 'TestInterface' does not have method: noReturnValue(TimeUnit)"));
     }
 
     @Test
     public void shouldThrowIfMethodHasNonVoidReturnTypeAndNoReturnValueSupplied() {
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage("Can only swallow void methods. None void methods:");
-      expectedException.expectMessage("int someFunc()");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .swallow("someFunc", noParams())
-          .build();
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> LimitedProxyBuilder.forClass(TestInterface.class)
+              .swallow("someFunc", noParams())
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString(
+          "Can only swallow void methods. None void methods:"
+      ));
+      assertThat(e.getMessage(), containsString(
+          "int someFunc()"
+      ));
     }
 
     @Test
     public void shouldThrowIfAnyMethodHasNonVoidReturnType() {
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage("Can only swallow void methods. None void methods:");
-      expectedException.expectMessage("int someFunc()");
-      expectedException.expectMessage("String someFunc(String)");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .swallow("someFunc", anyParams())
-          .build();
+      final IllegalArgumentException e = assertThrows(
+          IllegalArgumentException.class,
+          () -> LimitedProxyBuilder.forClass(TestInterface.class)
+              .swallow("someFunc", anyParams())
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Can only swallow void methods. None void methods:"));
+      assertThat(e.getMessage(), containsString("int someFunc()"));
+      assertThat(e.getMessage(), containsString("String someFunc(String)"));
     }
 
     @Test
     public void shouldThrowIfMethodHasVoidReturnTypeAndReturnValueSupplied() {
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage("Can not provide a default value for void method:");
-      expectedException.expectMessage("void noReturnValue()");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .swallow("noReturnValue", noParams(), 10)
-          .build();
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> LimitedProxyBuilder.forClass(TestInterface.class)
+              .swallow("noReturnValue", noParams(), 10)
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString(
+          "Can not provide a default value for void method:"
+      ));
+      assertThat(e.getMessage(), containsString(
+          "void noReturnValue()"
+      ));
     }
 
     @Test
@@ -284,9 +308,6 @@ public final class LimitedProxyBuilderTest {
     public static Collection<String> getMethodsToTest() {
       return ImmutableList.of("forward to type T", "forward to unrelated type");
     }
-
-    @Rule
-    public final ExpectedException expectedException = ExpectedException.none();
 
     private final TestInterface mock;
     private final Object delegate;
@@ -401,73 +422,78 @@ public final class LimitedProxyBuilderTest {
 
     @Test
     public void shouldThrowIfUnknownMethodName() {
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage(
-          "Interface 'TestInterface' does not have method: unknown(String)");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .forward("unknown", methodParams(String.class), delegate)
-          .build();
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> forClass(TestInterface.class)
+              .forward("unknown", methodParams(String.class), delegate)
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Interface 'TestInterface' does not have method: unknown(String)"));
     }
 
     @Test
     public void shouldThrowIfIUnknownMethodParams() {
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage(
-          "Interface 'TestInterface' does not have method: noReturnValue(TimeUnit)");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .forward("noReturnValue", methodParams(TimeUnit.class), delegate)
-          .build();
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> forClass(TestInterface.class)
+              .forward("noReturnValue", methodParams(TimeUnit.class), delegate)
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Interface 'TestInterface' does not have method: noReturnValue(TimeUnit)"));
     }
 
     @Test
     public void shouldThrowIfDelegateDoesMethodWithSameName() {
       assumeThat("ignore if delegate of type T", delegate, instanceOf(AnotherType.class));
 
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage(
-          "Delegate does not have method: void noReturnValue()");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .forward("noReturnValue", noParams(), delegate)
-          .build();
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> LimitedProxyBuilder.forClass(TestInterface.class)
+              .forward("noReturnValue", noParams(), delegate)
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Delegate does not have method: void noReturnValue()"));
     }
 
     @Test
     public void shouldThrowIfDelegatesMethodHasDifferentReturnValue() {
       assumeThat("ignore if delegate of type T", delegate, instanceOf(AnotherType.class));
 
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage(
-          "Delegate's method has different return type. wanted:int, got:long");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .forward("differentReturnType", anyParams(), delegate)
-          .build();
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> LimitedProxyBuilder.forClass(TestInterface.class)
+              .forward("differentReturnType", anyParams(), delegate)
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Delegate's method has different return type. wanted:int, got:long"));
     }
 
     @Test
     public void shouldThrowIfDelegatesMethodHasDifferentParameters() {
       assumeThat("ignore if delegate of type T", delegate, instanceOf(AnotherType.class));
 
-      // Expect:
-      expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage(
-          "Delegate does not have method: int differentParams(double,String)");
-
       // When:
-      LimitedProxyBuilder.forClass(TestInterface.class)
-          .forward("differentParams", methodParams(double.class, String.class), delegate)
-          .build();
+      final Exception e = assertThrows(
+          IllegalArgumentException.class,
+          () -> LimitedProxyBuilder.forClass(TestInterface.class)
+              .forward("differentParams", methodParams(double.class, String.class), delegate)
+              .build()
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Delegate does not have method: int differentParams(double,String)"));
     }
 
     @SuppressWarnings("unused") // Invoked via reflection.

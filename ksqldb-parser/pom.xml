@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>5.5.0-SNAPSHOT</version>
+        <version>5.5.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksqldb-parser</artifactId>
@@ -85,35 +85,13 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <phase>process-sources</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-serial,-options,-path,-rawtypes</arg>
-                                <arg>-parameters</arg>
-                                <arg>-Werror</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>test-compile</id>
-                        <phase>process-test-sources</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                        <configuration>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-options,-path</arg>
-                                <arg>-parameters</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                </executions>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-serial,-rawtypes</arg>
+                        <arg>-parameters</arg>
+                        <arg>-Werror</arg>
+                    </compilerArgs>
+                </configuration>
             </plugin>
 
             <plugin>

@@ -15,7 +15,11 @@
 
 package io.confluent.ksql.test.tools;
 
+import static com.fasterxml.jackson.databind.node.TextNode.valueOf;
+import static com.google.common.collect.ImmutableList.of;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -54,9 +58,7 @@ import java.util.function.Function;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -72,9 +74,6 @@ public class TestExecutorTest {
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private StubKafkaService kafkaService;
@@ -189,17 +188,18 @@ public class TestExecutorTest {
     givenExpectedTopology("expected-topology");
     givenActualTopology("actual-topology");
 
-    // Then:
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(
-        "Generated topology differs from that built by previous versions of KSQL "
-            + "- this likely means there is a non-backwards compatible change.\n"
-            + "THIS IS BAD!\n"
-            + "Expected: is \"expected-topology\"\n"
-            + "     but: was \"actual-topology\"");
-
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Generated topology differs from that built by previous versions of KSQL "
+        + "- this likely means there is a non-backwards compatible change.\n"
+        + "THIS IS BAD!\n"
+        + "Expected: is \"expected-topology\"\n"
+        + "     but: was \"actual-topology\""));
   }
 
   @Test
@@ -208,35 +208,39 @@ public class TestExecutorTest {
     givenExpectedTopology("the-topology", ImmutableMap.of("expected", "schemas"));
     givenActualTopology("the-topology", ImmutableMap.of("actual", "schemas"));
 
-    // Then:
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(containsString(
-        "Schemas used by topology differ from those used by previous versions of KSQL "
-            + "- this is likely to mean there is a non-backwards compatible change.\n"
-            + "THIS IS BAD!\n"));
-
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Schemas used by topology differ from those used by previous versions of KSQL "
+        + "- this is likely to mean there is a non-backwards compatible change.\n"
+        + "THIS IS BAD!\n"));
   }
 
   @Test
   public void shouldFailOnTwoLittleOutput() {
     // Given:
     final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
-    when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(actual_0));
+    when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(of(actual_0));
 
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
     final Record expected_1 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
-    when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
-
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected <2> records but it was <1>\n"
-        + "Actual records: \n"
-        + "<k1, \"v1\"> with timestamp=123456719");
+    when(testCase.getOutputRecords()).thenReturn(of(expected_0, expected_1));
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Expected <2> records but it was <1>\n"
+            + "Actual records: \n"
+            + "<k1, \"v1\"> with timestamp=123456719"));
   }
 
   @Test
@@ -245,20 +249,23 @@ public class TestExecutorTest {
     final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME))
-        .thenReturn(ImmutableList.of(actual_0, actual_1));
+        .thenReturn(of(actual_0, actual_1));
 
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
-    when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0));
-
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected <1> records but it was <2>\n"
-        + "Actual records: \n"
-        + "<k1, \"v1\"> with timestamp=123456719 \n"
-        + "<k2, \"v2\"> with timestamp=123456789");
+    when(testCase.getOutputRecords()).thenReturn(of(expected_0));
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Expected <1> records but it was <2>\n"
+            + "Actual records: \n"
+            + "<k1, \"v1\"> with timestamp=123456719 \n"
+            + "<k2, \"v2\"> with timestamp=123456789"));
   }
 
   @Test
@@ -267,19 +274,21 @@ public class TestExecutorTest {
     final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME))
-        .thenReturn(ImmutableList.of(actual_0, actual_1));
+        .thenReturn(of(actual_0, actual_1));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", TextNode.valueOf("v1"), Optional.of(123456719L), null);
-    final Record expected_1 = new Record(sinkTopic, "k2", "different", TextNode.valueOf("different"), Optional.of(123456789L), null);
-    when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
-
-    // Expect
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(
-        "Expected <k2, \"different\"> with timestamp=123456789 but was <k2, \"v2\"> with timestamp=123456789");
+    final Record expected_0 = new Record(sinkTopic, "k1", "v1", valueOf("v1"), Optional.of(123456719L), null);
+    final Record expected_1 = new Record(sinkTopic, "k2", "different", valueOf("different"), Optional.of(123456789L), null);
+    when(testCase.getOutputRecords()).thenReturn(of(expected_0, expected_1));
 
     // When:
-    executor.buildAndExecuteQuery(testCase);
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Expected <k2, \"different\"> with timestamp=123456789 but was <k2, \"v2\"> with timestamp=123456789"));
   }
 
   @Test

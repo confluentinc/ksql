@@ -17,16 +17,12 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.schema.ksql.FormatOptions;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class IdentifiersTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldEscapeReservedWordWithBackTicks() {
@@ -54,20 +50,20 @@ public class IdentifiersTest {
 
   @Test
   public void shouldEnsureTrimmed() {
-    // Expect:
-    expectedException.expect(IllegalArgumentException.class);
-
-    // When:
-    Identifiers.ensureTrimmed(" foo ", "foo");
+    // When
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> Identifiers.ensureTrimmed(" foo ", "foo")
+    );
   }
 
   @Test
   public void shouldEnsureTrimmedWhenEmpty() {
-    // Expect:
-    expectedException.expect(IllegalArgumentException.class);
-
-    // When:
-    Identifiers.ensureTrimmed("", "foo");
+    // When
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> Identifiers.ensureTrimmed("", "foo")
+    );
   }
 
 }

@@ -16,21 +16,18 @@
 package io.confluent.ksql.schema.ksql;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class FieldTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldThrowNPE() {
@@ -95,21 +92,25 @@ public class FieldTest {
 
   @Test
   public void shouldThrowIfNameIsEmpty() {
-    // Expect:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("name is empty");
-
     // When:
-    Field.of("", SqlTypes.STRING);
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> Field.of("", SqlTypes.STRING)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("name is empty"));
   }
 
   @Test
   public void shouldThrowIfNameIsNotTrimmed() {
-    // Expect:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("name is not trimmed");
-
     // When:
-    Field.of(" bar ", SqlTypes.STRING);
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> Field.of(" bar ", SqlTypes.STRING)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("name is not trimmed"));
   }
 }

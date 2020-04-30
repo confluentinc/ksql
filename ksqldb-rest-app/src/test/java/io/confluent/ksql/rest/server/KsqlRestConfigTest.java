@@ -18,8 +18,11 @@ package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.rest.server.KsqlRestConfig.ADVERTISED_LISTENER_CONFIG;
 import static io.confluent.rest.RestConfig.LISTENERS_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.BOOTSTRAP_SERVERS_CONFIG;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -36,9 +39,7 @@ import java.util.function.Function;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.StreamsConfig;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -57,9 +58,6 @@ public class KsqlRestConfigTest {
 
   private static final String QUOTED_FIRST_LISTENER_CONFIG =
       "first '" + LISTENERS_CONFIG + "'";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Function<URL, Integer> portResolver;
@@ -111,36 +109,40 @@ public class KsqlRestConfigTest {
 
   @Test
   public void shouldThrowIfAnyListenerIsInvalidUrl() {
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("Invalid value INVALID for configuration "
-        + LISTENERS_CONFIG
-        + ": Not valid URL: no protocol: INVALID"
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+            .put(BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+            .put(LISTENERS_CONFIG, "http://localhost:9875,INVALID")
+            .build()
+        )
     );
 
-    // Given:
-    new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-        .put(LISTENERS_CONFIG, "http://localhost:9875,INVALID")
-        .build()
-    );
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid value INVALID for configuration "
+            + LISTENERS_CONFIG
+            + ": Not valid URL: no protocol: INVALID"));
   }
 
   @Test
   public void shouldThrowIfExplicitInterNodeListenerIsInvalidUrl() {
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("Invalid value INVALID for configuration "
-        + ADVERTISED_LISTENER_CONFIG
-        + ": Not valid URL: no protocol: INVALID"
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+            .putAll(MIN_VALID_CONFIGS)
+            .put(ADVERTISED_LISTENER_CONFIG, "INVALID")
+            .build()
+        )
     );
 
-    // Given:
-    new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .putAll(MIN_VALID_CONFIGS)
-        .put(ADVERTISED_LISTENER_CONFIG, "INVALID")
-        .build()
-    );
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid value INVALID for configuration "
+            + ADVERTISED_LISTENER_CONFIG
+            + ": Not valid URL: no protocol: INVALID"));
   }
 
   @Test
@@ -247,6 +249,27 @@ public class KsqlRestConfigTest {
   }
 
   @Test
+  public void shouldSanitizeInterNodeListenerWithTrailingSlash() {
+    // Given:
+    final URL expected = url("https://example.com:12345");
+    final URL configured = url("https://example.com:12345/");
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .putAll(MIN_VALID_CONFIGS)
+        .put(ADVERTISED_LISTENER_CONFIG, configured.toString())
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_INTER_NODE_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
   public void shouldThrowIfExplicitInterNodeListenerHasAutoPortAssignment() {
     // Given:
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -255,16 +278,16 @@ public class KsqlRestConfigTest {
         .build()
     );
 
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("Invalid value https://unresolvable.host:0 for configuration "
-        + ADVERTISED_LISTENER_CONFIG
-        + ": Must have valid port"
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> config.getInterNodeListener(portResolver, logger)
     );
 
-
-    // When:
-    config.getInterNodeListener(portResolver, logger);
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value https://unresolvable.host:0 for configuration "
+        + ADVERTISED_LISTENER_CONFIG
+        + ": Must have valid port"));
   }
 
   @Test
@@ -276,15 +299,16 @@ public class KsqlRestConfigTest {
         .build()
     );
 
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("Invalid value https://0.0.0.0:12589 for configuration "
-        + ADVERTISED_LISTENER_CONFIG
-        + ": Can not be wildcard"
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> config.getInterNodeListener(portResolver, logger)
     );
 
-    // When:
-    config.getInterNodeListener(portResolver, logger);
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value https://0.0.0.0:12589 for configuration "
+        + ADVERTISED_LISTENER_CONFIG
+        + ": Can not be wildcard"));
   }
 
   @Test
@@ -296,15 +320,16 @@ public class KsqlRestConfigTest {
         .build()
     );
 
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("Invalid value https://[::]:1236 for configuration "
-        + ADVERTISED_LISTENER_CONFIG
-        + ": Can not be wildcard"
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> config.getInterNodeListener(portResolver, logger)
     );
 
-    // When:
-    config.getInterNodeListener(portResolver, logger);
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value https://[::]:1236 for configuration "
+        + ADVERTISED_LISTENER_CONFIG
+        + ": Can not be wildcard"));
   }
 
   @Test
@@ -318,16 +343,17 @@ public class KsqlRestConfigTest {
         .build()
     );
 
-    // Expect:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage("Invalid value "
-        + "[https://unresolvable_host:12345, http://localhost:2589] for configuration "
-        + LISTENERS_CONFIG
-        + ": Could not resolve first host"
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> config.getInterNodeListener(portResolver, logger)
     );
 
-    // When:
-    config.getInterNodeListener(portResolver, logger);
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value "
+        + "[https://unresolvable_host:12345, http://localhost:2589] for configuration "
+        + LISTENERS_CONFIG
+        + ": Could not resolve first host"));
   }
 
   @Test
@@ -423,6 +449,30 @@ public class KsqlRestConfigTest {
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
         .put(LISTENERS_CONFIG, autoPort.toString() + ",http://localhost:2589")
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    final URL expected = url("https://example.com:2222");
+
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_FIRST_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveInterNodeListenerToFirstListenerWithAutoPortAssignmentAndTrailingSlash() {
+    // Given:
+    final URL autoPort = url("https://example.com:0/");
+
+    when(portResolver.apply(any())).thenReturn(2222);
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(LISTENERS_CONFIG, autoPort.toString() + ",http://localhost:2589/")
         .build()
     );
 

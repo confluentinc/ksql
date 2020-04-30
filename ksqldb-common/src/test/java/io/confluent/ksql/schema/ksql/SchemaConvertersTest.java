@@ -15,15 +15,23 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.schema.ksql.SchemaConverters.javaToSqlConverter;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.MapType;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -44,9 +52,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SchemaConvertersTest {
 
@@ -95,6 +101,28 @@ public class SchemaConvertersTest {
       .put(SqlBaseType.STRUCT, Struct.class)
       .build();
 
+  private static final BiMap<SqlType, ParamType> SQL_TO_FUNCTION = ImmutableBiMap
+      .<SqlType, ParamType>builder()
+      .put(SqlTypes.BOOLEAN, ParamTypes.BOOLEAN)
+      .put(SqlTypes.INTEGER, ParamTypes.INTEGER)
+      .put(SqlTypes.BIGINT, ParamTypes.LONG)
+      .put(SqlTypes.DOUBLE, ParamTypes.DOUBLE)
+      .put(SqlTypes.STRING, ParamTypes.STRING)
+      .put(SqlArray.of(SqlTypes.INTEGER), ArrayType.of(ParamTypes.INTEGER))
+      .put(SqlDecimal.of(2, 1), ParamTypes.DECIMAL)
+      .put(SqlMap.of(SqlTypes.INTEGER), MapType.of(ParamTypes.INTEGER))
+      .put(SqlStruct.builder()
+              .field("f0", SqlTypes.INTEGER)
+              .build(),
+          StructType.builder()
+              .field("f0", ParamTypes.INTEGER)
+              .build())
+      .build();
+
+  private static final Set<ParamType> REQUIRES_SCHEMA_SPEC = ImmutableSet.of(
+      ParamTypes.DECIMAL
+  );
+
   private static final Schema STRUCT_LOGICAL_TYPE = SchemaBuilder.struct()
       .field("F0", SchemaBuilder.int32().optional().build())
       .optional()
@@ -117,9 +145,6 @@ public class SchemaConvertersTest {
       .field("MAP", SqlMap.of(STRUCT_SQL_TYPE))
       .field("STRUCT", STRUCT_SQL_TYPE)
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldHaveConnectTestsForAllSqlTypes() {
@@ -214,12 +239,14 @@ public class SchemaConvertersTest {
         .map(CONNECT_BIGINT_SCHEMA, CONNECT_DOUBLE_SCHEMA).optional()
         .build();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unsupported map key type: Schema{INT64}");
-
     // When:
-    SchemaConverters.connectToSqlConverter().toSqlType(mapSchema);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> SchemaConverters.connectToSqlConverter().toSqlType(mapSchema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported map key type: Schema{INT64}"));
   }
 
   @Test
@@ -227,12 +254,14 @@ public class SchemaConvertersTest {
     // Given:
     final Schema unsupported = SchemaBuilder.int8().build();
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unexpected schema type: Schema{INT8}");
-
     // When:
-    SchemaConverters.connectToSqlConverter().toSqlType(unsupported);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> SchemaConverters.connectToSqlConverter().toSqlType(unsupported)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unexpected schema type: Schema{INT8}"));
   }
 
   @Test
@@ -266,11 +295,49 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldThrowOnUnknownJavaType() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unexpected java type: " + double.class);
-
     // When:
-    SchemaConverters.javaToSqlConverter().toSqlType(double.class);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> javaToSqlConverter().toSqlType(double.class)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unexpected java type: " + double.class));
   }
+
+  @Test
+  public void shouldCoverAllSqlToFunction() {
+    final Set<SqlBaseType> tested = SQL_TO_FUNCTION.keySet().stream()
+        .map(SqlType::baseType)
+        .collect(Collectors.toSet());
+
+    final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
+
+    assertThat("If this test fails then there has been a new SQL type added and this test "
+        + "file needs updating to cover that new type", tested, is(allTypes));
+  }
+
+  @Test
+  public void shouldGetParamTypesForAllSqlTypes() {
+    for (final Entry<SqlType, ParamType> entry : SQL_TO_FUNCTION.entrySet()) {
+      final SqlType sqlType = entry.getKey();
+      final ParamType javaType = entry.getValue();
+      final ParamType result = SchemaConverters.sqlToFunctionConverter().toFunctionType(sqlType);
+      assertThat(result, equalTo(javaType));
+    }
+  }
+
+  @Test
+  public void shouldGetSqlTypeForAllParamTypes() {
+    for (Entry<ParamType, SqlType> entry : SQL_TO_FUNCTION.inverse().entrySet()) {
+      ParamType param = entry.getKey();
+      if (REQUIRES_SCHEMA_SPEC.contains(param)) {
+        continue;
+      }
+
+      SqlType sqlType = entry.getValue();
+      assertThat(SchemaConverters.functionToSqlConverter().toSqlType(param), is(sqlType));
+    }
+  }
+
 }

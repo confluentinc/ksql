@@ -16,8 +16,10 @@
 package io.confluent.ksql.engine.rewrite;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.function.FunctionRegistry;
@@ -31,9 +33,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class DataSourceExtractorTest {
 
@@ -47,9 +47,6 @@ public class DataSourceExtractorTest {
       .getNewMetaStore(mock(FunctionRegistry.class));
 
   private DataSourceExtractor extractor;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -100,12 +97,14 @@ public class DataSourceExtractorTest {
     // Given:
     final AstNode stmt = givenQuery("SELECT * FROM UNKNOWN;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
-
     // When:
-    extractor.extractDataSources(stmt);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> extractor.extractDataSources(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("UNKNOWN does not exist."));
   }
 
   @Test
@@ -161,12 +160,15 @@ public class DataSourceExtractorTest {
     // Given:
     final AstNode stmt = givenQuery("SELECT * FROM UNKNOWN JOIN TEST2"
         + " ON UNKNOWN.col1 = test2.col1;");
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
 
     // When:
-    extractor.extractDataSources(stmt);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> extractor.extractDataSources(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("UNKNOWN does not exist."));
   }
 
   @Test
@@ -175,12 +177,14 @@ public class DataSourceExtractorTest {
     final AstNode stmt = givenQuery("SELECT * FROM TEST1 JOIN UNKNOWN"
         + " ON test1.col1 = UNKNOWN.col1;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
-
     // When:
-    extractor.extractDataSources(stmt);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> extractor.extractDataSources(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("UNKNOWN does not exist."));
   }
 
   private static AstNode givenQuery(final String sql) {

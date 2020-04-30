@@ -100,14 +100,14 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
-    // /chc endpoints need to be first because they need to be accessible even before
-    // preconditions have been satisfied
+    KsqlCorsHandler.setupCorsHandler(server, router);
+
+    // /chc endpoints need to be before server state handler but before CORS handler as they
+    // need to be usable from browser with cross origin policy
     router.route(HttpMethod.GET, "/chc/ready").handler(ServerVerticle::chcHandler);
     router.route(HttpMethod.GET, "/chc/live").handler(ServerVerticle::chcHandler);
 
     PortedEndpoints.setupFailureHandler(router);
-
-    KsqlCorsHandler.setupCorsHandler(server, router);
 
     router.route().failureHandler(ServerVerticle::failureHandler);
 

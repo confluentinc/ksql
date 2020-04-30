@@ -19,7 +19,6 @@ import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INVALID_QUERY;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -233,26 +232,6 @@ public class ApiTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldHandleExtraArgInQuery() throws Exception {
-
-    // Given
-    JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY)
-        .put("badarg", 213);
-
-    // When
-    HttpResponse<Buffer> response = sendRequest("/query-stream",
-        requestBody.toBuffer().appendString("\n"));
-
-    // Then
-    assertThat(response.statusCode(), is(400));
-    assertThat(response.statusMessage(), is("Bad Request"));
-
-    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_UNKNOWN_PARAM, "Unknown arg badarg",
-        queryResponse.responseObject);
-  }
-
-  @Test
   public void shouldHandleErrorInProcessingQuery() throws Exception {
 
     // Given
@@ -365,26 +344,6 @@ public class ApiTest extends BaseApiTest {
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     validateError(ERROR_CODE_MISSING_PARAM, "No queryId in arguments",
-        queryResponse.responseObject);
-  }
-
-  @Test
-  public void shouldHandleExtraArgInCloseQuery() throws Exception {
-
-    // Given
-    JsonObject requestBody = new JsonObject().put("queryId", "qwydguygwd")
-        .put("badarg", 213);
-
-    // When
-    HttpResponse<Buffer> response = sendRequest("/close-query",
-        requestBody.toBuffer().appendString("\n"));
-
-    // Then
-    assertThat(response.statusCode(), is(400));
-    assertThat(response.statusMessage(), is("Bad Request"));
-
-    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_UNKNOWN_PARAM, "Unknown arg badarg",
         queryResponse.responseObject);
   }
 
@@ -513,26 +472,6 @@ public class ApiTest extends BaseApiTest {
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     validateError(ERROR_CODE_MISSING_PARAM, "No target in arguments", queryResponse.responseObject);
-  }
-
-  @Test
-  public void shouldHandleExtraArgInInserts() throws Exception {
-
-    // Given
-    JsonObject requestBody = new JsonObject().put("target", "some-stream")
-        .put("badarg", 213);
-
-    // When
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream",
-        requestBody.toBuffer().appendString("\n"));
-
-    // Then
-    assertThat(response.statusCode(), is(400));
-    assertThat(response.statusMessage(), is("Bad Request"));
-
-    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_UNKNOWN_PARAM, "Unknown arg badarg",
-        queryResponse.responseObject);
   }
 
   @Test

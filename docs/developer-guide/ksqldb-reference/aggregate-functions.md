@@ -24,8 +24,6 @@ For more information, see
   - [SUM](#sum)
   - [TOPK](#topk)
   - [TOPKDISTINCT](#topkdistinct)
-  - [WindowStart](#windowstart)
-  - [WindowEnd](#windowend)
 
 AVG
 ---

@@ -159,9 +159,12 @@ public class Server {
         deployFutures.add(deployFuture);
       }
     }
-    for (URI uri : listenUris) {
-      listeners.add(uris.get(uri));
-    }
+    CompletableFuture.allOf(deployFutures.toArray(new CompletableFuture<?>[0])).thenApply(n -> {
+      for (URI uri : listenUris) {
+        listeners.add(uris.get(uri));
+      }
+      return null;
+    });
     return deployFutures;
   }
 

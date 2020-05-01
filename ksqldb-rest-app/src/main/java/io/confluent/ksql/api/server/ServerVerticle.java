@@ -27,6 +27,11 @@ import io.vertx.ext.web.handler.BodyHandler;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * The server deploys multiple server verticles. This is where the HTTP2 requests are handled. The
+ * actual implementation of the endpoints is provided by an implementation of {@code Endpoints}
+ * and {@code InternalEndpoints}.
+ */
 public class ServerVerticle extends AbstractServerVerticle {
 
   private final Endpoints endpoints;

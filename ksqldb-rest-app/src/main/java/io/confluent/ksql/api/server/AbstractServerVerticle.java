@@ -24,10 +24,6 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * The server deploys multiple server verticles. This is where the HTTP2 requests are handled. The
- * actual implementation of the endpoints is provided by an implementation of {@code Endpoints}.
- */
 public abstract class AbstractServerVerticle extends AbstractVerticle {
 
   private static final Logger log = LoggerFactory.getLogger(AbstractServerVerticle.class);

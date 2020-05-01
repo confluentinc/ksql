@@ -37,7 +37,7 @@ class HighAvailabilityTestUtil {
   private static final Logger LOG = LoggerFactory.getLogger(HighAvailabilityTestUtil.class);
 
   static ClusterStatusResponse sendClusterStatusRequest(final TestKsqlRestApp restApp) {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
+    try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient()) {
       final RestResponse<ClusterStatusResponse> res = restClient.makeClusterStatusRequest();
 
       if (res.isErroneous()) {
@@ -163,7 +163,7 @@ class HighAvailabilityTestUtil {
       final long timestamp
   ) {
 
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
+    try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient()) {
       restClient.makeAsyncHeartbeatRequest(hostInfoEntity, timestamp)
           .exceptionally(t -> {
             LOG.error("Unexpected exception in async request", t);
@@ -177,7 +177,7 @@ class HighAvailabilityTestUtil {
       final LagReportingMessage lagReportingMessage
   ) throws ExecutionException, InterruptedException {
 
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
+    try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient()) {
       restClient.makeAsyncLagReportingRequest(lagReportingMessage)
           .exceptionally(t -> {
             LOG.error("Unexpected exception in async request", t);

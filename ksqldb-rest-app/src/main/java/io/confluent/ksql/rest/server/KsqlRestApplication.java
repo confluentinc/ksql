@@ -320,7 +320,9 @@ public final class KsqlRestApplication implements Executable {
           ksqlSecurityContextProvider,
           heartbeatResource,
           clusterStatusResource,
-          lagReportingResource
+          lagReportingResource,
+          ksqlResource,
+          streamedQueryResource
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, internalEndpoints, securityExtension,
           authenticationPlugin, serverState);
@@ -530,6 +532,16 @@ public final class KsqlRestApplication implements Executable {
   // Current tests require URIs as URLs, even though they're not URLs
   List<URL> getListeners() {
     return apiServer.getListeners().stream().map(uri -> {
+      try {
+        return uri.toURL();
+      } catch (MalformedURLException e) {
+        throw new KsqlException(e);
+      }
+    }).collect(Collectors.toList());
+  }
+
+  List<URL> getInternalListeners() {
+    return apiServer.getInternalListeners().stream().map(uri -> {
       try {
         return uri.toURL();
       } catch (MalformedURLException e) {

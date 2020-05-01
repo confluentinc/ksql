@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.types.Password;
@@ -71,6 +72,7 @@ public class Server {
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final List<URI> listeners = new ArrayList<>();
+  private final List<URI> internalListeners = new ArrayList<>();
   private WorkerExecutor workerExecutor;
 
   public Server(final Vertx vertx, final KsqlRestConfig config,
@@ -127,21 +129,19 @@ public class Server {
     log.info("API server started");
   }
 
-  private List<CompletableFuture<String>> setupPublicEndpoints(
+  private static List<CompletableFuture<String>> setupEndpointsCommon(
+      final Vertx vertx,
       final int instances,
       final List<URI> listenUris,
-      final Optional<InternalEndpoints> combinedInternalEndpointsOptional) {
+      final Function<URI, AbstractServerVerticle> verticleFactory,
+      final List<URI> listeners) {
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
     final Map<URI, URI> uris = new ConcurrentHashMap<>();
     for (URI listener : listenUris) {
 
       for (int i = 0; i < instances; i++) {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
-        final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
-            combinedInternalEndpointsOptional,
-            createHttpServerOptions(config, listener.getHost(), listener.getPort(),
-                listener.getScheme().equalsIgnoreCase("https")),
-            this);
+        final AbstractServerVerticle serverVerticle = verticleFactory.apply(listener);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {
@@ -166,24 +166,35 @@ public class Server {
       return null;
     });
     return deployFutures;
+
+  }
+
+  private List<CompletableFuture<String>> setupPublicEndpoints(
+      final int instances,
+      final List<URI> listenUris,
+      final Optional<InternalEndpoints> combinedInternalEndpointsOptional) {
+    return setupEndpointsCommon(vertx, instances, listenUris, (listener) ->
+        new ServerVerticle(endpoints,
+            combinedInternalEndpointsOptional,
+            createHttpServerOptions(config, listener.getHost(), listener.getPort(),
+                listener.getScheme().equalsIgnoreCase("https")),
+            this), listeners);
   }
 
   private List<CompletableFuture<String>> setupInternalEndpoints(
       final int instances,
       final Optional<URI> internalListenUri) {
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
-    // Install separate internal listener if configured separately
+
     internalListenUri.ifPresent(listener -> {
-      for (int i = 0; i < instances; i++) {
-        final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
-        final InternalServerVerticle serverVerticle = new InternalServerVerticle(internalEndpoints,
-            createHttpServerOptions(config, listener.getHost(), listener.getPort(),
-                listener.getScheme().equalsIgnoreCase("https")),
-            this);
-        vertx.deployVerticle(serverVerticle, vcf);
-        deployFutures.add(vcf);
-      }
+      deployFutures.addAll(
+          setupEndpointsCommon(vertx, instances, ImmutableList.of(listener), (l) ->
+              new InternalServerVerticle(internalEndpoints,
+                  createHttpServerOptions(config, l.getHost(), l.getPort(),
+                      listener.getScheme().equalsIgnoreCase("https")),
+                  this), internalListeners));
     });
+
     return deployFutures;
   }
 
@@ -264,6 +275,10 @@ public class Server {
 
   public synchronized List<URI> getListeners() {
     return ImmutableList.copyOf(listeners);
+  }
+
+  public synchronized List<URI> getInternalListeners() {
+    return ImmutableList.copyOf(internalListeners);
   }
 
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,

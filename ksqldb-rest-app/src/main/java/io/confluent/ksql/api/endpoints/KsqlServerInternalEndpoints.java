@@ -21,33 +21,42 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
+import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.LagReportingResource;
-import io.confluent.ksql.security.KsqlSecurityContext;
+import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.vertx.core.WorkerExecutor;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 public class KsqlServerInternalEndpoints implements InternalEndpoints {
 
-  private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
   private final Optional<HeartbeatResource> heartbeatResource;
   private final Optional<ClusterStatusResource> clusterStatusResource;
   private final Optional<LagReportingResource> lagReportingResource;
+  private final KsqlResource ksqlResource;
+  private final StreamedQueryResource streamedQueryResource;
+  private final OldApiEndpointExecutor oldApiEndpointExecutor;
 
   public KsqlServerInternalEndpoints(
       final KsqlSecurityContextProvider ksqlSecurityContextProvider,
       final Optional<HeartbeatResource> heartbeatResource,
       final Optional<ClusterStatusResource> clusterStatusResource,
-      final Optional<LagReportingResource> lagReportingResource
+      final Optional<LagReportingResource> lagReportingResource,
+      final KsqlResource ksqlResource,
+      final StreamedQueryResource streamedQueryResource
   ) {
-    this.ksqlSecurityContextProvider = Objects.requireNonNull(ksqlSecurityContextProvider);
     this.heartbeatResource = Objects.requireNonNull(heartbeatResource);
     this.clusterStatusResource = Objects.requireNonNull(clusterStatusResource);
     this.lagReportingResource = Objects.requireNonNull(lagReportingResource);
+    this.ksqlResource = Objects.requireNonNull(ksqlResource);
+    this.streamedQueryResource = Objects.requireNonNull(streamedQueryResource);
+    this.oldApiEndpointExecutor = new OldApiEndpointExecutor(
+        Objects.requireNonNull(ksqlSecurityContextProvider));
   }
 
 
@@ -55,7 +64,8 @@ public class KsqlServerInternalEndpoints implements InternalEndpoints {
   public CompletableFuture<EndpointResponse> executeHeartbeat(
       final HeartbeatMessage heartbeatMessage,
       final ApiSecurityContext apiSecurityContext) {
-    return heartbeatResource.map(resource -> executeOldApiEndpoint(apiSecurityContext,
+    return heartbeatResource.map(resource -> oldApiEndpointExecutor.executeOldApiEndpoint(
+        apiSecurityContext,
         ksqlSecurityContext -> resource.registerHeartbeat(heartbeatMessage)))
         .orElseGet(() -> CompletableFuture
             .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
@@ -64,7 +74,8 @@ public class KsqlServerInternalEndpoints implements InternalEndpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeClusterStatus(
       final ApiSecurityContext apiSecurityContext) {
-    return clusterStatusResource.map(resource -> executeOldApiEndpoint(apiSecurityContext,
+    return clusterStatusResource.map(resource -> oldApiEndpointExecutor.executeOldApiEndpoint(
+        apiSecurityContext,
         ksqlSecurityContext -> resource.checkClusterStatus()))
         .orElseGet(() -> CompletableFuture
             .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
@@ -73,23 +84,33 @@ public class KsqlServerInternalEndpoints implements InternalEndpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeLagReport(
       final LagReportingMessage lagReportingMessage, final ApiSecurityContext apiSecurityContext) {
-    return lagReportingResource.map(resource -> executeOldApiEndpoint(apiSecurityContext,
+    return lagReportingResource.map(resource -> oldApiEndpointExecutor.executeOldApiEndpoint(
+        apiSecurityContext,
         ksqlSecurityContext -> resource.receiveHostLag(lagReportingMessage)))
         .orElseGet(() -> CompletableFuture
             .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
   }
 
-  private CompletableFuture<EndpointResponse> executeOldApiEndpoint(
-      final ApiSecurityContext apiSecurityContext,
-      final Function<KsqlSecurityContext, EndpointResponse> functionCall) {
+  @Override
+  public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
+      final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext) {
 
-    final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
-        .provide(apiSecurityContext);
+    return oldApiEndpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
+        ksqlSecurityContext -> ksqlResource.handleKsqlStatements(
+            ksqlSecurityContext,
+            request), workerExecutor);
+  }
 
-    try {
-      return CompletableFuture.completedFuture(functionCall.apply(ksqlSecurityContext));
-    } finally {
-      ksqlSecurityContext.getServiceContext().close();
-    }
+  @Override
+  public CompletableFuture<EndpointResponse> executeQueryRequest(final KsqlRequest request,
+      final WorkerExecutor workerExecutor,
+      final CompletableFuture<Void> connectionClosedFuture,
+      final ApiSecurityContext apiSecurityContext) {
+    return oldApiEndpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
+        ksqlSecurityContext -> streamedQueryResource.streamQuery(
+            ksqlSecurityContext,
+            request,
+            connectionClosedFuture), workerExecutor);
   }
 }

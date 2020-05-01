@@ -146,6 +146,16 @@ final class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(JSON_CONTENT_TYPE)
         .handler(new InternalPortedEndpoints(internalEndpoints, server)::handleLagReportRequest);
+    router.route(HttpMethod.POST, "/ksql")
+        .handler(BodyHandler.create())
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(JSON_CONTENT_TYPE)
+        .handler(new InternalPortedEndpoints(internalEndpoints, server)::handleKsqlRequest);
+    router.route(HttpMethod.POST, "/query")
+        .handler(BodyHandler.create())
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(JSON_CONTENT_TYPE)
+        .handler(new InternalPortedEndpoints(internalEndpoints, server)::handleQueryRequest);
   }
 
   static void setupFailureHandler(final Router router) {
@@ -293,6 +303,28 @@ final class PortedEndpoints {
       handlePortedOldApiRequest(server, routingContext, LagReportingMessage.class,
           (request, apiSecurityContext) ->
               endpoints.executeLagReport(request, DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleKsqlRequest(final RoutingContext routingContext) {
+      handlePortedOldApiRequest(server, routingContext, KsqlRequest.class,
+          (ksqlRequest, apiSecurityContext) ->
+              endpoints
+                  .executeKsqlRequest(ksqlRequest, server.getWorkerExecutor(),
+                      DefaultApiSecurityContext.create(routingContext))
+      );
+    }
+
+    void handleQueryRequest(final RoutingContext routingContext) {
+      final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
+      routingContext.request().connection()
+          .closeHandler(v -> connectionClosedFuture.complete(null));
+
+      handlePortedOldApiRequest(server, routingContext, KsqlRequest.class,
+          (request, apiSecurityContext) ->
+              endpoints
+                  .executeQueryRequest(request, server.getWorkerExecutor(), connectionClosedFuture,
+                      DefaultApiSecurityContext.create(routingContext))
       );
     }
   }

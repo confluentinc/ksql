@@ -106,7 +106,7 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public ClientOptions setBasicAuthCredentials(final String username, final String password) {
-    this.useBasicAuth = username == null && password == null;
+    this.useBasicAuth = username != null || password != null;
     this.basicAuthUsername = username;
     this.basicAuthPassword = password;
     return this;
@@ -134,7 +134,7 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public boolean isUseBasicAuth() {
-    return useClientAuth;
+    return useBasicAuth;
   }
 
   @Override

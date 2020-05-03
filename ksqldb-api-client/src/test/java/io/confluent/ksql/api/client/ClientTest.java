@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.api.BaseApiTest;
-import io.confluent.ksql.api.client.impl.ClientOptionsImpl;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.vertx.ext.web.client.WebClient;
@@ -39,8 +38,12 @@ import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientTest extends BaseApiTest {
+
+  protected static final Logger log = LoggerFactory.getLogger(ClientTest.class);
 
   @SuppressWarnings("unchecked")
   protected static final List<String> DEFAULT_COLUMN_NAMES = BaseApiTest.DEFAULT_COLUMN_NAMES.getList();

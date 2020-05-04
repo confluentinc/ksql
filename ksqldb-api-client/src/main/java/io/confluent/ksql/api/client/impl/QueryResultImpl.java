@@ -29,7 +29,7 @@ class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
   private final List<String> columnNames;
   private final List<String> columnTypes;
   private final PollableSubscriber pollableSubscriber;
-  private boolean polling;
+  private volatile boolean polling;
   private boolean subscribing;
 
   QueryResultImpl(final Context context, final String queryId, final List<String> columnNames,
@@ -57,12 +57,14 @@ class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
   }
 
   @Override
-  public synchronized void subscribe(final Subscriber<? super Row> subscriber) {
+  public void subscribe(final Subscriber<? super Row> subscriber) {
     if (polling) {
       throw new IllegalStateException("Cannot set subscriber if polling");
     }
-    subscribing = true;
-    super.subscribe(subscriber);
+    synchronized (this) {
+      subscribing = true;
+      super.subscribe(subscriber);
+    }
   }
 
   @Override
@@ -96,6 +98,5 @@ class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
   public void close() {
     pollableSubscriber.close();
   }
-
 
 }

@@ -68,8 +68,8 @@ public class ClientImpl implements Client {
     this.ownedVertx = ownedVertx;
     this.httpClient = createHttpClient(vertx, clientOptions);
     this.basicAuthHeader = createBasicAuthHeader(clientOptions);
-    this.serverSocketAddress = io.vertx.core.net.SocketAddress
-        .inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
+    this.serverSocketAddress =
+        SocketAddress.inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
   }
 
   @Override

@@ -45,12 +45,10 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.ksql.rest.server.resources.streaming.RecordFormatter.Deserializers;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +96,6 @@ public class RecordFormatterTest {
 
     private static final Bytes KEY_BYTES = Bytes.wrap("the key".getBytes(UTF_8));
     private static final Bytes VALUE_BYTES = Bytes.wrap("the value".getBytes(UTF_8));
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss +0000");
 
     @Mock
     private SchemaRegistryClient schemaRegistryClient;
@@ -108,12 +105,11 @@ public class RecordFormatterTest {
     private Deserializers valueDeserializers;
 
     private RecordFormatter formatter;
-    private long timestamp = 1581366404000L;
+    private long timestamp = 1588344313111L; // 1st of May 2020, 14:45:13:111 UTC
 
     @Before
     public void setUp() {
       formatter = new RecordFormatter(
-          DATE_FORMAT,
           keyDeserializers,
           valueDeserializers
       );
@@ -218,14 +214,11 @@ public class RecordFormatterTest {
 
     @Test
     public void shouldFormatRowTime() {
-      // Given:
-      final String expected = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss +0000").format(new Date(timestamp));
-
       // When:
       final String formatted = formatSingle(consumerRecord(null, null));
 
       // Then:
-      assertThat(formatted, containsString("rowtime: " + expected + ", "));
+      assertThat(formatted, containsString("rowtime: 2020/05/01 14:45:13.111 Z, "));
     }
 
     @Test

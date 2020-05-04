@@ -82,7 +82,7 @@ Access the fields in a `STRUCT` by using the dereference operator
 SELECT address->city, address->zip FROM orders;
 ```
 
-For more info, see [Operators](#operators).
+For more info, see [Operators](ksqldb-reference/operators.md).
 
 You can create a `STRUCT` in a query by specifying the names of the columns
 and expressions that construct the values, separated by commas. The following
@@ -252,7 +252,7 @@ statement by using the syntax `ARRAY<ElementType>`. For example,
 The elements of an array are zero-indexed and can be accessed by using
 the `[]` operator passing in the index. For example, `SOME_ARRAY[0]`
 retrieves the first element from the array. For more information, see
-[Operators](#operators).
+[Operators](ksqldb-reference/operators.md).
 
 ### Map
 
@@ -273,7 +273,7 @@ by using the syntax `MAP<KeyType, ValueType>`. For example,
 Access the values of a map by using the `[]` operator and passing in the
 key. For example, `SOME_MAP['cost']` retrieves the value for the entry
 with key `cost`, or `null` For more information, see
-[Operators](#operators).
+[Operators](ksqldb-reference/operators.md).
 
 ### Struct
 
@@ -293,7 +293,7 @@ three fields, with the supplied name and type.
 
 Access the fields of a struct by using the `->` operator. For example,
 `SOME_STRUCT->ID` retrieves the value of the struct's `ID` field. For
-more information, see [Operators](#operators).
+more information, see [Operators](ksqldb-reference/operators.md).
 
 ### Decimal
 

@@ -180,6 +180,8 @@ public class ClientImpl implements Client {
         .setSsl(clientOptions.isUseTls())
         .setUseAlpn(true)
         .setProtocolVersion(HttpVersion.HTTP_2)
+        .setVerifyHost(clientOptions.isVerifyHost())
+        .setTrustAll(clientOptions.isTrustAll())
         .setDefaultHost(clientOptions.getHost())
         .setDefaultPort(clientOptions.getPort());
     if (clientOptions.isUseTls() && !clientOptions.getTrustStore().isEmpty()) {

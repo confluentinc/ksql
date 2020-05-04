@@ -24,6 +24,8 @@ public class ClientOptionsImpl implements ClientOptions {
   private int port = 8088;
   private boolean useTls = false;
   private boolean useClientAuth = false;
+  private boolean verifyHost = true;
+  private boolean trustAll = false;
   private boolean useBasicAuth = false;
   private String trustStorePath;
   private String trustStorePassword;
@@ -39,7 +41,9 @@ public class ClientOptionsImpl implements ClientOptions {
   private ClientOptionsImpl(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final String host, final int port,
-      final boolean useTls, final boolean useClientAuth, final boolean useBasicAuth,
+      final boolean useTls, final boolean useClientAuth,
+      final boolean verifyHost, final boolean trustAll,
+      final boolean useBasicAuth,
       final String trustStorePath, final String trustStorePassword,
       final String keyStorePath, final String keyStorePassword,
       final String basicAuthUsername, final String basicAuthPassword) {
@@ -47,6 +51,8 @@ public class ClientOptionsImpl implements ClientOptions {
     this.port = port;
     this.useTls = useTls;
     this.useClientAuth = useClientAuth;
+    this.verifyHost = verifyHost;
+    this.trustAll = trustAll;
     this.useBasicAuth = useBasicAuth;
     this.trustStorePath = trustStorePath;
     this.trustStorePassword = trustStorePassword;
@@ -77,6 +83,18 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public ClientOptions setUseClientAuth(final boolean useClientAuth) {
     this.useClientAuth = useClientAuth;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setVerifyHost(final boolean verifyHost) {
+    this.verifyHost = verifyHost;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setTrustAll(final boolean trustAll) {
+    this.trustAll = trustAll;
     return this;
   }
 
@@ -133,6 +151,16 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public boolean isVerifyHost() {
+    return verifyHost;
+  }
+
+  @Override
+  public boolean isTrustAll() {
+    return trustAll;
+  }
+
+  @Override
   public boolean isUseBasicAuth() {
     return useBasicAuth;
   }
@@ -171,7 +199,9 @@ public class ClientOptionsImpl implements ClientOptions {
   public ClientOptions copy() {
     return new ClientOptionsImpl(
         host, port,
-        useTls, useClientAuth, useBasicAuth,
+        useTls, useClientAuth,
+        verifyHost, trustAll,
+        useBasicAuth,
         trustStorePath, trustStorePassword,
         keyStorePath, keyStorePassword,
         basicAuthUsername, basicAuthPassword);

@@ -22,14 +22,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>6.0.0-SNAPSHOT</version>
+        <version>6.0.0-beta200504190144</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>6.0.0-SNAPSHOT</version>
+    <version>6.0.0-beta200504190144</version>
     <licenses>
         <license>
             <name>Confluent Community License</name>
@@ -124,9 +124,9 @@
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
-        <kafka.version>5.5.0-ccs</kafka.version>
-        <ce.kafka.version>5.5.0-ce</ce.kafka.version>
-        <confluent.version>5.5.0</confluent.version>
+        <kafka.version>6.0.0-ccs-beta200504190144</kafka.version>
+        <ce.kafka.version>6.0.0-ce-beta200504190144</ce.kafka.version>
+        <confluent.version>6.0.0-beta200504190144</confluent.version>
         <compile.warnings-flag>-Werror</compile.warnings-flag>
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.28.v20200408</jetty.version>

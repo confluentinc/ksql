@@ -15,22 +15,22 @@
 #
 # If you wish to run with locally built ksqlDB docker images then:
 #
-# 1. Follow the steps in https://github.com/confluentinc/ksql/blob/master/ksql-docker/README.md
+# 1. Follow the steps in https://github.com/confluentinc/ksql/blob/master/ksqldb-docker/README.md
 # to build a ksqlDB docker image with local changes.
 #
-# 2. Update this file below replacing all references to "confluentinc/ksqldb-server:latest" with your image, e.g. "placeholder/confluentinc/ksql-docker:local.build"
+# 2. Update .env file to use your local images by setting KSQL_IMAGE_BASE=placeholder/ and KSQL_VERSION=local.build.
 
 ---
 version: '2'
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:${CP_VERSION}
     environment:
       ZOOKEEPER_CLIENT_PORT: 32181
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-enterprise-kafka:latest
+    image: confluentinc/cp-enterprise-kafka:${CP_VERSION}
     ports:
       - "29092:29092"
     depends_on:
@@ -47,7 +47,7 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:latest
+    image: confluentinc/cp-schema-registry:${CP_VERSION}
     depends_on:
       - zookeeper
       - kafka
@@ -56,7 +56,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: zookeeper:32181
 
   primary-ksqldb-server:
-    image: confluentinc/ksqldb-server:latest
+    image: ${KSQL_IMAGE_BASE}confluentinc/ksqldb-server:${KSQL_VERSION}
     hostname: primary-ksqldb-server
     container_name: primary-ksqldb-server
     depends_on:
@@ -72,7 +72,7 @@ services:
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
 
   additional-ksqldb-server:
-    image: confluentinc/ksqldb-server:latest
+    image: ${KSQL_IMAGE_BASE}confluentinc/ksqldb-server:${KSQL_VERSION}
     hostname: additional-ksqldb-server
     container_name: additional-ksqldb-server
     depends_on:
@@ -87,7 +87,7 @@ services:
   # Access the cli by running:
   # > docker-compose exec ksqldb-cli  ksql http://primary-ksqldb-server:8088
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:latest
+    image: ${KSQL_IMAGE_BASE}confluentinc/ksqldb-cli:${KSQL_VERSION}
     container_name: ksqldb-cli
     depends_on:
       - primary-ksqldb-server

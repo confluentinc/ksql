@@ -6,6 +6,7 @@ description: Scalar functions to use in  ksqlDB statements and queries
 keywords: ksqlDB, function, scalar
 ---
 
+
 - [Numeric Functions](#numeric-functions)
   - [ABS](#abs)
   - [CEIL](#ceil)

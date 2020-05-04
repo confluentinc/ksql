@@ -3,7 +3,7 @@
 # exit when any command fails
 set -e
 
-echo -e "## Bringing up contains:\n"
+echo -e "## Bringing up containers:\n"
 docker-compose up -d
 
 echo -e "\n## Waiting for ksqlDB to start:"

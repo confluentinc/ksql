@@ -21,4 +21,8 @@ To build a new image with local changes:
     ```
     > docker image ls | grep local.build
     ```
-    You should see the new image listed.
+    You should see the new image listed. For example:
+
+    ```
+    placeholder/confluentinc/ksqldb-docker       local.build   94210cd14384   About an hour ago   716MB
+    ```

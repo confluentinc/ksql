@@ -51,11 +51,22 @@ abstract class QueryResponseHandler<T> {
     handleBodyEnd();
   }
 
+  public void handleException(final Throwable t) {
+    checkContext();
+    if (!cf.isDone()) {
+      cf.completeExceptionally(t);
+    } else {
+      handleExceptionAfterFutureCompleted(t);
+    }
+  }
+
   protected abstract void handleBodyEnd();
 
   protected abstract void handleMetadata(QueryResponseMetadata queryResponseMetadata);
 
   protected abstract void handleRow(Buffer buff);
+
+  protected abstract void handleExceptionAfterFutureCompleted(Throwable t);
 
   protected void checkContext() {
     VertxUtils.checkContext(context);

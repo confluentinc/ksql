@@ -72,6 +72,11 @@ public class StreamQueryResponseHandler extends QueryResponseHandler<QueryResult
   protected void handleBodyEnd() {
   }
 
+  @Override
+  public void handleExceptionAfterFutureCompleted(final Throwable t) {
+    queryResult.handleError(new Exception(t));
+  }
+
   private void publisherReceptive() {
     checkContext();
 

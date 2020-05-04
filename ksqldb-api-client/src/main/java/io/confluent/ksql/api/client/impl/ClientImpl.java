@@ -161,6 +161,7 @@ public class ClientImpl implements Client {
 
       recordParser.handler(responseHandler::handleBodyBuffer);
       recordParser.endHandler(responseHandler::handleBodyEnd);
+      recordParser.exceptionHandler(responseHandler::handleException);
     } else {
       response.bodyHandler(buffer -> {
         final JsonObject errorResponse = buffer.toJsonObject();

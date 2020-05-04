@@ -88,6 +88,10 @@ class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
     return false;
   }
 
+  public void handleError(final Exception e) {
+    sendError(e);
+  }
+
   @Override
   public void close() {
     pollableSubscriber.close();

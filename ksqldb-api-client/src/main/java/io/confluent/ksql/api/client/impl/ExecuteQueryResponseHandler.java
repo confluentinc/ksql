@@ -26,8 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>> {
+
+  private static final Logger log = LoggerFactory.getLogger(ExecuteQueryResponseHandler.class);
 
   private final List<Row> rows;
   private List<String> columnNames;
@@ -60,5 +64,11 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>>
     }
 
     cf.complete(rows);
+  }
+
+  @Override
+  public void handleExceptionAfterFutureCompleted(final Throwable t) {
+    // This should not happen
+    log.error("Exceptions should not occur after the future has been completed", t);
   }
 }

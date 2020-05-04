@@ -178,6 +178,7 @@ public class PartitionByParamsFactoryTest {
         .valueColumn(COL3, COL3_TYPE)
         .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(COL0, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("someField"), SqlTypes.BIGINT)
         .build()));
   }
 

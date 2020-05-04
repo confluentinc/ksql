@@ -7,7 +7,7 @@
       "name": "equals",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B BOOLEAN, C BIGINT, D DOUBLE, E DECIMAL(4,3), F STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT A = 1, B = true, C = 11, D = 1.1, E = 1.20, F = 'foo' FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, A = 1, B = true, C = 11, D = 1.1, E = 1.20, F = 'foo' FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -25,7 +25,7 @@
       "name": "not equals",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B BOOLEAN, C BIGINT, D DOUBLE, E DECIMAL(4,3), F STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT A <> 1, B <> true, C <> 11, D <> 1.1, E <> 1.20, F <> 'foo' FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, A <> 1, B <> true, C <> 11, D <> 1.1, E <> 1.20, F <> 'foo' FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -43,7 +43,7 @@
       "name": "less than",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B BIGINT, C DOUBLE, D DECIMAL(4,3), E STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT A < 1, B < 11, C < 1.1, D < 1.20, E < 'foo' FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, A < 1, B < 11, C < 1.1, D < 1.20, E < 'foo' FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -61,7 +61,7 @@
       "name": "less than or equal",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B BIGINT, C DOUBLE, D DECIMAL(4,3), E STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT A <= 1, B <= 11, C <= 1.1, D <= 1.20, E <= 'foo' FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, A <= 1, B <= 11, C <= 1.1, D <= 1.20, E <= 'foo' FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -81,7 +81,7 @@
       "name": "greater than",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B BIGINT, C DOUBLE, D DECIMAL(4,3), E STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT A > 1, B > 11, C > 1.1, D > 1.20, E > 'foo' FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, A > 1, B > 11, C > 1.1, D > 1.20, E > 'foo' FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -99,7 +99,7 @@
       "name": "greater than or equal",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B BIGINT, C DOUBLE, D DECIMAL(4,3), E STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT A >= 1, B >= 11, C >= 1.1, D >= 1.20, E >= 'foo' FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, A >= 1, B >= 11, C >= 1.1, D >= 1.20, E >= 'foo' FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -119,7 +119,7 @@
       "name": "between",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B BIGINT, C DOUBLE, D DECIMAL(4,3), E STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT A BETWEEN 0 AND 2, B BETWEEN 10 AND 12, C BETWEEN 1.0 AND 1.11, D BETWEEN 1.19 AND 1.21, E BETWEEN 'eoo' AND 'goo' FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, A BETWEEN 0 AND 2, B BETWEEN 10 AND 12, C BETWEEN 1.0 AND 1.11, D BETWEEN 1.19 AND 1.21, E BETWEEN 'eoo' AND 'goo' FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -143,7 +143,7 @@
       "name": "not between",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B BIGINT, C DOUBLE, D DECIMAL(4,3), E STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT A NOT BETWEEN 0 AND 2, B NOT BETWEEN 10 AND 12, C NOT BETWEEN 1.0 AND 1.11, D NOT BETWEEN 1.19 AND 1.21, E NOT BETWEEN 'eoo' AND 'goo' FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, A NOT BETWEEN 0 AND 2, B NOT BETWEEN 10 AND 12, C NOT BETWEEN 1.0 AND 1.11, D NOT BETWEEN 1.19 AND 1.21, E NOT BETWEEN 'eoo' AND 'goo' FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -167,7 +167,7 @@
       "name": "is distinct from",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, ID2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ID IS DISTINCT FROM ID2 FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT ID, ID IS DISTINCT FROM ID2 FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -191,7 +191,7 @@
       "name": "is not distinct from",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, ID2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ID IS NOT DISTINCT FROM ID2 FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT ID, ID IS NOT DISTINCT FROM ID2 FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -215,7 +215,7 @@
       "name": "comparison array fails",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B ARRAY<INT>, C ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT B = C FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, B = C FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -229,7 +229,7 @@
       "name": "comparison map fails",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B MAP<STRING, INT>, C MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT B = C FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, B = C FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -243,7 +243,7 @@
       "name": "comparison struct fails",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B STRUCT<ID INT>, C STRUCT<ID INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT B = C FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, B = C FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true

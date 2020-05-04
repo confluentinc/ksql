@@ -16,8 +16,12 @@
 package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static io.confluent.ksql.planner.plan.JoinNode.JoinType.INNER;
+import static io.confluent.ksql.planner.plan.JoinNode.JoinType.LEFT;
+import static io.confluent.ksql.planner.plan.JoinNode.JoinType.OUTER;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
+import static java.util.Optional.empty;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -26,16 +30,17 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -46,8 +51,9 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.planner.plan.JoinNode.JoinType;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.planner.Projection;
+import io.confluent.ksql.planner.plan.JoinNode.JoinKey;
+import io.confluent.ksql.planner.plan.JoinNode.JoinKey.Type;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -84,9 +90,11 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 
-@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent"})
+@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent", "unchecked", "rawtypes"})
 @RunWith(MockitoJUnitRunner.class)
 public class JoinNodeTest {
+
+  protected static final ColumnName SYNTH_KEY = ColumnName.of("ID");
 
   private static final LogicalSchema LEFT_SOURCE_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("leftKey"), SqlTypes.BIGINT)
@@ -109,6 +117,7 @@ public class JoinNodeTest {
   private static final SourceName LEFT_ALIAS = SourceName.of("left");
   private static final SourceName RIGHT_ALIAS = SourceName.of("right");
   private static final SourceName RIGHT2_ALIAS = SourceName.of("right2");
+  private static final SourceName SINK = SourceName.of("sink");
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = prependAlias(
       LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
@@ -165,6 +174,14 @@ public class JoinNodeTest {
   private KafkaTopicClient mockKafkaTopicClient;
   @Mock
   private ProcessingLogger processLogger;
+  @Mock
+  private JoinKey joinKey;
+  @Mock
+  private Projection projection;
+  @Mock
+  private Expression expression1;
+  @Mock
+  private Expression expression2;
 
   @Before
   public void setUp() {
@@ -198,7 +215,8 @@ public class JoinNodeTest {
     when(left.getSourceName()).thenReturn(Optional.of(LEFT_ALIAS));
     when(right.getSourceName()).thenReturn(Optional.of(RIGHT_ALIAS));
 
-    when(ksqlStreamBuilder.getQueryId()).thenReturn(new QueryId("foo"));
+    when(joinKey.resolveKeyName(any(), any())).thenReturn(SYNTH_KEY);
+
     when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processLogger);
 
     setUpSource(left, VALUE_FORMAT, leftSource, "Foobar1");
@@ -208,13 +226,7 @@ public class JoinNodeTest {
   @Test
   public void shouldReturnLeftJoinKeyAsKeyField() {
     // When:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinType.LEFT,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right,            empty());
 
     // Then:
     assertThat(joinNode.getKeyField().ref(), is(Optional.of(LEFT_JOIN_FIELD_REF)));
@@ -270,25 +282,21 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupStream(right, rightSchemaKStream);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        WITHIN_EXPRESSION
-    );
+    final JoinNode joinNode =
+        new JoinNode(nodeId, LEFT, joinKey, true, left, right, WITHIN_EXPRESSION);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(leftSchemaKStream).leftJoin(
-        eq(rightSchemaKStream),
-        eq(leftJoinField),
-        eq(WITHIN_EXPRESSION.get().joinWindow()),
-        eq(VALUE_FORMAT),
-        eq(OTHER_FORMAT),
-        eq(CONTEXT_STACKER)
+        rightSchemaKStream,
+        SYNTH_KEY,
+        leftJoinField,
+        WITHIN_EXPRESSION.get().joinWindow(),
+        VALUE_FORMAT,
+        OTHER_FORMAT,
+        CONTEXT_STACKER
     );
   }
 
@@ -298,25 +306,21 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupStream(right, rightSchemaKStream);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.INNER,
-        left,
-        right,
-        WITHIN_EXPRESSION
-    );
+    final JoinNode joinNode =
+        new JoinNode(nodeId, INNER, joinKey, true, left, right, WITHIN_EXPRESSION);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(leftSchemaKStream).join(
-        eq(rightSchemaKStream),
-        eq(leftJoinField),
-        eq(WITHIN_EXPRESSION.get().joinWindow()),
-        eq(VALUE_FORMAT),
-        eq(OTHER_FORMAT),
-        eq(CONTEXT_STACKER)
+        rightSchemaKStream,
+        SYNTH_KEY,
+        leftJoinField,
+        WITHIN_EXPRESSION.get().joinWindow(),
+        VALUE_FORMAT,
+        OTHER_FORMAT,
+        CONTEXT_STACKER
     );
   }
 
@@ -326,25 +330,21 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupStream(right, rightSchemaKStream);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.OUTER,
-        left,
-        right,
-        WITHIN_EXPRESSION
-    );
+    final JoinNode joinNode =
+        new JoinNode(nodeId, OUTER, joinKey, true, left, right, WITHIN_EXPRESSION);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(leftSchemaKStream).outerJoin(
-        eq(rightSchemaKStream),
-        eq(KeyField.none()),
-        eq(WITHIN_EXPRESSION.get().joinWindow()),
-        eq(VALUE_FORMAT),
-        eq(OTHER_FORMAT),
-        eq(CONTEXT_STACKER)
+        rightSchemaKStream,
+        SYNTH_KEY,
+        KeyField.none(),
+        WITHIN_EXPRESSION.get().joinWindow(),
+        VALUE_FORMAT,
+        OTHER_FORMAT,
+        CONTEXT_STACKER
     );
   }
 
@@ -354,13 +354,7 @@ public class JoinNodeTest {
     when(left.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(right.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.INNER,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey, true, left, right, empty());
 
     // When:
     final Exception e = assertThrows(
@@ -382,13 +376,8 @@ public class JoinNodeTest {
     when(right.getAlias()).thenReturn(RIGHT_ALIAS);
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(3);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.OUTER,
-        left,
-        right,
-        WITHIN_EXPRESSION
-    );
+    final JoinNode joinNode =
+        new JoinNode(nodeId, OUTER, joinKey, true, left, right, WITHIN_EXPRESSION);
 
     // When:
     final Exception e = assertThrows(
@@ -407,23 +396,18 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(leftSchemaKStream).leftJoin(
-        eq(rightSchemaKTable),
-        eq(leftJoinField),
-        eq(VALUE_FORMAT),
-        eq(CONTEXT_STACKER)
+        rightSchemaKTable,
+        SYNTH_KEY,
+        leftJoinField,
+        VALUE_FORMAT,
+        CONTEXT_STACKER
     );
   }
 
@@ -433,23 +417,18 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(leftSchemaKStream).leftJoin(
-        eq(rightSchemaKTable),
-        eq(leftJoinField),
-        eq(VALUE_FORMAT),
-        eq(CONTEXT_STACKER)
+        rightSchemaKTable,
+        SYNTH_KEY,
+        leftJoinField,
+        VALUE_FORMAT,
+        CONTEXT_STACKER
     );
   }
 
@@ -459,23 +438,18 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.INNER,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey, true, left, right, empty());
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(leftSchemaKStream).join(
-        eq(rightSchemaKTable),
-        eq(leftJoinField),
-        eq(VALUE_FORMAT),
-        eq(CONTEXT_STACKER)
+        rightSchemaKTable,
+        SYNTH_KEY,
+        leftJoinField,
+        VALUE_FORMAT,
+        CONTEXT_STACKER
     );
   }
 
@@ -485,13 +459,7 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.OUTER,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty());
 
     // When:
     final Exception e = assertThrows(
@@ -512,13 +480,8 @@ public class JoinNodeTest {
 
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.OUTER,
-        left,
-        right,
-        Optional.of(withinExpression)
-    );
+    final JoinNode joinNode =
+        new JoinNode(nodeId, OUTER, joinKey, true, left, right, Optional.of(withinExpression));
 
     // When:
     final Exception e = assertThrows(
@@ -537,22 +500,18 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.INNER,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey, true, left, right, empty());
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(leftSchemaKTable).join(
-        eq(rightSchemaKTable),
-        eq(leftJoinField),
-        eq(CONTEXT_STACKER));
+        rightSchemaKTable,
+        SYNTH_KEY,
+        leftJoinField,
+        CONTEXT_STACKER
+    );
   }
 
   @Test
@@ -561,22 +520,18 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(leftSchemaKTable).leftJoin(
-        eq(rightSchemaKTable),
-        eq(leftJoinField),
-        eq(CONTEXT_STACKER));
+        rightSchemaKTable,
+        SYNTH_KEY,
+        leftJoinField,
+        CONTEXT_STACKER
+    );
   }
 
   @Test
@@ -585,22 +540,18 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.OUTER,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty());
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(leftSchemaKTable).outerJoin(
-        eq(rightSchemaKTable),
-        eq(KeyField.none()),
-        eq(CONTEXT_STACKER));
+        rightSchemaKTable,
+        SYNTH_KEY,
+        KeyField.none(),
+        CONTEXT_STACKER
+    );
   }
 
   @Test
@@ -611,13 +562,8 @@ public class JoinNodeTest {
 
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.OUTER,
-        left,
-        right,
-        Optional.of(withinExpression)
-    );
+    final JoinNode joinNode =
+        new JoinNode(nodeId, OUTER, joinKey, true, left, right, Optional.of(withinExpression));
 
     // When:
     final Exception e = assertThrows(
@@ -631,19 +577,16 @@ public class JoinNodeTest {
   }
 
   @Test
-  public void shouldHaveFullyQualifiedJoinSchema() {
+  public void shouldHaveFullyQualifiedJoinSchemaWithNonSyntheticKey() {
+    // Given:
+    when(joinKey.resolveKeyName(any(), any())).thenReturn(ColumnName.of("right_rightKey"));
+
     // When:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.OUTER,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty());
 
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
-        .keyColumn(ColumnName.of("leftKey"), SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("right_rightKey"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_L1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
@@ -657,18 +600,37 @@ public class JoinNodeTest {
   }
 
   @Test
+  public void shouldHaveFullyQualifiedJoinSchemaWithSyntheticKey() {
+    // Given:
+    when(joinKey.resolveKeyName(any(), any())).thenReturn(SYNTH_KEY);
+
+    // When:
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty());
+
+    // When:
+    assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
+        .keyColumn(SYNTH_KEY, SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_C0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_L1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_leftKey"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_C0"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_R1"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_rightKey"), SqlTypes.BIGINT)
+        .valueColumn(SYNTH_KEY, SqlTypes.BIGINT)
+        .build()
+    ));
+  }
+
+  @Test
   public void shouldNotUseSourceSerdeOptionsForInternalTopics() {
     // Given:
     setupStream(left, leftSchemaKStream);
     setupStream(right, rightSchemaKStream);
 
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        WITHIN_EXPRESSION
-    );
+    final JoinNode joinNode =
+        new JoinNode(nodeId, LEFT, joinKey, true, left, right, WITHIN_EXPRESSION);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -681,122 +643,91 @@ public class JoinNodeTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        WITHIN_EXPRESSION
-    );
+    final JoinNode joinNode =
+        new JoinNode(nodeId, LEFT, joinKey, true, left, right, WITHIN_EXPRESSION);
 
     // Then:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
-        .keyColumn(ColumnName.of("leftKey"), SqlTypes.BIGINT)
+        .keyColumn(SYNTH_KEY, SqlTypes.BIGINT)
         .valueColumns(LEFT_NODE_SCHEMA.value())
         .valueColumns(RIGHT_NODE_SCHEMA.value())
+        .valueColumn(SYNTH_KEY, SqlTypes.BIGINT)
         .build()));
   }
 
   @Test
   public void shouldResolveUnaliasedSelectStarByCallingAllSourcesWithValueOnlyFalse() {
     // Given:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinType.LEFT,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
     when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
 
     // When:
-    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.empty(), true);
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty(), true);
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(ColumnName.of("l"), ColumnName.of("r")));
 
-    verify(left).resolveSelectStar(Optional.empty(), false);
-    verify(right).resolveSelectStar(Optional.empty(), false);
+    verify(left).resolveSelectStar(empty(), false);
+    verify(right).resolveSelectStar(empty(), false);
   }
 
   @Test
   public void shouldResolveUnaliasedSelectStarWithMultipleJoins() {
     // Given:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinType.LEFT,
-        left,
-        new JoinNode(
-            new PlanNodeId("foo"),
-            JoinType.LEFT,
-            right,
-            right2,
-            Optional.empty()
-        ), Optional.empty()
-    );
+    final JoinNode inner =
+        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey, true, right, right2, empty());
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, LEFT, joinKey, true, left, inner, empty());
 
     when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
     when(right2.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r2")));
 
     // When:
-    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.empty(), true);
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty(), true);
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(ColumnName.of("l"), ColumnName.of("r"), ColumnName.of("r2")));
 
-    verify(left).resolveSelectStar(Optional.empty(), false);
-    verify(right).resolveSelectStar(Optional.empty(), false);
-    verify(right2).resolveSelectStar(Optional.empty(), false);
+    verify(left).resolveSelectStar(empty(), false);
+    verify(right).resolveSelectStar(empty(), false);
+    verify(right2).resolveSelectStar(empty(), false);
   }
 
   @Test
   public void shouldResolveUnaliasedSelectStarWithMultipleJoinsOnLeftSide() {
     // Given:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinType.LEFT,
-        new JoinNode(
-            new PlanNodeId("foo"),
-            JoinType.LEFT,
-            right,
-            right2,
-            Optional.empty()
-        ),
-        left,
-        Optional.empty()
-    );
+    final JoinNode inner =
+        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey, true, right, right2, empty());
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, LEFT, joinKey, true, inner, left, empty());
 
     when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
     when(right2.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r2")));
 
     // When:
-    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.empty(), true);
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty(), true);
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(ColumnName.of("r"), ColumnName.of("r2"), ColumnName.of("l")));
 
-    verify(left).resolveSelectStar(Optional.empty(), false);
-    verify(right).resolveSelectStar(Optional.empty(), false);
-    verify(right2).resolveSelectStar(Optional.empty(), false);
+    verify(left).resolveSelectStar(empty(), false);
+    verify(right).resolveSelectStar(empty(), false);
+    verify(right2).resolveSelectStar(empty(), false);
   }
 
   @Test
   public void shouldResolveAliasedSelectStarByCallingOnlyCorrectParent() {
     // Given:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinType.LEFT,
-        left,
-        right,
-        Optional.empty()
-    );
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
     when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
 
@@ -812,25 +743,37 @@ public class JoinNodeTest {
   }
 
   @Test
+  public void shouldIncludeSyntheticJoinKeyInResolvedSelectStart() {
+    // Given:
+    when(joinKey.getType()).thenReturn(Type.SYNTHETIC);
+
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty());
+
+    when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
+    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
+
+    // When:
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty(), false);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(SYNTH_KEY, ColumnName.of("l"), ColumnName.of("r")));
+  }
+
+  @Test
   public void shouldResolveNestedAliasedSelectStarByCallingOnlyCorrectParentWithMultiJoins() {
     // Given:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinType.LEFT,
-        left,
-        new JoinNode(
-            new PlanNodeId("foo"),
-            JoinType.LEFT,
-            right,
-            right2,
-            Optional.empty()
-        ), Optional.empty()
-    );
+    final JoinNode inner =
+        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey, true, right, right2, empty());
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, LEFT, joinKey, true, left, inner, empty());
 
     when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
 
     // When:
-    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.of(RIGHT_ALIAS), true);
+    final Stream<ColumnName> result = joinNode
+        .resolveSelectStar(Optional.of(RIGHT_ALIAS), true);
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
@@ -839,6 +782,45 @@ public class JoinNodeTest {
     verify(left, never()).resolveSelectStar(any(), anyBoolean());
     verify(right2, never()).resolveSelectStar(any(), anyBoolean());
     verify(right).resolveSelectStar(Optional.of(RIGHT_ALIAS), false);
+  }
+
+  @Test
+  public void shouldTestExpressionForBothOriginalAndRewrittenJoinKeys() {
+    // Given:
+    when(projection.containsExpression(any())).thenReturn(false, true);
+
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
+
+    when(joinKey.getOriginalAvailableKeys()).thenReturn((List)ImmutableList.of(expression1));
+    when(joinKey.getAvailableKeys()).thenReturn((List)ImmutableList.of(expression2));
+
+    // When:
+    joinNode.validateKeyPresent(SINK, projection);
+
+    // Then:
+    verify(projection).containsExpression(expression2);
+    verify(projection).containsExpression(expression1);
+  }
+
+  @Test
+  public void shouldThrowIfProjectionDoesNotIncludeAnyJoinColumns() {
+    // Given:
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
+
+    when(projection.containsExpression(any())).thenReturn(false);
+    when(joinKey.getOriginalAvailableKeys())
+        .thenReturn((List)ImmutableList.of(expression1, expression1, expression2));
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> joinNode.validateKeyPresent(SINK, projection)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The query used to build `sink` "
+        + "must include the join expressions expression1, expression1 or expression2 "
+        + "in its projection."));
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
@@ -870,9 +852,9 @@ public class JoinNodeTest {
 
   private void buildJoin(final String queryString) {
     buildJoinNode(queryString);
-    final SchemaKStream stream = joinNode.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> stream = joinNode.buildStream(ksqlStreamBuilder);
     if (stream instanceof SchemaKTable) {
-      final SchemaKTable table = (SchemaKTable) stream;
+      final SchemaKTable<?> table = (SchemaKTable<?>) stream;
       table.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
     } else {
       stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));

@@ -49,7 +49,9 @@ public class KsqlValueJoinerTest {
 
   @Test
   public void shouldJoinValueBothNonNull() {
-    final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema, rightSchema);
+    final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema.value().size(),
+        rightSchema.value().size(), 0
+    );
 
     final GenericRow joined = joiner.apply(leftRow, rightRow);
     final List<Object> expected = Arrays.asList(12L, "foobar", 20L, "baz");
@@ -58,7 +60,9 @@ public class KsqlValueJoinerTest {
 
   @Test
   public void shouldJoinValueRightEmpty() {
-    final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema, rightSchema);
+    final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema.value().size(),
+        rightSchema.value().size(), 0
+    );
 
     final GenericRow joined = joiner.apply(leftRow, null);
     final List<Object> expected = Arrays.asList(12L, "foobar", null, null);
@@ -67,7 +71,9 @@ public class KsqlValueJoinerTest {
 
   @Test
   public void shouldJoinValueLeftEmpty() {
-    final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema, rightSchema);
+    final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema.value().size(),
+        rightSchema.value().size(), 0
+    );
 
     final GenericRow joined = joiner.apply(null, rightRow);
     final List<Object> expected = Arrays.asList(null, null, 20L, "baz");

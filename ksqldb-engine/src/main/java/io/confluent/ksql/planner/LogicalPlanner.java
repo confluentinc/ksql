@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.planner;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
@@ -38,6 +41,7 @@ import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFa
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -51,8 +55,11 @@ import io.confluent.ksql.planner.JoinTree.Leaf;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.FinalProjectNode;
 import io.confluent.ksql.planner.plan.FlatMapNode;
 import io.confluent.ksql.planner.plan.JoinNode;
+import io.confluent.ksql.planner.plan.JoinNode.JoinKey;
+import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -60,9 +67,9 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
+import io.confluent.ksql.planner.plan.VerifiableNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
-import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -72,12 +79,15 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -112,11 +122,10 @@ public class LogicalPlanner {
       currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
     }
 
-    if (analysis.getPartitionBy().isPresent()) {
-      currentNode = buildRepartitionNode(
-          "PartitionBy",
+    if (analysis.original().getPartitionBy().isPresent()) {
+      currentNode = buildUserRepartitionNode(
           currentNode,
-          analysis.getPartitionBy().get()
+          analysis.original().getPartitionBy().get()
       );
     }
 
@@ -127,7 +136,7 @@ public class LogicalPlanner {
     if (analysis.getGroupBy().isPresent()) {
       currentNode = buildAggregateNode(currentNode);
     } else {
-      currentNode = buildProjectNode(currentNode, "Project");
+      currentNode = buildUserProjectNode(currentNode);
     }
 
     return buildOutputNode(currentNode);
@@ -148,6 +157,11 @@ public class LogicalPlanner {
     }
 
     final Into intoDataSource = analysis.getInto().get();
+
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
+      ((VerifiableNode) sourcePlanNode)
+          .validateKeyPresent(intoDataSource.getName());
+    }
 
     return new KsqlStructuredDataOutputNode(
         new PlanNodeId(intoDataSource.getName().text()),
@@ -249,34 +263,58 @@ public class LogicalPlanner {
         functionRegistry,
         analysis,
         aggregateAnalysis,
-        projectionExpressions
+        projectionExpressions,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
     );
   }
 
-  private ProjectNode buildProjectNode(
-      final PlanNode parentNode,
-      final String id
-  ) {
-    return buildProjectNode(
-        parentNode,
-        id,
-        buildSelectExpressions(parentNode, analysis.getSelectItems()),
-        false
-    );
-  }
+  private ProjectNode buildUserProjectNode(final PlanNode parentNode) {
+    final List<SelectExpression> projection =
+        buildSelectExpressions(parentNode, analysis.getSelectItems());
 
-  private ProjectNode buildProjectNode(
-      final PlanNode sourcePlanNode,
-      final String id,
-      final List<SelectExpression> projection,
-      final boolean aliased
-  ) {
-    final ColumnName sourceKeyFieldName = sourcePlanNode
+    final LogicalSchema schema = buildProjectionSchema(parentNode.getSchema(), projection);
+
+    final ColumnName sourceKeyFieldName = parentNode
         .getKeyField()
         .ref()
         .orElse(null);
 
-    final LogicalSchema schema = buildProjectionSchema(sourcePlanNode.getSchema(), projection);
+    final Optional<ColumnName> keyFieldName = getSelectAliasMatching(
+        (expression, alias) -> expression instanceof UnqualifiedColumnReferenceExp
+            && ((UnqualifiedColumnReferenceExp) expression).getColumnName().equals(
+            sourceKeyFieldName),
+        projection
+    );
+
+    return new FinalProjectNode(
+        new PlanNodeId("Project"),
+        parentNode,
+        projection,
+        schema,
+        keyFieldName,
+        analysis.getSelectItems(),
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
+    );
+  }
+
+  private ProjectNode buildInternalProjectNode(
+      final PlanNode parent,
+      final String id,
+      final SourceName sourceAlias
+  ) {
+    final List<SelectExpression> projection = selectWithPrependAlias(
+        sourceAlias,
+        parent.getSchema()
+    );
+
+    final LogicalSchema schema = ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
+        ? buildJoinSourceSchema(sourceAlias, parent.getSchema())
+        : buildLegacyProjectionSchema(parent.getSchema(), projection);
+
+    final ColumnName sourceKeyFieldName = parent
+        .getKeyField()
+        .ref()
+        .orElse(null);
 
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching(
         (expression, alias) -> expression instanceof UnqualifiedColumnReferenceExp
@@ -287,11 +325,12 @@ public class LogicalPlanner {
 
     return new ProjectNode(
         new PlanNodeId(id),
-        sourcePlanNode,
+        parent,
         projection,
         schema,
         keyFieldName,
-        aliased
+        true,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
     );
   }
 
@@ -324,8 +363,12 @@ public class LogicalPlanner {
     if (selectItem instanceof AllColumns) {
       final AllColumns allColumns = (AllColumns) selectItem;
 
+      final boolean valueOnly =
+          !ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
+              && analysis.getInto().isPresent();
+
       final Stream<ColumnName> columns = parentNode
-          .resolveSelectStar(allColumns.getSource(), analysis.getInto().isPresent());
+          .resolveSelectStar(allColumns.getSource(), valueOnly);
 
       return columns
           .map(name -> SelectExpression.of(name, new UnqualifiedColumnReferenceExp(
@@ -352,19 +395,52 @@ public class LogicalPlanner {
     return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
 
+  private RepartitionNode buildUserRepartitionNode(
+      final PlanNode currentNode,
+      final PartitionBy partitionBy
+  ) {
+    return buildRepartitionNode(
+        "PartitionBy",
+        currentNode,
+        partitionBy.getExpression(),
+        refRewriter::process,
+        false
+    );
+  }
+
+  private RepartitionNode buildInternalRepartitionNode(
+      final PlanNode source,
+      final String side,
+      final Expression joinExpression,
+      final BiFunction<Expression, Context<Void>, Optional<Expression>> plugin
+  ) {
+    return buildRepartitionNode(
+        side + "SourceKeyed",
+        source,
+        joinExpression,
+        plugin,
+        true
+    );
+  }
+
   private RepartitionNode buildRepartitionNode(
       final String planId,
       final PlanNode sourceNode,
-      final PartitionBy partitionBy
+      final Expression partitionBy,
+      final BiFunction<Expression, Context<Void>, Optional<Expression>> plugin,
+      final boolean internal
   ) {
+    final Expression rewrittenPartitionBy =
+        ExpressionTreeRewriter.rewriteWith(plugin, partitionBy);
+
     final KeyField keyField;
 
-    final Expression expression = partitionBy.getExpression();
-
-    if (!(expression instanceof UnqualifiedColumnReferenceExp)) {
+    if (!(rewrittenPartitionBy instanceof UnqualifiedColumnReferenceExp)) {
       keyField = KeyField.none();
     } else {
-      final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
+      final ColumnName columnName = ((UnqualifiedColumnReferenceExp) rewrittenPartitionBy)
+          .getColumnName();
+
       final LogicalSchema sourceSchema = sourceNode.getSchema();
 
       final Column proposedKey = sourceSchema
@@ -384,14 +460,18 @@ public class LogicalPlanner {
       }
     }
 
-    final LogicalSchema schema = buildRepartitionedSchema(sourceNode, partitionBy);
+    final LogicalSchema schema =
+        buildRepartitionedSchema(sourceNode, rewrittenPartitionBy);
 
     return new RepartitionNode(
         new PlanNodeId(planId),
         sourceNode,
         schema,
         partitionBy,
-        keyField
+        rewrittenPartitionBy,
+        keyField,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED),
+        internal
     );
   }
 
@@ -424,28 +504,13 @@ public class LogicalPlanner {
           }
         };
 
-    final PlanNode repartition = buildRepartitionNode(
-        side + "SourceKeyed",
-        sourceNode,
-        new PartitionBy(
-            Optional.empty(),
-            // We need to repartition on the original join expression, and we need to drop
-            // all qualifiers.
-            ExpressionTreeRewriter.rewriteWith(rewriter::process, joinExpression),
-            Optional.empty()
-        )
-    );
+    final PlanNode repartition =
+        buildInternalRepartitionNode(sourceNode, side, joinExpression, rewriter::process);
 
-    final List<SelectExpression> projection = selectWithPrependAlias(
-        source.getAlias(),
-        repartition.getSchema()
-    );
-
-    return buildProjectNode(
+    return buildInternalProjectNode(
         repartition,
         "PrependAlias" + side,
-        projection,
-        true
+        source.getAlias()
     );
   }
 
@@ -461,17 +526,27 @@ public class LogicalPlanner {
       return joinedSource;
     }
 
-    return buildRepartitionNode(
-        side + "SourceKeyed",
-        joinedSource,
-        new PartitionBy(
-            Optional.empty(),
-            // We need to repartition on the original join expression, and we need to drop
-            // all qualifiers.
-            ExpressionTreeRewriter.rewriteWith(refRewriter::process, joinExpression),
-            Optional.empty()
-        )
-    );
+    return buildInternalRepartitionNode(joinedSource, side, joinExpression, refRewriter::process);
+  }
+
+  private static LogicalSchema buildJoinSourceSchema(
+      final SourceName alias,
+      final LogicalSchema parentSchema
+  ) {
+    final Builder builder = LogicalSchema.builder();
+
+    parentSchema.columns()
+        .forEach(c -> {
+          final ColumnName aliasedName = ColumnNames.generatedJoinColumnAlias(alias, c.name());
+
+          if (c.namespace() == Namespace.KEY) {
+            builder.keyColumn(aliasedName, c.type());
+          } else {
+            builder.valueColumn(aliasedName, c.type());
+          }
+        });
+
+    return builder.build();
   }
 
   private PlanNode buildSourceNode() {
@@ -523,16 +598,75 @@ public class LogicalPlanner {
           leaf.getSource(), prefix + "Right", root.getInfo().getRightJoinExpression());
     }
 
+    final boolean finalJoin = prefix.isEmpty();
+
+    final JoinKey joinKey = buildJoinKey(root);
+
     return new JoinNode(
         new PlanNodeId(prefix + "Join"),
         root.getInfo().getType(),
+        joinKey.rewriteWith(refRewriter::process),
+        finalJoin,
         left,
         right,
         root.getInfo().getWithinExpression()
     );
   }
 
-  private DataSourceNode buildNonJoinNode(final AliasedDataSource dataSource) {
+  private JoinKey buildJoinKey(final Join join) {
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
+      return JoinKey.leftColumn(ImmutableList.of());
+    }
+
+    final JoinInfo info = join.getInfo();
+
+    // Joins have a synthesised key column when:
+
+    // - the join is an outer join: for outer joins either join expression may be null. However,
+    //   the key column is set to the non-null value. This means the key column is not either
+    //   join expression: it is a _new_ column.
+    if (info.getType() == JoinType.OUTER) {
+      return JoinKey.syntheticColumn(info.getLeftJoinExpression(), info.getRightJoinExpression());
+    }
+
+    final boolean leftIsCol = info.getLeftJoinExpression() instanceof QualifiedColumnReferenceExp;
+    final boolean rightIsCol = info.getRightJoinExpression() instanceof QualifiedColumnReferenceExp;
+
+    // - neither join expression is a column reference: if neither is a column reference, by
+    //   definition the column that holds the result is not equal to a column in either source: it
+    //   is a _new_ column.
+
+    if (!leftIsCol && !rightIsCol) {
+      return JoinKey.syntheticColumn(info.getLeftJoinExpression(), info.getRightJoinExpression());
+    }
+
+    final List<QualifiedColumnReferenceExp> availableKeyColumns = join.joinEquivalenceSet().stream()
+        .filter(e -> e instanceof QualifiedColumnReferenceExp)
+        .map(QualifiedColumnReferenceExp.class::cast)
+        .collect(Collectors.toList());
+
+    if (leftIsCol != rightIsCol) {
+      // Only one is not expression, use that one:
+      return leftIsCol
+          ? JoinKey.leftColumn(availableKeyColumns)
+          : JoinKey.rightColumn(availableKeyColumns);
+    }
+
+    // Both are column refs: must decide _which_ to use.
+
+    final Projection projection = Projection.of(analysis.original().getSelectItems());
+
+    final boolean leftMissing = !projection.containsExpression(info.getLeftJoinExpression());
+
+    final boolean rightPresent = projection.containsExpression(info.getRightJoinExpression());
+
+    // Default to left unless it is not present in final projection and right is:
+    return leftMissing && rightPresent
+        ? JoinKey.rightColumn(availableKeyColumns)
+        : JoinKey.leftColumn(availableKeyColumns);
+  }
+
+  private static DataSourceNode buildNonJoinNode(final AliasedDataSource dataSource) {
     return new DataSourceNode(
         new PlanNodeId("KsqlTopic"),
         dataSource.getDataSource(),
@@ -554,17 +688,55 @@ public class LogicalPlanner {
   }
 
   private LogicalSchema buildProjectionSchema(
-      final LogicalSchema schema,
+      final LogicalSchema parentSchema,
       final List<SelectExpression> projection
   ) {
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
+      return buildLegacyProjectionSchema(parentSchema, projection);
+    }
+
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        schema,
+        parentSchema,
         functionRegistry
     );
 
     final Builder builder = LogicalSchema.builder();
 
-    builder.keyColumns(schema.key());
+    final ImmutableMap.Builder<ColumnName, SqlType> keys = ImmutableMap.builder();
+
+    for (final SelectExpression select : projection) {
+      final Expression expression = select.getExpression();
+
+      final SqlType expressionType = expressionTypeManager
+          .getExpressionSqlType(expression);
+
+      final boolean keyColumn = expression instanceof ColumnReferenceExp
+          ? parentSchema.isKeyColumn(((ColumnReferenceExp) expression).getColumnName())
+          : parentSchema.isKeyColumn(select.getAlias());
+
+      if (keyColumn) {
+        builder.keyColumn(select.getAlias(), expressionType);
+        keys.put(select.getAlias(), expressionType);
+      } else {
+        builder.valueColumn(select.getAlias(), expressionType);
+      }
+    }
+
+    return builder.build();
+  }
+
+  private LogicalSchema buildLegacyProjectionSchema(
+      final LogicalSchema parentSchema,
+      final List<SelectExpression> projection
+  ) {
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        parentSchema,
+        functionRegistry
+    );
+
+    final Builder builder = LogicalSchema.builder();
+
+    builder.keyColumns(parentSchema.key());
 
     for (final SelectExpression select : projection) {
       final SqlType expressionType = expressionTypeManager
@@ -589,20 +761,58 @@ public class LogicalPlanner {
         projectionExpressions
     );
 
-    final ColumnAliasGenerator keyColNameGen = ColumnNames
-        .columnAliasGenerator(Stream.of(sourceSchema, projectionSchema));
-
     final List<Expression> groupByExps = groupBy.getGroupingExpressions();
 
-    final ColumnName keyName;
+    final Function<Expression, Optional<ColumnName>> selectResolver = expression -> {
+      final List<ColumnName> foundInProjection = projectionExpressions.stream()
+          .filter(e -> e.getExpression().equals(expression))
+          .map(SelectExpression::getAlias)
+          .collect(Collectors.toList());
+
+      switch (foundInProjection.size()) {
+        case 0:
+          return Optional.empty();
+
+        case 1:
+          return Optional.of(foundInProjection.get(0));
+
+        default:
+          final String keys = GrammaticalJoiner.and().join(foundInProjection);
+          throw new KsqlException("The projection contains a key column more than once: " + keys
+              + "."
+              + System.lineSeparator()
+              + "Each key column must only be in the projection once. "
+              + "If you intended to copy the key into the value, then consider using the "
+              + AsValue.NAME + " function to indicate which key reference should be copied."
+          );
+      }
+    };
+
+    final Optional<ColumnName> keyName;
     final SqlType keyType;
+    final Set<ColumnName> keyColumnNames;
 
     if (groupByExps.size() != 1) {
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-        keyName = groupBy.getAlias()
-            .orElseGet(keyColNameGen::nextKsqlColAlias);
+
+        keyName = Optional.of(groupBy.getAlias()
+            .orElseGet(() -> ColumnNames.columnAliasGenerator(Stream.of(
+                sourceSchema,
+                LogicalSchema.builder()
+                    .valueColumns(projectionSchema.value())
+                    .build()
+                ))
+                    .nextKsqlColAlias()
+            ));
+
+        keyColumnNames = groupBy.getGroupingExpressions().stream()
+            .map(selectResolver)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .collect(Collectors.toSet());
       } else {
-        keyName = SystemColumns.ROWKEY_NAME;
+        keyName = Optional.of(SystemColumns.ROWKEY_NAME);
+        keyColumnNames = ImmutableSet.of(SystemColumns.ROWKEY_NAME);
       }
       keyType = SqlTypes.STRING;
     } else {
@@ -610,33 +820,42 @@ public class LogicalPlanner {
 
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
         if (groupBy.getAlias().isPresent()) {
-          keyName = groupBy.getAlias().get();
-        } else if (expression instanceof ColumnReferenceExp) {
-          keyName = ((ColumnReferenceExp) expression).getColumnName();
+          keyName = Optional.of(groupBy.getAlias().get());
         } else {
-          keyName = keyColNameGen.uniqueAliasFor(expression);
+          keyName = selectResolver.apply(expression);
         }
       } else {
-        keyName = exactlyMatchesKeyColumns(expression, sourceSchema)
+        keyName = Optional.of(exactlyMatchesKeyColumns(expression, sourceSchema)
             ? ((ColumnReferenceExp) expression).getColumnName()
-            : SystemColumns.ROWKEY_NAME;
+            : SystemColumns.ROWKEY_NAME);
       }
 
       final ExpressionTypeManager typeManager =
           new ExpressionTypeManager(sourceSchema, functionRegistry);
 
       keyType = typeManager.getExpressionSqlType(expression);
+      keyColumnNames = keyName.map(ImmutableSet::of).orElse(ImmutableSet.of());
     }
 
-    return LogicalSchema.builder()
-        .keyColumn(keyName, keyType)
-        .valueColumns(projectionSchema.value())
+    final List<Column> valueColumns = ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
+        ? projectionSchema.value().stream()
+        .filter(col -> !keyColumnNames.contains(col.name()))
+        .collect(Collectors.toList())
+        : projectionSchema.value();
+
+    final Builder builder = LogicalSchema.builder();
+
+    keyName
+        .ifPresent(name -> builder.keyColumn(name, keyType));
+
+    return builder
+        .valueColumns(valueColumns)
         .build();
   }
 
   private LogicalSchema buildRepartitionedSchema(
       final PlanNode sourceNode,
-      final PartitionBy partitionBy
+      final Expression partitionBy
   ) {
     final LogicalSchema sourceSchema = sourceNode.getSchema();
 
@@ -645,7 +864,7 @@ public class LogicalPlanner {
           new ExpressionTypeManager(sourceSchema, functionRegistry);
 
       final SqlType keyType = expressionTypeManager
-          .getExpressionSqlType(partitionBy.getExpression());
+          .getExpressionSqlType(partitionBy);
 
       return LogicalSchema.builder()
           .keyColumn(SystemColumns.ROWKEY_NAME, keyType)
@@ -655,8 +874,8 @@ public class LogicalPlanner {
 
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
-        partitionBy.getExpression(),
-        partitionBy.getAlias(),
+        partitionBy,
+        Optional.empty(),
         functionRegistry
     );
   }

@@ -560,6 +560,9 @@
           "type" : "string",
           "enum" : [ "INNER", "LEFT", "OUTER" ]
         },
+        "keyColName" : {
+          "type" : "string"
+        },
         "leftInternalFormats" : {
           "$ref" : "#/definitions/Formats"
         },
@@ -597,6 +600,9 @@
         "joinType" : {
           "type" : "string",
           "enum" : [ "INNER", "LEFT", "OUTER" ]
+        },
+        "keyColName" : {
+          "type" : "string"
         },
         "internalFormats" : {
           "$ref" : "#/definitions/Formats"
@@ -862,6 +868,9 @@
         "joinType" : {
           "type" : "string",
           "enum" : [ "INNER", "LEFT", "OUTER" ]
+        },
+        "keyColName" : {
+          "type" : "string"
         },
         "leftSource" : {
           "$ref" : "#/definitions/ExecutionStep"

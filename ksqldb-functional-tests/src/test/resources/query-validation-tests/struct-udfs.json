@@ -28,6 +28,19 @@
       "outputs": [
         {"topic":  "OUTPUT", "key": "1", "value": {"VALUE":  "1"}, "timestamp":  0}
       ]
+    },
+    {
+      "name": "Output struct",
+      "statements": [
+        "CREATE STREAM test (val VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT TEST_UDF() AS VALUE FROM test;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": "1", "value": {"val": "foo"}, "timestamp":  0}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": "1", "value": {"VALUE": {"A": "foo"}}, "timestamp":  0}
+      ]
     }
   ]
 }

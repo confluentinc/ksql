@@ -400,4 +400,77 @@ public class JoinTreeTest {
     // Then:
     assertThat(keys, contains(col3, col4));
   }
+
+  @Test
+  public void shouldIncludeOnlyColFromFirstInViableKeyIfOverlap() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(e1);
+    when(j1.getRightJoinExpression()).thenReturn(col2);
+    when(j2.getLeftJoinExpression()).thenReturn(e1);
+    when(j2.getRightJoinExpression()).thenReturn(e2);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    final Node root = JoinTree.build(joins);
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, contains(col2));
+  }
+
+  @Test
+  public void shouldNotIncludeOnlyColFromFirstInViableKeysIfNoOverlap() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(e1);
+    when(j1.getRightJoinExpression()).thenReturn(col2);
+    when(j2.getLeftJoinExpression()).thenReturn(e2);
+    when(j2.getRightJoinExpression()).thenReturn(e3);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    final Node root = JoinTree.build(joins);
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, is(empty()));
+  }
+
+  @Test
+  public void shouldIncludeOnlyColFromLastInViableKeyEvenWithoutOverlap() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(e1);
+    when(j1.getRightJoinExpression()).thenReturn(e2);
+    when(j2.getLeftJoinExpression()).thenReturn(col1);
+    when(j2.getRightJoinExpression()).thenReturn(e3);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    final Node root = JoinTree.build(joins);
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, contains(col1));
+  }
+
 }

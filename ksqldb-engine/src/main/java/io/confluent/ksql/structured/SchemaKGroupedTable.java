@@ -34,6 +34,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -69,7 +70,6 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     return sourceTableStep;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable<Struct> aggregate(
       final List<ColumnName> nonAggregateColumns,
@@ -87,12 +87,15 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         .filter(function -> !(function instanceof TableAggregationFunction))
         .map(KsqlAggregateFunction::name)
         .map(FunctionName::text)
+        .distinct()
         .collect(Collectors.toList());
+
     if (!unsupportedFunctionNames.isEmpty()) {
-      throw new KsqlException(
-          String.format(
-            "The aggregation function(s) (%s) cannot be applied to a table.",
-            String.join(", ", unsupportedFunctionNames)));
+      final String postfix = unsupportedFunctionNames.size() == 1 ? "" : "s";
+      throw new KsqlException("The aggregation function" + postfix + " "
+          + GrammaticalJoiner.and().join(unsupportedFunctionNames)
+          + " cannot be applied to a table, only to a stream."
+      );
     }
 
     final TableAggregate step = ExecutionStepFactory.tableAggregate(

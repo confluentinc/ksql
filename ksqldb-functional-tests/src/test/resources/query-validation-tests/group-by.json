@@ -253,6 +253,20 @@
       }
     },
     {
+      "name": "non-table udaf on table",
+      "statements": [
+        "CREATE TABLE INPUT (ID BIGINT PRIMARY KEY, F0 INT, F1 BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT LATEST_BY_OFFSET(F0), MIN(F1), MAX(F1) FROM INPUT GROUP BY ID;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The aggregation functions LATEST_BY_OFFSET, MIN and MAX cannot be applied to a table, only to a stream."
+      }
+    },
+    {
       "name": "multiple used in expression in projection",
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",

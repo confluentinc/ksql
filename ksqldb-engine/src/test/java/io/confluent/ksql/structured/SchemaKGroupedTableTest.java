@@ -124,7 +124,7 @@ public class SchemaKGroupedTableTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("The aggregation function(s) (MIN, MAX) cannot be applied to a table."));
+    assertThat(e.getMessage(), containsString("The aggregation functions MIN and MAX cannot be applied to a table, only to a stream."));
   }
 
   private SchemaKGroupedTable buildSchemaKGroupedTable() {

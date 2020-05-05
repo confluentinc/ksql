@@ -1,0 +1,57 @@
+
+{
+  "comments": [
+    "Tests covering the use of the EARLIEST_BY_OFFSET aggregate function"
+  ],
+  "tests": [
+    {
+      "name": "earliest by offset",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, ID BIGINT, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0, EARLIEST_BY_OFFSET(F1) AS L1, EARLIEST_BY_OFFSET(F2) AS L2, EARLIEST_BY_OFFSET(F3) AS L3, EARLIEST_BY_OFFSET(F4) AS L4 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "F0": 12, "F1": 1000, "F2": 1.23, "F3": true, "F4": "foo"}},
+        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "F0": 12, "F1": 1000, "F2": 1.23, "F3": true, "F4": "foo"}},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "F0": 21, "F1": 2000, "F2": 2.23, "F3": false, "F4": "bar"}},
+        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "F0": 21, "F1": 2000, "F2": 2.23, "F3": false, "F4": "bar"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo"}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo"}},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo"}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo"}}
+      ]
+    },
+    {
+      "name": "earliest by offset with nulls",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, ID BIGINT, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "F0": 12}},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "L0": 12}},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "L0": 12}}
+      ]
+    },
+    {
+      "name": "earliest by offset with all nulls",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, ID BIGINT, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "F0": null}},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "L0": null}},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "L0": null}}
+      ]
+    }
+  ]
+}

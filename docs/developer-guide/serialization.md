@@ -237,12 +237,25 @@ work with the `KAFKA` format, respectively.
 Because the format supports only primitive types, you can only use it
 when the schema contains a single field.
 
-For example, if your Kafka messages have a `long` key, you can make them
-available to ksqlDB by using a statement like:
+For example, if your {{ site.ak }} messages have a `long` key, you can make
+them available to ksqlDB by using a statement like:
 
 ```sql
-CREATE STREAM USERS (ROWKEY BIGINT KEY, NAME STRING) WITH (KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', ...);
+CREATE STREAM USERS (ROWKEY BIGINT KEY, NAME STRING) WITH (VALUE_FORMAT='JSON', ...);
 ```
+
+If you integrate ksqlDB with
+[Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html),
+and your ksqlDB application uses a compatible value format (Avro, JSON_SR, or
+Protobuf), you can just supply the key column, and ksqlDB loads the value
+columns from {{ site.sr }}:
+
+```sql
+CREATE STREAM USERS (ROWKEY BIGINT KEY) WITH (VALUE_FORMAT='JSON_SR', ...);
+```
+
+The key column must be supplied, because ksqlDB supports only keys in `KAFKA`
+format.
 
 ### Protobuf
 

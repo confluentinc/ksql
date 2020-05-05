@@ -239,6 +239,20 @@
       }
     },
     {
+      "name": "unknown function",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT DATA, WONT_FIND_ME(ID) FROM TEST GROUP BY DATA;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Can't find any functions with the name 'WONT_FIND_ME'"
+      }
+    },
+    {
       "name": "multiple used in expression in projection",
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",

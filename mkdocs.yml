@@ -136,6 +136,7 @@ nav:
       - Materialized view/cache: tutorials/materialized.md
       - Streaming ETL pipeline: tutorials/etl.md
       - Event-driven microservice: tutorials/event-driven-microservice.md
+      - Application backend: tutorials/application-backend.md
       - Examples: tutorials/examples.md
       - ksqlDB with Embedded Connect: tutorials/embedded-connect.md
       - Integrate with PostgreSQL: tutorials/connect-integration.md

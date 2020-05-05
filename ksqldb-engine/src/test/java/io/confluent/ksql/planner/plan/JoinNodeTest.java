@@ -53,7 +53,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.plan.JoinNode.JoinKey;
-import io.confluent.ksql.planner.plan.JoinNode.JoinKey.Type;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -745,7 +744,7 @@ public class JoinNodeTest {
   @Test
   public void shouldIncludeSyntheticJoinKeyInResolvedSelectStart() {
     // Given:
-    when(joinKey.getType()).thenReturn(Type.SYNTHETIC);
+    when(joinKey.isSynthetic()).thenReturn(true);
 
     final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty());
 
@@ -791,8 +790,8 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
-    when(joinKey.getOriginalAvailableKeys()).thenReturn((List)ImmutableList.of(expression1));
-    when(joinKey.getAvailableKeys()).thenReturn((List)ImmutableList.of(expression2));
+    when(joinKey.getOriginalViableKeys()).thenReturn((List) ImmutableList.of(expression1));
+    when(joinKey.getViableKeys()).thenReturn((List) ImmutableList.of(expression2));
 
     // When:
     joinNode.validateKeyPresent(SINK, projection);
@@ -808,7 +807,7 @@ public class JoinNodeTest {
     final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
     when(projection.containsExpression(any())).thenReturn(false);
-    when(joinKey.getOriginalAvailableKeys())
+    when(joinKey.getOriginalViableKeys())
         .thenReturn((List)ImmutableList.of(expression1, expression1, expression2));
 
     // When:

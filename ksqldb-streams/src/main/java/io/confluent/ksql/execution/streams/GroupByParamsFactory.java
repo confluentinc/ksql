@@ -266,7 +266,7 @@ final class GroupByParamsFactory {
   ) {
     final ColumnName keyName = alias
         .orElseGet(() -> ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
-            ? ColumnNames.columnAliasGenerator(Stream.of(sourceSchema)).nextKsqlColAlias()
+            ? ColumnNames.nextKsqlColAlias(sourceSchema)
             : SystemColumns.ROWKEY_NAME);
 
     return buildSchemaWithKeyType(sourceSchema, keyName, SqlTypes.STRING);

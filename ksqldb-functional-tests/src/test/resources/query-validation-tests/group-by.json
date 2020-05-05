@@ -466,7 +466,7 @@
       },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Duplicate values found in schema: `COUNT` BIGINT"
+        "message": "Duplicate value columns found in schema: `COUNT` BIGINT"
       }
     },
     {

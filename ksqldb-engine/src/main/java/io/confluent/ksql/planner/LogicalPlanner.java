@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
@@ -59,7 +58,6 @@ import io.confluent.ksql.planner.plan.FinalProjectNode;
 import io.confluent.ksql.planner.plan.FlatMapNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinKey;
-import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -615,55 +613,30 @@ public class LogicalPlanner {
 
   private JoinKey buildJoinKey(final Join join) {
     if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-      return JoinKey.leftColumn(ImmutableList.of());
+      return JoinKey.sourceColumn(SystemColumns.ROWKEY_NAME, ImmutableSet.of());
     }
 
     final JoinInfo info = join.getInfo();
 
-    // Joins have a synthesised key column when:
-
-    // - the join is an outer join: for outer joins either join expression may be null. However,
-    //   the key column is set to the non-null value. This means the key column is not either
-    //   join expression: it is a _new_ column.
-    if (info.getType() == JoinType.OUTER) {
+    final List<QualifiedColumnReferenceExp> viableKeyColumns = join.viableKeyColumns();
+    if (viableKeyColumns.isEmpty()) {
       return JoinKey.syntheticColumn(info.getLeftJoinExpression(), info.getRightJoinExpression());
     }
-
-    final boolean leftIsCol = info.getLeftJoinExpression() instanceof QualifiedColumnReferenceExp;
-    final boolean rightIsCol = info.getRightJoinExpression() instanceof QualifiedColumnReferenceExp;
-
-    // - neither join expression is a column reference: if neither is a column reference, by
-    //   definition the column that holds the result is not equal to a column in either source: it
-    //   is a _new_ column.
-
-    if (!leftIsCol && !rightIsCol) {
-      return JoinKey.syntheticColumn(info.getLeftJoinExpression(), info.getRightJoinExpression());
-    }
-
-    final List<QualifiedColumnReferenceExp> availableKeyColumns = join.joinEquivalenceSet().stream()
-        .filter(e -> e instanceof QualifiedColumnReferenceExp)
-        .map(QualifiedColumnReferenceExp.class::cast)
-        .collect(Collectors.toList());
-
-    if (leftIsCol != rightIsCol) {
-      // Only one is not expression, use that one:
-      return leftIsCol
-          ? JoinKey.leftColumn(availableKeyColumns)
-          : JoinKey.rightColumn(availableKeyColumns);
-    }
-
-    // Both are column refs: must decide _which_ to use.
 
     final Projection projection = Projection.of(analysis.original().getSelectItems());
 
-    final boolean leftMissing = !projection.containsExpression(info.getLeftJoinExpression());
+    final List<QualifiedColumnReferenceExp> availableKeyColumns = viableKeyColumns.stream()
+        .filter(projection::containsExpression)
+        .collect(Collectors.toList());
 
-    final boolean rightPresent = projection.containsExpression(info.getRightJoinExpression());
+    final QualifiedColumnReferenceExp keyColumn = availableKeyColumns.isEmpty()
+        ? viableKeyColumns.get(0) // Lack of availability is handle later.
+        : availableKeyColumns.get(0);
 
-    // Default to left unless it is not present in final projection and right is:
-    return leftMissing && rightPresent
-        ? JoinKey.rightColumn(availableKeyColumns)
-        : JoinKey.leftColumn(availableKeyColumns);
+    final ColumnName keyColumnName = ColumnNames
+        .generatedJoinColumnAlias(keyColumn.getQualifier(), keyColumn.getColumnName());
+
+    return JoinKey.sourceColumn(keyColumnName, viableKeyColumns);
   }
 
   private static DataSourceNode buildNonJoinNode(final AliasedDataSource dataSource) {
@@ -711,8 +684,7 @@ public class LogicalPlanner {
           .getExpressionSqlType(expression);
 
       final boolean keyColumn = expression instanceof ColumnReferenceExp
-          ? parentSchema.isKeyColumn(((ColumnReferenceExp) expression).getColumnName())
-          : parentSchema.isKeyColumn(select.getAlias());
+          && parentSchema.isKeyColumn(((ColumnReferenceExp) expression).getColumnName());
 
       if (keyColumn) {
         builder.keyColumn(select.getAlias(), expressionType);
@@ -796,14 +768,13 @@ public class LogicalPlanner {
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
 
         keyName = Optional.of(groupBy.getAlias()
-            .orElseGet(() -> ColumnNames.columnAliasGenerator(Stream.of(
+            .orElseGet(() -> ColumnNames.nextKsqlColAlias(
                 sourceSchema,
                 LogicalSchema.builder()
                     .valueColumns(projectionSchema.value())
                     .build()
-                ))
-                    .nextKsqlColAlias()
-            ));
+            ))
+        );
 
         keyColumnNames = groupBy.getGroupingExpressions().stream()
             .map(selectResolver)

@@ -114,15 +114,19 @@ public final class DecimalUtil {
   }
 
   /**
-   * Formats the decimal string, padding zeros if necessary.
+   * Formats the decimal string, adding trailing zeros if necessary.
    *
    * @param value the value
    * @return the formatted string
    */
   public static String format(final int precision, final int scale, final BigDecimal value) {
     final DecimalFormat format = new DecimalFormat();
-    format.setMinimumIntegerDigits(precision - scale);
     format.setMinimumFractionDigits(scale);
+
+    // Avoids adding leading zeros if precision is higher than the value precision
+    if (precision < value.precision()) {
+      format.setMinimumIntegerDigits(precision - scale);
+    }
 
     return format.format(value);
   }

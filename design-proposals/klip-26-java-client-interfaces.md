@@ -17,7 +17,7 @@ See [KLIP 15](./klip-15-new-api-and-client.md).
 The Java client will support the following operations:
 * Push query
 * Pull query
-* Select DDL/DML operations:
+* Select DDL operations:
     * `CREATE STREAM`
     * `CREATE TABLE`
     * `CREATE STREAM ... AS SELECT`
@@ -162,6 +162,8 @@ The `Client` interface will provide the following methods for streaming the resu
 ```
 where `QueryResult` is as follows:
 ```
+import org.reactivestreams.Publisher;
+
 /**
  * The result of a query (push or pull), streamed one row at time. Records may be consumed by either
  * subscribing to the publisher or polling (blocking) for one record at a time. These two methods of
@@ -413,62 +415,75 @@ public interface InsertResponse {
 }
 ```
 
-### DDL/DML operations
+### DDL operations
 
 #### `CREATE <STREAM/TABLE>`, `CREATE <STREAM/TABLE> ... AS SELECT`, `INSERT INTO`
 
 `Client` methods:
 ```
   /**
-   * Execute DDL statement: `CREATE STREAM`, `CREATE TABLE`
+   * Execute DDL statement: `CREATE STREAM`, `CREATE TABLE`, `CREATE STREAM ... AS SELECT`, `CREATE TABLE ... AS SELECT`, `INSERT INTO`
    */
-  CompletableFuture<DdlResponse> executeDdl(String sql);
+  CompletableFuture<ExecuteStatementResponse> executeStatement(String sql);
 
   /**
-   * Execute DML statement: `CREATE STREAM ... AS SELECT`, `CREATE TABLE ... AS SELECT`, `INSERT INTO`
+   * Execute DDL statement: `CREATE STREAM`, `CREATE TABLE`, `CREATE STREAM ... AS SELECT`, `CREATE TABLE ... AS SELECT`, `INSERT INTO`
    */
-  CompletableFuture<DmlResponse> executeDml(String sql);
+  CompletableFuture<ExecuteStatementResponse> executeStatement(String sql, Map<String, Object> properties);
 
   /**
-   * Execute DML statement: `CREATE STREAM ... AS SELECT`, `CREATE TABLE ... AS SELECT`, `INSERT INTO`
+   * Execute DDL statement: `CREATE STREAM`, `CREATE TABLE`, `CREATE STREAM ... AS SELECT`, `CREATE TABLE ... AS SELECT`, `INSERT INTO`
    */
-  CompletableFuture<DmlResponse> executeDml(String sql, Map<String, Object> properties);
+  CompletableFuture<ExecuteStatementResponse> executeStatement(String sql, Map<String, Object> properties, long commandSequenceNumber);
 
 ```
 with
 ```
-public interface DdlResponse {
-
-  enum Status { QUEUED, PARSING, EXECUTING, RUNNING, TERMINATED, SUCCESS, ERROR }
-  
-  Status getStatus();
-  
-  String getStatusMessage();
-  
+public interface ExecuteStatementResponse {
+    
   long getCommandSequenceNumber();
 
-  String getCommandId();
 }
 ```
-and `DmlResponse` is identical.
+Command sequence number is exposed since that's the mechanism ksqlDB uses to ensure a server receiving a new request has
+executed earlier statements that the new request depends on. In the future we could consider introducing a "request pipelining"
+setting on the client, similar to the one used by the ksqlDB CLI, which automatically tracks and feeds the latest command
+sequence number into subsequent commands (rather than having the user do it themselves). This would be slightly more complicated
+than for the ksqlDB CLI, however, since the client could be used by multiple threads.
 
-I don't love this proposal since `DDL` and `DML` aren't used throughout our docs but I'm not a huge fan of the alternatives I considered either, such as
+Interestingly, the new server APIs (used by `streamQuery()` and `executeQuery()` above) don't support the command sequence number option,
+so we should either add that for consistency (and then add it to the client as well) or phase out support for command sequence number
+on the old server APIs (including the `/ksql` endpoint used by the DDL and admin commands).
+Do we think it makes sense to avoid exposing command sequence number in the client at all, for consistency?
+
+An earlier version of this KLIP proposed having separate methods for `executeDdl()` and `executeDml()`
+rather than having a single `executeStatement()` method as the name `executeStatement()` is potentially
+misleadingly broad, but `DDL` and `DML` aren't used throughout our docs and there was some confusion
+around which statements fell into which categories so having a single `executeStatement()` seems simplest.
+
+Other alternatives considered include
 ```
   CompletableFuture<CreateSourceResponse> createStream(String sql);
 
   CompletableFuture<CreateSourceResponse> createStream(String sql, Map<String, Object> properties);
+  
+  CompletableFuture<CreateSourceResponse> createStream(String sql, Map<String, Object> properties, long commandSequenceNumber);
 
   CompletableFuture<CreateSourceResponse> createTable(String sql);
 
   CompletableFuture<CreateSourceResponse> createTable(String sql, Map<String, Object> properties);
+  
+  CompletableFuture<CreateSourceResponse> createTable(String sql, Map<String, Object> properties, long commandSequenceNumber);
 
   CompletableFuture<InsertIntoResponse> insertIntoSource(String sql);
 
   CompletableFuture<InsertIntoResponse> insertIntoSource(String sql, Map<String, Object> properties);
+  
+  CompletableFuture<InsertIntoResponse> insertIntoSource(String sql, Map<String, Object> properties, long commandSequenceNumber);
 ```
 
 In this version, the implementations of `createStream(...)` and `createTable(...)` would be identical and could be replaced with a single `createSource(...)`
-but the name of this method feels confusing. As with the previous proposal, `CreateSourceResponse` and `InsertIntoResponse` are identical.
+but the name of this method feels confusing. `CreateSourceResponse` and `InsertIntoResponse` are identical to `ExecuteStatementResponse` above.
 
 Other alternatives include separating `CREATE <STREAM/TABLE>` and `CREATE <STREAM/TABLE> ... AS SELECT` into separate methods, but that feels unnecessarily complex.
 
@@ -496,23 +511,27 @@ Other alternatives include separating `CREATE <STREAM/TABLE>` and `CREATE <STREA
    */
   CompletableFuture<DropSourceResponse> dropTable(String tableName, boolean deleteTopic);
 ```
-where `DropSourceResponse` is actually the same as `DdlResponse`/`DmlResponse`/`CreateSourceResponse`/`InsertIntoResponse` above.
+where `DropSourceResponse` is actually the same as `ExecuteStatementResponse`/`CreateSourceResponse`/`InsertIntoResponse` above.
 
 Again, the implementations of `dropStream(...)` and `dropTable(...)` would be the same so we could instead have a single `dropSource(...)`, but the naming might be confusing.
 
 If we choose to keep them separate, there's an open question of whether the client should validate that `dropStream(...)` is not used to drop a table, and vice versa.
 IMO such validation would be introducing complexity without much benefit, though this point of ambiguity makes me prefer a single `dropSource(...)` if we can agree on a method name that's not confusing.
 
-Note that users can also execute `DROP <STREAM/TABLE>` requests via `executeDdl(...)` or `executDml(...)` above.
+Note that users can also execute `DROP <STREAM/TABLE>` requests via `executeStatement()` above, so we could also get rid of these additional methods altogether.
+Whether we choose to do so or not comes down to whether we see value in providing a method a user can call with a stream/table name directly, rather than passing in the full sql string for the command.
 
 #### `TERMINATE <queryId>`
 
 ```
   CompletableFuture<TerminateQueryResponse> terminatePersistentQuery(String queryId);
 ```
-where `TerminateQueryResponse` is again the same as `DdlResponse`/`DmlResponse`/`CreateSourceResponse`/`InsertIntoResponse`/`DropSourceResponse` above.
+where `TerminateQueryResponse` is again the same as `ExecuteStatementResponse`/`CreateSourceResponse`/`InsertIntoResponse`/`DropSourceResponse` above.
 
 The method name `terminatePersistenQuery(...)` is to distinguish from `terminatePushQuery(...)` below.
+
+As above, users could also terminate persistent queries via `executeStatement()`, so we could remove `terminatePersistentQuery()` if we don't see value in providing a convenience method
+that only requires the query ID, rather than the full sql string for the command.
 
 #### Connectors
 
@@ -605,27 +624,17 @@ public interface QueryInfo {
   String getSql();
 
   /**
-   * Name of sink, for a persistent query. Else, null.
+   * Name of sink, for a persistent query. Else, empty.
    */
-  String getSink();
+  Optional<String> getSink();
 
   /**
-   * Name of sink topic, for a persistent query. Else, null.
+   * Name of sink topic, for a persistent query. Else, empty.
    */
-  String getSinkTopic();
-  
-  /**
-   * Map of query state ("RUNNING", "ERROR", or "UNRESPONSIVE") to the number of ksqlDB servers
-   * on which this query is in each state.
-   */
-  Map<String, Integer> getServerStatusCounts();
+  Optional<String> getSinkTopic();
 
 }
 ```
-
-Again, not sure whether it makes more sense to represent query states as strings, or to introduce an Enum and have `getServerStatusCounts()` return an EnumMap instead.
-
-Does having `getSink()` and `getSinkTopic()` return null in the case of push queries make sense, or would we prefer an empty string or an Optional instead?
 
 #### `SHOW CONNECTORS`
 
@@ -694,11 +703,11 @@ N/A. This KLIP is only about the interfaces.
 The order in which the client methods will be implemented is as follows:
 * Push and pull queries
 * Insert values
-* DDL/DML statements
+* DDL statements
 * Terminate push queries
 * Admin operations
 
-Push and pull queries are targeted for ksqlDB 0.10.0 for sure. Insert values and some DDL/DML statements may make the cut as well, but it's uncertain at the moment. Everything that slips through will be in ksqlDB 0.11.0 instead. 
+Push and pull queries are targeted for ksqlDB 0.10.0 for sure. Insert values and some DDL statements may make the cut as well, but it's uncertain at the moment. Everything that slips through will be in ksqlDB 0.11.0 instead. 
 
 A more detailed breakdown of implementation phases is out of scope for this KLIP.
 

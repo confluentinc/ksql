@@ -54,9 +54,6 @@ public class GroupByTest {
         .addEqualityGroup(
             new GroupBy(Optional.empty(), ImmutableList.of(exp1))
         )
-        .addEqualityGroup(
-            new GroupBy(Optional.empty(), ImmutableList.of(exp1, exp2))
-        )
         .testEquals();
   }
 

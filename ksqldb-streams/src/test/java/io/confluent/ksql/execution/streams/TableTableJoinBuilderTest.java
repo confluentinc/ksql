@@ -1,5 +1,7 @@
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.execution.plan.StreamStreamJoin.LEGACY_KEY_COL;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWKEY_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,7 +24,6 @@ import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KTable;
@@ -35,27 +36,32 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TableTableJoinBuilderTest {
 
+  private static final ColumnName L_KEY = ColumnName.of("L_KEY");
+  private static final ColumnName R_KEY = ColumnName.of("R_KEY");
+  private static final ColumnName SYNTH_KEY = ColumnName.of("KSQL_COL_0");
+
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
-      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
+      .keyColumn(L_KEY, SqlTypes.STRING)
+      .valueColumn(ColumnName.of("L_BLUE"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("L_GREEN"), SqlTypes.INTEGER)
+      .valueColumn(L_KEY, SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
-      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
+      .keyColumn(R_KEY, SqlTypes.STRING)
+      .valueColumn(ColumnName.of("R_RED"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("R_ORANGE"), SqlTypes.DOUBLE)
+      .valueColumn(R_KEY, SqlTypes.STRING)
       .build();
 
-  private final QueryContext CTX =
-      new QueryContext.Stacker().push("jo").push("in").getQueryContext();
-
+  @Mock
+  private QueryContext ctx;
   @Mock
   private KTable<Struct, GenericRow> leftKTable;
   @Mock
-  private KTable<Struct, GenericRow>  rightKTable;
+  private KTable<Struct, GenericRow> rightKTable;
   @Mock
-  private KTable<Struct, GenericRow>  resultKTable;
+  private KTable<Struct, GenericRow> resultKTable;
   @Mock
   private ExecutionStep<KTableHolder<Struct>> left;
   @Mock
@@ -66,12 +72,18 @@ public class TableTableJoinBuilderTest {
   private PlanBuilder planBuilder;
   private TableTableJoin<Struct> join;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void init() {
     when(left.build(any())).thenReturn(
         KTableHolder.unmaterialized(leftKTable, LEFT_SCHEMA, keySerdeFactory));
     when(right.build(any())).thenReturn(
         KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, keySerdeFactory));
+
+    when(leftKTable.leftJoin(any(KTable.class), any())).thenReturn(resultKTable);
+    when(leftKTable.outerJoin(any(KTable.class), any())).thenReturn(resultKTable);
+    when(leftKTable.join(any(KTable.class), any())).thenReturn(resultKTable);
+
     planBuilder = new KSPlanBuilder(
         mock(KsqlQueryBuilder.class),
         mock(SqlPredicateFactory.class),
@@ -80,43 +92,10 @@ public class TableTableJoinBuilderTest {
     );
   }
 
-  @SuppressWarnings("unchecked")
-  private void givenLeftJoin() {
-    when(leftKTable.leftJoin(any(KTable.class), any())).thenReturn(resultKTable);
-    join = new TableTableJoin<>(
-        new ExecutionStepPropertiesV1(CTX),
-        JoinType.LEFT,
-        left,
-        right
-    );
-  }
-
-  @SuppressWarnings("unchecked")
-  private void givenOuterJoin() {
-    when(leftKTable.outerJoin(any(KTable.class), any())).thenReturn(resultKTable);
-    join = new TableTableJoin<>(
-        new ExecutionStepPropertiesV1(CTX),
-        JoinType.OUTER,
-        left,
-        right
-    );
-  }
-
-  @SuppressWarnings("unchecked")
-  private void givenInnerJoin() {
-    when(leftKTable.join(any(KTable.class), any())).thenReturn(resultKTable);
-    join = new TableTableJoin<>(
-        new ExecutionStepPropertiesV1(CTX),
-        JoinType.INNER,
-        left,
-        right
-    );
-  }
-
   @Test
   public void shouldDoLeftJoin() {
     // Given:
-    givenLeftJoin();
+    givenLeftJoin(L_KEY);
 
     // When:
     final KTableHolder<Struct> result = join.build(planBuilder);
@@ -124,11 +103,26 @@ public class TableTableJoinBuilderTest {
     // Then:
     verify(leftKTable).leftJoin(
         same(rightKTable),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA))
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0))
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+  }
+
+  @Test
+  public void shouldDoLeftJoinWithSyntheticKey() {
+    // Given:
+    givenLeftJoin(SYNTH_KEY);
+
+    // When:
+    join.build(planBuilder);
+
+    // Then:
+    verify(leftKTable).leftJoin(
+        same(rightKTable),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1))
+    );
   }
 
   @Test
@@ -142,7 +136,7 @@ public class TableTableJoinBuilderTest {
     // Then:
     verify(leftKTable).outerJoin(
         same(rightKTable),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA))
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1))
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
@@ -152,7 +146,7 @@ public class TableTableJoinBuilderTest {
   @Test
   public void shouldDoInnerJoin() {
     // Given:
-    givenInnerJoin();
+    givenInnerJoin(R_KEY);
 
     // When:
     final KTableHolder<Struct> result = join.build(planBuilder);
@@ -160,7 +154,7 @@ public class TableTableJoinBuilderTest {
     // Then:
     verify(leftKTable).join(
         same(rightKTable),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA))
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0))
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
@@ -168,9 +162,24 @@ public class TableTableJoinBuilderTest {
   }
 
   @Test
+  public void shouldDoInnerJoinWithSytheticKey() {
+    // Given:
+    givenInnerJoin(SYNTH_KEY);
+
+    // When:
+    join.build(planBuilder);
+
+    // Then:
+    verify(leftKTable).join(
+        same(rightKTable),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1))
+    );
+  }
+
+  @Test
   public void shouldReturnCorrectSchema() {
     // Given:
-    givenInnerJoin();
+    givenInnerJoin(R_KEY);
 
     // When:
     final KTableHolder<Struct> result = join.build(planBuilder);
@@ -178,7 +187,73 @@ public class TableTableJoinBuilderTest {
     // Then:
     assertThat(
         result.getSchema(),
-        is(JoinParamsFactory.create(LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+        is(JoinParamsFactory.create(R_KEY, LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+    );
+  }
+
+  @Test
+  public void shouldReturnCorrectSchemaWithSyntheticKey() {
+    // Given:
+    givenInnerJoin(SYNTH_KEY);
+
+    // When:
+    final KTableHolder<Struct> result = join.build(planBuilder);
+
+    // Then:
+    assertThat(
+        result.getSchema(),
+        is(JoinParamsFactory.create(SYNTH_KEY, LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+    );
+  }
+
+  @Test
+  public void shouldReturnCorrectLegacySchema() {
+    // Given:
+    join = new TableTableJoin<>(
+        new ExecutionStepPropertiesV1(ctx),
+        JoinType.INNER,
+        ColumnName.of(LEGACY_KEY_COL),
+        left,
+        right
+    );
+
+    // When:
+    final KTableHolder<Struct> result = join.build(planBuilder);
+
+    // Then:
+    assertThat(
+        result.getSchema(),
+        is(JoinParamsFactory.create(ROWKEY_NAME, LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+    );
+  }
+
+  private void givenLeftJoin(final ColumnName keyName) {
+    join = new TableTableJoin<>(
+        new ExecutionStepPropertiesV1(ctx),
+        JoinType.LEFT,
+        keyName,
+        left,
+        right
+    );
+  }
+
+  private void givenOuterJoin() {
+    join = new TableTableJoin<>(
+        new ExecutionStepPropertiesV1(ctx),
+        JoinType.OUTER,
+        SYNTH_KEY,
+        left,
+        right
+    );
+  }
+
+  private void givenInnerJoin(final ColumnName keyName) {
+    join = new TableTableJoin<>(
+        new ExecutionStepPropertiesV1(ctx),
+        JoinType.INNER,
+        keyName,
+        left,
+        right
     );
   }
 }

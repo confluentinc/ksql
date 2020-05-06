@@ -19,7 +19,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.StructKeyUtil;
@@ -28,7 +27,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -121,7 +119,7 @@ public final class PartitionByParamsFactory {
     final ColumnName newKeyName = partitionByCol
         .orElseGet(() -> ColumnNames
             .columnAliasGenerator(Stream.of(sourceSchema))
-            .nextKsqlColAlias()
+            .uniqueAliasFor(partitionBy)
         );
 
     final Builder builder = LogicalSchema.builder()
@@ -156,14 +154,6 @@ public final class PartitionByParamsFactory {
               new IllegalStateException("Unknown partition by column: " + columnName));
 
       return Optional.of(column.name());
-    }
-
-    if (partitionBy instanceof DereferenceExpression) {
-      // PARTITION BY struct field:
-      final ColumnAliasGenerator aliasGenerator = ColumnNames
-          .columnAliasGenerator(Stream.of(sourceSchema));
-
-      return Optional.of(aliasGenerator.uniqueAliasFor(partitionBy));
     }
 
     return Optional.empty();

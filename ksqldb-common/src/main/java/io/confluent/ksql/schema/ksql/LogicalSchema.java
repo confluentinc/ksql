@@ -325,13 +325,13 @@ public final class LogicalSchema {
       switch (column.namespace()) {
         case KEY:
           if (!seenKeys.add(column.name())) {
-            throw new KsqlException("Duplicate keys found in schema: " + column);
+            throw new KsqlException("Duplicate key columns found in schema: " + column);
           }
           break;
 
         case VALUE:
           if (!seenValues.add(column.name())) {
-            throw new KsqlException("Duplicate values found in schema: " + column);
+            throw new KsqlException("Duplicate value columns found in schema: " + column);
           }
           break;
 

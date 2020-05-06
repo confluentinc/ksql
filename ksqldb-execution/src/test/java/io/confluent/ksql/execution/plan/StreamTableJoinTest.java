@@ -14,7 +14,11 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static io.confluent.ksql.execution.plan.JoinType.INNER;
+import static io.confluent.ksql.execution.plan.JoinType.LEFT;
+
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.name.ColumnName;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,10 +27,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamTableJoinTest {
+
+  private static final ColumnName KEY = ColumnName.of("Bob");
+  private static final ColumnName KEY2 = ColumnName.of("Vic");
+
   @Mock
-  private ExecutionStepPropertiesV1 properties1;
+  private ExecutionStepPropertiesV1 props1;
   @Mock
-  private ExecutionStepPropertiesV1 properties2;
+  private ExecutionStepPropertiesV1 props2;
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> left1;
   @Mock
@@ -40,56 +48,31 @@ public class StreamTableJoinTest {
   @Mock
   private Formats leftFormats2;
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new StreamTableJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                left1,
-                right1),
-            new StreamTableJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                left1,
-                right1))
+            new StreamTableJoin<>(props1, INNER, KEY, leftFormats1, left1, right1),
+            new StreamTableJoin<>(props1, INNER, KEY, leftFormats1, left1, right1)
+        )
         .addEqualityGroup(
-            new StreamTableJoin<>(
-                properties2,
-                JoinType.INNER,
-                leftFormats1,
-                left1,
-                right1))
+            new StreamTableJoin<>(props2, INNER, KEY, leftFormats1, left1, right1)
+        )
         .addEqualityGroup(
-            new StreamTableJoin<>(
-                properties1,
-                JoinType.LEFT,
-                leftFormats1,
-                left1,
-                right1))
+            new StreamTableJoin<>(props1, LEFT, KEY, leftFormats1, left1, right1)
+        )
         .addEqualityGroup(
-            new StreamTableJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats2,
-                left1,
-                right1))
+            new StreamTableJoin<>(props1, INNER, KEY2, leftFormats1, left1, right1)
+        )
         .addEqualityGroup(
-            new StreamTableJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                left2,
-                right1))
+            new StreamTableJoin<>(props1, INNER, KEY, leftFormats2, left1, right1)
+        )
         .addEqualityGroup(
-            new StreamTableJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                left1,
-                right2));
+            new StreamTableJoin<>(props1, INNER, KEY, leftFormats1, left2, right1)
+        )
+        .addEqualityGroup(
+            new StreamTableJoin<>(props1, INNER, KEY, leftFormats1, left1, right2)
+        );
   }
 }

@@ -199,12 +199,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public SchemaKTable<K> join(
       final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
       final KeyField keyField,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker
   ) {
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.INNER,
+        keyColName,
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
@@ -220,12 +222,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public SchemaKTable<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
       final KeyField keyField,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker
   ) {
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.LEFT,
+        keyColName,
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
@@ -241,12 +245,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public SchemaKTable<K> outerJoin(
       final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.OUTER,
+        keyColName,
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );

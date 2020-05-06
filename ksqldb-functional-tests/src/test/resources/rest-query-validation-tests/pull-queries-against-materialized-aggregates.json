@@ -1064,7 +1064,7 @@
       "name": "should handled quoted key and value",
       "statements": [
         "CREATE STREAM INPUT (`Key` STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS `Value` FROM INPUT GROUP BY `Key`;",
+        "CREATE TABLE AGGREGATE AS SELECT `Key`, COUNT(1) AS `Value` FROM INPUT GROUP BY `Key`;",
         "SELECT * FROM AGGREGATE WHERE `Key`='10';"
       ],
       "properties": {

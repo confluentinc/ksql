@@ -14,31 +14,62 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static io.confluent.ksql.execution.plan.StreamStreamJoin.LEGACY_KEY_COL;
+import static java.util.Objects.requireNonNull;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.ColumnName;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
 public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
+
   private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
+  private final ColumnName keyColName;
   private final ExecutionStep<KTableHolder<K>> leftSource;
   private final ExecutionStep<KTableHolder<K>> rightSource;
 
-  public TableTableJoin(
+  @SuppressWarnings("unused") // Invoked by reflection
+  @JsonCreator
+  @Deprecated() // Can be removed at next incompatible version
+  private TableTableJoin(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "joinType", required = true) final JoinType joinType,
-      @JsonProperty(value = "leftSource", required = true) final
-      ExecutionStep<KTableHolder<K>> leftSource,
-      @JsonProperty(value = "rightSource", required = true) final
-      ExecutionStep<KTableHolder<K>> rightSource) {
-    this.properties = Objects.requireNonNull(props, "props");
-    this.joinType = Objects.requireNonNull(joinType, "joinType");
-    this.leftSource = Objects.requireNonNull(leftSource, "leftSource");
-    this.rightSource = Objects.requireNonNull(rightSource, "rightSource");
+      @JsonProperty(value = "keyName", defaultValue = LEGACY_KEY_COL)
+      final Optional<ColumnName> keyColName,
+      @JsonProperty(value = "leftSource", required = true)
+      final ExecutionStep<KTableHolder<K>> leftSource,
+      @JsonProperty(value = "rightSource", required = true)
+      final ExecutionStep<KTableHolder<K>> rightSource
+  ) {
+    this(
+        props,
+        joinType,
+        keyColName.orElse(ColumnName.of(LEGACY_KEY_COL)),
+        leftSource,
+        rightSource
+    );
+  }
+
+  public TableTableJoin(
+      final ExecutionStepPropertiesV1 props,
+      final JoinType joinType,
+      final ColumnName keyColName,
+      final ExecutionStep<KTableHolder<K>> leftSource,
+      final ExecutionStep<KTableHolder<K>> rightSource
+  ) {
+    this.properties = requireNonNull(props, "props");
+    this.joinType = requireNonNull(joinType, "joinType");
+    this.keyColName = requireNonNull(keyColName, "keyColName");
+    this.leftSource = requireNonNull(leftSource, "leftSource");
+    this.rightSource = requireNonNull(rightSource, "rightSource");
   }
 
   @Override
@@ -64,6 +95,10 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
     return joinType;
   }
 
+  public ColumnName getKeyColName() {
+    return keyColName;
+  }
+
   @Override
   public KTableHolder<K> build(final PlanBuilder builder) {
     return builder.visitTableTableJoin(this);
@@ -80,13 +115,13 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
     final TableTableJoin<?> that = (TableTableJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
+        && Objects.equals(keyColName, that.keyColName)
         && Objects.equals(leftSource, that.leftSource)
         && Objects.equals(rightSource, that.rightSource);
   }
 
   @Override
   public int hashCode() {
-
-    return Objects.hash(properties, joinType, leftSource, rightSource);
+    return Objects.hash(properties, joinType, keyColName, leftSource, rightSource);
   }
 }

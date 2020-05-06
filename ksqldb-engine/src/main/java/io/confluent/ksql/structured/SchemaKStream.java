@@ -199,17 +199,20 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
       final KeyField keyField,
       final ValueFormat valueFormat,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker
   ) {
     final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
         contextStacker,
         JoinType.LEFT,
+        keyColName,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
         sourceStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKStream<>(
         step,
         resolveSchema(step, schemaKTable),
@@ -222,21 +225,24 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> leftJoin(
       final SchemaKStream<K> otherSchemaKStream,
+      final ColumnName keyColName,
       final KeyField keyField,
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
       final ValueFormat rightFormat,
-      final QueryContext.Stacker contextStacker) {
-
+      final Stacker contextStacker
+  ) {
     final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
         contextStacker,
         JoinType.LEFT,
+        keyColName,
         Formats.of(keyFormat, leftFormat, SerdeOption.none()),
         Formats.of(keyFormat, rightFormat, SerdeOption.none()),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
     );
+
     return new SchemaKStream<>(
         step,
         resolveSchema(step, otherSchemaKStream),
@@ -249,17 +255,20 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> join(
       final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
       final KeyField keyField,
       final ValueFormat valueFormat,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker
   ) {
     final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
         contextStacker,
         JoinType.INNER,
+        keyColName,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
         sourceStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKStream<>(
         step,
         resolveSchema(step, schemaKTable),
@@ -272,20 +281,24 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> join(
       final SchemaKStream<K> otherSchemaKStream,
+      final ColumnName keyColName,
       final KeyField keyField,
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
       final ValueFormat rightFormat,
-      final QueryContext.Stacker contextStacker) {
+      final Stacker contextStacker
+  ) {
     final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
         contextStacker,
         JoinType.INNER,
+        keyColName,
         Formats.of(keyFormat, leftFormat, SerdeOption.none()),
         Formats.of(keyFormat, rightFormat, SerdeOption.none()),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
     );
+
     return new SchemaKStream<>(
         step,
         resolveSchema(step, otherSchemaKStream),
@@ -298,20 +311,24 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
+      final ColumnName keyColName,
       final KeyField keyField,
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
       final ValueFormat rightFormat,
-      final QueryContext.Stacker contextStacker) {
+      final Stacker contextStacker
+  ) {
     final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
         contextStacker,
         JoinType.OUTER,
+        keyColName,
         Formats.of(keyFormat, leftFormat, SerdeOption.none()),
         Formats.of(keyFormat, rightFormat, SerdeOption.none()),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
     );
+
     return new SchemaKStream<>(
         step,
         resolveSchema(step, otherSchemaKStream),

@@ -840,7 +840,6 @@ public class LogicalPlanner {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
         partitionBy,
-        Optional.empty(),
         functionRegistry
     );
   }

@@ -86,7 +86,6 @@ public class RepartitionNode extends PlanNode {
     return source.buildStream(builder)
         .selectKey(
             partitionBy,
-            Optional.empty(),
             builder.buildNodeContext(getId().toString())
         );
   }

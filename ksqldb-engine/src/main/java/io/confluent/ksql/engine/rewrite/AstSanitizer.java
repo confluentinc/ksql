@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -34,7 +33,6 @@ import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
@@ -157,30 +155,6 @@ public final class AstSanitizer {
       return Optional.of(
           new SingleColumn(singleColumn.getLocation(), expression, Optional.of(alias))
       );
-    }
-
-    @Override
-    protected Optional<AstNode> visitPartitionBy(
-        final PartitionBy node,
-        final StatementRewriter.Context<Void> context
-    ) {
-      if (node.getAlias().isPresent()
-          && node.getExpression() instanceof ColumnReferenceExp) {
-
-        final ColumnName groupByColName = ((ColumnReferenceExp) node.getExpression())
-            .getColumnName();
-
-        if (node.getAlias().get().equals(groupByColName)) {
-          // Alias is a no-op - remove it:
-          return Optional.of(new PartitionBy(
-              node.getLocation(),
-              node.getExpression(),
-              Optional.empty()
-          ));
-        }
-      }
-
-      return super.visitPartitionBy(node, context);
     }
 
     private DataSource getSource(

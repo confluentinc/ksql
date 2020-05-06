@@ -447,8 +447,7 @@ public final class StatementRewriter<C> {
       return result
           .orElseGet(() -> new PartitionBy(
               node.getLocation(),
-              processExpression(node.getExpression(), context),
-              node.getAlias()
+              processExpression(node.getExpression(), context)
           ));
     }
 

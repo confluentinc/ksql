@@ -138,7 +138,6 @@ public class PartitionByParamsFactoryTest {
     final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
         SCHEMA,
         partitionBy,
-        Optional.empty(),
         functionRegistry
     );
 
@@ -166,7 +165,6 @@ public class PartitionByParamsFactoryTest {
     final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
         SCHEMA,
         partitionBy,
-        Optional.empty(),
         functionRegistry
     );
 
@@ -195,7 +193,6 @@ public class PartitionByParamsFactoryTest {
     final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
         SCHEMA,
         partitionBy,
-        Optional.empty(),
         functionRegistry
     );
 
@@ -208,31 +205,6 @@ public class PartitionByParamsFactoryTest {
         .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(COL0, SqlTypes.STRING)
         .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER)
-        .build()));
-  }
-
-  @Test
-  public void shouldBuildResultSchemaUsingSuppliedAlias() {
-    // Given:
-    final Expression partitionBy = new UnqualifiedColumnReferenceExp(COL1);
-    final ColumnName newKeyName = ColumnName.of("NEW_KEY");
-
-    // When:
-    final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
-        SCHEMA,
-        partitionBy,
-        Optional.of(newKeyName),
-        functionRegistry
-    );
-
-    // Then:
-    assertThat(resultSchema, is(LogicalSchema.builder()
-        .keyColumn(newKeyName, SqlTypes.INTEGER)
-        .valueColumn(COL1, SqlTypes.INTEGER)
-        .valueColumn(COL2, SqlTypes.INTEGER)
-        .valueColumn(COL3, COL3_TYPE)
-        .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueColumn(COL0, SqlTypes.STRING)
         .build()));
   }
 
@@ -314,7 +286,7 @@ public class PartitionByParamsFactoryTest {
 
   private PartitionByParams partitionBy(final Expression expression) {
     return PartitionByParamsFactory
-        .build(SCHEMA, expression, Optional.empty(), KSQL_CONFIG, functionRegistry, logger);
+        .build(SCHEMA, expression,  KSQL_CONFIG, functionRegistry, logger);
   }
 
   public static class FailingUdf implements Kudf {

@@ -252,13 +252,12 @@ public final class ExecutionStepFactory {
   public static StreamSelectKey streamSelectKey(
       final QueryContext.Stacker stacker,
       final ExecutionStep<? extends KStreamHolder<?>> source,
-      final Expression fieldName,
-      final Optional<ColumnName> alias
+      final Expression fieldName
   ) {
     final ExecutionStepPropertiesV1 props =
         new ExecutionStepPropertiesV1(stacker.getQueryContext());
 
-    return new StreamSelectKey(props, source, fieldName, alias);
+    return new StreamSelectKey(props, source, fieldName);
   }
 
   public static <K> TableSink<K> tableSink(

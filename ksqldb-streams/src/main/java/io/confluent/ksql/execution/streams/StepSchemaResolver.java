@@ -234,7 +234,6 @@ public final class StepSchemaResolver {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
         step.getKeyExpression(),
-        step.getAlias(),
         functionRegistry
     );
   }

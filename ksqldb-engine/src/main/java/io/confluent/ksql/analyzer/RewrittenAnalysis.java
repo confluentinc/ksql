@@ -124,9 +124,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     return original.getPartitionBy()
         .map(partitionBy -> new PartitionBy(
             partitionBy.getLocation(),
-            rewrite(partitionBy.getExpression()),
-            partitionBy.getAlias()
-                .map(this::rewrite)
+            rewrite(partitionBy.getExpression())
         ));
   }
 

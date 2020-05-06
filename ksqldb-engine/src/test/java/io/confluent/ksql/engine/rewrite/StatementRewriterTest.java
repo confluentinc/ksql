@@ -808,8 +808,7 @@ public class StatementRewriterTest {
     // Given:
     final PartitionBy partitionBy = new PartitionBy(
         location,
-        expression,
-        Optional.of(COL2)
+        expression
     );
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
@@ -819,8 +818,7 @@ public class StatementRewriterTest {
     // Then:
     assertThat(rewritten, equalTo(new PartitionBy(
         location,
-        rewrittenExpression,
-        Optional.of(COL2)
+        rewrittenExpression
     )));
   }
 

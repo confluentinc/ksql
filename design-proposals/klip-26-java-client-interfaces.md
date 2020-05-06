@@ -213,6 +213,22 @@ public interface Row {
   List<ColumnType> columnTypes();
 
   KsqlArray values();
+  
+  /**
+   * Whether the value for a particular column of the Row is null.
+   *
+   * @param columnIndex index of column (1-indexed).
+   * @return whether the column value is null.
+   */
+  boolean isNull(int columnIndex);
+  
+  /**
+   * Whether the value for a particular column of the Row is null.
+   *
+   * @param columnName name of column.
+   * @return whether the column value is null.
+   */
+  boolean isNull(String columnName);
 
   /**
    * Get the value for a particular column of the Row as an Object.
@@ -792,8 +808,9 @@ public interface TableInfo {
 }
 ```
 
-I'm not sure whether it makes more sense for `StreamInfo#getFormat()` and `TableInfo#getFormat()` to return a string or an enum value.
-The latter would make it easier for the user to know the possible values, but we'd have to keep the list up to date and would also sacrifice forward compatibility.
+In considering whether it makes more sense for `StreamInfo#getFormat()` and `TableInfo#getFormat()` to return a string or an enum value,
+the latter would make it easier for the user to know the possible values, but we'd have to keep the list up to date and would also sacrifice forward compatibility.
+Almog also points out that returning the format as a string allows support of custom formats in the future, which is a huge plus, so we'll go with strings for now.
 
 #### `SHOW QUERIES`
 

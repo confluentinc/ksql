@@ -63,12 +63,15 @@ final class PortedEndpoints {
   private static final Logger log = LoggerFactory.getLogger(PortedEndpoints.class);
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
-      .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
-          "/status/:type/:entity/:action", "/status", "/lag", "/healthcheck", "/v1/metadata",
+      .of("/ksql", "/ksql/terminate", "/query", "/info",
+          "/status/:type/:entity/:action", "/status", "/healthcheck", "/v1/metadata",
           "/v1/metadata/id", "/ws/query");
 
   private static final Set<String> PORTED_ENDPOINTS_INTERNAL = ImmutableSet
-      .of("/heartbeat", "/clusterStatus", "/lag");
+      .of("/heartbeat", "/clusterStatus", "/lag", "/query", "/ksql");
+
+  private static final Set<String> PORTED_ENDPOINTS_SHARED = ImmutableSet
+      .of("/query", "/ksql");
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
@@ -130,7 +133,7 @@ final class PortedEndpoints {
   }
 
   static void setupEndpointsInternal(final InternalEndpoints internalEndpoints,
-      final Server server, final Router router) {
+      final Server server, final Router router, boolean includeShared) {
     router.route(HttpMethod.POST, "/heartbeat")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
@@ -146,16 +149,18 @@ final class PortedEndpoints {
         .produces(Versions.KSQL_V1_JSON)
         .produces(JSON_CONTENT_TYPE)
         .handler(new InternalPortedEndpoints(internalEndpoints, server)::handleLagReportRequest);
-    router.route(HttpMethod.POST, "/ksql")
-        .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
-        .produces(JSON_CONTENT_TYPE)
-        .handler(new InternalPortedEndpoints(internalEndpoints, server)::handleKsqlRequest);
-    router.route(HttpMethod.POST, "/query")
-        .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
-        .produces(JSON_CONTENT_TYPE)
-        .handler(new InternalPortedEndpoints(internalEndpoints, server)::handleQueryRequest);
+    if (includeShared) {
+      router.route(HttpMethod.POST, "/ksql")
+          .handler(BodyHandler.create())
+          .produces(Versions.KSQL_V1_JSON)
+          .produces(JSON_CONTENT_TYPE)
+          .handler(new InternalPortedEndpoints(internalEndpoints, server)::handleKsqlRequest);
+      router.route(HttpMethod.POST, "/query")
+          .handler(BodyHandler.create())
+          .produces(Versions.KSQL_V1_JSON)
+          .produces(JSON_CONTENT_TYPE)
+          .handler(new InternalPortedEndpoints(internalEndpoints, server)::handleQueryRequest);
+    }
   }
 
   static void setupFailureHandler(final Router router) {
@@ -164,9 +169,14 @@ final class PortedEndpoints {
     }
   }
 
-  static void setupFailureHandlerInternal(final Router router) {
+  static void setupFailureHandlerInternal(final Router router, boolean includeShared) {
     for (String path : PORTED_ENDPOINTS_INTERNAL) {
       router.route(path).failureHandler(PortedEndpoints::oldApiFailureHandler);
+    }
+    if (includeShared) {
+      for (String path : PORTED_ENDPOINTS_SHARED) {
+        router.route(path).failureHandler(PortedEndpoints::oldApiFailureHandler);
+      }
     }
   }
 

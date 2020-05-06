@@ -33,6 +33,7 @@ import java.util.Optional;
  * and {@code InternalEndpoints}.
  */
 public class ServerVerticle extends AbstractServerVerticle {
+  private static final boolean EXCLUDE_SHARED_ENDPOINTS = false;
 
   private final Endpoints endpoints;
   private final Optional<InternalEndpoints> internalEndpoints;
@@ -58,7 +59,8 @@ public class ServerVerticle extends AbstractServerVerticle {
     router.route(HttpMethod.GET, "/chc/live").handler(ServerVerticle::chcHandler);
 
     PortedEndpoints.setupFailureHandler(router);
-    internalEndpoints.ifPresent(ie ->  PortedEndpoints.setupFailureHandlerInternal(router));
+    internalEndpoints.ifPresent(ie ->
+        PortedEndpoints.setupFailureHandlerInternal(router, EXCLUDE_SHARED_ENDPOINTS));
 
     router.route().failureHandler(RequestFailureHandler::handleFailure);
 
@@ -80,7 +82,8 @@ public class ServerVerticle extends AbstractServerVerticle {
         .handler(new CloseQueryHandler(server));
 
     PortedEndpoints.setupEndpoints(endpoints, server, router);
-    internalEndpoints.ifPresent(ie -> PortedEndpoints.setupEndpointsInternal(ie, server, router));
+    internalEndpoints.ifPresent(ie ->
+        PortedEndpoints.setupEndpointsInternal(ie, server, router, EXCLUDE_SHARED_ENDPOINTS));
 
     return router;
   }

@@ -21,6 +21,7 @@ import io.vertx.ext.web.Router;
 import java.util.Objects;
 
 public class InternalServerVerticle extends AbstractServerVerticle {
+  private static final boolean INCLUDE_SHARED_ENDPOINTS = true;
 
   private final InternalEndpoints internalEndpoints;
 
@@ -35,13 +36,16 @@ public class InternalServerVerticle extends AbstractServerVerticle {
   protected Router setupRouter() {
     final Router router = Router.router(vertx);
 
-    KsqlCorsHandler.setupCorsHandler(server, router);
-
-    PortedEndpoints.setupFailureHandlerInternal(router);
+    PortedEndpoints.setupFailureHandlerInternal(router, INCLUDE_SHARED_ENDPOINTS);
 
     router.route().failureHandler(RequestFailureHandler::handleFailure);
 
-    PortedEndpoints.setupEndpointsInternal(internalEndpoints, server, router);
+    RequestAuthenticationHandler.setupAuthHandlers(server, router);
+
+    router.route().handler(new ServerStateHandler(server.getServerState()));
+
+    PortedEndpoints.setupEndpointsInternal(internalEndpoints, server, router,
+        INCLUDE_SHARED_ENDPOINTS);
 
     return router;
   }

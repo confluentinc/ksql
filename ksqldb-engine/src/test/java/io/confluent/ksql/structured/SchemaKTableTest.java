@@ -83,7 +83,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.schema.utils.Pair;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
@@ -93,6 +92,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -129,7 +129,8 @@ public class SchemaKTableTest {
       .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private final MetaStore metaStore = MetaStoreFixture
+      .getNewMetaStore(new InternalFunctionRegistry());
   private final GroupedFactory groupedFactory = mock(GroupedFactory.class);
   private final Grouped<String, String> grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());

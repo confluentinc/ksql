@@ -16,19 +16,24 @@
 package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.utils.DataException;
-import io.confluent.ksql.schema.utils.Pair;
+import io.confluent.ksql.schema.utils.SchemaException;
+import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Objects;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class SqlDecimalTest {
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
     new EqualsTester()
@@ -53,17 +58,17 @@ public class SqlDecimalTest {
     assertThat(SqlDecimal.of(10, 2).getScale(), is(2));
   }
 
-  @Test(expected = DataException.class)
+  @Test(expected = SchemaException.class)
   public void shouldThrowOnInvalidPrecision() {
     SqlDecimal.of(0, 2);
   }
 
-  @Test(expected = DataException.class)
+  @Test(expected = SchemaException.class)
   public void shouldThrowOnInvalidScale() {
     SqlDecimal.of(10, -1);
   }
 
-  @Test(expected = DataException.class)
+  @Test(expected = SchemaException.class)
   public void shouldThrowIfScaleGreaterThanPrecision() {
     SqlDecimal.of(2, 3);
   }
@@ -74,14 +79,77 @@ public class SqlDecimalTest {
   }
 
   @Test
+  public void shouldThrowIfValueNotDecimal() {
+    // Given:
+    final SqlDecimal schema = SqlTypes.decimal(4, 1);
+
+    // When:
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(10L)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected DECIMAL, got BIGINT"));
+  }
+
+  @Test
+  public void shouldThrowIfValueHasWrongPrecision() {
+    // Given:
+    final SqlDecimal schema = SqlTypes.decimal(4, 1);
+
+    // When:
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(new BigDecimal("1234.5"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected DECIMAL(4, 1), got precision 5"));
+  }
+
+  @Test
+  public void shouldThrowIfValueHasWrongScale() {
+    // Given:
+    final SqlDecimal schema = SqlTypes.decimal(4, 1);
+
+    // When:
+    final DataException e = assertThrows(
+        DataException.class,
+        () -> schema.validateValue(new BigDecimal("12.50"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Expected DECIMAL(4, 1), got scale 2"));
+  }
+
+  @Test
+  public void shouldNotThrowWhenValidatingNullValue() {
+    // Given:
+    final SqlDecimal schema = SqlTypes.decimal(4, 1);
+
+    // When:
+    schema.validateValue(null);
+  }
+
+  @Test
+  public void shouldValidateValue() {
+    // Given:
+    final SqlDecimal schema = SqlTypes.decimal(4, 1);
+
+    // When:
+    schema.validateValue(new BigDecimal("123.0"));
+  }
+
+  @Test
   public void shouldResolveDecimalAddition() {
-    final Map<Pair<SqlDecimal, SqlDecimal>, SqlDecimal> testCases =
-        ImmutableMap.<Pair<SqlDecimal, SqlDecimal>, SqlDecimal>builder()
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(3, 1))
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(4, 2))
-            .put(Pair.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(3, 2)), SqlTypes.decimal(4, 2))
-            .put(Pair.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
+    final Map<TestCase, SqlDecimal> testCases =
+        ImmutableMap.<TestCase, SqlDecimal>builder()
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(3, 1))
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(4, 2))
+            .put(TestCase.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(3, 2)), SqlTypes.decimal(4, 2))
+            .put(TestCase.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
             .build();
 
     testCases.forEach((in, expected) -> {
@@ -95,13 +163,13 @@ public class SqlDecimalTest {
 
   @Test
   public void shouldResolveDecimalSubtraction() {
-    final Map<Pair<SqlDecimal, SqlDecimal>, SqlDecimal> inputToExpected =
-        ImmutableMap.<Pair<SqlDecimal, SqlDecimal>, SqlDecimal>builder()
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(3, 1))
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(4, 2))
-            .put(Pair.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(3, 2)), SqlTypes.decimal(4, 2))
-            .put(Pair.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
+    final Map<TestCase, SqlDecimal> inputToExpected =
+        ImmutableMap.<TestCase, SqlDecimal>builder()
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(3, 1))
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(4, 2))
+            .put(TestCase.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(3, 2)), SqlTypes.decimal(4, 2))
+            .put(TestCase.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
             .build();
 
     inputToExpected.forEach((in, expected) -> {
@@ -115,12 +183,12 @@ public class SqlDecimalTest {
 
   @Test
   public void shouldResolveDecimalMultiply() {
-    final Map<Pair<SqlDecimal, SqlDecimal>, SqlDecimal> inputToExpected =
-        ImmutableMap.<Pair<SqlDecimal, SqlDecimal>, SqlDecimal>builder()
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(5, 2))
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(5, 3))
-            .put(Pair.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(5, 3))
-            .put(Pair.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(6, 3))
+    final Map<TestCase, SqlDecimal> inputToExpected =
+        ImmutableMap.<TestCase, SqlDecimal>builder()
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(5, 2))
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(5, 3))
+            .put(TestCase.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(5, 3))
+            .put(TestCase.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(6, 3))
             .build();
 
     inputToExpected.forEach((in, expected) -> {
@@ -134,13 +202,13 @@ public class SqlDecimalTest {
 
   @Test
   public void shouldResolveDecimalDivide() {
-    final Map<Pair<SqlDecimal, SqlDecimal>, SqlDecimal> inputToExpected =
-        ImmutableMap.<Pair<SqlDecimal, SqlDecimal>, SqlDecimal>builder()
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(8, 6))
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(9, 6))
-            .put(Pair.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(7, 6))
-            .put(Pair.of(SqlTypes.decimal(3, 3), SqlTypes.decimal(3, 3)), SqlTypes.decimal(10, 7))
-            .put(Pair.of(SqlTypes.decimal(3, 3), SqlTypes.decimal(3, 2)), SqlTypes.decimal(9, 7))
+    final Map<TestCase, SqlDecimal> inputToExpected =
+        ImmutableMap.<TestCase, SqlDecimal>builder()
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(8, 6))
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(9, 6))
+            .put(TestCase.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(7, 6))
+            .put(TestCase.of(SqlTypes.decimal(3, 3), SqlTypes.decimal(3, 3)), SqlTypes.decimal(10, 7))
+            .put(TestCase.of(SqlTypes.decimal(3, 3), SqlTypes.decimal(3, 2)), SqlTypes.decimal(9, 7))
             .build();
 
     inputToExpected.forEach((in, expected) -> {
@@ -154,12 +222,12 @@ public class SqlDecimalTest {
 
   @Test
   public void shouldResolveDecimalMod() {
-    final Map<Pair<SqlDecimal, SqlDecimal>, SqlDecimal> inputToExpected =
-        ImmutableMap.<Pair<SqlDecimal, SqlDecimal>, SqlDecimal>builder()
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(2, 1))
-            .put(Pair.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(2, 2))
-            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(2, 2))
-            .put(Pair.of(SqlTypes.decimal(3, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(2, 2))
+    final Map<TestCase, SqlDecimal> inputToExpected =
+        ImmutableMap.<TestCase, SqlDecimal>builder()
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(2, 1))
+            .put(TestCase.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(2, 2))
+            .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(2, 2))
+            .put(TestCase.of(SqlTypes.decimal(3, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(2, 2))
             .build();
 
     inputToExpected.forEach((in, expected) -> {
@@ -169,5 +237,54 @@ public class SqlDecimalTest {
       // Then:
       assertThat(result, is(expected));
     });
+  }
+
+  public static class TestCase {
+
+    public final SqlDecimal left;
+    public final SqlDecimal right;
+
+    public static TestCase of(final SqlDecimal left, final SqlDecimal right) {
+      return new TestCase(left, right);
+    }
+
+    public TestCase(final SqlDecimal left, final SqlDecimal right) {
+      this.left = left;
+      this.right = right;
+    }
+
+    public SqlDecimal getLeft() {
+      return left;
+    }
+
+    public SqlDecimal getRight() {
+      return right;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final TestCase that = (TestCase) o;
+      return Objects.equals(left, that.left)
+          && Objects.equals(right, that.right);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(left, right);
+    }
+
+    @Override
+    public String toString() {
+      return "TestCase{"
+          + "left=" + left
+          + ", right=" + right
+          + '}';
+    }
   }
 }

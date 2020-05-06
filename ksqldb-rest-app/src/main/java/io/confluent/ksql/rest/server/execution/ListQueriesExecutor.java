@@ -34,13 +34,13 @@ import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.util.DiscoverRemoteHostsUtil;
-import io.confluent.ksql.schema.utils.Pair;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
@@ -64,10 +64,11 @@ import org.slf4j.LoggerFactory;
 @SuppressFBWarnings("SE_BAD_FIELD")
 public final class ListQueriesExecutor {
 
-  private static int TIMEOUT_SECONDS = 10;
+  private static final int TIMEOUT_SECONDS = 10;
   private static final Logger LOG = LoggerFactory.getLogger(ListQueriesExecutor.class);
 
-  private ListQueriesExecutor() { }
+  private ListQueriesExecutor() {
+  }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListQueries> statement,
@@ -99,7 +100,7 @@ public final class ListQueriesExecutor {
   private static Map<QueryId, RunningQuery> getLocalSimple(
       final KsqlExecutionContext executionContext
   ) {
-    final Map<QueryId, RunningQuery> persistentQueries =  executionContext
+    return executionContext
         .getAllLiveQueries()
         .stream()
         .collect(Collectors.toMap(
@@ -128,7 +129,6 @@ public final class ListQueriesExecutor {
                   q.getQueryType());
             }
         ));
-    return persistentQueries;
   }
 
   private static void mergeSimple(

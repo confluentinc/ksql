@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,25 +13,23 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.exception;
+package io.confluent.ksql.schema.ksql;
 
-import io.confluent.ksql.util.Pair;
-import java.util.List;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 
-public class KafkaDeleteTopicsException extends KafkaTopicClientException {
+public interface JavaToSqlTypeConverter {
 
-  private final List<Pair<String, Throwable>> exceptionList;
+  /**
+   * Convert the supplied {@code javaType} to its corresponding SQL type.
+   *
+   * <p/>Structured types are not supported
+   *
+   * @param javaType the java type to convert.
+   * @return the sql type.
+   */
+  SqlBaseType toSqlType(Class<?> javaType);
 
-  public KafkaDeleteTopicsException(
-      final String message,
-      final List<Pair<String, Throwable>> failList
-  ) {
-    super(message);
-    exceptionList = failList;
+  static JavaToSqlTypeConverter instance() {
+    return new JavaToSqlConverter();
   }
-
-  public final List<Pair<String, Throwable>> getExceptionList() {
-    return exceptionList;
-  }
-
 }

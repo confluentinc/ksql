@@ -469,7 +469,6 @@ public class InteractiveStatementExecutorTest {
   @Test
   public void shouldHandlePriorStatements() {
     // Given:
-    final TestUtils testUtils = new TestUtils();
     final List<Pair<CommandId, Command>> priorCommands = TestUtils.getAllPriorCommandRecords();
     final CommandId csCommandId = new CommandId(CommandId.Type.STREAM,
         "_CSASStreamGen",

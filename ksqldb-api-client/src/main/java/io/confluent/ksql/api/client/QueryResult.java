@@ -28,7 +28,7 @@ public interface QueryResult extends Publisher<Row> {
 
   List<String> columnNames();
 
-  List<String> columnTypes();
+  List<ColumnType> columnTypes();
 
   String queryID();
 

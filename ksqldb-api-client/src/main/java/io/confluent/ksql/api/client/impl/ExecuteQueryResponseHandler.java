@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
@@ -37,7 +38,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>>
   private final List<Row> rows;
   private final int maxRows;
   private List<String> columnNames;
-  private List<String> columnTypes;
+  private List<ColumnType> columnTypes;
   private Map<String, Integer> columnNameToIndex;
 
   ExecuteQueryResponseHandler(
@@ -53,7 +54,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>>
   @Override
   protected void handleMetadata(final QueryResponseMetadata queryResponseMetadata) {
     columnNames = queryResponseMetadata.columnNames;
-    columnTypes = queryResponseMetadata.columnTypes;
+    columnTypes = RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes);
     columnNameToIndex = RowUtil.valueToIndexMap(columnNames);
   }
 

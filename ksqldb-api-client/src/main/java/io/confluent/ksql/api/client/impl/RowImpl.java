@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.vertx.core.json.JsonArray;
 import java.util.List;
@@ -24,14 +25,14 @@ import java.util.Objects;
 public class RowImpl implements Row {
 
   private final List<String> columnNames;
-  private final List<String> columnTypes;
+  private final List<ColumnType> columnTypes;
   private final List<Object> values;
   private final Map<String, Integer> columnNameToIndex;
 
   @SuppressWarnings("unchecked")
   public RowImpl(
       final List<String> columnNames,
-      final List<String> columnTypes,
+      final List<ColumnType> columnTypes,
       final JsonArray values,
       final Map<String, Integer> columnNameToIndex) {
     this.columnNames = Objects.requireNonNull(columnNames);
@@ -46,7 +47,7 @@ public class RowImpl implements Row {
   }
 
   @Override
-  public List<String> columnTypes() {
+  public List<ColumnType> columnTypes() {
     return columnTypes;
   }
 

@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.api.BaseApiTest;
+import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.vertx.ext.web.client.WebClient;
@@ -48,7 +49,8 @@ public class ClientTest extends BaseApiTest {
   @SuppressWarnings("unchecked")
   protected static final List<String> DEFAULT_COLUMN_NAMES = BaseApiTest.DEFAULT_COLUMN_NAMES.getList();
   @SuppressWarnings("unchecked")
-  protected static final List<String> DEFAULT_COLUMN_TYPES = BaseApiTest.DEFAULT_COLUMN_TYPES.getList();
+  protected static final List<ColumnType> DEFAULT_COLUMN_TYPES =
+      RowUtil.columnTypesFromStrings(BaseApiTest.DEFAULT_COLUMN_TYPES.getList());
   protected static final Map<String, Object> DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES =
       BaseApiTest.DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES.getMap();
   protected static final String DEFAULT_PUSH_QUERY_WITH_LIMIT = "select * from foo emit changes limit 10;";

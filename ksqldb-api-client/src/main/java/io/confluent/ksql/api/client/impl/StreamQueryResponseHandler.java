@@ -42,7 +42,7 @@ public class StreamQueryResponseHandler extends QueryResponseHandler<QueryResult
   protected void handleMetadata(final QueryResponseMetadata queryResponseMetadata) {
     this.queryResult = new QueryResultImpl(context, queryResponseMetadata.queryId,
         Collections.unmodifiableList(queryResponseMetadata.columnNames),
-        Collections.unmodifiableList(queryResponseMetadata.columnTypes));
+        RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes));
     this.columnNameToIndex = RowUtil.valueToIndexMap(queryResponseMetadata.columnNames);
     cf.complete(queryResult);
   }

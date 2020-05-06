@@ -24,7 +24,7 @@ public interface Row {
 
   List<String> columnNames();
 
-  List<String> columnTypes();
+  List<ColumnType> columnTypes();
 
   List<Object> values();
 

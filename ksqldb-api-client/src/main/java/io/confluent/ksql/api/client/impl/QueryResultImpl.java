@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.QueryResult;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.reactive.BufferedPublisher;
@@ -27,13 +28,13 @@ class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
 
   private final String queryId;
   private final List<String> columnNames;
-  private final List<String> columnTypes;
+  private final List<ColumnType> columnTypes;
   private final PollableSubscriber pollableSubscriber;
   private volatile boolean polling;
   private boolean subscribing;
 
   QueryResultImpl(final Context context, final String queryId, final List<String> columnNames,
-      final List<String> columnTypes) {
+      final List<ColumnType> columnTypes) {
     super(context);
     this.queryId = queryId;
     this.columnNames = columnNames;
@@ -47,7 +48,7 @@ class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
   }
 
   @Override
-  public List<String> columnTypes() {
+  public List<ColumnType> columnTypes() {
     return columnTypes;
   }
 

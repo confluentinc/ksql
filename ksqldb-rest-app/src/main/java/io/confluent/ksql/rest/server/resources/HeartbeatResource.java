@@ -15,25 +15,18 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.util.KsqlHostInfo;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 /**
  * Endpoint for registering heartbeats received from remote servers. The heartbeats are used
  * to determine the status of the remote servers, i.e. whether they are alive or dead.
  */
 
-@Path("/heartbeat")
-@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class HeartbeatResource {
 
   private final HeartbeatAgent heartbeatAgent;
@@ -42,10 +35,9 @@ public class HeartbeatResource {
     this.heartbeatAgent = heartbeatAgent;
   }
 
-  @POST
-  public Response registerHeartbeat(final HeartbeatMessage request) {
+  public EndpointResponse registerHeartbeat(final HeartbeatMessage request) {
     handleHeartbeat(request);
-    return Response.ok(new HeartbeatResponse(true)).build();
+    return EndpointResponse.ok(new HeartbeatResponse(true));
   }
 
   private void handleHeartbeat(final HeartbeatMessage request) {

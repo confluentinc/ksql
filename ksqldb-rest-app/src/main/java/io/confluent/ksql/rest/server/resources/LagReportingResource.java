@@ -15,20 +15,11 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.LagReportingAgent;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
-@Path("/lag")
-@Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
-@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class LagReportingResource {
 
   private LagReportingAgent lagReportingAgent;
@@ -37,9 +28,8 @@ public class LagReportingResource {
     this.lagReportingAgent = lagReportingAgent;
   }
 
-  @POST
-  public Response receiveHostLag(final LagReportingMessage request) {
+  public EndpointResponse receiveHostLag(final LagReportingMessage request) {
     lagReportingAgent.receiveHostLag(request);
-    return Response.ok(new LagReportingResponse(true)).build();
+    return EndpointResponse.ok(new LagReportingResponse(true));
   }
 }

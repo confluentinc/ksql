@@ -26,6 +26,9 @@ import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import java.util.Optional;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -34,11 +37,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PojoCodecTest {
 
+  private static final Schema STRUCT_SCHEMA = SchemaBuilder.struct()
+      .field("foo", Schema.OPTIONAL_INT32_SCHEMA)
+      .field("bar", Schema.OPTIONAL_STRING_SCHEMA)
+      .optional()
+      .build();
+  private static final Struct STRUCT = new Struct(STRUCT_SCHEMA);
+
   @Mock
   private PojoDeserializerErrorHandler errorHandler;
 
   @Test
-  public void testDeserializePojo() {
+  public void shouldDeserializePojo() {
     JsonObject jsonObject = new JsonObject().put("field1", 123)
         .put("field2", "foobar")
         .put("field3", true);
@@ -51,7 +61,7 @@ public class PojoCodecTest {
   }
 
   @Test
-  public void testDeserializeInvalidJson() {
+  public void shouldFailToDeserializeInvalidJson() {
     Buffer buff = Buffer.buffer("{\"foo\":123");
     Optional<TestPojo> testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
     assertThat(testPojo.isPresent(), is(false));
@@ -59,7 +69,7 @@ public class PojoCodecTest {
   }
 
   @Test
-  public void testDeserializeMissingField() {
+  public void shouldFailToDeserializeMissingField() {
     Buffer buff = Buffer.buffer("{\"field1\":123,\"field2\":\"foo\"}");
     Optional<TestPojo> testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
     assertThat(testPojo.isPresent(), is(false));
@@ -67,11 +77,18 @@ public class PojoCodecTest {
   }
 
   @Test
-  public void testDeserializeUnknownField() {
+  public void shouldDeserializeWithUnknownField() {
     Buffer buff = Buffer.buffer("{\"field1\":123,\"field2\":\"foo\",\"field3\":true,\"blah\":432}");
     Optional<TestPojo> testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
-    assertThat(testPojo.isPresent(), is(false));
-    verify(errorHandler).onExtraParam("blah");
+    assertThat(testPojo.isPresent(), is(true));
+    assertThat(testPojo.get().field1, is(123));
+    assertThat(testPojo.get().field2, is("foo"));
+    assertThat(testPojo.get().field3, is(true));
+  }
+
+  @Test
+  public void shouldSerializeStruct() {
+    PojoCodec.serializeObject(STRUCT);
   }
 
   public static class TestPojo {

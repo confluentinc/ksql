@@ -49,7 +49,6 @@ public abstract class TestDataProvider<K> {
 
   public String ksqlSchemaString(final boolean asTable) {
     return schema.logicalSchema().columns().stream()
-        .filter(col -> col.namespace() != Namespace.META)
         .map(col -> col.name() + " " + col.type() + namespace(col.namespace(), asTable))
         .collect(Collectors.joining(", "));
   }

@@ -71,7 +71,7 @@ public class KsqlBareOutputNodeTest {
   private StreamsBuilder builder;
   private final MetaStore metaStore = MetaStoreFixture
       .getNewMetaStore(new InternalFunctionRegistry());
-  private final QueryId queryId = new QueryId("output-test");
+
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Mock
@@ -87,7 +87,6 @@ public class KsqlBareOutputNodeTest {
   public void before() {
     builder = new StreamsBuilder();
 
-    when(ksqlStreamBuilder.getQueryId()).thenReturn(queryId);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(Collections.emptyMap()));
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
     when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processingLogger);

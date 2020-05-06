@@ -1,8 +1,13 @@
 package io.confluent.ksql.function;
 
 import static io.confluent.ksql.function.KsqlScalarFunction.INTERNAL_PATH;
+import static io.confluent.ksql.function.types.ArrayType.of;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
+import static java.lang.System.lineSeparator;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.types.ArrayType;
@@ -24,9 +29,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class UdfIndexTest {
 
@@ -56,11 +59,8 @@ public class UdfIndexTest {
 
   @Before
   public void setUp() {
-    udfIndex = new UdfIndex<>("name");
+    udfIndex = new UdfIndex<>("name", true);
   }
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldFindNoArgs() {
@@ -574,13 +574,15 @@ public class UdfIndexTest {
         function(OTHER, false, STRING)
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters "
-        + "(STRING, STRING)");
-
     // When:
-    udfIndex.getFunction(ImmutableList.of(SqlTypes.STRING, SqlTypes.STRING));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(ImmutableList.of(SqlTypes.STRING, SqlTypes.STRING))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+        + "(STRING, STRING)"));
   }
 
   @Test
@@ -590,13 +592,15 @@ public class UdfIndexTest {
         function(OTHER, false, STRING)
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters "
-        + "(INTEGER)");
-
     // When:
-    udfIndex.getFunction(ImmutableList.of(SqlTypes.INTEGER));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(ImmutableList.of(SqlTypes.INTEGER))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+        + "(INTEGER)"));
   }
 
   @Test
@@ -606,13 +610,15 @@ public class UdfIndexTest {
         function(OTHER, false, STRING, INT)
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters "
-        + "(INTEGER, null)");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(SqlTypes.INTEGER, null));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(SqlTypes.INTEGER, null))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+        + "(INTEGER, null)"));
   }
 
   @Test
@@ -623,13 +629,15 @@ public class UdfIndexTest {
         function("two", true, STRING_VARARGS)
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters "
-        + "(STRING, INTEGER, STRING)");
-
     // When:
-    udfIndex.getFunction(ImmutableList.of(SqlTypes.STRING, SqlTypes.INTEGER, SqlTypes.STRING));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(ImmutableList.of(SqlTypes.STRING, SqlTypes.INTEGER, SqlTypes.STRING))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+        + "(STRING, INTEGER, STRING)"));
   }
 
   @Test
@@ -639,13 +647,15 @@ public class UdfIndexTest {
         function(OTHER, false, STRING)
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters "
-        + "(STRING, null)");
-
     // When:
-    udfIndex.getFunction(Arrays.asList(SqlTypes.STRING, null));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(Arrays.asList(SqlTypes.STRING, null))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+        + "(STRING, null)"));
   }
 
   @Test
@@ -655,13 +665,15 @@ public class UdfIndexTest {
         function(OTHER, true, ArrayType.of(STRUCT1))
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters "
-        + "(STRUCT<a STRING>, STRUCT<b INTEGER>)");
-
     // When:
-    udfIndex.getFunction(ImmutableList.of(STRUCT1_ARG, STRUCT2_ARG));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(ImmutableList.of(STRUCT1_ARG, STRUCT2_ARG))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+        + "(STRUCT<a STRING>, STRUCT<b INTEGER>)"));
   }
 
   @Test
@@ -672,13 +684,15 @@ public class UdfIndexTest {
         function(EXPECTED, false, generic, generic)
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters "
-        + "(INTEGER, STRING)");
-
     // When:
-    udfIndex.getFunction(ImmutableList.of(SqlTypes.INTEGER, SqlTypes.STRING));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex.getFunction(ImmutableList.of(SqlTypes.INTEGER, SqlTypes.STRING))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+        + "(INTEGER, STRING)"));
   }
 
   @Test
@@ -689,38 +703,75 @@ public class UdfIndexTest {
         function(EXPECTED, false, generic, generic)
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters "
-        + "(ARRAY<INTEGER>, ARRAY<STRING>)");
-
     // When:
-    udfIndex
-        .getFunction(ImmutableList.of(SqlArray.of(SqlTypes.INTEGER), SqlArray.of(SqlTypes.STRING)));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udfIndex
+            .getFunction(ImmutableList.of(SqlArray.of(SqlTypes.INTEGER), SqlArray.of(SqlTypes.STRING)))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+        + "(ARRAY<INTEGER>, ARRAY<STRING>)"));
   }
 
   @Test
   public void shouldIncludeAvailableSignaturesIfNotMatchFound() {
     // Given:
-    final ArrayType generic = ArrayType.of(GenericType.of("A"));
+    final ArrayType generic = of(GenericType.of("A"));
     givenFunctions(
         function(OTHER, true, false, STRING, INT),
         function(OTHER, true, STRING_VARARGS),
         function(OTHER, false, generic)
     );
 
-    // Expect:
-    expectedException.expectMessage("Valid alternatives are:"
-        + System.lineSeparator()
+    // When:
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> udfIndex.getFunction(ImmutableList.of(SqlTypes.STRING, INTEGER, SqlTypes.STRING))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Valid alternatives are:"
+        + lineSeparator()
         + "other(VARCHAR...)"
-        + System.lineSeparator()
+        + lineSeparator()
         + "other(ARRAY<A>)"
-        + System.lineSeparator()
-        + "other(VARCHAR paramName, INT paramName)"
+        + lineSeparator()
+        + "other(VARCHAR paramName, INT paramName)"));
+  }
+
+  @Test
+  public void shouldSupportMatchAndImplicitCastEnabled() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, false, DOUBLE)
     );
 
     // When:
-    udfIndex.getFunction(ImmutableList.of(SqlTypes.STRING, SqlTypes.INTEGER, SqlTypes.STRING));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(INTEGER));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldThrowIfNoExactMatchAndImplicitCastDisabled() {
+    // Given:
+    udfIndex = new UdfIndex<>("name", false);
+    givenFunctions(
+            function(OTHER, false, DOUBLE)
+    );
+
+    // When:
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> udfIndex.getFunction(ImmutableList.of(SqlTypes.INTEGER))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+            + "(INTEGER)"));
   }
 
   private void givenFunctions(final KsqlScalarFunction... functions) {

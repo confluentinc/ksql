@@ -783,8 +783,7 @@ public class StatementRewriterTest {
     final Expression rewrittenExp2 = mock(Expression.class);
     final GroupBy groupBy = new GroupBy(
         location,
-        ImmutableList.of(exp1, exp2),
-        Optional.of(COL2)
+        ImmutableList.of(exp1, exp2)
     );
     when(expressionRewriter.apply(exp1, context)).thenReturn(rewrittenExp1);
     when(expressionRewriter.apply(exp2, context)).thenReturn(rewrittenExp2);
@@ -798,8 +797,7 @@ public class StatementRewriterTest {
         equalTo(
             new GroupBy(
                 location,
-                ImmutableList.of(rewrittenExp1, rewrittenExp2),
-                Optional.of(COL2)
+                ImmutableList.of(rewrittenExp1, rewrittenExp2)
             )
         )
     );
@@ -810,8 +808,7 @@ public class StatementRewriterTest {
     // Given:
     final PartitionBy partitionBy = new PartitionBy(
         location,
-        expression,
-        Optional.of(COL2)
+        expression
     );
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
@@ -821,8 +818,7 @@ public class StatementRewriterTest {
     // Then:
     assertThat(rewritten, equalTo(new PartitionBy(
         location,
-        rewrittenExpression,
-        Optional.of(COL2)
+        rewrittenExpression
     )));
   }
 

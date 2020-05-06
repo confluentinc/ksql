@@ -68,7 +68,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         // This is done by DataSourceNode
         // Hence, they must be removed again here if they are still in the sink schema.
         // This leads to strange behaviour, but changing it is a breaking change.
-        schema.withoutMetaAndKeyColsInValue(),
+        schema.withoutPseudoAndKeyColsInValue(),
         limit,
         timestampColumn
     );

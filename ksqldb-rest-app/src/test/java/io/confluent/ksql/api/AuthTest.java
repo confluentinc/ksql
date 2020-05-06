@@ -20,13 +20,12 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
-import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.security.KsqlUserContextProvider;
@@ -81,38 +80,38 @@ public class AuthTest extends ApiTest {
   private String unauthedPaths;
 
   @Override
-  protected ApiServerConfig createServerConfig() {
-    ApiServerConfig config = super.createServerConfig();
+  protected KsqlRestConfig createServerConfig() {
+    KsqlRestConfig config = super.createServerConfig();
     Map<String, Object> origs = config.originals();
     origs.put(
-        ApiServerConfig.AUTHENTICATION_METHOD_CONFIG,
-        ApiServerConfig.AUTHENTICATION_METHOD_BASIC);
+        KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG,
+        KsqlRestConfig.AUTHENTICATION_METHOD_BASIC);
     origs.put(
-        ApiServerConfig.AUTHENTICATION_REALM_CONFIG,
+        KsqlRestConfig.AUTHENTICATION_REALM_CONFIG,
         PROPS_JAAS_REALM
     );
     origs.put(
-        ApiServerConfig.AUTHENTICATION_ROLES_CONFIG,
+        KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG,
         KSQL_RESOURCE
     );
     if (unauthedPaths != null) {
-      origs.put(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
+      origs.put(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
     }
-    return new ApiServerConfig(origs);
+    return new KsqlRestConfig(origs);
   }
 
-  protected ApiServerConfig createServerConfigNoBasicAuth() {
-    ApiServerConfig config = super.createServerConfig();
+  protected KsqlRestConfig createServerConfigNoBasicAuth() {
+    KsqlRestConfig config = super.createServerConfig();
     Map<String, Object> origs = config.originals();
     if (unauthedPaths != null) {
-      origs.put(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
+      origs.put(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
     }
-    return new ApiServerConfig(origs);
+    return new KsqlRestConfig(origs);
   }
 
   @Override
-  protected void createServer(ApiServerConfig serverConfig) {
-    server = new Server(vertx, serverConfig, testEndpoints, false,
+  protected void createServer(KsqlRestConfig serverConfig) {
+    server = new Server(vertx, serverConfig, testEndpoints,
         new KsqlSecurityExtension() {
           @Override
           public void initialize(final KsqlConfig ksqlConfig) {
@@ -493,9 +492,9 @@ public class AuthTest extends ApiTest {
       }
     };
 
-    ApiServerConfig apiServerConfig =
+    KsqlRestConfig KsqlRestConfig =
         enableBasicAuth ? createServerConfig() : createServerConfigNoBasicAuth();
-    createServer(apiServerConfig);
+    createServer(KsqlRestConfig);
     client = createClient();
     action.run();
     assertThat(handlerCalled.get(), is(shouldCallHandler));

@@ -30,7 +30,8 @@ import java.util.Optional;
 public class FieldInfo {
 
   public enum FieldType {
-    SYSTEM, KEY
+    SYSTEM, // To be removed in the future. 0.9 saw this value no longer used.
+    KEY
   }
 
   private final String name;

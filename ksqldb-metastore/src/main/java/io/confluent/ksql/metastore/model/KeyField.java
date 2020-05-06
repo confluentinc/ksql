@@ -18,9 +18,9 @@ package io.confluent.ksql.metastore.model;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.Objects;
 import java.util.Optional;
 

@@ -38,13 +38,17 @@ public final class KsqlConstants {
   public static final String LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
 
   public static final String DOT = ".";
-  public static final String ESCAPE = "`";
   public static final String STRUCT_FIELD_REF = "->";
 
   public static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
   public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
   public static final String DEFAULT_AVRO_SCHEMA_FULL_NAME =
       AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
+
+  public enum KsqlQueryType {
+    PERSISTENT,
+    PUSH
+  }
 
   public enum KsqlQueryStatus {
     RUNNING,

@@ -24,7 +24,6 @@ public final class ErrorCodes {
   }
 
   public static final int ERROR_CODE_MISSING_PARAM = 1;
-  public static final int ERROR_CODE_UNKNOWN_PARAM = 2;
   public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 3;
   public static final int ERROR_CODE_MALFORMED_REQUEST = 4;
   public static final int ERROR_CODE_INVALID_QUERY = 5;
@@ -33,6 +32,7 @@ public final class ErrorCodes {
   public static final int ERROR_MAX_PUSH_QUERIES_EXCEEDED = 8;
   public static final int ERROR_FAILED_AUTHENTICATION = 9;
   public static final int ERROR_FAILED_AUTHORIZATION = 10;
+  public static final int ERROR_HTTP2_ONLY = 11;
 
   public static final int ERROR_CODE_INTERNAL_ERROR = 100;
 

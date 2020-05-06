@@ -38,6 +38,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -49,7 +50,6 @@ import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -57,9 +57,7 @@ import java.util.OptionalInt;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -69,17 +67,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TestExecutorTest {
 
-  private static final String INTERNAL_TOPIC_0 = "internal";
   private static final String SINK_TOPIC_NAME = "sink_topic";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .build();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private StubKafkaService kafkaService;
@@ -191,17 +184,19 @@ public class TestExecutorTest {
     givenExpectedTopology("expected-topology");
     givenActualTopology("actual-topology");
 
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
     // Then:
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(
+    assertThat(e.getMessage(), containsString(
         "Generated topology differs from that built by previous versions of KSQL "
             + "- this likely means there is a non-backwards compatible change.\n"
             + "THIS IS BAD!\n"
             + "Expected: is \"expected-topology\"\n"
-            + "     but: was \"actual-topology\"");
-
-    // When:
-    executor.buildAndExecuteQuery(testCase, listener);
+            + "     but: was \"actual-topology\""));
   }
 
   @Test
@@ -210,15 +205,17 @@ public class TestExecutorTest {
     givenExpectedTopology("the-topology", ImmutableMap.of("expected", "schemas"));
     givenActualTopology("the-topology", ImmutableMap.of("actual", "schemas"));
 
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
     // Then:
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(containsString(
+    assertThat(e.getMessage(), containsString(
         "Schemas used by topology differ from those used by previous versions of KSQL "
             + "- this is likely to mean there is a non-backwards compatible change.\n"
             + "THIS IS BAD!\n"));
-
-    // When:
-    executor.buildAndExecuteQuery(testCase, listener);
   }
 
   @Test
@@ -231,14 +228,17 @@ public class TestExecutorTest {
     final Record expected_1 = new Record(SINK_TOPIC_NAME, "k1", "v1", null, Optional.of(1L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected <2> records but it was <1>\n"
-        + "Actual records: \n"
-        + "<k1, \"v1\"> with timestamp=123456719");
-
     // When:
-    executor.buildAndExecuteQuery(testCase, listener);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Expected <2> records but it was <1>\n"
+            + "Actual records: \n"
+            + "<k1, \"v1\"> with timestamp=123456719"));
   }
 
   @Test
@@ -278,13 +278,15 @@ public class TestExecutorTest {
         TextNode.valueOf("different"), Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
-    // Expect
-    expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(
-        "Expected <k2, \"different\"> with timestamp=123456789 but was <k2, \"v2\"> with timestamp=123456789");
-
     // When:
-    executor.buildAndExecuteQuery(testCase, listener);
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Expected <k2, \"different\"> with timestamp=123456789 but was <k2, \"v2\"> with timestamp=123456789"));
   }
 
   @Test
@@ -320,7 +322,6 @@ public class TestExecutorTest {
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("key"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
         .build();

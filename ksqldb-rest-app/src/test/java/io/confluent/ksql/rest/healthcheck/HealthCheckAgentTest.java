@@ -21,7 +21,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
@@ -40,7 +39,6 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.rest.RestConfig;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
@@ -83,7 +81,7 @@ public class HealthCheckAgentTest {
   @Before
   public void setUp() {
     when(ksqlClient.makeKsqlRequest(eq(SERVER_URI), any(), eq(ImmutableMap.of()))).thenReturn(successfulResponse);
-    when(restConfig.getList(RestConfig.LISTENERS_CONFIG))
+    when(restConfig.getList(KsqlRestConfig.LISTENERS_CONFIG))
         .thenReturn(ImmutableList.of(SERVER_ADDRESS));
     when(successfulResponse.isSuccessful()).thenReturn(true);
     when(unSuccessfulResponse.isSuccessful()).thenReturn(false);

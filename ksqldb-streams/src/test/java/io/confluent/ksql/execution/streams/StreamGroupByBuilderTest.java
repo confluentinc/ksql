@@ -31,14 +31,13 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -59,18 +58,16 @@ import org.mockito.junit.MockitoRule;
 public class StreamGroupByBuilderTest {
 
   private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil
-      .keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+      .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
-      .withMetaAndKeyColsInValue(false);
+      .withPseudoAndKeyColsInValue(false);
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumns(SCHEMA.value())
       .build();
 
@@ -125,8 +122,6 @@ public class StreamGroupByBuilderTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private Optional<ColumnName> alias;
-  @Mock
   private KStreamHolder<Struct> streamHolder;
   @Mock
   private ParamsFactory paramsFactory;
@@ -148,7 +143,7 @@ public class StreamGroupByBuilderTest {
     when(streamHolder.getSchema()).thenReturn(SCHEMA);
     when(streamHolder.getStream()).thenReturn(sourceStream);
 
-    when(paramsFactory.build(any(), any(), any(), any(), any())).thenReturn(groupByParams);
+    when(paramsFactory.build(any(), any(), any(), any())).thenReturn(groupByParams);
 
     when(groupByParams.getSchema()).thenReturn(REKEYED_SCHEMA);
     when(groupByParams.getMapper()).thenReturn(mapper);
@@ -168,8 +163,7 @@ public class StreamGroupByBuilderTest {
         PROPERTIES,
         sourceStep,
         FORMATS,
-        GROUP_BY_EXPRESSIONS,
-        alias
+        GROUP_BY_EXPRESSIONS
     );
 
     groupByKey = new StreamGroupByKey(PROPERTIES, sourceStep, FORMATS);
@@ -198,7 +192,6 @@ public class StreamGroupByBuilderTest {
     verify(paramsFactory).build(
         eq(SCHEMA),
         any(),
-        eq(alias),
         eq(processingLogger),
         eq(ksqlConfig)
     );
@@ -286,7 +279,7 @@ public class StreamGroupByBuilderTest {
     builder.build(streamHolder, groupByKey);
 
     // Then:
-    verify(paramsFactory, never()).build(any(), any(), any(), any(), any());
+    verify(paramsFactory, never()).build(any(), any(), any(), any());
   }
 
   @Test

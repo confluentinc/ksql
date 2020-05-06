@@ -17,7 +17,9 @@ package io.confluent.ksql.rest.client;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -64,15 +66,10 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.kafka.common.config.SslConfigs;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.reactivestreams.Subscription;
 
 public class KsqlClientTest {
-
-  @Rule
-  public ExpectedException expectedEx = ExpectedException.none();
 
   private Vertx vertx;
   private FakeApiServer server;
@@ -479,13 +476,17 @@ public class KsqlClientTest {
 
     // Given:
     startServerWithTls();
-    expectedEx.expect(KsqlRestClientException.class);
-    expectedEx
-        .expectMessage(
-            "java.io.IOException: Keystore was tampered with, or password was incorrect");
 
     // When:
-    startClientWithTlsAndTruststorePassword(null);
+    final KsqlRestClientException e = assertThrows(
+        KsqlRestClientException.class,
+        () -> startClientWithTlsAndTruststorePassword(null)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "java.io.IOException: Keystore was tampered with, or password was incorrect"
+    ));
   }
 
 
@@ -496,13 +497,17 @@ public class KsqlClientTest {
 
     // Given:
     startServerWithTls();
-    expectedEx.expect(KsqlRestClientException.class);
-    expectedEx
-        .expectMessage(
-            "java.io.IOException: Keystore was tampered with, or password was incorrect");
 
     // When:
-    startClientWithTlsAndTruststorePassword("iquwhduiqhwd");
+    final KsqlRestClientException e = assertThrows(
+        KsqlRestClientException.class,
+        () -> startClientWithTlsAndTruststorePassword("iquwhduiqhwd")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "java.io.IOException: Keystore was tampered with, or password was incorrect"
+    ));
   }
 
   @Test
@@ -513,28 +518,33 @@ public class KsqlClientTest {
     // Given:
     startServerWithTls();
     startClientWithTls();
-    expectedEx.expect(KsqlRestClientException.class);
-    expectedEx
-        .expectMessage("Error issuing POST to KSQL server. path:/ksql");
 
     // When:
     URI uri = URI.create("http://localhost:" + server.getPort());
     KsqlTarget target = ksqlClient.target(uri);
-    target.postKsqlRequest("ssl test", Collections.emptyMap(), Optional.of(123L));
+    final KsqlRestClientException e = assertThrows(
+        KsqlRestClientException.class,
+        () ->target.postKsqlRequest("ssl test", Collections.emptyMap(), Optional.of(123L))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Error issuing POST to KSQL server. path:/ksql"));
   }
 
   @Test
   public void shouldFailtoMakeHttpsRequestWhenServerIsHttp() {
-    // Given:
-    expectedEx.expect(KsqlRestClientException.class);
-    expectedEx
-        .expectMessage(
-            "Error issuing POST to KSQL server. path:/ksql");
-
     // When:
     URI uri = URI.create("https://localhost:" + server.getPort());
     KsqlTarget target = ksqlClient.target(uri);
-    target.postKsqlRequest("ssl test", Collections.emptyMap(), Optional.of(123L));
+    final KsqlRestClientException e = assertThrows(
+        KsqlRestClientException.class,
+        () ->  target.postKsqlRequest("ssl test", Collections.emptyMap(), Optional.of(123L))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Error issuing POST to KSQL server. path:/ksql"
+    ));
   }
 
   @Test
@@ -584,7 +594,7 @@ public class KsqlClientTest {
     RestResponse<KsqlEntityList> response = target.postKsqlRequest("sql", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
-    assertThat(response.getStatusCode().getCode(), is(400));
+    assertThat(response.getStatusCode(), is(400));
     assertThat(response.getErrorMessage().getErrorCode(), is(40000));
     assertThat(response.getErrorMessage().getMessage(), is("ouch"));
     assertThat(response.getErrorMessage().getStackTrace(), is(ImmutableList.of("s1", "s2")));
@@ -601,7 +611,7 @@ public class KsqlClientTest {
     RestResponse<ServerInfo> response = target.getServerInfo();
 
     // Then:
-    assertThat(response.getStatusCode().getCode(), is(400));
+    assertThat(response.getStatusCode(), is(400));
     assertThat(response.getErrorMessage().getErrorCode(), is(40000));
     assertThat(response.getErrorMessage().getMessage(), is("ouch"));
     assertThat(response.getErrorMessage().getStackTrace(), is(ImmutableList.of("s1", "s2")));

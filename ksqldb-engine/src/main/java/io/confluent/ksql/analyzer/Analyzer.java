@@ -54,7 +54,8 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -63,7 +64,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -547,7 +547,7 @@ class Analyzer {
           .orElseThrow(IllegalStateException::new);
 
       if (persistent) {
-        if (SchemaUtil.isSystemColumn(columnName)) {
+        if (SystemColumns.isSystemColumn(columnName)) {
           throw new KsqlException("Reserved column name in select: " + columnName + ". "
               + "Please remove or alias the column.");
         }
@@ -604,7 +604,7 @@ class Analyzer {
 
       new TraversalExpressionVisitor<Void>() {
         @Override
-        public Void visitColumnReference(
+        public Void visitUnqualifiedColumnReference(
             final UnqualifiedColumnReferenceExp node,
             final Void context
         ) {

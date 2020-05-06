@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **23**
+Next KLIP number: **28**
 
 | KLIP                                                                               | Status         | Release |
 |------------------------------------------------------------------------------------|:--------------:| ------: |
@@ -54,7 +54,7 @@ Next KLIP number: **23**
 | [KLIP-11: Redesign KSQL query language](klip-11-DQL.md)                            | Proposal       | N/A     |
 | [KLIP-12: Implement High-Availability for Pull queries](klip-12-pull-high-availability.md)| Proposal       | N/A     |
 | [KLIP-13: Introduce KSQL command to print connect worker properties to the console](klip-13-introduce-KSQL-command-to-print-connect-worker-properties-to-the-console.md) | Merged | 5.5 |
-| [KLIP-14: ROWTIME as Pseudocolumn](klip-14-rowtime-as-pseudocolumn.md)             | Approved       | N/A     |
+| [KLIP-14: ROWTIME as Pseudocolumn](klip-14-rowtime-as-pseudocolumn.md)             | Merged       | 0.9 / release after 5.5 |
 | [KLIP-15: KSQLDB new API and Client(klip-15-new-api-and-client.md                  | Proposal       | N/A     |
 | [KLIP-16: Introduce 'K$' dynamic views                                             | Proposal       | N/A     |
 | [KLIP-17: Remove 'INSERT INTO' in favour of SQL Union](klip-17-sql-union.md)       | Proposed [Discussion](https://github.com/confluentinc/ksql/pull/4125)       | N/A     |
@@ -65,3 +65,7 @@ Next KLIP number: **23**
 | KLIP-22: Add consumer group id to CREATE STREAM and CREATE TABLE DSL               | Proposal       | N/A     |
 | [KLIP-23: PRIMARY KEYs for tables](klip-23-primary-keys-for-tables.md)             | Merged         | 0.9 / 6.0  |
 | [KLIP-24: KEY column semantics in queries](klip-24-key-column-semantics-in-queries.md)| Merged      | 0.10 / 6.0 |
+| KLIP-25: Removal of `WITH(KEY)` syntax                                             | Proposal       | N/A     |
+| KLIP-26: Java client interfaces                                                    | Proposal       | N/A     |
+| KLIP-27: Enhanced UDF Configuration Options                                        | Proposal       | N/A     |
+

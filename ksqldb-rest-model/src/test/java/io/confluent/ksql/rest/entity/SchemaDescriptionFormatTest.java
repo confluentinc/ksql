@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.ApiJsonMapper;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;

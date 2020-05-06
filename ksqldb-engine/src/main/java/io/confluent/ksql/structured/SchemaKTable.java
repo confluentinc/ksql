@@ -144,10 +144,9 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKStream<Struct> selectKey(
       final Expression keyExpression,
-      final Optional<ColumnName> alias,
       final Stacker contextStacker
   ) {
-    if (repartitionNotNeeded(ImmutableList.of(keyExpression), alias)) {
+    if (repartitionNotNeeded(ImmutableList.of(keyExpression))) {
       return (SchemaKStream<Struct>) this;
     }
 
@@ -170,7 +169,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKGroupedTable groupBy(
       final ValueFormat valueFormat,
       final List<Expression> groupByExpressions,
-      final Optional<ColumnName> alias,
       final Stacker contextStacker
   ) {
     final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
@@ -184,8 +182,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         contextStacker,
         sourceTableStep,
         Formats.of(groupedKeyFormat, valueFormat, SerdeOption.none()),
-        groupByExpressions,
-        alias
+        groupByExpressions
     );
 
     return new SchemaKGroupedTable(
@@ -199,12 +196,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public SchemaKTable<K> join(
       final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
       final KeyField keyField,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker
   ) {
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.INNER,
+        keyColName,
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
@@ -220,12 +219,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public SchemaKTable<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
       final KeyField keyField,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker
   ) {
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.LEFT,
+        keyColName,
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
@@ -241,12 +242,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public SchemaKTable<K> outerJoin(
       final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.OUTER,
+        keyColName,
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );

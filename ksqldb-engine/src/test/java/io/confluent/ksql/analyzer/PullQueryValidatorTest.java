@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.analyzer;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,9 +32,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -40,9 +41,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class PullQueryValidatorTest {
 
   private static final Expression AN_EXPRESSION = mock(Expression.class);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Analysis analysis;
@@ -65,12 +63,14 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support `EMIT CHANGES`");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support `EMIT CHANGES`"));
   }
 
   @Test(expected = KsqlException.class)
@@ -87,12 +87,14 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.isJoin()).thenReturn(true);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support JOIN clauses.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support JOIN clauses."));
   }
 
   @Test
@@ -101,12 +103,14 @@ public class PullQueryValidatorTest {
 
     when(analysis.getWindowExpression()).thenReturn(Optional.of(windowExpression));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support WINDOW clauses.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support WINDOW clauses."));
   }
 
   @Test
@@ -114,16 +118,17 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.getGroupBy()).thenReturn(Optional.of(new GroupBy(
         Optional.empty(),
-        ImmutableList.of(AN_EXPRESSION),
-        Optional.empty()
+        ImmutableList.of(AN_EXPRESSION)
     )));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support GROUP BY clauses.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support GROUP BY clauses."));
   }
 
   @Test
@@ -131,16 +136,17 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.getPartitionBy()).thenReturn(Optional.of(new PartitionBy(
         Optional.empty(),
-        AN_EXPRESSION,
-        Optional.empty()
+        AN_EXPRESSION
     )));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support PARTITION BY clauses.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support PARTITION BY clauses."));
   }
 
   @Test
@@ -148,12 +154,14 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.getHavingExpression()).thenReturn(Optional.of(AN_EXPRESSION));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support HAVING clauses.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support HAVING clauses."));
   }
 
   @Test
@@ -161,11 +169,13 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.getLimitClause()).thenReturn(OptionalInt.of(1));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support LIMIT clauses.");
-
     // When:
-    validator.validate(analysis);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support LIMIT clauses."));
   }
 }

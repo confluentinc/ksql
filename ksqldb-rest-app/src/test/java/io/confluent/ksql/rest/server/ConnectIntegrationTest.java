@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.json.JsonConverter;
@@ -151,8 +152,16 @@ public class ConnectIntegrationTest {
     ));
 
     // When:
-    final RestResponse<KsqlEntityList> response = ksqlRestClient
-        .makeKsqlRequest("DESCRIBE CONNECTOR `mock-connector`;");
+    final AtomicReference<RestResponse<KsqlEntityList>> responseHolder = new AtomicReference<>();
+    assertThatEventually(
+        () -> {
+          responseHolder.set(ksqlRestClient.makeKsqlRequest("DESCRIBE CONNECTOR `mock-connector`;"));
+          return responseHolder.get().getResponse().get(0);
+        },
+        // there is a race condition were create from line 150 may not have gone through
+        instanceOf(ConnectorDescription.class)
+    );
+    final RestResponse<KsqlEntityList> response = responseHolder.get();
 
     // Then:
     assertThat("expected successful response", response.isSuccessful());

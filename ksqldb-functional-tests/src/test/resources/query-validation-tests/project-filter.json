@@ -389,7 +389,7 @@
       "name": "project nulls",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT name FROM INPUT;"
+        "CREATE STREAM OUTPUT as SELECT ID, name FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -428,6 +428,99 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"NAME": "Nick"}},
         {"topic": "OUTPUT", "key": 4, "value": {"NAME": "Fred"}}
+      ]
+    },
+    {
+      "name": "projection with aliased key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID AS NEW_KEY, NAME FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"NAME": "Nick"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"NAME": "Nick"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NEW_KEY INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "key in projection more than once",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, ID AS ID2, NAME FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The projection contains the key column more than once: `ID` and `ID2`."
+      }
+    },
+    {
+      "name": "projection with missing key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT NAME FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the key column ID in its projection."
+      }
+    },
+    {
+      "name": "projection with missing key column - with value column with same name",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT NAME AS ID, NAME FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the key column ID in its projection."
+      }
+    },
+    {
+      "name": "projection no value columns",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The projection contains no value columns."
+      }
+    },
+    {
+      "name": "project with value column aliased multiple times",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, name, name as name2 FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"NAME": "Nick"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"NAME": "Nick", "NAME2": "Nick"}}
       ]
     }
   ]

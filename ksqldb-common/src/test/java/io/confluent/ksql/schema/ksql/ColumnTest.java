@@ -16,7 +16,6 @@
 package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
-import static io.confluent.ksql.schema.ksql.Column.Namespace.META;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BOOLEAN;
@@ -29,19 +28,14 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ColumnTest {
 
   private static final ColumnName SOME_NAME = ColumnName.of("SomeName");
   private static final ColumnName SOME_OHTER_NAME = ColumnName.of("SOMENAME");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
@@ -86,7 +80,7 @@ public class ColumnTest {
 
   @Test
   public void shouldReturnType() {
-    assertThat(Column.of(SOME_NAME, BOOLEAN, META, 1).type(), is(BOOLEAN));
+    assertThat(Column.of(SOME_NAME, BOOLEAN, KEY, 1).type(), is(BOOLEAN));
   }
 
   @Test
@@ -108,9 +102,6 @@ public class ColumnTest {
 
     assertThat(Column.of(SOME_NAME, INTEGER, KEY, 10).toString(),
         is("`SomeName` INTEGER KEY"));
-
-    assertThat(Column.of(SOME_NAME, INTEGER, META, 10).toString(),
-        is("`SomeName` INTEGER META"));
   }
 
   @Test

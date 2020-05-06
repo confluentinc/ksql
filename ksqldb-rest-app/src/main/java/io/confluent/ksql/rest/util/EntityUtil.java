@@ -19,11 +19,12 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.SqlTypeWalker;
 import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -91,14 +92,9 @@ public final class EntityUtil {
     }
 
     private static Optional<FieldType> toFieldType(final Column.Namespace ns) {
-      switch (ns) {
-        case KEY:
-          return Optional.of(FieldType.KEY);
-        case META:
-          return Optional.of(FieldType.SYSTEM);
-        default:
-          return Optional.empty();
-      }
+      return ns == Namespace.KEY
+          ? Optional.of(FieldType.KEY)
+          : Optional.empty();
     }
   }
 }

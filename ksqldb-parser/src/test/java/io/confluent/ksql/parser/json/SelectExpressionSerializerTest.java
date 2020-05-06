@@ -21,8 +21,8 @@ import static io.confluent.ksql.parser.json.SelectExpressionTestCase.SELECT_EXPR
 import static io.confluent.ksql.parser.json.SelectExpressionTestCase.SELECT_EXPRESSION_NEEDS_QUOTES;
 import static io.confluent.ksql.parser.json.SelectExpressionTestCase.SELECT_EXPRESSION_NEEDS_QUOTES_TXT;
 import static io.confluent.ksql.parser.json.SelectExpressionTestCase.SELECT_EXPRESSION_TXT;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;

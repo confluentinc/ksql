@@ -22,14 +22,11 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TableRowValidationTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
@@ -46,9 +43,6 @@ public class TableRowValidationTest {
       .put("k1", 11);
 
   private static final GenericRow A_VALUE = GenericRow.genericRow("v0-v", 1.0d);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnKeyFieldCountMismatch() {
@@ -76,17 +70,5 @@ public class TableRowValidationTest {
   @Test
   public void shouldNotThrowOnMatching() {
     TableRowValidation.validate(SCHEMA, A_KEY, A_VALUE);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnNoMetaColumnsInSchema() {
-    // Given:
-    final LogicalSchema noMetaColumns = LogicalSchema.builder()
-        .keyColumns(SCHEMA.key())
-        .valueColumns(SCHEMA.value())
-        .build();
-
-    // When:
-    TableRowValidation.validate(noMetaColumns, A_KEY, A_VALUE);
   }
 }

@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.api.perf;
 
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.vertx.core.Vertx;
@@ -99,13 +99,13 @@ public abstract class BasePerfRunner {
     return this;
   }
 
-  protected ApiServerConfig createServerConfig() {
+  protected KsqlRestConfig createServerConfig() {
     final Map<String, Object> config = new HashMap<>();
     config.put("ksql.apiserver.listen.host", "localhost");
     config.put("ksql.apiserver.listen.port", 8089);
     config.put("ksql.apiserver.tls.enabled", false);
 
-    return new ApiServerConfig(config);
+    return new KsqlRestConfig(config);
   }
 
   protected void errorOccurred(Throwable throwable) {
@@ -167,10 +167,10 @@ public abstract class BasePerfRunner {
 
   private void setUp() {
     vertx = Vertx.vertx();
-    ApiServerConfig serverConfig = createServerConfig();
+    KsqlRestConfig serverConfig = createServerConfig();
     final ServerState serverState = new ServerState();
     serverState.setReady();
-    server = new Server(vertx, serverConfig, endpoints, false, new KsqlDefaultSecurityExtension(),
+    server = new Server(vertx, serverConfig, endpoints, new KsqlDefaultSecurityExtension(),
         Optional.empty(), serverState);
     server.start();
     client = createClient();

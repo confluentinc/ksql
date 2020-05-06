@@ -19,11 +19,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
-import javax.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,8 +45,9 @@ public class HeartbeatResourceTest {
   @Test
   public void shouldSendHeartbeat() {
     // When:
-    final HeartbeatMessage request = new HeartbeatMessage(new KsqlHostInfoEntity("localhost", 8080), 1);
-    final Response response = heartbeatResource.registerHeartbeat(request);
+    final HeartbeatMessage request = new HeartbeatMessage(new KsqlHostInfoEntity("localhost", 8080),
+        1);
+    final EndpointResponse response = heartbeatResource.registerHeartbeat(request);
 
     // Then:
     assertThat(response.getStatus(), is(200));

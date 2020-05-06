@@ -235,7 +235,8 @@ public final class QueryExecutor {
         streamsProperties,
         overrides,
         queryCloseCallback,
-        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG)
+        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
+        new QueryId(applicationId)
     ) {
       @Override
       public void stop() {

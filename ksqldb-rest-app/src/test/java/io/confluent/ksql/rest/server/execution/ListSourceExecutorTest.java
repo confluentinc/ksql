@@ -19,8 +19,10 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -50,11 +52,12 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Arrays;
@@ -68,7 +71,6 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -78,8 +80,6 @@ public class ListSourceExecutorTest {
 
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private TopicDescription topicWith1PartitionAndRfOf1;
@@ -241,9 +241,9 @@ public class ListSourceExecutorTest {
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)
         CustomExecutors.SHOW_COLUMNS.execute(
             ConfiguredStatement.of(
-              PreparedStatement.of(
-                  "DESCRIBE SINK;",
-                  new ShowColumns(SourceName.of("SINK"), false)),
+                PreparedStatement.of(
+                    "DESCRIBE SINK;",
+                    new ShowColumns(SourceName.of("SINK"), false)),
                 ImmutableMap.of(),
                 engine.getKsqlConfig()
             ),
@@ -266,23 +266,26 @@ public class ListSourceExecutorTest {
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
                 ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
                 metadata.getQueryId(),
-                queryStatusCount)),
+                queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)),
             Optional.empty())));
   }
 
   @Test
   public void shouldThrowOnDescribeMissingSource() {
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Could not find STREAM/TABLE 'S' in the Metastore");
-
     // When:
-    CustomExecutors.SHOW_COLUMNS.execute(
-        engine.configure("DESCRIBE S;"),
-        mock(SessionProperties.class),
-        engine.getEngine(),
-        engine.getServiceContext()
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomExecutors.SHOW_COLUMNS.execute(
+            engine.configure("DESCRIBE S;"),
+            mock(SessionProperties.class),
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not find STREAM/TABLE 'S' in the Metastore"));
   }
 
   @Test

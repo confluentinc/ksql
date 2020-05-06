@@ -16,7 +16,9 @@
 package io.confluent.ksql.rest.client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -26,9 +28,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -38,9 +38,6 @@ public class KsqlRestClientTest {
 
   private static final Map<String, ?> LOCAL_PROPS = ImmutableMap.of("auto.offset.reset", "earliest");
   private static final Map<String, String> CLIENT_PROPS = ImmutableMap.of("foo", "bar");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlClient client;
@@ -54,12 +51,15 @@ public class KsqlRestClientTest {
 
   @Test
   public void shouldThrowOnInvalidServerAddress() {
-    // Expect:
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectMessage("The supplied serverAddress is invalid: timbuktu");
-
     // When:
-    clientWithServerAddresses("timbuktu");
+    final Exception e = assertThrows(
+        KsqlRestClientException.class,
+        () -> clientWithServerAddresses("timbuktu")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The supplied serverAddress is invalid: timbuktu"));
   }
 
   @Test
@@ -91,13 +91,15 @@ public class KsqlRestClientTest {
 
   @Test
   public void shouldThrowIfAnyServerAddressIsInvalid() {
-    // Expect:
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException
-        .expectMessage("The supplied serverAddress is invalid: secondBuggyServer.8088");
-
     // When:
-    clientWithServerAddresses("http://firstServer:8088,secondBuggyServer.8088");
+    final Exception e = assertThrows(
+        KsqlRestClientException.class,
+        () -> clientWithServerAddresses("http://firstServer:8088,secondBuggyServer.8088")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The supplied serverAddress is invalid: secondBuggyServer.8088"));
   }
 
   @Test

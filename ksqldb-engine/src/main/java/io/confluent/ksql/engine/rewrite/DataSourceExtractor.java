@@ -30,8 +30,8 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -43,7 +43,8 @@ class DataSourceExtractor {
   private final MetaStore metaStore;
 
   private final Set<AliasedDataSource> allSources = new HashSet<>();
-  private Set<ColumnName> commonColumnNames;
+  private final Set<ColumnName> allColumns = new HashSet<>();
+  private final Set<ColumnName> clashingColumns = new HashSet<>();
 
   private boolean isJoin = false;
 
@@ -59,12 +60,20 @@ class DataSourceExtractor {
     return ImmutableSet.copyOf(allSources);
   }
 
-  public Set<ColumnName> getCommonColumnNames() {
-    return Collections.unmodifiableSet(commonColumnNames);
-  }
+  /**
+   * @param name the column name to test.
+   * @return {@code true} if the name exists in more than one source.
+   */
+  public boolean isClashingColumnName(final ColumnName name) {
+    if (!isJoin) {
+      return false;
+    }
 
-  public boolean isJoin() {
-    return isJoin;
+    if (SystemColumns.isPseudoColumn(name)) {
+      return true;
+    }
+
+    return clashingColumns.contains(name);
   }
 
   public SourceName getAliasFor(final ColumnName columnName) {
@@ -109,11 +118,9 @@ class DataSourceExtractor {
           .map(Column::name)
           .collect(Collectors.toSet());
 
-      if (commonColumnNames == null) {
-        commonColumnNames = columns;
-      } else {
-        commonColumnNames = Sets.intersection(commonColumnNames, columns);
-      }
+      clashingColumns.addAll(Sets.intersection(allColumns, columns));
+
+      allColumns.addAll(columns);
 
       return null;
     }

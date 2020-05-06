@@ -23,7 +23,6 @@ import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.TextOutputCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
-import org.eclipse.jetty.jaas.callback.ObjectCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,13 +43,10 @@ class BasicCallbackHandler implements CallbackHandler {
       throws IOException, UnsupportedCallbackException {
     for (final Callback callback : callbacks) {
       if (callback instanceof NameCallback) {
-        final NameCallback nc = (NameCallback)callback;
+        final NameCallback nc = (NameCallback) callback;
         nc.setName(username);
-      } else if (callback instanceof ObjectCallback) {
-        final ObjectCallback oc = (ObjectCallback)callback;
-        oc.setObject(password);
       } else if (callback instanceof PasswordCallback) {
-        final PasswordCallback pc = (PasswordCallback)callback;
+        final PasswordCallback pc = (PasswordCallback) callback;
         pc.setPassword(password.toCharArray());
       } else if (callback instanceof TextOutputCallback) {
         final TextOutputCallback toc = (TextOutputCallback) callback;
@@ -68,7 +64,8 @@ class BasicCallbackHandler implements CallbackHandler {
             throw new IOException("Unsupported message type: " + toc.getMessageType());
         }
       } else {
-        throw new UnsupportedCallbackException(callback);
+        // We ignore unknown callback types - e.g. Jetty implementation might pass us Jetty specific
+        // stuff which we can't deal with
       }
     }
   }

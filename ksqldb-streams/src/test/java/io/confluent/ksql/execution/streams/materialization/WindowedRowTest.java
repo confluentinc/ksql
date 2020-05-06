@@ -33,9 +33,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -44,7 +42,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class WindowedRowTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
@@ -67,9 +64,6 @@ public class WindowedRowTest {
   private static final GenericRow A_VALUE = GenericRow.genericRow("v0-v", 1.0d);
   private static final long A_ROWTIME = 12335L;
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Mock
   private Validator validator;
 
@@ -87,7 +81,6 @@ public class WindowedRowTest {
   @Test
   public void shouldImplementEquals() {
     final LogicalSchema differentSchema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("diff0"), SqlTypes.STRING)

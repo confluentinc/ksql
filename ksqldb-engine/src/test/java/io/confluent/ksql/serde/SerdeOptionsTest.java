@@ -15,26 +15,31 @@
 
 package io.confluent.ksql.serde;
 
+import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.SerdeOptions.buildForCreateAsStatement;
+import static io.confluent.ksql.serde.SerdeOptions.buildForCreateStatement;
+import static java.util.Optional.of;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -42,23 +47,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SerdeOptionsTest {
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema MULTI_FIELD_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("f1"), SqlTypes.DOUBLE)
       .build();
 
   private static final List<ColumnName> SINGLE_COLUMN_NAME = ImmutableList.of(ColumnName.of("bob"));
   private static final List<ColumnName> MULTI_FIELD_NAMES = ImmutableList.of(ColumnName.of("bob"), ColumnName.of("vic"));
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private final Set<SerdeOption> singleFieldDefaults = new HashSet<>();
   private KsqlConfig ksqlConfig;
@@ -179,34 +179,37 @@ public class SerdeOptionsTest {
 
   @Test
   public void shouldThrowIfWrapSingleValuePresentForMultiFieldForCreateStatement() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas");
-
     // When:
-    SerdeOptions.buildForCreateStatement(
-        MULTI_FIELD_SCHEMA,
-        FormatFactory.JSON,
-        Optional.of(true),
-        ksqlConfig
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> buildForCreateStatement(
+            MULTI_FIELD_SCHEMA,
+            JSON,
+            of(true),
+            ksqlConfig
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas"));
   }
 
   @Test
   public void shouldThrowIfWrapSingleValuePresentForDelimitedForCreateStatement() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "'WRAP_SINGLE_VALUE' can not be used with format 'DELIMITED' as it does not support wrapping");
-
     // When:
-    SerdeOptions.buildForCreateStatement(
-        SINGLE_FIELD_SCHEMA,
-        FormatFactory.DELIMITED,
-        Optional.of(false),
-        ksqlConfig
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> buildForCreateStatement(
+            SINGLE_FIELD_SCHEMA,
+            DELIMITED,
+            of(false),
+            ksqlConfig
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("'WRAP_SINGLE_VALUE' can not be used with format 'DELIMITED' as it does not support wrapping"));
   }
 
   @Test
@@ -250,33 +253,35 @@ public class SerdeOptionsTest {
 
   @Test
   public void shouldThrowIfWrapSingleValuePresentForMultiFieldForCreateAsStatement() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas");
-
     // When:
-    SerdeOptions.buildForCreateAsStatement(
-        MULTI_FIELD_NAMES,
-        FormatFactory.JSON,
-        Optional.of(true),
-        singleFieldDefaults
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> buildForCreateAsStatement(
+            MULTI_FIELD_NAMES,
+            JSON,
+            of(true),
+            singleFieldDefaults
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("'WRAP_SINGLE_VALUE' is only valid for single-field value schemas"));
   }
 
   @Test
   public void shouldThrowIfWrapSingleValuePresentForDelimitedForCreateAsStatement() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "'WRAP_SINGLE_VALUE' can not be used with format 'DELIMITED' as it does not support wrapping");
-
     // When:
-    SerdeOptions.buildForCreateAsStatement(
-        SINGLE_COLUMN_NAME,
-        FormatFactory.DELIMITED,
-        Optional.of(true),
-        singleFieldDefaults
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> buildForCreateAsStatement(
+            SINGLE_COLUMN_NAME,
+            DELIMITED,
+            of(true),
+            singleFieldDefaults
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("'WRAP_SINGLE_VALUE' can not be used with format 'DELIMITED' as it does not support wrapping"));
   }
 }

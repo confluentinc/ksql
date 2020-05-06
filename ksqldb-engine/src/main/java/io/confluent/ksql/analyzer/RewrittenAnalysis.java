@@ -59,7 +59,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     this.rewriter = Objects.requireNonNull(rewriter, "rewriter");
   }
 
-  public ImmutableAnalysis getOriginal() {
+  public ImmutableAnalysis original() {
     return original;
   }
 
@@ -124,9 +124,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     return original.getPartitionBy()
         .map(partitionBy -> new PartitionBy(
             partitionBy.getLocation(),
-            rewrite(partitionBy.getExpression()),
-            partitionBy.getAlias()
-                .map(this::rewrite)
+            rewrite(partitionBy.getExpression())
         ));
   }
 
@@ -135,9 +133,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     return original.getGroupBy()
         .map(groupBy -> new GroupBy(
             groupBy.getLocation(),
-            rewriteList(groupBy.getGroupingExpressions()),
-            groupBy.getAlias()
-                .map(this::rewrite)
+            rewriteList(groupBy.getGroupingExpressions())
         ));
   }
 
@@ -148,16 +144,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   @Override
   public List<JoinInfo> getJoin() {
-    return original.getJoin().stream().map(
-        j -> new JoinInfo(
-            j.getLeftSource(),
-            rewrite(j.getLeftJoinExpression()),
-            j.getRightSource(),
-            rewrite(j.getRightJoinExpression()),
-            j.getType(),
-            j.getWithinExpression()
-        )
-    ).collect(Collectors.toList());
+    return original.getJoin();
   }
 
   @Override

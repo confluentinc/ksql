@@ -17,15 +17,15 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_PARAM;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +67,17 @@ public final class ServerUtils {
     return out.toString();
   }
 
+  public static boolean checkHttp2(final RoutingContext routingContext) {
+    if (routingContext.request().version() != HttpVersion.HTTP_2) {
+      routingContext.fail(BAD_REQUEST.code(),
+          new KsqlApiException("This endpoint is only available when using HTTP2",
+              ErrorCodes.ERROR_HTTP2_ONLY));
+      return false;
+    } else {
+      return true;
+    }
+  }
+
   private static class HttpResponseErrorHandler implements PojoDeserializerErrorHandler {
 
     private final RoutingContext routingContext;
@@ -78,21 +89,14 @@ public final class ServerUtils {
     @Override
     public void onMissingParam(final String paramName) {
       routingContext
-          .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("No " + paramName + " in arguments",
+          .fail(BAD_REQUEST.code(), new KsqlApiException("No " + paramName + " in arguments",
               ERROR_CODE_MISSING_PARAM));
-    }
-
-    @Override
-    public void onExtraParam(final String paramName) {
-      routingContext
-          .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("Unknown arg " + paramName,
-              ERROR_CODE_UNKNOWN_PARAM));
     }
 
     @Override
     public void onInvalidJson() {
       routingContext
-          .fail(HttpStatus.SC_BAD_REQUEST, new KsqlApiException("Malformed JSON in request",
+          .fail(BAD_REQUEST.code(), new KsqlApiException("Malformed JSON in request",
               ERROR_CODE_MALFORMED_REQUEST));
     }
   }

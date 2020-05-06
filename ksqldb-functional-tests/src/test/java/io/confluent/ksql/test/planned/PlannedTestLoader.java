@@ -15,9 +15,14 @@
 
 package io.confluent.ksql.test.planned;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.test.loader.TestLoader;
-import io.confluent.ksql.test.tools.VersionedTest;
+import io.confluent.ksql.test.tools.TestCase;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -26,13 +31,41 @@ import java.util.stream.Stream;
  */
 public final class PlannedTestLoader {
 
-  private PlannedTestLoader() {
+  private final TestCasePlanLoader planLoader;
+  private final Predicate<Path> predicate;
+
+  public PlannedTestLoader() {
+    this(new TestCasePlanLoader(), defaultPredicate());
   }
 
-  public static Stream<VersionedTest> load() {
-    final List<String> whiteList = TestLoader.getWhiteList();
+  @VisibleForTesting
+  public PlannedTestLoader(
+      final TestCasePlanLoader planLoader,
+      final Predicate<Path> predicate
+  ) {
+    this.planLoader = requireNonNull(planLoader, "planLoader");
+    this.predicate = requireNonNull(predicate, "predicate");
+  }
 
-    return TestCasePlanLoader.load(whiteList)
+  public Stream<TestCase> loadTests() {
+    return planLoader.load(predicate)
         .map(PlannedTestUtils::buildPlannedTestCase);
+  }
+
+  public static Stream<TestCase> load() {
+    return new PlannedTestLoader().loadTests();
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
+  private static Predicate<Path> defaultPredicate() {
+    final List<String> whiteList = TestLoader.getWhiteList();
+    if (whiteList.isEmpty()) {
+      return path -> true;
+    }
+
+    return whiteList.stream()
+            .map(com.google.common.io.Files::getNameWithoutExtension)
+            .map(item -> (Predicate<Path>) path -> path.startsWith(item + "_-_"))
+            .reduce(path -> false, Predicate::or);
   }
 }

@@ -19,7 +19,6 @@ import static org.apache.kafka.common.utils.Utils.getHost;
 import static org.apache.kafka.common.utils.Utils.getPort;
 
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.rest.RestConfig;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
@@ -33,17 +32,18 @@ public final class ServerUtil {
   }
   
   public static URI getServerAddress(final KsqlRestConfig restConfig) {
-    final List<String> listeners = restConfig.getList(RestConfig.LISTENERS_CONFIG);
+    final List<String> listeners = restConfig.getList(KsqlRestConfig.LISTENERS_CONFIG);
     final String address = listeners.stream()
         .map(String::trim)
         .findFirst()
         .orElseThrow(() ->
-            new ConfigException(RestConfig.LISTENERS_CONFIG, listeners, "value cannot be empty"));
+            new ConfigException(KsqlRestConfig.LISTENERS_CONFIG, listeners,
+                "value cannot be empty"));
 
     try {
       return new URL(address).toURI();
     } catch (final Exception e) {
-      throw new ConfigException(RestConfig.LISTENERS_CONFIG, listeners, e.getMessage());
+      throw new ConfigException(KsqlRestConfig.LISTENERS_CONFIG, listeners, e.getMessage());
     }
   }
 

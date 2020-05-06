@@ -1,9 +1,9 @@
 package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.same;
@@ -22,11 +22,11 @@ import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafUndoAggre
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -39,7 +39,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AggregateParamsFactoryTest {
 
   private static final LogicalSchema INPUT_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ARGUMENT0"), SqlTypes.INTEGER)
@@ -195,7 +194,6 @@ public class AggregateParamsFactoryTest {
         schema,
         equalTo(
             LogicalSchema.builder()
-                .withRowTime()
                 .keyColumns(INPUT_SCHEMA.key())
                 .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
@@ -216,7 +214,6 @@ public class AggregateParamsFactoryTest {
         schema,
         equalTo(
             LogicalSchema.builder()
-                .withRowTime()
                 .keyColumns(INPUT_SCHEMA.key())
                 .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
@@ -246,14 +243,13 @@ public class AggregateParamsFactoryTest {
         schema,
         equalTo(
             LogicalSchema.builder()
-                .withRowTime()
                 .keyColumns(INPUT_SCHEMA.key())
                 .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
                 .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.INTEGER)
                 .valueColumn(ColumnNames.aggregateColumn(1), SqlTypes.STRING)
-                .valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE)
-                .valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE)
+                .valueColumn(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWBOUND_TYPE)
+                .valueColumn(SystemColumns.WINDOWEND_NAME, SystemColumns.WINDOWBOUND_TYPE)
                 .build()
         )
     );

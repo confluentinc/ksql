@@ -17,7 +17,8 @@ package io.confluent.ksql.cli;
 
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_ACCEPTABLE;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.anyOf;
@@ -72,6 +73,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -85,12 +87,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.ws.rs.ProcessingException;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
-import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -488,7 +487,6 @@ public class CliTest {
     assertRunCommand(
         "describe " + ORDER_DATA_PROVIDER.kstreamName() + ";",
         containsRows(
-            row("ROWTIME", "BIGINT           (system)"),
             row("ROWKEY", "BIGINT           (key)"),
             row("ORDERTIME", "BIGINT"),
             row("ORDERID", "VARCHAR(STRING)"),
@@ -666,9 +664,9 @@ public class CliTest {
         "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
         3,
         containsRows(
-            row(prependWithRowTimeAndKey(row1)),
-            row(prependWithRowTimeAndKey(row2)),
-            row(prependWithRowTimeAndKey(row3))
+            row(prependWithKey(row1)),
+            row(prependWithKey(row2)),
+            row(prependWithKey(row3))
         ));
   }
 
@@ -678,7 +676,6 @@ public class CliTest {
     run("SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES LIMIT 1;", localCli);
 
     // Then: (note that some of these are truncated because of header wrapping)
-    assertThat(terminal.getOutputString(), containsString("ROWTIME"));
     assertThat(terminal.getOutputString(), containsString("ROWKEY"));
     assertThat(terminal.getOutputString(), containsString("ITEMID"));
     assertThat(terminal.getOutputString(), containsString("ORDERID"));
@@ -703,7 +700,6 @@ public class CliTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumns(ORDER_DATA_PROVIDER.schema().logicalSchema().key())
             .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
@@ -751,7 +747,7 @@ public class CliTest {
 
     final KsqlRestClient mockRestClient = givenMockRestClient();
     when(mockRestClient.getServerInfo())
-        .thenThrow(new KsqlRestClientException("Boom", new ProcessingException("")));
+        .thenThrow(new KsqlRestClientException("Boom", new IOException("")));
 
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
@@ -779,9 +775,9 @@ public class CliTest {
     final KsqlRestClient mockRestClient = givenMockRestClient();
     when(mockRestClient.getServerInfo()).thenReturn(
         RestResponse.erroneous(
-            Code.NOT_ACCEPTABLE,
+            NOT_ACCEPTABLE.code(),
             new KsqlErrorMessage(
-                Errors.toErrorCode(NOT_ACCEPTABLE.getStatusCode()),
+                Errors.toErrorCode(NOT_ACCEPTABLE.code()),
                 "Minimum supported client version: 1.0")
         ));
 
@@ -990,7 +986,7 @@ public class CliTest {
     final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(12L);
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
         .thenReturn(RestResponse.successful(
-            HttpStatus.Code.OK,
+            OK.code(),
             new KsqlEntityList(Collections.singletonList(stubEntity))
         ));
 
@@ -1010,7 +1006,7 @@ public class CliTest {
     final CommandStatusEntity secondEntity = stubCommandStatusEntityWithSeqNum(14L);
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
         .thenReturn(RestResponse.successful(
-            HttpStatus.Code.OK,
+            OK.code(),
             new KsqlEntityList(ImmutableList.of(firstEntity, secondEntity))
         ));
 
@@ -1027,7 +1023,7 @@ public class CliTest {
     final String statementText = "create stream foo;";
     final KsqlRestClient mockRestClient = givenMockRestClient();
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
-        .thenReturn(RestResponse.successful(HttpStatus.Code.OK, new KsqlEntityList()));
+        .thenReturn(RestResponse.successful(OK.code(), new KsqlEntityList()));
 
     // When:
     localCli.handleLine(statementText);
@@ -1042,7 +1038,7 @@ public class CliTest {
     final String statementText = "create stream foo;";
     final KsqlRestClient mockRestClient = givenMockRestClient();
     when(mockRestClient.makeKsqlRequest(anyString(), eq(null)))
-        .thenReturn(RestResponse.successful(HttpStatus.Code.OK, new KsqlEntityList()));
+        .thenReturn(RestResponse.successful(OK.code(), new KsqlEntityList()));
 
     givenRequestPipelining("ON");
 
@@ -1061,7 +1057,7 @@ public class CliTest {
     final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(12L);
     when(mockRestClient.makeKsqlRequest(anyString(), eq(null)))
         .thenReturn(RestResponse.successful(
-            HttpStatus.Code.OK,
+            OK.code(),
             new KsqlEntityList(Collections.singletonList(stubEntity))
         ));
 
@@ -1103,7 +1099,7 @@ public class CliTest {
     givenCommandSequenceNumber(mockRestClient, 5L);
     givenRequestPipelining("ON");
     when(mockRestClient.getServerInfo()).thenReturn(
-        RestResponse.successful(HttpStatus.Code.OK, SERVER_INFO));
+        RestResponse.successful(OK.code(), SERVER_INFO));
 
     // When:
     runCliSpecificCommand("server foo");
@@ -1129,7 +1125,7 @@ public class CliTest {
     final KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
 
     when(mockRestClient.getServerInfo()).thenReturn(RestResponse.successful(
-        HttpStatus.Code.OK,
+        OK.code(),
         new ServerInfo("1.x", "testClusterId", "testServiceId")
     ));
 
@@ -1157,7 +1153,7 @@ public class CliTest {
     final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(seqNum);
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong())).thenReturn(
         RestResponse.successful(
-            HttpStatus.Code.OK,
+            OK.code(),
             new KsqlEntityList(Collections.singletonList(stubEntity))
         ));
     localCli.handleLine("create stream foo;");
@@ -1171,7 +1167,7 @@ public class CliTest {
     reset(mockRestClient);
     final String statementText = "list streams;";
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
-        .thenReturn(RestResponse.successful(HttpStatus.Code.OK, new KsqlEntityList()));
+        .thenReturn(RestResponse.successful(OK.code(), new KsqlEntityList()));
 
     // When:
     localCli.handleLine(statementText);
@@ -1181,14 +1177,13 @@ public class CliTest {
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private static Matcher<String>[] prependWithRowTimeAndKey(final List<?> values) {
+  private static Matcher<String>[] prependWithKey(final List<?> values) {
 
-    final Matcher<String>[] allMatchers = new Matcher[values.size() + 2];
-    allMatchers[0] = any(String.class);            // ROWTIME
-    allMatchers[1] = is(values.get(0).toString()); // ROWKEY
+    final Matcher<String>[] allMatchers = new Matcher[values.size() + 1];
+    allMatchers[0] = is(values.get(0).toString()); // key
 
     for (int idx = 0; idx != values.size(); ++idx) {
-      allMatchers[idx + 2] = is(values.get(idx).toString());
+      allMatchers[idx + 1] = is(values.get(idx).toString());
     }
 
     return allMatchers;

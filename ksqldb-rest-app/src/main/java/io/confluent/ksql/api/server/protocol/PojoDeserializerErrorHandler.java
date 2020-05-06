@@ -29,13 +29,6 @@ public interface PojoDeserializerErrorHandler {
   void onMissingParam(String paramName);
 
   /**
-   * Called when a POJO fails to deserialise because the JSON contains an extra (unknown) param
-   *
-   * @param paramName the name of the param
-   */
-  void onExtraParam(String paramName);
-
-  /**
    * Called when a POJO fails to deserialise because the JSON is not well formed
    */
   void onInvalidJson();

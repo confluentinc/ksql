@@ -28,14 +28,13 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -56,16 +55,14 @@ import org.mockito.junit.MockitoRule;
 public class TableGroupByBuilderTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
-      .withMetaAndKeyColsInValue(false);
+      .withPseudoAndKeyColsInValue(false);
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumns(SCHEMA.value())
       .build();
 
@@ -91,7 +88,7 @@ public class TableGroupByBuilderTest {
   );
 
   private static final Struct KEY = StructKeyUtil
-      .keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING).build("key");
+      .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING).build("key");
 
   @Mock
   private KsqlQueryBuilder queryBuilder;
@@ -118,8 +115,6 @@ public class TableGroupByBuilderTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private Optional<ColumnName> alias;
-  @Mock
   private ParamsFactory paramsFactory;
   @Mock
   private KTableHolder<Struct> tableHolder;
@@ -142,7 +137,7 @@ public class TableGroupByBuilderTest {
     when(tableHolder.getSchema()).thenReturn(SCHEMA);
     when(tableHolder.getTable()).thenReturn(sourceTable);
 
-    when(paramsFactory.build(any(), any(), any(), any(), any())).thenReturn(groupByParams);
+    when(paramsFactory.build(any(), any(), any(), any())).thenReturn(groupByParams);
 
     when(groupByParams.getSchema()).thenReturn(REKEYED_SCHEMA);
     when(groupByParams.getMapper()).thenReturn(mapper);
@@ -161,8 +156,7 @@ public class TableGroupByBuilderTest {
         PROPERTIES,
         sourceStep,
         FORMATS,
-        GROUPBY_EXPRESSIONS,
-        alias
+        GROUPBY_EXPRESSIONS
     );
 
     builder = new TableGroupByBuilder(queryBuilder, groupedFactory, paramsFactory);
@@ -189,7 +183,6 @@ public class TableGroupByBuilderTest {
     verify(paramsFactory).build(
         eq(SCHEMA),
         any(),
-        eq(alias),
         eq(processingLogger),
         eq(ksqlConfig)
     );

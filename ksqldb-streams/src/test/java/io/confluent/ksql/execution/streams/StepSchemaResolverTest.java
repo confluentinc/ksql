@@ -60,15 +60,15 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -84,7 +84,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StepSchemaResolverTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("APPLE"), SqlTypes.BIGINT)
@@ -137,7 +136,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
@@ -164,12 +162,11 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
-            .valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE)
-            .valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE)
+            .valueColumn(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWBOUND_TYPE)
+            .valueColumn(SystemColumns.WINDOWEND_NAME, SystemColumns.WINDOWBOUND_TYPE)
             .build())
     );
   }
@@ -192,7 +189,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("JUICE"), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("PLANTAIN"), SqlTypes.STRING)
@@ -217,7 +213,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("APPLE"), SqlTypes.BIGINT)
@@ -250,8 +245,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.empty()
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL))
     );
 
     // When:
@@ -259,8 +253,7 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
   }
@@ -274,8 +267,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.empty()
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL))
     );
 
     // When:
@@ -283,32 +275,7 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ORANGE_COL, SqlTypes.INTEGER)
-        .valueColumns(SCHEMA.value())
-        .build()));
-  }
-
-  @Test
-  public void shouldResolveSchemaForAliasedStreamGroupBy() {
-    // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
-
-    final StreamGroupBy<?> step = new StreamGroupBy<>(
-        PROPERTIES,
-        streamSource,
-        formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.of(ColumnName.of("NEW_KEY"))
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(ColumnName.of("NEW_KEY"), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
   }
@@ -346,8 +313,7 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()
     ));
@@ -362,8 +328,7 @@ public class StepSchemaResolverTest {
     final StreamSelectKey step = new StreamSelectKey(
         PROPERTIES,
         streamSource,
-        keyExpression,
-        Optional.empty()
+        keyExpression
     );
 
     // When:
@@ -371,33 +336,7 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(keyExpression.getColumnName(), SqlTypes.INTEGER)
-        .valueColumns(SCHEMA.value())
-        .build()
-    ));
-  }
-
-  @Test
-  public void shouldResolveSchemaForStreamSelectKeyV2WithAlias() {
-    // Given:
-    final UnqualifiedColumnReferenceExp keyExpression =
-        new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
-
-    final StreamSelectKey step = new StreamSelectKey(
-        PROPERTIES,
-        streamSource,
-        keyExpression,
-        Optional.of(ColumnName.of("RED"))
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(ColumnName.of("RED"), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()
     ));
@@ -417,7 +356,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(false)));
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(false)));
   }
 
   @Test
@@ -435,7 +374,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(true)));
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(true)));
   }
 
   @Test
@@ -456,7 +395,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnNames.aggregateColumn(0), SqlTypes.BIGINT)
@@ -471,8 +409,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         tableSource,
         formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.empty()
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL))
     );
 
     // When:
@@ -480,8 +417,7 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
   }
@@ -495,8 +431,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         tableSource,
         formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.empty()
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL))
     );
 
     // When:
@@ -504,32 +439,7 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ORANGE_COL, SqlTypes.INTEGER)
-        .valueColumns(SCHEMA.value())
-        .build()));
-  }
-
-  @Test
-  public void shouldResolveSchemaForAliasedTableGroupBy() {
-    // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
-
-    final TableGroupBy<?> step = new TableGroupBy<>(
-        PROPERTIES,
-        tableSource,
-        formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.of(ColumnName.of("NEW_KEY"))
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(ColumnName.of("NEW_KEY"), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
   }
@@ -552,7 +462,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("JUICE"), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("PLANTAIN"), SqlTypes.STRING)
@@ -592,7 +501,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(false)));
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(false)));
   }
 
   @Test
@@ -611,7 +520,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(true)));
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(true)));
   }
 
   private void givenTableFunction(final String name, final SqlType returnType) {

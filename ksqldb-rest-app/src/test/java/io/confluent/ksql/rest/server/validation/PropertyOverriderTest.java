@@ -16,9 +16,11 @@
 package io.confluent.ksql.rest.server.validation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
@@ -39,50 +41,52 @@ import org.apache.commons.collections4.map.HashedMap;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PropertyOverriderTest {
 
-  @Rule public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule public final ExpectedException expectedException = ExpectedException.none();
+  @Rule
+  public final TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldFailOnUnknownSetProperty() {
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Unknown property: consumer.invalid");
-
     // When:
-    CustomValidators.SET_PROPERTY.validate(
-        ConfiguredStatement.of(
-        PreparedStatement.of(
-            "SET 'consumer.invalid'='value';",
-            new SetProperty(Optional.empty(), "consumer.invalid", "value")),
-            new HashMap<>(),
-            engine.getKsqlConfig()
-        ),
-        mock(SessionProperties.class),
-        engine.getEngine(),
-        engine.getServiceContext()
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomValidators.SET_PROPERTY.validate(
+            ConfiguredStatement.of(
+                PreparedStatement.of(
+                    "SET 'consumer.invalid'='value';",
+                    new SetProperty(Optional.empty(), "consumer.invalid", "value")),
+                new HashMap<>(),
+                engine.getKsqlConfig()
+            ),
+            mock(SessionProperties.class),
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Unknown property: consumer.invalid"));
   }
 
   @Test
   public void shouldAllowSetKnownProperty() {
     // Given:
-    final SessionProperties sessionProperties = 
+    final SessionProperties sessionProperties =
         new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
     CustomValidators.SET_PROPERTY.validate(
         ConfiguredStatement.of(
-        PreparedStatement.of(
-            "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
-            new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
+            PreparedStatement.of(
+                "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
+                new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
             ImmutableMap.of(),
             engine.getKsqlConfig()
         ),
@@ -102,23 +106,26 @@ public class PropertyOverriderTest {
     final SessionProperties sessionProperties =
         new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
 
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Invalid value invalid");
-
     // When:
-    CustomValidators.SET_PROPERTY.validate(
-        ConfiguredStatement.of(
-        PreparedStatement.of(
-             "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
-            new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "invalid")),
-            ImmutableMap.of(),
-            engine.getKsqlConfig()
-        ),
-        sessionProperties,
-        engine.getEngine(),
-        engine.getServiceContext()
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomValidators.SET_PROPERTY.validate(
+            ConfiguredStatement.of(
+                PreparedStatement.of(
+                    "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
+                    new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "invalid")),
+                ImmutableMap.of(),
+                engine.getKsqlConfig()
+            ),
+            sessionProperties,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid value invalid"));
   }
 
   @Test
@@ -128,23 +135,26 @@ public class PropertyOverriderTest {
     final SessionProperties sessionProperties =
         new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class), false);
 
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Unknown property: consumer.invalid");
-
     // When:
-    CustomValidators.UNSET_PROPERTY.validate(
-        ConfiguredStatement.of(
-        PreparedStatement.of(
-            "UNSET 'consumer.invalid';",
-            new UnsetProperty(Optional.empty(), "consumer.invalid")),
-            new HashMap<>(),
-            engine.getKsqlConfig()
-        ),
-        sessionProperties,
-        engine.getEngine(),
-        engine.getServiceContext()
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomValidators.UNSET_PROPERTY.validate(
+            ConfiguredStatement.of(
+                PreparedStatement.of(
+                    "UNSET 'consumer.invalid';",
+                    new UnsetProperty(Optional.empty(), "consumer.invalid")),
+                new HashMap<>(),
+                engine.getKsqlConfig()
+            ),
+            sessionProperties,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
     );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Unknown property: consumer.invalid"));
   }
 
   @Test
@@ -162,9 +172,9 @@ public class PropertyOverriderTest {
     // When:
     CustomValidators.UNSET_PROPERTY.validate(
         ConfiguredStatement.of(
-        PreparedStatement.of(
-            "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
-            new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
+            PreparedStatement.of(
+                "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
+                new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
             ImmutableMap.of(),
             engine.getKsqlConfig()
         ),

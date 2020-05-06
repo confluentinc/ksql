@@ -18,10 +18,13 @@ package io.confluent.ksql.planner.plan;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
+import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
@@ -46,7 +49,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -58,6 +61,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -148,6 +152,8 @@ public class DataSourceNodeTest {
   private KsqlTopic topic;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private Projection projection;
 
   private DataSourceNode node;
 
@@ -156,7 +162,6 @@ public class DataSourceNodeTest {
   public void before() {
     realBuilder = new StreamsBuilder();
 
-    when(ksqlStreamBuilder.getQueryId()).thenReturn(new QueryId("fooQuery"));
     when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(realConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
@@ -267,7 +272,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withMetaAndKeyColsInValue(false)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(false)));
   }
 
   @Test
@@ -280,7 +285,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withMetaAndKeyColsInValue(true)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(true)));
   }
 
   @Test
@@ -396,6 +401,50 @@ public class DataSourceNodeTest {
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(K0, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY));
+  }
+
+  @Test
+  public void shouldResolveSelectStartToAllColumnsIncludingWindowBounds() {
+    // Given:
+    givenWindowedSource(true);
+    givenNodeWithMockSource();
+
+    // When:
+    final Stream<ColumnName> result = node.resolveSelectStar(Optional.empty(), false);
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(
+        columns,
+        contains(K0, WINDOWSTART_NAME, WINDOWEND_NAME, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY)
+    );
+  }
+
+  @Test
+  public void shouldNotThrowIfProjectionContainsKeyColumns() {
+    // Given:
+    when(projection.containsExpression(any())).thenReturn(true);
+
+    // When:
+    node.validateKeyPresent(SOURCE_NAME, projection);
+
+    // Then: did not throw.
+  }
+
+  @Test
+  public void shouldThrowIfProjectionDoesNotContainKeyColumns() {
+    // Given:
+    when(projection.containsExpression(any())).thenReturn(false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> node.validateKeyPresent(SOURCE_NAME, projection)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The query used to build `datasource` "
+        + "must include the key column k0 in its projection."));
   }
 
   private void givenNodeWithMockSource() {

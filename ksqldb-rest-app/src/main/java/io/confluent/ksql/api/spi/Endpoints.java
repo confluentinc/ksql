@@ -18,10 +18,15 @@ package io.confluent.ksql.api.spi;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.core.Context;
+import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
@@ -62,10 +67,44 @@ public interface Endpoints {
       Subscriber<InsertResult> acksSubscriber, Context context, WorkerExecutor workerExecutor,
       ApiSecurityContext apiSecurityContext);
 
+  /*
+  The ported old API endpoints now follow
+   */
+
   CompletableFuture<EndpointResponse> executeKsqlRequest(KsqlRequest request,
       WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
   CompletableFuture<EndpointResponse> executeTerminate(ClusterTerminateRequest request,
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
+      WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
+      ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeHeartbeat(HeartbeatMessage heartbeatMessage,
+      ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeClusterStatus(ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeStatus(String type, String entity, String action,
+      ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeAllStatuses(ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeLagReport(LagReportingMessage lagReportingMessage,
+      ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeCheckHealth(ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeServerMetadata(ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
+      ApiSecurityContext apiSecurityContext);
+
+  // This is the legacy websocket based query streaming API
+  void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
       WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
 }

@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.services.ServiceContext;
 import java.io.IOException;
@@ -29,9 +30,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.utils.Bytes;
@@ -47,15 +48,16 @@ public class TopicStreamWriter implements StreamingOutput {
   private final SchemaRegistryClient schemaRegistryClient;
   private final String topicName;
   private final Predicate<Long> limitReached;
-
   private long messagesWritten;
   private long messagesPolled;
+  private volatile boolean connectionClosed;
 
   public static TopicStreamWriter create(
       final ServiceContext serviceContext,
       final Map<String, Object> consumerProperties,
       final PrintTopic printTopic,
-      final Duration disconnectCheckInterval
+      final Duration disconnectCheckInterval,
+      final CompletableFuture<Void> connectionClosedFuture
   ) {
     return new TopicStreamWriter(
         serviceContext.getSchemaRegistryClient(),
@@ -66,7 +68,8 @@ public class TopicStreamWriter implements StreamingOutput {
         printTopic.getTopic(),
         printTopic.getIntervalValue(),
         disconnectCheckInterval,
-        printTopic.getLimit());
+        printTopic.getLimit(),
+        connectionClosedFuture);
   }
 
   TopicStreamWriter(
@@ -75,7 +78,8 @@ public class TopicStreamWriter implements StreamingOutput {
       final String topicName,
       final long interval,
       final Duration disconnectCheckInterval,
-      final OptionalInt limit
+      final OptionalInt limit,
+      final CompletableFuture<Void> connectionClosedFuture
   ) {
     this.topicConsumer = requireNonNull(topicConsumer, "topicConsumer");
     this.schemaRegistryClient = requireNonNull(schemaRegistryClient, "schemaRegistryClient");
@@ -88,6 +92,7 @@ public class TopicStreamWriter implements StreamingOutput {
         requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.messagesWritten = 0;
     this.messagesPolled = 0;
+    connectionClosedFuture.thenAccept(v -> connectionClosed = true);
 
     if (interval < 1) {
       throw new IllegalArgumentException("INTERVAL must be greater than one, but was: " + interval);
@@ -101,7 +106,7 @@ public class TopicStreamWriter implements StreamingOutput {
       final RecordFormatter formatter = new RecordFormatter(schemaRegistryClient, topicName);
 
       final FormatsTracker formatsTracker = new FormatsTracker(print);
-      while (!print.checkError() && !limitReached.test(messagesWritten)) {
+      while (!connectionClosed && !print.checkError() && !limitReached.test(messagesWritten)) {
         final ConsumerRecords<Bytes, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
         if (records.isEmpty()) {
           print.println();

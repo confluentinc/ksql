@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -26,6 +27,11 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.KsqlServerPrecondition;
 import io.confluent.ksql.rest.server.TestKsqlRestAppWaitingOnPrecondition;
 import io.confluent.ksql.services.ServiceContext;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpVersion;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpResponse;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -66,13 +72,35 @@ public class PreconditionFunctionalTest {
   }
 
   @Test
-  public void shouldServeRequestsWhileWaitingForPrecondition() {
+  public void shouldNotServeRequestsWhileWaitingForPrecondition() {
     // When:
     final KsqlErrorMessage error =
         RestIntegrationTestUtil.makeKsqlRequestWithError(REST_APP, "SHOW STREAMS;");
 
     // Then:
     assertThat(error.getErrorCode(), is(CUSTOM_ERROR_CODE));
+  }
+
+  @Test
+  public void shouldServeClusterHealthCheckReadyRequestsWhileWaitingForPrecondition() {
+    shouldServeClusterHealthCheckRequestsWhileWaitingForPrecondition("ready");
+  }
+
+  @Test
+  public void shouldServeClusterHealthCheckLiveRequestsWhileWaitingForPrecondition() {
+    shouldServeClusterHealthCheckRequestsWhileWaitingForPrecondition("live");
+  }
+
+  private void shouldServeClusterHealthCheckRequestsWhileWaitingForPrecondition(String subPath) {
+
+    // When:
+    HttpResponse<Buffer> resp = RestIntegrationTestUtil
+        .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1, HttpMethod.GET, "/chc/" + subPath, null);
+
+    // Then:
+    assertThat(resp.statusCode(), is(OK.code()));
+    JsonObject jsonObject = new JsonObject(resp.body());
+    assertThat(jsonObject.isEmpty(), is(true));
   }
 
   public static class TestFailedPrecondition implements KsqlServerPrecondition {

@@ -30,13 +30,12 @@ import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -74,7 +73,10 @@ import org.apache.kafka.streams.kstream.Windowed;
  */
 public final class RecordFormatter {
 
-  private final DateFormat dateFormat;
+  private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter
+      .ofPattern("yyyy/MM/dd HH:mm:ss.SSS z")
+      .withZone(ZoneOffset.UTC);
+
   private final Deserializers keyDeserializers;
   private final Deserializers valueDeserializers;
 
@@ -83,7 +85,6 @@ public final class RecordFormatter {
       final String topicName
   ) {
     this(
-        SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault()),
         new Deserializers(topicName, schemaRegistryClient, true),
         new Deserializers(topicName, schemaRegistryClient, false)
     );
@@ -91,11 +92,9 @@ public final class RecordFormatter {
 
   @VisibleForTesting
   RecordFormatter(
-      final DateFormat dateFormat,
       final Deserializers keyDeserializers,
       final Deserializers valueDeserializers
   ) {
-    this.dateFormat = requireNonNull(dateFormat, "dateFormat");
     this.keyDeserializers = requireNonNull(keyDeserializers, "keyDeserializers");
     this.valueDeserializers = requireNonNull(valueDeserializers, "valueDeserializers");
   }
@@ -136,10 +135,10 @@ public final class RecordFormatter {
         + ", value: " + valueDeserializers.format(record.value());
   }
 
-  private String formatRowTime(final long timestamp) {
+  private static String formatRowTime(final long timestamp) {
     return timestamp == ConsumerRecord.NO_TIMESTAMP
         ? "N/A"
-        : dateFormat.format(new Date(timestamp));
+        : DATA_FORMATTER.format(Instant.ofEpochMilli(timestamp));
   }
 
   private static Deserializer<?> newProtobufDeserializer(final SchemaRegistryClient srClient) {

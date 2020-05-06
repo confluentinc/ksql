@@ -16,8 +16,8 @@
 package io.confluent.ksql.rest.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.FieldInfo;
@@ -158,10 +158,10 @@ public class EntityUtilTest {
   }
 
   @Test
-  public void shouldSupportSchemasWithMetaColumns() {
+  public void shouldNotExposeMetaColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
+        .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
 
     // When:
@@ -169,9 +169,6 @@ public class EntityUtilTest {
 
     // Then:
     assertThat(fields, hasSize(1));
-    assertThat(fields.get(0).getName(), equalTo("ROWTIME"));
-    assertThat(fields.get(0).getSchema().getTypeName(), equalTo("BIGINT"));
-    assertThat(fields.get(0).getType(), equalTo(Optional.of(FieldType.SYSTEM)));
   }
 
   @Test

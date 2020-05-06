@@ -15,20 +15,18 @@
 
 package io.confluent.ksql.serde;
 
+import static io.confluent.ksql.serde.FormatFactory.of;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class FormatFactoryTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldCreateFromString() {
@@ -39,12 +37,14 @@ public class FormatFactoryTest {
 
   @Test
   public void shouldThrowOnUnknownFormat() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unknown format: BOB");
-
     // When:
-    FormatFactory.of(FormatInfo.of("bob"));
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> of(FormatInfo.of("bob"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown format: BOB"));
   }
 
   @Test
@@ -52,12 +52,14 @@ public class FormatFactoryTest {
     // Given:
     final FormatInfo format = FormatInfo.of("JSON", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo"));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("JSON does not support the following configs: [fullSchemaName]");
-
     // When:
-    FormatFactory.of(format);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> FormatFactory.of(format)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("JSON does not support the following configs: [fullSchemaName]"));
   }
 
   @Test
@@ -65,12 +67,14 @@ public class FormatFactoryTest {
     // Given:
     final FormatInfo format = FormatInfo.of("AVRO", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, " "));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("fullSchemaName cannot be empty. Format configuration: {fullSchemaName= }");
-
     // When:
-    FormatFactory.of(format);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> FormatFactory.of(format)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("fullSchemaName cannot be empty. Format configuration: {fullSchemaName= }"));
   }
 
   @Test
@@ -78,12 +82,14 @@ public class FormatFactoryTest {
     // Given:
     final FormatInfo format = FormatInfo.of("JSON", ImmutableMap.of("delimiter", "x"));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("JSON does not support the following configs: [delimiter]");
-
     // When:
-    FormatFactory.of(format);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> FormatFactory.of(format)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("JSON does not support the following configs: [delimiter]"));
 
   }
 

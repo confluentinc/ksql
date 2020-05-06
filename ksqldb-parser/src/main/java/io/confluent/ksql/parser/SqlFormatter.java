@@ -59,7 +59,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.List;
 import java.util.Objects;
@@ -415,12 +415,7 @@ public final class SqlFormatter {
     protected Void visitPartitionBy(final PartitionBy node, final Integer indent) {
       final String expression = formatExpression(node.getExpression());
 
-      final String alias = node.getAlias()
-          .map(SqlFormatter::escapedName)
-          .map(text -> " AS " + text)
-          .orElse("");
-
-      append(indent, "PARTITION BY " + expression + alias)
+      append(indent, "PARTITION BY " + expression)
           .append('\n');
 
       return null;
@@ -428,22 +423,11 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitGroupBy(final GroupBy node, final Integer indent) {
-      final boolean surroundWithBrackets = node.getAlias().isPresent()
-          && node.getGroupingExpressions().size() > 1;
-
-      final String prefix = surroundWithBrackets ? "(" : "";
-      final String suffix = surroundWithBrackets ? ")" : "";
-
       final String expressions = node.getGroupingExpressions().stream()
           .map(SqlFormatter::formatExpression)
-          .collect(Collectors.joining(", ", prefix, suffix));
+          .collect(Collectors.joining(", "));
 
-      final String alias = node.getAlias()
-          .map(SqlFormatter::escapedName)
-          .map(text -> " AS " + text)
-          .orElse("");
-
-      append(indent, "GROUP BY " + expressions + alias)
+      append(indent, "GROUP BY " + expressions)
           .append('\n');
 
       return null;

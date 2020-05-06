@@ -52,13 +52,13 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
@@ -73,11 +73,12 @@ import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
-import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -109,7 +110,6 @@ public class ConsoleTest {
   private static final String AGGREGATE_STATUS = "ERROR";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
       .build();
@@ -311,7 +311,7 @@ public class ConsoleTest {
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), queryStatusCount));
+            "select * from t1 emit changes", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), queryStatusCount, KsqlConstants.KsqlQueryType.PUSH));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -327,7 +327,7 @@ public class ConsoleTest {
           + "  \"@type\" : \"queries\"," + NEWLINE
           + "  \"statementText\" : \"e\"," + NEWLINE
           + "  \"queries\" : [ {" + NEWLINE
-          + "    \"queryString\" : \"select * from t1\"," + NEWLINE
+          + "    \"queryString\" : \"select * from t1 emit changes\"," + NEWLINE
           + "    \"sinks\" : [ \"Test\" ]," + NEWLINE
           + "    \"sinkKafkaTopics\" : [ \"Test topic\" ]," + NEWLINE
           + "    \"id\" : \"0\"," + NEWLINE
@@ -335,16 +335,17 @@ public class ConsoleTest {
           + "      \"RUNNING\" : 1," + NEWLINE
           + "      \"ERROR\" : 2" + NEWLINE
           + "    }," + NEWLINE
+          + "    \"queryType\" : \"PUSH\"," + NEWLINE
           + "    \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
     } else {
       assertThat(output, is("" + NEWLINE
-          + " Query ID | Status            | Sink Name | Sink Kafka Topic | Query String     " + NEWLINE
-          + "--------------------------------------------------------------------------------" + NEWLINE
-          + " 0        | " + STATUS_COUNT_STRING + " | Test      | Test topic       | select * from t1 " + NEWLINE
-          + "--------------------------------------------------------------------------------" + NEWLINE
+          + " Query ID | Query Type | Status            | Sink Name | Sink Kafka Topic | Query String                  " + NEWLINE
+          + "----------------------------------------------------------------------------------------------------" + NEWLINE
+          + " 0        | PUSH       | " + STATUS_COUNT_STRING + " | Test      | Test topic       | select * from t1 emit changes " + NEWLINE
+          + "----------------------------------------------------------------------------------------------------" + NEWLINE
           + "For detailed information on a Query run: EXPLAIN <Query ID>;" + NEWLINE));
     }
   }
@@ -366,10 +367,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount)
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount)
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -419,6 +420,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
+          + "      \"queryType\" : \"PERSISTENT\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
@@ -430,17 +432,10 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
+          + "      \"queryType\" : \"PERSISTENT\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
-          + "      \"name\" : \"ROWTIME\"," + NEWLINE
-          + "      \"schema\" : {" + NEWLINE
-          + "        \"type\" : \"BIGINT\"," + NEWLINE
-          + "        \"fields\" : null," + NEWLINE
-          + "        \"memberSchema\" : null" + NEWLINE
-          + "      }," + NEWLINE
-          + "      \"type\" : \"SYSTEM\"" + NEWLINE
-          + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
@@ -538,19 +533,18 @@ public class ConsoleTest {
     } else {
       assertThat(output, is("" + NEWLINE
           + "Name                 : TestSource" + NEWLINE
-          + " Field   | Type                           " + NEWLINE
-          + "------------------------------------------" + NEWLINE
-          + " ROWTIME | BIGINT           (system)      " + NEWLINE
-          + " ROWKEY  | VARCHAR(STRING)  (primary key) " + NEWLINE
-          + " f_0     | BOOLEAN                        " + NEWLINE
-          + " f_1     | INTEGER                        " + NEWLINE
-          + " f_2     | BIGINT                         " + NEWLINE
-          + " f_3     | DOUBLE                         " + NEWLINE
-          + " f_4     | VARCHAR(STRING)                " + NEWLINE
-          + " f_5     | ARRAY<VARCHAR(STRING)>         " + NEWLINE
-          + " f_6     | MAP<STRING, BIGINT>            " + NEWLINE
-          + " f_7     | STRUCT<a DOUBLE>               " + NEWLINE
-          + "------------------------------------------" + NEWLINE
+          + " Field  | Type                           " + NEWLINE
+          + "-----------------------------------------" + NEWLINE
+          + " ROWKEY | VARCHAR(STRING)  (primary key) " + NEWLINE
+          + " f_0    | BOOLEAN                        " + NEWLINE
+          + " f_1    | INTEGER                        " + NEWLINE
+          + " f_2    | BIGINT                         " + NEWLINE
+          + " f_3    | DOUBLE                         " + NEWLINE
+          + " f_4    | VARCHAR(STRING)                " + NEWLINE
+          + " f_5    | ARRAY<VARCHAR(STRING)>         " + NEWLINE
+          + " f_6    | MAP<STRING, BIGINT>            " + NEWLINE
+          + " f_7    | STRUCT<a DOUBLE>               " + NEWLINE
+          + "-----------------------------------------" + NEWLINE
           + "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;"
           + NEWLINE));
     }
@@ -638,14 +632,6 @@ public class ConsoleTest {
           + "    \"readQueries\" : [ ]," + NEWLINE
           + "    \"writeQueries\" : [ ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
-          + "      \"name\" : \"ROWTIME\"," + NEWLINE
-          + "      \"schema\" : {" + NEWLINE
-          + "        \"type\" : \"BIGINT\"," + NEWLINE
-          + "        \"fields\" : null," + NEWLINE
-          + "        \"memberSchema\" : null" + NEWLINE
-          + "      }," + NEWLINE
-          + "      \"type\" : \"SYSTEM\"" + NEWLINE
-          + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
@@ -1034,10 +1020,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount)
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount)
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -1086,6 +1072,7 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
+          + "      \"queryType\" : \"PERSISTENT\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"writeQueries\" : [ {" + NEWLINE
@@ -1097,17 +1084,10 @@ public class ConsoleTest {
           + "        \"RUNNING\" : 1," + NEWLINE
           + "        \"ERROR\" : 2" + NEWLINE
           + "      }," + NEWLINE
+          + "      \"queryType\" : \"PERSISTENT\"," + NEWLINE
           + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"fields\" : [ {" + NEWLINE
-          + "      \"name\" : \"ROWTIME\"," + NEWLINE
-          + "      \"schema\" : {" + NEWLINE
-          + "        \"type\" : \"BIGINT\"," + NEWLINE
-          + "        \"fields\" : null," + NEWLINE
-          + "        \"memberSchema\" : null" + NEWLINE
-          + "      }," + NEWLINE
-          + "      \"type\" : \"SYSTEM\"" + NEWLINE
-          + "    }, {" + NEWLINE
           + "      \"name\" : \"ROWKEY\"," + NEWLINE
           + "      \"schema\" : {" + NEWLINE
           + "        \"type\" : \"STRING\"," + NEWLINE
@@ -1149,12 +1129,11 @@ public class ConsoleTest {
           + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)" + NEWLINE
           + "Statement            : sql statement text" + NEWLINE
           + "" + NEWLINE
-          + " Field   | Type                           " + NEWLINE
-          + "------------------------------------------" + NEWLINE
-          + " ROWTIME | BIGINT           (system)      " + NEWLINE
-          + " ROWKEY  | VARCHAR(STRING)  (primary key) " + NEWLINE
-          + " f_0     | VARCHAR(STRING)                " + NEWLINE
-          + "------------------------------------------" + NEWLINE
+          + " Field  | Type                           " + NEWLINE
+          + "-----------------------------------------" + NEWLINE
+          + " ROWKEY | VARCHAR(STRING)  (primary key) " + NEWLINE
+          + " f_0    | VARCHAR(STRING)                " + NEWLINE
+          + "-----------------------------------------" + NEWLINE
           + "" + NEWLINE
           + "Queries that read from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE
@@ -1530,8 +1509,7 @@ public class ConsoleTest {
 
   private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {
     final Builder schemaBuilder = LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
 
     for (int idx = 0; idx < fieldTypes.length; idx++) {
       schemaBuilder.valueColumn(ColumnName.of("f_" + idx), fieldTypes[idx]);

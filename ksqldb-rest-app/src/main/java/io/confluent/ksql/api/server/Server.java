@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlException;
@@ -29,7 +30,6 @@ import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.net.JksOptions;
-import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -41,7 +41,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.types.Password;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,22 +59,20 @@ public class Server {
   private static final Logger log = LoggerFactory.getLogger(Server.class);
 
   private final Vertx vertx;
-  private final ApiServerConfig config;
+  private final KsqlRestConfig config;
   private final Endpoints endpoints;
   private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private final int maxPushQueryCount;
   private final Set<String> deploymentIds = new HashSet<>();
-  private final boolean proxyEnabled;
   private final KsqlSecurityExtension securityExtension;
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
+  private final List<URI> listeners = new ArrayList<>();
   private WorkerExecutor workerExecutor;
-  private int jettyPort = -1;
-  private List<URI> listeners = new ArrayList<>();
 
-  public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints,
-      final boolean proxyEnabled, final KsqlSecurityExtension securityExtension,
+  public Server(final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
+      final KsqlSecurityExtension securityExtension,
       final Optional<AuthenticationPlugin> authenticationPlugin,
       final ServerState serverState) {
     this.vertx = Objects.requireNonNull(vertx);
@@ -80,8 +81,7 @@ public class Server {
     this.securityExtension = Objects.requireNonNull(securityExtension);
     this.authenticationPlugin = Objects.requireNonNull(authenticationPlugin);
     this.serverState = Objects.requireNonNull(serverState);
-    this.maxPushQueryCount = config.getInt(ApiServerConfig.MAX_PUSH_QUERIES);
-    this.proxyEnabled = proxyEnabled;
+    this.maxPushQueryCount = config.getInt(KsqlRestConfig.MAX_PUSH_QUERIES);
   }
 
   public synchronized void start() {
@@ -89,14 +89,14 @@ public class Server {
       throw new IllegalStateException("Already started");
     }
     final DeploymentOptions options = new DeploymentOptions()
-        .setInstances(config.getInt(ApiServerConfig.VERTICLE_INSTANCES));
+        .setInstances(config.getInt(KsqlRestConfig.VERTICLE_INSTANCES));
     this.workerExecutor = vertx.createSharedWorkerExecutor("ksql-workers",
-        config.getInt(ApiServerConfig.WORKER_POOL_SIZE));
+        config.getInt(KsqlRestConfig.WORKER_POOL_SIZE));
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");
 
     final List<URI> listenUris = parseListeners(config);
 
-    final int instances = config.getInt(ApiServerConfig.VERTICLE_INSTANCES);
+    final int instances = config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
 
@@ -109,7 +109,7 @@ public class Server {
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
                 listener.getScheme().equalsIgnoreCase("https")),
-            this, proxyEnabled);
+            this);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {
@@ -171,13 +171,6 @@ public class Server {
     return workerExecutor;
   }
 
-  synchronized SocketAddress getProxyTarget() {
-    if (jettyPort == -1) {
-      throw new IllegalStateException("jetty port not set");
-    }
-    return SocketAddress.inetSocketAddress(jettyPort, "127.0.0.1");
-  }
-
   synchronized void registerQuery(final PushQueryHolder query) {
     Objects.requireNonNull(query);
     if (queries.size() == maxPushQueryCount) {
@@ -199,10 +192,6 @@ public class Server {
     return new HashSet<>(queries.keySet());
   }
 
-  Vertx getVertx() {
-    return vertx;
-  }
-
   KsqlSecurityExtension getSecurityExtension() {
     return securityExtension;
   }
@@ -215,7 +204,7 @@ public class Server {
     return serverState;
   }
 
-  public ApiServerConfig getConfig() {
+  public KsqlRestConfig getConfig() {
     return config;
   }
 
@@ -235,46 +224,47 @@ public class Server {
     return ImmutableList.copyOf(listeners);
   }
 
-  public synchronized void setJettyPort(final int jettyPort) {
-    this.jettyPort = jettyPort;
-  }
-
-  private static HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig,
+  private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,
       final String host, final int port, final boolean tls) {
 
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(host)
         .setPort(port)
         .setReuseAddress(true)
-        .setReusePort(true);
+        .setReusePort(true)
+        .setIdleTimeout(60).setIdleTimeoutUnit(TimeUnit.SECONDS)
+        .setPerMessageWebSocketCompressionSupported(true)
+        .setPerFrameWebSocketCompressionSupported(true);
 
     if (tls) {
       options.setUseAlpn(true).setSsl(true);
 
-      final String keyStorePath = apiServerConfig.getString(ApiServerConfig.TLS_KEY_STORE_PATH);
-      final String keyStorePassword = apiServerConfig
-          .getString(ApiServerConfig.TLS_KEY_STORE_PASSWORD);
+      final String keyStorePath = ksqlRestConfig
+          .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+      final Password keyStorePassword = ksqlRestConfig
+          .getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
       if (keyStorePath != null && !keyStorePath.isEmpty()) {
         options.setKeyStoreOptions(
-            new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword));
+            new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
       }
 
-      final String trustStorePath = apiServerConfig.getString(ApiServerConfig.TLS_TRUST_STORE_PATH);
-      final String trustStorePassword = apiServerConfig
-          .getString(ApiServerConfig.TLS_TRUST_STORE_PASSWORD);
+      final String trustStorePath = ksqlRestConfig
+          .getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+      final Password trustStorePassword = ksqlRestConfig
+          .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
       if (trustStorePath != null && !trustStorePath.isEmpty()) {
         options.setTrustStoreOptions(
-            new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword));
+            new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
       }
 
-      options.setClientAuth(apiServerConfig.getClientAuth());
+      options.setClientAuth(ksqlRestConfig.getClientAuth());
     }
 
     return options;
   }
 
-  private static List<URI> parseListeners(final ApiServerConfig config) {
-    final List<String> sListeners = config.getList(ApiServerConfig.LISTENERS);
+  private static List<URI> parseListeners(final KsqlRestConfig config) {
+    final List<String> sListeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);
     final List<URI> listeners = new ArrayList<>();
     for (String listenerName : sListeners) {
       try {
@@ -284,7 +274,8 @@ public class Server {
           throw new ConfigException("Invalid URI scheme should be http or https: " + listenerName);
         }
         if ("https".equalsIgnoreCase(scheme)) {
-          final String keyStoreLocation = config.getString(ApiServerConfig.TLS_KEY_STORE_PATH);
+          final String keyStoreLocation = config
+              .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
           if (keyStoreLocation == null || keyStoreLocation.isEmpty()) {
             throw new ConfigException("https listener specified but no keystore provided");
           }

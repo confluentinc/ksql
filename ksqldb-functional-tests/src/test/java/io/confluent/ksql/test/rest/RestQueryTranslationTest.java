@@ -37,9 +37,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -59,6 +61,7 @@ import org.junit.runners.Parameterized;
  *
  * See `ksql-functional-tests/README.md` for more info.
  */
+@Category({IntegrationTest.class})
 @RunWith(Parameterized.class)
 public class RestQueryTranslationTest {
 
@@ -108,7 +111,7 @@ public class RestQueryTranslationTest {
   public void shouldBuildAndExecuteQueries() {
     try (RestTestExecutor testExecutor = testExecutor()) {
       testExecutor.buildAndExecuteQuery(testCase);
-    } catch (final AssertionError e) {
+    } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()
           + System.lineSeparator()
           + "failed test: " + testCase.getName()
@@ -146,7 +149,7 @@ public class RestQueryTranslationTest {
     public Stream<RestTestCase> buildTests(final Path testPath) {
       return tests
           .stream()
-          .flatMap(node -> builder.buildTests(node, testPath).stream());
+          .flatMap(node -> RestTestCaseBuilder.buildTests(node, testPath).stream());
     }
   }
 }

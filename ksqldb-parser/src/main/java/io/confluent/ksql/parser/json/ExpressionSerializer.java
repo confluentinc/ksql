@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.io.IOException;
 

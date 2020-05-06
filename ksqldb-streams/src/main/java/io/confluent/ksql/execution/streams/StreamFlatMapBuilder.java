@@ -35,8 +35,8 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
@@ -105,8 +105,7 @@ public final class StreamFlatMapBuilder {
       final List<FunctionCall> tableFunctions,
       final FunctionRegistry functionRegistry
   ) {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder()
-        .withRowTime();
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
     final List<Column> cols = inputSchema.value();
 

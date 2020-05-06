@@ -17,7 +17,8 @@ package io.confluent.ksql.util;
 
 public final class KsqlPreconditions {
 
-  private KsqlPreconditions() { }
+  private KsqlPreconditions() {
+  }
 
   /**
    * Ensures the truth of an expression involving one or more parameters to the calling method.

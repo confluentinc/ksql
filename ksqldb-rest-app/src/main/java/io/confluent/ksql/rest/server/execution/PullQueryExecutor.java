@@ -81,11 +81,12 @@ import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -96,7 +97,6 @@ import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
 import java.util.List;
@@ -114,6 +114,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+@SuppressWarnings("UnstableApiUsage")
 public final class PullQueryExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
@@ -789,7 +790,7 @@ public final class PullQueryExecutor {
     }
 
     final ColumnName columnName = column.getColumnName();
-    if (columnName.equals(SchemaUtil.WINDOWSTART_NAME)) {
+    if (columnName.equals(SystemColumns.WINDOWSTART_NAME)) {
       return ComparisonTarget.WINDOWSTART;
     }
 
@@ -828,7 +829,7 @@ public final class PullQueryExecutor {
       final Stacker contextStacker
   ) {
     final boolean noSystemColumns = analysis.getSelectColumnNames().stream()
-        .noneMatch(SchemaUtil::isSystemColumn);
+        .noneMatch(SystemColumns::isSystemColumn);
 
     final boolean noKeyColumns = analysis.getSelectColumnNames().stream()
         .noneMatch(input.schema::isKeyColumn);
@@ -843,7 +844,7 @@ public final class PullQueryExecutor {
       final boolean windowed = windowType.isPresent();
 
       intermediateSchema = input.schema
-          .withMetaAndKeyColsInValue(windowed);
+          .withPseudoAndKeyColsInValue(windowed);
 
       preSelectTransform = row -> {
         final Struct key = row.key();
@@ -932,7 +933,7 @@ public final class PullQueryExecutor {
 
     // Copy meta & key columns into the value schema as SelectValueMapper expects it:
     final LogicalSchema schema = input.schema
-        .withMetaAndKeyColsInValue(windowType.isPresent());
+        .withPseudoAndKeyColsInValue(windowType.isPresent());
 
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, executionContext.getMetaStore());
@@ -941,8 +942,8 @@ public final class PullQueryExecutor {
       final SqlType type = expressionTypeManager.getExpressionSqlType(select.getExpression());
 
       if (input.schema.isKeyColumn(select.getAlias())
-          || select.getAlias().equals(SchemaUtil.WINDOWSTART_NAME)
-          || select.getAlias().equals(SchemaUtil.WINDOWEND_NAME)
+          || select.getAlias().equals(SystemColumns.WINDOWSTART_NAME)
+          || select.getAlias().equals(SystemColumns.WINDOWEND_NAME)
       ) {
         schemaBuilder.keyColumn(select.getAlias(), type);
       } else {

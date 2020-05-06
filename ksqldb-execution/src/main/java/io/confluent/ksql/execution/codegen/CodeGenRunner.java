@@ -213,7 +213,10 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitColumnReference(final UnqualifiedColumnReferenceExp node, final Void context) {
+    public Void visitUnqualifiedColumnReference(
+        final UnqualifiedColumnReferenceExp node,
+        final Void context
+    ) {
       addRequiredColumn(node.getColumnName());
       return null;
     }

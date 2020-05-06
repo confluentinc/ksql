@@ -128,9 +128,9 @@ public class ApiIntegrationTest {
     REST_APP.getServiceContext().close();
   }
 
-  private JsonArray expectedColumnNames = new JsonArray().add("ROWTIME").add("ROWKEY")
+  private JsonArray expectedColumnNames = new JsonArray().add("ROWKEY")
       .add("VIEWTIME").add("USERID").add("PAGEID");
-  private JsonArray expectedColumnTypes = new JsonArray().add("BIGINT").add("BIGINT")
+  private JsonArray expectedColumnTypes = new JsonArray().add("BIGINT")
       .add("BIGINT").add("STRING").add("STRING");
 
   @Test
@@ -255,15 +255,14 @@ public class ApiIntegrationTest {
     QueryResponse response = atomicReference.get();
 
     // Then:
-    JsonArray expectedColumnNames = new JsonArray().add("ROWKEY").add("ROWTIME").add("COUNT");
-    JsonArray expectedColumnTypes = new JsonArray().add("STRING").add("BIGINT").add("BIGINT");
+    JsonArray expectedColumnNames = new JsonArray().add("ROWKEY").add("COUNT");
+    JsonArray expectedColumnTypes = new JsonArray().add("STRING").add("BIGINT");
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
     assertThat(response.responseObject.getString("queryId"), is(nullValue()));
     assertThat(response.rows.get(0).getString(0), is("USER_1"));  // rowkey
-    assertThat(response.rows.get(0).getLong(1), is(notNullValue()));  // rowtime - non deterministic
-    assertThat(response.rows.get(0).getLong(2), is(1L)); // count
+    assertThat(response.rows.get(0).getLong(1), is(1L)); // count
   }
 
   @Test

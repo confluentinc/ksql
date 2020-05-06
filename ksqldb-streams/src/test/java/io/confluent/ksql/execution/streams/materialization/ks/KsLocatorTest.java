@@ -17,7 +17,9 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -47,9 +49,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -93,9 +93,6 @@ public class KsLocatorTest {
   private static final HostStatus HOST_ALIVE = new HostStatus(true, 0L);
   private static final HostStatus HOST_DEAD = new HostStatus(false, 0L);
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Before
   public void setUp() {
     locator = new KsLocator(STORE_NAME, kafkaStreams, keySerializer, LOCAL_HOST_URL,
@@ -132,9 +129,9 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     routingFilterFactoryActive = (routingOptions, hosts, active, applicationQueryId,
-        storeName, partition) -> routingActiveFilters;
+                                  storeName, partition) -> routingActiveFilters;
     routingFilterFactoryStandby = (routingOptions, hosts, active, applicationQueryId,
-        storeName, partition) -> routingStandbyFilters;
+                                   storeName, partition) -> routingStandbyFilters;
   }
 
   @Test
@@ -151,13 +148,15 @@ public class KsLocatorTest {
     // Given:
     getEmtpyMetadata();
 
-    // Expect:
-    expectedException.expect(MaterializationException.class);
-    expectedException.expectMessage(
-        "KeyQueryMetadata not available for state store someStoreName and key Struct{}");
-
     // When:
-    locator.locate(SOME_KEY, routingOptions, routingFilterFactoryActive);
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> locator.locate(SOME_KEY, routingOptions, routingFilterFactoryActive)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "KeyQueryMetadata not available for state store someStoreName and key Struct{}"));
   }
 
   @Test
@@ -237,7 +236,7 @@ public class KsLocatorTest {
   @Test
   public void shouldReturnRemoteOwnerForDifferentPort() {
     // Given:
-    final HostInfo localHostInfo = new HostInfo(LOCAL_HOST_URL.getHost(), LOCAL_HOST_URL.getPort()+1);
+    final HostInfo localHostInfo = new HostInfo(LOCAL_HOST_URL.getHost(), LOCAL_HOST_URL.getPort() + 1);
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
@@ -256,7 +255,7 @@ public class KsLocatorTest {
   @Test
   public void shouldReturnRemoteOwnerForDifferentPortOnLocalHost() {
     // Given:
-    final HostInfo localHostInfo = new HostInfo("LOCALhost", LOCAL_HOST_URL.getPort()+1);
+    final HostInfo localHostInfo = new HostInfo("LOCALhost", LOCAL_HOST_URL.getPort() + 1);
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))

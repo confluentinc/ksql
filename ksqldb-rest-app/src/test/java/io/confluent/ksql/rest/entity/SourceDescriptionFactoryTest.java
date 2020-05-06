@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.entity;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -30,13 +30,13 @@ import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -72,8 +72,7 @@ public class SourceDescriptionFactoryTest {
       final String kafkaTopicName,
       final Optional<TimestampColumn> timestampColumn) {
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("field0"), SqlTypes.INTEGER)
         .build();
 

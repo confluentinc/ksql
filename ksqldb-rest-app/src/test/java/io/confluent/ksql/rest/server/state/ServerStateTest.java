@@ -15,14 +15,14 @@
 
 package io.confluent.ksql.rest.server.state;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import java.util.Optional;
-import javax.ws.rs.core.Response;
 import org.junit.Test;
 
 public class ServerStateTest {
@@ -35,12 +35,12 @@ public class ServerStateTest {
     serverState.setInitializingReason(error);
 
     // When:
-    final Optional<Response> result = serverState.checkReady();
+    final Optional<EndpointResponse> result = serverState.checkReady();
 
     // Then:
     assertThat(result.isPresent(), is(true));
-    final Response response = result.get();
-    final Response expected = Errors.serverNotReady(error);
+    final EndpointResponse response = result.get();
+    final EndpointResponse expected = Errors.serverNotReady(error);
     assertThat(response.getStatus(), equalTo(expected.getStatus()));
     assertThat(response.getEntity(), equalTo(expected.getEntity()));
   }
@@ -51,12 +51,12 @@ public class ServerStateTest {
     serverState.setTerminating();
 
     // When:
-    final Optional<Response> result = serverState.checkReady();
+    final Optional<EndpointResponse> result = serverState.checkReady();
 
     // Then:
     assertThat(result.isPresent(), is(true));
-    final Response response = result.get();
-    final Response expected = Errors.serverShuttingDown();
+    final EndpointResponse response = result.get();
+    final EndpointResponse expected = Errors.serverShuttingDown();
     assertThat(response.getStatus(), equalTo(expected.getStatus()));
     assertThat(response.getEntity(), equalTo(expected.getEntity()));
   }

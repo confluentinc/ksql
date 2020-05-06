@@ -110,7 +110,7 @@ public class ClientTest extends BaseApiTest {
 
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
       final Row row = queryResult.poll();
-      assertThat(row.values(), equalTo(rowWithIndex(i).getList()));
+      assertThat(row.values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
       assertThat(row.columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
     }
@@ -147,7 +147,7 @@ public class ClientTest extends BaseApiTest {
 
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
       final Row row = queryResult.poll();
-      assertThat(row.values(), equalTo(rowWithIndex(i).getList()));
+      assertThat(row.values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
       assertThat(row.columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
     }
@@ -180,7 +180,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(rows, hasSize(DEFAULT_ROWS.size()));
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
-      assertThat(rows.get(i).values(), equalTo(rowWithIndex(i).getList()));
+      assertThat(rows.get(i).values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(rows.get(i).columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
       assertThat(rows.get(i).columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
     }
@@ -197,7 +197,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(rows, hasSize(DEFAULT_ROWS.size()));
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
-      assertThat(rows.get(i).values(), equalTo(rowWithIndex(i).getList()));
+      assertThat(rows.get(i).values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(rows.get(i).columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
       assertThat(rows.get(i).columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
     }
@@ -265,10 +265,14 @@ public class ClientTest extends BaseApiTest {
     publisher.subscribe(subscriber);
     assertThatEventually(subscriber::getValues, hasSize(numRows));
     for (int i = 0; i < numRows; i++) {
-      assertThat(subscriber.getValues().get(i).values(), equalTo(rowWithIndex(i).getList()));
+      assertThat(subscriber.getValues().get(i).values(), equalTo(rowWithIndexAsKsqlArray(i)));
     }
     assertThat(subscriber.isCompleted(), equalTo(false));
     assertThat(subscriber.getError(), is(nullValue()));
+  }
+
+  private static KsqlArray rowWithIndexAsKsqlArray(final int index) {
+    return new KsqlArray(rowWithIndex(index).getList());
   }
 
   private static class TestSubscriber<T> implements Subscriber<T> {

@@ -377,7 +377,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteArithmeticUnary() {
     // Given:
-    final ArithmeticUnaryExpression parsed = parseExpression("-1");
+    final ArithmeticUnaryExpression parsed = parseExpression("-(1)");
     when(processor.apply(parsed.getValue(), context)).thenReturn(expr1);
 
     // When:

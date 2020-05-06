@@ -101,11 +101,8 @@ public final class ParserUtil {
     } catch (final NumberFormatException e) {
       throw new ParsingException("Invalid numeric literal: " + context.getText(), location);
     }
-    if (valueAsLong < 0) {
-      throw new RuntimeException("Unexpected negative value in literal: " + valueAsLong);
-    }
 
-    if (valueAsLong <= Integer.MAX_VALUE) {
+    if (valueAsLong <= Integer.MAX_VALUE && valueAsLong >= Integer.MIN_VALUE) {
       return new IntegerLiteral(location, (int) valueAsLong);
     } else {
       return new LongLiteral(location, valueAsLong);

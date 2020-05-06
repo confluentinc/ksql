@@ -212,7 +212,7 @@ public interface Row {
 
   List<ColumnType> columnTypes();
 
-  List<Object> values();
+  KsqlArray values();
 
   /**
    * Get the value for a particular column of the Row as an Object.
@@ -325,9 +325,176 @@ public interface Row {
    * @return column value.
    */
   BigDecimal getDecimal(String columnName);
+  
+  /**
+   * Get the value for a particular column of the Row as a KsqlObject.
+   * Useful for MAP and STRUCT column types.
+   *
+   * @param columnIndex index of column (1-indexed).
+   * @return column value.
+   */
+  KsqlObject getKsqlObject(int columnIndex);
+
+  /**
+   * Get the value for a particular column of the Row as a KsqlObject.
+   * Useful for MAP and STRUCT column types.
+   *
+   * @param columnName name of column.
+   * @return column value.
+   */
+  KsqlObject getKsqlObject(String columnName);
+
+  /**
+   * Get the value for a particular column of the Row as a KsqlArray. Useful for ARRAY column types.
+   *
+   * @param columnIndex index of column (1-indexed).
+   * @return column value.
+   */
+  KsqlArray getKsqlArray(int columnIndex);
+
+  /**
+   * Get the value for a particular column of the Row as a KsqlArray. Useful for ARRAY column types.
+   *
+   * @param columnName name of column.
+   * @return column value.
+   */
+  KsqlArray getKsqlArray(String columnName);
 }
 ```
-and `ColumnType` is:
+
+`KsqlArray` and `KsqlObject` are wrappers around the Vert.x types `JsonArray` and `JsonObject`, which can be thought of as `List<Object>` and `Map<String, Object>` with enhanced type safety and other features (e.g., serialization to/from JSON) we may choose to leverage in the future.
+We chose to introduce new types rather than using   `List<Object>` and `Map<String, Object>` directly in order to allow more flexibility for these APIs to evolve in the future.
+(I'm not a fan of the names `KsqlArray` and `KsqlObject` but couldn't think of anything better. Suggestions appreciated!)
+
+The methods exposed on each type are as follows:
+```
+public KsqlArray {
+
+  KsqlArray();
+
+  KsqlArray(List list);
+
+  boolean contains(Object value);
+
+  int size();
+
+  boolean isEmpty();
+
+  List getList();
+
+  Iterator<Object> iterator();
+
+  java.util.stream.Stream<Object> stream();
+
+  Object getValue(int pos);
+
+  String getString(int pos);
+
+  Integer getInteger(int pos);
+
+  Long getLong(int pos);
+
+  Double getDouble(int pos);
+
+  Boolean getBoolean(int pos);
+
+  KsqlArray getKsqlArray(int pos);
+
+  KsqlObject getKsqlObject(int pos);
+
+  Object remove(int pos);
+
+  Object remove(Object value);
+
+  KsqlArray add(String value);
+
+  KsqlArray add(Integer value);
+
+  KsqlArray add(Long value);
+
+  KsqlArray add(Double value);
+
+  KsqlArray add(Boolean value);
+
+  KsqlArray add(KsqlArray value);
+
+  KsqlArray add(KsqlObject value);
+
+  KsqlArray add(Object value);
+
+  KsqlArray addNull();
+
+  KsqlArray addAll(KsqlArray array);
+
+  KsqlArray copy();
+}
+```
+and
+```
+public KsqlObject {
+
+  KsqlObject();
+
+  KsqlObject(Map<String, Object> map);
+
+  boolean containsKey(String key);
+
+  Set<String> fieldNames();
+
+  int size();
+
+  boolean isEmpty();
+
+  Map<String, Object> getMap();
+
+  Iterator<Map.Entry<String,Object>> iterator();
+
+  java.util.stream.Stream<Map.Entry<String,Object>> stream();
+
+  Object getValue(String key);
+
+  String getString(String key);
+
+  Integer getInteger(String key);
+
+  Long getLong(String key);
+
+  Double getDouble(String key);
+
+  Boolean getBoolean(String key);
+
+  KsqlArray getKsqlArray(String key);
+
+  KsqlObject getKsqlObject(String key);
+
+  Object remove(String key);
+
+  KsqlObject put(String key, Integer value);
+
+  KsqlObject put(String key, Long value);
+
+  KsqlObject put(String key, String value);
+
+  KsqlObject put(String key, Double value);
+
+  KsqlObject put(String key, Boolean value);
+
+  KsqlObject put(String key, KsqlArray value);
+
+  KsqlObject put(String key, KsqlObject value);
+
+  KsqlObject put(String key, Object value);
+
+  KsqlObject putNull(String key);
+
+  KsqlObject mergeIn(KsqlObject other);
+
+  KsqlObject copy();
+}
+``` 
+It may be nice to expose specific methods for handling `BigDecimal` on these types in order to have the decimal ksqlDB type feel like a first-class citizen, though this needs more investigation to flesh out since such methods would not be able to be delegated to Vert.x's `JsonArray` and `JsonObject` directly.
+
+Finally, `ColumnType` is:
 ```
 public interface ColumnType {
 
@@ -343,9 +510,7 @@ For now, `ColumnType` simply wraps a type represented as an enum. We can add add
 
 For `getDecimal(...)` in the `Row` interface, rather than trying to parse the column type to extract the precision and scale, we will simply convert the value to a BigDecimal without explicitly specifying the precision and scale. We could also add an option for users to specify the scale and precision in the getter, if we think that would be useful.
 
-We could also add `getList(...)` and `getMap(...)` methods to the `Row` interface, but it's not clear to me how valuable this would be given that the nested data types would not be known.
-
-Tim also proposed switching from generic Java types (`Map<String, Object>`, `List<Object>`) to Vert.x types (`JsonObject`, `JsonArray`) as the latter is more type-safe and the client already has a dependency on Vert.x anyway. The downside, though, is that then apps that use the client would be required to depend on Vert.x as well.
+It's interesting that the method `getKsqlObject()` in the `Row` interface is used to represent both the `MAP` and `STRUCT` ksqlDB types. I'm not sure what a better alternative to avoid this confusion might be.
 
 ### Transient queries -- Non-streaming
 
@@ -407,12 +572,12 @@ A method to insert one row at a time:
    * @param row the row to insert.
    * @return a future that completes once the request has been processed.
    */
-  CompletableFuture<Void> insertInto(String streamName, Map<String, Object> row);
+  CompletableFuture<Void> insertInto(String streamName, KsqlObject row);
 ```
 
 A method to stream inserts (via the `/inserts-stream` endpoint):
 ```
-  CompletableFuture<Publisher<InsertResponse>> streamInserts(String streamName, Publisher<List<Object>> insertsPublisher);
+  CompletableFuture<Publisher<InsertResponse>> streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
 }
 ```
 where `InsertResponse` is as follows:

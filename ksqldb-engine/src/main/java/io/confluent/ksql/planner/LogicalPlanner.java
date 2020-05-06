@@ -767,14 +767,12 @@ public class LogicalPlanner {
     if (groupByExps.size() != 1) {
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
 
-        keyName = Optional.of(groupBy.getAlias()
-            .orElseGet(() -> ColumnNames.nextKsqlColAlias(
-                sourceSchema,
-                LogicalSchema.builder()
-                    .valueColumns(projectionSchema.value())
-                    .build()
-            ))
-        );
+        keyName = Optional.of(ColumnNames.nextKsqlColAlias(
+            sourceSchema,
+            LogicalSchema.builder()
+                .valueColumns(projectionSchema.value())
+                .build()
+        ));
 
         keyColumnNames = groupBy.getGroupingExpressions().stream()
             .map(selectResolver)
@@ -790,11 +788,7 @@ public class LogicalPlanner {
       final Expression expression = groupByExps.get(0);
 
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-        if (groupBy.getAlias().isPresent()) {
-          keyName = Optional.of(groupBy.getAlias().get());
-        } else {
-          keyName = selectResolver.apply(expression);
-        }
+        keyName = selectResolver.apply(expression);
       } else {
         keyName = Optional.of(exactlyMatchesKeyColumns(expression, sourceSchema)
             ? ((ColumnReferenceExp) expression).getColumnName()

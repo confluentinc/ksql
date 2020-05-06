@@ -571,13 +571,9 @@ public class AstBuilder {
 
     @Override
     public Node visitGroupBy(final SqlBaseParser.GroupByContext ctx) {
-      final Optional<ColumnName> alias = Optional.ofNullable(ctx.identifier())
-          .map(ParserUtil::getIdentifierText)
-          .map(ColumnName::of);
-
       final List<Expression> expressions = visit(ctx.valueExpression(), Expression.class);
 
-      return new GroupBy(getLocation(ctx), expressions, alias);
+      return new GroupBy(getLocation(ctx), expressions);
     }
 
     @Override

@@ -35,7 +35,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -116,8 +115,6 @@ public class TableGroupByBuilderTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private Optional<ColumnName> alias;
-  @Mock
   private ParamsFactory paramsFactory;
   @Mock
   private KTableHolder<Struct> tableHolder;
@@ -140,7 +137,7 @@ public class TableGroupByBuilderTest {
     when(tableHolder.getSchema()).thenReturn(SCHEMA);
     when(tableHolder.getTable()).thenReturn(sourceTable);
 
-    when(paramsFactory.build(any(), any(), any(), any(), any())).thenReturn(groupByParams);
+    when(paramsFactory.build(any(), any(), any(), any())).thenReturn(groupByParams);
 
     when(groupByParams.getSchema()).thenReturn(REKEYED_SCHEMA);
     when(groupByParams.getMapper()).thenReturn(mapper);
@@ -159,8 +156,7 @@ public class TableGroupByBuilderTest {
         PROPERTIES,
         sourceStep,
         FORMATS,
-        GROUPBY_EXPRESSIONS,
-        alias
+        GROUPBY_EXPRESSIONS
     );
 
     builder = new TableGroupByBuilder(queryBuilder, groupedFactory, paramsFactory);
@@ -187,7 +183,6 @@ public class TableGroupByBuilderTest {
     verify(paramsFactory).build(
         eq(SCHEMA),
         any(),
-        eq(alias),
         eq(processingLogger),
         eq(ksqlConfig)
     );

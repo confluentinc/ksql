@@ -23,7 +23,6 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -36,7 +35,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class GroupByTest {
 
-  private static final ColumnName COL0 = ColumnName.of("Bob");
   private static final NodeLocation LOCATION = new NodeLocation(1, 4);
 
   @Mock
@@ -49,15 +47,12 @@ public class GroupByTest {
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()
         .addEqualityGroup(
-            new GroupBy(Optional.empty(), ImmutableList.of(exp1, exp2), Optional.of(COL0)),
-            new GroupBy(Optional.empty(), ImmutableList.of(exp1, exp2), Optional.of(COL0)),
-            new GroupBy(Optional.of(LOCATION), ImmutableList.of(exp1, exp2), Optional.of(COL0))
+            new GroupBy(Optional.empty(), ImmutableList.of(exp1, exp2)),
+            new GroupBy(Optional.empty(), ImmutableList.of(exp1, exp2)),
+            new GroupBy(Optional.of(LOCATION), ImmutableList.of(exp1, exp2))
         )
         .addEqualityGroup(
-            new GroupBy(Optional.empty(), ImmutableList.of(exp1), Optional.of(COL0))
-        )
-        .addEqualityGroup(
-            new GroupBy(Optional.empty(), ImmutableList.of(exp1, exp2), Optional.empty())
+            new GroupBy(Optional.empty(), ImmutableList.of(exp1))
         )
         .testEquals();
   }
@@ -67,7 +62,7 @@ public class GroupByTest {
     // Given:
     final List<Expression> original = ImmutableList.of(exp1, exp2);
 
-    final GroupBy groupBy = new GroupBy(Optional.empty(), original, Optional.empty());
+    final GroupBy groupBy = new GroupBy(Optional.empty(), original);
 
     // When:
     final List<Expression> result = groupBy.getGroupingExpressions();
@@ -84,7 +79,7 @@ public class GroupByTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new GroupBy(Optional.empty(), withDuplicate, Optional.empty())
+        () -> new GroupBy(Optional.empty(), withDuplicate)
     );
 
     // Then:
@@ -99,7 +94,7 @@ public class GroupByTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new GroupBy(Optional.empty(), empty, Optional.empty())
+        () -> new GroupBy(Optional.empty(), empty)
     );
 
     // Then:

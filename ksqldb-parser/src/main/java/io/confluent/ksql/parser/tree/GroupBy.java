@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
@@ -32,17 +31,14 @@ import java.util.Optional;
 public class GroupBy extends AstNode {
 
   private final ImmutableList<Expression> groupingExpressions;
-  private final Optional<ColumnName> alias;
 
   public GroupBy(
       final Optional<NodeLocation> location,
-      final List<Expression> groupingExpressions,
-      final Optional<ColumnName> alias
+      final List<Expression> groupingExpressions
   ) {
     super(location);
     this.groupingExpressions = ImmutableList
         .copyOf(requireNonNull(groupingExpressions, "groupingElements"));
-    this.alias = requireNonNull(alias, "alias");
 
     final HashSet<Object> groupBys = new HashSet<>(groupingExpressions.size());
 
@@ -61,10 +57,6 @@ public class GroupBy extends AstNode {
     return groupingExpressions;
   }
 
-  public Optional<ColumnName> getAlias() {
-    return alias;
-  }
-
   @Override
   protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitGroupBy(this, context);
@@ -79,20 +71,18 @@ public class GroupBy extends AstNode {
       return false;
     }
     final GroupBy groupBy = (GroupBy) o;
-    return Objects.equals(groupingExpressions, groupBy.groupingExpressions)
-        && Objects.equals(alias, groupBy.alias);
+    return Objects.equals(groupingExpressions, groupBy.groupingExpressions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(groupingExpressions, alias);
+    return Objects.hash(groupingExpressions);
   }
 
   @Override
   public String toString() {
     return "GroupBy{"
         + "groupingExpressions=" + groupingExpressions
-        + ", alias=" + alias
         + '}';
   }
 }

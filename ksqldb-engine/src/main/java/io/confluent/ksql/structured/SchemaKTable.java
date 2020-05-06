@@ -147,7 +147,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final Optional<ColumnName> alias,
       final Stacker contextStacker
   ) {
-    if (repartitionNotNeeded(ImmutableList.of(keyExpression), alias)) {
+    if (repartitionNotNeeded(ImmutableList.of(keyExpression))) {
       return (SchemaKStream<Struct>) this;
     }
 
@@ -170,7 +170,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKGroupedTable groupBy(
       final ValueFormat valueFormat,
       final List<Expression> groupByExpressions,
-      final Optional<ColumnName> alias,
       final Stacker contextStacker
   ) {
     final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
@@ -184,8 +183,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         contextStacker,
         sourceTableStep,
         Formats.of(groupedKeyFormat, valueFormat, SerdeOption.none()),
-        groupByExpressions,
-        alias
+        groupByExpressions
     );
 
     return new SchemaKGroupedTable(

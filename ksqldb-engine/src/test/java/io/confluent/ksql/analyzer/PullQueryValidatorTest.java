@@ -118,8 +118,7 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.getGroupBy()).thenReturn(Optional.of(new GroupBy(
         Optional.empty(),
-        ImmutableList.of(AN_EXPRESSION),
-        Optional.empty()
+        ImmutableList.of(AN_EXPRESSION)
     )));
 
     // When:

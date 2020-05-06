@@ -555,7 +555,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        Optional.empty(), childContextStacker
+        childContextStacker
     );
 
     // Then:
@@ -574,7 +574,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        Optional.empty(), childContextStacker
+        childContextStacker
     );
 
     // Then:
@@ -604,7 +604,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        Optional.empty(), childContextStacker
+        childContextStacker
     );
 
     // Then:
@@ -627,7 +627,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        Optional.empty(), childContextStacker
+        childContextStacker
     );
 
     // Then:
@@ -640,8 +640,8 @@ public class SchemaKStreamTest {
                 initialSchemaKStream.getSourceStep(),
                 io.confluent.ksql.execution.plan.Formats
                     .of(expectedKeyFormat, valueFormat, SerdeOption.none()),
-                groupBy,
-                Optional.empty())
+                groupBy
+            )
         )
     );
   }
@@ -658,7 +658,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        Optional.empty(), childContextStacker
+        childContextStacker
     );
 
     // Then:
@@ -681,7 +681,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        Optional.empty(), childContextStacker
+        childContextStacker
     );
 
     // Then:
@@ -699,7 +699,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         ImmutableList.of(groupBy),
-        Optional.empty(), childContextStacker
+        childContextStacker
     );
 
     // Then:

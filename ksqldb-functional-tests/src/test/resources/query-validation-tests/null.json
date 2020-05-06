@@ -186,6 +186,21 @@
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
         "message": "mismatched input 'NULL'"
       }
+    },
+    {
+      "name": "null join expression",
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.A = null;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression 'null' in join '(L.A = null)'. Each side of the join comparision must contain references from exactly one source."
+      }
     }
   ]
 }

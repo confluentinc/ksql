@@ -60,7 +60,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final HealthCheckResource healthCheckResource;
   private final ServerMetadataResource serverMetadataResource;
   private final WSQueryEndpoint wsQueryEndpoint;
-  private final OldApiEndpointExecutor oldApiEndpointExecutor;
+  private final EndpointExecutor endpointExecutor;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   public KsqlServerEndpoints(
@@ -89,7 +89,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.healthCheckResource = Objects.requireNonNull(healthCheckResource);
     this.serverMetadataResource = Objects.requireNonNull(serverMetadataResource);
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
-    this.oldApiEndpointExecutor = new OldApiEndpointExecutor(
+    this.endpointExecutor = new EndpointExecutor(
         Objects.requireNonNull(ksqlSecurityContextProvider));
   }
 
@@ -99,7 +99,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    return oldApiEndpointExecutor.executeOnWorker(
+    return endpointExecutor.executeOnWorker(
         () -> new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor)
             .createQueryPublisher(sql, properties, context, workerExecutor,
                 ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext()),
@@ -112,7 +112,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final Subscriber<InsertResult> acksSubscriber, final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    return oldApiEndpointExecutor.executeOnWorker(
+    return endpointExecutor.executeOnWorker(
         () -> new InsertsStreamEndpoint(ksqlEngine, ksqlConfig, reservedInternalTopics)
             .createInsertsSubscriber(target, properties, acksSubscriber, context, workerExecutor,
                 ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext()),
@@ -124,7 +124,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
 
-    return oldApiEndpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
+    return endpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> ksqlResource.handleKsqlStatements(
             ksqlSecurityContext,
             request), workerExecutor);
@@ -135,7 +135,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final CompletableFuture<Void> connectionClosedFuture,
       final ApiSecurityContext apiSecurityContext) {
-    return oldApiEndpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
+    return endpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> streamedQueryResource.streamQuery(
             ksqlSecurityContext,
             request,
@@ -147,7 +147,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final ClusterTerminateRequest request,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    return oldApiEndpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
+    return endpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> ksqlResource.terminateCluster(
             ksqlSecurityContext,
             request), workerExecutor);
@@ -156,42 +156,42 @@ public class KsqlServerEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeInfo(
       final ApiSecurityContext apiSecurityContext) {
-    return oldApiEndpointExecutor.executeOldApiEndpoint(apiSecurityContext,
+    return endpointExecutor.executeOldApiEndpoint(apiSecurityContext,
         ksqlSecurityContext -> serverInfoResource.get());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeStatus(final String type, final String entity,
       final String action, final ApiSecurityContext apiSecurityContext) {
-    return oldApiEndpointExecutor.executeOldApiEndpoint(apiSecurityContext,
+    return endpointExecutor.executeOldApiEndpoint(apiSecurityContext,
         ksqlSecurityContext -> statusResource.getStatus(type, entity, action));
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeAllStatuses(
       final ApiSecurityContext apiSecurityContext) {
-    return oldApiEndpointExecutor.executeOldApiEndpoint(apiSecurityContext,
+    return endpointExecutor.executeOldApiEndpoint(apiSecurityContext,
         ksqlSecurityContext -> statusResource.getAllStatuses());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeCheckHealth(
       final ApiSecurityContext apiSecurityContext) {
-    return oldApiEndpointExecutor.executeOldApiEndpoint(apiSecurityContext,
+    return endpointExecutor.executeOldApiEndpoint(apiSecurityContext,
         ksqlSecurityContext -> healthCheckResource.checkHealth());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeServerMetadata(
       final ApiSecurityContext apiSecurityContext) {
-    return oldApiEndpointExecutor.executeOldApiEndpoint(apiSecurityContext,
+    return endpointExecutor.executeOldApiEndpoint(apiSecurityContext,
         ksqlSecurityContext -> serverMetadataResource.getServerMetadata());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
       final ApiSecurityContext apiSecurityContext) {
-    return oldApiEndpointExecutor.executeOldApiEndpoint(apiSecurityContext,
+    return endpointExecutor.executeOldApiEndpoint(apiSecurityContext,
         ksqlSecurityContext -> serverMetadataResource.getServerClusterId());
   }
 
@@ -200,7 +200,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
 
-    oldApiEndpointExecutor.executeOnWorker(() -> {
+    endpointExecutor.executeOnWorker(() -> {
       final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
           .provide(apiSecurityContext);
       try {

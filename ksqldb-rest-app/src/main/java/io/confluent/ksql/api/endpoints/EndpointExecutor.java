@@ -24,11 +24,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class OldApiEndpointExecutor {
+public class EndpointExecutor {
 
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
 
-  public OldApiEndpointExecutor(final KsqlSecurityContextProvider ksqlSecurityContextProvider) {
+  public EndpointExecutor(final KsqlSecurityContextProvider ksqlSecurityContextProvider) {
     this.ksqlSecurityContextProvider = ksqlSecurityContextProvider;
   }
 

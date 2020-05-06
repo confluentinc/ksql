@@ -15,12 +15,20 @@
 
 package io.confluent.ksql.function.udf;
 
+import io.confluent.ksql.name.FunctionName;
+
 @SuppressWarnings("MethodMayBeStatic")
-@UdfDescription(name = "AS_VALUE", description = AsValue.DESCRIPTION)
+@UdfDescription(name = AsValue.NAME_TEXT, description = AsValue.DESCRIPTION)
 public class AsValue {
+
+  static final String NAME_TEXT = "AS_VALUE";
+
+  public static final FunctionName NAME = FunctionName.of(NAME_TEXT);
+
 
   static final String DESCRIPTION = "Used exclusively in the projection of a query to allow a key"
       + "column to be copied into the value schema. Has no affect if used anywhere else.";
+
 
   @Udf
   public <T> T asValue(final T keyColumn) {

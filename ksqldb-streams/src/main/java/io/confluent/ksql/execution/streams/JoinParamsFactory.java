@@ -15,38 +15,54 @@
 
 package io.confluent.ksql.execution.streams;
 
+import com.google.common.collect.Streams;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 
 public final class JoinParamsFactory {
+
   private JoinParamsFactory() {
   }
 
   public static JoinParams create(
+      final ColumnName keyColName,
       final LogicalSchema leftSchema,
-      final LogicalSchema rightSchema) {
+      final LogicalSchema rightSchema
+  ) {
+    final boolean appendKey = neitherContain(keyColName, leftSchema, rightSchema);
     return new JoinParams(
-        new KsqlValueJoiner(leftSchema, rightSchema),
-        createSchema(leftSchema, rightSchema)
+        new KsqlValueJoiner(leftSchema.value().size(), rightSchema.value().size(), appendKey ? 1 : 0
+        ),
+        createSchema(keyColName, leftSchema, rightSchema)
     );
   }
 
   public static LogicalSchema createSchema(
+      final ColumnName keyColName,
       final LogicalSchema leftSchema,
       final LogicalSchema rightSchema
   ) {
-    throwOnKeyMismatch(leftSchema, rightSchema);
+    final SqlType keyType = throwOnKeyMismatch(leftSchema, rightSchema);
 
-    return LogicalSchema.builder()
-        .keyColumns(leftSchema.key())
+    final Builder builder = LogicalSchema.builder()
+        .keyColumn(keyColName, keyType)
         .valueColumns(leftSchema.value())
-        .valueColumns(rightSchema.value())
-        .build();
+        .valueColumns(rightSchema.value());
+
+    if (neitherContain(keyColName, leftSchema, rightSchema)) {
+      // Append key to value so its accessible during processing:
+      builder.valueColumn(keyColName, keyType);
+    }
+
+    return builder.build();
   }
 
-  private static void throwOnKeyMismatch(
+  private static SqlType throwOnKeyMismatch(
       final LogicalSchema leftSchema,
       final LogicalSchema rightSchema
   ) {
@@ -63,5 +79,17 @@ public final class JoinParamsFactory {
       throw new KsqlException("Invalid join. Key types differ: "
           + left.type() + " vs " + right.type());
     }
+
+    return left.type();
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
+  private static boolean neitherContain(
+      final ColumnName keyColName,
+      final LogicalSchema leftSchema,
+      final LogicalSchema rightSchema
+  ) {
+    return Streams.concat(leftSchema.value().stream(), rightSchema.value().stream())
+        .noneMatch(c -> c.name().equals(keyColName));
   }
 }

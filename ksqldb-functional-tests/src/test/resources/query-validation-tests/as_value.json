@@ -7,10 +7,9 @@
   "tests": [
     {
       "name": "key column",
-      "comment": "awaiting other changes for KLIP-24 to enable expected behaviour",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -31,7 +30,7 @@
       "name": "value column",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT AS_VALUE(V0) FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(V0) FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -52,7 +51,7 @@
       "name": "expression",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT AS_VALUE(V0 + V1) FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(V0 + V1) FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -103,11 +102,11 @@
         {"topic": "input", "key": 1, "value": {"V0": 2, "V1": 3}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"K": 1, "KSQL_COL_0": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_1 INT KEY, K INT, KSQL_COL_0 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "K INT KEY, KSQL_COL_0 BIGINT"}
         ]
       }
     },
@@ -126,11 +125,11 @@
         {"topic": "i1", "key": 1, "value": {"V0": 2, "V1": 3}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"I1_ID": 1, "I1_V0": 2, "I1_V1": 3, "I2_ID": 1, "I2_V0": 2, "I2_V1": 3}}
+        {"topic": "OUTPUT", "key": 1, "value": {"I1_ID": 1, "I1_V0": 2, "I1_V1": 3, "I2_V0": 2, "I2_V1": 3}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "KSQL_COL_0 INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "I2_ID INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT"}
         ]
       }
     }

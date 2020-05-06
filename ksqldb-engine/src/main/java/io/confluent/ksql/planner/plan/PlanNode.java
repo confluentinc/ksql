@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -24,9 +25,14 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.planner.Projection;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.GrammaticalJoiner;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -120,5 +126,67 @@ public abstract class PlanNode {
    */
   public Expression resolveSelect(final int idx, final Expression expression) {
     return expression;
+  }
+
+  /**
+   * Called to check that the query's projection contains the required key columns.
+   *
+   * <p>Only called for persistent queries.
+   *
+   * @param sinkName the name of the sink being created by the persistent query.
+   * @param projection the query's projection.
+   * @throws KsqlException if any key columns are missing from the projection.
+   */
+  void validateKeyPresent(final SourceName sinkName, final Projection projection) {
+    getSources().forEach(s -> s.validateKeyPresent(sinkName, projection));
+  }
+
+  static void throwKeysNotIncludedError(
+      final SourceName sinkName,
+      final String type,
+      final List<? extends Expression> requiredKeys,
+      final GrammaticalJoiner joiner
+  ) {
+    throwKeysNotIncludedError(sinkName, type, requiredKeys, joiner, "");
+  }
+
+  static void throwKeysNotIncludedError(
+      final SourceName sinkName,
+      final String type,
+      final List<? extends Expression> requiredKeys,
+      final GrammaticalJoiner joiner,
+      final String additional
+  ) {
+    final String postfix = requiredKeys.size() == 1 ? "" : "s";
+
+    final String joined = joiner.join(requiredKeys);
+
+    throw new KsqlException("The query used to build " + sinkName
+        + " must include the " + type + postfix
+        + " " + joined + " in its projection."
+        + additional
+    );
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
+  static Stream<ColumnName> orderColumns(
+      final List<Column> columns,
+      final LogicalSchema schema
+  ) {
+    // When doing a `select *` key columns should be at the front of the column list
+    // but are added at the back during processing for performance reasons.
+    // Switch them around here:
+    final Stream<Column> keys = columns.stream()
+        .filter(c -> schema.isKeyColumn(c.name()));
+
+    final Stream<Column> windowBounds = columns.stream()
+        .filter(c -> SystemColumns.isWindowBound(c.name()));
+
+    final Stream<Column> values = columns.stream()
+        .filter(c -> !SystemColumns.isWindowBound(c.name()))
+        .filter(c -> !SystemColumns.isPseudoColumn(c.name()))
+        .filter(c -> !schema.isKeyColumn(c.name()));
+
+    return Streams.concat(keys, windowBounds, values).map(Column::name);
   }
 }

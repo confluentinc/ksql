@@ -33,7 +33,8 @@ public final class DecimalUtil {
 
   private static final String PRECISION_FIELD = "connect.decimal.precision";
 
-  private DecimalUtil() { }
+  private DecimalUtil() {
+  }
 
   /**
    * @param schema the schema to test
@@ -221,7 +222,7 @@ public final class DecimalUtil {
 
   private static void ensureMax(final BigDecimal value, final int precision, final int scale) {
     final int digits = precision - scale;
-    final BigDecimal maxValue = new BigDecimal(Math.pow(10, digits));
+    final BigDecimal maxValue = BigDecimal.valueOf(Math.pow(10, digits));
     if (maxValue.compareTo(value.abs()) < 1) {
       throw new ArithmeticException(
           String.format("Numeric field overflow: A field with precision %d and scale %d "

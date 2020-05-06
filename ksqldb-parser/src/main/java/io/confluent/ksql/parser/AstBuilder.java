@@ -142,8 +142,8 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.schema.utils.Pair;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -571,13 +571,9 @@ public class AstBuilder {
 
     @Override
     public Node visitGroupBy(final SqlBaseParser.GroupByContext ctx) {
-      final Optional<ColumnName> alias = Optional.ofNullable(ctx.identifier())
-          .map(ParserUtil::getIdentifierText)
-          .map(ColumnName::of);
-
       final List<Expression> expressions = visit(ctx.valueExpression(), Expression.class);
 
-      return new GroupBy(getLocation(ctx), expressions, alias);
+      return new GroupBy(getLocation(ctx), expressions);
     }
 
     @Override

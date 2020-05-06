@@ -425,9 +425,8 @@ public class AggregateAnalyzerTest {
     when(analysis.getGroupBy())
         .thenReturn(Optional.of(new GroupBy(
             Optional.empty(),
-            ImmutableList.copyOf(expressions),
-            Optional.empty())
-        ));
+            ImmutableList.copyOf(expressions)
+        )));
   }
 
   private void givenHavingExpression(final Expression expression) {

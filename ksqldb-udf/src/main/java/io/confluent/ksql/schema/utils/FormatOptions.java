@@ -21,7 +21,7 @@ import java.util.function.Predicate;
 
 public final class FormatOptions {
 
-  public static final String ESCAPE = "`";
+  private static final String ESCAPE = "`";
   private final Predicate<String> addQuotesPredicate;
 
   public static FormatOptions none() {

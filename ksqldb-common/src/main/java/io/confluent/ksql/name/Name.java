@@ -18,7 +18,6 @@ package io.confluent.ksql.name;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.utils.FormatOptions;
-import io.confluent.ksql.schema.utils.Identifiers;
 import java.util.Objects;
 
 /**
@@ -29,10 +28,19 @@ import java.util.Objects;
  */
 @Immutable
 public abstract class Name<T extends Name<?>> {
+
   protected final String name;
 
   protected Name(final String name) {
-    this.name = Identifiers.ensureTrimmed(Objects.requireNonNull(name, "name"), "name");
+    this.name = Objects.requireNonNull(name, "name");
+
+    if (!name.trim().equals(name)) {
+      throw new IllegalArgumentException("name is not trimmed: '" + name + "'");
+    }
+
+    if (name.isEmpty()) {
+      throw new IllegalArgumentException("name is empty");
+    }
   }
 
   /**

@@ -94,7 +94,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final String postfix = unsupportedFunctionNames.size() == 1 ? "" : "s";
       throw new KsqlException("The aggregation function" + postfix + " "
           + GrammaticalJoiner.and().join(unsupportedFunctionNames)
-          + " cannot be applied to a table, only to a stream."
+          + " cannot be applied to a table source, only to a stream source."
       );
     }
 

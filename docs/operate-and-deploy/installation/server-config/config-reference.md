@@ -415,6 +415,30 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_LISTENERS`.
 
+### ksql.advertised.listener
+
+The `ksql.advertised.listener` setting controls the address advertised within
+{{ site.kstreams }}, and shared with other ksqlDB nodes that make up the cluster.
+This address is used to initiate intra-cluster requests such as forwarded pull queries,
+heartbeating, and lag reporting.
+
+If not set, the system will use the first of `listeners` to advertise and if this
+is set to a wildcard address, then the system hostname is used.
+
+This setting is most often useful when other nodes in the cluster should use
+a different endpoint from the one used in `listeners` to initiate a request
+to a node in the cluster.
+
+### ksql.internal.listener
+
+The `ksql.internal.listener ` setting controls the address bound for use by internal,
+intra-cluster endpoints.  These include forwarded pull queries, heartbeating, and lag reporting.
+
+If not set, the system will use `listeners` to expose internal endpoints.
+
+This setting is most often useful in a IaaS environment to separate external-facing
+trafic from internal traffic.
+
 ### ksql.metrics.tags.custom
 
 A list of tags to be included with emitted

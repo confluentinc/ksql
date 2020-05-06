@@ -1,9 +1,9 @@
 # KLIP 24 - KEY column semantics in queries
 
 **Author**: @big-andy-coates |
-**Release Target**: TBD |
+**Release Target**: 0.10.0 |
 **Status**: In Discussion |
-**Discussion**: TBD
+**Discussion**: [Github PR](https://github.com/confluentinc/ksql/pull/5115)
 
 **tl;dr:** Persistent queries do not allow the key column in the projection as key columns are
 currently _implicitly_ copied across. This is not intuitive to anyone familiar with SQL. This KLIP
@@ -147,7 +147,7 @@ explicit columns, i.e. non select-star projections, then the user must be able t
 and be able to provide their own.
 
 Though not ideal, we propose that in the short term the synthesised column can be included in the
-projection by by use of a new `JOINKEY` udf. For example, the above examples that used `*` in
+projection via a new `JOINKEY` udf. For example, the above examples that used `*` in
 their projections could be expanded to the following explicit column lists:
 
 ```sql
@@ -352,8 +352,9 @@ If anyone has any suggestions on how we can support this in a compatible manner,
 - Removal of non-standard GROUP BY, PARTITION BY and JOIN aliasing syntax,
   in favour of standard aliasing of the key column in the projection.
 - removal of duplicate left join column on 'select *' joins.
-- Addition of `COPY` function to allow users to add key column to value schema.
-- TODO(ac): group by multiple fields...
+- Addition of a `AV_VALUE` function to allow users to copy key column into value columns.
+- Addition of a `JOINKEY` function to allow users to reference the synthetic key column created by
+  some join types, and to define an alias for it.
 
 ## What is not in scope
 
@@ -415,26 +416,32 @@ CREATE TABLE OUTPUT AS
 -- current result schema: ID INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 -- note join key is duplicated in ID, I1_ID and I2_ID columns.
 
--- proposed result schema either (TBD):
--- a): ID INT KEY, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
--- note join key is duplicated in ID and I2_ID columns, only.
+-- proposed result schema:
 -- b): I1_ID INT KEY, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 -- note join key is duplicated in I1_ID and I2_ID columns, only.
 ```
 
-4. Syntax for allowing key column to be added as value column:
+4. New `AS_VALUE` function to key column to be added as value column:
 
-A new `COPY` method will be added to allow users to copy the key column into the value. For example:
+A new `AS_VALUE` method will be added to allow users to copy the key column into a value column.
+For example:
 
 ```sql
 CREATE TABLE OUTPUT AS
-   SELECT ID, V0, V1, COPY(ID) AS V2 FROM INPUT;
+   SELECT ID, V0, V1, AS_VALUE(ID) AS V2 FROM INPUT;
 -- resulting schema: ID INT KEY, V0 INT, V1 INT, V2 INT
 ```
 
-Name of `COPY` TBD. Alternatives:
- - `IDENTITY`
- - `AS_VALUE`
+5. New `JOINKEY` function to match the synthetic key column of some joins
+
+A new `JOINKEY` method will be added to allow users to include the synthesised key column, created
+by some joins, in the projection and, optionally, define an alias for it. For example:
+
+```sql
+CREATE TABLE OUTPUT AS
+   SELECT JOINKEY(I1.ID, I2.V0) AS ID, I1.V0, I2.ID FROM I1 FULL OUTER JOIN I2 ON I1.ID = I2.V0;
+-- resulting schema: ID INT KEY, V0 INT, ID INT
+```
 
 ## Design
 
@@ -515,8 +522,8 @@ ksqlDB is to support join criterion other than the current equality.
 However, this is rejected as a solution for now for the following reasons:
   a. Such a solution requires ksqlDB to support multiple key columns. It currently does not, and this
      KLIP is part of the work moving towards such support. Hence its a chicken and egg problem.
-  b. Such a solution requires Streams to be able to correctly handle the multiple key columns
-     correctly, which it currently does not.  This is particularly challenging for outer joins,
+  b. Such a solution requires Streams to be able to correctly handle the multiple key columns,
+     which it currently does not.  This is particularly challenging for outer joins,
      where some key columns may initially be `null` and later populated. Any solution needs to ensure
      correct partitioning and update semantics for such rows.
 
@@ -524,7 +531,7 @@ However, this is rejected as a solution for now for the following reasons:
 
 Where a join introduces a synthesised key column the column would have a system generated name.
 
-Requiring the user to include a column within the projection that does not belong to the any source
+Requiring the user to include a column within the projection that does not belong to any source
 schema, regardless of naming strategy, poses a problem. KsqlDB validates that all column references
 exist in source schemas. This validation would now fail as it does not have the context to reason
 about any synthetic key col. While this is purely an implementation detail, fixing this would

@@ -63,5 +63,5 @@ Next KLIP number: **23**
 | [KLIP-20: Remove 'TERMINATE' statements](klip-20_remove_terminate.md)              | Proposal       | N/A     |
 | [KLIP-21: Correct 'INSERT VALUES' semantics](klip-21_correct_insert_values_semantics.md)  | Proposal       | N/A     |
 | KLIP-22: Add consumer group id to CREATE STREAM and CREATE TABLE DSL               | Proposal       | N/A     |
-| [KLIP-23: PRIMARY KEYs for tables](klip-23-primary-keys-for-tables.md)             | Merged         | 0.9 / release after 5.5  |
-| KLIP-24: KEY column semantics in queries                                           | Proposal       | N/A     |
+| [KLIP-23: PRIMARY KEYs for tables](klip-23-primary-keys-for-tables.md)             | Merged         | 0.9 / 6.0  |
+| [KLIP-24: KEY column semantics in queries](klip-24-key-column-semantics-in-queries.md)| Merged      | 0.10 / 6.0 |

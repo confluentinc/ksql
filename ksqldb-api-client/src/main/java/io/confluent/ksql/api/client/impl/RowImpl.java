@@ -59,6 +59,16 @@ public class RowImpl implements Row {
   }
 
   @Override
+  public boolean isNull(final int columnIndex) {
+    return getValue(columnIndex) == null;
+  }
+
+  @Override
+  public boolean isNull(final String columnName) {
+    return isNull(indexFromName(columnName));
+  }
+
+  @Override
   public Object getValue(final int columnIndex) {
     return values.getValue(columnIndex - 1);
   }

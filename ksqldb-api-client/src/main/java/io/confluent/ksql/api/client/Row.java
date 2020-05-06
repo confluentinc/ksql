@@ -29,6 +29,22 @@ public interface Row {
   KsqlArray values();
 
   /**
+   * Whether the value for a particular column of the Row is null.
+   *
+   * @param columnIndex index of column (1-indexed).
+   * @return whether the column value is null.
+   */
+  boolean isNull(int columnIndex);
+
+  /**
+   * Whether the value for a particular column of the Row is null.
+   *
+   * @param columnName name of column.
+   * @return whether the column value is null.
+   */
+  boolean isNull(String columnName);
+
+  /**
    * Get the value for a particular column of the Row as an Object.
    *
    * @param columnIndex index of column (1-indexed).

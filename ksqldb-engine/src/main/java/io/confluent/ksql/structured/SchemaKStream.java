@@ -342,10 +342,9 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<Struct> selectKey(
       final Expression keyExpression,
-      final Optional<ColumnName> alias,
       final Stacker contextStacker
   ) {
-    if (repartitionNotNeeded(ImmutableList.of(keyExpression), alias)) {
+    if (repartitionNotNeeded(ImmutableList.of(keyExpression), Optional.empty())) {
       return (SchemaKStream<Struct>) this;
     }
 
@@ -356,7 +355,7 @@ public class SchemaKStream<K> {
 
     final ExecutionStep<KStreamHolder<Struct>> step = ksqlConfig
         .getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
-        ? ExecutionStepFactory.streamSelectKey(contextStacker, sourceStep, keyExpression, alias)
+        ? ExecutionStepFactory.streamSelectKey(contextStacker, sourceStep, keyExpression)
         : ExecutionStepFactory.streamSelectKeyV1(contextStacker, sourceStep, keyExpression);
 
     return new SchemaKStream<>(

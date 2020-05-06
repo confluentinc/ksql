@@ -415,12 +415,7 @@ public final class SqlFormatter {
     protected Void visitPartitionBy(final PartitionBy node, final Integer indent) {
       final String expression = formatExpression(node.getExpression());
 
-      final String alias = node.getAlias()
-          .map(SqlFormatter::escapedName)
-          .map(text -> " AS " + text)
-          .orElse("");
-
-      append(indent, "PARTITION BY " + expression + alias)
+      append(indent, "PARTITION BY " + expression)
           .append('\n');
 
       return null;

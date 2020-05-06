@@ -353,8 +353,7 @@ public class StepSchemaResolverTest {
     final StreamSelectKey step = new StreamSelectKey(
         PROPERTIES,
         streamSource,
-        keyExpression,
-        Optional.empty()
+        keyExpression
     );
 
     // When:
@@ -363,30 +362,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(LogicalSchema.builder()
         .keyColumn(keyExpression.getColumnName(), SqlTypes.INTEGER)
-        .valueColumns(SCHEMA.value())
-        .build()
-    ));
-  }
-
-  @Test
-  public void shouldResolveSchemaForStreamSelectKeyV2WithAlias() {
-    // Given:
-    final UnqualifiedColumnReferenceExp keyExpression =
-        new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
-
-    final StreamSelectKey step = new StreamSelectKey(
-        PROPERTIES,
-        streamSource,
-        keyExpression,
-        Optional.of(ColumnName.of("RED"))
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(ColumnName.of("RED"), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()
     ));

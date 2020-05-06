@@ -449,9 +449,6 @@
         },
         "keyExpression" : {
           "type" : "string"
-        },
-        "alias" : {
-          "type" : "string"
         }
       },
       "title" : "streamSelectKeyV2",

@@ -76,7 +76,7 @@ query
       (WINDOW  windowExpression)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
-      (PARTITION BY partitionBy)?
+      (PARTITION BY partitionBy=valueExpression)?
       (HAVING having=booleanExpression)?
       (EMIT resultMaterialization)?
       limitClause?
@@ -150,10 +150,6 @@ windowUnit
     | MINUTES
     | SECONDS
     | MILLISECONDS
-    ;
-
-partitionBy
-    : valueExpression (AS? identifier)?
     ;
 
 groupBy

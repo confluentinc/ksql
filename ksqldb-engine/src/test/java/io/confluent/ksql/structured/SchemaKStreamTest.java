@@ -204,7 +204,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
 
     // Then:
     assertThat(result, is(initialSchemaKStream));
@@ -219,7 +219,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
 
     // Then:
     assertThat(result, is(initialSchemaKStream));
@@ -234,7 +234,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -250,7 +250,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -265,7 +265,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -279,7 +279,7 @@ public class SchemaKStreamTest {
     final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
-    initialSchemaKStream.selectKey(repartitionNode.getPartitionBy(), Optional.empty(),
+    initialSchemaKStream.selectKey(repartitionNode.getPartitionBy(),
         childContextStacker
     );
   }
@@ -405,7 +405,7 @@ public class SchemaKStreamTest {
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
 
     // When:
-    schemaKTable.selectKey(col2, Optional.empty(), childContextStacker);
+    schemaKTable.selectKey(col2, childContextStacker);
   }
 
   @Test
@@ -495,7 +495,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        Optional.empty(), childContextStacker);
+        childContextStacker);
 
     // Then:
     assertThat(rekeyedSchemaKStream.getKeyField(), is(expected));
@@ -509,7 +509,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        Optional.empty(), childContextStacker);
+        childContextStacker);
 
     // Then:
     assertThat(
@@ -532,7 +532,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        Optional.empty(), childContextStacker);
+        childContextStacker);
 
     // Then:
     assertThat(

@@ -144,10 +144,9 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKStream<Struct> selectKey(
       final Expression keyExpression,
-      final Optional<ColumnName> alias,
       final Stacker contextStacker
   ) {
-    if (repartitionNotNeeded(ImmutableList.of(keyExpression), alias)) {
+    if (repartitionNotNeeded(ImmutableList.of(keyExpression), Optional.empty())) {
       return (SchemaKStream<Struct>) this;
     }
 

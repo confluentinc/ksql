@@ -67,13 +67,11 @@ public final class PartitionByParamsFactory {
   public static PartitionByParams build(
       final LogicalSchema sourceSchema,
       final Expression partitionBy,
-      final Optional<ColumnName> alias,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final ProcessingLogger logger
   ) {
-    final Optional<ColumnName> partitionByCol =
-        getPartitionByColumnName(sourceSchema, partitionBy, alias);
+    final Optional<ColumnName> partitionByCol = getPartitionByColumnName(sourceSchema, partitionBy);
 
     final Function<GenericRow, Object> evaluator = buildExpressionEvaluator(
         sourceSchema,
@@ -95,11 +93,10 @@ public final class PartitionByParamsFactory {
   public static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
       final Expression partitionBy,
-      final Optional<ColumnName> alias,
       final FunctionRegistry functionRegistry
   ) {
     final Optional<ColumnName> partitionByCol =
-        getPartitionByColumnName(sourceSchema, partitionBy, alias);
+        getPartitionByColumnName(sourceSchema, partitionBy);
 
     return buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCol);
   }
@@ -136,14 +133,8 @@ public final class PartitionByParamsFactory {
 
   private static Optional<ColumnName> getPartitionByColumnName(
       final LogicalSchema sourceSchema,
-      final Expression partitionBy,
-      final Optional<ColumnName> alias
+      final Expression partitionBy
   ) {
-    if (alias.isPresent()) {
-      // User supplied a name:
-      return alias;
-    }
-
     if (partitionBy instanceof ColumnReferenceExp) {
       // PARTITION BY column:
       final ColumnName columnName = ((ColumnReferenceExp) partitionBy).getColumnName();

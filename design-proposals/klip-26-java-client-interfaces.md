@@ -149,7 +149,7 @@ The `Client` interface will provide the following methods for streaming the resu
    * @param sql statement of query to execute.
    * @return query result.
    */
-  CompletableFuture<QueryResult> streamQuery(String sql);
+  CompletableFuture<StreamedQueryResult> streamQuery(String sql);
 
   /**
    * Execute a query (push or pull) and receive the results one row at a time.
@@ -158,18 +158,18 @@ The `Client` interface will provide the following methods for streaming the resu
    * @param properties query properties.
    * @return query result.
    */
-  CompletableFuture<QueryResult> streamQuery(String sql, Map<String, Object> properties);
+  CompletableFuture<StreamedQueryResult> streamQuery(String sql, Map<String, Object> properties);
 ```
-where `QueryResult` is as follows:
+where `StreamedQueryResult` is as follows:
 ```
 import org.reactivestreams.Publisher;
 
 /**
  * The result of a query (push or pull), streamed one row at time. Records may be consumed by either
  * subscribing to the publisher or polling (blocking) for one record at a time. These two methods of
- * consumption are mutually exclusive; only one method may be used (per QueryResult).
+ * consumption are mutually exclusive; only one method may be used (per StreamedQueryResult).
  */
-public interface QueryResult extends Publisher<Row> {
+public interface StreamedQueryResult extends Publisher<Row> {
 
   List<String> columnNames();
 
@@ -198,8 +198,8 @@ public interface QueryResult extends Publisher<Row> {
   void close();
 }
 ```
-Note that `QueryResult` is a Reactive Streams `Publisher` so users can stream results. Users can also call `poll()` to receive
-results in a synchronous fashion instead. Only one of the two methods will be allowed per `QueryResult` instance.
+Note that `StreamedQueryResult` is a Reactive Streams `Publisher` so users can stream results. Users can also call `poll()` to receive
+results in a synchronous fashion instead. Only one of the two methods will be allowed per `StreamedQueryResult` instance.
 
 The `Row` interface is as follows:
 ```
@@ -348,7 +348,7 @@ once the query has completed:
    * @param sql statement of query to execute.
    * @return query result.
    */
-  CompletableFuture<List<Row>> executeQuery(String sql);
+  CompletableFuture<BatchQueryResult> executeQuery(String sql);
 
   /**
    * Execute a query (push or pull) and receive all result rows together, once the query has
@@ -358,7 +358,19 @@ once the query has completed:
    * @param properties query properties.
    * @return query result.
    */
-  CompletableFuture<List<Row>> executeQuery(String sql, Map<String, Object> properties);
+  CompletableFuture<BatchQueryResult> executeQuery(String sql, Map<String, Object> properties);
+```
+where
+```
+public interface BatchQueryResult {
+
+  List<String> columnNames();
+
+  List<String> columnTypes();
+
+  String queryID();
+  
+  List<Rows> rows();
 ```
 
 For a query to "complete" could mean:
@@ -368,6 +380,10 @@ For a query to "complete" could mean:
 
 We may want to introduce a limit to the number of rows that may be returned from these `executeQuery()` methods,
 in order to decrease the likelihood of running out of memory.
+
+For `BatchQueryResult`, the `columnNames()` and `columnTypes()` methods are not strictly necessary as this same information is contained in `Row`
+and (unlike the `StreamedQueryResult`) the rows are returned at the same time as the query result object itself.
+I think it's nice to have them for purposes of consistency but we remove them if others think the additional methods are redundant.
 
 ### Insert values
 

@@ -173,7 +173,7 @@ public interface StreamedQueryResult extends Publisher<Row> {
 
   List<String> columnNames();
 
-  List<String> columnTypes();
+  List<ColumnType> columnTypes();
 
   String queryID();
 
@@ -210,7 +210,7 @@ public interface Row {
 
   List<String> columnNames();
 
-  List<String> columnTypes();
+  List<ColumnType> columnTypes();
 
   List<Object> values();
 
@@ -327,8 +327,19 @@ public interface Row {
   BigDecimal getDecimal(String columnName);
 }
 ```
+and `ColumnType` is:
+```
+public interface ColumnType {
 
-We considered representing column types in a more structured form (rather than plain strings) to accomodate complex/nested data types but felt this added complexity would not be helpful for most use cases. (This would also require a server-side change, so it's a fair bit of additional work.)
+  enum Type { STRING, INTEGER, BIGINT, DOUBLE, BOOLEAN, DECIMAL, ARRAY, MAP, STRUCT }
+
+  Type getType();
+
+}
+```
+
+For now, `ColumnType` simply wraps a type represented as an enum. We can add additional methods in the future if we wish to expose more detailed type information (e.g., decimal scale and precision, or inner types for nested/complex types).
+(The server side APIs currently return type information only as strings, which means providing a fully-specified type requires either client-side parsing or a server side change. The latter is preferred but is a fair bit of additional work.)
 
 For `getDecimal(...)` in the `Row` interface, rather than trying to parse the column type to extract the precision and scale, we will simply convert the value to a BigDecimal without explicitly specifying the precision and scale. We could also add an option for users to specify the scale and precision in the getter, if we think that would be useful.
 
@@ -366,7 +377,7 @@ public interface BatchQueryResult {
 
   List<String> columnNames();
 
-  List<String> columnTypes();
+  List<ColumnType> columnTypes();
 
   String queryID();
   

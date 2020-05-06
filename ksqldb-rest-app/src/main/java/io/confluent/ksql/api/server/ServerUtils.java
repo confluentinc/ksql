@@ -17,7 +17,6 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_PARAM;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 import io.confluent.ksql.api.server.protocol.PojoCodec;
@@ -92,13 +91,6 @@ public final class ServerUtils {
       routingContext
           .fail(BAD_REQUEST.code(), new KsqlApiException("No " + paramName + " in arguments",
               ERROR_CODE_MISSING_PARAM));
-    }
-
-    @Override
-    public void onExtraParam(final String paramName) {
-      routingContext
-          .fail(BAD_REQUEST.code(), new KsqlApiException("Unknown arg " + paramName,
-              ERROR_CODE_UNKNOWN_PARAM));
     }
 
     @Override

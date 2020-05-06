@@ -54,8 +54,12 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class PortedEndpoints {
+
+  private static final Logger log = LoggerFactory.getLogger(PortedEndpoints.class);
 
   private static final Set<String> PORTED_ENDPOINTS = ImmutableSet
       .of("/ksql", "/ksql/terminate", "/query", "/info", "/heartbeat", "/clusterStatus",
@@ -348,7 +352,11 @@ class PortedEndpoints {
   }
 
   private static void oldApiFailureHandler(final RoutingContext routingContext) {
+
     final int statusCode = routingContext.statusCode();
+
+    log.error("Failure in handling API endpoint: statusCode: " + statusCode,
+        routingContext.failure());
 
     final KsqlErrorMessage ksqlErrorMessage;
     if (routingContext.failure() instanceof KsqlApiException) {

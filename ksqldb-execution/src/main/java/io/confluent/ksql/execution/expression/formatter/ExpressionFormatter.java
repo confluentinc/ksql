@@ -158,12 +158,6 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitDoubleLiteral(final DoubleLiteral node, final Context context) {
-      // there is a bug in NumberFormatter that formats Double.MIN_VALUE to 0E0
-      // check that edge case here (https://unicode-org.atlassian.net/browse/CLDR-13549)
-      if (Double.compare(node.getValue(), Double.MIN_VALUE) == 0) {
-        return "4.9E-324";
-      }
-
       // NOTE: the Precision.unlimited() uses a complex algorithm to determine
       // the correct way to format the double value in scientific notation
       // without losing precision - do not change this to use Double#toString

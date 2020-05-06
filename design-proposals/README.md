@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **27**
+Next KLIP number: **28**
 
 | KLIP                                                                               | Status         | Release |
 |------------------------------------------------------------------------------------|:--------------:| ------: |
@@ -67,3 +67,4 @@ Next KLIP number: **27**
 | KLIP-24: KEY column semantics in queries                                           | Proposal [Discussion](https://github.com/confluentinc/ksql/pull/511es)       | N/A     |
 | KLIP-25: Removal of `WITH(KEY)` syntax                                             | Proposal       | N/A     |
 | [KLIP-26: Java client interfaces](klip-26-java-client-interfaces.md)               | Proposal       | N/A     |
+| KLIP-27: Enhanced UDF Configuration Options                                        | Proposal       | N/A     |

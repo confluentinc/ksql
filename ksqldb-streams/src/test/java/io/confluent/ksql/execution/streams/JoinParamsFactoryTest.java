@@ -1,12 +1,11 @@
 package io.confluent.ksql.execution.streams;
 
-import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -16,31 +15,81 @@ import org.junit.Test;
 public class JoinParamsFactoryTest {
 
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("LK"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("L_K"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("L_BLUE"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("L_GREEN"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("L_K"), SqlTypes.STRING) // Copy of key in value
       .build();
 
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("RK"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
+      .keyColumn(ColumnName.of("R_K"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("R_RED"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("R_ORANGE"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("R_K"), SqlTypes.STRING) // Copy of key in value
       .build();
 
   private JoinParams joinParams;
 
   @Test
-  public void shouldBuildCorrectSchema() {
-    // when:
-    joinParams = JoinParamsFactory.create(LEFT_SCHEMA, RIGHT_SCHEMA);
+  public void shouldBuildCorrectLeftKeyedSchema() {
+    // Given:
+    final ColumnName keyName = Iterables.getOnlyElement(LEFT_SCHEMA.key()).name();
+
+    // When:
+    joinParams = JoinParamsFactory.create(keyName, LEFT_SCHEMA, RIGHT_SCHEMA);
 
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
-        .keyColumn(ColumnName.of("LK"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
+        .keyColumn(ColumnName.of("L_K"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("L_BLUE"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("L_GREEN"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("L_K"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("R_RED"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("R_ORANGE"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("R_K"), SqlTypes.STRING)
+        .build())
+    );
+  }
+
+  @Test
+  public void shouldBuildCorrectRightKeyedSchema() {
+    // Given:
+    final ColumnName keyName = Iterables.getOnlyElement(RIGHT_SCHEMA.key()).name();
+
+    // When:
+    joinParams = JoinParamsFactory.create(keyName, LEFT_SCHEMA, RIGHT_SCHEMA);
+
+    // Then:
+    assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
+        .keyColumn(ColumnName.of("R_K"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("L_BLUE"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("L_GREEN"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("L_K"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("R_RED"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("R_ORANGE"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("R_K"), SqlTypes.STRING)
+        .build())
+    );
+  }
+
+  @Test
+  public void shouldBuildCorrectSyntheticKeyedSchema() {
+    // Given:
+    final ColumnName keyName = ColumnName.of("OTHER");
+
+    // When:
+    joinParams = JoinParamsFactory.create(keyName, LEFT_SCHEMA, RIGHT_SCHEMA);
+
+    // Then:
+    assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
+        .keyColumn(keyName, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("L_BLUE"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("L_GREEN"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("L_K"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("R_RED"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("R_ORANGE"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("R_K"), SqlTypes.STRING)
+        .valueColumn(keyName, SqlTypes.STRING)
         .build())
     );
   }
@@ -58,33 +107,11 @@ public class JoinParamsFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> JoinParamsFactory.create(intKeySchema, RIGHT_SCHEMA)
+        () -> JoinParamsFactory.create(ColumnName.of("BOB"), intKeySchema, RIGHT_SCHEMA)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
         "Invalid join. Key types differ: INTEGER vs STRING"));
-  }
-
-  @Test
-  public void shouldGetKeyFromLeftSource() {
-    // Given:
-    final LogicalSchema leftSchema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("BOB"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
-        .build();
-
-    final LogicalSchema rightSchema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("VIC"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("GREEN"), SqlTypes.DOUBLE)
-        .build();
-
-    // when:
-    joinParams = JoinParamsFactory.create(leftSchema, rightSchema);
-
-    // Then:
-    assertThat(joinParams.getSchema().key(), contains(
-        keyColumn(ColumnName.of("BOB"), SqlTypes.BIGINT)
-    ));
   }
 }

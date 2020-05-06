@@ -242,12 +242,40 @@ work with the `KAFKA` format, respectively.
 Because the format supports only primitive types, you can only use it
 when the schema contains a single field.
 
-For example, if your Kafka messages have a `long` key, you can make them
-available to ksqlDB by using a statement like:
+For example, if your {{ site.ak }} messages have a `long` key, you can make
+them available to ksqlDB by using a statement like:
 
 ```sql
-CREATE STREAM USERS (ROWKEY BIGINT KEY, NAME STRING) WITH (KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', ...);
+CREATE STREAM USERS (ROWKEY BIGINT KEY, NAME STRING) WITH (VALUE_FORMAT='JSON', ...);
 ```
+
+If you integrate ksqlDB with
+[Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html),
+and your ksqlDB application uses a compatible value format (Avro, JSON_SR, or
+Protobuf), you can just supply the key column, and ksqlDB loads the value
+columns from {{ site.sr }}:
+
+```sql
+CREATE STREAM USERS (ROWKEY BIGINT KEY) WITH (VALUE_FORMAT='JSON_SR', ...);
+```
+
+The key column must be supplied, because ksqlDB supports only keys in `KAFKA`
+format.
+
+### Protobuf
+
+Protobuf handles `null` values differently than AVRO and JSON. Protobuf doesn't
+have the concept of a `null` value, so the conversion between PROTOBUF and Java
+({{ site.kconnectlong }}) objects is undefined. Usually, Protobuf resolves a
+"missing field" to the default value of its type.
+
+- **String:** the default value is the empty string.
+- **Byte:** the default value is empty bytes.
+- **Bool:** the default value is `false`.
+- **Numeric type:** the default value is zero.
+- **Enum:** the default value is the first defined enum value, which must be zero.
+- **Message field:** the field is not set. Its exact value is language-dependent.
+  See the generated code guide for details.
 
 Decimal Serialization
 ---------------------
@@ -279,20 +307,6 @@ Single field (un)wrapping
       The `DELIMITED` and `KAFKA` formats don't support single-field
       unwrapping.
 
-### Protobuf
-
-Protobuf handles `null` values differently than AVRO and JSON. Protobuf doesn't
-have the concept of a `null` value, so the conversion between PROTOBUF and Java
-({{ site.kconnectlong }}) objects is undefined. Usually, Protobuf resolves a
-"missing field" to the default value of its type.
-
-- **String:** the default value is the empty string.
-- **Byte:** the default value is empty bytes.
-- **Bool:** the default value is `false`.
-- **Numeric type:** the default value is zero.
-- **Enum:** the default value is the first defined enum value, which must be zero.
-- **Message field:** the field is not set. Its exact value is language-dependent.
-  See the generated code guide for details.
 
 ### Controlling deserializing of single fields
 

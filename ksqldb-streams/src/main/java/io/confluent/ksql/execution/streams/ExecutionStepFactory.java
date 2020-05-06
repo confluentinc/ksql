@@ -198,6 +198,7 @@ public final class ExecutionStepFactory {
   public static <K> StreamTableJoin<K> streamTableJoin(
       final QueryContext.Stacker stacker,
       final JoinType joinType,
+      final ColumnName keyColName,
       final Formats formats,
       final ExecutionStep<KStreamHolder<K>> left,
       final ExecutionStep<KTableHolder<K>> right
@@ -206,6 +207,7 @@ public final class ExecutionStepFactory {
     return new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
+        keyColName,
         formats,
         left,
         right
@@ -215,6 +217,7 @@ public final class ExecutionStepFactory {
   public static <K> StreamStreamJoin<K> streamStreamJoin(
       final QueryContext.Stacker stacker,
       final JoinType joinType,
+      final ColumnName keyColName,
       final Formats leftFormats,
       final Formats rightFormats,
       final ExecutionStep<KStreamHolder<K>> left,
@@ -225,6 +228,7 @@ public final class ExecutionStepFactory {
     return new StreamStreamJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
+        keyColName,
         leftFormats,
         rightFormats,
         left,
@@ -305,6 +309,7 @@ public final class ExecutionStepFactory {
   public static <K> TableTableJoin<K> tableTableJoin(
       final QueryContext.Stacker stacker,
       final JoinType joinType,
+      final ColumnName keyColName,
       final ExecutionStep<KTableHolder<K>> left,
       final ExecutionStep<KTableHolder<K>> right
   ) {
@@ -312,6 +317,7 @@ public final class ExecutionStepFactory {
     return new TableTableJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
+        keyColName,
         left,
         right
     );

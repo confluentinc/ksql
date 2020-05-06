@@ -24,7 +24,6 @@ public final class ErrorCodes {
   }
 
   public static final int ERROR_CODE_MISSING_PARAM = 1;
-  public static final int ERROR_CODE_UNKNOWN_PARAM = 2;
   public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 3;
   public static final int ERROR_CODE_MALFORMED_REQUEST = 4;
   public static final int ERROR_CODE_INVALID_QUERY = 5;

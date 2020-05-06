@@ -15,17 +15,22 @@
 
 package io.confluent.ksql.planner;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -127,6 +132,20 @@ final class JoinTree {
      * since all of those expressions evaluate to the same value.
      */
     Set<Expression> joinEquivalenceSet();
+
+    /**
+     * The set of columns that can be used in the projection to include the key.
+     *
+     * <p>Consider the following JOIN:
+     * <pre>{@code
+     *  SELECT * FROM A JOIN B on A.id = B.id + 1
+     *                  JOIN C on A.id = C.id;
+     * }</pre>
+     * The viable keys would be {@code {A.id, c.id}}.
+     *
+     * @return the viable key columns.
+     */
+    List<QualifiedColumnReferenceExp> viableKeyColumns();
   }
 
   static class Join implements Node {
@@ -229,6 +248,31 @@ final class JoinTree {
       }
     }
 
+    @SuppressWarnings("UnstableApiUsage")
+    @Override
+    public List<QualifiedColumnReferenceExp> viableKeyColumns() {
+
+      if (info.getType() == JoinType.OUTER) {
+        // Full outer joins have no source column that is equivalent to the key column of the result
+        return ImmutableList.of();
+      }
+
+      final Set<Expression> equiv = joinEquivalenceSet();
+
+      return Streams
+          .concat(
+              left.viableKeyColumns().stream(),
+              Stream.of(info.getLeftJoinExpression()),
+              right.viableKeyColumns().stream(),
+              Stream.of(info.getRightJoinExpression())
+          )
+          .filter(e -> e instanceof QualifiedColumnReferenceExp)
+          .map(QualifiedColumnReferenceExp.class::cast)
+          .distinct()
+          .filter(equiv::contains)
+          .collect(Collectors.toList());
+    }
+
     @Override
     public String toString() {
       return "Join{" + "left=" + left
@@ -282,6 +326,11 @@ final class JoinTree {
     @Override
     public Set<Expression> joinEquivalenceSet() {
       return ImmutableSet.of(); // Leaf nodes don't have join equivalence sets
+    }
+
+    @Override
+    public List<QualifiedColumnReferenceExp> viableKeyColumns() {
+      return ImmutableList.of();
     }
 
     @Override

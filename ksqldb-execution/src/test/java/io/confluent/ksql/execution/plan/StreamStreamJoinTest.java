@@ -14,7 +14,11 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static io.confluent.ksql.execution.plan.JoinType.INNER;
+import static io.confluent.ksql.execution.plan.JoinType.LEFT;
+
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.name.ColumnName;
 import java.time.Duration;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
@@ -24,128 +28,64 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamStreamJoinTest {
+
+  private static final ColumnName KEY = ColumnName.of("Bob");
+  private static final ColumnName KEY2 = ColumnName.of("Vic");
+
+  private static final Duration SIX_SEC = Duration.ofSeconds(6);
+  private static final Duration TEN_SEC = Duration.ofSeconds(10);
+
   @Mock
-  private ExecutionStepPropertiesV1 properties1;
+  private ExecutionStepPropertiesV1 props;
   @Mock
-  private ExecutionStepPropertiesV1 properties2;
+  private ExecutionStepPropertiesV1 props2;
   @Mock
-  private ExecutionStep<KStreamHolder<Struct>> left1;
+  private ExecutionStep<KStreamHolder<Struct>> left;
   @Mock
-  private ExecutionStep<KStreamHolder<Struct>> right1;
+  private ExecutionStep<KStreamHolder<Struct>> right;
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> left2;
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> right2;
   @Mock
-  private Formats leftFormats1;
+  private Formats lFmts;
   @Mock
-  private Formats leftFormats2;
-  @Mock
-  private Formats rightFormats1;
-  @Mock
-  private Formats rightFormats2;
+  private Formats rFmts;
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new StreamStreamJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                rightFormats1,
-                left1,
-                right1,
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(20)),
-            new StreamStreamJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                rightFormats1,
-                left1,
-                right1,
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(20)))
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right, TEN_SEC, SIX_SEC),
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right, TEN_SEC, SIX_SEC)
+        )
         .addEqualityGroup(
-            new StreamStreamJoin<>(
-                properties2,
-                JoinType.INNER,
-                leftFormats1,
-                rightFormats1,
-                left1,
-                right1,
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(20)))
+            new StreamStreamJoin<>(props2, INNER, KEY, lFmts, rFmts, left, right, TEN_SEC, SIX_SEC)
+        )
         .addEqualityGroup(
-            new StreamStreamJoin<>(
-                properties1,
-                JoinType.LEFT,
-                leftFormats1,
-                rightFormats1,
-                left1,
-                right1,
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(20)))
+            new StreamStreamJoin<>(props, LEFT, KEY, lFmts, rFmts, left, right, TEN_SEC, SIX_SEC)
+        )
         .addEqualityGroup(
-            new StreamStreamJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats2,
-                rightFormats1,
-                left1,
-                right1,
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(20)))
+            new StreamStreamJoin<>(props, LEFT, KEY2, lFmts, rFmts, left, right, TEN_SEC, SIX_SEC)
+        )
         .addEqualityGroup(
-            new StreamStreamJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                rightFormats2,
-                left1,
-                right1,
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(20)))
+            new StreamStreamJoin<>(props, INNER, KEY, rFmts, rFmts, left, right, TEN_SEC, SIX_SEC)
+        )
         .addEqualityGroup(
-            new StreamStreamJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                rightFormats1,
-                left2,
-                right1,
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(20)))
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, lFmts, left, right, TEN_SEC, SIX_SEC)
+        )
         .addEqualityGroup(
-            new StreamStreamJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                rightFormats1,
-                left1,
-                right2,
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(20)))
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left2, right, TEN_SEC, SIX_SEC)
+        )
         .addEqualityGroup(
-            new StreamStreamJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                rightFormats1,
-                left1,
-                right1,
-                Duration.ofSeconds(11),
-                Duration.ofSeconds(20)))
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right2, TEN_SEC, SIX_SEC)
+        )
         .addEqualityGroup(
-            new StreamStreamJoin<>(
-                properties1,
-                JoinType.INNER,
-                leftFormats1,
-                rightFormats1,
-                left1,
-                right1,
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(21)));
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right, SIX_SEC, SIX_SEC)
+        )
+        .addEqualityGroup(
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right, TEN_SEC, TEN_SEC)
+        );
   }
 }

@@ -59,6 +59,10 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     this.rewriter = Objects.requireNonNull(rewriter, "rewriter");
   }
 
+  public ImmutableAnalysis original() {
+    return original;
+  }
+
   @Override
   public List<FunctionCall> getTableFunctions() {
     return rewriteList(original.getTableFunctions());

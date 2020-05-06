@@ -37,8 +37,8 @@ import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
@@ -581,7 +581,7 @@ public class LogicalSchemaTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Duplicate keys found in schema: `key` BIGINT"));
+    assertThat(e.getMessage(), containsString("Duplicate key columns found in schema: `key` BIGINT"));
   }
 
   @Test
@@ -597,7 +597,8 @@ public class LogicalSchemaTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Duplicate values found in schema: `value` BIGINT"));
+    assertThat(e.getMessage(),
+        containsString("Duplicate value columns found in schema: `value` BIGINT"));
   }
 
   @Test

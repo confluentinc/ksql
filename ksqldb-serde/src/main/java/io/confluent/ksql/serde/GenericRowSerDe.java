@@ -271,7 +271,8 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
 
       if (data.size() != schema.fields().size()) {
         throw new SerializationException("Field count mismatch."
-            + " expected: " + schema.fields().size()
+            + " topic: " + topic
+            + ", expected: " + schema.fields().size()
             + ", got: " + data.size()
         );
       }

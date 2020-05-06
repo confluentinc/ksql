@@ -245,8 +245,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.empty()
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL))
     );
 
     // When:
@@ -268,8 +267,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.empty()
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL))
     );
 
     // When:
@@ -278,29 +276,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(LogicalSchema.builder()
         .keyColumn(ORANGE_COL, SqlTypes.INTEGER)
-        .valueColumns(SCHEMA.value())
-        .build()));
-  }
-
-  @Test
-  public void shouldResolveSchemaForAliasedStreamGroupBy() {
-    // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
-
-    final StreamGroupBy<?> step = new StreamGroupBy<>(
-        PROPERTIES,
-        streamSource,
-        formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.of(ColumnName.of("NEW_KEY"))
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(ColumnName.of("NEW_KEY"), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
   }
@@ -434,8 +409,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         tableSource,
         formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.empty()
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL))
     );
 
     // When:
@@ -457,8 +431,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         tableSource,
         formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.empty()
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL))
     );
 
     // When:
@@ -467,29 +440,6 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(LogicalSchema.builder()
         .keyColumn(ORANGE_COL, SqlTypes.INTEGER)
-        .valueColumns(SCHEMA.value())
-        .build()));
-  }
-
-  @Test
-  public void shouldResolveSchemaForAliasedTableGroupBy() {
-    // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)).thenReturn(true);
-
-    final TableGroupBy<?> step = new TableGroupBy<>(
-        PROPERTIES,
-        tableSource,
-        formats,
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL)),
-        Optional.of(ColumnName.of("NEW_KEY"))
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(ColumnName.of("NEW_KEY"), SqlTypes.INTEGER)
         .valueColumns(SCHEMA.value())
         .build()));
   }

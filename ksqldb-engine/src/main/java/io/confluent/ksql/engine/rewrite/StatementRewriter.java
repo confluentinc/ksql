@@ -462,7 +462,7 @@ public final class StatementRewriter<C> {
           .map(exp -> processExpression(exp, context))
           .collect(Collectors.toList());
 
-      return new GroupBy(node.getLocation(), rewrittenGroupings, node.getAlias());
+      return new GroupBy(node.getLocation(), rewrittenGroupings);
     }
 
     @Override

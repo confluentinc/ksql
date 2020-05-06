@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -33,7 +32,6 @@ import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -42,7 +40,6 @@ import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
@@ -158,32 +155,6 @@ public final class AstSanitizer {
       return Optional.of(
           new SingleColumn(singleColumn.getLocation(), expression, Optional.of(alias))
       );
-    }
-
-    @Override
-    protected Optional<AstNode> visitGroupBy(
-        final GroupBy node,
-        final StatementRewriter.Context<Void> context
-    ) {
-      final List<Expression> groupingExpressions = node.getGroupingExpressions();
-
-      if (node.getAlias().isPresent()
-          && groupingExpressions.size() == 1
-          && groupingExpressions.get(0) instanceof ColumnReferenceExp) {
-
-        final ColumnName groupByColName = ((ColumnReferenceExp) groupingExpressions.get(0))
-            .getColumnName();
-
-        if (node.getAlias().get().equals(groupByColName)) {
-          // Alias is a no-op - remove it:
-          return Optional.of(new GroupBy(
-              node.getLocation(),
-              groupingExpressions,
-              Optional.empty()
-          ));
-        }
-      }
-      return super.visitGroupBy(node, context);
     }
 
     private DataSource getSource(

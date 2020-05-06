@@ -423,22 +423,11 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitGroupBy(final GroupBy node, final Integer indent) {
-      final boolean surroundWithBrackets = node.getAlias().isPresent()
-          && node.getGroupingExpressions().size() > 1;
-
-      final String prefix = surroundWithBrackets ? "(" : "";
-      final String suffix = surroundWithBrackets ? ")" : "";
-
       final String expressions = node.getGroupingExpressions().stream()
           .map(SqlFormatter::formatExpression)
-          .collect(Collectors.joining(", ", prefix, suffix));
+          .collect(Collectors.joining(", "));
 
-      final String alias = node.getAlias()
-          .map(SqlFormatter::escapedName)
-          .map(text -> " AS " + text)
-          .orElse("");
-
-      append(indent, "GROUP BY " + expressions + alias)
+      append(indent, "GROUP BY " + expressions)
           .append('\n');
 
       return null;

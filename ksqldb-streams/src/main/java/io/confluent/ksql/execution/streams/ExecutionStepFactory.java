@@ -362,16 +362,14 @@ public final class ExecutionStepFactory {
       final Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> sourceStep,
       final Formats format,
-      final List<Expression> groupingExpressions,
-      final Optional<ColumnName> alias
+      final List<Expression> groupingExpressions
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamGroupBy<>(
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         format,
-        groupingExpressions,
-        alias
+        groupingExpressions
     );
   }
 
@@ -405,16 +403,14 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> sourceStep,
       final Formats format,
-      final List<Expression> groupingExpressions,
-      final Optional<ColumnName> alias
+      final List<Expression> groupingExpressions
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableGroupBy<>(
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         format,
-        groupingExpressions,
-        alias
+        groupingExpressions
     );
   }
 }

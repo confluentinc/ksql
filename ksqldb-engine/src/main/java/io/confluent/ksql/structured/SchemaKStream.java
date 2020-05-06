@@ -344,7 +344,7 @@ public class SchemaKStream<K> {
       final Expression keyExpression,
       final Stacker contextStacker
   ) {
-    if (repartitionNotNeeded(ImmutableList.of(keyExpression), Optional.empty())) {
+    if (repartitionNotNeeded(ImmutableList.of(keyExpression))) {
       return (SchemaKStream<Struct>) this;
     }
 
@@ -378,10 +378,7 @@ public class SchemaKStream<K> {
     return SystemColumns.isPseudoColumn(columnName) ? KeyField.none() : newKeyField;
   }
 
-  boolean repartitionNotNeeded(
-      final List<Expression> expressions,
-      final Optional<ColumnName> alias
-  ) {
+  boolean repartitionNotNeeded(final List<Expression> expressions) {
     // Note: A repartition is only not required if partitioning by the existing key column, or
     // the existing keyField.
 
@@ -407,12 +404,6 @@ public class SchemaKStream<K> {
         .findValueColumn(newKeyColName)
         .orElseThrow(IllegalStateException::new);
 
-
-    if (alias.isPresent() && !alias.get().equals(newKeyColName)) {
-      // Aliasing the new key to a different name, so re-key must be required.
-      return false;
-    }
-
     final boolean matchesKeyField = keyField.resolve(getSchema())
         .map(kf -> kf.name().equals(newKeyColName))
         .orElse(false);
@@ -430,12 +421,11 @@ public class SchemaKStream<K> {
   public SchemaKGroupedStream groupBy(
       final ValueFormat valueFormat,
       final List<Expression> groupByExpressions,
-      final Optional<ColumnName> alias,
       final Stacker contextStacker
   ) {
     final KeyFormat rekeyedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
 
-    if (repartitionNotNeeded(groupByExpressions, alias)) {
+    if (repartitionNotNeeded(groupByExpressions)) {
       return groupByKey(rekeyedKeyFormat, valueFormat, contextStacker);
     }
 
@@ -449,8 +439,7 @@ public class SchemaKStream<K> {
         contextStacker,
         sourceStep,
         Formats.of(rekeyedKeyFormat, valueFormat, SerdeOption.none()),
-        groupByExpressions,
-        alias
+        groupByExpressions
     );
 
     return new SchemaKGroupedStream(

@@ -355,9 +355,6 @@
           "items" : {
             "type" : "string"
           }
-        },
-        "alias" : {
-          "type" : "string"
         }
       },
       "title" : "streamGroupByV1",
@@ -557,9 +554,6 @@
           "type" : "string",
           "enum" : [ "INNER", "LEFT", "OUTER" ]
         },
-        "keyColName" : {
-          "type" : "string"
-        },
         "leftInternalFormats" : {
           "$ref" : "#/definitions/Formats"
         },
@@ -577,6 +571,9 @@
         },
         "afterMillis" : {
           "type" : "integer"
+        },
+        "keyColName" : {
+          "type" : "string"
         }
       },
       "title" : "streamStreamJoinV1",
@@ -598,9 +595,6 @@
           "type" : "string",
           "enum" : [ "INNER", "LEFT", "OUTER" ]
         },
-        "keyColName" : {
-          "type" : "string"
-        },
         "internalFormats" : {
           "$ref" : "#/definitions/Formats"
         },
@@ -609,6 +603,9 @@
         },
         "rightSource" : {
           "$ref" : "#/definitions/ExecutionStep"
+        },
+        "keyColName" : {
+          "type" : "string"
         }
       },
       "title" : "streamTableJoinV1",
@@ -789,9 +786,6 @@
           "items" : {
             "type" : "string"
           }
-        },
-        "alias" : {
-          "type" : "string"
         }
       },
       "title" : "tableGroupByV1",
@@ -866,14 +860,14 @@
           "type" : "string",
           "enum" : [ "INNER", "LEFT", "OUTER" ]
         },
-        "keyColName" : {
-          "type" : "string"
-        },
         "leftSource" : {
           "$ref" : "#/definitions/ExecutionStep"
         },
         "rightSource" : {
           "$ref" : "#/definitions/ExecutionStep"
+        },
+        "keyColName" : {
+          "type" : "string"
         }
       },
       "title" : "tableTableJoinV1",

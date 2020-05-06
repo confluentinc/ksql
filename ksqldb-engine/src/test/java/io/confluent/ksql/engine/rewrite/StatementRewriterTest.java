@@ -783,8 +783,7 @@ public class StatementRewriterTest {
     final Expression rewrittenExp2 = mock(Expression.class);
     final GroupBy groupBy = new GroupBy(
         location,
-        ImmutableList.of(exp1, exp2),
-        Optional.of(COL2)
+        ImmutableList.of(exp1, exp2)
     );
     when(expressionRewriter.apply(exp1, context)).thenReturn(rewrittenExp1);
     when(expressionRewriter.apply(exp2, context)).thenReturn(rewrittenExp2);
@@ -798,8 +797,7 @@ public class StatementRewriterTest {
         equalTo(
             new GroupBy(
                 location,
-                ImmutableList.of(rewrittenExp1, rewrittenExp2),
-                Optional.of(COL2)
+                ImmutableList.of(rewrittenExp1, rewrittenExp2)
             )
         )
     );

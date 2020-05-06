@@ -133,9 +133,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     return original.getGroupBy()
         .map(groupBy -> new GroupBy(
             groupBy.getLocation(),
-            rewriteList(groupBy.getGroupingExpressions()),
-            groupBy.getAlias()
-                .map(this::rewrite)
+            rewriteList(groupBy.getGroupingExpressions())
         ));
   }
 

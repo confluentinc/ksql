@@ -268,7 +268,6 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
     return preSelected.groupBy(
         valueFormat,
         groupBy.getGroupingExpressions(),
-        groupBy.getAlias(),
         contextStacker.push(GROUP_BY_OP_NAME)
     );
   }

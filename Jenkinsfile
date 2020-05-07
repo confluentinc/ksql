@@ -95,56 +95,42 @@ def job = {
 
     if (params.PROMOTE_TO_PRODUCTION) {
         stage("Pulling Docker Images") {
-            withCredentials([usernamePassword(credentialsId: 'vault-tools-role', passwordVariable: 'VAULT_SECRET_ID', usernameVariable: 'VAULT_ROLE_ID')]) {
-                writeFile file:'.ci/vault-login.sh', text:libraryResource('scripts/vault-login.sh')
-                writeFile file:'.ci/get-vault-secret.sh', text:libraryResource('scripts/get-vault-secret.sh')
-                sh '''bash .ci/vault-login.sh'''
-                def artifactory_user = sh(script: "bash .ci/get-vault-secret.sh artifactory/jenkins_access_token user", returnStdout: true).trim()
-                def artifactory_token = sh(script: "bash .ci/get-vault-secret.sh artifactory/jenkins_access_token access_token", returnStdout: true).trim()
-                withEnv(["ARTIFACTORY_USERNAME=${artifactory_user}",
-                    "ARTIFACTORY_PASSWORD=${artifactory_token}"]) {
-                    withDockerServer([uri: dockerHost()]) {
-                        writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
-                        sh '''
-                            bash extract-iam-credential.sh
+            withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
+                ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"]]) {
+                withDockerServer([uri: dockerHost()]) {
+                    writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                    sh '''
+                        bash extract-iam-credential.sh
 
-                            # Hide login credential from below
-                            set +x
+                        # Hide login credential from below
+                        set +x
 
-                            LOGIN_CMD=$(aws ecr get-login --no-include-email --region us-west-2)
+                        LOGIN_CMD=$(aws ecr get-login --no-include-email --region us-west-2)
 
-                            $LOGIN_CMD
-                        '''
-                        config.dockerRepos.each { dockerRepo ->
-                            sh "docker pull ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION}"
-                        }
+                        $LOGIN_CMD
+                    '''
+                    config.dockerRepos.each { dockerRepo ->
+                        sh "docker pull ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION}"
                     }
                 }
             }
         }
 
         stage("Tag and Push Images") {
-            withCredentials([usernamePassword(credentialsId: 'vault-tools-role', passwordVariable: 'VAULT_SECRET_ID', usernameVariable: 'VAULT_ROLE_ID')]) {
-                writeFile file:'.ci/vault-login.sh', text:libraryResource('scripts/vault-login.sh')
-                writeFile file:'.ci/get-vault-secret.sh', text:libraryResource('scripts/get-vault-secret.sh')
-                sh '''bash .ci/vault-login.sh'''
-                def docker_hub_user = sh(script: "bash .ci/get-vault-secret.sh docker_hub/jenkins user", returnStdout: true).trim()
-                def docker_hub_password = sh(script: "bash .ci/get-vault-secret.sh docker_hub/jenkins password", returnStdout: true).trim()
-                withEnv(["DOCKER_USERNAME=${docker_hub_user}",
-                    "DOCKER_PASSWORD=${docker_hub_password}"]) {
-                    withDockerServer([uri: dockerHost()]) {
-                        config.dockerRepos.each { dockerRepo ->
-                            sh '''
-                                set +x
-                                echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
-                            '''
-                            sh "docker tag ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:${params.KSQLDB_VERSION}"
-                            sh "docker push ${dockerRepo}:${params.KSQLDB_VERSION}"
+            withVaultEnv([["docker_hub/jenkins", "user", "DOCKER_USERNAME"],
+                ["docker_hub/jenkins", "password", "DOCKER_PASSWORD"]]) {
+                withDockerServer([uri: dockerHost()]) {
+                    config.dockerRepos.each { dockerRepo ->
+                        sh '''
+                            set +x
+                            echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+                        '''
+                        sh "docker tag ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:${params.KSQLDB_VERSION}"
+                        sh "docker push ${dockerRepo}:${params.KSQLDB_VERSION}"
 
-                            if (params.UPDATE_LATEST_TAG) {
-                                sh "docker tag ${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:latest"
-                                sh "docker push ${dockerRepo}:latest"
-                            }
+                        if (params.UPDATE_LATEST_TAG) {
+                            sh "docker tag ${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:latest"
+                            sh "docker push ${dockerRepo}:latest"
                         }
                     }
                 }
@@ -178,17 +164,11 @@ def job = {
     stage('Build KSQL-DB') {
         dir('ksql-db') {
             archiveArtifacts artifacts: 'pom.xml'
-            withCredentials([usernamePassword(credentialsId: 'vault-tools-role', passwordVariable: 'VAULT_SECRET_ID', usernameVariable: 'VAULT_ROLE_ID')]) {
-                writeFile file:'.ci/vault-login.sh', text:libraryResource('scripts/vault-login.sh')
-                writeFile file:'.ci/get-vault-secret.sh', text:libraryResource('scripts/get-vault-secret.sh')
-                sh '''bash .ci/vault-login.sh'''
-                def artifactory_user = sh(script: "bash .ci/get-vault-secret.sh artifactory/jenkins_access_token user", returnStdout: true).trim()
-                def artifactory_token = sh(script: "bash .ci/get-vault-secret.sh artifactory/jenkins_access_token access_token", returnStdout: true).trim()
-                def github_user = sh(script: "bash .ci/get-vault-secret.sh github/confluent_jenkins user", returnStdout: true).trim()
-                def github_password = sh(script: "bash .ci/get-vault-secret.sh github/confluent_jenkins password", returnStdout: true).trim()
-                withEnv(["ARTIFACTORY_USERNAME=${artifactory_user}",
-                    "ARTIFACTORY_PASSWORD=${artifactory_token}",
-                    "GIT_CREDENTIAL=${github_user}:${github_password}"]) {
+            withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
+                ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"],
+                ["github/confluent_jenkins", "user", "GIT_USER"],
+                ["github/confluent_jenkins", "password", "GIT_TOKEN"]]) {
+                withEnv(["GIT_CREDENTIAL=${env.GIT_USER}:${env.GIT_TOKEN}"]) {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
@@ -259,27 +239,20 @@ def job = {
         stage('Publish Maven Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
-                withCredentials([usernamePassword(credentialsId: 'vault-tools-role', passwordVariable: 'VAULT_SECRET_ID', usernameVariable: 'VAULT_ROLE_ID')]) {
-                    writeFile file:'.ci/vault-login.sh', text:libraryResource('scripts/vault-login.sh')
-                    writeFile file:'.ci/get-vault-secret.sh', text:libraryResource('scripts/get-vault-secret.sh')
-                    sh '''bash .ci/vault-login.sh'''
-                    def artifactory_user = sh(script: "bash .ci/get-vault-secret.sh artifactory/jenkins_access_token user", returnStdout: true).trim()
-                    def artifactory_token = sh(script: "bash .ci/get-vault-secret.sh artifactory/jenkins_access_token access_token", returnStdout: true).trim()
-                    withEnv(["ARTIFACTORY_USERNAME=${artifactory_user}",
-                        "ARTIFACTORY_PASSWORD=${artifactory_token}"]) {
-                        withDockerServer([uri: dockerHost()]) {
-                            withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
-                                writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
-                                sh '''
-                                    bash extract-iam-credential.sh
-                                '''
-                                withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
-                                    cmd = "mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
-                                    cmd += " -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
-                                    cmd += " -DrepositoryId=confluent-artifactory-central"
-                                    cmd += " -DnexusUrl=s3://staging-ksqldb-maven/maven"
-                                    sh cmd
-                                }
+                withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
+                    ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"]]) {
+                    withDockerServer([uri: dockerHost()]) {
+                        withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
+                            writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                            sh '''
+                                bash extract-iam-credential.sh
+                            '''
+                            withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
+                                cmd = "mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
+                                cmd += " -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
+                                cmd += " -DrepositoryId=confluent-artifactory-central"
+                                cmd += " -DnexusUrl=s3://staging-ksqldb-maven/maven"
+                                sh cmd
                             }
                         }
                     }

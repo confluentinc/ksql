@@ -1,13 +1,15 @@
 # Change Log
 
-## [0.9.0](https://github.com/confluentinc/ksql/releases/tag/v0.9.0-ksqldb) (2020-05-07)
+## [0.9.0](https://github.com/confluentinc/ksql/releases/tag/v0.9.0-ksqldb) (2020-05-08)
 
 ### Features
 
+* add multi-join expression support ([#5081](https://github.com/confluentinc/ksql/pull/5081)) ([002cd5a](https://github.com/confluentinc/ksql/commit/002cd5ad6473cbb000291e32ebe5a459d2870b61))
+* support more advanced suite of LIKE expressions ([#5013](https://github.com/confluentinc/ksql/pull/5013)) ([67cd9d9](https://github.com/confluentinc/ksql/commit/67cd9d91690039cc01f43438db1fbcd3fe4924ff))
 * add COALESCE function ([#4829](https://github.com/confluentinc/ksql/pull/4829)) ([251c237](https://github.com/confluentinc/ksql/commit/251c237c455f4cf3843628f41e4bbf57795cfd12))
 * add internal request to KsqlRequestConfig and SessionProperties ([#4771](https://github.com/confluentinc/ksql/pull/4771)) ([fc10cae](https://github.com/confluentinc/ksql/commit/fc10caeb6c164febd8041bc523e765fa6a6b77d8))
 * add KsqlQueryStatus to decouple from KafkaStreams.State ([#5029](https://github.com/confluentinc/ksql/pull/5029)) ([e8cbcde](https://github.com/confluentinc/ksql/commit/e8cbcde548e1f3078b1396173a3f55f86ee20626))
-* add multi-join expression support ([#5081](https://github.com/confluentinc/ksql/pull/5081)) ([002cd5a](https://github.com/confluentinc/ksql/commit/002cd5ad6473cbb000291e32ebe5a459d2870b61))
+* support multi-way joins ([#5064](https://github.com/confluentinc/ksql/pull/5064)) ([64dd39e](https://github.com/confluentinc/ksql/commit/64dd39ee77928221f08371d5e4424839d20c09f6))
 * Adds rate limiting to pull queries ([#4951](https://github.com/confluentinc/ksql/pull/4951)) ([6284111](https://github.com/confluentinc/ksql/commit/6284111652252b63cfc233bdfc3e08dbff983bbd))
 * CORS support for Vert.x based ksqlDB ([#4944](https://github.com/confluentinc/ksql/pull/4944)) ([5632893](https://github.com/confluentinc/ksql/commit/56328931d7eb26699fb5bd0940cfd03f7f9e53f9))
 * Do not allow access to new streaming endpoints using HTTP1.x ([#5193](https://github.com/confluentinc/ksql/pull/5193)) ([8b90035](https://github.com/confluentinc/ksql/commit/8b90035c6facf47d81dfd1616784b191141dce31))
@@ -17,13 +19,8 @@
 * Migrate /ksql and /ksql/terminate endpoints ([#4851](https://github.com/confluentinc/ksql/pull/4851)) ([af6c792](https://github.com/confluentinc/ksql/commit/af6c7922d3c1b0afdd87e9a079e6f95be9780172))
 * scatter gather query status from all servers in cluster for 'SHOW QUERIES [EXTENDED]' statement ([#4875](https://github.com/confluentinc/ksql/pull/4875)) ([7385a31](https://github.com/confluentinc/ksql/commit/7385a31dd33293b76e594649213da2abb81b8ddf))
 * speed up restarts by not building topologies for terminated queries ([#5002](https://github.com/confluentinc/ksql/pull/5002)) ([2472382](https://github.com/confluentinc/ksql/commit/24723824635e7ca175bc5be1fbf6a415010b00bb))
-* support more advanced suite of LIKE expressions ([#5013](https://github.com/confluentinc/ksql/pull/5013)) ([67cd9d9](https://github.com/confluentinc/ksql/commit/67cd9d91690039cc01f43438db1fbcd3fe4924ff))
-* support multi-way joins ([#5064](https://github.com/confluentinc/ksql/pull/5064)) ([64dd39e](https://github.com/confluentinc/ksql/commit/64dd39ee77928221f08371d5e4424839d20c09f6))
 * Support wildcards for unauthed paths ([#4945](https://github.com/confluentinc/ksql/pull/4945)) ([9173f1d](https://github.com/confluentinc/ksql/commit/9173f1dbf92fea0f1b17b6c85fb8a6c25e789ce3))
 * transient queries added to show queries output ([#5105](https://github.com/confluentinc/ksql/pull/5105)) ([e8a2a63](https://github.com/confluentinc/ksql/commit/e8a2a63210219cbac7d979ec0915f1d2016398e2))
-* use describeTopics() for Kafka healtcheck probe ([#4814](https://github.com/confluentinc/ksql/pull/4814)) ([578d0d5](https://github.com/confluentinc/ksql/commit/578d0d543bce685ca6e253a8c6f9bcfbf191093d))
-*  chore: partition-by primitive key support (#4098) ([7addf88](https://github.com/confluentinc/ksql/commit/7addf8856a6d62a6890a5f2520eead26538233a6)), closes [#4098](https://github.com/confluentinc/ksql/issues/4098)
-
 
 
 ### Bug Fixes
@@ -75,12 +72,14 @@
 * backport fixes from query close ([#4819](https://github.com/confluentinc/ksql/pull/4819)) ([76f960b](https://github.com/confluentinc/ksql/commit/76f960bc5702d3995d30ba538956813728160862)), closes [#4643](https://github.com/confluentinc/ksql/issues/4643) [#4658](https://github.com/confluentinc/ksql/issues/4658)
 * logic when closing ksqlEngine fixed ([#4917](https://github.com/confluentinc/ksql/pull/4917)) ([a217eb9](https://github.com/confluentinc/ksql/commit/a217eb9a8a80b38c970021faad76a4b9fcade609))
 * don't cleanup topics on engine close ([#4658](https://github.com/confluentinc/ksql/pull/4658)) ([#4857](https://github.com/confluentinc/ksql/issues/4857)) ([21e4751](https://github.com/confluentinc/ksql/commit/21e47519ffd8df8cfee083e559ac28f736f058c1))
+* use describeTopics() for Kafka healtcheck probe ([#4814](https://github.com/confluentinc/ksql/pull/4814)) ([578d0d5](https://github.com/confluentinc/ksql/commit/578d0d543bce685ca6e253a8c6f9bcfbf191093d))
 
 
 
 ### chore
 
 * add GROUP BY support for any key names ([#4899](https://github.com/confluentinc/ksql/pull/4899)) ([e7cbdfc](https://github.com/confluentinc/ksql/commit/e7cbdfcc8c9853e2ae6dfcaf670e04f07ccd5444)), closes [#4898](https://github.com/confluentinc/ksql/issues/4898)
+* partition-by primitive key support (#4098) ([7addf88](https://github.com/confluentinc/ksql/commit/7addf8856a6d62a6890a5f2520eead26538233a6)), closes [#4098](https://github.com/confluentinc/ksql/issues/4098)
 
 
 
@@ -88,16 +87,14 @@
 
 * Select star, i.e. `select *`, no longer expands to include `ROWTIME` column(s). Instead, `ROWTIME` is only included in the results of queries if explicitly included in the projection, e.g. `select rowtime, *`.
 This only affects new statements. Any view previously created via a `CREATE STREAM AS SELECT` or `CREATE TABLE AS SELECT` statement is unaffected.
-Co-authored-by: Andy Coates <big-andy-coates@users.noreply.github.com>
 * This commit changes the system generated column name for any columns in projections that are struct field dereferences. Previously, the full path was used when generating the name, now only the final field name is used. For example, `SELECT someStruct->someField, ...` would previously of generated a column name of `SOMESTRUCT__SOMEFIELD`, and will now generate a name of `SOMEFIELD`. Generated column names may have a numeric appended to the end to ensure uniqueness, for example `SOMEFIELD_2`.
 Note: it is recommended that you do not rely on system generated column names for production systems as there naming may change between releases. Providing an explict alias ensures consistent naming across releases. For example, `SELECT someStruct->someField AS someField`.
 Backwards compatibility: existing running queries will not be affected by this change: they will continue to run with the same column names. Any statements executed after the upgrade will use the new names where no explicit alias is provided. Add explicit aliases to your statements if you require the old names, for example: `SELECT someStruct->someField AS SOMESTRUCT__SOMEFIELD, ...`
-Co-authored-by: Andy Coates <big-andy-coates@users.noreply.github.com>
 * Existing queries that reference a single GROUP BY column in the projection would fail if they were resubmitted, due to a duplicate column. The same existing queries will continue to run if already running, i.e. this is only a change for newly submitted queries. Existing queries will use the old query semantics.
-Co-authored-by: Big Andy Coates <andy@confluent.io>
 * * Any existing persistent queries, e.g. those created with `CREATE STREAM AS SELECT`, `CREATE TABLE AS SELECT` or `INSERT INTO`, will be unaffected: their column names will not change.
 * Pull queries will be unaffected.
 * Push queries, which rely on auto-generated column names, may see a change in column names.
+* The ksqlDB server no longer ships with Jetty, which means Jetty-specific dependencies (e.g., certain login modules used for basic authentication) must be supplied via the KSQL_CLASSPATH environment variable when starting the server in order to be found.
 
 ## [0.8.1](https://github.com/confluentinc/ksql/releases/tag/v0.8.1-ksqldb) (2020-03-30)
 

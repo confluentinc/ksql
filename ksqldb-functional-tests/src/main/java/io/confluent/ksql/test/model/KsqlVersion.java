@@ -18,7 +18,7 @@ package io.confluent.ksql.test.model;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.testing.EffectivelyImmutable;
-import io.confluent.ksql.util.Version;
+import io.confluent.ksql.util.AppInfo;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.OptionalLong;
@@ -41,7 +41,7 @@ public final class KsqlVersion implements Comparable<KsqlVersion> {
   private final long timestamp;
 
   public static KsqlVersion current() {
-    return parse(Version.getVersion());
+    return parse(AppInfo.getVersion());
   }
 
   public static KsqlVersion of(final String name, final SemanticVersion version) {

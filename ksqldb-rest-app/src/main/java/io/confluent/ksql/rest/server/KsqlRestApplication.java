@@ -89,12 +89,12 @@ import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
-import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -847,7 +847,7 @@ public final class KsqlRestApplication implements Executable {
 
     WelcomeMsgUtils.displayWelcomeMessage(80, writer);
 
-    final String version = Version.getVersion();
+    final String version = AppInfo.getVersion();
     final List<URL> listeners = getListeners();
     final String allListeners = listeners.stream()
         .map(Object::toString)

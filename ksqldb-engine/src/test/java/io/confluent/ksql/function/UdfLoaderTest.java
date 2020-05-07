@@ -257,6 +257,20 @@ public class UdfLoaderTest {
   }
 
   @Test
+  public void shouldLoadFunctionWithStructSchemaProvider() {
+    // Given:
+    final UdfFactory returnDecimal = FUNC_REG.getUdfFactory(FunctionName.of("KsqlStructUdf"));
+
+    // When:
+    final List<SqlType> args = ImmutableList.of();
+    final KsqlScalarFunction function = returnDecimal.getFunction(args);
+
+    // Then:
+    assertThat(function.getReturnType(args), equalTo(KsqlStructUdf.RETURN));
+  }
+
+
+  @Test
   public void shouldLoadFunctionWithNestedDecimalSchema() {
     // Given:
     final UdfFactory returnDecimal = FUNC_REG.getUdfFactory(FunctionName.of("decimalstruct"));
@@ -269,7 +283,6 @@ public class UdfLoaderTest {
         function.getReturnType(ImmutableList.of()),
         equalTo(SqlStruct.builder().field("VAL", SqlDecimal.of(64, 2)).build()));
   }
-
 
   @Test
   public void shouldThrowOnReturnTypeMismatch() {
@@ -1388,6 +1401,25 @@ public class UdfLoaderTest {
       Struct struct = new Struct(schema);
       struct.put("VAL", BigDecimal.valueOf(123.45).setScale(2, RoundingMode.CEILING));
       return struct;
+    }
+  }
+
+  @UdfDescription(
+      name = "KsqlStructUdf",
+      description = "A test-only UDF for testing struct return types")
+  public static class KsqlStructUdf {
+
+    private static final SqlStruct RETURN =
+        SqlStruct.builder().field("VAL", SqlTypes.STRING).build();
+
+    @UdfSchemaProvider
+    public SqlType provide(final List<SqlType> params) {
+      return RETURN;
+    }
+
+    @Udf(schemaProvider = "provide")
+    public Struct getDecimalStruct() {
+      return null;
     }
   }
 

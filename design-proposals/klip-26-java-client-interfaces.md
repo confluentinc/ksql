@@ -236,7 +236,7 @@ public interface Row {
    * @param columnIndex index of column (1-indexed).
    * @return column value.
    */
-  Object getObject(int columnIndex);
+  Object getValue(int columnIndex);
 
   /**
    * Get the value for a particular column of the Row as an Object.
@@ -244,7 +244,7 @@ public interface Row {
    * @param columnName name of column.
    * @return column value.
    */
-  Object getObject(String columnName);
+  Object getValue(String columnName);
 
   /**
    * Get the value for a particular column of the Row as a string.

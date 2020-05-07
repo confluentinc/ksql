@@ -1,0 +1,125 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581704482689,
+  "path" : "query-validation-tests/magic-timestamp-conversion.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SOURCE INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "between predicate on STRING WINDOWSTART in WHERE",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : 1
+      },
+      "window" : {
+        "start" : 1581323504000,
+        "end" : 1581323505000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : 2
+      },
+      "window" : {
+        "start" : 1581323504001,
+        "end" : 1581323505001,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : 3
+      },
+      "window" : {
+        "start" : 1581323504011,
+        "end" : 1581323505011,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : 4
+      },
+      "window" : {
+        "start" : 1581323504012,
+        "end" : 1581323505012,
+        "type" : "TIME"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "SOURCE" : 2
+      },
+      "window" : {
+        "start" : 1581323504001,
+        "end" : 1581323505001,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "SOURCE" : 3
+      },
+      "window" : {
+        "start" : 1581323504011,
+        "end" : 1581323505011,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (SOURCE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON', WINDOW_SIZE='1 SECOND', WINDOW_TYPE='Tumbling');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nWHERE (INPUT.WINDOWSTART BETWEEN '2020-02-10T08:31:44.001+0000' AND '2020-02-10T08:31:44.011+0000')\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 1.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 1.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585912768320,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CTAS_INNER_JOIN_2_1.KafkaTopic_Left.Source" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
+    "CTAS_INNER_JOIN_2_1.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F3 VARCHAR> NOT NULL",
+    "CTAS_INNER_JOIN_2_1.INNER_JOIN_2" : "STRUCT<T_ID BIGINT, NAME VARCHAR, F1 VARCHAR, F3 VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "table join pipeline - JSON",
+    "inputs" : [ {
+      "topic" : "INNER_JOIN",
+      "key" : 0,
+      "value" : {
+        "T_ID" : 0,
+        "NAME" : "X",
+        "VALUE" : 0,
+        "F1" : "yo dawg",
+        "F2" : 50
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "right_topic_2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "F3" : "I heard you like joins"
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "INNER_JOIN",
+      "key" : 100,
+      "value" : {
+        "T_ID" : 100,
+        "NAME" : "X",
+        "VALUE" : 0,
+        "F1" : "KSQL has table-table joins",
+        "F2" : 50
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "right_topic_2",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "F3" : "so now you can join your join"
+      },
+      "timestamp" : 20000
+    } ],
+    "outputs" : [ {
+      "topic" : "INNER_JOIN_2",
+      "key" : 0,
+      "value" : {
+        "T_ID" : 0,
+        "NAME" : "X",
+        "F1" : "yo dawg",
+        "F3" : "I heard you like joins"
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "INNER_JOIN_2",
+      "key" : 100,
+      "value" : {
+        "T_ID" : 100,
+        "NAME" : "X",
+        "F1" : "KSQL has table-table joins",
+        "F3" : "so now you can join your join"
+      },
+      "timestamp" : 20000
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "right_topic_2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "INNER_JOIN",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "INNER_JOIN_2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='left_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, F1 STRING, F2 BIGINT) WITH (KAFKA_TOPIC='right_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE TEST_TABLE_2 (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, F3 STRING) WITH (KAFKA_TOPIC='right_topic_2', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE INNER_JOIN WITH (PARTITIONS=4) AS SELECT\n  T.ID T_ID,\n  T.NAME NAME,\n  T.VALUE VALUE,\n  TT.F1 F1,\n  TT.F2 F2\nFROM TEST T\nINNER JOIN TEST_TABLE TT ON ((T.ID = TT.ID))\nEMIT CHANGES;", "CREATE TABLE INNER_JOIN_2 AS SELECT\n  TT.T_ID T_ID,\n  TT.NAME NAME,\n  TT.F1 F1,\n  T.F3 F3\nFROM INNER_JOIN TT\nINNER JOIN TEST_TABLE_2 T ON ((T.ID = TT.T_ID))\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "INNER_JOIN",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "INNER_JOIN_2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic_2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572105058,
+  "path" : "query-validation-tests/udf-implicit-cast.json",
+  "schemas" : {
+    "CSAS_DISTANCE_STREAM_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, LAT1 DOUBLE, LON1 DOUBLE, LAT2 BIGINT> NOT NULL",
+    "CSAS_DISTANCE_STREAM_0.DISTANCE_STREAM" : "STRUCT<ID BIGINT, CALCULATED_DISTANCE DOUBLE> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "long field -> double",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 1,
+        "LAT1" : 37.4439,
+        "LON1" : -122.1663,
+        "LAT2" : 51
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "DISTANCE_STREAM",
+      "key" : "",
+      "value" : {
+        "ID" : 1,
+        "CALCULATED_DISTANCE" : 8682.459061368269
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "DISTANCE_STREAM",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT, LAT1 DOUBLE, LON1 DOUBLE, LAT2 BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM DISTANCE_STREAM AS SELECT\n  TEST.ID ID,\n  GEO_DISTANCE(TEST.LAT1, TEST.LON1, TEST.LAT2, 0) CALCULATED_DISTANCE\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "DISTANCE_STREAM",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

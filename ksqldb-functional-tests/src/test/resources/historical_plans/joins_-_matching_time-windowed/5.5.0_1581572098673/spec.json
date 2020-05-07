@@ -1,0 +1,221 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572098673,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S1_ID BIGINT, S1_ROWTIME BIGINT, S1_ROWKEY INT, S1_WINDOWSTART BIGINT, S1_WINDOWEND BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<S2_ID BIGINT, S2_ROWTIME BIGINT, S2_ROWKEY INT, S2_WINDOWSTART BIGINT, S2_WINDOWEND BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S1_ROWTIME BIGINT, S1_ROWKEY INT, S1_WINDOWSTART BIGINT, S1_WINDOWEND BIGINT, S1_ID BIGINT, S2_ROWTIME BIGINT, S2_ROWKEY INT, S2_WINDOWSTART BIGINT, S2_WINDOWEND BIGINT, S2_ID BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "matching time-windowed",
+    "inputs" : [ {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "ID" : 1
+      },
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 5000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "ID" : 2
+      },
+      "timestamp" : 1000,
+      "window" : {
+        "start" : 1000,
+        "end" : 6000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "ID" : 3
+      },
+      "timestamp" : 2000,
+      "window" : {
+        "start" : 2000,
+        "end" : 7000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "right_topic",
+      "key" : 1,
+      "value" : {
+        "ID" : 4
+      },
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 2000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "right_topic",
+      "key" : 1,
+      "value" : {
+        "ID" : 5
+      },
+      "timestamp" : 2000,
+      "window" : {
+        "start" : 2000,
+        "end" : 4000,
+        "type" : "TIME"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "S1_ROWTIME" : 0,
+        "S1_WINDOWSTART" : 0,
+        "S1_WINDOWEND" : 5000,
+        "S1_ROWKEY" : 1,
+        "S1_ID" : 1,
+        "S2_ROWTIME" : 0,
+        "S2_WINDOWSTART" : 0,
+        "S2_WINDOWEND" : 2000,
+        "S2_ROWKEY" : 1,
+        "S2_ID" : 4
+      },
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 5000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "S1_ROWTIME" : 2000,
+        "S1_WINDOWSTART" : 2000,
+        "S1_WINDOWEND" : 7000,
+        "S1_ROWKEY" : 1,
+        "S1_ID" : 3,
+        "S2_ROWTIME" : 2000,
+        "S2_WINDOWSTART" : 2000,
+        "S2_WINDOWEND" : 4000,
+        "S2_ROWKEY" : 1,
+        "S2_ID" : 5
+      },
+      "timestamp" : 2000,
+      "window" : {
+        "start" : 2000,
+        "end" : 7000,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM S1 (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='left_topic', VALUE_FORMAT='JSON', WINDOW_SIZE='5 SECONDS', WINDOW_TYPE='Hopping');", "CREATE STREAM S2 (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='right_topic', VALUE_FORMAT='JSON', WINDOW_SIZE='2 SECOND', WINDOW_TYPE='Tumbling');", "CREATE STREAM OUTPUT AS SELECT *\nFROM S1 S1\nINNER JOIN S2 S2 WITHIN 1 MINUTES ON ((S1.ROWKEY = S2.ROWKEY))\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "`ROWKEY` INTEGER KEY, `S1_ROWTIME` BIGINT, `S1_ROWKEY` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_ROWTIME` BIGINT, `S2_ROWKEY` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "HOPPING",
+          "windowSize" : 5000
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 5.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 5.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 5.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 5.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 2.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,161 @@
+{
+  "comments": [
+    "Tests covering use of the INSERT INTO clause"
+  ],
+  "tests": [
+    {
+      "name": "simple",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",
+        "CREATE STREAM SOURCE2 (data VARCHAR) WITH (kafka_topic='insert-source', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT SELECT * FROM SOURCE2;"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "key": "k1", "value": "v1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": "v1"}
+      ]
+    },
+    {
+      "name": "with custom topic name",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",
+        "CREATE STREAM SOURCE2 (data VARCHAR) WITH (kafka_topic='insert-source', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT WITH(kafka_topic='custom') AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT SELECT * FROM SOURCE2;"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "key": "k1", "value": "v1"}
+      ],
+      "outputs": [
+        {"topic": "custom", "key": "k1", "value": "v1"}
+      ]
+    },
+    {
+      "name": "topic with different schema",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data VARCHAR) WITH (kafka_topic='stream-source', value_format='JSON');",
+        "CREATE STREAM SOURCE2 (data BIGINT) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT SELECT * FROM SOURCE2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Incompatible schema between results and sink"
+      }
+    },
+    {
+      "name": "table",
+      "statements": [
+        "CREATE STREAM SOURCE (d1 VARCHAR) WITH (kafka_topic='SOURCE', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT (d1 VARCHAR, COUNT BIGINT) WITH (kafka_topic='OUTPUT', value_format='DELIMITED', key='d1');",
+        "INSERT INTO OUTPUT SELECT d1, COUNT() AS COUNT FROM SOURCE GROUP BY d1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "INSERT INTO can only be used to insert into a stream. OUTPUT is a table."
+      }
+    },
+    {
+      "name": "unknown",
+      "statements": [
+        "CREATE STREAM SOURCE (d1 VARCHAR) WITH (kafka_topic='SOURCE', value_format='DELIMITED');",
+        "INSERT INTO UNKNOWN SELECT d1, COUNT() FROM SOURCE GROUP BY d1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Line: 2, Col: 13: UNKNOWN does not exist."
+      }
+    },
+    {
+      "name": "convert formats: DELIMITED to JSON",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",
+        "CREATE STREAM SOURCE2 (data VARCHAR) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT SELECT * FROM SOURCE2;"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "key": "k1", "value": {"data": "v1"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": "v1"}
+      ]
+    },
+    {
+      "name": "convert formats: JSON to AVRO",
+      "statements": [
+        "CREATE STREAM SOURCE (A bigint, B varchar) WITH (kafka_topic='source', value_format='JSON');",
+        "CREATE STREAM SINK (A bigint, B varchar) WITH (kafka_topic='sink', value_format='AVRO');",
+        "INSERT INTO SINK SELECT * FROM SOURCE;"
+      ],
+      "inputs": [
+        {"topic": "source", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "sink", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "convert formats: AVRO to JSON",
+      "statements": [
+        "CREATE STREAM SOURCE (A bigint, B varchar) WITH (kafka_topic='source', value_format='AVRO');",
+        "CREATE STREAM SINK (A bigint, B varchar) WITH (kafka_topic='sink', value_format='JSON');",
+        "INSERT INTO SINK SELECT * FROM SOURCE;"
+      ],
+      "inputs": [
+        {"topic": "source", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "sink", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "join",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",
+        "CREATE STREAM SOURCE2 (data VARCHAR) WITH (kafka_topic='insert-source', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT DATA AS DATA_1, DATA AS DATA_2 FROM SOURCE1;",
+        "INSERT INTO OUTPUT SELECT S1.DATA AS DATA_1, S2.DATA AS DATA_2 FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "stream-source", "key": "k1", "value": "v1"},
+        {"topic": "insert-source", "key": "k1", "value": "v2"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": "v1,v1"},
+        {"topic": "OUTPUT", "key": "k1", "value": "v1,v2"}
+      ]
+    },
+    {
+      "name": "join with repartition",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data VARCHAR) WITH (kafka_topic='s1', value_format='JSON');",
+        "CREATE STREAM SOURCE2 (data VARCHAR) WITH (kafka_topic='s2', value_format='JSON');",
+        "CREATE STREAM OUTPUT (data VARCHAR, i INT) WITH (kafka_topic='OUTPUT', value_format='JSON', PARTITIONS=1);",
+        "INSERT INTO OUTPUT SELECT S1.ROWKEY + S2.ROWKEY as DATA, 1 as I FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON S1.DATA = S2.DATA;"
+      ],
+      "inputs": [
+        {"topic": "s1", "key": "s1-key", "value": {"DATA": "v1"}, "timestamp": 0},
+        {"topic": "s2", "key": "s2-key", "value": {"DATA": "v1"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-Join-left-repartition", "key": "v1", "value": {"S1_DATA": "v1", "S1_ROWTIME": 0, "S1_ROWKEY": "s1-key"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 0, "end": 1000, "type": "time"}, "key": "v1", "value": {"S1_DATA": "v1", "S1_ROWTIME": 0, "S1_ROWKEY": "s1-key"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-Join-right-repartition", "key": "v1", "value": {"S2_DATA": "v1", "S2_ROWTIME": 0, "S2_ROWKEY": "s2-key"}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-KSTREAM-JOINOTHER-0000000019-store-changelog", "window": {"start": 0, "end": 1000, "type": "time"}, "key": "v1", "value": {"S2_DATA": "v1", "S2_ROWTIME": 0, "S2_ROWKEY": "s2-key"}},
+        {"topic": "OUTPUT", "key": "v1", "value": {"DATA": "s1-keys2-key", "I": 1}}
+      ]
+    }
+  ]
+}

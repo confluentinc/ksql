@@ -1,0 +1,74 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572103325,
+  "path" : "query-validation-tests/simple-struct.json",
+  "schemas" : {
+    "CSAS_S7_0.KsqlTopic.Source" : "STRUCT<S STRUCT<S VARCHAR>> NOT NULL",
+    "CSAS_S7_0.S7" : "STRUCT<S1 STRUCT<S VARCHAR>, S2 STRUCT<S VARCHAR>, S3 VARCHAR, S4 VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "simple struct select for ambiguity",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "s" : {
+          "s" : "Item_6"
+        }
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "S7",
+      "key" : "0",
+      "value" : {
+        "S3" : "Item_6",
+        "S2" : {
+          "S" : "Item_6"
+        },
+        "S1" : {
+          "S" : "Item_6"
+        },
+        "S4" : "Item_6"
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "S7",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM S (S STRUCT<S STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');", "CREATE STREAM S7 AS SELECT\n  S.S S1,\n  S.S S2,\n  S.S->S S3,\n  S.S->S S4\nFROM S S\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S7",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,213 @@
+{
+  "tests": [
+    {
+      "name": "protobuf primitives",
+      "statements": [
+        "CREATE STREAM INPUT (i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [{"topic": "input", "value": {"i": 1, "l": 1, "d": 1.2, "b": true, "s": "foo"}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 1.2, "B": true, "S": "foo"}}]
+    },
+    {
+      "name": "protobuf containers",
+      "statements": [
+        "CREATE STREAM INPUT (astr ARRAY<STRING>, mstr MAP<STRING, STRING>) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [{"topic": "input", "value": {"astr": ["1", "2"], "mstr": {"1": "a"}}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"ASTR": ["1", "2"], "MSTR": {"1": "a"}}}]
+    },
+    {
+      "name": "protobuf defaults - top level nulls are defaulted to 0",
+      "statements": [
+        "CREATE STREAM INPUT (i INTEGER) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": 0}},
+        {"topic": "input", "value": {"i": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": 0}},
+        {"topic": "OUTPUT", "value": {"I": 0}}
+      ]
+    },
+    {
+      "name": "protobuf defaults - nested nulls are defaulted to 0",
+      "statements": [
+        "CREATE STREAM INPUT (i ARRAY<INTEGER>) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": [0]}},
+        {"topic": "input", "value": {"i": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": [0]}},
+        {"topic": "OUTPUT", "value": {"I": []}}
+      ]
+    },
+    {
+      "name": "protobuf defaults - empty struct fills defaults and nulls remain nulls",
+      "statements": [
+        "CREATE STREAM INPUT (s STRUCT<foo INTEGER>) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"s": {"foo": 0}}},
+        {"topic": "input", "value": {"s": {}}},
+        {"topic": "input", "value": {"s": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"S": {"FOO": 0}}},
+        {"topic": "OUTPUT", "value": {"S": {"FOO": 0}}},
+        {"topic": "OUTPUT", "value": {"S": null}}
+      ]
+    },
+    {
+      "name": "protobuf inference - primitives",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "format": "PROTOBUF",
+          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"C1": true, "C2": 1, "C3": 400000000000, "C4": 1.284765648, "C5": "hello"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "should convert enum to STRING",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "format": "PROTOBUF",
+          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {enum Suit {SPADES = 0; HEARTS = 1; DIAMONDS = 2; CLUBS = 4;} Suit c1 = 1;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"c1": "HEARTS"}},
+        {"topic": "input", "value": {"c1": "SPADES"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"C1": "HEARTS"}},
+        {"topic": "OUTPUT", "value": {"C1": "SPADES"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, C1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "should support arrays",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "format": "PROTOBUF",
+          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {repeated string c1 = 1;}"
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": ["a", "", "Bc"]}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"C1": ["a", "", "Bc"]}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, C1 ARRAY<STRING>"}
+        ]
+      }
+    },
+    {
+      "name": "should convert nested types to STRUCT",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "format": "PROTOBUF",
+          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {message Something {int32 f1 = 1;} Something c1 = 1;}"
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": {"f1": 1}}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"C1": {"F1": 1}}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, C1 STRUCT<F1 INT>"}
+        ]
+      }
+    },
+    {
+      "name": "protobuf inference - other scalars",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "comments": [
+        "NOTE: seems like float -> double conversion is lossy. Need to follow up on this",
+        "NOTE: unit32 cannot fit in an INT schema because it is unsigned (so it can represent larger numbers)"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "format": "PROTOBUF",
+          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {float c1 = 1; uint32 c2 = 2; uint64 c3 = 3; sint32 c4 = 4; sint64 c5 = 5;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"c1": 1.1234, "c2": 1, "c3": 400000000000, "c4": 1, "c5": 400000000000}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"C1": 1.1233999729156494, "C2": 1, "C3": 400000000000, "C4": 1, "C5": 400000000000}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "should filter out columns with unsupported types",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "format": "PROTOBUF",
+          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {int32 expected = 1; bytes c2 = 2;}"
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"expected": 1, "c4": null}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"EXPECTED": 1}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, EXPECTED INT"}
+        ]
+      }
+    }
+  ]
+}

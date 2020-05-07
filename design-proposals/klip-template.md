@@ -76,7 +76,7 @@ need to me made, since that will force us into thinking how the feature is actua
 used, and how users can be on-boarded onto the new feature. The upside is that the documentation 
 will be ready to go before any work even begins, so only the fun part is left._
 
-# Compatibility Implications
+## Compatibility Implications
 
 _Will the proposed changes break existing queries or work flows?_
 

@@ -1,0 +1,91 @@
+{
+  "comments": [
+    "Tests covering general SELECT clause, a.k.a projection, handling"
+  ],
+  "tests": [
+    {
+      "name": "key column",
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id as ID_COPY, NAME FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic":  "test_topic", "key": 8, "value": {"name": "a"}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 8, "value": {"NAME": "a"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID_COPY INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "value column",
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, NAME AS NEW_NAME FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic":  "test_topic", "key": 8, "value": {"name": "a"}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 8, "value": {"NEW_NAME": "a"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NEW_NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "all columns - star",
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic":  "test_topic", "key": 8, "value": {"name": "a"}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 8, "value": {"NAME": "a"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "all columns - explicit",
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID AS ID_COPY, ROWTIME AS ROWTIME_COPY, NAME AS NAME_COPY FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic":  "test_topic", "timestamp": 1234, "key": 8, "value": {"name": "a"}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "timestamp": 1234, "key": 8, "value": {"ROWTIME_COPY": 1234, "NAME_COPY": "a"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID_COPY INT KEY, ROWTIME_COPY BIGINT, NAME_COPY STRING"}
+        ]
+      }
+    }
+  ]
+}

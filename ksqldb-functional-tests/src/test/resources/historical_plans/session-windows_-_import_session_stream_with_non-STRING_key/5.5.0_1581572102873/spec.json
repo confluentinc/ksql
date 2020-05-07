@@ -1,0 +1,166 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572102873,
+  "path" : "query-validation-tests/session-windows.json",
+  "schemas" : {
+    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, WSTART BIGINT, WEND BIGINT, KEY INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "import session stream with non-STRING key",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "1",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "2",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 0,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "3",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 10000,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "4",
+      "timestamp" : 40000,
+      "window" : {
+        "start" : 10000,
+        "end" : 40000,
+        "type" : "SESSION"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "1,0,0,0",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "2,0,10000,0",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 0,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "3,10000,10000,1",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 10000,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "4,10000,40000,1",
+      "timestamp" : 40000,
+      "window" : {
+        "start" : 10000,
+        "end" : 40000,
+        "type" : "SESSION"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_TYPE='SESSION');", "CREATE STREAM S2 AS SELECT\n  *,\n  INPUT.WINDOWSTART WSTART,\n  INPUT.WINDOWEND WEND,\n  INPUT.ROWKEY KEY\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "stream",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

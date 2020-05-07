@@ -1,0 +1,103 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572102116,
+  "path" : "query-validation-tests/quoted-identifiers.json",
+  "schemas" : {
+    "CSAS_JOINED_0.KafkaTopic_Right.Source" : "STRUCT<with.dot VARCHAR> NOT NULL",
+    "CSAS_JOINED_0.KafkaTopic_Left.Source" : "STRUCT<SELECT VARCHAR, field! VARCHAR> NOT NULL",
+    "CSAS_JOINED_0.Join.Left" : "STRUCT<L_SELECT VARCHAR, L_field! VARCHAR, L_ROWTIME BIGINT, L_ROWKEY VARCHAR> NOT NULL",
+    "CSAS_JOINED_0.JOINED" : "STRUCT<field! VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "joins using fields that require quotes",
+    "inputs" : [ {
+      "topic" : "left_topic",
+      "key" : "",
+      "value" : {
+        "SELECT" : "1",
+        "field!" : "A"
+      }
+    }, {
+      "topic" : "right_topic",
+      "key" : "",
+      "value" : {
+        "with.dot" : "1"
+      }
+    }, {
+      "topic" : "right_topic",
+      "key" : "",
+      "value" : {
+        "with.dot" : "2"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "JOINED",
+      "key" : "1",
+      "value" : {
+        "field!" : "A"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "JOINED",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM L (`SELECT` STRING, `field!` STRING) WITH (KAFKA_TOPIC='left_topic', VALUE_FORMAT='JSON');", "CREATE TABLE R (`with.dot` STRING) WITH (KAFKA_TOPIC='right_topic', KEY='`with.dot`', VALUE_FORMAT='JSON');", "CREATE STREAM JOINED AS SELECT L.`field!` `field!`\nFROM L L\nLEFT OUTER JOIN R R ON ((L.`SELECT` = R.`with.dot`))\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "JOINED",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-Join-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572102094,
+  "path" : "query-validation-tests/quoted-identifiers.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<some.key VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<some.key VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "create table with key that is quoted",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "some.key" : "key"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "some.key" : "key"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (`some.key` STRING) WITH (KAFKA_TOPIC='test_topic', KEY='`some.key`', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "table"
+      }, {
+        "name" : "OUTPUT",
+        "type" : "table"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

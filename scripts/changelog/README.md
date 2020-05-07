@@ -22,7 +22,7 @@ These steps assume you're in the root of the `ksql` directory.
 Start by listing all commits from the `NEW_VERSION`, which requires checking out the relevant branch/tag/commit. If the release tag exists:
 ```
 git fetch --all --tags --prune
-git checkout tags/v0.8.0-ksqldb -b v0.8.0-ksqldb
+git checkout tags/v0.8.0-ksqldb
 ```
 If the tag hasn't been created yet but a branch has been cut (e.g., if a release is in progress):
 ```
@@ -45,7 +45,7 @@ conventional-changelog -p angular -i new_commits.txt -s -r 0
 Next, repeat the process to list commits from the `OLD_VERSION`. A tag for this release should already exist, so check out the tag:
 ```
 git fetch --all --tags --prune
-git checkout tags/v0.7.0-ksqldb -b v0.7.0-ksqldb
+git checkout tags/v0.7.0-ksqldb
 ```
 and generate the list of commits:
 ```

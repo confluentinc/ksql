@@ -26,14 +26,11 @@ The Java client will support the following operations:
     * `DROP TABLE`
     * `INSERT INTO`
     * `TERMINATE <queryId>`
-    * `CREATE CONNECTOR`
-    * `DROP CONNECTOR`
 * Select admin operations:
     * `SHOW TOPICS` (non-extended)
     * `SHOW STREAMS` (non-extended)
     * `SHOW TABLES` (non-extended)
     * `SHOW QUERIES` (non-extended)
-    * `SHOW CONNECTORS`
 * Insert values, i.e., insert rows into an existing stream/table
 * Terminate push query (via the `/close-query` endpoint)
 
@@ -43,16 +40,17 @@ Implementation details will not be covered.
 ## What is not in scope
 
 This KLIP does not cover Java client support for the following:
-* `DESCRIBE <stream/table>`, `DESCRIBE CONNECTOR`, `DESCRIBE FUNCTION`
+* `DESCRIBE <stream/table>`, `DESCRIBE FUNCTION`
 * `EXPLAIN <queryId>`
 * `PRINT <topic>`
 * `SHOW TOPICS EXTENDED`, `SHOW <STREAMS/TABLES> EXTENDED`, `SHOW QUERIES EXTENDED`
+* `CREATE CONNECTOR`, `DROP CONNECTOR`, `SHOW CONNECTORS`, `DESCRIBE CONNECTOR`
 * `CREATE TYPE`, `DROP TYPE`, `SHOW TYPES`
 * `SHOW FUNCTIONS`, `SHOW PROPERTIES`
 * `RUN SCRIPT`
 * Use of other endpoints (info, healthcheck, terminate cluster, status, etc.)
 
-We can always add support for these operations in the future if desired.
+We can always add support for these operations in the future if desired. 
 
 As above, implementation details are out of scope as the purpose of this KLIP is to reach agreement
 on the interfaces / public APIs.
@@ -741,19 +739,6 @@ The method name `terminatePersistenQuery(...)` is to distinguish from `terminate
 As above, users could also terminate persistent queries via `executeStatement()`, so we could remove `terminatePersistentQuery()` if we don't see value in providing a convenience method
 that only requires the query ID, rather than the full sql string for the command.
 
-#### Connectors
-
-```
-  CompletableFuture<ConnectorInfo> createSourceConnector(String name, Map<String, String> properties);
-
-  CompletableFuture<ConnectorInfo> createSinkConnector(String name, Map<String, String> properties);
-
-  CompletableFuture<Void> dropConnector(String name);
-```
-where `ConnectorInfo` is from an Apache Kafka module ([link](https://github.com/apache/kafka/blob/trunk/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/rest/entities/ConnectorInfo.java)).
-
-Or would we rather not have a dependency on Apache Kafka in the ksqlDB client interfaces?
-
 ### Admin operations
 
 #### `SHOW TOPICS`
@@ -845,47 +830,6 @@ public interface QueryInfo {
 }
 ```
 
-#### `SHOW CONNECTORS`
-
-```
-  CompletableFuture<ConnectorList> listConnectors();
-```
-with
-```
-public interface ConnectorList {
-  
-  List<ConnectorInfo> getConnectors();
-  
-  /**
-   * Any warnings returned by the server as a result of listing connectors.
-   */
-  List<String> getWarnings();
-
-}
-```
-and
-```
-public interface ConnectorInfo {
-
-  enum ConnectorType {
-    SOURCE,
-    SINK,
-    UNKNOWN;
-  }
-
-  String getName();
-
-  ConnectorType getType();
-
-  String getClassName();
-
-  String getState();
-
-}
-```
-
-I don't love that the introduction of `ConnectorList` wrapped around `List<ConnectorInfo>` breaks the pattern established by `SHOW TOPICS`/`SHOW <STREAMS/TABLES>`/`SHOW QUERIES` but it seems important to propagate any server warnings to the user so the trade-off is worth it IMO.
-
 ### Terminate push query
 
 ```
@@ -931,3 +875,66 @@ N/A
 ## Security Implications
 
 N/A
+
+## Rejected Alternatives
+
+### Connectors (out of scope)
+
+An earlier version of this KLIP proposed supporting `CREATE CONNECTOR`, `DROP CONNECTOR`, and `SHOW CONNECTORS` as part of the first version of the Java client covered in this KLIP,
+but we decided to hold off on connector support in this first version of the client since a more preferable long-term solution would be for Connect to introduce a Java client,
+rather than having users send commands via the ksqlDB client to send to ksqlDB to forward to Connect. In the meantime, users can use the REST API to manage connectors through ksqlDB if desired.
+
+Below I've recorded the proposed interfaces for managing Connectors, for reference if we'd like to revisit in the future.
+
+#### `CREATE CONNECTOR`, `DROP CONNECTOR`
+
+```
+  CompletableFuture<ConnectorInfo> createSourceConnector(String name, Map<String, String> properties);
+
+  CompletableFuture<ConnectorInfo> createSinkConnector(String name, Map<String, String> properties);
+
+  CompletableFuture<Void> dropConnector(String name);
+```
+where `ConnectorInfo` is from an Apache Kafka module ([link](https://github.com/apache/kafka/blob/trunk/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/rest/entities/ConnectorInfo.java)).
+We might like to wrap this type to avoid introducing a dependency on Apache Kafka in the ksqlDB client.
+
+#### `SHOW CONNECTORS`
+
+```
+  CompletableFuture<ConnectorList> listConnectors();
+```
+with
+```
+public interface ConnectorList {
+  
+  List<ConnectorInfo> getConnectors();
+  
+  /**
+   * Any warnings returned by the server as a result of listing connectors.
+   */
+  List<String> getWarnings();
+
+}
+```
+and
+```
+public interface ConnectorInfo {
+
+  enum ConnectorType {
+    SOURCE,
+    SINK,
+    UNKNOWN;
+  }
+
+  String getName();
+
+  ConnectorType getType();
+
+  String getClassName();
+
+  String getState();
+
+}
+```
+
+It's not great that the introduction of `ConnectorList` wrapped around `List<ConnectorInfo>` breaks the pattern established by `SHOW TOPICS`/`SHOW <STREAMS/TABLES>`/`SHOW QUERIES` but it seems important to propagate any server warnings to the user so the trade-off is worth it IMO.

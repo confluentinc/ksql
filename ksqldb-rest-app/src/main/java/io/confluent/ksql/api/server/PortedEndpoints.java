@@ -133,7 +133,7 @@ final class PortedEndpoints {
   }
 
   static void setupEndpointsInternal(final InternalEndpoints internalEndpoints,
-      final Server server, final Router router, boolean includeShared) {
+      final Server server, final Router router, final boolean includeShared) {
     router.route(HttpMethod.POST, "/heartbeat")
         .handler(BodyHandler.create())
         .produces(Versions.KSQL_V1_JSON)
@@ -169,7 +169,7 @@ final class PortedEndpoints {
     }
   }
 
-  static void setupFailureHandlerInternal(final Router router, boolean includeShared) {
+  static void setupFailureHandlerInternal(final Router router, final boolean includeShared) {
     for (String path : PORTED_ENDPOINTS_INTERNAL) {
       router.route(path).failureHandler(PortedEndpoints::oldApiFailureHandler);
     }

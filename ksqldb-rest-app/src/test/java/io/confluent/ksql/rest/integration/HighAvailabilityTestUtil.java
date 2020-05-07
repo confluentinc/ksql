@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
@@ -38,6 +39,19 @@ class HighAvailabilityTestUtil {
 
   static ClusterStatusResponse sendClusterStatusRequest(final TestKsqlRestApp restApp) {
     try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient()) {
+      final RestResponse<ClusterStatusResponse> res = restClient.makeClusterStatusRequest();
+
+      if (res.isErroneous()) {
+        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
+      }
+      return res.getResponse();
+    }
+  }
+
+  static ClusterStatusResponse sendClusterStatusRequest(
+      final TestKsqlRestApp restApp,
+      final Optional<BasicCredentials> userCreds) {
+    try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient(userCreds)) {
       final RestResponse<ClusterStatusResponse> res = restClient.makeClusterStatusRequest();
 
       if (res.isErroneous()) {

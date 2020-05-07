@@ -188,6 +188,15 @@ public class TestKsqlRestApp extends ExternalResource {
     );
   }
 
+  public KsqlRestClient buildInternalKsqlClient(final Optional<BasicCredentials> credentials) {
+    return KsqlRestClient.create(
+        getHttpInternalListener().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        credentials
+    );
+  }
+
   public static String getCommandTopicName() {
     return ReservedInternalTopics.commandTopic(new KsqlConfig(ImmutableMap.of()));
   }

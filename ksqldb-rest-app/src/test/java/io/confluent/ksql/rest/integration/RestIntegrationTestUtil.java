@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
+import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -24,31 +28,40 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.ServerClusterId;
+import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.TestDataProvider;
-import io.confluent.rest.validation.JacksonMessageBodyProvider;
+import io.confluent.ksql.util.VertxCompletableFuture;
+import io.vertx.core.MultiMap;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.WebsocketVersion;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
-import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 public final class RestIntegrationTestUtil {
 
@@ -85,6 +98,61 @@ public final class RestIntegrationTestUtil {
       throwOnNoError(res);
 
       return res.getErrorMessage();
+    }
+  }
+
+  static ServerInfo makeInfoRequest(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<ServerInfo> res = restClient.getServerInfo();
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static CommandStatus makeStatusRequest(final TestKsqlRestApp restApp, final String commandId) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<CommandStatus> res = restClient.getStatus(commandId);
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static CommandStatuses makeStatusesRequest(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<CommandStatuses> res = restClient.getAllStatuses();
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static ServerMetadata makeServerMetadataRequest(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<ServerMetadata> res = restClient.getServerMetadata();
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static ServerClusterId makeServerMetadataIdRequest(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<ServerClusterId> res = restClient.getServerMetadataId();
+
+      throwOnError(res);
+
+      return res.getResponse();
     }
   }
 
@@ -143,29 +211,63 @@ public final class RestIntegrationTestUtil {
       final String sql,
       final Optional<Long> cmdSeqNum
   ) {
+
     final KsqlRequest request = new KsqlRequest(
         sql,
         ImmutableMap.of(),
         Collections.emptyMap(),
         cmdSeqNum.orElse(null)
     );
+    return rawRestRequest(restApp, HttpVersion.HTTP_1_1, HttpMethod.POST, "/query", request).body()
+        .toString();
+  }
 
-    final URI listener = restApp.getHttpListener();
+  static HttpResponse<Buffer> rawRestRequest(
+      final TestKsqlRestApp restApp,
+      final HttpVersion httpVersion,
+      final HttpMethod method,
+      final String uri,
+      final Object requestBody
+  ) {
 
-    final Client httpClient = ClientBuilder.newBuilder()
-        .register(new JacksonMessageBodyProvider(ApiJsonMapper.INSTANCE.get()))
-        .build();
+    Vertx vertx = Vertx.vertx();
+    WebClient webClient = null;
 
     try {
-      final Response response = httpClient
-          .target(listener)
-          .path("/query")
-          .request(MediaType.APPLICATION_JSON_TYPE)
-          .post(Entity.json(request));
+      WebClientOptions webClientOptions = new WebClientOptions()
+          .setDefaultHost(restApp.getHttpListener().getHost())
+          .setDefaultPort(restApp.getHttpListener().getPort())
+          .setFollowRedirects(false);
 
-      return response.readEntity(String.class);
+      if (httpVersion == HttpVersion.HTTP_2) {
+        webClientOptions.setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
+      }
+
+      webClient = WebClient.create(vertx, webClientOptions);
+
+      byte[] bytes = ApiJsonMapper.INSTANCE.get().writeValueAsBytes(requestBody);
+
+      Buffer bodyBuffer = Buffer.buffer(bytes);
+
+      // When:
+      VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+      HttpRequest<Buffer> request = webClient
+          .request(method, uri)
+          .putHeader("content-type", "application/json");
+      if (bodyBuffer != null) {
+        request.sendBuffer(bodyBuffer, requestFuture);
+      } else {
+        request.send(requestFuture);
+      }
+      return requestFuture.get();
+
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     } finally {
-      httpClient.close();
+      if (webClient != null) {
+        webClient.close();
+      }
+      vertx.close();
     }
   }
 
@@ -230,33 +332,55 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  static WebSocketClient makeWsRequest(
+  public static List<String> makeWsRequest(
       final URI baseUri,
       final String sql,
-      final Object listener,
-      final Optional<MediaType> mediaType,
-      final Optional<MediaType> contentType,
+      final Optional<String> mediaType,
+      final Optional<String> contentType,
       final Optional<Credentials> credentials
   ) {
+    Vertx vertx = Vertx.vertx();
+    HttpClient httpClient = null;
     try {
-      final WebSocketClient wsClient = new WebSocketClient();
-      wsClient.start();
+      httpClient = vertx.createHttpClient();
 
-      final ClientUpgradeRequest request = new ClientUpgradeRequest();
+      final String uri = baseUri.toString() + "/ws/query?request=" + buildStreamingRequest(sql);
 
-      credentials.ifPresent(creds -> request
-          .setHeader(HttpHeaders.AUTHORIZATION, "Basic " + buildBasicAuthHeader(creds)));
+      final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 
-      mediaType.ifPresent(mt -> request.setHeader(HttpHeaders.ACCEPT, mt.toString()));
-      contentType.ifPresent(ct -> request.setHeader(HttpHeaders.CONTENT_TYPE, ct.toString()));
+      credentials.ifPresent(
+          creds -> headers.add(AUTHORIZATION.toString(), "Basic " + buildBasicAuthHeader(creds)));
 
-      final URI wsUri = baseUri.resolve("/ws/query?request=" + buildStreamingRequest(sql));
+      mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
+      contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));
 
-      wsClient.connect(listener, wsUri, request);
+      CompletableFuture<List<String>> completableFuture = new CompletableFuture<>();
 
-      return wsClient;
-    } catch (final Exception e) {
-      throw new RuntimeException("failed to create ws client", e);
+      httpClient.webSocketAbs(uri, headers, WebsocketVersion.V07,
+          Collections.emptyList(), ar -> {
+            if (ar.succeeded()) {
+              List<String> messages = new ArrayList<>();
+              ar.result().frameHandler(frame -> {
+                if (frame.isText()) {
+                  messages.add(frame.textData());
+                }
+              });
+              ar.result().endHandler(v -> {
+                completableFuture.complete(messages);
+              });
+            } else {
+              completableFuture.completeExceptionally(ar.cause());
+            }
+          });
+      return completableFuture.get();
+
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    } finally {
+      if (httpClient != null) {
+        httpClient.close();
+      }
+      vertx.close();
     }
   }
 

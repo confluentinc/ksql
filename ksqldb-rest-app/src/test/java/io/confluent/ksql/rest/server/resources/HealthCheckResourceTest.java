@@ -22,10 +22,10 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
 import java.time.Duration;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,7 +56,7 @@ public class HealthCheckResourceTest {
   @Test
   public void shouldCheckHealth() {
     // When:
-    final Response response = healthCheckResource.checkHealth();
+    final EndpointResponse response = healthCheckResource.checkHealth();
 
     // Then:
     verify(healthCheckAgent).checkHealth();
@@ -70,7 +70,7 @@ public class HealthCheckResourceTest {
     healthCheckResource.checkHealth();
 
     // When:
-    final Response response = healthCheckResource.checkHealth();
+    final EndpointResponse response = healthCheckResource.checkHealth();
 
     // Then:
     assertThat(response.getEntity(), sameInstance(response1));

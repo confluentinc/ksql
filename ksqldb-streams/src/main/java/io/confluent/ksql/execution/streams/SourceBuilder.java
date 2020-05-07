@@ -251,7 +251,7 @@ public final class SourceBuilder {
   ) {
     return source
         .getSourceSchema()
-        .withMetaAndKeyColsInValue(windowed);
+        .withPseudoAndKeyColsInValue(windowed);
   }
 
   private static Serde<GenericRow> getValueSerde(

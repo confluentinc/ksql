@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.rest.server.state;
 
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.ws.rs.core.Response;
 
 /**
  * State machine for managing the lifecycle of a KSQL Server. The machine goes through the
@@ -93,13 +93,13 @@ public class ServerState {
   }
 
   /**
-   * Checks whether the server is READY (and can therefore server requests). If it is not READY
-   * then returns an API error to be sent back to the user.
+   * Checks whether the server is READY (and can therefore server requests). If it is not READY then
+   * returns an API error to be sent back to the user.
    *
-   * @return If empty, indicates that the server is ready. Otherwise, contains an error response
-   *         to be returned back to the user.
+   * @return If empty, indicates that the server is ready. Otherwise, contains an error response to
+   *     be returned back to the user.
    */
-  public Optional<Response> checkReady() {
+  public Optional<EndpointResponse> checkReady() {
     final StateWithErrorMessage state = this.state.get();
     switch (state.state) {
       case INITIALIZING:

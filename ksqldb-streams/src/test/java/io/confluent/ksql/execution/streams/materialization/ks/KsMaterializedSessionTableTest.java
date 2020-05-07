@@ -17,10 +17,12 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,9 +49,7 @@ import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes.SessionStoreType;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -58,7 +58,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsMaterializedSessionTableTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
@@ -70,12 +69,9 @@ public class KsMaterializedSessionTableTest {
   private static final Instant LOWER_INSTANT = Instant.now();
   private static final Instant UPPER_INSTANT = LOWER_INSTANT.plusSeconds(10);
   private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
-    LOWER_INSTANT,
-    UPPER_INSTANT
+      LOWER_INSTANT,
+      UPPER_INSTANT
   );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsStateStore stateStore;
@@ -116,13 +112,16 @@ public class KsMaterializedSessionTableTest {
     // Given:
     when(stateStore.store(any())).thenThrow(new MaterializationTimeOutException("Boom"));
 
-    // Then:
-    expectedException.expect(MaterializationException.class);
-    expectedException.expectMessage("Failed to get value from materialized table");
-    expectedException.expectCause(instanceOf(MaterializationTimeOutException.class));
-
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS);
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> table.get(A_KEY, WINDOW_START_BOUNDS)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to get value from materialized table"));
+    assertThat(e.getCause(), (instanceOf(MaterializationTimeOutException.class)));
   }
 
   @Test
@@ -130,13 +129,16 @@ public class KsMaterializedSessionTableTest {
     // Given:
     when(sessionStore.fetch(any())).thenThrow(new MaterializationTimeOutException("Boom"));
 
-    // Then:
-    expectedException.expect(MaterializationException.class);
-    expectedException.expectMessage("Failed to get value from materialized table");
-    expectedException.expectCause(instanceOf(MaterializationTimeOutException.class));
-
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS);
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> table.get(A_KEY, WINDOW_START_BOUNDS)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to get value from materialized table"));
+    assertThat(e.getCause(), (instanceOf(MaterializationTimeOutException.class)));
   }
 
   @SuppressWarnings("unchecked")
@@ -190,7 +192,7 @@ public class KsMaterializedSessionTableTest {
 
   @Test
   public void shouldIgnoreSessionsThatStartAfterUpperBound() {
-  // Given:
+    // Given:
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusMillis(1));
 
     // When:

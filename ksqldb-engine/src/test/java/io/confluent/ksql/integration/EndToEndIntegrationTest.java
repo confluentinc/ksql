@@ -17,12 +17,12 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX;
 import static java.lang.String.format;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -173,8 +173,8 @@ public class EndToEndIntegrationTest {
 
     final Set<Object> actualUsers = rows.stream()
         .filter(Objects::nonNull)
-        .peek(row -> assertThat(row.values(), hasSize(6)))
-        .map(row -> row.get(1))
+        .peek(row -> assertThat(row.values(), hasSize(4)))
+        .map(row -> row.get(0))
         .collect(Collectors.toSet());
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
@@ -205,12 +205,11 @@ public class EndToEndIntegrationTest {
   public void shouldSelectAllFromDerivedStream() throws Exception {
     executeStatement(
         "CREATE STREAM pageviews_female"
-        + " AS SELECT pageid, regionid, gender "
+        + " AS SELECT %s.userid, pageid, regionid, gender "
         + " FROM %s "
         + " LEFT JOIN %s ON %s.userid = %s.userid"
         + " WHERE gender = 'FEMALE';",
-        PAGE_VIEW_STREAM, USER_TABLE, PAGE_VIEW_STREAM,
-        USER_TABLE);
+        PAGE_VIEW_STREAM, PAGE_VIEW_STREAM, USER_TABLE, PAGE_VIEW_STREAM, USER_TABLE);
 
     final TransientQueryMetadata queryMetadata = executeStatement(
         "SELECT * from pageviews_female EMIT CHANGES;");
@@ -249,7 +248,7 @@ public class EndToEndIntegrationTest {
       final List<Object> columns = result.value.values();
       log.debug("pageview join: {}", columns);
 
-      assertThat(columns, hasSize(5));
+      assertThat(columns, hasSize(4));
 
       final String user = (String) columns.get(1);
       actualUsers.add(user);
@@ -287,7 +286,7 @@ public class EndToEndIntegrationTest {
 
     executeStatement(
         "CREATE STREAM pageviews_by_viewtime "
-        + "AS SELECT pageid, userid "
+        + "AS SELECT viewtime, pageid, userid "
         + "from %s "
         + "partition by viewtime;",
         PAGE_VIEW_STREAM);
@@ -307,7 +306,7 @@ public class EndToEndIntegrationTest {
   public void shouldSupportDroppingAndRecreatingJoinQuery() throws Exception {
     final String createStreamStatement = format(
         "create stream cart_event_product as "
-        + "select pv.pageid, u.gender "
+        + "select pv.userid, pv.pageid, u.gender "
         + "from %s pv left join %s u on pv.userid=u.userid;",
         PAGE_VIEW_STREAM, USER_TABLE);
 
@@ -326,9 +325,9 @@ public class EndToEndIntegrationTest {
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
     assertThat(PRODUCED_COUNT.get(), greaterThan(0));
-    assertThat(columns.get(1).toString(), startsWith("USER_"));
-    assertThat(columns.get(2).toString(), startsWith("PAGE_"));
-    assertThat(columns.get(3).toString(), either(is("FEMALE")).or(is("MALE")));
+    assertThat(columns.get(0).toString(), startsWith("USER_"));
+    assertThat(columns.get(1).toString(), startsWith("PAGE_"));
+    assertThat(columns.get(2).toString(), either(is("FEMALE")).or(is("MALE")));
   }
 
   @Test

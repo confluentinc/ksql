@@ -8,7 +8,7 @@ google_analytics: ['UA-56447542-10', 'docs.ksqldb.io']
 repo_name: confluentinc/ksql
 repo_url: https://github.com/confluentinc/ksql
 edit_uri: ""
-docs_dir: docs-md
+docs_dir: docs
 
 theme:
     name: material
@@ -19,6 +19,9 @@ theme:
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - js/extra.js
 
 nav:
   - Overview: index.md
@@ -107,7 +110,7 @@ nav:
     - REST API:
       - REST API Index: developer-guide/api.md # old reference topic, rename file to index.md
       - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
-      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md 
+      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
       - Execute a statement: developer-guide/ksqldb-rest-api/ksql-endpoint.md
       - Run a query: developer-guide/ksqldb-rest-api/query-endpoint.md
       - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
@@ -121,7 +124,7 @@ nav:
           - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
           - Server Configuration:
               - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
-              - Configure ksqlDB for Avro or Protobuf: operate-and-deploy/installation/server-config/avro-schema.md
+              - Configure ksqlDB for Avro, Protobuf, and JSON schemas: operate-and-deploy/installation/server-config/avro-schema.md
               - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
           - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
@@ -132,6 +135,7 @@ nav:
       - Tutorials and Examples: tutorials/index.md
       - Materialized view/cache: tutorials/materialized.md
       - Streaming ETL pipeline: tutorials/etl.md
+      - Event-driven microservice: tutorials/event-driven-microservice.md
       - Examples: tutorials/examples.md
       - ksqlDB with Embedded Connect: tutorials/embedded-connect.md
       - Integrate with PostgreSQL: tutorials/connect-integration.md
@@ -152,7 +156,7 @@ markdown_extensions:
 
 plugins:
     - search
-    - git-revision-date # Must come before the macros plugin    
+    - git-revision-date # Must come before the macros plugin
     - macros
 
 extra:
@@ -186,10 +190,10 @@ extra:
 
         # Build-related string tokens
         kafkaversion: 2.4
-        kafkarelease: 5.4.1-ccs
-        ksqldbversion: 0.8.1
-        release: 0.8.1
-        cprelease: 5.4.1
-        releasepostbranch: 5.4.1-post
+        kafkarelease: 5.5.0-ccs
+        ksqldbversion: 0.9.0
+        release: 0.9.0
+        cprelease: 5.5.0
+        releasepostbranch: 5.5.0-post
         scalaversion: 2.12
-        version: 5.4
+        version: 5.5

@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.Mockito.verify;
 
@@ -34,9 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -49,9 +48,6 @@ public class RunScriptTest {
 
   @ClassRule
   public static final TemporaryFolder TMP = new TemporaryFolder();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlRequestExecutor requestExecutor;
@@ -84,22 +80,28 @@ public class RunScriptTest {
 
   @Test
   public void shouldThrowIfNoArgSupplied() {
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Too few parameters");
-
     // When:
-    cmd.execute(ImmutableList.of(), terminal);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> cmd.execute(ImmutableList.of(), terminal)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Too few parameters"));
   }
 
   @Test
   public void shouldThrowIfTooManyArgsSupplied() {
-    // Expect
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Too many parameters");
-
     // When:
-    cmd.execute(ImmutableList.of("too", "many"), terminal);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> cmd.execute(ImmutableList.of("too", "many"), terminal)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Too many parameters"));
   }
 
   @Test
@@ -113,13 +115,16 @@ public class RunScriptTest {
 
   @Test
   public void shouldThrowIfFileDoesNotExist() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to read file: you-will-not-find-me");
-    expectedException.expectCause(instanceOf(NoSuchFileException.class));
-
     // When:
-    cmd.execute(ImmutableList.of("you-will-not-find-me"), terminal);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> cmd.execute(ImmutableList.of("you-will-not-find-me"), terminal)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to read file: you-will-not-find-me"));
+    assertThat(e.getCause(), (instanceOf(NoSuchFileException.class)));
   }
 
   @Test
@@ -127,13 +132,15 @@ public class RunScriptTest {
     // Given:
     final File dir = TMP.newFolder();
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to read file: " + dir.toString());
-    expectedException.expectCause(
-        hasMessage(anyOf(containsString(dir.toString()), containsString("Is a directory"))));
-
     // When:
-    cmd.execute(ImmutableList.of(dir.toString()), terminal);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> cmd.execute(ImmutableList.of(dir.toString()), terminal)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to read file: " + dir.toString()));
+    assertThat(e.getCause(), (hasMessage(anyOf(containsString(dir.toString()), containsString("Is a directory")))));
   }
 }

@@ -113,7 +113,7 @@ public class SchemaRegisterInjector implements Injector {
       try {
         serviceContext.getSchemaRegistryClient().register(
             topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-            format.toParsedSchema(schema.withoutMetaAndKeyColsInValue().value(), formatInfo)
+            format.toParsedSchema(schema.withoutPseudoAndKeyColsInValue().value(), formatInfo)
         );
       } catch (IOException | RestClientException e) {
         throw new KsqlStatementException("Could not register schema for topic.", statementText, e);

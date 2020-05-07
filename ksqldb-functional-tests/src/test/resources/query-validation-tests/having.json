@@ -12,7 +12,7 @@
       "name": "table having",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE TABLE T1 as select sum(value) as sum from test WINDOW TUMBLING (SIZE 30 SECONDS) group by id HAVING sum(value) > 100;"
+        "CREATE TABLE T1 as select id, sum(value) as sum from test WINDOW TUMBLING (SIZE 30 SECONDS) group by id HAVING sum(value) > 100;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": "0,zero,0"},
@@ -29,7 +29,7 @@
       "name": "calculate average in having",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE TABLE AVG AS select sum(value)/count(id) as avg from test GROUP BY id HAVING sum(value)/count(id)> 25;"
+        "CREATE TABLE AVG AS select id, sum(value)/count(id) as avg from test GROUP BY id HAVING sum(value)/count(id)> 25;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": "0,zero,50"},

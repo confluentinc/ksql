@@ -12,7 +12,7 @@
       "name": "min integer group by",
       "statements": [
       "CREATE STREAM TEST (ID BIGINT KEY, VALUE integer) WITH (kafka_topic='test_topic',value_format='AVRO');",
-      "CREATE TABLE S2 as SELECT min(value) as MIN FROM test group by id;"
+      "CREATE TABLE S2 as SELECT ID, min(value) as MIN FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1,"value": {"value":  null}},
@@ -41,7 +41,7 @@
       "name": "min long group by",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE TABLE S2 as SELECT min(value) as MIN FROM test group by id;"
+        "CREATE TABLE S2 as SELECT ID, min(value) as MIN FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1,"value": {"value":  null}},
@@ -70,7 +70,7 @@
       "name": "min double group by",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE double) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE TABLE S2 as SELECT min(value) as MIN FROM test group by id;"
+        "CREATE TABLE S2 as SELECT ID, min(value) as MIN FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1,"value": {"value":  null}},
@@ -100,7 +100,7 @@
       "name": "min decimal group by",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE decimal(4, 2)) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE TABLE S2 as SELECT min(value) as MIN FROM test group by id;"
+        "CREATE TABLE S2 as SELECT ID, min(value) as MIN FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1,"value": {"value":  null}},

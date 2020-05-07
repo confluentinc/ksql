@@ -28,11 +28,11 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -50,8 +50,7 @@ public class AnalysisTest {
   private static final WindowInfo A_WINDOW = WindowInfo.of(WindowType.SESSION, Optional.empty());
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("bob"), SqlTypes.BIGINT)
       .build();
 
@@ -86,7 +85,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
     ));
   }
 
@@ -103,7 +102,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(true)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
     ));
   }
 
@@ -121,7 +120,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
     ));
   }
 
@@ -138,7 +137,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
     ));
   }
 
@@ -155,7 +154,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(true)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
     ));
   }
 
@@ -173,7 +172,7 @@ public class AnalysisTest {
     // Then:
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
-        SOURCE_SCHEMA.withMetaAndKeyColsInValue(true)
+        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
     ));
   }
 

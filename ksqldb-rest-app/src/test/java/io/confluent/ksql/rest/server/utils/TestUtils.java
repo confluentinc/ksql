@@ -27,7 +27,7 @@ import java.util.Optional;
 
 public class TestUtils {
 
-  public List<Pair<CommandId, Command>> getAllPriorCommandRecords() {
+  public static List<Pair<CommandId, Command>> getAllPriorCommandRecords() {
     final List<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
 
     final Command csCommand = new Command("CREATE STREAM pageview "

@@ -23,10 +23,13 @@ import static io.confluent.ksql.execution.testutil.TestExpressions.COL7;
 import static io.confluent.ksql.execution.testutil.TestExpressions.MAPCOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.SCHEMA;
 import static io.confluent.ksql.execution.testutil.TestExpressions.literal;
+import static io.confluent.ksql.name.SourceName.of;
+import static java.util.Optional.empty;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -80,7 +83,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -91,9 +93,6 @@ public class SqlToJavaVisitorTest {
 
   @Mock
   private FunctionRegistry functionRegistry;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -868,15 +867,15 @@ public class SqlToJavaVisitorTest {
   public void shouldThrowOnQualifiedColumnReference() {
     // Given:
     final Expression expression = new QualifiedColumnReferenceExp(
-        SourceName.of("foo"),
+        of("foo"),
         ColumnName.of("bar")
     );
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(expression);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(expression)
+    );
   }
 
   @Test
@@ -887,11 +886,11 @@ public class SqlToJavaVisitorTest {
         new InListExpression(ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2)))
     );
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(expression);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(expression)
+    );
   }
 
   @Test
@@ -900,32 +899,32 @@ public class SqlToJavaVisitorTest {
     final Expression expression = new SimpleCaseExpression(
         COL0,
         ImmutableList.of(new WhenClause(new IntegerLiteral(10), new StringLiteral("ten"))),
-        Optional.empty()
+        empty()
     );
 
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(expression);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(expression)
+    );
   }
 
   @Test
   public void shouldThrowOnTimeLiteral() {
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(new TimeLiteral("TIME '00:00:00'"));
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(new TimeLiteral("TIME '00:00:00'"))
+    );
   }
 
   @Test
   public void shouldThrowOnTimestampLiteral() {
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
-
     // When:
-    sqlToJavaVisitor.process(new TimestampLiteral("TIMESTAMP '00:00:00'"));
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> sqlToJavaVisitor.process(new TimestampLiteral("TIMESTAMP '00:00:00'"))
+    );
   }
 
   private void givenUdf(

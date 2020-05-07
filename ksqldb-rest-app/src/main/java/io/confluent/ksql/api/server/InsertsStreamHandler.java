@@ -16,7 +16,9 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.QueryStreamHandler.DELIMITED_CONTENT_TYPE;
+import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
 import static io.confluent.ksql.api.server.ServerUtils.deserialiseObject;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.server.protocol.InsertError;
@@ -34,7 +36,6 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
-import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +65,11 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
+
+    if (!checkHttp2(routingContext)) {
+      return;
+    }
+
     // The record parser takes in potentially fragmented buffers from the request and spits
     // out the chunks delimited by newline
     final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());
@@ -158,7 +164,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       }
       log.error("Failed to execute inserts", toLog);
       // We don't expose internal error message via public API
-      routingContext.fail(HttpStatus.SC_INTERNAL_SERVER_ERROR,
+      routingContext.fail(INTERNAL_SERVER_ERROR.code(),
           new KsqlApiException("The server encountered an internal error when processing inserts."
               + " Please consult the server logs for more information.",
               ErrorCodes.ERROR_CODE_INTERNAL_ERROR));

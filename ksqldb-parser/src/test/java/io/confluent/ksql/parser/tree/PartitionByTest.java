@@ -17,7 +17,6 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import org.junit.Test;
@@ -28,7 +27,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PartitionByTest {
 
-  private static final ColumnName COL0 = ColumnName.of("Bob");
   private static final NodeLocation LOCATION = new NodeLocation(1, 4);
 
   @Mock
@@ -41,15 +39,12 @@ public class PartitionByTest {
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()
         .addEqualityGroup(
-            new PartitionBy(Optional.empty(), exp1, Optional.of(COL0)),
-            new PartitionBy(Optional.empty(), exp1, Optional.of(COL0)),
-            new PartitionBy(Optional.of(LOCATION), exp1, Optional.of(COL0))
+            new PartitionBy(Optional.empty(), exp1),
+            new PartitionBy(Optional.empty(), exp1),
+            new PartitionBy(Optional.of(LOCATION), exp1)
         )
         .addEqualityGroup(
-            new PartitionBy(Optional.empty(), exp2, Optional.of(COL0))
-        )
-        .addEqualityGroup(
-            new PartitionBy(Optional.empty(), exp1, Optional.empty())
+            new PartitionBy(Optional.empty(), exp2)
         )
         .testEquals();
   }

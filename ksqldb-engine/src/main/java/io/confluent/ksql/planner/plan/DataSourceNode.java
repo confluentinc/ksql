@@ -15,28 +15,30 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.util.GrammaticalJoiner.and;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKSourceFactory;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Immutable
@@ -128,8 +130,19 @@ public class DataSourceNode extends PlanNode {
     }
 
     return valueOnly
-        ? getSchema().withoutMetaAndKeyColsInValue().value().stream().map(Column::name)
+        ? getSchema().withoutPseudoAndKeyColsInValue().value().stream().map(Column::name)
         : orderColumns(getSchema().value(), getSchema());
+  }
+
+  @Override
+  void validateKeyPresent(final SourceName sinkName, final Projection projection) {
+    final ColumnName keyName = Iterables.getOnlyElement(getSchema().key()).name();
+
+    final ColumnReferenceExp keyCol = new UnqualifiedColumnReferenceExp(keyName);
+
+    if (!projection.containsExpression(keyCol)) {
+      throwKeysNotIncludedError(sinkName, "key column", ImmutableList.of(keyCol), and());
+    }
   }
 
   private static LogicalSchema buildSchema(final DataSource dataSource) {
@@ -137,22 +150,7 @@ public class DataSourceNode extends PlanNode {
     // It users a KS valueMapper to add the key fields
     // and a KS transformValues to add the implicit fields
     return dataSource.getSchema()
-        .withMetaAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
-  }
-
-  private static Stream<ColumnName> orderColumns(
-      final List<Column> columns,
-      final LogicalSchema schema
-  ) {
-    // When doing a `select *` system and key columns should be at the front of the column list
-    // but are added at the back during processing for performance reasons.
-    // Switch them around here:
-    final Map<Boolean, List<Column>> partitioned = columns.stream().collect(Collectors
-        .groupingBy(c -> SchemaUtil.isSystemColumn(c.name()) || schema.isKeyColumn(c.name())));
-
-    final List<Column> all = partitioned.get(true);
-    all.addAll(partitioned.get(false));
-    return all.stream().map(Column::name);
+        .withPseudoAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
   }
 
   @Immutable

@@ -1,0 +1,36 @@
+{
+  "comments": [
+    "Tests covering CREATE_TYPE functionality"
+  ],
+  "tests": [
+    {
+      "name": "create simple type",
+      "statements": [
+        "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;",
+        "CREATE TABLE addresses (K STRING PRIMARY KEY, address ADDRESS) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE TABLE copy AS SELECT * FROM addresses;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"address": {"number": 899, "street": "W. Evelyn", "city": "Mountain View"}}}
+      ],
+      "outputs": [
+        {"topic": "COPY", "value": {"ADDRESS": {"NUMBER": 899, "STREET": "W. Evelyn", "CITY": "Mountain View"}}}
+      ]
+    },
+    {
+      "name": "create nested type",
+      "statements": [
+        "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;",
+        "CREATE TYPE PERSON AS STRUCT<name VARCHAR, address ADDRESS>;",
+        "CREATE TABLE people (K STRING PRIMARY KEY, person PERSON) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE TABLE copy AS SELECT * FROM people;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"person":  {"name": "jay", "address": {"number": 899, "street": "W. Evelyn", "city": "Mountain View"}}}}
+      ],
+      "outputs": [
+        {"topic": "COPY", "value": {"PERSON": {"NAME": "jay", "ADDRESS": {"NUMBER": 899, "STREET": "W. Evelyn", "CITY": "Mountain View"}}}}
+      ]
+    }
+  ]
+}

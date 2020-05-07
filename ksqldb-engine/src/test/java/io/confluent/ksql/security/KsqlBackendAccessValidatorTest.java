@@ -15,25 +15,26 @@
 
 package io.confluent.ksql.security;
 
+import static org.apache.kafka.common.acl.AclOperation.READ;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
+
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.acl.AclOperation;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
-
-import static org.mockito.Mockito.when;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.acl.AclOperation;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlBackendAccessValidatorTest {
@@ -48,9 +49,6 @@ public class KsqlBackendAccessValidatorTest {
   private TopicDescription TOPIC_1;
   @Mock
   private TopicDescription TOPIC_2;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private KsqlSecurityContext securityContext;
   private KsqlAccessValidator accessValidator;
@@ -91,14 +89,16 @@ public class KsqlBackendAccessValidatorTest {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
 
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
-    ));
-
     // When:
-    accessValidator.checkAccess(securityContext, TOPIC_NAME_1, AclOperation.READ);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> accessValidator.checkAccess(securityContext, TOPIC_NAME_1, AclOperation.READ)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+    )));
   }
 
   @Test
@@ -107,11 +107,11 @@ public class KsqlBackendAccessValidatorTest {
     when(kafkaTopicClient.describeTopic(TOPIC_NAME_1))
         .thenThrow(KafkaResponseGetFailedException.class);
 
-    // Then:
-    expectedException.expect(KafkaResponseGetFailedException.class);
-
     // When:
-    accessValidator.checkAccess(securityContext, TOPIC_NAME_1, AclOperation.READ);
+    assertThrows(
+        KafkaResponseGetFailedException.class,
+        () -> accessValidator.checkAccess(securityContext, TOPIC_NAME_1, READ)
+    );
   }
 
   private void givenTopic(final String topicName, final TopicDescription topicDescription) {

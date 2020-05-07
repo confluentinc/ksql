@@ -31,7 +31,9 @@ public final class TestCasePlanWriter {
   }
 
   public static void writeTestCasePlan(final TestCasePlan thePlan) {
-    final Path parent = PlannedTestPath.forTestCasePlan(thePlan).relativePath();
+    final Path parent = PlannedTestPath.forTestCasePlan(TestCasePlanLoader.PLANS_DIR, thePlan)
+        .relativePath();
+
     final Path specPath = parent.resolve(PlannedTestPath.SPEC_FILE);
     final Path planPath = parent.resolve(PlannedTestPath.PLAN_FILE);
     final Path topologyPath = parent.resolve(PlannedTestPath.TOPOLOGY_FILE);

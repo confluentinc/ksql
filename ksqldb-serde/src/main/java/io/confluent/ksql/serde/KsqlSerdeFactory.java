@@ -18,8 +18,8 @@ package io.confluent.ksql.serde;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 
@@ -53,7 +53,9 @@ public interface KsqlSerdeFactory {
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final Class<T> type
   ) {
-    final Class<?> actualType = SchemaUtil.getJavaType(schema.serializedSchema());
+    final Class<?> actualType = SchemaConverters.sqlToJavaConverter().toJavaType(
+        SchemaConverters.connectToSqlConverter().toSqlType(schema.serializedSchema())
+    );
 
     if (!type.equals(actualType)) {
       throw new IllegalArgumentException("schema does not resolve to required type."

@@ -13,7 +13,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic',value_format='{FORMAT}');",
-        "CREATE TABLE S2 as SELECT topk(value, 3) as topk FROM test group by id;"
+        "CREATE TABLE S2 as SELECT ID, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": 0}},
@@ -35,7 +35,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
-        "CREATE TABLE S2 as SELECT topk(value, 3) as topk FROM test group by id;"
+        "CREATE TABLE S2 as SELECT ID, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": 2147483648}},
@@ -57,7 +57,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
-        "CREATE TABLE S2 as SELECT topk(value, 3) as topk FROM test group by id;"
+        "CREATE TABLE S2 as SELECT ID, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": 2147483648.9}},
@@ -79,7 +79,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE string) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
-        "CREATE TABLE S2 as SELECT topk(value, 3) as topk FROM test group by id;"
+        "CREATE TABLE S2 as SELECT ID, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": "a"}},

@@ -101,7 +101,8 @@ public class PlanNodeTest {
   @Test
   public void shouldResolveAliasedSelectStarByCallingOnlyCorrectParent() {
     // When:
-    final Stream<ColumnName> result = planNode.resolveSelectStar(Optional.of(SOURCE_2_NAME), false);
+    final Stream<ColumnName> result = planNode.resolveSelectStar(Optional.of(SOURCE_2_NAME), false
+    );
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());

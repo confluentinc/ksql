@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.concurrent.CompletableFuture;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.utils.Bytes;
@@ -70,7 +71,8 @@ public class TopicStreamWriterTest {
         "topic",
         1,
         Duration.ZERO,
-        OptionalInt.of(2)
+        OptionalInt.of(2),
+        new CompletableFuture<>()
     );
 
     // When:
@@ -101,7 +103,8 @@ public class TopicStreamWriterTest {
         "topic",
         2,
         Duration.ZERO,
-        OptionalInt.of(2)
+        OptionalInt.of(2),
+        new CompletableFuture<>()
     );
 
     // When:

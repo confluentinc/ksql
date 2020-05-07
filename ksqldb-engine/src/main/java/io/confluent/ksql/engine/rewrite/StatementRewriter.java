@@ -447,8 +447,7 @@ public final class StatementRewriter<C> {
       return result
           .orElseGet(() -> new PartitionBy(
               node.getLocation(),
-              processExpression(node.getExpression(), context),
-              node.getAlias()
+              processExpression(node.getExpression(), context)
           ));
     }
 
@@ -463,7 +462,7 @@ public final class StatementRewriter<C> {
           .map(exp -> processExpression(exp, context))
           .collect(Collectors.toList());
 
-      return new GroupBy(node.getLocation(), rewrittenGroupings, node.getAlias());
+      return new GroupBy(node.getLocation(), rewrittenGroupings);
     }
 
     @Override

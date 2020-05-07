@@ -6,8 +6,8 @@
     {
       "name": "cube two int columns",
       "statements": [
-        "CREATE STREAM TEST (col1 INT, col2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2]) VAL FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, col1 INT, col2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cube_explode(array[col1, col2]) VAL FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"col1": 1, "col2": 2}},
@@ -26,8 +26,8 @@
     {
       "name": "cube three columns",
       "statements": [
-        "CREATE STREAM TEST (col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2, col3]) VAL FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cube_explode(array[col1, col2, col3]) VAL FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"col1": "one", "col2": "two", "col3" : "three"}}
@@ -46,8 +46,8 @@
     {
       "name": "cube two columns with udf on third",
       "statements": [
-        "CREATE STREAM TEST (col1 VARCHAR, col2 VARCHAR, col3 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2]) VAL1, ABS(col3) VAL2 FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, col1 VARCHAR, col2 VARCHAR, col3 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cube_explode(array[col1, col2]) VAL1, ABS(col3) VAL2 FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"col1": "one", "col2": "two", "col3" : 3}}
@@ -62,8 +62,8 @@
     {
       "name": "cube two columns twice",
       "statements": [
-        "CREATE STREAM TEST (col1 VARCHAR, col2 VARCHAR, col3 INT, col4 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2]) VAL1, cube_explode(array[col3, col4]) VAL2 FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, col1 VARCHAR, col2 VARCHAR, col3 INT, col4 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cube_explode(array[col1, col2]) VAL1, cube_explode(array[col3, col4]) VAL2 FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"col1": "one", "col2": "two", "col3" : 3, "col4" : 4}}

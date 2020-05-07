@@ -7,7 +7,7 @@
       "name": "string map",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, A_MAP MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT A_MAP['expected'], A_MAP['missing'] FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT ID, A_MAP['expected'], A_MAP['missing'] FROM INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"A_MAP": {"expected": 10}}}
@@ -20,7 +20,7 @@
       "name": "map value as UDF param",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, col11 MAP<STRING, STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT EXTRACTJSONFIELD(col11['address'], '$.city') FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT ID, EXTRACTJSONFIELD(col11['address'], '$.city') FROM INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"col11": {"address": "{\"city\": \"London\"}"}}}

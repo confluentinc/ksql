@@ -17,7 +17,9 @@ package io.confluent.ksql.topic;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.KsqlEngine;
@@ -32,6 +34,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -41,14 +44,11 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -57,8 +57,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SourceTopicsExtractorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 
@@ -73,9 +72,6 @@ public class SourceTopicsExtractorTest {
   private TopicDescription TOPIC_1;
   @Mock
   private TopicDescription TOPIC_2;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private SourceTopicsExtractor extractor;
   private KsqlEngine ksqlEngine;
@@ -149,12 +145,14 @@ public class SourceTopicsExtractorTest {
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
     metaStore.deleteSource(SourceName.of(STREAM_TOPIC_1.toUpperCase()));
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(STREAM_TOPIC_1.toUpperCase() + " does not exist.");
-
     // When:
-    extractor.process(statement, null);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> extractor.process(statement, null)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(STREAM_TOPIC_1.toUpperCase() + " does not exist."));
   }
 
   private void givenStreamWithTopic(

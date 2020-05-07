@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.execution.transform.select;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -46,12 +46,11 @@ import org.mockito.junit.MockitoRule;
 public class SelectionTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("GIRAFFE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("MANATEE"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("RACCOON"), SqlTypes.BIGINT)
-      .build().withMetaAndKeyColsInValue(false);
+      .build().withPseudoAndKeyColsInValue(false);
 
   private static final Expression EXPRESSION1 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("GIRAFFE"));
@@ -116,7 +115,6 @@ public class SelectionTest {
 
     // Then:
     assertThat(resultSchema, equalTo(LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("FOO"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)

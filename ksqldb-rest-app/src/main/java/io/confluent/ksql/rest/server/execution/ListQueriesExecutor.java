@@ -42,6 +42,7 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,12 +51,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
@@ -64,10 +64,11 @@ import org.slf4j.LoggerFactory;
 @SuppressFBWarnings("SE_BAD_FIELD")
 public final class ListQueriesExecutor {
 
-  private static int TIMEOUT_SECONDS = 10;
+  private static final int TIMEOUT_SECONDS = 10;
   private static final Logger LOG = LoggerFactory.getLogger(ListQueriesExecutor.class);
 
-  private ListQueriesExecutor() { }
+  private ListQueriesExecutor() {
+  }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListQueries> statement,
@@ -89,7 +90,6 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext
   ) {
     final Map<QueryId, RunningQuery> runningQueries = getLocalSimple(executionContext);
-
     mergeSimple(remoteResults, runningQueries);
 
     return Optional.of(new Queries(
@@ -101,17 +101,33 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext
   ) {
     return executionContext
-        .getPersistentQueries()
+        .getAllLiveQueries()
         .stream()
         .collect(Collectors.toMap(
-            PersistentQueryMetadata::getQueryId,
-            q -> new RunningQuery(
-                q.getStatementString(),
-                ImmutableSet.of(q.getSinkName().text()),
-                ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
-                q.getQueryId(),
-                QueryStatusCount.fromStreamsStateCounts(
-                    Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)))
+            QueryMetadata::getQueryId,
+            q -> {
+              if (q instanceof PersistentQueryMetadata) {
+
+                final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) q;
+                return new RunningQuery(
+                    q.getStatementString(),
+                    ImmutableSet.of(persistentQuery.getSinkName().text()),
+                    ImmutableSet.of(persistentQuery.getResultTopic().getKafkaTopicName()),
+                    q.getQueryId(),
+                    QueryStatusCount.fromStreamsStateCounts(
+                        Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)),
+                    q.getQueryType());
+              }
+
+              return new RunningQuery(
+                  q.getStatementString(),
+                  ImmutableSet.of(),
+                  ImmutableSet.of(),
+                  q.getQueryId(),
+                  QueryStatusCount.fromStreamsStateCounts(
+                      Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)),
+                  q.getQueryType());
+            }
         ));
   }
 
@@ -173,10 +189,10 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext
   ) {
     return executionContext
-        .getPersistentQueries()
+        .getAllLiveQueries()
         .stream()
         .collect(Collectors.toMap(
-            PersistentQueryMetadata::getQueryId,
+            QueryMetadata::getQueryId,
             query -> QueryDescriptionFactory.forQueryMetadata(
                 query,
                 Collections.singletonMap(
@@ -247,24 +263,28 @@ public final class ListQueriesExecutor {
     try {
       final SimpleKsqlClient ksqlClient = serviceContext.getKsqlClient();
 
-      final Map<HostInfo, Future<RestResponse<KsqlEntityList>>> futureResponses = new HashMap<>();
+      final Map<HostInfo, CompletableFuture<RestResponse<KsqlEntityList>>> futureResponses =
+          new HashMap<>();
       for (HostInfo host : remoteHosts) {
-        final Future<RestResponse<KsqlEntityList>> future = executorService.submit(() -> ksqlClient
-            .makeKsqlRequest(
-                ServerUtil.buildRemoteUri(
-                    sessionProperties.getLocalUrl(),
-                    host.host(),
-                    host.port()
-                ),
-                statement.getStatementText(),
-                Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true))
-        );
+        final CompletableFuture<RestResponse<KsqlEntityList>> future = new CompletableFuture<>();
+        executorService.execute(() -> {
+          final RestResponse<KsqlEntityList> response = ksqlClient
+              .makeKsqlRequest(
+                  ServerUtil.buildRemoteUri(
+                      sessionProperties.getLocalUrl(),
+                      host.host(),
+                      host.port()
+                  ),
+                  statement.getStatementText(),
+                  Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true));
+          future.complete(response);
+        });
 
         futureResponses.put(host, future);
       }
       
       final List<KsqlEntity> results = new ArrayList<>();
-      for (final Map.Entry<HostInfo, Future<RestResponse<KsqlEntityList>>> e
+      for (final Map.Entry<HostInfo, CompletableFuture<RestResponse<KsqlEntityList>>> e
           : futureResponses.entrySet()) {
         try {
           final RestResponse<KsqlEntityList> response =

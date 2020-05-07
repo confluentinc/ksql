@@ -36,6 +36,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
@@ -48,9 +49,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class AstBuilderTest {
 
@@ -70,9 +69,6 @@ public class AstBuilderTest {
   public void setup() {
     builder = new AstBuilder(META_STORE);
   }
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldExtractUnaliasedDataSources() {
@@ -242,12 +238,15 @@ public class AstBuilderTest {
     // Given:
     final SingleStatementContext stmt = givenQuery("SELECT unknown.COL0 FROM TEST1;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
-
     // When:
-    builder.buildStatement(stmt);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> builder.buildStatement(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "'UNKNOWN' is not a valid stream/table name or alias."));
   }
 
   @Test
@@ -324,12 +323,14 @@ public class AstBuilderTest {
     // Given:
     final SingleStatementContext stmt = givenQuery("SELECT unknown.* FROM TEST1;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
-
     // When:
-    builder.buildStatement(stmt);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> builder.buildStatement(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("'UNKNOWN' is not a valid stream/table name or alias."));
   }
 
   @Test
@@ -408,12 +409,14 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery(
         "SELECT unknown.* FROM TEST1 JOIN TEST2 WITHIN 1 SECOND ON TEST1.ID = TEST2.ID;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
-
     // When:
-    builder.buildStatement(stmt);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> builder.buildStatement(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("'UNKNOWN' is not a valid stream/table name or alias."));
   }
 
   @Test
@@ -514,6 +517,7 @@ public class AstBuilderTest {
     assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
+
   @Test
   public void shouldSupportExplicitEmitChangesForInsertInto() {
     // Given:
@@ -526,6 +530,18 @@ public class AstBuilderTest {
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+  }
+
+  @Test
+  public void shouldSupportQuotedExplainStatements() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("EXPLAIN `CSAS_FOO-BAR`;");
+
+    // When:
+    final Explain explain = (Explain) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(explain.getQueryId(), is(Optional.of("CSAS_FOO-BAR")));
   }
 
   private static SingleStatementContext givenQuery(final String sql) {

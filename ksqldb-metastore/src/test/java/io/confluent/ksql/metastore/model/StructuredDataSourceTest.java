@@ -22,9 +22,9 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,7 +35,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StructuredDataSourceTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .build();
@@ -59,9 +58,8 @@ public class StructuredDataSourceTest {
   public void shouldThrowIfSchemaContainsRowTime() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
 
@@ -92,9 +90,8 @@ public class StructuredDataSourceTest {
   public void shouldThrowIfSchemaContainsWindowStart() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .valueColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.STRING)
+        .valueColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
 
@@ -109,9 +106,8 @@ public class StructuredDataSourceTest {
   public void shouldThrowIfSchemaContainsWindowEnd() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .valueColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.STRING)
+        .valueColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
 
@@ -127,7 +123,7 @@ public class StructuredDataSourceTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .valueColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.STRING)
+        .valueColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("k0"), SqlTypes.BIGINT)
         .build();
 

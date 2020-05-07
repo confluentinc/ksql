@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Wraps the incoming {@link io.confluent.ksql.rest.entity.KsqlRequest} streamsProperties 
+ * Wraps the incoming {@link io.confluent.ksql.rest.entity.KsqlRequest} streamsProperties
  * in a object withthe {@link KsqlHostInfo} and URL of the server that handles the request.
  * This should be created in the Rest Resource that receives the request.
  */

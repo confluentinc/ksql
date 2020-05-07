@@ -16,13 +16,13 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 import io.confluent.ksql.api.server.protocol.CloseQueryArgs;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.http.HttpStatus;
 
 /**
  * Handles requests to the close-query endpoint
@@ -37,6 +37,7 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
+
     final Optional<CloseQueryArgs> closeQueryArgs = ServerUtils
         .deserialiseObject(routingContext.getBody(), routingContext, CloseQueryArgs.class);
     if (!closeQueryArgs.isPresent()) {
@@ -47,7 +48,7 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
         .removeQuery(closeQueryArgs.get().queryId);
     if (!query.isPresent()) {
       routingContext
-          .fail(HttpStatus.SC_BAD_REQUEST,
+          .fail(BAD_REQUEST.code(),
               new KsqlApiException("No query with id " + closeQueryArgs.get().queryId,
                   ERROR_CODE_UNKNOWN_QUERY_ID));
       return;

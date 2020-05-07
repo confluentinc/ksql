@@ -17,6 +17,9 @@ package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
@@ -26,6 +29,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
@@ -35,7 +39,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -48,10 +51,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -66,9 +67,6 @@ public class StandaloneExecutorFunctionalTest {
 
   @ClassRule
   public static final TemporaryFolder TMP = new TemporaryFolder();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private static final String AVRO_TOPIC = "avro-topic";
   private static final String JSON_TOPIC = "json-topic";
@@ -109,7 +107,7 @@ public class StandaloneExecutorFunctionalTest {
         );
 
     standalone = StandaloneExecutorFactory.create(
-        (Map)properties,
+        (Map) properties,
         queryFile.toString(),
         ".",
         serviceContextFactory,
@@ -153,8 +151,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .withRowTime()
-            .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+            .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
         SerdeOption.none()
@@ -196,8 +193,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .withRowTime()
-            .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+            .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
         SerdeOption.none()
@@ -242,13 +238,15 @@ public class StandaloneExecutorFunctionalTest {
         + ""
         + "CREATE STREAM S WITH (kafka_topic='topic-without-schema', value_format='avro');");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Schema registry fetch for topic topic-without-schema request failed");
-
     // When:
-    standalone.startAsync();
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> standalone.startAsync()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schema registry fetch for topic topic-without-schema request failed"));
   }
 
   @Test
@@ -263,12 +261,14 @@ public class StandaloneExecutorFunctionalTest {
         + ""
         + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
 
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("schema is incompatible with the current schema version registered for the topic");
-
     // When:
-    standalone.startAsync();
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> standalone.startAsync()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("schema is incompatible with the current schema version registered for the topic"));
   }
 
   @Test
@@ -297,8 +297,7 @@ public class StandaloneExecutorFunctionalTest {
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
     final LogicalSchema logical = LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("ORDERID"), SqlTypes.struct()
             .field("fred", SqlTypes.INTEGER)
             .build())

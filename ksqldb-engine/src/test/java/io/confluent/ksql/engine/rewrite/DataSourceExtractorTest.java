@@ -16,29 +16,28 @@
 package io.confluent.ksql.engine.rewrite;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.AstNode;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class DataSourceExtractorTest {
 
@@ -50,24 +49,13 @@ public class DataSourceExtractorTest {
 
   private static final MetaStore META_STORE = MetaStoreFixture
       .getNewMetaStore(mock(FunctionRegistry.class));
+  private static final ColumnName COL0 = ColumnName.of("COL0");
 
   private DataSourceExtractor extractor;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
     extractor = new DataSourceExtractor(META_STORE);
-  }
-
-  private void assertContainsAlias(final SourceName... alias) {
-    assertThat(
-        extractor.getAllSources()
-            .stream()
-            .map(AliasedDataSource::getAlias)
-            .collect(Collectors.toList()),
-        containsInAnyOrder(alias));
   }
 
   @Test
@@ -100,12 +88,15 @@ public class DataSourceExtractorTest {
     // Given:
     final AstNode stmt = givenQuery("SELECT * FROM UNKNOWN;");
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
-
     // When:
-    extractor.extractDataSources(stmt);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> extractor.extractDataSources(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist."));
   }
 
   @Test
@@ -132,7 +123,6 @@ public class DataSourceExtractorTest {
 
     // Then:
     assertContainsAlias(T1, T2);
-
   }
 
   @Test
@@ -140,12 +130,16 @@ public class DataSourceExtractorTest {
     // Given:
     final AstNode stmt = givenQuery("SELECT * FROM UNKNOWN JOIN TEST2"
         + " ON UNKNOWN.col1 = test2.col1;");
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
 
     // When:
-    extractor.extractDataSources(stmt);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> extractor.extractDataSources(stmt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist."));
   }
 
   @Test
@@ -154,12 +148,80 @@ public class DataSourceExtractorTest {
     final AstNode stmt = givenQuery("SELECT * FROM TEST1 JOIN UNKNOWN"
         + " ON test1.col1 = UNKNOWN.col1;");
 
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> extractor.extractDataSources(stmt)
+    );
+
     // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UNKNOWN does not exist.");
+    assertThat(e.getMessage(), containsString(
+        "UNKNOWN does not exist."));
+  }
+
+  @Test
+  public void shouldDetectClashingColumnNames() {
+    // Given:
+    final AstNode stmt = givenQuery("SELECT * FROM TEST1 t1 JOIN TEST2 t2"
+        + " ON test1.col1 = test2.col1;");
 
     // When:
     extractor.extractDataSources(stmt);
+
+    // Then:
+    assertThat("should clash", extractor.isClashingColumnName(COL0));
+  }
+
+  @Test
+  public void shouldDetectClashingColumnNamesEvenIfOneJoinSourceHasNoClash() {
+    // Given:
+    final AstNode stmt = givenQuery("SELECT * FROM ORDERS "
+        + "JOIN TEST1 t1 ON ORDERS.ITEMID = T1.COL1 "
+        + "JOIN TEST2 t2 ON test1.col1 = test2.col1;");
+
+    // When:
+    extractor.extractDataSources(stmt);
+
+    // Then:
+    assertThat("should clash", extractor.isClashingColumnName(COL0));
+  }
+
+  @Test
+  public void shouldDetectNoneClashingColumnNames() {
+    // Given:
+    final AstNode stmt = givenQuery("SELECT * FROM ORDERS "
+        + "JOIN TEST1 t1 ON ORDERS.ITEMID = T1.COL1 "
+        + "JOIN TEST2 t2 ON test1.col1 = test2.col1;");
+
+    // When:
+    extractor.extractDataSources(stmt);
+
+    // Then:
+    assertThat("should not clash", !extractor.isClashingColumnName(ColumnName.of("ORDERTIME")));
+  }
+
+  @Test
+  public void shouldIncludePseudoColumnsInClashingNames() {
+    // Given:
+    final AstNode stmt = givenQuery("SELECT * FROM TEST1 t1 JOIN TEST2 t2"
+        + " ON test1.col1 = test2.col1;");
+
+    // When:
+    extractor.extractDataSources(stmt);
+
+    // Then:
+    SystemColumns.pseudoColumnNames().forEach(pseudoCol ->
+        assertThat(pseudoCol + " should clash", extractor.isClashingColumnName(pseudoCol))
+    );
+  }
+
+  private void assertContainsAlias(final SourceName... alias) {
+    assertThat(
+        extractor.getAllSources()
+            .stream()
+            .map(AliasedDataSource::getAlias)
+            .collect(Collectors.toList()),
+        containsInAnyOrder(alias));
   }
 
   private static AstNode givenQuery(final String sql) {

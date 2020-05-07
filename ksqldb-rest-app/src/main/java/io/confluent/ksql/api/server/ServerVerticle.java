@@ -15,22 +15,27 @@
 
 package io.confluent.ksql.api.server;
 
-import com.google.common.collect.ImmutableSet;
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.AuthenticationPluginHandler;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -39,8 +44,6 @@ import io.vertx.ext.web.handler.BasicAuthHandler;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,35 +57,21 @@ public class ServerVerticle extends AbstractVerticle {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final Logger log = LoggerFactory.getLogger(ServerVerticle.class);
 
-  public static final Set<String> NON_PROXIED_ENDPOINTS = ImmutableSet
-      .of("/query-stream", "/inserts-stream", "/close-query", "/ksql");
-
-  // Quick switch so we can easily revert to not serving ported endpoints directly
-  private static final boolean SERVE_PORTED_ENDPOINTS = true;
-
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
   private final Server server;
-  private final boolean proxyEnabled;
-  private ProxyHandler proxyHandler;
   private ConnectionQueryManager connectionQueryManager;
   private HttpServer httpServer;
 
   public ServerVerticle(final Endpoints endpoints, final HttpServerOptions httpServerOptions,
-      final Server server, final boolean proxyEnabled) {
+      final Server server) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
     this.server = Objects.requireNonNull(server);
-    this.proxyEnabled = proxyEnabled;
   }
 
   @Override
   public void start(final Promise<Void> startPromise) {
-    if (proxyEnabled) {
-      this.proxyHandler = new ProxyHandler(server, context);
-    } else {
-      this.proxyHandler = null;
-    }
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ServerVerticle::unhandledExceptionHandler);
@@ -97,9 +86,6 @@ public class ServerVerticle extends AbstractVerticle {
 
   @Override
   public void stop(final Promise<Void> stopPromise) {
-    if (proxyHandler != null) {
-      proxyHandler.close();
-    }
     if (httpServer == null) {
       stopPromise.complete();
     } else {
@@ -114,17 +100,20 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
-    if (SERVE_PORTED_ENDPOINTS) {
-      PortedEndpoints.setupFailureHandler(router);
-    }
-
     KsqlCorsHandler.setupCorsHandler(server, router);
 
-    setUpFailureHandler(router);
+    // /chc endpoints need to be before server state handler but after CORS handler as they
+    // need to be usable from browser with cross origin policy
+    router.route(HttpMethod.GET, "/chc/ready").handler(ServerVerticle::chcHandler);
+    router.route(HttpMethod.GET, "/chc/live").handler(ServerVerticle::chcHandler);
+
+    PortedEndpoints.setupFailureHandler(router);
+
+    router.route().failureHandler(ServerVerticle::failureHandler);
 
     setupAuthHandlers(router);
 
-    setUpServerStateHandlers(router);
+    router.route().handler(new ServerStateHandler(server.getServerState()));
 
     router.route(HttpMethod.POST, "/query-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
@@ -139,13 +128,7 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
 
-    if (SERVE_PORTED_ENDPOINTS) {
-      PortedEndpoints.setupEndpoints(endpoints, server, router);
-    }
-
-    if (proxyHandler != null) {
-      proxyHandler.setupRoutes(router);
-    }
+    PortedEndpoints.setupEndpoints(endpoints, server, router);
 
     return router;
   }
@@ -170,9 +153,9 @@ public class ServerVerticle extends AbstractVerticle {
         );
       } else {
         final int errorCode;
-        if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+        if (statusCode == UNAUTHORIZED.code()) {
           errorCode = ErrorCodes.ERROR_FAILED_AUTHENTICATION;
-        } else if (statusCode == HttpStatus.SC_FORBIDDEN) {
+        } else if (statusCode == FORBIDDEN.code()) {
           errorCode = ErrorCodes.ERROR_FAILED_AUTHORIZATION;
         } else {
           errorCode = ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
@@ -208,18 +191,17 @@ public class ServerVerticle extends AbstractVerticle {
         authenticationPlugin.map(plugin -> new AuthenticationPluginHandler(server, plugin));
 
     if (jaasAuthHandler.isPresent() || authenticationPlugin.isPresent()) {
-      routeToNonProxiedEndpoints(router, ServerVerticle::pauseHandler);
+      router.route().handler(ServerVerticle::pauseHandler);
 
-      routeToNonProxiedEndpoints(router,
-          rc -> wrappedAuthHandler(rc, jaasAuthHandler, pluginHandler));
+      router.route().handler(rc -> wrappedAuthHandler(rc, jaasAuthHandler, pluginHandler));
 
       // For authorization use auth provider configured via security extension (if any)
       securityExtension.getAuthorizationProvider()
-          .ifPresent(ksqlAuthorizationProvider -> routeToNonProxiedEndpoints(router,
-              new KsqlAuthorizationProviderHandler(server.getWorkerExecutor(),
+          .ifPresent(ksqlAuthorizationProvider -> router.route()
+              .handler(new KsqlAuthorizationProviderHandler(server.getWorkerExecutor(),
                   ksqlAuthorizationProvider)));
 
-      routeToNonProxiedEndpoints(router, ServerVerticle::resumeHandler);
+      router.route().handler(ServerVerticle::resumeHandler);
     }
   }
 
@@ -242,23 +224,23 @@ public class ServerVerticle extends AbstractVerticle {
       // Fail the request as unauthorized - this will occur if no auth plugin but Jaas handler
       // is configured, but auth header is not basic auth
       routingContext
-          .fail(HttpStatus.SC_UNAUTHORIZED,
+          .fail(UNAUTHORIZED.code(),
               new KsqlApiException("Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION));
     }
   }
 
   private static Optional<AuthHandler> getJaasAuthHandler(final Server server) {
     final String authMethod = server.getConfig()
-        .getString(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG);
+        .getString(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG);
     switch (authMethod) {
-      case ApiServerConfig.AUTHENTICATION_METHOD_BASIC:
+      case KsqlRestConfig.AUTHENTICATION_METHOD_BASIC:
         return Optional.of(basicAuthHandler(server));
-      case ApiServerConfig.AUTHENTICATION_METHOD_NONE:
+      case KsqlRestConfig.AUTHENTICATION_METHOD_NONE:
         return Optional.empty();
       default:
         throw new IllegalStateException(String.format(
             "Unexpected value for %s: %s",
-            ApiServerConfig.AUTHENTICATION_METHOD_CONFIG,
+            KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG,
             authMethod
         ));
     }
@@ -266,20 +248,13 @@ public class ServerVerticle extends AbstractVerticle {
 
   private static AuthHandler basicAuthHandler(final Server server) {
     final AuthProvider authProvider = new JaasAuthProvider(server, server.getConfig());
-    final String realm = server.getConfig().getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
+    final String realm = server.getConfig().getString(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG);
     final AuthHandler basicAuthHandler = BasicAuthHandler.create(authProvider, realm);
     // It doesn't matter what we set here as we actually do the authorisation at the
     // authentication stage and cache the result, but we must add an authority or
     // no authorisation will be done
     basicAuthHandler.addAuthority("ksql");
     return basicAuthHandler;
-  }
-
-  private void setUpServerStateHandlers(final Router router) {
-    // This will require special handling when removing the proxy server as only endpoints
-    // defined in this repo (rather than in custom plugins) should reject requests based
-    // on server state
-    routeToNonProxiedEndpoints(router, new ServerStateHandler(server.getServerState()));
   }
 
   private static void pauseHandler(final RoutingContext routingContext) {
@@ -294,18 +269,9 @@ public class ServerVerticle extends AbstractVerticle {
     routingContext.next();
   }
 
-  // Applies the handler to all non proxied endpoints
-  private static void routeToNonProxiedEndpoints(final Router router,
-      final Handler<RoutingContext> handler) {
-    for (String path : NON_PROXIED_ENDPOINTS) {
-      router.route(path).handler(handler);
-    }
-  }
-
-  private static void setUpFailureHandler(final Router router) {
-    for (String path : NON_PROXIED_ENDPOINTS) {
-      router.route(path).failureHandler(ServerVerticle::failureHandler);
-    }
+  private static void chcHandler(final RoutingContext routingContext) {
+    routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
+        .end(new JsonObject().toBuffer());
   }
 
 }

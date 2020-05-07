@@ -35,15 +35,16 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
@@ -94,8 +95,7 @@ public class QueryStreamWriterTest {
     limitHandlerCapture = newCapture();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
         .build();
 
@@ -184,7 +184,7 @@ public class QueryStreamWriterTest {
   private void createWriter() {
     replay(queryMetadata, ksqlEngine, rowQueue);
 
-    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper);
+    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper, new CompletableFuture<>());
 
     out = new ByteArrayOutputStream();
     limitHandler = limitHandlerCapture.getValue();

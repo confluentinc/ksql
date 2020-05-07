@@ -79,7 +79,6 @@ import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
-import io.confluent.ksql.parser.SqlBaseParser.PartitionByContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.RetentionClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
@@ -158,7 +157,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -410,6 +408,10 @@ public class AstBuilder {
 
       final OptionalInt limit = getLimit(context.limitClause());
 
+      final Optional<PartitionBy> partitionBy =
+          visitIfPresent(context.partitionBy, Expression.class)
+              .map(e -> new PartitionBy(getLocation(context.PARTITION()), e));
+
       return new Query(
           getLocation(context),
           select,
@@ -417,7 +419,7 @@ public class AstBuilder {
           visitIfPresent(context.windowExpression(), WindowExpression.class),
           visitIfPresent(context.where, Expression.class),
           visitIfPresent(context.groupBy(), GroupBy.class),
-          visitIfPresent(context.partitionBy(), PartitionBy.class),
+          partitionBy,
           visitIfPresent(context.having, Expression.class),
           resultMaterialization,
           pullQuery,
@@ -560,25 +562,10 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitPartitionBy(final PartitionByContext ctx) {
-      final Optional<ColumnName> alias = Optional.ofNullable(ctx.identifier())
-          .map(ParserUtil::getIdentifierText)
-          .map(ColumnName::of);
-
-      final Expression expression = (Expression) visit(ctx.valueExpression());
-
-      return new PartitionBy(getLocation(ctx), expression, alias);
-    }
-
-    @Override
     public Node visitGroupBy(final SqlBaseParser.GroupByContext ctx) {
-      final Optional<ColumnName> alias = Optional.ofNullable(ctx.identifier())
-          .map(ParserUtil::getIdentifierText)
-          .map(ColumnName::of);
-
       final List<Expression> expressions = visit(ctx.valueExpression(), Expression.class);
 
-      return new GroupBy(getLocation(ctx), expressions, alias);
+      return new GroupBy(getLocation(ctx), expressions);
     }
 
     @Override
@@ -1175,7 +1162,7 @@ public class AstBuilder {
     public Node visitExplain(final SqlBaseParser.ExplainContext ctx) {
       final IdentifierContext queryIdentifier = ctx.identifier();
       final Optional<String> queryId = Optional.ofNullable(queryIdentifier)
-          .map(RuleContext::getText);
+          .map(ParserUtil::getIdentifierText);
 
       final Optional<Statement> statement = Optional.ofNullable(ctx.statement())
           .map(s -> (Statement) visit(s));

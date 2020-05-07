@@ -22,7 +22,6 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
-import static junit.framework.TestCase.fail;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
 import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
@@ -32,19 +31,28 @@ import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.api.server.ServerVerticle;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.rest.entity.CommandId;
+import io.confluent.ksql.rest.entity.CommandId.Action;
+import io.confluent.ksql.rest.entity.CommandId.Type;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatus.Status;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.ServerClusterId;
+import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
@@ -54,34 +62,18 @@ import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.VertxCompletableFuture;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.websocket.CloseReason.CloseCodes;
-import javax.ws.rs.core.MediaType;
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
-import org.eclipse.jetty.websocket.api.annotations.WebSocket;
-import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -100,6 +92,8 @@ public class RestApiTest {
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+
+  private static final String APPLICATION_JSON_TYPE = "application/json";
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final Credentials SUPER_USER = VALID_USER1;
@@ -203,8 +197,8 @@ public class RestApiTest {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
-        Versions.KSQL_V1_JSON_TYPE,
-        Versions.KSQL_V1_JSON_TYPE
+        Versions.KSQL_V1_JSON,
+        Versions.KSQL_V1_JSON
     );
 
     // Then:
@@ -217,13 +211,75 @@ public class RestApiTest {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
-        MediaType.APPLICATION_JSON_TYPE,
-        MediaType.APPLICATION_JSON_TYPE
+        "application/json",
+        "application/json"
     );
 
     // Then:
     assertThat(messages, hasSize(HEADER + LIMIT));
     assertValidJsonMessages(messages);
+  }
+
+  @Test
+  public void shouldExecuteInfoRequest() {
+    // When:
+    final ServerInfo response = RestIntegrationTestUtil.makeInfoRequest(REST_APP);
+
+    // Then:
+    assertThat(response.getVersion(), is(notNullValue()));
+  }
+
+  @Test
+  public void shouldExecuteStatusRequest() {
+
+    // When:
+    String commandId = "stream/`" + PAGE_VIEW_STREAM + "`/create";
+    final CommandStatus response = RestIntegrationTestUtil.makeStatusRequest(REST_APP, commandId);
+
+    // Then:
+    assertThat(response.getStatus(), is(Status.SUCCESS));
+  }
+
+  @Test
+  public void shouldExecuteStatusesRequest() {
+
+    // When:
+    final CommandStatuses response = RestIntegrationTestUtil.makeStatusesRequest(REST_APP);
+
+    // Then:
+    CommandId expected = new CommandId(Type.STREAM, "`" + PAGE_VIEW_STREAM + "`", Action.CREATE);
+    assertThat(response.containsKey(expected), is(true));
+  }
+
+  @Test
+  public void shouldExecuteServerMetadataRequest() {
+    // When:
+    final ServerMetadata response = RestIntegrationTestUtil.makeServerMetadataRequest(REST_APP);
+
+    // Then:
+    assertThat(response.getVersion(), is(notNullValue()));
+    assertThat(response.getClusterId(), is(notNullValue()));
+  }
+
+  @Test
+  public void shouldExecuteServerMetadataIdRequest() {
+    // When:
+    final ServerClusterId response = RestIntegrationTestUtil.makeServerMetadataIdRequest(REST_APP);
+
+    // Then:
+    assertThat(response, is(notNullValue()));
+  }
+
+  @Test
+  public void shouldExecuteRootDocumentRequest() {
+
+    HttpResponse<Buffer> resp = RestIntegrationTestUtil
+        .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1, HttpMethod.GET,
+            "/", null);
+
+    // Then
+    assertThat(resp.statusCode(), is(HttpStatus.SC_TEMPORARY_REDIRECT));
+    assertThat(resp.getHeader("location"), is("/info"));
   }
 
   @Test
@@ -252,8 +308,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        Versions.KSQL_V1_JSON_TYPE,
-        Versions.KSQL_V1_JSON_TYPE
+        Versions.KSQL_V1_JSON,
+        Versions.KSQL_V1_JSON
     );
 
     // Then:
@@ -262,13 +318,10 @@ public class RestApiTest {
     assertThat(messages.get(0),
         is("["
             + "{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null},\"type\":\"KEY\"},"
-            + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
             + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
             + "]"));
 
-    final Pattern rowPattern = Pattern.compile("\\{\"row\":\\{\"columns\":\\[\"USER_1\",\\d+,1]}}");
-    final Matcher matcher = rowPattern.matcher(messages.get(1));
-    assertThat(messages.get(1) + " should match pattern " + rowPattern, matcher.matches());
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
   }
 
   @Test
@@ -276,8 +329,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        MediaType.APPLICATION_JSON_TYPE,
-        MediaType.APPLICATION_JSON_TYPE
+        APPLICATION_JSON_TYPE,
+        APPLICATION_JSON_TYPE
     );
 
     // Then:
@@ -297,8 +350,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        MediaType.APPLICATION_JSON_TYPE,
-        MediaType.APPLICATION_JSON_TYPE
+        APPLICATION_JSON_TYPE,
+        APPLICATION_JSON_TYPE
     );
 
     // Then:
@@ -317,8 +370,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        MediaType.APPLICATION_JSON_TYPE,
-        MediaType.APPLICATION_JSON_TYPE
+        APPLICATION_JSON_TYPE,
+        APPLICATION_JSON_TYPE
     );
 
     // Then:
@@ -368,8 +421,8 @@ public class RestApiTest {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "PRINT '" + PAGE_VIEW_TOPIC + "' FROM BEGINNING LIMIT " + LIMIT + ";",
-        MediaType.APPLICATION_JSON_TYPE,
-        MediaType.APPLICATION_JSON_TYPE);
+        APPLICATION_JSON_TYPE,
+        APPLICATION_JSON_TYPE);
 
     // Then:
     assertThat(messages, hasSize(LIMIT));
@@ -392,65 +445,18 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldExecuteStatementWithConnectionCloseHeaderHTTP1_1() throws Exception {
-    HttpResponse<Buffer> response = shouldExecuteStatementWithConnectionCloseHeader(
-        HttpVersion.HTTP_1_1);
-    String transferEncodingHeader = response.getHeader(HttpHeaders.TRANSFER_ENCODING.toString());
-    assertThat(transferEncodingHeader, is("chunked"));
-  }
+  public void shouldFailToExecuteQueryUsingRestWithHttp2() {
 
-  @Test
-  public void shouldExecuteStatementWithConnectionCloseHeaderHTTP2() throws Exception {
-    HttpResponse<Buffer> response = shouldExecuteStatementWithConnectionCloseHeader(
-        HttpVersion.HTTP_2);
-    // Chunked transfer encoding header is illegal in HTTP2
-    String transferEncodingHeader = response.getHeader(HttpHeaders.TRANSFER_ENCODING.toString());
-    if (transferEncodingHeader != null) {
-      assertThat(transferEncodingHeader.toLowerCase(), is(not("chunked")));
-    }
-  }
+    // Given:
+    KsqlRequest ksqlRequest = new KsqlRequest("SELECT * from " + AGG_TABLE + " EMIT CHANGES;",
+        Collections.emptyMap(), Collections.emptyMap(), null);
 
-  // See https://github.com/confluentinc/ksql/issues/4760
-  private HttpResponse<Buffer> shouldExecuteStatementWithConnectionCloseHeader(
-      final HttpVersion version)
-      throws Exception {
+    // When:
+    HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+        HttpVersion.HTTP_2, HttpMethod.POST, "/query", ksqlRequest);
 
-    String uri = "/v1/metadata/id";
-    assertThat(ServerVerticle.NON_PROXIED_ENDPOINTS.contains(uri), is(false));
-
-    Vertx vertx = Vertx.vertx();
-    WebClient webClient = null;
-
-    try {
-      // Given:
-      WebClientOptions webClientOptions = new WebClientOptions()
-          .setDefaultHost(REST_APP.getHttpListener().getHost())
-          .setDefaultPort(REST_APP.getHttpListener().getPort());
-
-      if (version == HttpVersion.HTTP_2) {
-        webClientOptions.setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
-      }
-
-      webClient = WebClient.create(vertx, webClientOptions);
-
-      // When:
-      VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
-      webClient
-          .get(uri)
-          .putHeader("connection", "close")
-          .send(requestFuture);
-      HttpResponse<Buffer> resp = requestFuture.get();
-
-      // Then
-      assertThat(resp.statusCode(), is(200));
-
-      return resp;
-    } finally {
-      if (webClient != null) {
-        webClient.close();
-      }
-      vertx.close();
-    }
+    // Then:
+    assertThat(resp.statusCode(), is(405));
   }
 
   private boolean topicExists(final String topicName) {
@@ -486,29 +492,16 @@ public class RestApiTest {
 
   private static List<String> makeWebSocketRequest(
       final String sql,
-      final MediaType mediaType,
-      final MediaType contentType
+      final String mediaType,
+      final String contentType
   ) {
-    final WebSocketListener listener = new WebSocketListener();
-
-    final WebSocketClient wsClient = RestIntegrationTestUtil.makeWsRequest(
+    return RestIntegrationTestUtil.makeWsRequest(
         REST_APP.getWsListener(),
         sql,
-        listener,
         Optional.of(mediaType),
         Optional.of(contentType),
         Optional.of(SUPER_USER)
     );
-
-    try {
-      return listener.awaitMessages();
-    } finally {
-      try {
-        wsClient.stop();
-      } catch (final Exception e) {
-        fail("Failed to close ws");
-      }
-    }
   }
 
   private static void assertValidJsonMessages(final Iterable<String> messages) {
@@ -521,49 +514,4 @@ public class RestApiTest {
     }
   }
 
-  @SuppressWarnings("unused") // Invoked via reflection
-  @WebSocket
-  public static class WebSocketListener {
-
-    final CountDownLatch latch = new CountDownLatch(1);
-    final AtomicReference<Throwable> error = new AtomicReference<>();
-    final List<String> messages = new CopyOnWriteArrayList<>();
-
-    @OnWebSocketMessage
-    public void onMessage(final Session session, final String text) {
-      messages.add(text);
-    }
-
-    @OnWebSocketClose
-    public void onClose(final int statusCode, final String reason) {
-      if (statusCode != CloseCodes.NORMAL_CLOSURE.getCode()) {
-        error.set(new RuntimeException("non-normal close: " + reason + ", code: " + statusCode));
-      }
-      latch.countDown();
-    }
-
-    @OnWebSocketError
-    public void onError(final Throwable t) {
-      error.set(t);
-      latch.countDown();
-    }
-
-    List<String> awaitMessages() {
-      assertThat("Response received", await(), is(true));
-
-      if (error.get() != null) {
-        throw new AssertionError("Error in web socket listener:", error.get());
-      }
-
-      return messages;
-    }
-
-    private boolean await() {
-      try {
-        return latch.await(30, TimeUnit.SECONDS);
-      } catch (final Exception e) {
-        throw new AssertionError("Timed out waiting for WS response", e);
-      }
-    }
-  }
 }

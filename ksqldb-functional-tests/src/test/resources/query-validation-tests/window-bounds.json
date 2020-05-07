@@ -7,7 +7,7 @@
       "name": "table session",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, IGNORED STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE S2 as SELECT WindowStart as wstart, WindowEnd as wend, COUNT(1) AS Count FROM test WINDOW SESSION (30 SECONDS) group by id;"
+        "CREATE TABLE S2 as SELECT ID, WindowStart as wstart, WindowEnd as wend, COUNT(1) AS Count FROM test WINDOW SESSION (30 SECONDS) group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 0},
@@ -31,7 +31,7 @@
       "name": "table tumbling",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, IGNORED STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE S2 as SELECT WindowStart as wstart, WindowEnd as wend, COUNT(1) AS Count FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
+        "CREATE TABLE S2 as SELECT ID, WindowStart as wstart, WindowEnd as wend, COUNT(1) AS Count FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 0},
@@ -56,7 +56,7 @@
       "name": "table hopping",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, IGNORED STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE S2 as SELECT WindowStart as wstart, WindowEnd as wend, COUNT(1) AS Count FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 5 SECONDS) group by id;"
+        "CREATE TABLE S2 as SELECT ID, WindowStart as wstart, WindowEnd as wend, COUNT(1) AS Count FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 5 SECONDS) group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 0},
@@ -76,7 +76,7 @@
       "name": "in expressions",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, IGNORED STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE S2 as SELECT Test.WindowStart / 2, WindowEnd / id, COUNT(1) AS Count FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
+        "CREATE TABLE S2 as SELECT ID, Test.WindowStart / 2, WindowEnd / id, COUNT(1) AS Count FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 2,"value": "2", "timestamp": 0},
@@ -95,7 +95,7 @@
       "name": "windowed group by - non-aggregate window bounds in SELECT",
       "statements": [
         "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT as SELECT count(1) as count, windowstart as WSTART, windowend AS WEND FROM INPUT WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY;"
+        "CREATE TABLE OUTPUT as SELECT ROWKEY, count(1) as count, windowstart as WSTART, windowend AS WEND FROM INPUT WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 10345},
@@ -122,7 +122,7 @@
       "name": "windowed group by - aggregate window bounds in UDAF in SELECT",
       "statements": [
         "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE S2 as SELECT count(1), min(windowstart), min(windowend) FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY;"
+        "CREATE TABLE S2 as SELECT ROWKEY, count(1), min(windowstart), min(windowend) FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -133,7 +133,7 @@
       "name": "windowed group by - window bounds used in expression with aggregate in SELECT",
       "statements": [
         "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE S2 as SELECT count(1) * windowend FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY;"
+        "CREATE TABLE S2 as SELECT ROWKEY, count(1) * windowend FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 10345},
@@ -160,7 +160,7 @@
       "name": "windowed group by - aggregate window bounds in WHERE",
       "statements": [
         "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE S2 as SELECT count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) WHERE min(windowEnd) < 15000 group by ROWKEY;"
+        "CREATE TABLE S2 as SELECT ROWKEY, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) WHERE min(windowEnd) < 15000 group by ROWKEY;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -172,7 +172,7 @@
       "comment": "Window bounds in group by are ignored, as the GROUP BY is implicitly by window bounds",
       "statements": [
         "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE S2 as SELECT count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY, WINDOWSTART, WINDOWEND;"
+        "CREATE TABLE S2 as SELECT ROWKEY, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY, WINDOWSTART, WINDOWEND;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -184,7 +184,7 @@
       "comment": "In the future this can be supported, but isn't as yet",
       "statements": [
         "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE S2 as SELECT count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by WINDOWSTART, WINDOWEND;"
+        "CREATE TABLE S2 as SELECT ROWKEY, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by WINDOWSTART, WINDOWEND;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -195,7 +195,7 @@
       "name": "windowed group by - window bounds in expression in GROUP BY",
       "statements": [
         "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE S2 as SELECT count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY, WINDOWSTART / 1000, ABS(WINDOWEND);"
+        "CREATE TABLE S2 as SELECT ROWKEY, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY, WINDOWSTART / 1000, ABS(WINDOWEND);"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -206,7 +206,7 @@
       "name": "windowed group by - window bounds in HAVING",
       "statements": [
         "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE S2 as SELECT count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY HAVING windowStart > 11000 AND min(windowEnd) < 15000;"
+        "CREATE TABLE S2 as SELECT ROWKEY, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY HAVING windowStart > 11000 AND min(windowEnd) < 15000;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",

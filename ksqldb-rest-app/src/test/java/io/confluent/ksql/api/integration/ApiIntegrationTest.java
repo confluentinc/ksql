@@ -254,15 +254,14 @@ public class ApiIntegrationTest {
     QueryResponse response = atomicReference.get();
 
     // Then:
-    JsonArray expectedColumnNames = new JsonArray().add("USERID").add("ROWTIME").add("COUNT");
-    JsonArray expectedColumnTypes = new JsonArray().add("STRING").add("BIGINT").add("BIGINT");
+    JsonArray expectedColumnNames = new JsonArray().add("USERID").add("COUNT");
+    JsonArray expectedColumnTypes = new JsonArray().add("STRING").add("BIGINT");
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
     assertThat(response.responseObject.getString("queryId"), is(nullValue()));
     assertThat(response.rows.get(0).getString(0), is("USER_1"));  // rowkey
-    assertThat(response.rows.get(0).getLong(1), is(notNullValue()));  // rowtime - non deterministic
-    assertThat(response.rows.get(0).getLong(2), is(1L)); // count
+    assertThat(response.rows.get(0).getLong(1), is(1L)); // count
   }
 
   @Test

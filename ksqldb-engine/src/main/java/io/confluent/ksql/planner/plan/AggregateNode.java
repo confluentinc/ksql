@@ -16,9 +16,11 @@
 package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static io.confluent.ksql.util.GrammaticalJoiner.and;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.AggregateExpressionRewriter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
@@ -37,17 +39,18 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,10 +58,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
-public class AggregateNode extends PlanNode {
+public class AggregateNode extends PlanNode implements VerifiableNode {
 
   private static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
 
@@ -76,6 +80,7 @@ public class AggregateNode extends PlanNode {
   private final ImmutableList<FunctionCall> functionList;
   private final ImmutableList<ColumnReferenceExp> requiredColumns;
   private final Optional<Expression> havingExpressions;
+  private final ImmutableList<SelectExpression> projection;
   private final ImmutableList<SelectExpression> finalSelectExpressions;
   private final ValueFormat valueFormat;
 
@@ -105,13 +110,20 @@ public class AggregateNode extends PlanNode {
         .copyOf(rewrittenAggregateAnalysis.getAggregateFunctions());
     this.requiredColumns = ImmutableList
         .copyOf(rewrittenAggregateAnalysis.getRequiredColumns());
-    this.finalSelectExpressions = ImmutableList.copyOf(projectionExpressions.stream()
+
+    this.projection = ImmutableList.copyOf(projectionExpressions.stream()
         .map(se -> SelectExpression.of(
             se.getAlias(),
             ExpressionTreeRewriter
                 .rewriteWith(aggregateExpressionRewriter::process, se.getExpression())
         ))
         .collect(Collectors.toList()));
+
+    final Set<Expression> groupings = ImmutableSet.copyOf(groupBy.getGroupingExpressions());
+    this.finalSelectExpressions = ImmutableList.copyOf(projection.stream()
+        .filter(e -> !groupings.contains(e.getExpression()))
+        .collect(Collectors.toList()));
+
     this.havingExpressions = rewrittenAggregateAnalysis.getHavingExpression()
         .map(exp -> ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, exp));
     this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
@@ -175,6 +187,19 @@ public class AggregateNode extends PlanNode {
     aggregated = applyHavingFilter(aggregated, contextStacker);
 
     return selectRequiredOutputColumns(aggregated, contextStacker, builder);
+  }
+
+  @Override
+  public void validateKeyPresent(final SourceName sinkName) {
+    final List<Expression> missing = new ArrayList<>(groupBy.getGroupingExpressions());
+
+    projection.stream()
+        .map(SelectExpression::getExpression)
+        .forEach(missing::remove);
+
+    if (!missing.isEmpty()) {
+      throwKeysNotIncludedError(sinkName, "grouping expression", missing, and());
+    }
   }
 
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
@@ -242,7 +267,6 @@ public class AggregateNode extends PlanNode {
     return preSelected.groupBy(
         valueFormat,
         groupBy.getGroupingExpressions(),
-        groupBy.getAlias(),
         contextStacker.push(GROUP_BY_OP_NAME)
     );
   }
@@ -335,7 +359,7 @@ public class AggregateNode extends PlanNode {
       }
 
       @Override
-      public Optional<Expression> visitColumnReference(
+      public Optional<Expression> visitUnqualifiedColumnReference(
           final UnqualifiedColumnReferenceExp node,
           final Context<Void> context
       ) {
@@ -349,7 +373,7 @@ public class AggregateNode extends PlanNode {
         }
 
         final boolean isAggregate = ColumnNames.isAggregate(node.getColumnName());
-        final boolean windowBounds = SchemaUtil.isWindowBound(node.getColumnName());
+        final boolean windowBounds = SystemColumns.isWindowBound(node.getColumnName());
 
         if (isAggregate && windowBounds) {
           throw new KsqlException("Window bound " + node + " is not available as a parameter "

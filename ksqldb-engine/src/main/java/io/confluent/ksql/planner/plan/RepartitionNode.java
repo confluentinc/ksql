@@ -15,17 +15,20 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.util.GrammaticalJoiner.and;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -38,20 +41,26 @@ import java.util.stream.Stream;
 public class RepartitionNode extends PlanNode {
 
   private final PlanNode source;
-  private final PartitionBy partitionBy;
+  private final Expression originalPartitionBy;
+  private final Expression partitionBy;
   private final KeyField keyField;
+  private final boolean internal;
 
   public RepartitionNode(
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final PartitionBy partitionBy,
-      final KeyField keyField
+      final Expression originalPartitionBy,
+      final Expression partitionBy,
+      final KeyField keyField,
+      final boolean internal
   ) {
     super(id, source.getNodeOutputType(), schema, source.getSourceName());
     this.source = requireNonNull(source, "source");
+    this.originalPartitionBy = requireNonNull(originalPartitionBy, "originalPartitionBy");
     this.partitionBy = requireNonNull(partitionBy, "partitionBy");
     this.keyField = requireNonNull(keyField, "keyField");
+    this.internal = internal;
   }
 
   @Override
@@ -73,15 +82,14 @@ public class RepartitionNode extends PlanNode {
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     return source.buildStream(builder)
         .selectKey(
-            partitionBy.getExpression(),
-            partitionBy.getAlias(),
+            partitionBy,
             builder.buildNodeContext(getId().toString())
         );
   }
 
   @VisibleForTesting
   public Expression getPartitionBy() {
-    return partitionBy.getExpression();
+    return partitionBy;
   }
 
   @Override
@@ -89,18 +97,37 @@ public class RepartitionNode extends PlanNode {
     return visitor.visitRepartition(this, context);
   }
 
+  public Expression resolveSelect(final int idx, final Expression expression) {
+    return partitionBy.equals(expression)
+        ? new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(getSchema().key()).name())
+        : expression;
+  }
+
   @Override
   public Stream<ColumnName> resolveSelectStar(
       final Optional<SourceName> sourceName,
       final boolean valueOnly
   ) {
-    final boolean sourceNameMatches = !sourceName.isPresent() || sourceName.equals(getSourceName());
-    if (sourceNameMatches && valueOnly) {
-      // Override set of value columns to take into account the repartition:
-      return getSchema().withoutMetaAndKeyColsInValue().value().stream().map(Column::name);
+    if (sourceName.isPresent() && !sourceName.equals(getSourceName())) {
+      throw new IllegalArgumentException("Expected sourceName of " + getSourceName()
+          + ", but was " + sourceName.get());
     }
 
-    // Set of all columns not changed by a repartition:
-    return super.resolveSelectStar(sourceName, valueOnly);
+    if (internal) {
+      // An internal repartition is an impl detail, so should not change the set of columns:
+      return super.resolveSelectStar(sourceName, valueOnly);
+    }
+
+    return valueOnly
+        ? getSchema().withoutPseudoAndKeyColsInValue().value().stream().map(Column::name)
+        : orderColumns(getSchema().value(), getSchema());
+  }
+
+  @Override
+  void validateKeyPresent(final SourceName sinkName, final Projection projection) {
+    if (!projection.containsExpression(partitionBy)) {
+      final ImmutableList<Expression> keys = ImmutableList.of(originalPartitionBy);
+      throwKeysNotIncludedError(sinkName, "partitioning expression", keys, and());
+    }
   }
 }

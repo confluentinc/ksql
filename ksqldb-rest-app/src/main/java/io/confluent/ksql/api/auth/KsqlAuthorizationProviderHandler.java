@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.auth;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.vertx.core.AsyncResult;
@@ -24,7 +26,6 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Set;
-import org.apache.http.HttpStatus;
 
 /**
  * Handler that calls a KsqlAuthorizationProvider plugin that can be used for custom authorization
@@ -32,7 +33,7 @@ import org.apache.http.HttpStatus;
 public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext> {
 
   public static final Set<String> PATHS_WITHOUT_AUTHORIZATION = ImmutableSet
-      .of("/v1/metadata", "/healthcheck");
+      .of("/v1/metadata", "/v1/metadata/id", "/healthcheck");
 
   private final WorkerExecutor workerExecutor;
   private final KsqlAuthorizationProvider ksqlAuthorizationProvider;
@@ -63,7 +64,7 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
     if (ar.succeeded()) {
       routingContext.next();
     } else {
-      routingContext.fail(HttpStatus.SC_FORBIDDEN, ar.cause());
+      routingContext.fail(FORBIDDEN.code(), ar.cause());
     }
   }
 

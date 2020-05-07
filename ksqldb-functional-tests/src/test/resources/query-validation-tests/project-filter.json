@@ -6,8 +6,8 @@
     {
       "name": "project and filter",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM S1 as SELECT name FROM test where id > 100;"
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 as SELECT K, name FROM test where id > 100;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": "0,zero,0.0"},
@@ -21,8 +21,8 @@
     {
       "name": "project string with embedded code",
       "statements": [
-        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM S1 as SELECT '\" + new java.util.function.Supplier<String>(){public String get() {return \"boom\";}}.get() + \"' as x  FROM test;"
+        "CREATE STREAM TEST (K STRING KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 as SELECT K, '\" + new java.util.function.Supplier<String>(){public String get() {return \"boom\";}}.get() + \"' as x  FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": "0"}
@@ -34,8 +34,8 @@
     {
       "name": "Json Map filter",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 as SELECT ID FROM TEST WHERE THING['status']='false';"
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 as SELECT K, ID FROM TEST WHERE THING['status']='false';"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"id": 1, "thing": {"other": 11, "status": false}}},
@@ -51,8 +51,8 @@
     {
       "name": "WHERE with many comparisons. This tests the fix for #1784",
       "statements": [
-        "CREATE STREAM events (id int, field0 varchar) WITH (KAFKA_TOPIC='events', VALUE_FORMAT='json');",
-        "CREATE STREAM eventstest AS SELECT id, 'x_0' AS field1, field0 FROM events WHERE ((id=1 OR id=2 OR id=3 OR id=4) AND (field0='0x10' OR field0='0x11' OR field0='0x12' OR field0='0x13' OR field0='0x14' OR field0='0x15' OR field0='0x16' OR field0='0x17' OR field0='0x18' OR field0='0x19' OR field0='0x1A' OR field0='0x1B' OR field0='0x1C' OR field0='0x1D' OR field0='0x1E' OR field0='0x1F' OR field0='0x20' OR field0='0x21' OR field0='0x22' OR field0='0x23' OR field0='0x24' OR field0='0x25' OR field0='0x26' OR field0='0x27' OR field0='0x28' OR field0='0x29' OR field0='0x2A' OR field0='0x2B' OR field0='0x2C' OR field0='0x2D' OR field0='0x2E' OR field0='0x2F' OR field0='0x30' OR field0='0x31' OR field0='0x32' OR field0='0x33' OR field0='0x34' OR field0='0x35' OR field0='0x36' OR field0='0x37' OR field0='0x38' OR field0='0x39' OR field0='0x3A' OR field0='0x3B' OR field0='0x3C' OR field0='0x3D' OR field0='0x3E' OR field0='0x3F'));"
+        "CREATE STREAM events (K STRING KEY, id int, field0 varchar) WITH (KAFKA_TOPIC='events', VALUE_FORMAT='json');",
+        "CREATE STREAM eventstest AS SELECT K, id, 'x_0' AS field1, field0 FROM events WHERE ((id=1 OR id=2 OR id=3 OR id=4) AND (field0='0x10' OR field0='0x11' OR field0='0x12' OR field0='0x13' OR field0='0x14' OR field0='0x15' OR field0='0x16' OR field0='0x17' OR field0='0x18' OR field0='0x19' OR field0='0x1A' OR field0='0x1B' OR field0='0x1C' OR field0='0x1D' OR field0='0x1E' OR field0='0x1F' OR field0='0x20' OR field0='0x21' OR field0='0x22' OR field0='0x23' OR field0='0x24' OR field0='0x25' OR field0='0x26' OR field0='0x27' OR field0='0x28' OR field0='0x29' OR field0='0x2A' OR field0='0x2B' OR field0='0x2C' OR field0='0x2D' OR field0='0x2E' OR field0='0x2F' OR field0='0x30' OR field0='0x31' OR field0='0x32' OR field0='0x33' OR field0='0x34' OR field0='0x35' OR field0='0x36' OR field0='0x37' OR field0='0x38' OR field0='0x39' OR field0='0x3A' OR field0='0x3B' OR field0='0x3C' OR field0='0x3D' OR field0='0x3E' OR field0='0x3F'));"
       ],
       "inputs": [
         {"topic": "events", "key": "0", "value": {"id": 1, "field0": "0x10"}}
@@ -64,8 +64,8 @@
     {
       "name": "project and negative filter",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM S2 as SELECT name, id FROM test where id < -100;"
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S2 as SELECT K, name, id FROM test where id < -100;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": "0,zero,0.0"},
@@ -79,8 +79,8 @@
     {
       "name": "Json Multi Dimensional Array 2",
       "statements": [
-        "CREATE STREAM array_array (ID BIGINT, ARRAY_COL ARRAY<ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S3 as SELECT ID, ARRAY_COL[1][2] AS array_item FROM array_array;"
+        "CREATE STREAM array_array (K STRING KEY, ID BIGINT, ARRAY_COL ARRAY<ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S3 as SELECT K, ID, ARRAY_COL[1][2] AS array_item FROM array_array;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"id": 1, "array_col": [["item_00_1","item_01_1"],["item_10_1","item_11_1"]]}},
@@ -100,8 +100,8 @@
     {
       "name": "Json Multi Dimensional Array",
       "statements": [
-        "CREATE STREAM array_array (ID BIGINT, ARRAY_COL ARRAY<ARRAY<ARRAY<VARCHAR>>>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S3 as SELECT ID, ARRAY_COL[1][1][1] AS array_item FROM array_array;"
+        "CREATE STREAM array_array (K STRING KEY, ID BIGINT, ARRAY_COL ARRAY<ARRAY<ARRAY<VARCHAR>>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S3 as SELECT K, ID, ARRAY_COL[1][1][1] AS array_item FROM array_array;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"id": 1, "array_col": [[["item_000_1","item_001_1"],["item_010_1","item_011_1"]],[["item_100_1","item_101_1"],["item_110_1","item_111_1"]]]}},
@@ -121,7 +121,7 @@
     {
       "name": "Filter on long literal",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 = 4294967296;"
       ],
       "inputs": [
@@ -135,7 +135,7 @@
     {
       "name": "Filter on string literal",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3='foo';"
       ],
       "inputs": [
@@ -151,7 +151,7 @@
     {
       "name": "Filter on like pattern",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3 LIKE 'f%';"
       ],
       "inputs": [
@@ -167,7 +167,7 @@
     {
       "name": "Filter on BETWEEN",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 BETWEEN 1 AND 3;"
       ],
       "inputs": [
@@ -183,7 +183,7 @@
     {
       "name": "Filter on NOT BETWEEN",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 NOT BETWEEN 1 AND 3;"
       ],
       "inputs": [
@@ -198,7 +198,7 @@
     {
       "name": "Filter on NULL",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IS NULL;"
       ],
       "inputs": [
@@ -214,7 +214,7 @@
     {
       "name": "Filter on NOT NULL",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IS NOT NULL;"
       ],
       "inputs": [
@@ -241,7 +241,7 @@
     {
       "name": "Filter on IS DISTINCT FROM",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IS DISTINCT FROM c2;"
       ],
       "inputs": [
@@ -262,7 +262,7 @@
     {
       "name": "Filter on IS NOT DISTINCT FROM",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IS NOT DISTINCT FROM c2;"
       ],
       "inputs": [
@@ -281,7 +281,7 @@
     {
       "name": "Filter on like pattern without wildcards",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3 LIKE 'f';"
       ],
       "inputs": [
@@ -296,8 +296,8 @@
     {
       "name": "Null row filter",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S3 as SELECT ID FROM TEST WHERE THING['status']='false';"
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S3 as SELECT K, ID FROM TEST WHERE THING['status']='false';"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"id": 1, "thing": {"other": 11, "status": false}}},
@@ -310,7 +310,7 @@
     {
       "name": "Filter on not like pattern",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3 NOT LIKE 'f%';"
       ],
       "inputs": [
@@ -325,8 +325,8 @@
     {
       "name": "Project fields with reserved name",
       "statements": [
-        "CREATE STREAM TEST (START STRING, `END` STRING) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT `END` FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, START STRING, `END` STRING) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT K, `END` FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"START": "hello", "END": "foo"}},
@@ -340,8 +340,8 @@
     {
       "name": "Project struct fields with reserved name",
       "statements": [
-        "CREATE STREAM TEST (S STRUCT<START STRING, `END` STRING>) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT S->`END` FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, S STRUCT<START STRING, `END` STRING>) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT K, S->`END` FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"S": {"START": "hello", "END": "foo"}}},
@@ -355,7 +355,7 @@
     {
       "name": "CSAS with custom Kafka topic name",
       "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 WITH (KAFKA_TOPIC='topic_s') AS SELECT * FROM TEST WHERE C1 = 4294967296;"
       ],
       "inputs": [
@@ -367,10 +367,10 @@
       ]
     },
     {
-      "name": "Filter on non-STRING ROWKEY",
+      "name": "Filter on non-STRING key",
       "statements": [
-        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, C1 BIGINT) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ROwKEY > 0.1;"
+        "CREATE STREAM INPUT (K DOUBLE KEY, C1 BIGINT) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE K > 0.1;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1.1, "value": "0"},
@@ -389,7 +389,7 @@
       "name": "project nulls",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT name FROM INPUT;"
+        "CREATE STREAM OUTPUT as SELECT ID, name FROM INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"NAME": "Nick"}},
@@ -422,6 +422,81 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"NAME": "Nick"}},
         {"topic": "OUTPUT", "key": 4, "value": {"NAME": "Fred"}}
+      ]
+    },
+    {
+      "name": "projection with aliased key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID AS NEW_KEY, NAME FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"NAME": "Nick"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"NAME": "Nick"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NEW_KEY INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "key in projection more than once",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, ID AS ID2, NAME FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The projection contains the key column more than once: `ID` and `ID2`."
+      }
+    },
+    {
+      "name": "projection with missing key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT NAME FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the key column ID in its projection."
+      }
+    },
+    {
+      "name": "projection with missing key column - with value column with same name",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT NAME AS ID, NAME FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the key column ID in its projection."
+      }
+    },
+    {
+      "name": "projection no value columns",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The projection contains no value columns."
+      }
+    },
+    {
+      "name": "project with value column aliased multiple times",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, name, name as name2 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"NAME": "Nick"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"NAME": "Nick", "NAME2": "Nick"}}
       ]
     }
   ]

@@ -30,7 +30,7 @@ drop the `-daemon` switch, and start the CLI in a second console.
 To build and test changes locally, run the following commands:
 
 ```shell
-$ mvn clean checkstyle:check integration-test
+$ mvn verify
 ```
 
 ### Testing docker image
@@ -48,25 +48,28 @@ Prior to creating an issue, please search through existing issues so that you ar
 
 ### Guidelines for Contributing Code, Examples, Documentation
 
-When submitting a pull request (PR), use the following guidelines:
+Any change to the public API of ksqlDB, especially the SQL syntax, requires a **K**sq**l**DB
+**i**mprovement **p**roposal (KLIP) to be raised and approved.
+See the [KLIP Readme](design-proposals/README.md) for more info.
+
+Code changes are submitted via a pull request (PR). When submitting a PR use the following guidelines:
 
 * Follow the style guide below
-* Add/update documentation appropriately for the change you are making.
-* If you are introducing a new feature you may want to first submit your idea by creating a [new GitHub issue](https://github.com/confluentinc/ksql/issues) to solicit feedback.
-* If you would like design feedback, you should first introduce a [KLIP](design-proposals/README.md)
+* Add/update documentation appropriately for the change you are making. For more information, see the [docs readme](docs/readme.md).
 * Non-trivial changes should include unit tests covering the new functionality and potentially [function tests](ksql-engine/src/test/resources/query-validation-tests/README.md).
-* Bug fixes should include a unit test or integration test reproducing the issue and potentially [function tests](ksql-engine/src/test/resources/query-validation-tests/README.md).
-* Try to keep pull requests short and submit separate ones for unrelated features, but feel free to combine simple bugfixes/tests into one pull request.
-* Keep the number of commits small and combine commits for related changes.
-* Each commit should compile on its own and ideally pass tests.
+* All SQL syntax changes and enhancements should come with appropriate [function tests](ksql-engine/src/test/resources/query-validation-tests/README.md).
+* Bug fixes should include a unit test or integration test potentially [function tests](ksql-engine/src/test/resources/query-validation-tests/README.md) proving the issue is fixed.
+* Try to keep pull requests short and submit separate ones for unrelated features.
 * Keep formatting changes in separate commits to make code reviews easier and distinguish them from actual code changes.
 
 #### Code Style
 
-The project uses [GoogleStyle](https://google.github.io/styleguide/javaguide.html) code formating.
+The project uses [GoogleStyle](https://google.github.io/styleguide/javaguide.html) code formatting.
 You can install this code style into your IDE to make things more automatic:
  * [IntelliJ code style xml file](https://github.com/google/styleguide/blob/gh-pages/intellij-java-google-style.xml)
  * [Eclipse code style xml file](https://github.com/google/styleguide/blob/gh-pages/eclipse-java-google-style.xml)
+
+The project also uses immutable types where ever possible. If adding new type(s), ideally make them immutable.
 
 #### Static code analysis
 

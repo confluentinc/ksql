@@ -15,9 +15,13 @@
 
 package io.confluent.ksql.topic;
 
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,13 +33,9 @@ import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TopicPropertiesTest {
-
-  public @Rule ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldPreferWithClauseToSourceReplicas() {
@@ -118,38 +118,45 @@ public class TopicPropertiesTest {
 
   @Test
   public void shouldFailIfNoNameSupplied() {
-    // Expect:
-    expectedException.expect(NullPointerException.class);
-    expectedException.expectMessage("Was not supplied with any valid source for topic name!");
-
     // When:
-    new TopicProperties.Builder()
-        .build();
+    final Exception e = assertThrows(
+        NullPointerException.class,
+        () -> new TopicProperties.Builder()
+            .build()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Was not supplied with any valid source for topic name!"));
   }
 
   @Test
   public void shouldFailIfEmptyNameSupplied() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Must have non-empty topic name.");
-
     // When:
-    new TopicProperties.Builder()
-        .withName("")
-        .build();
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> new TopicProperties.Builder()
+            .withName("")
+            .build()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Must have non-empty topic name."));
   }
 
   @Test
   public void shouldFailIfNoPartitionsSupplied() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot determine partitions for creating topic");
-
     // When:
-    new TopicProperties.Builder()
-        .withName("name")
-        .withWithClause(Optional.empty(), Optional.empty(), Optional.of((short) 1))
-        .build();
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> new TopicProperties.Builder()
+            .withName("name")
+            .withWithClause(empty(), empty(), of((short) 1))
+            .build()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot determine partitions for creating topic"));
   }
 
   @Test

@@ -29,6 +29,7 @@ import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
 
 public final class StreamTableJoinBuilder {
+
   private static final String SERDE_CTX = "Left";
 
   private StreamTableJoinBuilder() {
@@ -39,7 +40,8 @@ public final class StreamTableJoinBuilder {
       final KTableHolder<K> right,
       final StreamTableJoin<K> join,
       final KsqlQueryBuilder queryBuilder,
-      final JoinedFactory joinedFactory) {
+      final JoinedFactory joinedFactory
+  ) {
     final Formats leftFormats = join.getInternalFormats();
     final QueryContext queryContext = join.getProperties().getQueryContext();
     final QueryContext.Stacker stacker = QueryContext.Stacker.of(queryContext);
@@ -65,7 +67,10 @@ public final class StreamTableJoinBuilder {
         StreamsUtil.buildOpName(queryContext)
     );
     final LogicalSchema rightSchema = right.getSchema();
-    final JoinParams joinParams = JoinParamsFactory.create(leftSchema, rightSchema);
+
+    final JoinParams joinParams = JoinParamsFactory
+        .create(join.getKeyColName(), leftSchema, rightSchema);
+
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:

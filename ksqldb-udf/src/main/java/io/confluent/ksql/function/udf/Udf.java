@@ -29,6 +29,9 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface Udf {
 
+  String NO_SCHEMA = "";
+  String NO_SCHEMA_PROVIDER = "";
+
   /**
    * The function description.
    *
@@ -45,11 +48,11 @@ public @interface Udf {
    * the return value itself. For complex return types (e.g. {@code Struct} types),
    * this is required and will fail if not supplied.
    */
-  String schema() default "";
+  String schema() default NO_SCHEMA;
 
   /**
    * The name of the method that provides the return type of the UDF.
    * @return the name of the other method
    */
-  String schemaProvider() default "";
+  String schemaProvider() default NO_SCHEMA_PROVIDER;
 }

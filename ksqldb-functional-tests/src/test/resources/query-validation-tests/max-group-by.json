@@ -12,7 +12,7 @@
       "name": "max integer group by",
       "statements": [
       "CREATE STREAM TEST (ID BIGINT KEY, VALUE integer) WITH (kafka_topic='test_topic',value_format='AVRO');",
-      "CREATE TABLE S2 as SELECT max(value) as value FROM test group by id;"
+      "CREATE TABLE S2 as SELECT ID, max(value) as value FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1,"value": {"value":  null}},
@@ -43,7 +43,7 @@
       "name": "max long group by",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE TABLE S2 as SELECT max(value) as value FROM test group by id;"
+        "CREATE TABLE S2 as SELECT ID, max(value) as value FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1,"value": {"value":  null}},
@@ -74,7 +74,7 @@
       "name": "max double group by",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE double) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE TABLE S2 as SELECT max(value) as value FROM test group by id;"
+        "CREATE TABLE S2 as SELECT ID, max(value) as value FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1,"value": {"value":  null}},
@@ -107,7 +107,7 @@
       "name": "max decimal group by",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE decimal(4, 2)) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE TABLE S2 as SELECT max(value) as value FROM test group by id;"
+        "CREATE TABLE S2 as SELECT ID, max(value) as value FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1,"value": {"value":  null}},

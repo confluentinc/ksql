@@ -28,11 +28,9 @@ import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -84,7 +82,7 @@ public final class TableGroupByBuilder {
     final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
 
     final GroupByParams params = paramsFactory
-        .build(sourceSchema, groupBy, step.getAlias(), logger);
+        .build(sourceSchema, groupBy, logger);
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         params.getSchema(),
@@ -133,7 +131,6 @@ public final class TableGroupByBuilder {
     GroupByParams build(
         LogicalSchema sourceSchema,
         List<ExpressionMetadata> groupBys,
-        Optional<ColumnName> alias,
         ProcessingLogger logger
     );
   }

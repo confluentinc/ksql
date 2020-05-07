@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.nulls;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.name.FunctionName;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -24,8 +25,11 @@ import java.util.Objects;
  * Returns first non-null element
  */
 @SuppressWarnings("MethodMayBeStatic") // UDF methods can not be static.
-@UdfDescription(name = "COALESCE", description = "Returns first non-null element")
+@UdfDescription(name = Coalesce.NAME_TEXT, description = "Returns first non-null element")
 public class Coalesce {
+
+  public static final String NAME_TEXT = "COALESCE";
+  public static final FunctionName NAME = FunctionName.of(NAME_TEXT);
 
   @SuppressWarnings("varargs")
   @SafeVarargs

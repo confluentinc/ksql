@@ -11,9 +11,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,21 +35,22 @@ public class QueriesTableBuilderTest {
   @Test
   public void shouldBuildQueriesTable() {
     // Given:
+    final String exampleQuery = "select * from test_stream emit changes";
     final RunningQuery query = new RunningQuery(
-        "EXAMPLE QUERY;",
+        exampleQuery,
         ImmutableSet.of("SINK"),
         ImmutableSet.of("SINK"),
         new QueryId("0"),
-        queryStatusCount
-    );
+        queryStatusCount,
+        KsqlConstants.KsqlQueryType.PUSH);
 
     // When:
     final Table table = buildTableWithSingleQuery(query);
 
     // Then:
-    assertThat(table.headers(), contains("Query ID", "Status", "Sink Name", "Sink Kafka Topic", "Query String"));
+    assertThat(table.headers(), contains("Query ID", "Query Type", "Status", "Sink Name", "Sink Kafka Topic", "Query String"));
     assertThat(table.rows(), hasSize(1));
-    assertThat(table.rows().get(0), contains("0", STATUS, "SINK", "SINK", "EXAMPLE QUERY;"));
+    assertThat(table.rows().get(0), contains("0", KsqlConstants.KsqlQueryType.PUSH.toString(), STATUS, "SINK", "SINK", exampleQuery));
   }
 
   @Test
@@ -60,17 +61,17 @@ public class QueriesTableBuilderTest {
         ImmutableSet.of("S2"),
         ImmutableSet.of("S2"),
         new QueryId("CSAS_S2_0"),
-        queryStatusCount
-    );
+        queryStatusCount,
+        KsqlConstants.KsqlQueryType.PERSISTENT);
 
 
     // When:
     final Table table = buildTableWithSingleQuery(query);
 
     // Then:
-    assertThat(table.headers(), contains("Query ID", "Status", "Sink Name", "Sink Kafka Topic", "Query String"));
+    assertThat(table.headers(), contains("Query ID", "Query Type", "Status", "Sink Name", "Sink Kafka Topic", "Query String"));
     assertThat(table.rows(), hasSize(1));
-    assertThat(table.rows().get(0), contains("CSAS_S2_0", STATUS, "S2", "S2", "CREATE STREAM S2 AS SELECT * FROM S1 EMIT CHANGES;"));
+    assertThat(table.rows().get(0), contains("CSAS_S2_0", KsqlConstants.KsqlQueryType.PERSISTENT.toString(), STATUS, "S2", "S2", "CREATE STREAM S2 AS SELECT * FROM S1 EMIT CHANGES;"));
   }
 
   private Table buildTableWithSingleQuery(RunningQuery query) {

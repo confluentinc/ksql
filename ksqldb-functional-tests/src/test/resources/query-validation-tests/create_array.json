@@ -6,8 +6,8 @@
     {
       "name": "construct a list from two elements",
       "statements": [
-        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ARRAY[a, b, 3] as l FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, ARRAY[a, b, 3] as l FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"a":  1, "b":  2}},
@@ -21,8 +21,8 @@
     {
       "name": "construct a list from null casted elements",
       "statements": [
-        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ARRAY[CAST(NULL AS INT)] as l FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, ARRAY[CAST(NULL AS INT)] as l FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"a":  1, "b":  2}}
@@ -34,8 +34,8 @@
     {
       "name": "construct a list from no elements",
       "statements": [
-        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ARRAY[] as l FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, ARRAY[] as l FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
@@ -45,8 +45,8 @@
     {
       "name": "construct a list from null non-casted elements",
       "statements": [
-        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ARRAY[NULL] as l FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, ARRAY[NULL] as l FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
@@ -56,8 +56,8 @@
     {
       "name": "construct a list from mismatching elements",
       "statements": [
-        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ARRAY[1, 1E0] as l FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, ARRAY[1, 1E0] as l FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",

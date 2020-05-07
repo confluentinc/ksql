@@ -48,10 +48,10 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -94,9 +94,9 @@ public final class StepSchemaResolver {
       = HandlerMaps.forClass(ExecutionStep.class)
       .withArgTypes(StepSchemaResolver.class, JoinSchemas.class)
       .withReturnType(LogicalSchema.class)
-      .put(StreamTableJoin.class, StepSchemaResolver::handleJoin)
-      .put(StreamStreamJoin.class, StepSchemaResolver::handleJoin)
-      .put(TableTableJoin.class, StepSchemaResolver::handleJoin)
+      .put(StreamTableJoin.class, StepSchemaResolver::handleStreamTableJoin)
+      .put(StreamStreamJoin.class, StepSchemaResolver::handleStreamStreamJoin)
+      .put(TableTableJoin.class, StepSchemaResolver::handleTableTableJoin)
       .build();
 
   private final KsqlConfig ksqlConfig;
@@ -185,7 +185,7 @@ public final class StepSchemaResolver {
     );
 
     return GroupByParamsFactory
-        .buildSchema(sourceSchema, compiledGroupBy, streamGroupBy.getAlias());
+        .buildSchema(sourceSchema, compiledGroupBy);
   }
 
   private LogicalSchema handleTableGroupBy(
@@ -201,7 +201,7 @@ public final class StepSchemaResolver {
     );
 
     return GroupByParamsFactory
-        .buildSchema(sourceSchema, compiledGroupBy, tableGroupBy.getAlias());
+        .buildSchema(sourceSchema, compiledGroupBy);
   }
 
   private LogicalSchema handleStreamSelect(
@@ -222,8 +222,7 @@ public final class StepSchemaResolver {
         .getExpressionSqlType(step.getKeyExpression());
 
     return LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
+        .keyColumn(SystemColumns.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();
   }
@@ -235,7 +234,6 @@ public final class StepSchemaResolver {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
         step.getKeyExpression(),
-        step.getAlias(),
         functionRegistry
     );
   }
@@ -248,8 +246,32 @@ public final class StepSchemaResolver {
     return buildSourceSchema(schema, true);
   }
 
-  private LogicalSchema handleJoin(final JoinSchemas schemas, final ExecutionStep<?> step) {
-    return JoinParamsFactory.createSchema(schemas.left, schemas.right);
+  private LogicalSchema handleStreamStreamJoin(
+      final JoinSchemas schemas,
+      final StreamStreamJoin<?> step
+  ) {
+    return handleJoin(schemas, step.getKeyColName());
+  }
+
+  private LogicalSchema handleStreamTableJoin(
+      final JoinSchemas schemas,
+      final StreamTableJoin<?> step
+  ) {
+    return handleJoin(schemas, step.getKeyColName());
+  }
+
+  private LogicalSchema handleTableTableJoin(
+      final JoinSchemas schemas,
+      final TableTableJoin<?> step
+  ) {
+    return handleJoin(schemas, step.getKeyColName());
+  }
+
+  private LogicalSchema handleJoin(
+      final JoinSchemas schemas,
+      final ColumnName keyColName
+  ) {
+    return JoinParamsFactory.createSchema(keyColName, schemas.left, schemas.right);
   }
 
   private LogicalSchema handleTableAggregate(
@@ -280,7 +302,7 @@ public final class StepSchemaResolver {
       final boolean windowed
   ) {
     return schema
-        .withMetaAndKeyColsInValue(windowed);
+        .withPseudoAndKeyColsInValue(windowed);
   }
 
   private LogicalSchema buildSelectSchema(

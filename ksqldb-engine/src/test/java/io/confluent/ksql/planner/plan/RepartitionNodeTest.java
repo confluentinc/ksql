@@ -17,7 +17,9 @@ package io.confluent.ksql.planner.plan;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.verify;
@@ -25,14 +27,16 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -47,22 +51,19 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class RepartitionNodeTest {
 
   private static final PlanNodeId PLAN_ID = new PlanNodeId("Blah") ;
-  private static final SourceName MATCHING_SOURCE_NAME = SourceName.of("S1");
+  private static final SourceName SOURCE_NAME = SourceName.of("S1");
   private static final ColumnName K0 = ColumnName.of("K");
   private static final ColumnName V0 = ColumnName.of("V0");
   private static final ColumnName V1 = ColumnName.of("V1");
   private static final ColumnName V2 = ColumnName.of("V2");
-  private static final Optional<ColumnName> PARTITION_BY_ALIAS =
-      Optional.of(ColumnName.of("SomeAlias"));
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(K0, SqlTypes.DOUBLE)
       .valueColumn(V0, SqlTypes.DOUBLE)
       .valueColumn(V1, SqlTypes.DOUBLE)
       .valueColumn(V2, SqlTypes.DOUBLE)
       .valueColumn(K0, SqlTypes.DOUBLE)
-      .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+      .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
       .build();
 
   private static final List<ColumnName> PARENT_COL_NAMES = ImmutableList.of(
@@ -72,29 +73,30 @@ public class RepartitionNodeTest {
 
   @Mock
   private PlanNode parent;
+  @Mock(name = "T.ID")
+  private Expression originalPartitionBy;
+  @Mock(name = "T_ID")
+  private Expression rewrittenPartitionBy;
   @Mock
-  private PartitionBy partitionBy;
-  @Mock
-  private Expression partitionByExpression;
+  private Projection projection;
+
   private RepartitionNode repartitionNode;
 
   @Before
   public void setUp() {
     when(parent.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(parent.getSourceName()).thenReturn(Optional.of(MATCHING_SOURCE_NAME));
+    when(parent.getSourceName()).thenReturn(Optional.of(SOURCE_NAME));
     when(parent.resolveSelectStar(any(), anyBoolean())).thenReturn(PARENT_COL_NAMES.stream());
 
-    when(partitionBy.getAlias()).thenReturn(PARTITION_BY_ALIAS);
-    when(partitionBy.getExpression()).thenReturn(partitionByExpression);
-
-    repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, partitionBy, KeyField.none());
+    repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy,
+        rewrittenPartitionBy, KeyField.none(), false);
   }
 
   @Test
   public void shouldResolveSelectStarIfSourceMatchesAndValuesOnly() {
     // When:
     final Stream<ColumnName> result = repartitionNode.resolveSelectStar(
-        Optional.of(MATCHING_SOURCE_NAME),
+        Optional.of(SOURCE_NAME),
         true
     );
 
@@ -129,5 +131,73 @@ public class RepartitionNodeTest {
     assertThat(names, is(PARENT_COL_NAMES));
 
     verify(parent).resolveSelectStar(Optional.empty(), false);
+  }
+
+  @Test
+  public void shouldPassResolveSelectStarToParentIfInternal() {
+    // Given:
+    givenInternalRepartition();
+
+    // When:
+    final Stream<ColumnName> result = repartitionNode.resolveSelectStar(
+        Optional.empty(),
+        false
+    );
+
+    // Then:
+    final List<ColumnName> names = result.collect(Collectors.toList());
+    assertThat(names, is(PARENT_COL_NAMES));
+
+    verify(parent).resolveSelectStar(Optional.empty(), false);
+  }
+
+  @Test
+  public void shouldResolveSelectToPartitionByColumn() {
+    // Given:
+    givenAnyKeyEnabled();
+
+    // When:
+    final Expression result = repartitionNode.resolveSelect(0, rewrittenPartitionBy);
+
+    // Then:
+    assertThat(result, is(new UnqualifiedColumnReferenceExp(K0)));
+  }
+
+  @Test
+  public void shouldThrowIfProjectionMissingPartitionBy() {
+    // Given:
+    givenAnyKeyEnabled();
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> repartitionNode.validateKeyPresent(SOURCE_NAME, projection)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The query used to build `S1` "
+        + "must include the partitioning expression T.ID in its projection."));
+  }
+
+  @Test
+  public void shouldNotThrowIfProjectionHasPartitionBy() {
+    // Given:
+    givenAnyKeyEnabled();
+    when(projection.containsExpression(rewrittenPartitionBy)).thenReturn(true);
+
+    // When:
+    repartitionNode.validateKeyPresent(SOURCE_NAME, projection);
+
+    // Then: did not throw.
+  }
+
+  private void givenAnyKeyEnabled() {
+    repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy,
+        rewrittenPartitionBy, KeyField.none(), false);
+  }
+
+  private void givenInternalRepartition() {
+    repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy,
+        rewrittenPartitionBy, KeyField.none(), true);
   }
 }

@@ -111,7 +111,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.eclipse.jetty.io.RuntimeIOException;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;
@@ -457,10 +456,6 @@ public class Console implements Closeable {
   ) {
     final FieldType possibleFieldType = field.getType().orElse(null);
 
-    if (possibleFieldType == FieldType.SYSTEM) {
-      return String.format("%-16s %s", field.getSchema().toTypeString(), "(system)");
-    }
-
     if (possibleFieldType == FieldType.KEY) {
       final String wt = windowType
           .map(v -> " (Window type: " + v + ")")
@@ -661,6 +656,7 @@ public class Console implements Closeable {
 
   private void printQueryDescription(final QueryDescription query) {
     writer().println(String.format("%-20s : %s", "ID", query.getId()));
+    writer().println(String.format("%-20s : %s", "Query Type", query.getQueryType()));
     if (query.getStatementText().length() > 0) {
       writer().println(String.format("%-20s : %s", "SQL", query.getStatementText()));
     }
@@ -829,7 +825,7 @@ public class Console implements Closeable {
       writer().println();
       flush();
     } catch (final IOException e) {
-      throw new RuntimeIOException("Failed to write to console", e);
+      throw new RuntimeException("Failed to write to console", e);
     }
   }
 

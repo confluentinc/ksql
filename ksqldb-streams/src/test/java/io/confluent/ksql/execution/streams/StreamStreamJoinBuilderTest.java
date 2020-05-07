@@ -1,7 +1,9 @@
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.execution.plan.StreamStreamJoin.LEGACY_KEY_COL;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWKEY_NAME;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -17,6 +19,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -29,7 +32,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -45,18 +47,22 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class StreamStreamJoinBuilderTest {
 
+  private static final ColumnName L_KEY = ColumnName.of("L_KEY");
+  private static final ColumnName R_KEY = ColumnName.of("R_KEY");
+  private static final ColumnName SYNTH_KEY = ColumnName.of("KSQL_COL_0");
+
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
+      .keyColumn(L_KEY, SqlTypes.STRING)
+      .valueColumn(ColumnName.of("L_BLUE"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("L_GREEN"), SqlTypes.INTEGER)
+      .valueColumn(L_KEY, SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
+      .keyColumn(R_KEY, SqlTypes.STRING)
+      .valueColumn(ColumnName.of("R_RED"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("R_ORANGE"), SqlTypes.DOUBLE)
+      .valueColumn(R_KEY, SqlTypes.STRING)
       .build();
 
   private static final PhysicalSchema LEFT_PHYSICAL =
@@ -65,15 +71,13 @@ public class StreamStreamJoinBuilderTest {
   private static final PhysicalSchema RIGHT_PHYSICAL =
       PhysicalSchema.from(RIGHT_SCHEMA, SerdeOption.none());
 
-  private static final io.confluent.ksql.execution.plan.Formats LEFT_FMT = io.confluent.ksql.execution.plan.Formats
-      .of(
+  private static final io.confluent.ksql.execution.plan.Formats LEFT_FMT = Formats.of(
       FormatInfo.of(FormatFactory.KAFKA.name()),
       FormatInfo.of(FormatFactory.JSON.name()),
       SerdeOption.none()
   );
 
-  private static final io.confluent.ksql.execution.plan.Formats RIGHT_FMT = io.confluent.ksql.execution.plan.Formats
-      .of(
+  private static final io.confluent.ksql.execution.plan.Formats RIGHT_FMT = Formats.of(
       FormatInfo.of(FormatFactory.KAFKA.name()),
       FormatInfo.of(FormatFactory.AVRO.name()),
       SerdeOption.none()
@@ -82,6 +86,7 @@ public class StreamStreamJoinBuilderTest {
   private static final Duration BEFORE = Duration.ofMillis(1000);
   private static final Duration AFTER = Duration.ofMillis(2000);
   private static final JoinWindows WINDOWS = JoinWindows.of(BEFORE).after(AFTER);
+
   private final QueryContext CTX =
       new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
@@ -126,6 +131,11 @@ public class StreamStreamJoinBuilderTest {
         new KStreamHolder<>(leftKStream, LEFT_SCHEMA, keySerdeFactory));
     when(right.build(any())).thenReturn(
         new KStreamHolder<>(rightKStream, RIGHT_SCHEMA, keySerdeFactory));
+
+    when(leftKStream.leftJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
+    when(leftKStream.outerJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
+    when(leftKStream.join(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
+
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
@@ -140,55 +150,10 @@ public class StreamStreamJoinBuilderTest {
     );
   }
 
-  @SuppressWarnings("unchecked")
-  private void givenLeftJoin() {
-    when(leftKStream.leftJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
-    join = new StreamStreamJoin<>(
-        new ExecutionStepPropertiesV1(CTX),
-        JoinType.LEFT,
-        LEFT_FMT,
-        RIGHT_FMT,
-        left,
-        right,
-        BEFORE,
-        AFTER
-    );
-  }
-
-  @SuppressWarnings("unchecked")
-  private void givenOuterJoin() {
-    when(leftKStream.outerJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
-    join = new StreamStreamJoin<>(
-        new ExecutionStepPropertiesV1(CTX),
-        JoinType.OUTER,
-        LEFT_FMT,
-        RIGHT_FMT,
-        left,
-        right,
-        BEFORE,
-        AFTER
-    );
-  }
-
-  @SuppressWarnings("unchecked")
-  private void givenInnerJoin() {
-    when(leftKStream.join(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
-    join = new StreamStreamJoin<>(
-        new ExecutionStepPropertiesV1(CTX),
-        JoinType.INNER,
-        LEFT_FMT,
-        RIGHT_FMT,
-        left,
-        right,
-        BEFORE,
-        AFTER
-    );
-  }
-
   @Test
   public void shouldDoLeftJoin() {
     // Given:
-    givenLeftJoin();
+    givenLeftJoin(L_KEY);
 
     // When:
     final KStreamHolder<Struct> result = join.build(planBuilder);
@@ -196,7 +161,27 @@ public class StreamStreamJoinBuilderTest {
     // Then:
     verify(leftKStream).leftJoin(
         same(rightKStream),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA)),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        eq(WINDOWS),
+        same(joined)
+    );
+    verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
+    assertThat(result.getStream(), is(resultKStream));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+  }
+
+  @Test
+  public void shouldDoLeftJoinWithSyntheticKey() {
+    // Given:
+    givenLeftJoin(SYNTH_KEY);
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder);
+
+    // Then:
+    verify(leftKStream).leftJoin(
+        same(rightKStream),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
         eq(WINDOWS),
         same(joined)
     );
@@ -216,7 +201,7 @@ public class StreamStreamJoinBuilderTest {
     // Then:
     verify(leftKStream).outerJoin(
         same(rightKStream),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA)),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
         eq(WINDOWS),
         same(joined)
     );
@@ -228,7 +213,7 @@ public class StreamStreamJoinBuilderTest {
   @Test
   public void shouldDoInnerJoin() {
     // Given:
-    givenInnerJoin();
+    givenInnerJoin(L_KEY);
 
     // When:
     final KStreamHolder<Struct> result = join.build(planBuilder);
@@ -236,7 +221,27 @@ public class StreamStreamJoinBuilderTest {
     // Then:
     verify(leftKStream).join(
         same(rightKStream),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA)),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        eq(WINDOWS),
+        same(joined)
+    );
+    verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
+    assertThat(result.getStream(), is(resultKStream));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+  }
+
+  @Test
+  public void shouldDoInnerJoinWithSyntheticKey() {
+    // Given:
+    givenInnerJoin(SYNTH_KEY);
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder);
+
+    // Then:
+    verify(leftKStream).join(
+        same(rightKStream),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
         eq(WINDOWS),
         same(joined)
     );
@@ -248,7 +253,7 @@ public class StreamStreamJoinBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // Given:
-    givenInnerJoin();
+    givenInnerJoin(R_KEY);
 
     // When:
     final KStreamHolder<Struct> result = join.build(planBuilder);
@@ -256,7 +261,34 @@ public class StreamStreamJoinBuilderTest {
     // Then:
     assertThat(
         result.getSchema(),
-        is(JoinParamsFactory.create(LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+        is(JoinParamsFactory.create(R_KEY, LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+    );
+  }
+
+  @Test
+  public void shouldReturnCorrectLegacySchema() {
+    // Given:
+    givenInnerJoin(L_KEY);
+
+    join = new StreamStreamJoin<>(
+        new ExecutionStepPropertiesV1(CTX),
+        JoinType.INNER,
+        ColumnName.of(LEGACY_KEY_COL),
+        LEFT_FMT,
+        RIGHT_FMT,
+        left,
+        right,
+        BEFORE,
+        AFTER
+    );
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder);
+
+    // Then:
+    assertThat(
+        result.getSchema(),
+        is(JoinParamsFactory.create(ROWKEY_NAME, LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
     );
   }
 
@@ -264,7 +296,7 @@ public class StreamStreamJoinBuilderTest {
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildJoinedCorrectly() {
     // Given:
-    givenInnerJoin();
+    givenInnerJoin(L_KEY);
 
     // When:
     join.build(planBuilder);
@@ -276,7 +308,7 @@ public class StreamStreamJoinBuilderTest {
   @Test
   public void shouldBuildKeySerdeCorrectly() {
     // Given:
-    givenInnerJoin();
+    givenInnerJoin(L_KEY);
 
     // When:
     join.build(planBuilder);
@@ -288,7 +320,7 @@ public class StreamStreamJoinBuilderTest {
   @Test
   public void shouldBuildLeftSerdeCorrectly() {
     // Given:
-    givenInnerJoin();
+    givenInnerJoin(L_KEY);
 
     // When:
     join.build(planBuilder);
@@ -301,7 +333,7 @@ public class StreamStreamJoinBuilderTest {
   @Test
   public void shouldBuildRightSerdeCorrectly() {
     // Given:
-    givenInnerJoin();
+    givenInnerJoin(L_KEY);
 
     // When:
     join.build(planBuilder);
@@ -309,5 +341,47 @@ public class StreamStreamJoinBuilderTest {
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Right").getQueryContext();
     verify(queryBuilder).buildValueSerde(FormatInfo.of(FormatFactory.AVRO.name()), RIGHT_PHYSICAL, leftCtx);
+  }
+
+  private void givenLeftJoin(final ColumnName keyName) {
+    join = new StreamStreamJoin<>(
+        new ExecutionStepPropertiesV1(CTX),
+        JoinType.LEFT,
+        keyName,
+        LEFT_FMT,
+        RIGHT_FMT,
+        left,
+        right,
+        BEFORE,
+        AFTER
+    );
+  }
+
+  private void givenOuterJoin() {
+    join = new StreamStreamJoin<>(
+        new ExecutionStepPropertiesV1(CTX),
+        JoinType.OUTER,
+        SYNTH_KEY,
+        LEFT_FMT,
+        RIGHT_FMT,
+        left,
+        right,
+        BEFORE,
+        AFTER
+    );
+  }
+
+  private void givenInnerJoin(final ColumnName keyName) {
+    join = new StreamStreamJoin<>(
+        new ExecutionStepPropertiesV1(CTX),
+        JoinType.INNER,
+        keyName,
+        LEFT_FMT,
+        RIGHT_FMT,
+        left,
+        right,
+        BEFORE,
+        AFTER
+    );
   }
 }

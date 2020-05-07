@@ -701,7 +701,6 @@ public class KsMaterializationFunctionalTest {
       final SqlType columnType0
   ) {
     return LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(columnName0), columnType0)
         .build();
@@ -713,7 +712,6 @@ public class KsMaterializationFunctionalTest {
       final String columnName1, final SqlType columnType1
   ) {
     return LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(columnName0), columnType0)
         .valueColumn(ColumnName.of(columnName1), columnType1)

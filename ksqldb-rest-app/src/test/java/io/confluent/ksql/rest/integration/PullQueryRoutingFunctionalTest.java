@@ -73,7 +73,6 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
@@ -124,7 +123,6 @@ public class PullQueryRoutingFunctionalTest {
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .withRowTime()
           .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
@@ -185,9 +183,6 @@ public class PullQueryRoutingFunctionalTest {
       .withLookingForStuckThread(true)
       .build();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @BeforeClass
   public static void setUpClass() {
     //Create topic with 1 partition to control who is active and standby
@@ -225,7 +220,7 @@ public class PullQueryRoutingFunctionalTest {
             + " GROUP BY " + USER_PROVIDER.key() + ";"
     );
     QUERY_ID = extractQueryId(res.get(0).toString());
-    QUERY_ID = QUERY_ID.substring(0, QUERY_ID.length()-1);
+    QUERY_ID = QUERY_ID.substring(0, QUERY_ID.length() - 1);
     waitForTableRows();
     waitForStreamsMetadataToInitialize(
         REST_APP_0, ImmutableList.of(host0, host1, host2), QUERY_ID);
@@ -259,7 +254,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
 
 
@@ -286,7 +281,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
 
   @Test
@@ -308,7 +303,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
 
   @Test
@@ -330,7 +325,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
 
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(clusterFormation.router.right,
         sql, LAG_FILTER_25);
@@ -403,30 +398,27 @@ public class PullQueryRoutingFunctionalTest {
         .getActiveStandbyPerQuery().get(QUERY_ID);
 
     // find active
-    if(!entity0.getActiveStores().isEmpty() && !entity0.getActivePartitions().isEmpty()) {
+    if (!entity0.getActiveStores().isEmpty() && !entity0.getActivePartitions().isEmpty()) {
       clusterFormation.setActive(Pair.of(host0, restApp0));
-    }
-    else if(!entity1.getActiveStores().isEmpty() && !entity1.getActivePartitions().isEmpty()) {
+    } else if (!entity1.getActiveStores().isEmpty() && !entity1.getActivePartitions().isEmpty()) {
       clusterFormation.setActive(Pair.of(host1, restApp1));
     } else {
       clusterFormation.setActive(Pair.of(host2, restApp2));
     }
 
     //find standby
-    if(!entity0.getStandByStores().isEmpty() && !entity0.getStandByPartitions().isEmpty()) {
+    if (!entity0.getStandByStores().isEmpty() && !entity0.getStandByPartitions().isEmpty()) {
       clusterFormation.setStandBy(Pair.of(host0, restApp0));
-    }
-    else if(!entity1.getStandByStores().isEmpty() && !entity1.getStandByPartitions().isEmpty()) {
+    } else if (!entity1.getStandByStores().isEmpty() && !entity1.getStandByPartitions().isEmpty()) {
       clusterFormation.setStandBy(Pair.of(host1, restApp1));
     } else {
       clusterFormation.setStandBy(Pair.of(host2, restApp2));
     }
 
     //find router
-    if(entity0.getStandByStores().isEmpty() && entity0.getActiveStores().isEmpty()) {
+    if (entity0.getStandByStores().isEmpty() && entity0.getActiveStores().isEmpty()) {
       clusterFormation.setRouter(Pair.of(host0, restApp0));
-    }
-    else if(entity1.getStandByStores().isEmpty() && entity1.getActiveStores().isEmpty()) {
+    } else if (entity1.getStandByStores().isEmpty() && entity1.getActiveStores().isEmpty()) {
       clusterFormation.setRouter(Pair.of(host1, restApp1));
     } else {
       clusterFormation.setRouter(Pair.of(host2, restApp2));

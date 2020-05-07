@@ -20,36 +20,30 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
-import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
@@ -58,9 +52,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.RecordBatch;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -77,9 +69,6 @@ public class CommandStoreTest {
   private static final Duration TIMEOUT = Duration.ofMillis(1000);
   private static final String statementText = "test-statement";
   private static final Duration NEW_CMDS_TIMEOUT = Duration.ofSeconds(30);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SequenceNumberFutureStore sequenceNumberFutureStore;
@@ -155,10 +144,11 @@ public class CommandStoreTest {
     // Given:
     commandStore.enqueueCommand(commandId, command, transactionalProducer);
 
-    expectedException.expect(IllegalStateException.class);
-
     // When:
-    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+    assertThrows(
+        IllegalStateException.class,
+        () -> commandStore.enqueueCommand(commandId, command, transactionalProducer)
+    );
   }
 
   @Test
@@ -167,12 +157,20 @@ public class CommandStoreTest {
     when(transactionalProducer.send(any(ProducerRecord.class)))
         .thenThrow(new RuntimeException("oops"))
         .thenReturn(testFuture);
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not write the statement 'test-statement' into the command topic.");
+
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> commandStore.enqueueCommand(commandId, command, transactionalProducer)
+    );
+
+    assertThat(e.getMessage(), containsString(
+        "Could not write the statement 'test-statement' into the command topic."
+    ));
+
+    // When:
     commandStore.enqueueCommand(commandId, command, transactionalProducer);
 
-    // When (Then: don't throw):
-    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+    // Then: did not throw.
   }
 
   @Test
@@ -266,13 +264,17 @@ public class CommandStoreTest {
     // Given:
     when(future.get(anyLong(), any(TimeUnit.class))).thenThrow(new TimeoutException());
 
-    expectedException.expect(TimeoutException.class);
-    expectedException.expectMessage(
-        "Timeout reached while waiting for command sequence number of 2. Caused by: null (Timeout: 1000 ms)"
+    // When:
+    final TimeoutException e = assertThrows(
+        TimeoutException.class,
+        () -> commandStore.ensureConsumedPast(2, TIMEOUT)
     );
 
-    // When:
-    commandStore.ensureConsumedPast(2, TIMEOUT);
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Timeout reached while waiting for command sequence number of 2. "
+            + "Caused by: null (Timeout: 1000 ms)"
+    ));
   }
 
   @Test

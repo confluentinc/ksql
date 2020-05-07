@@ -69,7 +69,7 @@
     {
       "name": "should insert null key",
       "statements": [
-        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "INSERT INTO TEST (ID) VALUES (10);"
       ],
       "inputs": [
@@ -93,7 +93,7 @@
     {
       "name": "key should be set when stream has String key and only key specified in insert",
       "statements": [
-        "CREATE STREAM TEST (ID VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (K STRING KEY, ID VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "INSERT INTO TEST (ID) VALUES ('10');"
       ],
       "inputs": [

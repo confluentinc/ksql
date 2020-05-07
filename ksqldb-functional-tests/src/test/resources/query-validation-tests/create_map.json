@@ -6,8 +6,8 @@
     {
       "name": "create map from named tuples",
       "statements": [
-        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT MAP(k1:=v1, k2:=v1*2) as M FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, MAP(k1:=v1, k2:=v1*2) as M FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"k1": "foo", "k2": "bar", "v1": 10}}
@@ -19,8 +19,8 @@
     {
       "name": "create map from key/value lists",
       "statements": [
-        "CREATE STREAM TEST (ks ARRAY<VARCHAR>, vals ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT AS_MAP(ks, vals) as m FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, ks ARRAY<VARCHAR>, vals ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_MAP(ks, vals) as m FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ks":  ["a", "b"], "vals":  [1, 2]}},
@@ -38,8 +38,8 @@
     {
       "name": "create map from named tuples mismatching types",
       "statements": [
-        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT MAP(k1:=v1, k2:='hello') as M FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, MAP(k1:=v1, k2:='hello') as M FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -49,8 +49,8 @@
     {
       "name": "create map from named tuples all null values",
       "statements": [
-        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT MAP(k1:=NULL, k2:=NULL) as M FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, MAP(k1:=NULL, k2:=NULL) as M FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -60,8 +60,8 @@
     {
       "name": "create map from named tuples and some values",
       "statements": [
-        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT MAP(k1:=v1, k2:=NULL) as M FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, MAP(k1:=v1, k2:=NULL) as M FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"k1": "foo", "k2": "bar", "v1": 10}}
@@ -73,8 +73,8 @@
     {
       "name": "create map from named tuples and null key",
       "statements": [
-        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT MAP(k1:=v1, NULL:=v1) as M FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, MAP(k1:=v1, NULL:=v1) as M FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -84,8 +84,8 @@
     {
       "name": "create map from named tuples and null string key",
       "statements": [
-        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT MAP(CAST(NULL AS STRING) := v1) as M FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, MAP(CAST(NULL AS STRING) := v1) as M FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"k1": "foo", "k2": "bar", "v1": 10}}
@@ -97,8 +97,8 @@
     {
       "name": "create empty map",
       "statements": [
-        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT MAP() as M FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, MAP() as M FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",

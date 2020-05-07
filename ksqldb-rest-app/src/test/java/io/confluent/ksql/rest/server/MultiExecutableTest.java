@@ -15,14 +15,15 @@
 
 package io.confluent.ksql.rest.server;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
 
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -31,9 +32,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MultiExecutableTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   Executable executable1;
@@ -89,9 +87,15 @@ public class MultiExecutableTest {
     doThrow(new RuntimeException("danger executable1!")).when(executable1).startAsync();
     doThrow(new RuntimeException("danger executable2!")).when(executable2).startAsync();
 
-    // Expect:
-    expectedException.expectMessage("danger executable1!");
-    expectedException.expect(new BaseMatcher<Exception>() {
+    // When:
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> multiExecutable.startAsync()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("danger executable1!"));
+    assertThat(e, new BaseMatcher<Exception>() {
       @Override
       public void describeTo(final Description description) {
       }
@@ -102,9 +106,6 @@ public class MultiExecutableTest {
             && ((Exception) o).getSuppressed()[0].getMessage().equals("danger executable2!");
       }
     });
-
-    // When:
-    multiExecutable.startAsync();
   }
 
 }

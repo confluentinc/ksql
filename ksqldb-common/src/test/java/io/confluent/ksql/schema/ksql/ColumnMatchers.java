@@ -42,29 +42,6 @@ public final class ColumnMatchers {
     );
   }
 
-  public static Matcher<Column> metaColumn(
-      final ColumnName name,
-      final SqlType type
-  ) {
-    return allOf(
-        hasName(name),
-        hasType(type),
-        hasNamespace(Namespace.META)
-    );
-  }
-
-  public static Matcher<Column> metaColumn(
-      final SourceName source,
-      final ColumnName name,
-      final SqlType type
-  ) {
-    return allOf(
-        hasName(name),
-        hasType(type),
-        hasNamespace(Namespace.META)
-    );
-  }
-
   public static Matcher<Column> keyColumn(
       final ColumnName name,
       final SqlType type

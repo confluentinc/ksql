@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -99,5 +102,10 @@ public class TransientQueryMetadataTest {
     inOrder.verify(kafkaStreams).close(any());
     inOrder.verify(kafkaStreams).cleanUp();
     inOrder.verify(closeCallback).accept(query);
+  }
+
+  @Test
+  public void shouldReturnPushQueryTypeByDefault() {
+    assertThat(query.getQueryType(), is(KsqlQueryType.PUSH));
   }
 }

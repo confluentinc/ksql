@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -81,9 +82,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -108,9 +107,6 @@ public class InteractiveStatementExecutorTest {
   private KsqlConfig ksqlConfig;
   private ServiceContext serviceContext;
   private InteractiveStatementExecutor statementExecutorWithMocks;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private StatementParser mockParser;
@@ -187,8 +183,8 @@ public class InteractiveStatementExecutorTest {
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
-    .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-    .around(CLUSTER);
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(CLUSTER);
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnConfigureIfAppServerNotSet() {
@@ -240,12 +236,12 @@ public class InteractiveStatementExecutorTest {
         emptyMap(),
         Optional.empty()
     );
-    final CommandId commandId =  new CommandId(
+    final CommandId commandId = new CommandId(
         CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
 
     // When:
     try {
-      handleStatement(statementExecutorWithMocks, command, commandId, Optional.empty(),0);
+      handleStatement(statementExecutorWithMocks, command, commandId, Optional.empty(), 0);
       Assert.fail("handleStatement should throw");
     } catch (final RuntimeException caughtException) {
       // Then:
@@ -286,7 +282,7 @@ public class InteractiveStatementExecutorTest {
         originalConfig.getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty()
     );
-    final CommandId csasCommandId =  new CommandId(
+    final CommandId csasCommandId = new CommandId(
         CommandId.Type.STREAM,
         "_CSASGen",
         CommandId.Action.CREATE);
@@ -457,7 +453,7 @@ public class InteractiveStatementExecutorTest {
     } catch (final KsqlStatementException e) {
       // Then:
       assertEquals("Cannot add stream 'FOO': A stream with the same name already exists\n" +
-          "Statement: " + CREATE_STREAM_FOO_STATMENT, 
+              "Statement: " + CREATE_STREAM_FOO_STATMENT,
           e.getMessage());
     }
     final InOrder inOrder = Mockito.inOrder(status);
@@ -473,27 +469,29 @@ public class InteractiveStatementExecutorTest {
   @Test
   public void shouldHandlePriorStatements() {
     // Given:
-    final TestUtils testUtils = new TestUtils();
-    final List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
-    final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
+    final List<Pair<CommandId, Command>> priorCommands = TestUtils.getAllPriorCommandRecords();
+    final CommandId csCommandId = new CommandId(CommandId.Type.STREAM,
         "_CSASStreamGen",
         CommandId.Action.CREATE);
-    final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
+    final CommandId csasCommandId = new CommandId(CommandId.Type.STREAM,
         "_CSASGen",
         CommandId.Action.CREATE);
-    final CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE,
+    final CommandId ctasCommandId = new CommandId(CommandId.Type.TABLE,
         "_CTASGen",
         CommandId.Action.CREATE);
 
     // When:
-    expectedException.expect(KsqlStatementException.class);
-
-    for (int i = 0; i < priorCommands.size(); i++) {
-      final Pair<CommandId, Command> pair = priorCommands.get(i);
-      statementExecutor.handleRestore(
-          new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i)
-      );
-    }
+    assertThrows(
+        KsqlStatementException.class,
+        () -> {
+          for (int i = 0; i < priorCommands.size(); i++) {
+            final Pair<CommandId, Command> pair = priorCommands.get(i);
+            statementExecutor.handleRestore(
+                new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i)
+            );
+          }
+        }
+    );
 
     // Then:
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
@@ -518,7 +516,7 @@ public class InteractiveStatementExecutorTest {
   }
 
   private PersistentQueryMetadata mockReplayCSAS(
-          final QueryId queryId
+      final QueryId queryId
   ) {
     final CreateStreamAsSelect mockCSAS = mockCSAS("foo");
     final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
@@ -539,8 +537,10 @@ public class InteractiveStatementExecutorTest {
     createStreamsAndStartTwoPersistentQueries();
 
     // Now try to drop streams/tables to test referential integrity
-    expectedException.expect(KsqlStatementException.class);
-    tryDropThatViolatesReferentialIntegrity();
+    assertThrows(
+        KsqlStatementException.class,
+        () -> tryDropThatViolatesReferentialIntegrity()
+    );
 
     // Terminate the queries using the stream/table
     terminateQueries();
@@ -623,7 +623,7 @@ public class InteractiveStatementExecutorTest {
     verify(mockQuery, times(0)).start();
   }
 
-  private  <T extends Statement> ConfiguredStatement<T> eqConfiguredStatement(
+  private <T extends Statement> ConfiguredStatement<T> eqConfiguredStatement(
       final PreparedStatement<T> preparedStatement) {
     return argThat(new ConfiguredStatementMatcher<>(preparedStatement));
   }
@@ -696,7 +696,7 @@ public class InteractiveStatementExecutorTest {
         .thenReturn(PreparedStatement.of(queryStatement, terminateAll));
 
     final PersistentQueryMetadata query0 = mock(PersistentQueryMetadata.class);
-     final PersistentQueryMetadata query1 = mock(PersistentQueryMetadata.class);
+    final PersistentQueryMetadata query1 = mock(PersistentQueryMetadata.class);
 
     when(mockEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
 
@@ -934,7 +934,7 @@ public class InteractiveStatementExecutorTest {
 
   private void terminateQueries() {
     final Command terminateCommand1 = new Command(
-        "TERMINATE CSAS_USER1PV_1;",
+        "TERMINATE CSAS_USER1PV_0;",
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty()

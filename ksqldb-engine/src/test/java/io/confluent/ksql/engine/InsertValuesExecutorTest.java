@@ -16,7 +16,9 @@
 package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -56,6 +59,7 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -68,7 +72,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
@@ -89,9 +92,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -105,20 +106,17 @@ public class InsertValuesExecutorTest {
   private static final ColumnName INT_COL = ColumnName.of("INT");
 
   private static final LogicalSchema SINGLE_VALUE_COLUMN_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
       .valueColumn(COL1, SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema BIG_SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING) // named COL0 for auto-ROWKEY
       .valueColumn(INT_COL, SqlTypes.INTEGER)
@@ -133,9 +131,6 @@ public class InsertValuesExecutorTest {
   private static final byte[] VALUE = new byte[]{2};
 
   private static final String TOPIC_NAME = "topic";
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlEngine engine;
@@ -196,7 +191,7 @@ public class InsertValuesExecutorTest {
   public void shouldHandleFullRow() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        valueFieldNames(SCHEMA),
+        valueColumnNames(SCHEMA),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
@@ -218,7 +213,7 @@ public class InsertValuesExecutorTest {
     givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        valueFieldNames(SINGLE_VALUE_COLUMN_SCHEMA),
+        valueColumnNames(SINGLE_VALUE_COLUMN_SCHEMA),
         ImmutableList.of(new StringLiteral("new"))
     );
 
@@ -241,7 +236,7 @@ public class InsertValuesExecutorTest {
     ;
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        valueFieldNames(SINGLE_VALUE_COLUMN_SCHEMA),
+        valueColumnNames(SINGLE_VALUE_COLUMN_SCHEMA),
         ImmutableList.of(new StringLiteral("new"))
     );
 
@@ -279,7 +274,7 @@ public class InsertValuesExecutorTest {
   public void shouldHandleRowTimeWithoutKey() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of(SchemaUtil.ROWTIME_NAME, COL0, COL1),
+        ImmutableList.of(SystemColumns.ROWTIME_NAME, COL0, COL1),
         ImmutableList.of(
             new LongLiteral(1234L),
             new StringLiteral("str"),
@@ -421,7 +416,7 @@ public class InsertValuesExecutorTest {
     givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allFieldNames(BIG_SCHEMA),
+        allColumnNames(BIG_SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -549,7 +544,7 @@ public class InsertValuesExecutorTest {
         PreparedStatement.of(
             "",
             new InsertValues(SourceName.of("TOPIC"),
-                allFieldNames(SCHEMA),
+                allColumnNames(SCHEMA),
                 ImmutableList.of(
                     new LongLiteral(1L),
                     new StringLiteral("str"),
@@ -560,13 +555,15 @@ public class InsertValuesExecutorTest {
         new KsqlConfig(ImmutableMap.of())
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Cannot insert values into read-only topic: _confluent-ksql-default__command-topic");
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot insert values into read-only topic: _confluent-ksql-default__command-topic"));
   }
 
   @Test
@@ -579,7 +576,7 @@ public class InsertValuesExecutorTest {
         PreparedStatement.of(
             "",
             new InsertValues(SourceName.of("TOPIC"),
-                allFieldNames(SCHEMA),
+                allColumnNames(SCHEMA),
                 ImmutableList.of(
                     new LongLiteral(1L),
                     new StringLiteral("str"),
@@ -590,20 +587,22 @@ public class InsertValuesExecutorTest {
         new KsqlConfig(ImmutableMap.of())
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Cannot insert values into read-only topic: default_ksql_processing_log");
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot insert values into read-only topic: default_ksql_processing_log"));
   }
 
   @Test
   public void shouldThrowOnProducerSendError() throws ExecutionException, InterruptedException {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allFieldNames(SCHEMA),
+        allColumnNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -616,19 +615,22 @@ public class InsertValuesExecutorTest {
     when(failure.get()).thenThrow(ExecutionException.class);
     doReturn(failure).when(producer).send(any());
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to insert values into ");
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to insert values into "));
   }
 
   @Test
   public void shouldThrowOnSerializingKeyError() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allFieldNames(SCHEMA),
+        allColumnNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -637,19 +639,21 @@ public class InsertValuesExecutorTest {
     );
     when(keySerializer.serialize(any(), any())).thenThrow(new SerializationException("Jibberish!"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Could not serialize key")));
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString("Could not serialize key"))));
   }
 
   @Test
   public void shouldThrowOnSerializingValueError() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allFieldNames(SCHEMA),
+        allColumnNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -659,19 +663,21 @@ public class InsertValuesExecutorTest {
     when(valueSerializer.serialize(any(), any()))
         .thenThrow(new SerializationException("Jibberish!"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Could not serialize row")));
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString("Could not serialize row"))));
   }
 
   @Test
   public void shouldThrowOnTopicAuthorizationException() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allFieldNames(SCHEMA),
+        allColumnNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -681,14 +687,15 @@ public class InsertValuesExecutorTest {
     doThrow(new TopicAuthorizationException(Collections.singleton("t1")))
         .when(producer).send(any());
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(
-        containsString("Authorization denied to Write on topic(s): [t1]"))
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
     );
 
-    // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    // Then:
+    assertThat(e.getCause(), (hasMessage(
+        containsString("Authorization denied to Write on topic(s): [t1]"))));
   }
 
   @Test
@@ -701,12 +708,14 @@ public class InsertValuesExecutorTest {
             new StringLiteral("bar"))
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Expected k0 and COL0 to match")));
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString("Expected k0 and COL0 to match"))));
   }
 
   @Test
@@ -718,12 +727,14 @@ public class InsertValuesExecutorTest {
             new LongLiteral(1L))
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Expected a value for each column")));
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString("Expected a value for each column"))));
   }
 
   @Test
@@ -740,12 +751,14 @@ public class InsertValuesExecutorTest {
             new StringLiteral("bar"))
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Column name `NONEXISTENT` does not exist.")));
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString("Column name `NONEXISTENT` does not exist."))));
   }
 
   @Test
@@ -760,12 +773,14 @@ public class InsertValuesExecutorTest {
         )
     );
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Expected type INTEGER for field")));
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString("Expected type INTEGER for field"))));
   }
 
   @Test
@@ -845,14 +860,16 @@ public class InsertValuesExecutorTest {
             new LongLiteral(2L))
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Failed to insert values into 'TOPIC'. Value for primary key column(s) k0 is required for tables");
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
- }
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to insert values into 'TOPIC'. Value for primary key column(s) k0 is required for tables"));
+  }
 
   @Test
   public void shouldThrowOnTablesWithKeyFieldAndNullKeyFieldValueProvided() {
@@ -865,20 +882,22 @@ public class InsertValuesExecutorTest {
             new LongLiteral(2L))
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Failed to insert values into 'TOPIC'. Value for primary key column(s) k0 is required for tables");
-
     // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to insert values into 'TOPIC'. Value for primary key column(s) k0 is required for tables"));
   }
 
   @Test
   public void shouldBuildCorrectSerde() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        valueFieldNames(SCHEMA),
+        valueColumnNames(SCHEMA),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
@@ -990,11 +1009,18 @@ public class InsertValuesExecutorTest {
     return key;
   }
 
-  private static List<ColumnName> valueFieldNames(final LogicalSchema schema) {
+  private static List<ColumnName> valueColumnNames(final LogicalSchema schema) {
     return schema.value().stream().map(Column::name).collect(Collectors.toList());
   }
 
-  private static List<ColumnName> allFieldNames(final LogicalSchema schema) {
-    return schema.columns().stream().map(Column::name).collect(Collectors.toList());
+  private static List<ColumnName> allColumnNames(final LogicalSchema schema) {
+    final Builder<ColumnName> builder = ImmutableList.<ColumnName>builder()
+        .add(SystemColumns.ROWTIME_NAME);
+
+    schema.columns().stream()
+        .map(Column::name)
+        .forEach(builder::add);
+
+    return builder.build();
   }
 }

@@ -6,8 +6,8 @@
     {
       "name": "average int",
       "statements": [
-        "CREATE STREAM INPUT (VALUE integer) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT avg(value) AS avg FROM INPUT group by ROWKEY;"
+        "CREATE STREAM INPUT (ID STRING KEY, VALUE integer) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, avg(value) AS avg FROM INPUT group by ID;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "alice", "value": {"value": 1}},
@@ -31,8 +31,8 @@
     {
       "name": "average long",
       "statements": [
-        "CREATE STREAM INPUT (VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT avg(value) AS avg FROM INPUT group by ROWKEY;"
+        "CREATE STREAM INPUT (ID STRING KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, avg(value) AS avg FROM INPUT group by ID;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "alice", "value": {"value": -1}},
@@ -56,8 +56,8 @@
     {
       "name": "average double",
       "statements": [
-        "CREATE STREAM INPUT (VALUE double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT avg(value) AS avg FROM INPUT group by ROWKEY;"
+        "CREATE STREAM INPUT (ID STRING KEY, VALUE double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, avg(value) AS avg FROM INPUT group by ID;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "alice", "value": {"value": -1.8}},
@@ -82,8 +82,8 @@
       "name": "average - DELIMITED",
       "comment": "DELIMITED does not support STRUCT, so can't support AVG until we use a different internal format",
       "statements": [
-        "CREATE STREAM INPUT (VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT avg(value) AS avg FROM INPUT group by ROWKEY;"
+        "CREATE STREAM INPUT (ID STRING KEY, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT ID, avg(value) AS avg FROM INPUT group by ID;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.SchemaNotSupportedException",

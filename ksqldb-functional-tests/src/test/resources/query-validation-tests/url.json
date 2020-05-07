@@ -8,8 +8,8 @@
       "name": "encode a url parameter using ENCODE_URL_PARAM",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT URL_ENCODE_PARAM(url) as ENCODED FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_ENCODE_PARAM(url) as ENCODED FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "key": "1", "value": {"url": "?foo $bar"}, "timestamp":  0},
@@ -26,8 +26,8 @@
       "name": "decode a url parameter using DECODE_URL_PARAM",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT URL_DECODE_PARAM(url) as DECODED FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_DECODE_PARAM(url) as DECODED FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "key": "1", "value": {"url": "%3Ffoo+%24bar"}, "timestamp":  0},
@@ -44,8 +44,8 @@
       "name": "extract a fragment from a URL using URL_EXTRACT_FRAGMENT",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_FRAGMENT(url) as FRAGMENT FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_FRAGMENT(url) as FRAGMENT FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "key": "1", "value": {"url": "http://www.test.com/?query#fragment"}, "timestamp":  0},
@@ -60,8 +60,8 @@
       "name": "extract a host from a URL using URL_EXTRACT_HOST",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_HOST(url) as HOST FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_HOST(url) as HOST FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "key": "1", "value": {"url": "http://www.test.com/?query#fragment"}, "timestamp":  0},
@@ -76,8 +76,8 @@
       "name": "extract a parameter from a URL using URL_EXTRACT_PARAMETER",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PARAMETER(url,'one') as PARAM_A, URL_EXTRACT_PARAMETER(url,'two') as PARAM_B FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_PARAMETER(url,'one') as PARAM_A, URL_EXTRACT_PARAMETER(url,'two') as PARAM_B FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "key": "1", "value": {"url": "http://www.test.com/?one=a&two=b&three"}, "timestamp":  0}
@@ -90,8 +90,8 @@
       "name": "chain a call to URL_EXTRACT_PARAMETER with URL_DECODE_PARAM",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT URL_DECODE_PARAM(URL_EXTRACT_PARAMETER(url,'two')) as PARAM FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_DECODE_PARAM(URL_EXTRACT_PARAMETER(url,'two')) as PARAM FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "key": "1", "value": {"url": "http://www.test.com/?one=a&two=url%20encoded"}, "timestamp":  0}
@@ -104,8 +104,8 @@
       "name": "extract a path from a URL using URL_EXTRACT_PATH",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PATH(url) as PATH FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_PATH(url) as PATH FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "key": "1", "value": {"url": "http://www.test.com?query#fragment"}, "timestamp":  0},
@@ -122,8 +122,8 @@
       "name": "extract a port from a URL using URL_EXTRACT_PORT",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PORT(url) as PORT FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_PORT(url) as PORT FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "key": "1", "value": {"url": "http://test@confluent.io"}, "timestamp":  0},
@@ -138,8 +138,8 @@
       "name": "extract a protocol from a URL using URL_EXTRACT_PROTOCOL",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PROTOCOL(url) as PROTOCOL FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_PROTOCOL(url) as PROTOCOL FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "key": "1", "value": {"url": "http://test@confluent.io"}, "timestamp":  0},
@@ -156,8 +156,8 @@
       "name": "extract a query from a URL using URL_EXTRACT_QUERY",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_QUERY(url) as Q FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_QUERY(url) as Q FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "key": "1", "value": {"url": "http://www.test.com?query#fragment"}, "timestamp":  0},

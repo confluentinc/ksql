@@ -17,7 +17,9 @@ package io.confluent.ksql.planner.plan;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -40,7 +42,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -56,6 +57,7 @@ public class ProjectNodeTest {
 
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
 
+  private static final ColumnName K = ColumnName.of("K");
   private static final ColumnName COL_0 = ColumnName.of("col0");
   private static final ColumnName COL_1 = ColumnName.of("col1");
   private static final ColumnName COL_2 = ColumnName.of("col2");
@@ -70,9 +72,13 @@ public class ProjectNodeTest {
 
   private static final String KEY_FIELD_NAME = "col0";
 
+  private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
+      .keyColumn(K, SqlTypes.STRING)
+      .valueColumn(COL_2, SqlTypes.STRING)
+      .build();
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(ColumnName.of("K"), SqlTypes.STRING)
       .valueColumn(COL_0, SqlTypes.STRING)
       .valueColumn(COL_1, SqlTypes.STRING)
       .valueColumn(ALIASED_COL_2, SqlTypes.STRING)
@@ -98,6 +104,7 @@ public class ProjectNodeTest {
   @SuppressWarnings("unchecked")
   @Before
   public void init() {
+    when(source.getSchema()).thenReturn(SOURCE_SCHEMA);
     when(source.buildStream(any())).thenReturn((SchemaKStream) stream);
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
@@ -113,7 +120,31 @@ public class ProjectNodeTest {
     );
   }
 
-  @Test(expected = KsqlException.class)
+  @Test
+  public void shouldThrowIfSchemaHasNoValueColumns() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("bob"), SqlTypes.STRING)
+        .build();
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> new ProjectNode(
+            NODE_ID,
+            source,
+            ImmutableList.of(),
+            schema,
+            Optional.empty(),
+            false
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("The projection contains no value columns."));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfSchemaSizeDoesntMatchProjection() {
     new ProjectNode(
         NODE_ID,
@@ -237,5 +268,36 @@ public class ProjectNodeTest {
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(COL_1, COL_0, ALIASED_COL_2));
+  }
+
+  @Test
+  public void shouldThrowOnMultipleKeyColumns() {
+    // Given:
+    final LogicalSchema badSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("K"), SqlTypes.STRING)
+        .keyColumn(ColumnName.of("SecondKey"), SqlTypes.STRING)
+        .valueColumn(COL_0, SqlTypes.STRING)
+        .valueColumn(COL_1, SqlTypes.STRING)
+        .valueColumn(ALIASED_COL_2, SqlTypes.STRING)
+        .build();
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> {
+          new ProjectNode(
+              NODE_ID,
+              source,
+              SELECTS,
+              badSchema,
+              Optional.empty(),
+              true
+          );
+        }
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The projection contains the key column "
+        + "more than once: `K` and `SecondKey`."));
   }
 }

@@ -17,9 +17,11 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,9 +49,7 @@ import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.apache.kafka.streams.state.WindowStoreIterator;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -62,7 +62,6 @@ public class KsMaterializedWindowTableTest {
   private static final Duration WINDOW_SIZE = Duration.ofMinutes(1);
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
       .keyColumn(ColumnName.of("K0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
@@ -81,9 +80,6 @@ public class KsMaterializedWindowTableTest {
       .make(GenericRow.genericRow("col1"), 45678L);
   private static final ValueAndTimestamp<GenericRow> VALUE_3 = ValueAndTimestamp
       .make(GenericRow.genericRow("col2"), 987865L);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsStateStore stateStore;
@@ -118,13 +114,16 @@ public class KsMaterializedWindowTableTest {
     // Given:
     when(stateStore.store(any())).thenThrow(new MaterializationTimeOutException("Boom"));
 
-    // Then:
-    expectedException.expect(MaterializationException.class);
-    expectedException.expectMessage("Failed to get value from materialized table");
-    expectedException.expectCause(instanceOf(MaterializationTimeOutException.class));
-
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS);
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> table.get(A_KEY, WINDOW_START_BOUNDS)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to get value from materialized table"));
+    assertThat(e.getCause(), (instanceOf(MaterializationTimeOutException.class)));
   }
 
   @Test
@@ -133,13 +132,16 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any()))
         .thenThrow(new MaterializationTimeOutException("Boom"));
 
-    // Then:
-    expectedException.expect(MaterializationException.class);
-    expectedException.expectMessage("Failed to get value from materialized table");
-    expectedException.expectCause(instanceOf(MaterializationTimeOutException.class));
-
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS);
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> table.get(A_KEY, WINDOW_START_BOUNDS)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to get value from materialized table"));
+    assertThat(e.getCause(), (instanceOf(MaterializationTimeOutException.class)));
   }
 
   @Test

@@ -25,8 +25,8 @@ import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -148,7 +148,9 @@ public final class GenericKeySerDe implements KeySerdeFactory {
   }
 
   private static Class<?> getTargetType(final PersistenceSchema schema) {
-    return SchemaUtil.getJavaType(schema.serializedSchema());
+    return SchemaConverters.sqlToJavaConverter().toJavaType(
+        SchemaConverters.connectToSqlConverter().toSqlType(schema.serializedSchema())
+    );
   }
 
   private static <K> Serde<Struct> unwrapped(

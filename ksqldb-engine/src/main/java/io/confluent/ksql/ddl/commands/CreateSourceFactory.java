@@ -30,9 +30,10 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
@@ -44,7 +45,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -173,7 +173,7 @@ public final class CreateSourceFactory {
     }
 
     tableElements.forEach(e -> {
-      if (SchemaUtil.isSystemColumn(e.getName())) {
+      if (SystemColumns.isSystemColumn(e.getName())) {
         throw new KsqlException("'" + e.getName().text() + "' is a reserved column name.");
       }
     });

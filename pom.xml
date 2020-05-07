@@ -21,7 +21,7 @@
 
     <parent>
         <groupId>io.confluent</groupId>
-        <artifactId>rest-utils-parent</artifactId>
+        <artifactId>common</artifactId>
         <version>6.0.0-SNAPSHOT</version>
     </parent>
 
@@ -119,14 +119,17 @@
         <apache.curator.version>2.9.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
-        <icu.version>65.1</icu.version>
+        <icu.version>67.1</icu.version>
         <vertx.version>3.9.0</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
-        <kafka.version>5.5.0-ccs-SNAPSHOT</kafka.version>
-        <ce.kafka.version>5.5.0-ce-SNAPSHOT</ce.kafka.version>
-        <confluent.version>5.5.0-SNAPSHOT</confluent.version>
+        <kafka.version>5.5.0-ccs</kafka.version>
+        <ce.kafka.version>5.5.0-ce</ce.kafka.version>
+        <confluent.version>5.5.0</confluent.version>
+        <compile.warnings-flag>-Werror</compile.warnings-flag>
+        <!-- Only used to provide login module implementation for tests -->
+        <jetty.version>9.4.28.v20200408</jetty.version>
     </properties>
 
     <dependencyManagement>
@@ -258,12 +261,6 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>${confluent.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>rest-utils</artifactId>
                 <version>${confluent.version}</version>
             </dependency>
 
@@ -437,12 +434,6 @@
                 <version>${icu.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-client</artifactId>
-                <version>${jetty.version}</version>
-            </dependency>
-
             <!-- Required for running tests -->
             <dependency>
                 <groupId>junit</groupId>
@@ -516,34 +507,12 @@
                     <compilerVersion>1.8</compilerVersion>
                     <source>1.8</source>
                     <target>1.8</target>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-serial,-options,-path</arg>
+                        <arg>-parameters</arg>
+                        <arg>${compile.warnings-flag}</arg>
+                    </compilerArgs>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-serial,-options,-path</arg>
-                                <arg>-parameters</arg>
-                                <arg>-Werror</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>test-compile</id>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                        <configuration>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-options,-path</arg>
-                                <arg>-parameters</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

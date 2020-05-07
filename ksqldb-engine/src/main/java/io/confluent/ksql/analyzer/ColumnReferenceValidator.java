@@ -27,7 +27,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -71,7 +70,7 @@ class ColumnReferenceValidator {
     }
 
     @Override
-    public Void visitColumnReference(
+    public Void visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
         final Object context
     ) {
@@ -106,7 +105,8 @@ class ColumnReferenceValidator {
 
       if (sourcesWithField.size() > 1) {
         final String possibilities = sourcesWithField.stream()
-            .map(source -> SchemaUtil.buildAliasedFieldName(source.text(), name.text()))
+            .map(source -> new QualifiedColumnReferenceExp(source, name))
+            .map(Objects::toString)
             .sorted()
             .collect(Collectors.joining(", "));
 

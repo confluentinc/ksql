@@ -67,7 +67,7 @@ This only affects new statements. Any view previously created via a `CREATE STRE
 * Existing queries that reference a single GROUP BY column in the projection would fail if they were resubmitted, due to a duplicate column. The same existing queries will continue to run if already running, i.e. this is only a change for newly submitted queries. Existing queries will use the old query semantics.
 * Any existing persistent queries, e.g. those created with `CREATE STREAM AS SELECT`, `CREATE TABLE AS SELECT` or `INSERT INTO`, will be unaffected: their column names will not change. Pull queries will be unaffected. Push queries, which rely on auto-generated column names, may see a change in column names.
 
-* The ksqlDB server no longer ships with Jetty, which means Jetty-specific dependencies (e.g., certain login modules used for basic authentication) must be supplied via the KSQL_CLASSPATH environment variable when starting the server in order to be found.
+* The ksqlDB server no longer ships with Jetty. This means that when you start the server, you must supply Jetty-specific dependencies, like certain login modules used for basic authentication, by using the KSQL_CLASSPATH environment variable for them to be found.
 
 ## [0.8.1](https://github.com/confluentinc/ksql/releases/tag/v0.8.1-ksqldb) (2020-03-30)
 
@@ -683,4 +683,3 @@ This change splits "SHOW TOPICS" into two commands:
 ## Earlier releases
 
 Note: Release notes for releases prior to ksqlDB v0.6.0 can be found at [docs/changelog.rst](docs/changelog.rst).
-

@@ -28,13 +28,14 @@
 #   -d                Enable debug logging
 
 
-import argparse
+from confluent_kafka import KafkaError, KafkaException, version
+from confluent_kafka import Producer, Consumer
 import json
 import logging
-import re
-import sys
+import argparse
 import uuid
-from confluent_kafka import Consumer
+import sys
+import re
 
 
 class CommandRecord (object):

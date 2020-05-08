@@ -17,6 +17,7 @@ For more information, see
   - [COLLECT_SET](#collect_set)
   - [COUNT](#count)
   - [COUNT_DISTINCT](#count_distinct)
+  - [EARLIEST_BY_OFFSET](#earliest_by_offset)
   - [HISTOGRAM](#histogram)
   - [LATEST_BY_OFFSET](#latest_by_offset)
   - [MAX](#max)

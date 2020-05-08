@@ -46,11 +46,6 @@ abstract class QueryResponseHandler<T> {
     }
   }
 
-  public void handleBodyEnd(final Void v) {
-    checkContext();
-    handleBodyEnd();
-  }
-
   public void handleException(final Throwable t) {
     checkContext();
     if (!cf.isDone()) {
@@ -58,6 +53,11 @@ abstract class QueryResponseHandler<T> {
     } else {
       handleExceptionAfterFutureCompleted(t);
     }
+  }
+
+  public void handleBodyEnd(final Void v) {
+    checkContext();
+    handleBodyEnd();
   }
 
   protected abstract void handleBodyEnd();

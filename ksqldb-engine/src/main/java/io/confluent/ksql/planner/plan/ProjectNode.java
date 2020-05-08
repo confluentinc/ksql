@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -37,15 +36,13 @@ import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Immutable
 public class ProjectNode extends PlanNode {
 
   private final PlanNode source;
-  private final ImmutableList<SelectExpression> valueProjection;
+  private final ImmutableList<SelectExpression> selectExpressions;
   private final KeyField keyField;
   private final ImmutableMap<ColumnName, ColumnName> aliases;
 
@@ -54,23 +51,14 @@ public class ProjectNode extends PlanNode {
       final PlanNode source,
       final List<SelectExpression> projectExpressions,
       final LogicalSchema schema,
-      final Optional<ColumnName> keyFieldName,
       final boolean aliased
   ) {
     super(id, source.getNodeOutputType(), schema, source.getSourceName());
 
     this.source = requireNonNull(source, "source");
 
-    final Set<SelectExpression> keyColumns = source.getSchema().key().stream()
-        .map(Column::name)
-        .map(name -> resolveProjectionAlias(name, projectExpressions))
-        .collect(Collectors.toSet());
-
-    this.valueProjection = aliased
-        ? ImmutableList.copyOf(requireNonNull(projectExpressions, "projectExpressions"))
-        : ImmutableList.copyOf(projectExpressions.stream()
-            .filter(se -> !keyColumns.contains(se))
-            .collect(Collectors.toList()));
+    this.selectExpressions = ImmutableList
+        .copyOf(requireNonNull(projectExpressions, "projectExpressions"));
 
     this.keyField = KeyField.none();
 
@@ -101,7 +89,7 @@ public class ProjectNode extends PlanNode {
   }
 
   public List<SelectExpression> getSelectExpressions() {
-    return valueProjection;
+    return selectExpressions;
   }
 
   @Override
@@ -113,7 +101,7 @@ public class ProjectNode extends PlanNode {
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     return getSource().buildStream(builder)
         .select(
-            valueProjection,
+            selectExpressions,
             builder.buildNodeContext(getId().toString()),
             builder
         );
@@ -121,10 +109,9 @@ public class ProjectNode extends PlanNode {
 
   @Override
   public Stream<ColumnName> resolveSelectStar(
-      final Optional<SourceName> sourceName,
-      final boolean valueOnly
+      final Optional<SourceName> sourceName
   ) {
-    return source.resolveSelectStar(sourceName, valueOnly)
+    return source.resolveSelectStar(sourceName)
         .map(name -> aliases.getOrDefault(name, name));
   }
 
@@ -145,14 +132,14 @@ public class ProjectNode extends PlanNode {
       throw new KsqlException("The projection contains no value columns.");
     }
 
-    if (schema.value().size() != valueProjection.size()) {
+    if (schema.value().size() != selectExpressions.size()) {
       throw new IllegalArgumentException("Error in projection. "
           + "Schema fields and expression list are not compatible.");
     }
 
-    for (int i = 0; i < valueProjection.size(); i++) {
+    for (int i = 0; i < selectExpressions.size(); i++) {
       final Column column = schema.value().get(i);
-      final SelectExpression selectExpression = valueProjection.get(i);
+      final SelectExpression selectExpression = selectExpressions.get(i);
 
       if (!column.name().equals(selectExpression.getAlias())) {
         throw new IllegalArgumentException("Mismatch between schema and selects");
@@ -173,19 +160,5 @@ public class ProjectNode extends PlanNode {
         ));
 
     return builder.build();
-  }
-
-  private static SelectExpression resolveProjectionAlias(
-      final ColumnName name,
-      final List<SelectExpression> projection
-  ) {
-    final ColumnName alias = projection.stream()
-        .filter(se -> se.getExpression() instanceof ColumnReferenceExp)
-        .filter(se -> ((ColumnReferenceExp) se.getExpression()).getColumnName().equals(name))
-        .map(SelectExpression::getAlias)
-        .findFirst()
-        .orElse(name);
-
-    return SelectExpression.of(alias, new UnqualifiedColumnReferenceExp(name));
   }
 }

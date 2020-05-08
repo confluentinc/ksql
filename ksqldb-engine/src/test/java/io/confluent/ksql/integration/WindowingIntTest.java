@@ -128,11 +128,11 @@ public class WindowingIntTest {
     // Given:
     givenTable("CREATE TABLE %s AS "
         + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(KEYVALUEMAP['key2']/2) "
-        + "FROM " + ORDERS_STREAM + " WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID AS ROWKEY;");
+        + "FROM " + ORDERS_STREAM + " WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
     final Map<String, GenericRow> expected = ImmutableMap.of(
         "ITEM_1",
-        genericRow("ITEM_1", 2L, 20.0, 2.0)
+        genericRow(2L, 20.0, 2.0)
     );
 
     // Then:
@@ -145,7 +145,7 @@ public class WindowingIntTest {
   public void shouldAggregateTumblingWindow() {
     // Given:
     givenTable("CREATE TABLE %s AS "
-        + "SELECT COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*) "
+        + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*) "
         + "FROM " + ORDERS_STREAM + " WINDOW TUMBLING (SIZE 10 SECONDS) "
         + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
@@ -165,16 +165,16 @@ public class WindowingIntTest {
     givenTable("CREATE TABLE %s AS "
         + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10) "
         + "FROM " + ORDERS_STREAM + " WINDOW HOPPING (SIZE 10 SECONDS, ADVANCE BY 5 SECONDS) "
-        + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID AS ROWKEY;");
+        + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
     final long firstWindowStart = tenSecWindowStartMs;
     final long secondWindowStart = firstWindowStart + TimeUnit.SECONDS.toMillis(5);
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
         new Windowed<>("ITEM_1", new TimeWindow(firstWindowStart, Long.MAX_VALUE)),
-        genericRow("ITEM_1", 2L, 20.0, 200.0),
+        genericRow(2L, 20.0, 200.0),
         new Windowed<>("ITEM_1", new TimeWindow(secondWindowStart, Long.MAX_VALUE)),
-        genericRow("ITEM_1", 2L, 20.0, 200.0)
+        genericRow(2L, 20.0, 200.0)
     );
 
     // Then:
@@ -188,24 +188,24 @@ public class WindowingIntTest {
     givenTable("CREATE TABLE %s AS "
         + "SELECT ORDERID, COUNT(*), SUM(ORDERUNITS) "
         + "FROM " + ORDERS_STREAM + " WINDOW SESSION (10 SECONDS) "
-        + "GROUP BY ORDERID AS ROWKEY;");
+        + "GROUP BY ORDERID;");
 
     final long sessionEnd = batch0SentMs + batch1Delay;
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap
         .<Windowed<String>, GenericRow>builder()
         .put(new Windowed<>("ORDER_1", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_1", 2L, 20.0))
+            genericRow(2L, 20.0))
         .put(new Windowed<>("ORDER_2", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_2", 2L, 40.0))
+            genericRow(2L, 40.0))
         .put(new Windowed<>("ORDER_3", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_3", 2L, 60.0))
+            genericRow(2L, 60.0))
         .put(new Windowed<>("ORDER_4", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_4", 2L, 80.0))
+            genericRow(2L, 80.0))
         .put(new Windowed<>("ORDER_5", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_5", 2L, 100.0))
+            genericRow(2L, 100.0))
         .put(new Windowed<>("ORDER_6", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_6", 6L, 420.0))
+            genericRow(6L, 420.0))
         .build();
 
     // Then:

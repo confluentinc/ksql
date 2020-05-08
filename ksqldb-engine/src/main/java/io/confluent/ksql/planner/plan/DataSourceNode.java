@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -32,7 +33,6 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKSourceFactory;
@@ -122,26 +122,26 @@ public class DataSourceNode extends PlanNode {
 
   @Override
   public Stream<ColumnName> resolveSelectStar(
-      final Optional<SourceName> sourceName, final boolean valueOnly
+      final Optional<SourceName> sourceName
   ) {
     if (sourceName.isPresent() && !sourceName.equals(getSourceName())) {
       throw new IllegalArgumentException("Expected alias of " + getAlias()
           + ", but was " + sourceName.get());
     }
 
-    return valueOnly
-        ? getSchema().withoutPseudoAndKeyColsInValue().value().stream().map(Column::name)
-        : orderColumns(getSchema().value(), getSchema());
+    // Note: the 'value' columns include the key columns at this point:
+    return orderColumns(getSchema().value(), getSchema());
   }
 
   @Override
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
     final ColumnName keyName = Iterables.getOnlyElement(getSchema().key()).name();
 
-    final ColumnReferenceExp keyCol = new UnqualifiedColumnReferenceExp(keyName);
-
-    if (!projection.containsExpression(keyCol)) {
-      throwKeysNotIncludedError(sinkName, "key column", ImmutableList.of(keyCol), and());
+    if (!projection.containsExpression(new QualifiedColumnReferenceExp(getAlias(), keyName))
+        && !projection.containsExpression(new UnqualifiedColumnReferenceExp(keyName))
+    ) {
+      throwKeysNotIncludedError(sinkName, "key column", ImmutableList.of(
+          (ColumnReferenceExp) new UnqualifiedColumnReferenceExp(keyName)), and());
     }
   }
 

@@ -99,7 +99,7 @@ public class ApiIntegrationTest {
     RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
-        + "SELECT COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
+        + "SELECT USERID, COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
     );
   }
 
@@ -140,11 +140,9 @@ public class ApiIntegrationTest {
     // Then:
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(
-        new JsonArray().add("ROWTIME").add("ROWKEY")
-            .add("VIEWTIME").add("USERID").add("PAGEID")));
+        new JsonArray().add("ROWKEY").add("VIEWTIME").add("USERID").add("PAGEID")));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(
-        new JsonArray().add("BIGINT").add("BIGINT")
-            .add("BIGINT").add("STRING").add("STRING")));
+        new JsonArray().add("BIGINT").add("BIGINT").add("STRING").add("STRING")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
 

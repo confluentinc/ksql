@@ -208,7 +208,7 @@ public class KsMaterializationFunctionalTest {
       final PersistentQueryMetadata query = executeQuery(
           ksqlNoAppServer,
           "CREATE TABLE " + output + " AS"
-              + " SELECT COUNT(*) AS COUNT FROM " + USER_TABLE
+              + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_TABLE
               + " GROUP BY USERID;"
       );
 
@@ -225,7 +225,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) FROM " + USER_TABLE
+            + " SELECT USERID, COUNT(*) FROM " + USER_TABLE
             + " GROUP BY USERID;"
     );
 
@@ -259,7 +259,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
             + " GROUP BY USERID;"
     );
 
@@ -293,7 +293,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW TUMBLING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS)"
             + " GROUP BY USERID;"
     );
@@ -338,7 +338,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW HOPPING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS,"
             + " ADVANCE BY " + WINDOW_SIZE.getSeconds() + " SECONDS)"
             + " GROUP BY USERID;"
@@ -383,7 +383,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW SESSION (" + WINDOW_SIZE.getSeconds() + " SECONDS)"
             + " GROUP BY USERID;"
     );
@@ -426,7 +426,7 @@ public class KsMaterializationFunctionalTest {
   public void shouldFailQueryWithRetentionSmallerThanGracePeriod() {
     // Given:
     executeQuery("CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
+            + " SELECT PAGEID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW TUMBLING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
             + " RETENTION " + (WINDOW_SEGMENT_DURATION.getSeconds() * 2) + " SECONDS)"
             + " GROUP BY PAGEID;"
@@ -438,7 +438,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
+            + " SELECT PAGEID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW TUMBLING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
             + " RETENTION " + (WINDOW_SEGMENT_DURATION.getSeconds() * 2) + " SECONDS,"
             + " GRACE PERIOD 0 SECONDS)"
@@ -467,7 +467,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
+            + " SELECT PAGEID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW HOPPING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
             + " ADVANCE BY " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS, "
             + " RETENTION " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
@@ -496,7 +496,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW SESSION (" + WINDOW_SEGMENT_DURATION.getSeconds()/2 + " SECONDS,"
             + " RETENTION " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
             + " GRACE PERIOD 0 SECONDS"
@@ -524,7 +524,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*), USERID AS USERID_2 FROM " + USER_TABLE
+            + " SELECT USERID, COUNT(*), AS_VALUE(USERID) AS USERID_2 FROM " + USER_TABLE
             + " GROUP BY USERID;"
     );
 
@@ -559,7 +559,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(1) AS COUNT, SUM(REGISTERTIME) AS SUM FROM " + USER_TABLE
+            + " SELECT USERID, COUNT(1) AS COUNT, SUM(REGISTERTIME) AS SUM FROM " + USER_TABLE
             + " GROUP BY USERID;"
     );
 
@@ -595,7 +595,7 @@ public class KsMaterializationFunctionalTest {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(*) AS COUNT FROM " + USER_TABLE
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_TABLE
             + " GROUP BY USERID"
             + " HAVING SUM(REGISTERTIME) > 2;"
     );

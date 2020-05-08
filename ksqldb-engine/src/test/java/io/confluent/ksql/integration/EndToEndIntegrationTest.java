@@ -173,7 +173,7 @@ public class EndToEndIntegrationTest {
 
     final Set<Object> actualUsers = rows.stream()
         .filter(Objects::nonNull)
-        .peek(row -> assertThat(row.values(), hasSize(4)))
+        .peek(row -> assertThat(row.values(), hasSize(5)))
         .map(row -> row.get(0))
         .collect(Collectors.toSet());
 
@@ -250,10 +250,10 @@ public class EndToEndIntegrationTest {
 
       assertThat(columns, hasSize(4));
 
-      final String user = (String) columns.get(1);
+      final String user = (String) columns.get(0);
       actualUsers.add(user);
 
-      final String page = (String) columns.get(2);
+      final String page = (String) columns.get(1);
       actualPages.add(page);
     }
 
@@ -298,8 +298,8 @@ public class EndToEndIntegrationTest {
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
     assertThat(PRODUCED_COUNT.get(), greaterThan(0));
-    assertThat(columns.get(2).toString(), startsWith("PAGE_"));
-    assertThat(columns.get(3).toString(), startsWith("USER_"));
+    assertThat(columns.get(1).toString(), startsWith("PAGE_"));
+    assertThat(columns.get(2).toString(), startsWith("USER_"));
   }
 
   @Test

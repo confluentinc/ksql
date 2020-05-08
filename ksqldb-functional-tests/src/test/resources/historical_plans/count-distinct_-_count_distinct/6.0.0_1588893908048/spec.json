@@ -1,0 +1,151 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893908048,
+  "path" : "query-validation-tests/count-distinct.json",
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID VARCHAR, NAME VARCHAR> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID VARCHAR, NAME VARCHAR> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID VARCHAR, NAME VARCHAR, KSQL_AGG_VARIABLE_0 ARRAY<INT>> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<COUNT BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "count distinct",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "id" : "foo",
+        "name" : "one"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "id" : "foo",
+        "name" : "two"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "id" : "foo",
+        "name" : "one"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "id" : "foo",
+        "name" : "two"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "id" : "bar",
+        "name" : "one"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "id" : "foo",
+        "name" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : "foo",
+      "value" : {
+        "COUNT" : 1
+      }
+    }, {
+      "topic" : "S2",
+      "key" : "foo",
+      "value" : {
+        "COUNT" : 2
+      }
+    }, {
+      "topic" : "S2",
+      "key" : "foo",
+      "value" : {
+        "COUNT" : 2
+      }
+    }, {
+      "topic" : "S2",
+      "key" : "foo",
+      "value" : {
+        "COUNT" : 2
+      }
+    }, {
+      "topic" : "S2",
+      "key" : "bar",
+      "value" : {
+        "COUNT" : 1
+      }
+    }, {
+      "topic" : "S2",
+      "key" : "foo",
+      "value" : {
+        "COUNT" : 2
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID varchar, NAME varchar) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE S2 as SELECT ID, count_distinct(name) as count FROM test group by id;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

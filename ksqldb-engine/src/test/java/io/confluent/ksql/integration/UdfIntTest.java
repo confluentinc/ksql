@@ -137,6 +137,7 @@ public class UdfIntTest {
     // Given:
     final String queryString = String.format(
         "CREATE STREAM \"%s\" AS SELECT "
+            + "ROWKEY, "
             + "ITEMID, "
             + "ORDERUNITS*10, "
             + "PRICEARRAY[1]+10, "
@@ -164,6 +165,7 @@ public class UdfIntTest {
     // Given:
     final String queryString = String.format(
         "CREATE STREAM \"%s\" AS SELECT "
+            + "ROWKEY, "
             + "CAST (ORDERUNITS AS INTEGER), "
             + "CAST( PRICEARRAY[2]>1000 AS STRING), "
             + "CAST (SUBSTRING(ITEMID, 6) AS DOUBLE), "
@@ -194,7 +196,7 @@ public class UdfIntTest {
             + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';"
             + ""
             + "CREATE STREAM \"%s\" AS SELECT "
-            + "ROWKEY AS NEWRKEY, ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
+            + "RKEY AS NEWRKEY, ROWTIME AS NEWRTIME, AS_VALUE(RKEY) AS RKEY, RTIME, RT100, ORDERID, ITEMID "
             + "FROM %s;",
         intermediateStream, testData.sourceStreamName, resultStreamName, intermediateStream);
 
@@ -207,7 +209,7 @@ public class UdfIntTest {
     final long ts = testData.recordMetadata.get(8L).timestamp();
 
     assertThat(results, equalTo(ImmutableMap.of(8L,
-        genericRow(8L, ts, 8L, ts + 10000, ts + 100, "ORDER_6", "ITEM_8"))));
+        genericRow(ts, 8L, ts + 10000, ts + 100, "ORDER_6", "ITEM_8"))));
   }
 
   @Test
@@ -216,7 +218,7 @@ public class UdfIntTest {
 
     // Given:
     final String queryString = String.format(
-        "CREATE STREAM \"%s\" AS SELECT ID, DESCRIPTION FROM %s WHERE ID LIKE '%%_1';",
+        "CREATE STREAM \"%s\" AS SELECT ROWKEY, ID, DESCRIPTION FROM %s WHERE ID LIKE '%%_1';",
         resultStreamName, DELIMITED_STREAM_NAME
     );
 

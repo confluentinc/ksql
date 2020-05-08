@@ -29,7 +29,6 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -105,8 +104,7 @@ public class RepartitionNode extends PlanNode {
 
   @Override
   public Stream<ColumnName> resolveSelectStar(
-      final Optional<SourceName> sourceName,
-      final boolean valueOnly
+      final Optional<SourceName> sourceName
   ) {
     if (sourceName.isPresent() && !sourceName.equals(getSourceName())) {
       throw new IllegalArgumentException("Expected sourceName of " + getSourceName()
@@ -115,12 +113,11 @@ public class RepartitionNode extends PlanNode {
 
     if (internal) {
       // An internal repartition is an impl detail, so should not change the set of columns:
-      return super.resolveSelectStar(sourceName, valueOnly);
+      return source.resolveSelectStar(sourceName);
     }
 
-    return valueOnly
-        ? getSchema().withoutPseudoAndKeyColsInValue().value().stream().map(Column::name)
-        : orderColumns(getSchema().value(), getSchema());
+    // Note: the 'value' columns include the key columns at this point:
+    return orderColumns(getSchema().value(), getSchema());
   }
 
   @Override

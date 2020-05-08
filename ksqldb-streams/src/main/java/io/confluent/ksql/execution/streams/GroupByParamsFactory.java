@@ -30,7 +30,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -38,7 +37,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
 
 final class GroupByParamsFactory {
@@ -172,13 +170,9 @@ final class GroupByParamsFactory {
       final SqlType keyType = groupBy.getExpressionType();
       final Expression groupByExp = groupBy.getExpression();
 
-      // Todo(ac): add utility + inline.
-      final ColumnAliasGenerator keyAliasGenerator = ColumnNames
-          .columnAliasGenerator(Stream.of(sourceSchema));
-
       final ColumnName singleColumnName = groupByExp instanceof ColumnReferenceExp
           ? ((ColumnReferenceExp) groupByExp).getColumnName()
-          : keyAliasGenerator.uniqueAliasFor(groupByExp);
+          : ColumnNames.uniqueAliasFor(groupByExp, sourceSchema);
 
       return buildSchemaWithKeyType(sourceSchema, singleColumnName, keyType);
     }

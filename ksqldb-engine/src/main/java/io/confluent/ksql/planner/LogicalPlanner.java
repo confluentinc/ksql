@@ -65,7 +65,6 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
-import io.confluent.ksql.planner.plan.VerifiableNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnNames;
@@ -155,11 +154,6 @@ public class LogicalPlanner {
     }
 
     final Into intoDataSource = analysis.getInto().get();
-
-    // Todo(ac): move into node?
-    ((VerifiableNode) sourcePlanNode)
-        .validateKeyPresent(intoDataSource.getName());
-
 
     return new KsqlStructuredDataOutputNode(
         new PlanNodeId(intoDataSource.getName().text()),
@@ -271,29 +265,55 @@ public class LogicalPlanner {
 
     final LogicalSchema schema = buildProjectionSchema(parentNode.getSchema(), projection);
 
-    final ColumnName sourceKeyFieldName = parentNode
-        .getKeyField()
-        .ref()
-        .orElse(null);
+    final boolean persistent = analysis.getInto().isPresent();
+    if (persistent) {
+      // Persistent queries have key columns asa key columns - so final projection can exclude them:
+      final Set<SelectExpression> keySelects = parentNode.getSchema().key().stream()
+          .map(Column::name)
+          .map(name -> resolveProjectionAlias(name, projection))
+          .collect(Collectors.toSet());
 
-    final Optional<ColumnName> keyFieldName = getSelectAliasMatching(
-        (expression, alias) -> expression instanceof UnqualifiedColumnReferenceExp
-            && ((UnqualifiedColumnReferenceExp) expression).getColumnName().equals(
-            sourceKeyFieldName),
-        projection
-    );
+      projection.removeIf(keySelects::contains);
+    }
+
+    final LogicalSchema nodeSchema;
+    if (persistent) {
+      nodeSchema = schema;
+    } else {
+      // Transient queries return key columns in the value, so the projection includes them, and
+      // the schema needs to include them too:
+      final Builder builder = LogicalSchema.builder();
+
+      schema.columns()
+          .forEach(builder::valueColumn);
+
+      nodeSchema = builder.build();
+    }
 
     return new FinalProjectNode(
         new PlanNodeId("Project"),
         parentNode,
         projection,
-        schema,
-        keyFieldName,
+        nodeSchema,
         analysis.getSelectItems()
     );
   }
 
-  private ProjectNode buildInternalProjectNode(
+  private static SelectExpression resolveProjectionAlias(
+      final ColumnName name,
+      final List<SelectExpression> projection
+  ) {
+    final ColumnName alias = projection.stream()
+        .filter(se -> se.getExpression() instanceof ColumnReferenceExp)
+        .filter(se -> ((ColumnReferenceExp) se.getExpression()).getColumnName().equals(name))
+        .map(SelectExpression::getAlias)
+        .findFirst()
+        .orElse(name);
+
+    return SelectExpression.of(alias, new UnqualifiedColumnReferenceExp(name));
+  }
+
+  private static ProjectNode buildInternalProjectNode(
       final PlanNode parent,
       final String id,
       final SourceName sourceAlias
@@ -305,29 +325,16 @@ public class LogicalPlanner {
 
     final LogicalSchema schema = buildJoinSourceSchema(sourceAlias, parent.getSchema());
 
-    final ColumnName sourceKeyFieldName = parent
-        .getKeyField()
-        .ref()
-        .orElse(null);
-
-    final Optional<ColumnName> keyFieldName = getSelectAliasMatching(
-        (expression, alias) -> expression instanceof UnqualifiedColumnReferenceExp
-            && ((UnqualifiedColumnReferenceExp) expression).getColumnName().equals(
-            sourceKeyFieldName),
-        projection
-    );
-
     return new ProjectNode(
         new PlanNodeId(id),
         parent,
         projection,
         schema,
-        keyFieldName,
         true
     );
   }
 
-  private List<SelectExpression> buildSelectExpressions(
+  private static List<SelectExpression> buildSelectExpressions(
       final PlanNode parentNode,
       final List<SelectItem> selectItems
   ) {
@@ -337,7 +344,7 @@ public class LogicalPlanner {
         .collect(Collectors.toList());
   }
 
-  private Stream<SelectExpression> resolveSelectItem(
+  private static Stream<SelectExpression> resolveSelectItem(
       final int idx,
       final List<SelectItem> selectItems,
       final PlanNode parentNode
@@ -357,7 +364,7 @@ public class LogicalPlanner {
       final AllColumns allColumns = (AllColumns) selectItem;
 
       final Stream<ColumnName> columns = parentNode
-          .resolveSelectStar(allColumns.getSource(), false); // Todo(ac): always false now
+          .resolveSelectStar(allColumns.getSource());
 
       return columns
           .map(name -> SelectExpression.of(name, new UnqualifiedColumnReferenceExp(
@@ -723,7 +730,6 @@ public class LogicalPlanner {
     final SqlType keyType;
     final Set<ColumnName> keyColumnNames;
 
-    // Todo(ac): Can we refactor this to make it simpler?
     if (groupByExps.size() != 1) {
       keyType = SqlTypes.STRING;
 

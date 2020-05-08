@@ -779,7 +779,7 @@ public class InteractiveStatementExecutorTest {
 
     final Command ctasCommand = new Command(
         "CREATE TABLE table1  AS "
-            + "SELECT count(pageid) "
+            + "SELECT pageid, count(pageid) "
             + "FROM pageview "
             + "WINDOW TUMBLING ( SIZE 10 SECONDS) "
             + "GROUP BY pageid;",

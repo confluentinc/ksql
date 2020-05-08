@@ -561,7 +561,7 @@ public class CliTest {
     );
 
     testCreateStreamAsSelect(
-        "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
+        "SELECT ROWKEY, ITEMID, ORDERUNITS, PRICEARRAY FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
         resultSchema,
         expectedResults
     );
@@ -610,7 +610,7 @@ public class CliTest {
   @Test
   public void shouldHandlePullQuery() {
     // Given:
-    run("CREATE TABLE X AS SELECT COUNT(1) AS COUNT "
+    run("CREATE TABLE X AS SELECT ITEMID, COUNT(1) AS COUNT "
             + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
             + " GROUP BY ITEMID;",
         localCli
@@ -636,7 +636,7 @@ public class CliTest {
   @Test
   public void shouldOutputPullQueryHeader() {
     // Given:
-    run("CREATE TABLE Y AS SELECT COUNT(1) AS COUNT "
+    run("CREATE TABLE Y AS SELECT ITEMID, COUNT(1) AS COUNT "
             + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
             + " GROUP BY ITEMID;",
         localCli
@@ -688,7 +688,9 @@ public class CliTest {
   @Test
   public void testSelectUDFs() {
     final String queryString = String.format(
-        "SELECT ITEMID, "
+        "SELECT "
+            + "ROWKEY, "
+            + "ITEMID, "
             + "ORDERUNITS*10 AS Col1, "
             + "PRICEARRAY[1]+10 AS Col2, "
             + "KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10 AS Col3, "
@@ -719,7 +721,7 @@ public class CliTest {
   @Test
   public void testCreateTable() {
     final String queryString = "CREATE TABLE " + tableName + " AS " +
-        " SELECT COUNT(*) FROM " + ORDER_DATA_PROVIDER.kstreamName() +
+        " SELECT ITEMID, COUNT(*) FROM " + ORDER_DATA_PROVIDER.kstreamName() +
         " GROUP BY ITEMID;";
 
     assertRunCommand(

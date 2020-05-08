@@ -146,13 +146,12 @@ public class JoinNode extends PlanNode {
   @SuppressWarnings("UnstableApiUsage")
   @Override
   public Stream<ColumnName> resolveSelectStar(
-      final Optional<SourceName> sourceName,
-      final boolean valueOnly
+      final Optional<SourceName> sourceName
   ) {
     final Stream<ColumnName> names = Stream.of(left, right)
         .flatMap(s -> s instanceof JoinNode ? s.getSources().stream() : Stream.of(s))
         .filter(s -> !sourceName.isPresent() || sourceName.equals(s.getSourceName()))
-        .flatMap(s -> s.resolveSelectStar(sourceName, false));
+        .flatMap(s -> s.resolveSelectStar(sourceName));
 
     if (sourceName.isPresent() || !joinKey.isSynthetic() || !finalJoin) {
       return names;

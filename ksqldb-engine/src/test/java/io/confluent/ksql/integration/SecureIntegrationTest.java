@@ -287,7 +287,7 @@ public class SecureIntegrationTest {
   }
 
   private void assertCanRunRepartitioningKsqlQuery() {
-    assertCanRunKsqlQuery("CREATE TABLE %s AS SELECT count(*) "
+    assertCanRunKsqlQuery("CREATE TABLE %s AS SELECT itemid, count(*) "
             + "FROM %s WINDOW TUMBLING (size 5 second) GROUP BY itemid;",
         outputTopic, INPUT_STREAM);
   }

@@ -184,7 +184,7 @@ public class PullQueryFunctionalTest {
 
     makeAdminRequest(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " SELECT " + USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
             + " GROUP BY " + USER_PROVIDER.key() + ";"
     );
 
@@ -211,7 +211,7 @@ public class PullQueryFunctionalTest {
 
     makeAdminRequest(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " SELECT " +  USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
             + " WINDOW TUMBLING (SIZE 1 SECOND)"
             + " GROUP BY " + USER_PROVIDER.key() + ";"
     );

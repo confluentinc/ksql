@@ -175,7 +175,7 @@ public class SchemaTranslationTest {
             .collect(
                 Collectors.joining(
                     ", ",
-                    "CREATE STREAM " + OUTPUT_TOPIC_NAME + " AS SELECT ",
+                    "CREATE STREAM " + OUTPUT_TOPIC_NAME + " AS SELECT ROWKEY, ",
                     " FROM " + TOPIC_NAME + ";")
             );
 

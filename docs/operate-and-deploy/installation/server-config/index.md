@@ -310,3 +310,52 @@ Start the ksqlDB server with the configuration file specified.
 <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
+Configuring Listeners for a ksqlDB Cluster
+--------------------------------
+
+Multiple hosts are required to scale ksqlDB processing power and to do that, they must
+form a cluster.  ksqlDB utilizes {{ site.kstreams }} to do this and requires all hosts of
+a cluster to use the same `ksql.service.id`.
+
+```properties
+bootstrap.servers=localhost:9092
+ksql.service.id=my_application_
+```
+
+Once formed, many operations can be run using the client APIs exposed on `listeners`.
+
+In order to utilize pull queries and their high availability functionality,
+the hosts within the cluster must be configured to speak to each other via their
+internal endpoints. The following describes how to configure listeners depending on
+the nature of your environment.
+
+### Internal Network
+
+For the typical setup within an internal network, you might have just one
+set of listeners.  This binds all of the client endpoints and internal endpoints on
+the same interfaces.  Since the address used to access one host in the
+cluster from another may differ from the bound listener, we can also utilize the
+config `ksql.advertised.listener` to explicitly specify it.
+
+
+```properties
+listeners=http://0.0.0.0:8088
+ksql.advertised.listener=http://host1.internal.example.com:8088
+```
+
+### Unsecured Environment
+
+If ksqlDB is being run in an environment where you require more security, you first
+want to enable [authentication and other security measures](security.md).  Secondly,
+you may choose to configure internal endpoints to be bound using a separate listener
+from the client endpoints. This allows for port filtering, to make internal endpoints
+unreachable beyond the internal network of the cluster, based on the port bound.
+Once again, you will want to utilize `ksql.advertised.listener` to now refer to the
+internal listener `ksql.internal.listener`.
+
+
+```properties
+listeners=https://0.0.0.0:8088
+ksql.advertised.listener=https://host1.internal.example.com:8099
+ksql.internal.listener=https://0.0.0.0:8099
+```

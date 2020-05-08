@@ -123,11 +123,6 @@ public final class DecimalUtil {
     final DecimalFormat format = new DecimalFormat();
     format.setMinimumFractionDigits(scale);
 
-    // Avoids adding leading zeros if precision is higher than the value precision
-    if (precision < value.precision()) {
-      format.setMinimumIntegerDigits(precision - scale);
-    }
-
     return format.format(value);
   }
 

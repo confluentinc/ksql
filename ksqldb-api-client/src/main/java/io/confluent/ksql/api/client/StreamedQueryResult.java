@@ -22,9 +22,9 @@ import org.reactivestreams.Publisher;
 /**
  * The result of a query (push or pull), streamed one row at time. Records may be consumed by either
  * subscribing to the publisher or polling (blocking) for one record at a time. These two methods of
- * consumption are mutually exclusive; only one method may be used (per QueryResult).
+ * consumption are mutually exclusive; only one method may be used (per StreamedQueryResult).
  */
-public interface QueryResult extends Publisher<Row> {
+public interface StreamedQueryResult extends Publisher<Row> {
 
   List<String> columnNames();
 

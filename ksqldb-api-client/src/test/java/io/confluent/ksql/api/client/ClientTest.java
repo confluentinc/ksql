@@ -84,16 +84,16 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldStreamPushQueryAsync() throws Exception {
     // When
-    final QueryResult queryResult =
+    final StreamedQueryResult streamedQueryResult =
         javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
 
     // Then
-    assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
-    assertThat(queryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
-    shouldDeliver(queryResult, DEFAULT_ROWS.size());
+    shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size());
 
-    String queryId = queryResult.queryID();
+    String queryId = streamedQueryResult.queryID();
     assertThat(queryId, is(notNullValue()));
     verifyPushQueryServerState(DEFAULT_PUSH_QUERY, queryId);
   }
@@ -101,21 +101,21 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldStreamPushQuerySync() throws Exception {
     // When
-    final QueryResult queryResult =
+    final StreamedQueryResult streamedQueryResult =
         javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
 
     // Then
-    assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
-    assertThat(queryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
-      final Row row = queryResult.poll();
+      final Row row = streamedQueryResult.poll();
       assertThat(row.values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
       assertThat(row.columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
     }
 
-    String queryId = queryResult.queryID();
+    String queryId = streamedQueryResult.queryID();
     assertThat(queryId, is(notNullValue()));
     verifyPushQueryServerState(DEFAULT_PUSH_QUERY, queryId);
   }
@@ -123,14 +123,14 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldStreamPullQueryAsync() throws Exception {
     // When
-    final QueryResult queryResult =
+    final StreamedQueryResult streamedQueryResult =
         javaClient.streamQuery(DEFAULT_PULL_QUERY).get();
 
     // Then
-    assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
-    assertThat(queryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
-    shouldDeliver(queryResult, DEFAULT_ROWS.size());
+    shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size());
 
     verifyPullQueryServerState();
   }
@@ -138,15 +138,15 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldStreamPullQuerySync() throws Exception {
     // When
-    final QueryResult queryResult =
+    final StreamedQueryResult streamedQueryResult =
         javaClient.streamQuery(DEFAULT_PULL_QUERY).get();
 
     // Then
-    assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
-    assertThat(queryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
-      final Row row = queryResult.poll();
+      final Row row = streamedQueryResult.poll();
       assertThat(row.values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
       assertThat(row.columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));

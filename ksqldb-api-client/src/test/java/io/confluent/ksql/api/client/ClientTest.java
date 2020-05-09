@@ -175,9 +175,13 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldExecutePullQuery() throws Exception {
     // When
-    final List<Row> rows = javaClient.executeQuery(DEFAULT_PULL_QUERY).get();
+    final BatchedQueryResult batchedQueryResult = javaClient.executeQuery(DEFAULT_PULL_QUERY).get();
 
     // Then
+    assertThat(batchedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(batchedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+
+    final List<Row> rows = batchedQueryResult.rows();
     assertThat(rows, hasSize(DEFAULT_ROWS.size()));
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
       assertThat(rows.get(i).values(), equalTo(rowWithIndexAsKsqlArray(i)));
@@ -191,10 +195,14 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldExecutePushQuery() throws Exception {
     // When
-    final List<Row> rows =
+    final BatchedQueryResult batchedQueryResult =
         javaClient.executeQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
 
     // Then
+    assertThat(batchedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(batchedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+
+    final List<Row> rows = batchedQueryResult.rows();
     assertThat(rows, hasSize(DEFAULT_ROWS.size()));
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
       assertThat(rows.get(i).values(), equalTo(rowWithIndexAsKsqlArray(i)));

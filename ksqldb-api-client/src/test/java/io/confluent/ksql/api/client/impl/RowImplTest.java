@@ -44,11 +44,11 @@ public class RowImplTest {
 
   @Test
   public void shouldOneIndexColumnNames() {
-    assertThat(row.getObject(1), is("foo"));
-    assertThat(row.getObject(2), is(2));
-    assertThat(row.getObject(3), is(1234L));
-    assertThat(row.getObject(4), is(34.43));
-    assertThat(row.getObject(5), is(false));
+    assertThat(row.getValue(1), is("foo"));
+    assertThat(row.getValue(2), is(2));
+    assertThat(row.getValue(3), is(1234L));
+    assertThat(row.getValue(4), is(34.43));
+    assertThat(row.getValue(5), is(false));
   }
 
   @Test

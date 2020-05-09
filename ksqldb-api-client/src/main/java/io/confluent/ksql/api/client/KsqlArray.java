@@ -28,7 +28,7 @@ public class KsqlArray {
     delegate = new JsonArray();
   }
 
-  public KsqlArray(final List list) {
+  public KsqlArray(final List<?> list) {
     delegate = new JsonArray(list);
   }
 
@@ -48,7 +48,7 @@ public class KsqlArray {
     return delegate.isEmpty();
   }
 
-  public List getList() {
+  public List<?> getList() {
     return delegate.getList();
   }
 

@@ -59,13 +59,13 @@ public class RowImpl implements Row {
   }
 
   @Override
-  public Object getObject(final int columnIndex) {
+  public Object getValue(final int columnIndex) {
     return values.getValue(columnIndex - 1);
   }
 
   @Override
-  public Object getObject(final String columnName) {
-    return getObject(indexFromName(columnName));
+  public Object getValue(final String columnName) {
+    return getValue(indexFromName(columnName));
   }
 
   @Override

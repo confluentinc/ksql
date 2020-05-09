@@ -33,6 +33,7 @@ public class ClientOptionsImpl implements ClientOptions {
   private String keyStorePassword;
   private String basicAuthUsername;
   private String basicAuthPassword;
+  private int executeQueryMaxResultRows = 10000;
 
   public ClientOptionsImpl() {
   }
@@ -46,7 +47,8 @@ public class ClientOptionsImpl implements ClientOptions {
       final boolean useBasicAuth,
       final String trustStorePath, final String trustStorePassword,
       final String keyStorePath, final String keyStorePassword,
-      final String basicAuthUsername, final String basicAuthPassword) {
+      final String basicAuthUsername, final String basicAuthPassword,
+      final int executeQueryMaxResultRows) {
     this.host = Objects.requireNonNull(host);
     this.port = port;
     this.useTls = useTls;
@@ -60,6 +62,7 @@ public class ClientOptionsImpl implements ClientOptions {
     this.keyStorePassword = keyStorePassword;
     this.basicAuthUsername = basicAuthUsername;
     this.basicAuthPassword = basicAuthPassword;
+    this.executeQueryMaxResultRows = executeQueryMaxResultRows;
   }
 
   @Override
@@ -131,6 +134,12 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public ClientOptions setExecuteQueryMaxResultRows(final int maxRows) {
+    this.executeQueryMaxResultRows = maxRows;
+    return this;
+  }
+
+  @Override
   public String getHost() {
     return host == null ? "" : host;
   }
@@ -196,6 +205,11 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public int getExecuteQueryMaxResultRows() {
+    return executeQueryMaxResultRows;
+  }
+
+  @Override
   public ClientOptions copy() {
     return new ClientOptionsImpl(
         host, port,
@@ -204,6 +218,7 @@ public class ClientOptionsImpl implements ClientOptions {
         useBasicAuth,
         trustStorePath, trustStorePassword,
         keyStorePath, keyStorePassword,
-        basicAuthUsername, basicAuthPassword);
+        basicAuthUsername, basicAuthPassword,
+        executeQueryMaxResultRows);
   }
 }

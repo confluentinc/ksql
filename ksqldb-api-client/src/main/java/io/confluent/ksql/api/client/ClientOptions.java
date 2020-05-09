@@ -41,6 +41,8 @@ public interface ClientOptions {
 
   ClientOptions setBasicAuthCredentials(String username, String password);
 
+  ClientOptions setExecuteQueryMaxResultRows(int maxRows);
+
   String getHost();
 
   int getPort();
@@ -66,6 +68,8 @@ public interface ClientOptions {
   String getBasicAuthUsername();
 
   String getBasicAuthPassword();
+
+  int getExecuteQueryMaxResultRows();
 
   ClientOptions copy();
 

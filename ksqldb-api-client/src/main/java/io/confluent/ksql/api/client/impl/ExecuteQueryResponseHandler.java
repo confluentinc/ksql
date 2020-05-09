@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client.impl;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
+import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -34,13 +35,18 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>>
   private static final Logger log = LoggerFactory.getLogger(ExecuteQueryResponseHandler.class);
 
   private final List<Row> rows;
+  private final int maxRows;
   private List<String> columnNames;
   private List<String> columnTypes;
   private Map<String, Integer> columnNameToIndex;
 
-  ExecuteQueryResponseHandler(final Context context, final RecordParser recordParser,
-      final CompletableFuture<List<Row>> cf) {
+  ExecuteQueryResponseHandler(
+      final Context context,
+      final RecordParser recordParser,
+      final CompletableFuture<List<Row>> cf,
+      final int maxRows) {
     super(context, recordParser, cf);
+    this.maxRows = maxRows;
     this.rows = new ArrayList<>();
   }
 
@@ -54,7 +60,14 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>>
   @Override
   protected void handleRow(final Buffer buff) {
     final JsonArray values = new JsonArray(buff);
-    rows.add(new RowImpl(columnNames, columnTypes, values, columnNameToIndex));
+    if (rows.size() < maxRows) {
+      rows.add(new RowImpl(columnNames, columnTypes, values, columnNameToIndex));
+    } else {
+      throw new KsqlRestClientException(
+          "Reached max number of rows that may be returned by executeQuery(). "
+              + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
+              + "Current limit: " + maxRows);
+    }
   }
 
   @Override

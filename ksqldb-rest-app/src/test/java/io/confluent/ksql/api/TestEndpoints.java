@@ -66,11 +66,13 @@ public class TestEndpoints implements Endpoints {
       this.lastSql = sql;
       this.lastProperties = properties;
       this.lastApiSecurityContext = apiSecurityContext;
-      boolean push = sql.toLowerCase().contains("emit changes");
-      TestQueryPublisher queryPublisher = new TestQueryPublisher(context,
+      final boolean push = sql.toLowerCase().contains("emit changes");
+      final int limit = extractLimit(sql);
+      final TestQueryPublisher queryPublisher = new TestQueryPublisher(context,
           rowGeneratorFactory.get(),
           rowsBeforePublisherError,
-          push);
+          push,
+          limit);
       queryPublishers.add(queryPublisher);
       completableFuture.complete(queryPublisher);
     }
@@ -222,6 +224,17 @@ public class TestEndpoints implements Endpoints {
 
   public synchronized void setCreateQueryPublisherException(final RuntimeException exception) {
     this.createQueryPublisherException = exception;
+  }
+
+  private static int extractLimit(final String sql) {
+    final int ind = sql.toLowerCase().indexOf("limit");
+    if (ind == -1) {
+      return -1;
+    }
+
+    // extract the string between "limit" and the following semicolon
+    final String limit = sql.substring(ind + 5, ind + sql.substring(ind).indexOf(";")).trim();
+    return Integer.parseInt(limit);
   }
 }
 

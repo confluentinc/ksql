@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server.protocol;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.List;
@@ -30,8 +31,10 @@ public class QueryResponseMetadata extends SerializableObject {
   public final ImmutableList<String> columnNames;
   public final ImmutableList<String> columnTypes;
 
-  public QueryResponseMetadata(final String queryId, final List<String> columnNames,
-      final List<String> columnTypes) {
+  public QueryResponseMetadata(
+      final @JsonProperty(value = "queryId") String queryId,
+      final @JsonProperty(value = "columnNames") List<String> columnNames,
+      final @JsonProperty(value = "columnTypes") List<String> columnTypes) {
     this.queryId = queryId;
     this.columnNames = ImmutableList.copyOf(Objects.requireNonNull(columnNames));
     this.columnTypes = ImmutableList.copyOf(Objects.requireNonNull(columnTypes));

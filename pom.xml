@@ -64,6 +64,7 @@
         <module>ksqldb-rocksdb-config-setter</module>
         <module>ksqldb-docker</module>
         <module>ksqldb-api-reactive-streams-tck</module>
+        <module>ksqldb-api-client</module>
     </modules>
 
     <repositories>

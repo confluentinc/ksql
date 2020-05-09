@@ -27,14 +27,16 @@ public class TestQueryPublisher extends BasePublisher<GenericRow> implements Que
   private final RowGenerator rowGenerator;
   private final int rowsBeforePublisherError;
   private final boolean push;
+  private final int limit;
   private int rowsSent;
 
   public TestQueryPublisher(final Context ctx, final RowGenerator rowGenerator,
-      final int rowsBeforePublisherError, final boolean push) {
+      final int rowsBeforePublisherError, final boolean push, final int limit) {
     super(ctx);
     this.rowGenerator = rowGenerator;
     this.rowsBeforePublisherError = rowsBeforePublisherError;
     this.push = push;
+    this.limit = limit;
   }
 
   synchronized boolean hasSubscriber() {
@@ -64,6 +66,9 @@ public class TestQueryPublisher extends BasePublisher<GenericRow> implements Que
         } else {
           rowsSent++;
           getSubscriber().onNext(row);
+          if (rowsSent == limit) {
+            sendComplete();
+          }
         }
       }
     }

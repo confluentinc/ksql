@@ -53,27 +53,26 @@ public class ClientTest extends BaseApiTest {
       BaseApiTest.DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES.getMap();
   protected static final String DEFAULT_PUSH_QUERY_WITH_LIMIT = "select * from foo emit changes limit 10;";
 
-  protected Client client;
+  protected Client javaClient;
 
   @Override
   public void setUp() {
     super.setUp();
 
-    // Use Java client for these tests, rather than WebClient as in BaseApiTest
-    this.client = createJavaClient();
+    this.javaClient = createJavaClient();
   }
 
   @Override
   protected WebClient createClient() {
-    // Ensure these tests use Java client rather than WebClient
+    // Ensure these tests use Java client rather than WebClient (as in BaseApiTest)
     return null;
   }
 
   @Override
   protected void stopClient() {
-    if (client != null) {
+    if (javaClient != null) {
       try {
-        client.close();
+        javaClient.close();
       } catch (Exception e) {
         log.error("Failed to close client", e);
       }
@@ -84,7 +83,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldStreamPushQueryAsync() throws Exception {
     // When
     final QueryResult queryResult =
-        client.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
 
     // Then
     assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
@@ -101,7 +100,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldStreamPushQuerySync() throws Exception {
     // When
     final QueryResult queryResult =
-        client.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
 
     // Then
     assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
@@ -123,7 +122,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldStreamPullQueryAsync() throws Exception {
     // When
     final QueryResult queryResult =
-        client.streamQuery(DEFAULT_PULL_QUERY).get();
+        javaClient.streamQuery(DEFAULT_PULL_QUERY).get();
 
     // Then
     assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
@@ -138,7 +137,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldStreamPullQuerySync() throws Exception {
     // When
     final QueryResult queryResult =
-        client.streamQuery(DEFAULT_PULL_QUERY).get();
+        javaClient.streamQuery(DEFAULT_PULL_QUERY).get();
 
     // Then
     assertThat(queryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
@@ -163,7 +162,7 @@ public class ClientTest extends BaseApiTest {
     // When
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> client.streamQuery("bad query", DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get()
+        () -> javaClient.streamQuery("bad query", DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get()
     );
 
     // Then
@@ -174,7 +173,7 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldExecutePullQuery() throws Exception {
     // When
-    final List<Row> rows = client.executeQuery(DEFAULT_PULL_QUERY).get();
+    final List<Row> rows = javaClient.executeQuery(DEFAULT_PULL_QUERY).get();
 
     // Then
     assertThat(rows, hasSize(DEFAULT_ROWS.size()));
@@ -191,7 +190,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldExecutePushQuery() throws Exception {
     // When
     final List<Row> rows =
-        client.executeQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+        javaClient.executeQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
 
     // Then
     assertThat(rows, hasSize(DEFAULT_ROWS.size()));
@@ -213,7 +212,7 @@ public class ClientTest extends BaseApiTest {
     // When
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> client.executeQuery("bad query").get()
+        () -> javaClient.executeQuery("bad query").get()
     );
 
     // Then

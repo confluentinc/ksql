@@ -87,7 +87,7 @@ class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
 
   @Override
   public boolean isComplete() {
-    return false;
+    return super.isComplete();
   }
 
   public void handleError(final Exception e) {

@@ -42,7 +42,12 @@ public final class RowUtil {
 
   private static ColumnType columnTypeFromString(final String columnType) {
     final int bracketInd = columnType.indexOf('<');
-    final String primaryType = bracketInd == -1 ? columnType : columnType.substring(0, bracketInd);
+    final int parenInd = columnType.indexOf('(');
+
+    final String primaryType = columnType.substring(0, Math.min(
+        bracketInd == -1 ? columnType.length() : bracketInd,
+        parenInd == -1 ? columnType.length() : parenInd
+    ));
     return new ColumnTypeImpl(primaryType);
   }
 }

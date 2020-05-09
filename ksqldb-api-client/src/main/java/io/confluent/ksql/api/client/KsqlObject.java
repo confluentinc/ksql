@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.client;
 
 import io.vertx.core.json.JsonObject;
+import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -90,6 +91,10 @@ public class KsqlObject {
     return delegate.getBoolean(key);
   }
 
+  public BigDecimal getDecimal(final String key) {
+    return new BigDecimal(getValue(key).toString());
+  }
+
   public KsqlArray getKsqlArray(final String key) {
     return new KsqlArray(delegate.getJsonArray(key));
   }
@@ -123,6 +128,11 @@ public class KsqlObject {
   }
 
   public KsqlObject put(final String key, final Boolean value) {
+    delegate.put(key, value);
+    return this;
+  }
+
+  public KsqlObject put(final String key, final BigDecimal value) {
     delegate.put(key, value);
     return this;
   }

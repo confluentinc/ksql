@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -139,6 +140,22 @@ public interface Row {
    * @return column value.
    */
   Boolean getBoolean(String columnName);
+
+  /**
+   * Get the value for a particular column of the Row as a BigDecimal.
+   *
+   * @param columnIndex index of column (1-indexed).
+   * @return column value.
+   */
+  BigDecimal getDecimal(int columnIndex);
+
+  /**
+   * Get the value for a particular column of the Row as a BigDecimal.
+   *
+   * @param columnName name of column.
+   * @return column value.
+   */
+  BigDecimal getDecimal(String columnName);
 
   /**
    * Get the value for a particular column of the Row as a KsqlObject.

@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.client;
 
 import io.vertx.core.json.JsonArray;
+import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -84,6 +85,10 @@ public class KsqlArray {
     return delegate.getBoolean(pos);
   }
 
+  public BigDecimal getDecimal(final int pos) {
+    return new BigDecimal(getValue(pos).toString());
+  }
+
   public KsqlArray getKsqlArray(final int pos) {
     return new KsqlArray(delegate.getJsonArray(pos));
   }
@@ -121,6 +126,11 @@ public class KsqlArray {
   }
 
   public KsqlArray add(final Boolean value) {
+    delegate.add(value);
+    return this;
+  }
+
+  public KsqlArray add(final BigDecimal value) {
     delegate.add(value);
     return this;
   }

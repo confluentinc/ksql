@@ -20,6 +20,7 @@ import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.vertx.core.json.JsonArray;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -126,6 +127,16 @@ public class RowImpl implements Row {
   @Override
   public Boolean getBoolean(final String columnName) {
     return getBoolean(indexFromName(columnName));
+  }
+
+  @Override
+  public BigDecimal getDecimal(final int columnIndex) {
+    return values.getDecimal(columnIndex - 1);
+  }
+
+  @Override
+  public BigDecimal getDecimal(final String columnName) {
+    return getDecimal(indexFromName(columnName));
   }
 
   @Override

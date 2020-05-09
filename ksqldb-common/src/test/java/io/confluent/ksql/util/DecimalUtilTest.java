@@ -27,6 +27,7 @@ import static org.junit.Assert.assertThrows;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.utils.SchemaException;
 import java.math.BigDecimal;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
@@ -313,7 +314,7 @@ public class DecimalUtilTest {
   public void shouldFailIfBuilderWithZeroPrecision() {
     // When:
     final Exception e = assertThrows(
-        KsqlException.class,
+        SchemaException.class,
         () -> builder(0, 0)
     );
 
@@ -325,7 +326,7 @@ public class DecimalUtilTest {
   public void shouldFailIfBuilderWithNegativeScale() {
     // When:
     final Exception e = assertThrows(
-        KsqlException.class,
+        SchemaException.class,
         () -> builder(1, -1)
     );
 
@@ -337,7 +338,7 @@ public class DecimalUtilTest {
   public void shouldFailIfBuilderWithScaleGTPrecision() {
     // When:
     final Exception e = assertThrows(
-        KsqlException.class,
+        SchemaException.class,
         () -> builder(1, 2)
     );
 

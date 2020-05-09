@@ -48,7 +48,8 @@ import java.util.stream.Collectors;
 
 public final class GenericsUtil {
 
-  private GenericsUtil() { }
+  private GenericsUtil() {
+  }
 
   /**
    * @param type  the type

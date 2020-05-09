@@ -61,6 +61,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -74,6 +75,7 @@ import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -255,6 +257,34 @@ public class UdfLoaderTest {
   }
 
   @Test
+  public void shouldLoadFunctionWithStructSchemaProvider() {
+    // Given:
+    final UdfFactory returnDecimal = FUNC_REG.getUdfFactory(FunctionName.of("KsqlStructUdf"));
+
+    // When:
+    final List<SqlType> args = ImmutableList.of();
+    final KsqlScalarFunction function = returnDecimal.getFunction(args);
+
+    // Then:
+    assertThat(function.getReturnType(args), equalTo(KsqlStructUdf.RETURN));
+  }
+
+
+  @Test
+  public void shouldLoadFunctionWithNestedDecimalSchema() {
+    // Given:
+    final UdfFactory returnDecimal = FUNC_REG.getUdfFactory(FunctionName.of("decimalstruct"));
+
+    // When:
+    final KsqlScalarFunction function = returnDecimal.getFunction(ImmutableList.of());
+
+    // Then:
+    assertThat(
+        function.getReturnType(ImmutableList.of()),
+        equalTo(SqlStruct.builder().field("VAL", SqlDecimal.of(64, 2)).build()));
+  }
+
+  @Test
   public void shouldThrowOnReturnTypeMismatch() {
     // Given:
     final UdfFactory returnIncompatible = FUNC_REG
@@ -299,8 +329,8 @@ public class UdfLoaderTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot load UDF MissingAnnotation. BigDecimal return type "
-            + "is not supported without a schema provider method."));
+        "Cannot load UDF MissingAnnotation. DECIMAL return type is " +
+            "not supported without an explicit schema"));
 
   }
 
@@ -358,9 +388,8 @@ public class UdfLoaderTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot load UDF ReturnDecimalWithoutSchemaProvider. "
-            + "BigDecimal return type is not supported without a "
-            + "schema provider method."));
+        "Cannot load UDF ReturnDecimalWithoutSchemaProvider. DECIMAL return type is not " +
+            "supported without an explicit schema"));
   }
 
   @Test
@@ -1353,6 +1382,44 @@ public class UdfLoaderTest {
     @UdfSchemaProvider
     public SqlType provideSchema(final List<SqlType> params) {
       return SqlDecimal.of(2, 1);
+    }
+  }
+
+  @UdfDescription(
+      name = "DecimalStruct",
+      description = "A test-only UDF for testing nested DECIMAL in schema annotation")
+  public static class DecimalStructUdf {
+
+    @Udf(schema = "STRUCT<VAL DECIMAL(64,2)>")
+    public Struct getDecimalStruct() {
+      final Schema schema = SchemaBuilder.struct()
+          .optional()
+          .field("VAL",
+              Decimal.builder(2).optional().parameter("connect.decimal.precision", "64").build())
+          .build();
+
+      Struct struct = new Struct(schema);
+      struct.put("VAL", BigDecimal.valueOf(123.45).setScale(2, RoundingMode.CEILING));
+      return struct;
+    }
+  }
+
+  @UdfDescription(
+      name = "KsqlStructUdf",
+      description = "A test-only UDF for testing struct return types")
+  public static class KsqlStructUdf {
+
+    private static final SqlStruct RETURN =
+        SqlStruct.builder().field("VAL", SqlTypes.STRING).build();
+
+    @UdfSchemaProvider
+    public SqlType provide(final List<SqlType> params) {
+      return RETURN;
+    }
+
+    @Udf(schemaProvider = "provide")
+    public Struct getDecimalStruct() {
+      return null;
     }
   }
 

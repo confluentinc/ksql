@@ -32,7 +32,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
       final List<UdafFactoryInvoker> factoryList
   ) {
     super(metadata);
-    udfIndex = new UdfIndex<>(metadata.getName());
+    udfIndex = new UdfIndex<>(metadata.getName(), false);
     factoryList.forEach(udfIndex::addFunction);
   }
 

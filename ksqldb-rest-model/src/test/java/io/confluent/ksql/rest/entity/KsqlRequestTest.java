@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -36,9 +37,7 @@ import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.TimestampExtractor;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("SameParameterValue")
 public class KsqlRequestTest {
@@ -49,7 +48,7 @@ public class KsqlRequestTest {
       + "\"streamsProperties\":{"
       + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
       + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
-                + TimestampExtractor.class.getCanonicalName() + "\""
+      + TimestampExtractor.class.getCanonicalName() + "\""
       + "},"
       + "\"requestProperties\":{"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true,"
@@ -60,7 +59,7 @@ public class KsqlRequestTest {
       + "\"streamsProperties\":{"
       + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
       + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
-                + TimestampExtractor.class.getCanonicalName() + "\""
+      + TimestampExtractor.class.getCanonicalName() + "\""
       + "},"
       + "\"requestProperties\":{"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST + "\":true,"
@@ -72,7 +71,7 @@ public class KsqlRequestTest {
       + "\"streamsProperties\":{"
       + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
       + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
-                + TimestampExtractor.class.getCanonicalName() + "\""
+      + TimestampExtractor.class.getCanonicalName() + "\""
       + "},"
       + "\"requestProperties\":{"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST + "\":true,"
@@ -96,9 +95,6 @@ public class KsqlRequestTest {
       new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER);
   private static final KsqlRequest A_REQUEST_WITH_IS_INTERNAL_REQUEST =
       new KsqlRequest("sql", SOME_PROPS, Collections.emptyMap(), null);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldHandleNullStatement() {
@@ -207,12 +203,17 @@ public class KsqlRequestTest {
         null
     );
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
-    expectedException.expectMessage(containsString("not-parsable"));
-
     // When:
-    request.getConfigOverrides();
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> request.getConfigOverrides()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    assertThat(e.getMessage(), containsString(
+        "not-parsable"));
   }
 
   @Test

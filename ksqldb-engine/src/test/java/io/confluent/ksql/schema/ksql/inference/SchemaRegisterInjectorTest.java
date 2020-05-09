@@ -15,8 +15,11 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -43,6 +46,7 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -55,14 +59,11 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -72,8 +73,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SchemaRegisterInjectorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 
@@ -82,9 +82,6 @@ public class SchemaRegisterInjectorTest {
           + "\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":"
           + "[{\"name\":\"F1\",\"type\":[\"null\",\"string\"],\"default\":null}],"
           + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}");
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private ServiceContext serviceContext;
@@ -214,12 +211,15 @@ public class SchemaRegisterInjectorTest {
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
     when(executionSandbox.execute(any(), eq(statement))).thenReturn(ExecuteResult.of("fail!"));
 
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Could not determine output schema for query due to error: Optional[fail!]");
-
     // When:
-    injector.inject(statement);
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not determine output schema for query due to error: Optional[fail!]"));
   }
 
   @Test
@@ -229,13 +229,16 @@ public class SchemaRegisterInjectorTest {
     when(schemaRegistryClient.register(anyString(), any(ParsedSchema.class)))
         .thenThrow(new IOException("FUBAR"));
 
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Could not register schema for topic");
-    expectedException.expectCause(hasProperty("message", is("FUBAR")));
-
     // When:
-    injector.inject(statement);
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not register schema for topic"));
+    assertThat(e.getCause(), (hasProperty("message", is("FUBAR"))));
   }
 
   @Test

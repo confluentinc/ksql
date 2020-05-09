@@ -11,10 +11,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.List;
-
-import io.confluent.ksql.util.KsqlConstants;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

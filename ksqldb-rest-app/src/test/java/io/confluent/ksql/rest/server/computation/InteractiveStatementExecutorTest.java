@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -470,8 +469,7 @@ public class InteractiveStatementExecutorTest {
   @Test
   public void shouldHandlePriorStatements() {
     // Given:
-    final TestUtils testUtils = new TestUtils();
-    final List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
+    final List<Pair<CommandId, Command>> priorCommands = TestUtils.getAllPriorCommandRecords();
     final CommandId csCommandId = new CommandId(CommandId.Type.STREAM,
         "_CSASStreamGen",
         CommandId.Action.CREATE);

@@ -23,6 +23,7 @@ import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.types.StringType;
+import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.GenericArrayType;
@@ -32,6 +33,7 @@ import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.connect.data.Struct;
 
 public final class UdfUtil {
 
@@ -104,7 +106,9 @@ public final class UdfUtil {
     return schema;
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static ParamType handleParameterizedType(final Type type) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
@@ -133,6 +137,11 @@ public final class UdfUtil {
       return ArrayType.of(
           GenericType.of(
               ((GenericArrayType) type).getGenericComponentType().getTypeName()));
+    } else if (type instanceof Class<?> && Struct.class.isAssignableFrom((Class<?>) type)) {
+      // we don't have enough information here to return a more specific type of struct,
+      // but there are other parts of the code that enforce having a schema provider or
+      // schema annotation if a struct is being used
+      return StructType.ANY_STRUCT;
     }
 
     throw new KsqlException("Type inference is not supported for: " + type);

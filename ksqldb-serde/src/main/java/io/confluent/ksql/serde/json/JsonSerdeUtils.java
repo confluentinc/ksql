@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.io.InputStream;

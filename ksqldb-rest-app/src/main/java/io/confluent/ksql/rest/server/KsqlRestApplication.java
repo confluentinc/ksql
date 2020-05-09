@@ -32,7 +32,6 @@ import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.endpoints.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -90,13 +89,14 @@ import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
-import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.vertx.core.Vertx;
@@ -128,8 +128,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
@@ -176,7 +174,6 @@ public final class KsqlRestApplication implements Executable {
   private volatile ListeningScheduledExecutorService oldApiWebsocketExecutor;
   private final Vertx vertx;
   private Server apiServer = null;
-  private ApiServerConfig apiServerConfig;
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
@@ -185,77 +182,6 @@ public final class KsqlRestApplication implements Executable {
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
-  }
-
-  /*
-  Please note that the old KSQL properties are the ones that should be used to configure the
-  server for now, not the new ones.
-   */
-  // CHECKSTYLE_RULES.OFF: NPathComplexity
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  public static KsqlRestConfig convertToApiServerConfig(final KsqlRestConfig config) {
-    // CHECKSTYLE_RULES.ON: NPathComplexity
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-
-    final List<String> listeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);
-    final Map<String, Object> origs = config.getOriginals();
-    origs.put(ApiServerConfig.LISTENERS, listeners);
-
-    final String keyStoreLocation = config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-    if (keyStoreLocation != null && !keyStoreLocation.isEmpty()) {
-      origs.put(ApiServerConfig.TLS_KEY_STORE_PATH, keyStoreLocation);
-      final Password keyStorePassword = config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-      origs.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD,
-          keyStorePassword == null ? "" : keyStorePassword.value());
-      @SuppressWarnings("deprecation") final boolean clientauth = config
-          .getBoolean(SslConfigs.SSL_CLIENT_AUTH_CONFIG);
-      if (clientauth) {
-        final String trustStoreLocation = config
-            .getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-        if (trustStoreLocation != null && !trustStoreLocation.isEmpty()) {
-          origs.put(ApiServerConfig.TLS_TRUST_STORE_PATH, trustStoreLocation);
-          final Password trustStorePassword = config
-              .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-          origs.put(ApiServerConfig.TLS_TRUST_STORE_PASSWORD,
-              trustStorePassword == null ? "" : trustStorePassword.value());
-          origs.put(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED, "required");
-        }
-      }
-    }
-
-    final String authMethod = config.getString("authentication.method");
-    if (authMethod != null) {
-      origs.put(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG, authMethod);
-    }
-    final List<String> authRoles = config.getList("authentication.roles");
-    if (authRoles != null) {
-      final List<String> authRolesUpdated = authRoles.stream()
-          .filter(role -> !"*".equals(role)) // remove "*"
-          .map(role -> "**".equals(role) ? "*" : role) // Change "**" to "*"
-          .collect(Collectors.toList());
-      origs.put(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG, authRolesUpdated);
-    }
-    final String authRealm = config.getString("authentication.realm");
-    if (authRealm != null) {
-      origs.put(ApiServerConfig.AUTHENTICATION_REALM_CONFIG, authRealm);
-    }
-
-    final List<String> unauthedPaths = config.getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS);
-    if (unauthedPaths != null) {
-      origs.put(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, unauthedPaths);
-    }
-
-    final String corsAllowedOrigin = config
-        .getString(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG);
-    origs.put(ApiServerConfig.CORS_ALLOWED_ORIGINS, corsAllowedOrigin);
-    final String corsAllowedHeaders = config
-        .getString(KsqlRestConfig.ACCESS_CONTROL_ALLOW_HEADERS);
-    origs.put(ApiServerConfig.CORS_ALLOWED_HEADERS, corsAllowedHeaders);
-    final String corsAllowedMethods = config
-        .getString(KsqlRestConfig.ACCESS_CONTROL_ALLOW_METHODS);
-    origs.put(ApiServerConfig.CORS_ALLOWED_METHODS, corsAllowedMethods);
-
-    return new KsqlRestConfig(origs);
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -391,8 +317,7 @@ public final class KsqlRestApplication implements Executable {
           serverMetadataResource,
           wsQueryEndpoint
       );
-      apiServerConfig = new ApiServerConfig(ksqlConfigNoPort.originals());
-      apiServer = new Server(vertx, apiServerConfig, endpoints, securityExtension,
+      apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState);
       apiServer.start();
 
@@ -608,10 +533,7 @@ public final class KsqlRestApplication implements Executable {
     }).collect(Collectors.toList());
   }
 
-  static KsqlRestApplication buildApplication(
-      final KsqlRestConfig restConfig,
-      final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory
-  ) {
+  public static KsqlRestApplication buildApplication(final KsqlRestConfig restConfig) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
@@ -622,7 +544,7 @@ public final class KsqlRestApplication implements Executable {
     return buildApplication(
         "",
         restConfig,
-        versionCheckerFactory,
+        KsqlVersionCheckerAgent::new,
         Integer.MAX_VALUE,
         serviceContext,
         schemaRegistryClientFactory
@@ -696,7 +618,7 @@ public final class KsqlRestApplication implements Executable {
             RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
-        ksqlConfig);
+        restConfig);
 
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
         KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
@@ -902,14 +824,14 @@ public final class KsqlRestApplication implements Executable {
   }
 
   private static Optional<AuthenticationPlugin> loadAuthenticationPlugin(
-      final KsqlConfig ksqlConfig) {
+      final KsqlRestConfig ksqlRestConfig) {
     final Optional<AuthenticationPlugin> authenticationPlugin = Optional.ofNullable(
-        ksqlConfig.getConfiguredInstance(
-            KsqlConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS,
+        ksqlRestConfig.getConfiguredInstance(
+            KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS,
             AuthenticationPlugin.class
         ));
     authenticationPlugin.ifPresent(securityHandlerPlugin ->
-        securityHandlerPlugin.configure(ksqlConfig.originals())
+        securityHandlerPlugin.configure(ksqlRestConfig.originals())
     );
     return authenticationPlugin;
   }
@@ -925,7 +847,7 @@ public final class KsqlRestApplication implements Executable {
 
     WelcomeMsgUtils.displayWelcomeMessage(80, writer);
 
-    final String version = Version.getVersion();
+    final String version = AppInfo.getVersion();
     final List<URL> listeners = getListeners();
     final String allListeners = listeners.stream()
         .map(Object::toString)
@@ -1032,7 +954,7 @@ public final class KsqlRestApplication implements Executable {
 
   private static KsqlRestConfig injectPathsWithoutAuthentication(final KsqlRestConfig restConfig) {
     final Set<String> authenticationSkipPaths = new HashSet<>(
-        restConfig.getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS)
+        restConfig.getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG)
     );
 
     authenticationSkipPaths.addAll(KsqlAuthorizationProviderHandler.PATHS_WITHOUT_AUTHORIZATION);
@@ -1040,7 +962,7 @@ public final class KsqlRestApplication implements Executable {
     final Map<String, Object> restConfigs = restConfig.getOriginals();
 
     // REST paths that are public and do not require authentication
-    restConfigs.put(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS,
+    restConfigs.put(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG,
         Joiner.on(",").join(authenticationSkipPaths));
 
     return new KsqlRestConfig(restConfigs);

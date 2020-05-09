@@ -25,12 +25,14 @@ import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
@@ -170,6 +172,14 @@ public class UdfUtilTest {
     assertThat(
         UdfUtil.getSchemaFromType(String.class),
         equalTo(ParamTypes.STRING)
+    );
+  }
+
+  @Test
+  public void shouldGetStringSchemaFromStructClass() {
+    assertThat(
+        UdfUtil.getSchemaFromType(Struct.class),
+        equalTo(StructType.ANY_STRUCT)
     );
   }
 

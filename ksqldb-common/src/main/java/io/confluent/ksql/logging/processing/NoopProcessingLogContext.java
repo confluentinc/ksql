@@ -42,7 +42,8 @@ public final class NoopProcessingLogContext implements ProcessingLogContext {
 
   public static final ProcessingLogContext INSTANCE = new NoopProcessingLogContext();
 
-  private NoopProcessingLogContext() { }
+  private NoopProcessingLogContext() {
+  }
 
   @Override
   public ProcessingLogConfig getConfig() {

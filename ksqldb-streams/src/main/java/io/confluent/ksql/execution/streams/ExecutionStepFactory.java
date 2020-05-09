@@ -198,6 +198,7 @@ public final class ExecutionStepFactory {
   public static <K> StreamTableJoin<K> streamTableJoin(
       final QueryContext.Stacker stacker,
       final JoinType joinType,
+      final ColumnName keyColName,
       final Formats formats,
       final ExecutionStep<KStreamHolder<K>> left,
       final ExecutionStep<KTableHolder<K>> right
@@ -206,6 +207,7 @@ public final class ExecutionStepFactory {
     return new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
+        keyColName,
         formats,
         left,
         right
@@ -215,6 +217,7 @@ public final class ExecutionStepFactory {
   public static <K> StreamStreamJoin<K> streamStreamJoin(
       final QueryContext.Stacker stacker,
       final JoinType joinType,
+      final ColumnName keyColName,
       final Formats leftFormats,
       final Formats rightFormats,
       final ExecutionStep<KStreamHolder<K>> left,
@@ -225,6 +228,7 @@ public final class ExecutionStepFactory {
     return new StreamStreamJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
+        keyColName,
         leftFormats,
         rightFormats,
         left,
@@ -248,13 +252,12 @@ public final class ExecutionStepFactory {
   public static StreamSelectKey streamSelectKey(
       final QueryContext.Stacker stacker,
       final ExecutionStep<? extends KStreamHolder<?>> source,
-      final Expression fieldName,
-      final Optional<ColumnName> alias
+      final Expression fieldName
   ) {
     final ExecutionStepPropertiesV1 props =
         new ExecutionStepPropertiesV1(stacker.getQueryContext());
 
-    return new StreamSelectKey(props, source, fieldName, alias);
+    return new StreamSelectKey(props, source, fieldName);
   }
 
   public static <K> TableSink<K> tableSink(
@@ -305,6 +308,7 @@ public final class ExecutionStepFactory {
   public static <K> TableTableJoin<K> tableTableJoin(
       final QueryContext.Stacker stacker,
       final JoinType joinType,
+      final ColumnName keyColName,
       final ExecutionStep<KTableHolder<K>> left,
       final ExecutionStep<KTableHolder<K>> right
   ) {
@@ -312,6 +316,7 @@ public final class ExecutionStepFactory {
     return new TableTableJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
+        keyColName,
         left,
         right
     );
@@ -357,16 +362,14 @@ public final class ExecutionStepFactory {
       final Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> sourceStep,
       final Formats format,
-      final List<Expression> groupingExpressions,
-      final Optional<ColumnName> alias
+      final List<Expression> groupingExpressions
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamGroupBy<>(
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         format,
-        groupingExpressions,
-        alias
+        groupingExpressions
     );
   }
 
@@ -400,16 +403,14 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> sourceStep,
       final Formats format,
-      final List<Expression> groupingExpressions,
-      final Optional<ColumnName> alias
+      final List<Expression> groupingExpressions
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableGroupBy<>(
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         format,
-        groupingExpressions,
-        alias
+        groupingExpressions
     );
   }
 }

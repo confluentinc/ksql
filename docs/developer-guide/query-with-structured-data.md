@@ -14,8 +14,6 @@ The following example shows how to create a ksqlDB stream from an
 {{ site.aktm }} topic that has structured data. Also, it shows how to run
 queries to access the structured data.
 
-TODO: Internal links
-
 1.  Set up the ksqlDB environment.
 2.  Use the {{ site.kcat }} utility to create and populate a new topic,
     named `raw-topic`.
@@ -275,7 +273,6 @@ Your output should resemble:
 Name                 : TYPE_1
  Field         | Type
 -------------------------------------------
- ROWTIME       | BIGINT           (system)
  ROWKEY        | VARCHAR(STRING)  (key)
  DATA__field-a | INTEGER
  DATA__field-b | VARCHAR(STRING)
@@ -295,7 +292,6 @@ Your output should resemble:
 Name                 : TYPE_2
  Field         | Type
 -------------------------------------------
- ROWTIME       | BIGINT           (system)
  ROWKEY        | VARCHAR(STRING)  (key)
  DATA__field-a | INTEGER
  DATA__field-c | INTEGER

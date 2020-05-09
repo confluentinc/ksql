@@ -77,7 +77,10 @@ public final class StreamStreamJoinBuilder {
         StreamsUtil.buildOpName(queryContext),
         StreamsUtil.buildOpName(queryContext)
     );
-    final JoinParams joinParams = JoinParamsFactory.create(leftSchema, rightSchema);
+
+    final JoinParams joinParams = JoinParamsFactory
+        .create(join.getKeyColName(), leftSchema, rightSchema);
+
     final JoinWindows joinWindows =
         JoinWindows.of(join.getBeforeMillis()).after(join.getAfterMillis());
     final KStream<K, GenericRow> result;

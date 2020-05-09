@@ -19,9 +19,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.name.ColumnName;
 import java.util.List;
-import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,8 +41,6 @@ public class StreamGroupByTest {
   private Formats formats1;
   @Mock
   private Formats formats2;
-  @Mock
-  private ColumnName alias;
 
   private List<Expression> expression1;
   private List<Expression> expression2;
@@ -60,12 +56,11 @@ public class StreamGroupByTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new StreamGroupBy<>(properties1, source1, formats1, expression1, Optional.of(alias)),
-            new StreamGroupBy<>(properties1, source1, formats1, expression1, Optional.of(alias)))
-        .addEqualityGroup(new StreamGroupBy<>(properties2, source1, formats1, expression1, Optional.of(alias)))
-        .addEqualityGroup(new StreamGroupBy<>(properties1, source2, formats1, expression1, Optional.of(alias)))
-        .addEqualityGroup(new StreamGroupBy<>(properties1, source1, formats2, expression1, Optional.of(alias)))
-        .addEqualityGroup(new StreamGroupBy<>(properties1, source1, formats1, expression2, Optional.of(alias)))
-        .addEqualityGroup(new StreamGroupBy<>(properties1, source1, formats1, expression1, Optional.empty()));
+            new StreamGroupBy<>(properties1, source1, formats1, expression1),
+            new StreamGroupBy<>(properties1, source1, formats1, expression1))
+        .addEqualityGroup(new StreamGroupBy<>(properties2, source1, formats1, expression1))
+        .addEqualityGroup(new StreamGroupBy<>(properties1, source2, formats1, expression1))
+        .addEqualityGroup(new StreamGroupBy<>(properties1, source1, formats2, expression1))
+        .addEqualityGroup(new StreamGroupBy<>(properties1, source1, formats1, expression2));
   }
 }

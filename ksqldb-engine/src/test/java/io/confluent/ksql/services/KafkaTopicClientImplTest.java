@@ -17,7 +17,9 @@ package io.confluent.ksql.services;
 
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -73,9 +75,7 @@ import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -85,9 +85,6 @@ import org.mockito.stubbing.Answer;
 public class KafkaTopicClientImplTest {
 
   private static final Node A_NODE = new Node(1, "host", 9092);
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private AdminClient adminClient;
@@ -155,12 +152,15 @@ public class KafkaTopicClientImplTest {
     // Given:
     givenTopicExists("someTopic", 1, 1);
 
-    // Expect:
-    expectedException.expect(KafkaTopicExistsException.class);
-    expectedException.expectMessage("and 2 replication factor (topic has 1)");
-
     // When:
-    kafkaTopicClient.createTopic("someTopic", 1, (short) 2);
+    final Exception e = assertThrows(
+        KafkaTopicExistsException.class,
+        () -> kafkaTopicClient.createTopic("someTopic", 1, (short) 2)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "and 2 replication factor (topic has 1)"));
   }
 
   @Test
@@ -169,12 +169,15 @@ public class KafkaTopicClientImplTest {
     when(adminClient.createTopics(any(), any()))
         .thenAnswer(createTopicsResult(new TopicAuthorizationException("error")));
 
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage("Authorization denied to Create on topic(s): [someTopic]");
-
     // When:
-    kafkaTopicClient.createTopic("someTopic", 1, (short) 2);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.createTopic("someTopic", 1, (short) 2)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Authorization denied to Create on topic(s): [someTopic]"));
   }
 
   @Test
@@ -222,12 +225,15 @@ public class KafkaTopicClientImplTest {
     // Given:
     givenTopicExists("someTopic", 1, 1);
 
-    // Expect:
-    expectedException.expect(KafkaTopicExistsException.class);
-    expectedException.expectMessage("and 2 replication factor (topic has 1)");
-
     // When:
-    kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2);
+    final Exception e = assertThrows(
+        KafkaTopicExistsException.class,
+        () -> kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "and 2 replication factor (topic has 1)"));
   }
 
   @Test
@@ -236,12 +242,15 @@ public class KafkaTopicClientImplTest {
     when(adminClient.createTopics(any(), any()))
         .thenAnswer(createTopicsResult(new TopicAuthorizationException("error")));
 
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage("Authorization denied to Create on topic(s): [someTopic]");
-
     // When:
-    kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2);
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Authorization denied to Create on topic(s): [someTopic]"));
   }
 
   @Test
@@ -282,11 +291,11 @@ public class KafkaTopicClientImplTest {
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")));
 
-    // Then:
-    expectedException.expect(KafkaResponseGetFailedException.class);
-
     // When:
-    kafkaTopicClient.describeTopics(Collections.singleton("aTopic"));
+    assertThrows(
+        KafkaResponseGetFailedException.class,
+        () -> kafkaTopicClient.describeTopics(Collections.singleton("aTopic"))
+    );
   }
 
   @Test
@@ -295,12 +304,15 @@ public class KafkaTopicClientImplTest {
     when(adminClient.describeTopics(any(), any()))
         .thenAnswer(describeTopicsResult(new TopicAuthorizationException("meh")));
 
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage("Authorization denied to Describe on topic(s): [topic1]");
-
     // When:
-    kafkaTopicClient.describeTopics(ImmutableList.of("topic1"));
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.describeTopics(ImmutableList.of("topic1"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Authorization denied to Describe on topic(s): [topic1]"));
   }
 
   @Test
@@ -381,11 +393,11 @@ public class KafkaTopicClientImplTest {
     when(adminClient.deleteTopics(any()))
         .thenAnswer(deleteTopicsResult(new TopicDeletionDisabledException("error")));
 
-    // Expect:
-    expectedException.expect(TopicDeletionDisabledException.class);
-
     // When:
-    kafkaTopicClient.deleteTopics(ImmutableList.of("some-topic"));
+    assertThrows(
+        TopicDeletionDisabledException.class,
+        () -> kafkaTopicClient.deleteTopics(ImmutableList.of("some-topic"))
+    );
   }
 
   @Test
@@ -394,12 +406,15 @@ public class KafkaTopicClientImplTest {
     when(adminClient.deleteTopics(any()))
         .thenAnswer(deleteTopicsResult(new TopicAuthorizationException("error")));
 
-    // Expect:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage("Authorization denied to Delete on topic(s): [theTopic]");
-
     // When:
-    kafkaTopicClient.deleteTopics(ImmutableList.of("theTopic"));
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.deleteTopics(ImmutableList.of("theTopic"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Authorization denied to Delete on topic(s): [theTopic]"));
   }
 
   @Test
@@ -408,11 +423,11 @@ public class KafkaTopicClientImplTest {
     when(adminClient.deleteTopics(any()))
         .thenAnswer(deleteTopicsResult(new Exception("error")));
 
-    // Expect:
-    expectedException.expect(KafkaDeleteTopicsException.class);
-
     // When:
-    kafkaTopicClient.deleteTopics(ImmutableList.of("aTopic"));
+    assertThrows(
+        KafkaDeleteTopicsException.class,
+        () -> kafkaTopicClient.deleteTopics(ImmutableList.of("aTopic"))
+    );
   }
 
   @Test
@@ -450,11 +465,11 @@ public class KafkaTopicClientImplTest {
     when(adminClient.describeConfigs(any()))
         .thenAnswer(describeConfigsResult(new RuntimeException()));
 
-    // Expect:
-    expectedException.expect(KafkaResponseGetFailedException.class);
-
-    // Then:
-    kafkaTopicClient.getTopicConfig("fred");
+    // When:
+    assertThrows(
+        KafkaResponseGetFailedException.class,
+        () -> kafkaTopicClient.getTopicConfig("fred")
+    );
   }
 
   @Test
@@ -861,6 +876,7 @@ public class KafkaTopicClientImplTest {
   private static NewTopic newTopic(final String name, final int partitions, final int rf) {
     return newTopic(name, partitions, rf, ImmutableMap.of());
   }
+
   private static NewTopic newTopic(
       final String name,
       final int partitions,

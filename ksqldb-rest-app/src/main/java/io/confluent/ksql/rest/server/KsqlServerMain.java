@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -96,8 +95,7 @@ public class KsqlServerMain {
 
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
     final Executable restApp = KsqlRestApplication
-        .buildApplication(KsqlRestApplication.convertToApiServerConfig(restConfig),
-            KsqlVersionCheckerAgent::new);
+        .buildApplication(restConfig);
 
     final String connectConfigFile =
         ksqlConfig.getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);

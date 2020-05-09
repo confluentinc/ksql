@@ -344,7 +344,7 @@ public class GenericRowSerDeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Field count mismatch. expected: 2, got: 1"));
+    assertThat(e.getMessage(), containsString("Field count mismatch. topic: fred, expected: 2, got: 1"));
   }
 
   @Test
@@ -362,7 +362,7 @@ public class GenericRowSerDeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Field count mismatch. expected: 2, got: 3"));
+    assertThat(e.getMessage(), containsString("Field count mismatch. topic: fred, expected: 2, got: 3"));
   }
 
   @Test

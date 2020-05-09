@@ -487,7 +487,6 @@ public class CliTest {
     assertRunCommand(
         "describe " + ORDER_DATA_PROVIDER.kstreamName() + ";",
         containsRows(
-            row("ROWTIME", "BIGINT           (system)"),
             row("ROWKEY", "BIGINT           (key)"),
             row("ORDERTIME", "BIGINT"),
             row("ORDERID", "VARCHAR(STRING)"),
@@ -665,9 +664,9 @@ public class CliTest {
         "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
         3,
         containsRows(
-            row(prependWithRowTimeAndKey(row1)),
-            row(prependWithRowTimeAndKey(row2)),
-            row(prependWithRowTimeAndKey(row3))
+            row(prependWithKey(row1)),
+            row(prependWithKey(row2)),
+            row(prependWithKey(row3))
         ));
   }
 
@@ -677,7 +676,6 @@ public class CliTest {
     run("SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES LIMIT 1;", localCli);
 
     // Then: (note that some of these are truncated because of header wrapping)
-    assertThat(terminal.getOutputString(), containsString("ROWTIME"));
     assertThat(terminal.getOutputString(), containsString("ROWKEY"));
     assertThat(terminal.getOutputString(), containsString("ITEMID"));
     assertThat(terminal.getOutputString(), containsString("ORDERID"));
@@ -702,7 +700,6 @@ public class CliTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .withRowTime()
             .keyColumns(ORDER_DATA_PROVIDER.schema().logicalSchema().key())
             .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
@@ -1180,14 +1177,13 @@ public class CliTest {
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private static Matcher<String>[] prependWithRowTimeAndKey(final List<?> values) {
+  private static Matcher<String>[] prependWithKey(final List<?> values) {
 
-    final Matcher<String>[] allMatchers = new Matcher[values.size() + 2];
-    allMatchers[0] = any(String.class);            // ROWTIME
-    allMatchers[1] = is(values.get(0).toString()); // ROWKEY
+    final Matcher<String>[] allMatchers = new Matcher[values.size() + 1];
+    allMatchers[0] = is(values.get(0).toString()); // key
 
     for (int idx = 0; idx != values.size(); ++idx) {
-      allMatchers[idx + 2] = is(values.get(idx).toString());
+      allMatchers[idx + 1] = is(values.get(idx).toString());
     }
 
     return allMatchers;

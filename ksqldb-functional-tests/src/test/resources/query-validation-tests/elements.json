@@ -578,26 +578,6 @@
       }
     },
     {
-      "name": "non-join should reject KEY column name in projection",
-      "comments": [
-        "changes to the ksql query semantics are required to allow this.",
-        "At the moment, the key schema passes through the select un-changed.",
-        "which means the key column in the projection is added to the value schema",
-        "but the name of the column clashes with the key column, resulting in an error"
-      ],
-      "statements": [
-        "CREATE STREAM INPUT (K INT KEY, F0 INT) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT K FROM INPUT;"
-      ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Value column name(s) `K` clashes with key column name(s)."
-      }
-    },
-    {
       "name": "non-join should reject WINDOWSTART in projection",
       "statements": [
         "CREATE STREAM INPUT (F0 INT) WITH (kafka_topic='input', value_format='JSON', window_type='session');",
@@ -650,27 +630,6 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Value column name(s) `ROWKEY` clashes with key column name(s)."
-      }
-    },
-    {
-      "name": "join should reject KEY column name in projection",
-      "comments": [
-        "changes to the ksql query semantics are required to allow this.",
-        "At the moment, the key schema passes through the select un-changed.",
-        "which means the key column in the projection is added to the value schema",
-        "but the name of the column clashes with the key column, resulting in an error"
-      ],
-      "statements": [
-        "CREATE STREAM LEFT_STREAM (K DOUBLE KEY, F0 INT) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE STREAM RIGHT_STREAM (K DOUBLE KEY, F1 INT) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT l.K AS K, f0, f1 FROM left_stream l join right_stream r WITHIN 1 seconds ON l.k = r.k;"
-      ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Value column name(s) `K` clashes with key column name(s)."
       }
     },
     {
@@ -763,7 +722,7 @@
         {"topic": "input_1", "key": "1", "value": {"F0": 4}, "timestamp": 10},
         {"topic": "input_2", "key": "1", "value": {"F0": 4}, "timestamp": 11}
       ],
-      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I1_ROWTIME": 10, "I1_ROWKEY": "1", "I1_F0": 4}, "timestamp": 11}]
+      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I1_ROWKEY": "1", "I1_F0": 4}, "timestamp": 11}]
     },
     {
       "name": "join qualified select star right",
@@ -776,7 +735,7 @@
         {"topic": "input_1", "key": "1", "value": {"F0": 4}, "timestamp": 10},
         {"topic": "input_2", "key": "1", "value": {"F0": 4}, "timestamp": 11}
       ],
-      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I2_ROWTIME": 11, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
+      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
     },
     {
       "name": "join unqualified select star",
@@ -789,7 +748,7 @@
         {"topic": "input_1", "key": "1", "value": {"F0": 4}, "timestamp": 10},
         {"topic": "input_2", "key": "1", "value": {"F0": 4}, "timestamp": 11}
       ],
-      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I1_ROWTIME": 10, "I1_ROWKEY": "1", "I1_F0": 4, "I2_ROWTIME": 11, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
+      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I1_ROWKEY": "1", "I1_F0": 4, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
     },
     {
       "name": "join unknown qualified select star",
@@ -881,7 +840,7 @@
       "name": "should handle sources with generated column names",
       "statements": [
         "CREATE STREAM INPUT (KSQL_COL_3 INT KEY, KSQL_COL_2 INT, KSQL_COL_4 INT) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT KSQL_COL_2, ABS(KSQL_COL_2), ABS(KSQL_COL_2), ABS(KSQL_COL_2) FROM INPUT;"
+        "CREATE STREAM OUTPUT as SELECT KSQL_COL_3, KSQL_COL_2, ABS(KSQL_COL_2), ABS(KSQL_COL_2), ABS(KSQL_COL_2) FROM INPUT;"
       ],
       "properties": {
         "ksql.any.key.name.enabled": true
@@ -946,6 +905,27 @@
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
         "message": "Line: 1, Col: 22: Column `ID` is a 'PRIMARY KEY' column: please use 'KEY' for streams."
+      }
+    },
+    {
+      "name": "copy simple key column into value",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, F0 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "input", "key": 10, "value": {"F0": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"ID_COPY": 10}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, ID_COPY INT"}
+        ]
       }
     }
   ]

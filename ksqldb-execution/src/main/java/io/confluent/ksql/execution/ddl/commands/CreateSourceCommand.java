@@ -21,10 +21,10 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -90,12 +90,13 @@ public abstract class CreateSourceCommand implements DdlCommand {
   }
 
   private static void validate(final LogicalSchema schema, final Optional<ColumnName> keyField) {
-    if (schema.valueContainsAny(SchemaUtil.systemColumnNames())) {
+    if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
       throw new IllegalArgumentException("Schema contains system columns in value schema");
     }
 
     if (schema.key().size() != 1) {
-      throw new UnsupportedOperationException("Only single key columns supported");
+      throw new UnsupportedOperationException("Only single key columns supported. "
+          + "Got: " + schema.key() + " (" + schema.key().size() + ")");
     }
 
     if (keyField.isPresent()) {

@@ -94,6 +94,10 @@
             <artifactId>reactive-streams</artifactId>
             <version>${reactive-streams.version}</version>
         </dependency>
+      <dependency>
+        <groupId>io.confluent.ksql</groupId>
+        <artifactId>ksqldb-udf</artifactId>
+      </dependency>
 
         <!-- Required for running tests -->
 
@@ -117,6 +121,16 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-serial</arg>
+                        <arg>-Werror</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <executions>
                     <execution>
@@ -135,6 +149,11 @@
                 <includes>
                     <include>ksql-version.streamsProperties</include>
                 </includes>
+            </resource>
+
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
             </resource>
 
             <resource>

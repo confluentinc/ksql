@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Stream;

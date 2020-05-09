@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.client;
 
-import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +28,7 @@ public class ClientTlsTest extends ClientTest {
   protected static final Logger log = LoggerFactory.getLogger(ClientTlsTest.class);
 
   @Override
-  protected ApiServerConfig createServerConfig() {
+  protected KsqlRestConfig createServerConfig() {
 
     String keyStorePath = ServerKeyStore.keyStoreProps()
         .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
@@ -40,14 +40,14 @@ public class ClientTlsTest extends ClientTest {
         .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
     Map<String, Object> config = new HashMap<>();
-    config.put(ApiServerConfig.LISTENERS, "https://localhost:0");
-    config.put(ApiServerConfig.TLS_KEY_STORE_PATH, keyStorePath);
-    config.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD, keyStorePassword);
-    config.put(ApiServerConfig.TLS_TRUST_STORE_PATH, trustStorePath);
-    config.put(ApiServerConfig.TLS_TRUST_STORE_PASSWORD, trustStorePassword);
-    config.put(ApiServerConfig.VERTICLE_INSTANCES, 4);
+    config.put(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0");
+    config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath);
+    config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword);
+    config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStorePath);
+    config.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword);
+    config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
 
-    return new ApiServerConfig(config);
+    return new KsqlRestConfig(config);
   }
 
   @Override

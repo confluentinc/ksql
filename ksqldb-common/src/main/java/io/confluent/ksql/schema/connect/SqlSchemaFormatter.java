@@ -16,7 +16,7 @@
 package io.confluent.ksql.schema.connect;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;

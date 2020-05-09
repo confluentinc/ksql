@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
@@ -56,8 +57,13 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     this.server = Objects.requireNonNull(server);
   }
 
+
   @Override
   public void handle(final RoutingContext routingContext) {
+
+    if (!checkHttp2(routingContext)) {
+      return;
+    }
 
     final String contentType = routingContext.getAcceptableContentType();
     final QueryStreamResponseWriter queryStreamResponseWriter;

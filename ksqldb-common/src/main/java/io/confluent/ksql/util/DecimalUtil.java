@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.schema.ksql.types.SqlDecimal.validateParameters;
+
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -26,13 +28,13 @@ import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.errors.DataException;
 
 public final class DecimalUtil {
 
   private static final String PRECISION_FIELD = "connect.decimal.precision";
 
-  private DecimalUtil() { }
+  private DecimalUtil() {
+  }
 
   /**
    * @param schema the schema to test
@@ -83,13 +85,13 @@ public final class DecimalUtil {
     final String scaleString = schema.parameters()
         .get(org.apache.kafka.connect.data.Decimal.SCALE_FIELD);
     if (scaleString == null) {
-      throw new DataException("Invalid Decimal schema: scale parameter not found.");
+      throw new KsqlException("Invalid Decimal schema: scale parameter not found.");
     }
 
     try {
       return Integer.parseInt(scaleString);
     } catch (final NumberFormatException e) {
-      throw new DataException("Invalid scale parameter found in Decimal schema: ", e);
+      throw new KsqlException("Invalid scale parameter found in Decimal schema: ", e);
     }
   }
 
@@ -101,13 +103,13 @@ public final class DecimalUtil {
     requireDecimal(schema);
     final String precisionString = schema.parameters().get(PRECISION_FIELD);
     if (precisionString == null) {
-      throw new DataException("Invalid Decimal schema: precision parameter not found.");
+      throw new KsqlException("Invalid Decimal schema: precision parameter not found.");
     }
 
     try {
       return Integer.parseInt(precisionString);
     } catch (final NumberFormatException e) {
-      throw new DataException("Invalid precision parameter found in Decimal schema: ", e);
+      throw new KsqlException("Invalid precision parameter found in Decimal schema: ", e);
     }
   }
 
@@ -220,7 +222,7 @@ public final class DecimalUtil {
 
   private static void ensureMax(final BigDecimal value, final int precision, final int scale) {
     final int digits = precision - scale;
-    final BigDecimal maxValue = new BigDecimal(Math.pow(10, digits));
+    final BigDecimal maxValue = BigDecimal.valueOf(Math.pow(10, digits));
     if (maxValue.compareTo(value.abs()) < 1) {
       throw new ArithmeticException(
           String.format("Numeric field overflow: A field with precision %d and scale %d "
@@ -230,15 +232,6 @@ public final class DecimalUtil {
               digits,
               value.toPlainString()));
     }
-  }
-
-  public static void validateParameters(final int precision, final int scale) {
-    KsqlPreconditions.checkArgument(precision > 0,
-        String.format("DECIMAL precision must be >= 1: DECIMAL(%d,%d)", precision, scale));
-    KsqlPreconditions.checkArgument(scale >= 0,
-        String.format("DECIMAL scale must be >= 0: DECIMAL(%d,%d)", precision, scale));
-    KsqlPreconditions.checkArgument(precision >= scale,
-        String.format("DECIMAL precision must be >= scale: DECIMAL(%d,%d)", precision, scale));
   }
 
   public static SqlType fromValue(final BigDecimal value) {

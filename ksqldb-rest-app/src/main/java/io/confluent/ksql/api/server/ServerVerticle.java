@@ -24,6 +24,7 @@ import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
@@ -99,14 +100,14 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
-    // /chc endpoints need to be first because they need to be accessible even before
-    // preconditions have been satisfied
+    KsqlCorsHandler.setupCorsHandler(server, router);
+
+    // /chc endpoints need to be before server state handler but after CORS handler as they
+    // need to be usable from browser with cross origin policy
     router.route(HttpMethod.GET, "/chc/ready").handler(ServerVerticle::chcHandler);
     router.route(HttpMethod.GET, "/chc/live").handler(ServerVerticle::chcHandler);
 
     PortedEndpoints.setupFailureHandler(router);
-
-    KsqlCorsHandler.setupCorsHandler(server, router);
 
     router.route().failureHandler(ServerVerticle::failureHandler);
 
@@ -230,16 +231,16 @@ public class ServerVerticle extends AbstractVerticle {
 
   private static Optional<AuthHandler> getJaasAuthHandler(final Server server) {
     final String authMethod = server.getConfig()
-        .getString(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG);
+        .getString(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG);
     switch (authMethod) {
-      case ApiServerConfig.AUTHENTICATION_METHOD_BASIC:
+      case KsqlRestConfig.AUTHENTICATION_METHOD_BASIC:
         return Optional.of(basicAuthHandler(server));
-      case ApiServerConfig.AUTHENTICATION_METHOD_NONE:
+      case KsqlRestConfig.AUTHENTICATION_METHOD_NONE:
         return Optional.empty();
       default:
         throw new IllegalStateException(String.format(
             "Unexpected value for %s: %s",
-            ApiServerConfig.AUTHENTICATION_METHOD_CONFIG,
+            KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG,
             authMethod
         ));
     }
@@ -247,7 +248,7 @@ public class ServerVerticle extends AbstractVerticle {
 
   private static AuthHandler basicAuthHandler(final Server server) {
     final AuthProvider authProvider = new JaasAuthProvider(server, server.getConfig());
-    final String realm = server.getConfig().getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
+    final String realm = server.getConfig().getString(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG);
     final AuthHandler basicAuthHandler = BasicAuthHandler.create(authProvider, realm);
     // It doesn't matter what we set here as we actually do the authorisation at the
     // authentication stage and cache the result, but we must add an authority or

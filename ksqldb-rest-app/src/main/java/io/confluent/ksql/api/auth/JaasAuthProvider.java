@@ -16,8 +16,8 @@
 package io.confluent.ksql.api.auth;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -45,23 +45,31 @@ public class JaasAuthProvider implements AuthProvider {
   private static final Logger log = LoggerFactory.getLogger(JaasAuthProvider.class);
 
   private final Server server;
-  private final ApiServerConfig config;
+  private final KsqlRestConfig config;
   private final LoginContextSupplier loginContextSupplier;
+  private final List<String> allowedRoles;
+  private final String contextName;
 
-  public JaasAuthProvider(final Server server, final ApiServerConfig config) {
+  public JaasAuthProvider(final Server server, final KsqlRestConfig config) {
     this(server, config, LoginContext::new);
   }
 
   @VisibleForTesting
   JaasAuthProvider(
       final Server server,
-      final ApiServerConfig config,
+      final KsqlRestConfig config,
       final LoginContextSupplier loginContextSupplier
   ) {
     this.server = Objects.requireNonNull(server, "server");
     this.config = Objects.requireNonNull(config, "config");
     this.loginContextSupplier =
         Objects.requireNonNull(loginContextSupplier, "loginContextSupplier");
+    final List<String> authRoles = config.getList(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG);
+    this.allowedRoles = authRoles.stream()
+        .filter(role -> !"*".equals(role)) // remove "*"
+        .map(role -> "**".equals(role) ? "*" : role) // Change "**" to "*"
+        .collect(Collectors.toList());
+    this.contextName = config.getString(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG);
   }
 
   @VisibleForTesting
@@ -85,9 +93,6 @@ public class JaasAuthProvider implements AuthProvider {
       resultHandler.handle(Future.failedFuture("authInfo missing 'password' field"));
       return;
     }
-
-    final String contextName = config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
-    final List<String> allowedRoles = config.getList(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG);
 
     server.getWorkerExecutor().executeBlocking(
         p -> getUser(contextName, username, password, allowedRoles, p),

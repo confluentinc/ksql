@@ -39,7 +39,7 @@ final class EndToEndEngineTestUtil {
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
     try (final TestExecutor testExecutor = TestExecutor.create()) {
       testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
-    } catch (final AssertionError e) {
+    } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()
           + System.lineSeparator()
           + "failed test: " + testCase.getName()

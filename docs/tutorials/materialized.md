@@ -5,7 +5,7 @@ A materialized view, sometimes called a "[materialized cache](https://www.conflu
 
 A standard way of building a materialized cache is to capture the changelog of a database and process it as a stream of events. This enables creating multiple distributed materializations that best suit each application's query patterns.
 
-![hard](../img/mv-hard.png){: class="centered-img"}
+![hard](../img/mv-hard.png){: class="centered-img" style="width: 100%"}
 
 One way you might do this is to capture the changelog of MySQL using the [Debezium](https://debezium.io) {{ site.ak }} connector. The changelog is stored in {{ site.ak }} and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can query the materializations. This can work, but is there a better way?
 
@@ -14,7 +14,7 @@ Why ksqlDB?
 
 Running all of the above systems is a lot to manage. In addition to your database, you end up managing clusters for {{ site.ak }}, connectors, the stream processor, and another data store. It's challenging to monitor, secure, and scale all of these systems as one. ksqlDB helps to consolidate this complexity by slimming the architecture down to two things: storage ({{ site.ak }}) and compute (ksqlDB).
 
-![easy](../img/mv-easy.png){: class="centered-img" style="width: 80%"}
+![easy](../img/mv-easy.png){: class="centered-img" style="width: 70%"}
 
 Using ksqlDB, you can run any {{ site.kconnectlong }} connector by embedding it in ksqlDB's servers. You can also directly query ksqlDB's tables of state, eliminating the need to sink your data to another data store. This gives you one mental model, in SQL, for managing your materialized views end-to-end.
 
@@ -76,7 +76,7 @@ services:
       - "./mysql/custom-config.cnf:/etc/mysql/conf.d/custom-config.cnf"
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.4.0
+    image: confluentinc/cp-zookeeper:{{ site.cprelease }}
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -86,7 +86,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:5.4.0
+    image: confluentinc/cp-enterprise-kafka:{{ site.cprelease }}
     hostname: broker
     container_name: broker
     depends_on:
@@ -104,7 +104,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:5.4.1
+    image: confluentinc/cp-schema-registry:{{ site.cprelease }}
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
@@ -366,8 +366,24 @@ Your output should resemble:
 
 Try inserting more rows into the MySQL prompt. Query ksqlDB and watch the results propagate in real-time.
 
+### Tear down the stack
+
+When you're done, tear down the stack by running:
+
+```
+docker-compose down
+```
+
 ### Running this in production
 
 In practice, you won't want to query your materialized views from the ksqlDB prompt.
 It's much more useful to query them from within your applications. To do that, you can
 submit queries to ksqlDB's servers through its [REST API](../../developer-guide/api/).
+
+Next steps
+----------
+
+Want to learn more? Try another use case tutorial:
+
+- [Streaming ETL pipeline](etl.md)
+- [Event-driven microservice](event-driven-microservice.md)

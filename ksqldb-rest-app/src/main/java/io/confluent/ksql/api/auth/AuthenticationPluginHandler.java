@@ -18,10 +18,10 @@ package io.confluent.ksql.api.auth;
 import static io.confluent.ksql.api.server.ServerUtils.convertCommaSeparatedWilcardsToRegex;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
@@ -57,7 +57,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     // And then we add anything from the property authentication.skip.paths
     // This preserves the behaviour from the previous Jetty based implementation
     final List<String> unauthed = server.getConfig()
-        .getList(ApiServerConfig.AUTHENTICATION_SKIP_PATHS_CONFIG);
+        .getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG);
     unauthenticatedPaths.addAll(unauthed);
     final String paths = String.join(",", unauthenticatedPaths);
     final String converted = convertCommaSeparatedWilcardsToRegex(paths);

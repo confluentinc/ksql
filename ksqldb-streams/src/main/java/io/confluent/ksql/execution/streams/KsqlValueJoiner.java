@@ -15,37 +15,49 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import org.apache.kafka.streams.kstream.ValueJoiner;
 
 public final class KsqlValueJoiner implements ValueJoiner<GenericRow, GenericRow, GenericRow> {
-  private final LogicalSchema leftSchema;
-  private final LogicalSchema rightSchema;
 
-  KsqlValueJoiner(final LogicalSchema leftSchema, final LogicalSchema rightSchema) {
-    this.leftSchema = Objects.requireNonNull(leftSchema, "leftSchema");
-    this.rightSchema = Objects.requireNonNull(rightSchema, "rightSchema");
+  private final int leftCount;
+  private final int rightCount;
+  private final int additionalCount;
+
+  KsqlValueJoiner(final int leftCount, final int rightCount, final int additionalCount) {
+    checkArgument(leftCount >= 0, "leftCount negative: " + leftCount);
+    checkArgument(rightCount >= 0, "rightCount negative: " + rightCount);
+    checkArgument(additionalCount >= 0, "additionalCount negative: " + additionalCount);
+
+    this.leftCount = leftCount;
+    this.rightCount = rightCount;
+    this.additionalCount = additionalCount;
   }
 
   @Override
   public GenericRow apply(final GenericRow left, final GenericRow right) {
-    final GenericRow row = new GenericRow(
-        leftSchema.value().size() + rightSchema.value().size()
-    );
+
+    final GenericRow row = new GenericRow(leftCount + rightCount + additionalCount);
 
     if (left != null) {
       row.appendAll(left.values());
     } else {
-      fillWithNulls(row, leftSchema.value().size());
+      fillWithNulls(row, leftCount);
     }
 
     if (right != null) {
       row.appendAll(right.values());
     } else {
-      fillWithNulls(row, rightSchema.value().size());
+      fillWithNulls(row, rightCount);
     }
+
+    // Potentially append additional nulls as a holder for a synthetic key columns.
+    // These columns are not populated, as they are not accessed, but must be present for the row
+    // to match the rows schema.
+    fillWithNulls(row, additionalCount);
 
     return row;
   }
@@ -65,12 +77,22 @@ public final class KsqlValueJoiner implements ValueJoiner<GenericRow, GenericRow
       return false;
     }
     final KsqlValueJoiner that = (KsqlValueJoiner) o;
-    return Objects.equals(leftSchema, that.leftSchema)
-        && Objects.equals(rightSchema, that.rightSchema);
+    return Objects.equals(leftCount, that.leftCount)
+        && Objects.equals(rightCount, that.rightCount)
+        && Objects.equals(additionalCount, that.additionalCount);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(leftSchema, rightSchema);
+    return Objects.hash(leftCount, rightCount, additionalCount);
+  }
+
+  @Override
+  public String toString() {
+    return "KsqlValueJoiner{"
+        + "leftCount=" + leftCount
+        + ", rightCount=" + rightCount
+        + ", additionalCount=" + additionalCount
+        + '}';
   }
 }

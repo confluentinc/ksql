@@ -16,7 +16,9 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -38,6 +40,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -50,9 +53,7 @@ import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -94,8 +95,7 @@ public class AvroUtilTest {
       toKsqlSchema(SINGLE_FIELD_AVRO_SCHEMA_STRING);
 
   private static final LogicalSchema SCHEMA_WITH_MAPS = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("notmap"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("mapcol"), SqlTypes.map(SqlTypes.INTEGER))
       .build();
@@ -106,14 +106,11 @@ public class AvroUtilTest {
 
   private static final io.confluent.ksql.execution.plan.Formats FORMATS = io.confluent.ksql.execution.plan.Formats
       .of(
-      KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-      ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
-          .of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME))),
-      SerdeOption.none()
-  );
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+          KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+          ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
+              .of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME))),
+          SerdeOption.none()
+      );
 
   @Mock
   private SchemaRegistryClient srClient;
@@ -232,11 +229,17 @@ public class AvroUtilTest {
     // Given:
     when(srClient.testCompatibility(any(), any(AvroSchema.class))).thenReturn(false);
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot register avro schema for actual-name as the schema is incompatible with the current schema version registered for the topic");
-
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot register avro schema for actual-name as the schema is incompatible "
+            + "with the current schema version registered for the topic"
+    ));
   }
 
   @Test
@@ -255,17 +258,21 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new RestClientException("Unknown subject", 403, 40401));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not connect to Schema Registry service");
-    expectedException.expectMessage(containsString(String.format(
-        "Not authorized to access Schema Registry subject: [%s]",
-        ddlCommand.getTopicName()
-            + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
-    )));
-
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not connect to Schema Registry service"));
+    assertThat(e.getMessage(), containsString(
+        String.format(
+            "Not authorized to access Schema Registry subject: [%s]",
+            ddlCommand.getTopicName()
+                + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+        )));
   }
 
   @Test
@@ -274,12 +281,15 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new RestClientException("Unknown subject", 500, 40401));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not connect to Schema Registry service");
-
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not connect to Schema Registry service"));
   }
 
   @Test
@@ -288,12 +298,15 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new IOException("something"));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not check Schema compatibility");
-
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not check Schema compatibility"));
   }
 
   private static LogicalSchema toKsqlSchema(final String avroSchemaString) {
@@ -307,8 +320,7 @@ public class AvroUtilTest {
         .connectToSqlConverter();
 
     final Builder builder = LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
 
     connectSchema.fields()
         .forEach(f -> builder.valueColumn(ColumnName.of(f.name()), converter.toSqlType(f.schema())));

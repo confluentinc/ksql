@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -93,8 +94,7 @@ public final class SourceSchemas {
   boolean matchesNonValueField(final Optional<SourceName> source, final ColumnName column) {
     if (!source.isPresent()) {
       return sourceSchemas.values().stream()
-          .anyMatch(schema ->
-              schema.isMetaColumn(column) || schema.isKeyColumn(column));
+          .anyMatch(schema -> SystemColumns.isPseudoColumn(column) || schema.isKeyColumn(column));
     }
 
     final SourceName sourceName = source.get();
@@ -103,6 +103,6 @@ public final class SourceSchemas {
       throw new IllegalArgumentException("Unknown source: " + sourceName);
     }
 
-    return sourceSchema.isKeyColumn(column) || sourceSchema.isMetaColumn(column);
+    return sourceSchema.isKeyColumn(column) || SystemColumns.isPseudoColumn(column);
   }
 }

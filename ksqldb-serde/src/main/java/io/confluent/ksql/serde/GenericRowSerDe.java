@@ -26,8 +26,9 @@ import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -48,16 +49,16 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
    * Additional capacity added to each created `GenericRow` in an attempt to avoid later resizes,
    * and associated array copies, when the row has additional elements appended to the end during
    * processing, e.g. to match columns added by
-   * {@link io.confluent.ksql.schema.ksql.LogicalSchema#withMetaAndKeyColsInValue(boolean)}
+   * {@link io.confluent.ksql.schema.ksql.LogicalSchema#withPseudoAndKeyColsInValue(boolean)}
    *
    * <p>The number is optimised for a single key column, as this is the most common case.
    *
    * <p>Count covers the following additional columns:
    * <ol>
-   *   <li>{@link SchemaUtil#ROWTIME_NAME}</li>
+   *   <li>{@link SystemColumns#ROWTIME_NAME}</li>
    *   <li>A single key column. (Which is the most common case)</li>
-   *   <li>{@link SchemaUtil#WINDOWSTART_NAME}</li>
-   *   <li>{@link SchemaUtil#WINDOWEND_NAME}</li>
+   *   <li>{@link SystemColumns#WINDOWSTART_NAME}</li>
+   *   <li>{@link SystemColumns#WINDOWEND_NAME}</li>
    * </ol>
    *
    */
@@ -156,7 +157,9 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
   }
 
   private static Class<?> getTargetType(final PersistenceSchema schema) {
-    return SchemaUtil.getJavaType(schema.serializedSchema());
+    return SchemaConverters.sqlToJavaConverter().toJavaType(
+        SchemaConverters.connectToSqlConverter().toSqlType(schema.serializedSchema())
+    );
   }
 
   private static <K> Serde<GenericRow> unwrapped(final Serde<K> innerSerde) {
@@ -268,7 +271,8 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
 
       if (data.size() != schema.fields().size()) {
         throw new SerializationException("Field count mismatch."
-            + " expected: " + schema.fields().size()
+            + " topic: " + topic
+            + ", expected: " + schema.fields().size()
             + ", got: " + data.size()
         );
       }

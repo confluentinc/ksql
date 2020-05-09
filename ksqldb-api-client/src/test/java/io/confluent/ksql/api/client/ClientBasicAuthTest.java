@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.client;
 
-import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import java.util.Map;
 import org.junit.ClassRule;
@@ -38,21 +38,21 @@ public class ClientBasicAuthTest extends ClientTest {
       .build();
 
   @Override
-  protected ApiServerConfig createServerConfig() {
-    ApiServerConfig config = super.createServerConfig();
+  protected KsqlRestConfig createServerConfig() {
+    KsqlRestConfig config = super.createServerConfig();
     Map<String, Object> origs = config.originals();
     origs.put(
-        ApiServerConfig.AUTHENTICATION_METHOD_CONFIG,
-        ApiServerConfig.AUTHENTICATION_METHOD_BASIC);
+        KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG,
+        KsqlRestConfig.AUTHENTICATION_METHOD_BASIC);
     origs.put(
-        ApiServerConfig.AUTHENTICATION_REALM_CONFIG,
+        KsqlRestConfig.AUTHENTICATION_REALM_CONFIG,
         PROPS_JAAS_REALM
     );
     origs.put(
-        ApiServerConfig.AUTHENTICATION_ROLES_CONFIG,
+        KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG,
         KSQL_RESOURCE
     );
-    return new ApiServerConfig(origs);
+    return new KsqlRestConfig(origs);
   }
 
   @Override

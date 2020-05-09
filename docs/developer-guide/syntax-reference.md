@@ -58,6 +58,9 @@ Use the following syntax to declare nested data:
 STRUCT<FieldName FieldType, ...>
 ```
 
+!!! note
+    ksqlDB doesn't support reading nested data from CSV-formatted data.
+
 The `STRUCT` type requires you to specify a list of fields. For each
 field, you specify the field name and field type. The field type can be
 any of the supported ksqlDB types, including the complex types `MAP`,
@@ -82,7 +85,7 @@ Access the fields in a `STRUCT` by using the dereference operator
 SELECT address->city, address->zip FROM orders;
 ```
 
-For more info, see [Operators](#operators).
+For more info, see [Operators](ksqldb-reference/operators.md).
 
 You can create a `STRUCT` in a query by specifying the names of the columns
 and expressions that construct the values, separated by commas. The following
@@ -115,7 +118,7 @@ For more information, see
 ### ksqlDB Timestamp Formats
 
 Time-based operations, like windowing, process records according to the
-timestamp in `ROWTIME`. By default, the implicit `ROWTIME` column is the
+timestamp in `ROWTIME`. By default, the implicit `ROWTIME` pseudo column is the
 timestamp of a message in a Kafka topic. Timestamps have an accuracy of
 one millisecond.
 
@@ -248,7 +251,7 @@ SQL type.
 The elements of an array are zero-indexed and can be accessed by using
 the `[]` operator passing in the index. For example, `SOME_ARRAY[0]`
 retrieves the first element from the array. For more information, see
-[Operators](#operators).
+[Operators](ksqldb-reference/operators.md).
 
 You can define arrays within a `CREATE TABLE` or `CREATE STREAM`
 statement by using the syntax `ARRAY<ElementType>`. For example,
@@ -290,7 +293,7 @@ value type can be any valid SQL type.
 Access the values of a map by using the `[]` operator and passing in the
 key. For example, `SOME_MAP['cost']` retrieves the value for the entry
 with key `cost`, or `null` For more information, see
-[Operators](#operators).
+[Operators](ksqldb-reference/operators.md).
 
 You can define maps within a `CREATE TABLE` or `CREATE STREAM` statement
 by using the syntax `MAP<KeyType, ValueType>`. For example,
@@ -316,7 +319,7 @@ that have a specific type. The field types can be any valid SQL type.
 
 Access the fields of a struct by using the `->` operator. For example,
 `SOME_STRUCT->ID` retrieves the value of the struct's `ID` field. For
-more information, see [Operators](#operators).
+more information, see [Operators](ksqldb-reference/operators.md).
 
 You can define a structs within a `CREATE TABLE` or `CREATE STREAM`
 statement by using the syntax `STRUCT<FieldName FieldType, ...>`. For

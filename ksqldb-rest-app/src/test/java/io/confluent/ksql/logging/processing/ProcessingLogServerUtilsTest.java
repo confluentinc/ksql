@@ -16,11 +16,12 @@
 package io.confluent.ksql.logging.processing;
 
 import static java.util.stream.Collectors.toList;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -50,9 +51,7 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.After;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -95,9 +94,6 @@ public class ProcessingLogServerUtilsTest {
 
   @Mock
   private KafkaTopicClient mockTopicClient;
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @After
   public void teardown() {
@@ -200,7 +196,7 @@ public class ProcessingLogServerUtilsTest {
   @Test
   public void shouldBuildCorrectStreamCreateDDLWithDefaultTopicName() {
     // Given:
-    serviceContext.getTopicClient().createTopic(DEFAULT_TOPIC, 1, (short)1);
+    serviceContext.getTopicClient().createTopic(DEFAULT_TOPIC, 1, (short) 1);
 
     // When:
     final String statement =
@@ -238,13 +234,20 @@ public class ProcessingLogServerUtilsTest {
 
   @Test
   public void shouldThrowOnUnexpectedKafkaClientError() {
+    // Given:
     doThrow(new RuntimeException("bad"))
         .when(mockTopicClient)
         .createTopic(anyString(), anyInt(), anyShort());
-    expectedException.expectMessage("bad");
-    expectedException.expect(RuntimeException.class);
 
-    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(mockTopicClient, config, ksqlConfig);
+    // When:
+    final Exception e = assertThrows(
+        RuntimeException.class,
+        () -> ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+            mockTopicClient, config, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("bad"));
   }
 
   @Test

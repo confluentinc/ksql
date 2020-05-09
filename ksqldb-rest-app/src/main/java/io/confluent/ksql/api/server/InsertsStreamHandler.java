@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.QueryStreamHandler.DELIMITED_CONTENT_TYPE;
+import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
 import static io.confluent.ksql.api.server.ServerUtils.deserialiseObject;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
@@ -64,6 +65,11 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
+
+    if (!checkHttp2(routingContext)) {
+      return;
+    }
+
     // The record parser takes in potentially fragmented buffers from the request and spits
     // out the chunks delimited by newline
     final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());

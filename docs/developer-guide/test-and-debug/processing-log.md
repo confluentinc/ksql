@@ -110,8 +110,6 @@ Log Schema
 
 Log entries are structured and have the following schema:
 
-TODO: Decide how to format these kinds of syntax blocks in markdown.
-
 logger (STRING)
 
 :   The name of the logger that wrote the log entry.
@@ -242,7 +240,6 @@ ksql> describe PROCESSING_LOG;
 Name                 : PROCESSING_LOG
 Field   | Type
 ---------------------------------------------------------------------------------------------------------------------------
- ROWTIME | BIGINT           (system)
  ROWKEY  | VARCHAR(STRING)  (key)
  LOGGER  | VARCHAR(STRING)
  LEVEL   | VARCHAR(STRING)

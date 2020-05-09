@@ -29,6 +29,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
@@ -38,7 +39,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -151,8 +151,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .withRowTime()
-            .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+            .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
         SerdeOption.none()
@@ -194,8 +193,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .withRowTime()
-            .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+            .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
         SerdeOption.none()
@@ -299,8 +297,7 @@ public class StandaloneExecutorFunctionalTest {
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
     final LogicalSchema logical = LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("ORDERID"), SqlTypes.struct()
             .field("fred", SqlTypes.INTEGER)
             .build())

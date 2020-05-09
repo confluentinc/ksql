@@ -2,8 +2,8 @@ site_name: ksqlDB
 site_url: https://docs.ksqldb.io/en/latest/
 site_description: ksqlDB documentation
 site_author: Confluent
-copyright: Copyright &copy; 2019 <a href="https://www.confluent.io/">Confluent</a>.
-google_analytics: ['UA-56447542-10', 'docs.ksqldb.io']
+copyright: Copyright &copy; 2020 <a href="https://www.confluent.io/">Confluent</a>.
+google_analytics: ['GTM-WRL2Z8Z', 'docs.ksqldb.io']
 
 repo_name: confluentinc/ksql
 repo_url: https://github.com/confluentinc/ksql
@@ -12,6 +12,7 @@ docs_dir: docs
 
 theme:
     name: material
+    custom_dir: docs/overrides
     favicon: img/favicon.ico # should match asset for main ksqldb.io site
     logo: img/logo.png # should match asset for main ksqldb.io site
     features:
@@ -124,7 +125,7 @@ nav:
           - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
           - Server Configuration:
               - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
-              - Configure ksqlDB for Avro or Protobuf: operate-and-deploy/installation/server-config/avro-schema.md
+              - Configure ksqlDB for Avro, Protobuf, and JSON schemas: operate-and-deploy/installation/server-config/avro-schema.md
               - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
           - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
@@ -135,6 +136,7 @@ nav:
       - Tutorials and Examples: tutorials/index.md
       - Materialized view/cache: tutorials/materialized.md
       - Streaming ETL pipeline: tutorials/etl.md
+      - Event-driven microservice: tutorials/event-driven-microservice.md
       - Examples: tutorials/examples.md
       - ksqlDB with Embedded Connect: tutorials/embedded-connect.md
       - Integrate with PostgreSQL: tutorials/connect-integration.md
@@ -189,10 +191,10 @@ extra:
 
         # Build-related string tokens
         kafkaversion: 2.4
-        kafkarelease: 5.4.1-ccs
-        ksqldbversion: 0.8.1
-        release: 0.8.1
-        cprelease: 5.4.1
-        releasepostbranch: 5.4.1-post
+        kafkarelease: 5.5.0-ccs
+        ksqldbversion: 0.9.0
+        release: 0.9.0
+        cprelease: 5.5.0
+        releasepostbranch: 5.5.0-post
         scalaversion: 2.12
-        version: 5.4
+        version: 5.5

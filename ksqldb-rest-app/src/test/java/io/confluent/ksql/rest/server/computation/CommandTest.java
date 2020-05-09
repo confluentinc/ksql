@@ -46,6 +46,26 @@ public class CommandTest {
     assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
   }
 
+  @Test
+  public void shouldDeserializeCorrectlyWithVersion() throws IOException {
+    final String commandStr = "{" +
+        "\"statement\": \"test statement;\", " +
+        "\"streamsProperties\": {\"foo\": \"bar\"}, " +
+        "\"originalProperties\": {\"biz\": \"baz\"}, " +
+        "\"version\": " + Command.VERSION +
+        "}";
+    final ObjectMapper mapper = PlanJsonMapper.INSTANCE.get();
+    final Command command = mapper.readValue(commandStr, Command.class);
+    assertThat(command.getStatement(), equalTo("test statement;"));
+    final Map<String, Object> expecteOverwriteProperties
+        = Collections.singletonMap("foo", "bar");
+    assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));
+    final Map<String, Object> expectedOriginalProperties
+        = Collections.singletonMap("biz", "baz");
+    assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
+    assertThat(command.getVersion(), is(Optional.of(Command.VERSION)));
+  }
+
   private void grep(final String string, final String regex) {
     assertThat(string.matches(regex), is(true));
   }
@@ -61,6 +81,7 @@ public class CommandTest {
     grep(serialized, ".*\"streamsProperties\" *: *\\{ *\"foo\" *: *\"bar\" *\\}.*");
     grep(serialized, ".*\"statement\" *: *\"test statement;\".*");
     grep(serialized, ".*\"originalProperties\" *: *\\{ *\"biz\" *: *\"baz\" *\\}.*");
+    grep(serialized, ".*\"version\" *: *" + Command.VERSION + ".*");
     final Command deserialized = mapper.readValue(serialized, Command.class);
     assertThat(deserialized, equalTo(command));
   }

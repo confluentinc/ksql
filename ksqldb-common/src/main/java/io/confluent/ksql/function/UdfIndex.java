@@ -20,10 +20,10 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -92,10 +92,12 @@ public class UdfIndex<T extends FunctionSignature> {
   private final String udfName;
   private final Node root = new Node();
   private final Map<List<ParamType>, T> allFunctions;
+  private final boolean supportsImplicitCasts;
 
-  UdfIndex(final String udfName) {
+  UdfIndex(final String udfName, final boolean supportsImplicitCasts) {
     this.udfName = Objects.requireNonNull(udfName, "udfName");
-    allFunctions = new HashMap<>();
+    this.allFunctions = new HashMap<>();
+    this.supportsImplicitCasts = supportsImplicitCasts;
   }
 
   void addFunction(final T function) {
@@ -152,6 +154,8 @@ public class UdfIndex<T extends FunctionSignature> {
 
     if (fun.isPresent()) {
       return fun.get();
+    } else if (!supportsImplicitCasts) {
+      throw createNoMatchingFunctionException(arguments);
     }
 
     // if none were found (candidates is empty) try again with
@@ -354,7 +358,7 @@ public class UdfIndex<T extends FunctionSignature> {
         return reserveGenerics(type, argument, reservedGenerics);
       }
 
-      return SchemaUtil.areCompatible(argument, type, allowCasts);
+      return ParamTypes.areCompatible(argument, type, allowCasts);
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 

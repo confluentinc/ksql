@@ -14,7 +14,11 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static io.confluent.ksql.execution.plan.JoinType.INNER;
+import static io.confluent.ksql.execution.plan.JoinType.LEFT;
+
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.name.ColumnName;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,10 +27,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TableTableJoinTest {
+
+  private static final ColumnName KEY = ColumnName.of("Bob");
+  private static final ColumnName KEY2 = ColumnName.of("Vic");
+
   @Mock
-  private ExecutionStepPropertiesV1 properties1;
+  private ExecutionStepPropertiesV1 props1;
   @Mock
-  private ExecutionStepPropertiesV1 properties2;
+  private ExecutionStepPropertiesV1 props2;
   @Mock
   private ExecutionStep<KTableHolder<Struct>> left1;
   @Mock
@@ -36,43 +44,28 @@ public class TableTableJoinTest {
   @Mock
   private ExecutionStep<KTableHolder<Struct>> right2;
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableTableJoin<>(
-                properties1,
-                JoinType.INNER,
-                left1,
-                right1),
-            new TableTableJoin<>(
-                properties1,
-                JoinType.INNER,
-                left1,
-                right1))
+            new TableTableJoin<>(props1, INNER, KEY, left1, right1),
+            new TableTableJoin<>(props1, INNER, KEY, left1, right1)
+        )
         .addEqualityGroup(
-            new TableTableJoin<>(
-                properties2,
-                JoinType.INNER,
-                left1,
-                right1))
+            new TableTableJoin<>(props2, INNER, KEY, left1, right1)
+        )
         .addEqualityGroup(
-            new TableTableJoin<>(
-                properties1,
-                JoinType.LEFT,
-                left1,
-                right1))
+            new TableTableJoin<>(props1, LEFT, KEY, left1, right1)
+        )
         .addEqualityGroup(
-            new TableTableJoin<>(
-                properties1,
-                JoinType.INNER,
-                left2,
-                right1))
+            new TableTableJoin<>(props1, INNER, KEY2, left1, right1)
+        )
         .addEqualityGroup(
-            new TableTableJoin<>(
-                properties1,
-                JoinType.INNER,
-                left1,
-                right2));
+            new TableTableJoin<>(props1, INNER, KEY, left2, right1)
+        )
+        .addEqualityGroup(
+            new TableTableJoin<>(props1, INNER, KEY, left1, right2)
+        );
   }
 }

@@ -28,18 +28,17 @@ import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
-import io.confluent.ksql.name.ColumnAliasGenerator;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.ColumnNames;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
@@ -55,31 +54,25 @@ final class GroupByParamsFactory {
   public static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
       final List<ExpressionMetadata> groupBys,
-      final Optional<ColumnName> alias,
       final KsqlConfig ksqlConfig
   ) {
-    Objects.requireNonNull(alias, "alias");
-
     final ProcessingLogger logger = NoopProcessingLogContext.NOOP_LOGGER;
 
-    return buildGrouper(sourceSchema, groupBys, alias, logger, ksqlConfig)
+    return buildGrouper(sourceSchema, groupBys, logger, ksqlConfig)
         .getSchema();
   }
 
   public static GroupByParams build(
       final LogicalSchema sourceSchema,
       final List<ExpressionMetadata> groupBys,
-      final Optional<ColumnName> alias,
       final ProcessingLogger logger,
       final KsqlConfig ksqlConfig
   ) {
-    Objects.requireNonNull(alias, "alias");
-
     if (groupBys.isEmpty()) {
       throw new IllegalArgumentException("No GROUP BY groupBys");
     }
 
-    final Grouper grouper = buildGrouper(sourceSchema, groupBys, alias, logger, ksqlConfig);
+    final Grouper grouper = buildGrouper(sourceSchema, groupBys, logger, ksqlConfig);
 
     return new GroupByParams(grouper.getSchema(), grouper::apply);
   }
@@ -87,13 +80,12 @@ final class GroupByParamsFactory {
   private static Grouper buildGrouper(
       final LogicalSchema sourceSchema,
       final List<ExpressionMetadata> groupBys,
-      final Optional<ColumnName> alias,
       final ProcessingLogger logger,
       final KsqlConfig ksqlConfig
   ) {
     return groupBys.size() == 1
-        ? new SingleExpressionGrouper(sourceSchema, groupBys.get(0), alias, logger, ksqlConfig)
-        : new MultiExpressionGrouper(sourceSchema, groupBys, alias, logger, ksqlConfig);
+        ? new SingleExpressionGrouper(sourceSchema, groupBys.get(0), logger, ksqlConfig)
+        : new MultiExpressionGrouper(sourceSchema, groupBys, logger, ksqlConfig);
   }
 
   private static LogicalSchema buildSchemaWithKeyType(
@@ -102,7 +94,6 @@ final class GroupByParamsFactory {
       final SqlType keyType
   ) {
     return LogicalSchema.builder()
-        .withRowTime()
         .keyColumn(keyName, keyType)
         .valueColumns(sourceSchema.value())
         .build();
@@ -157,11 +148,10 @@ final class GroupByParamsFactory {
     SingleExpressionGrouper(
         final LogicalSchema sourceSchema,
         final ExpressionMetadata groupBy,
-        final Optional<ColumnName> alias,
         final ProcessingLogger logger,
         final KsqlConfig ksqlConfig
     ) {
-      this.schema = singleExpressionSchema(sourceSchema, groupBy, alias, ksqlConfig);
+      this.schema = singleExpressionSchema(sourceSchema, groupBy, ksqlConfig);
       this.groupBy = requireNonNull(groupBy, "groupBy");
       this.keyBuilder = keyBuilder(schema);
       this.logger = Objects.requireNonNull(logger, "logger");
@@ -184,7 +174,6 @@ final class GroupByParamsFactory {
     private static LogicalSchema singleExpressionSchema(
         final LogicalSchema sourceSchema,
         final ExpressionMetadata groupBy,
-        final Optional<ColumnName> alias,
         final KsqlConfig ksqlConfig
     ) {
       final SqlType keyType = groupBy.getExpressionType();
@@ -196,15 +185,13 @@ final class GroupByParamsFactory {
       final ColumnName singleColumnName;
 
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-        if (alias.isPresent()) {
-          singleColumnName = alias.get();
-        } else if (groupByExp instanceof ColumnReferenceExp) {
+        if (groupByExp instanceof ColumnReferenceExp) {
           singleColumnName = ((ColumnReferenceExp) groupByExp).getColumnName();
         } else {
           singleColumnName = keyAliasGenerator.uniqueAliasFor(groupByExp);
         }
       } else {
-        singleColumnName = SchemaUtil.ROWKEY_NAME;
+        singleColumnName = SystemColumns.ROWKEY_NAME;
       }
 
       return buildSchemaWithKeyType(sourceSchema, singleColumnName, keyType);
@@ -221,11 +208,10 @@ final class GroupByParamsFactory {
     MultiExpressionGrouper(
         final LogicalSchema sourceSchema,
         final List<ExpressionMetadata> groupBys,
-        final Optional<ColumnName> alias,
         final ProcessingLogger logger,
         final KsqlConfig ksqlConfig
     ) {
-      this.schema = multiExpressionSchema(sourceSchema, alias, ksqlConfig);
+      this.schema = multiExpressionSchema(sourceSchema, ksqlConfig);
       this.groupBys = ImmutableList.copyOf(requireNonNull(groupBys, "groupBys"));
       this.keyBuilder = keyBuilder(schema);
       this.logger = Objects.requireNonNull(logger, "logger");
@@ -262,13 +248,11 @@ final class GroupByParamsFactory {
 
   private static LogicalSchema multiExpressionSchema(
       final LogicalSchema sourceSchema,
-      final Optional<ColumnName> alias,
       final KsqlConfig ksqlConfig
   ) {
-    final ColumnName keyName = alias
-        .orElseGet(() -> ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
-            ? ColumnNames.columnAliasGenerator(Stream.of(sourceSchema)).nextKsqlColAlias()
-            : SchemaUtil.ROWKEY_NAME);
+    final ColumnName keyName = ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
+        ? ColumnNames.nextKsqlColAlias(sourceSchema)
+        : SystemColumns.ROWKEY_NAME;
 
     return buildSchemaWithKeyType(sourceSchema, keyName, SqlTypes.STRING);
   }

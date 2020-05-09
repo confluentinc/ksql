@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlConfigTestUtil;
@@ -36,6 +37,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -47,7 +49,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.Collections;
@@ -55,9 +56,7 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -96,9 +95,6 @@ public class PhysicalPlanBuilderTest {
   private static final KsqlConfig INITIAL_CONFIG = KsqlConfigTestUtil.create("what-eva");
   private final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private KsqlEngine ksqlEngine;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private ServiceContext serviceContext;
 
@@ -167,8 +163,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
-        .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.DOUBLE)
         .build()
@@ -349,15 +344,18 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test4", "test5");
     execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot repartition a TABLE source. If this is a join, make "
-        + "sure that the criteria uses the TABLE's key column ROWKEY instead of COL0");
-
     // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.col0 = test5.id;");
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> execute("CREATE TABLE t1 AS "
+            + "SELECT * FROM test4 JOIN test5 "
+            + "ON test4.col0 = test5.id;")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot repartition a TABLE source. If this is a join, make "
+            + "sure that the criteria uses the TABLE's key column ROWKEY instead of COL0"));
   }
 
   @Test
@@ -366,15 +364,18 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test4", "test5");
     execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot repartition a TABLE source. If this is a join, make "
-        + "sure that the criteria uses the TABLE's key column ROWKEY instead of COL0");
-
     // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.id = test5.col0;");
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> execute("CREATE TABLE t1 AS "
+            + "SELECT * FROM test4 JOIN test5 "
+            + "ON test4.id = test5.col0;")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot repartition a TABLE source. If this is a join, make "
+            + "sure that the criteria uses the TABLE's key column ROWKEY instead of COL0"));
   }
 
   @Test

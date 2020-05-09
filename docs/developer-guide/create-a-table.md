@@ -97,7 +97,6 @@ Your output should resemble:
 Name                 : USERS
  Field        | Type
 ------------------------------------------
- ROWTIME      | BIGINT           (system)
  ROWKEY       | VARCHAR(STRING)  (key)
  REGISTERTIME | BIGINT
  USERID       | VARCHAR(STRING)
@@ -117,13 +116,13 @@ SELECT * FROM users EMIT CHANGES;
 Assuming the table has content, your output should resemble:
 
 ```
-+---------------+--------+---------------+--------+--------+----------+
-| ROWTIME       | ROWKEY | REGISTERTIME  | USERID | GENDER | REGIONID |
-+---------------+--------+---------------+--------+--------+----------+
-| 1541439611069 | User_2 | 1498028899054 | User_2 | MALE   | Region_1 |
-| 1541439611320 | User_6 | 1505677113995 | User_6 | FEMALE | Region_7 |
-| 1541439611396 | User_5 | 1491338621627 | User_5 | OTHER  | Region_2 |
-| 1541439611536 | User_9 | 1492621173463 | User_9 | FEMALE | Region_3 |
++--------+---------------+--------+--------+----------+
+| ROWKEY | REGISTERTIME  | USERID | GENDER | REGIONID |
++--------+---------------+--------+--------+----------+
+| User_2 | 1498028899054 | User_2 | MALE   | Region_1 |
+| User_6 | 1505677113995 | User_6 | FEMALE | Region_7 |
+| User_5 | 1491338621627 | User_5 | OTHER  | Region_2 |
+| User_9 | 1492621173463 | User_9 | FEMALE | Region_3 |
 ^CQuery terminated
 ```
 
@@ -277,7 +276,7 @@ Observe the changes happening to the table by using a streaming SELECT
 statement.
 
 ```sql
-SELECT * FROM pageviews_table EMIT CHANGES;
+SELECT ROWTIME, * FROM pageviews_table EMIT CHANGES;
 ```
 
 Your output should resemble:
@@ -311,10 +310,10 @@ SELECT * FROM pageviews_table WHERE ROWKEY='User_9|+|Page_39';
 Your output should resemble:
 
 ```
-+------------------+---------------+---------------+---------------+--------+---------+-------+
-| ROWKEY           | WINDOWSTART   | WINDOWEND     | ROWTIME       | USERID | PAGEID  | TOTAL |
-+------------------+---------------+---------------+---------------+--------+---------+-------+
-| User_9|+|Page_39 | 1557183900000 | 1557183960000 | 1557183929488 | User_9 | Page_39 | 1     |
++------------------+---------------+---------------+--------+---------+-------+
+| ROWKEY           | WINDOWSTART   | WINDOWEND     | USERID | PAGEID  | TOTAL |
++------------------+---------------+---------------+--------+---------+-------+
+| User_9|+|Page_39 | 1557183900000 | 1557183960000 | User_9 | Page_39 | 1     |
 Query terminated
 ```
 
@@ -360,5 +359,4 @@ Next Steps
 ----------
 
 -   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
--   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
 

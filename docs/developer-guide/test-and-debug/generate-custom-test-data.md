@@ -130,7 +130,6 @@ Your output should resemble:
 Name                 : ORDERS_RAW
  Field     | Type                                                                 
 ----------------------------------------------------------------------------------
- ROWTIME   | BIGINT           (system)                                            
  ROWKEY    | VARCHAR(STRING)  (key)
  ITEMID    | VARCHAR(STRING)                                                      
  PRICE     | DOUBLE                                                               
@@ -186,7 +185,6 @@ Your output should resemble:
 Name                 : USERS_ORIGINAL
  Field        | Type                      
 ------------------------------------------
- ROWTIME      | BIGINT           (system) 
  ROWKEY       | VARCHAR(STRING)  (key)
  REGISTERTIME | BIGINT                    
  GENDER       | VARCHAR(STRING)           
@@ -242,7 +240,6 @@ Your output should resemble:
 Name                 : USERS_EXTENDED
  Field        | Type                         
 ---------------------------------------------
- ROWTIME      | BIGINT           (system)    
  ROWKEY       | VARCHAR(STRING)  (key)
  REGISTERTIME | BIGINT                       
  GENDER       | VARCHAR(STRING)              
@@ -296,7 +293,6 @@ Your output should resemble:
 Name                 : PAGEVIEWS_ORIGINAL
  Field    | Type                      
 --------------------------------------
- ROWTIME  | BIGINT           (system) 
  ROWKEY   | VARCHAR(STRING)  (key)
  VIEWTIME | BIGINT                    
  USERID   | VARCHAR(STRING)           

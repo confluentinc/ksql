@@ -17,8 +17,10 @@ package io.confluent.ksql.metastore.model;
 
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
@@ -27,9 +29,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class KeyFieldTest {
 
@@ -41,9 +41,6 @@ public class KeyFieldTest {
 
   private static final ColumnName VALID_COL_REF = SCHEMA.value().get(0).name();
   private static final SqlType VALID_COL_TYPE = SCHEMA.value().get(0).type();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
@@ -95,12 +92,15 @@ public class KeyFieldTest {
     // Given:
     final KeyField keyField = KeyField.of(ColumnName.of("????"));
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Invalid key field, not found in schema: ????");
-
     // When:
-    keyField.validateKeyExistsIn(SCHEMA);
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> keyField.validateKeyExistsIn(SCHEMA)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid key field, not found in schema: ????"));
   }
 
   @Test
@@ -119,11 +119,11 @@ public class KeyFieldTest {
     // Given:
     final KeyField keyField = KeyField.of(ColumnName.of("not found"));
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-
     // When:
-    keyField.resolve(SCHEMA);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> keyField.resolve(SCHEMA)
+    );
   }
 
   @Test
@@ -131,11 +131,11 @@ public class KeyFieldTest {
     // Given:
     final KeyField keyField = KeyField.of(SCHEMA.value().get(1).name());
 
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-
     // When:
-    keyField.validateKeyExistsIn(SCHEMA);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> keyField.validateKeyExistsIn(SCHEMA)
+    );
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")

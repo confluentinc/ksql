@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
@@ -28,10 +29,12 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.JoinTree.Join;
 import io.confluent.ksql.planner.JoinTree.Leaf;
 import io.confluent.ksql.planner.JoinTree.Node;
+import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import org.junit.Before;
@@ -55,6 +58,11 @@ public class JoinTreeTest {
   @Mock private Expression e2;
   @Mock private Expression e3;
   @Mock private Expression e4;
+
+  @Mock private QualifiedColumnReferenceExp col1;
+  @Mock private QualifiedColumnReferenceExp col2;
+  @Mock private QualifiedColumnReferenceExp col3;
+  @Mock private QualifiedColumnReferenceExp col4;
 
   @Before
   public void setUp() {
@@ -132,7 +140,46 @@ public class JoinTreeTest {
   }
 
   @Test
+  public void shouldComputeEmptyEquivalenceSetForOuterJoins() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+
+    when(j1.getType()).thenReturn(JoinType.OUTER);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1);
+
+    // When:
+    final Node root = JoinTree.build(joins);
+
+    // Then:
+    assertThat(root.joinEquivalenceSet(), is(empty()));
+  }
+
+  @Test
+  public void shouldIgnoreOuterJoinsWhenComputingEquivalenceSets() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getType()).thenReturn(JoinType.OUTER);
+    when(j2.getLeftJoinExpression()).thenReturn(e1);
+    when(j2.getRightJoinExpression()).thenReturn(e3);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    // When:
+    final Node root = JoinTree.build(joins);
+
+    // Then:
+    assertThat(root.joinEquivalenceSet(), containsInAnyOrder(e1, e3));
+  }
+
+  @Test
   public void shouldComputeEquivalenceSetWithOverlap() {
+    // Given:
     when(j1.getLeftSource()).thenReturn(a);
     when(j1.getRightSource()).thenReturn(b);
     when(j2.getLeftSource()).thenReturn(a);
@@ -154,6 +201,7 @@ public class JoinTreeTest {
 
   @Test
   public void shouldComputeEquivalenceSetWithoutOverlap() {
+    // Given:
     when(j1.getLeftSource()).thenReturn(a);
     when(j1.getRightSource()).thenReturn(b);
     when(j2.getLeftSource()).thenReturn(a);
@@ -170,7 +218,7 @@ public class JoinTreeTest {
     final Node root = JoinTree.build(joins);
 
     // Then:
-    assertThat(root.joinEquivalenceSet(), contains(e3, e4));
+    assertThat(root.joinEquivalenceSet(), containsInAnyOrder(e3, e4));
   }
 
   @Test
@@ -239,6 +287,190 @@ public class JoinTreeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("neither source in the join is the FROM source"));
+  }
+
+  @Test
+  public void shouldComputeEmptyViableKeysForOuterJoins() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+
+    when(j1.getType()).thenReturn(JoinType.OUTER);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1);
+
+    final Node root = JoinTree.build(joins);
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, is(empty()));
+  }
+
+  @Test
+  public void shouldIgnoreNonQualifiedColumnReferencesWhenComputingViableKeys() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(e1);
+    when(j1.getRightJoinExpression()).thenReturn(e2);
+    when(j2.getLeftJoinExpression()).thenReturn(e1);
+    when(j2.getRightJoinExpression()).thenReturn(e3);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    final Node root = JoinTree.build(joins);
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, is(empty()));
+  }
+
+  @Test
+  public void shouldIgnoreOuterJoinsWhenComputingViableKeys() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getType()).thenReturn(JoinType.OUTER);
+    when(j2.getLeftJoinExpression()).thenReturn(col1);
+    when(j2.getRightJoinExpression()).thenReturn(col2);
+
+    final Node root = JoinTree.build(ImmutableList.of(j1, j2));
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, contains(col1, col2));
+  }
+
+  @Test
+  public void shouldComputeViableKeysWithOverlap() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(col1);
+    when(j1.getRightJoinExpression()).thenReturn(col2);
+    when(j2.getLeftJoinExpression()).thenReturn(col1);
+    when(j2.getRightJoinExpression()).thenReturn(col3);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    final Node root = JoinTree.build(joins);
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, contains(col1, col2, col3));
+  }
+
+  @Test
+  public void shouldComputeViableKeysWithoutOverlap() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(col1);
+    when(j1.getRightJoinExpression()).thenReturn(col2);
+    when(j2.getLeftJoinExpression()).thenReturn(col3);
+    when(j2.getRightJoinExpression()).thenReturn(col4);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    final Node root = JoinTree.build(joins);
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, contains(col3, col4));
+  }
+
+  @Test
+  public void shouldIncludeOnlyColFromFirstInViableKeyIfOverlap() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(e1);
+    when(j1.getRightJoinExpression()).thenReturn(col2);
+    when(j2.getLeftJoinExpression()).thenReturn(e1);
+    when(j2.getRightJoinExpression()).thenReturn(e2);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    final Node root = JoinTree.build(joins);
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, contains(col2));
+  }
+
+  @Test
+  public void shouldNotIncludeOnlyColFromFirstInViableKeysIfNoOverlap() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(e1);
+    when(j1.getRightJoinExpression()).thenReturn(col2);
+    when(j2.getLeftJoinExpression()).thenReturn(e2);
+    when(j2.getRightJoinExpression()).thenReturn(e3);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    final Node root = JoinTree.build(joins);
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, is(empty()));
+  }
+
+  @Test
+  public void shouldIncludeOnlyColFromLastInViableKeyEvenWithoutOverlap() {
+    // Given:
+    when(j1.getLeftSource()).thenReturn(a);
+    when(j1.getRightSource()).thenReturn(b);
+    when(j2.getLeftSource()).thenReturn(a);
+    when(j2.getRightSource()).thenReturn(c);
+
+    when(j1.getLeftJoinExpression()).thenReturn(e1);
+    when(j1.getRightJoinExpression()).thenReturn(e2);
+    when(j2.getLeftJoinExpression()).thenReturn(col1);
+    when(j2.getRightJoinExpression()).thenReturn(e3);
+
+    final List<JoinInfo> joins = ImmutableList.of(j1, j2);
+
+    final Node root = JoinTree.build(joins);
+
+    // When:
+    final List<?> keys = root.viableKeyColumns();
+
+    // Then:
+    assertThat(keys, contains(col1));
   }
 
 }

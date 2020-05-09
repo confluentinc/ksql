@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.Objects;
 
 /**
@@ -29,8 +30,7 @@ public final class Column implements SimpleColumn {
   // The order of the enum defines the order of precedence of {@code LogicalScheam.findColumn}.
   public enum Namespace {
     KEY,
-    VALUE,
-    META
+    VALUE
   }
 
   private final ColumnName name;

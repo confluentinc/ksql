@@ -25,8 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,16 +44,14 @@ public class SourceSchemasTest {
   private static final ColumnName V2 = ColumnName.of("V2");
 
   private static final LogicalSchema SCHEMA_1 = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .keyColumn(K0, SqlTypes.INTEGER)
       .valueColumn(COMMON_VALUE_FIELD_NAME, SqlTypes.STRING)
       .valueColumn(V1, SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema SCHEMA_2 = LogicalSchema.builder()
-      .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .keyColumn(K1, SqlTypes.STRING)
       .valueColumn(COMMON_VALUE_FIELD_NAME, SqlTypes.STRING)
       .valueColumn(V2, SqlTypes.STRING)
@@ -123,12 +121,12 @@ public class SourceSchemasTest {
 
   @Test
   public void shouldMatchNonValueFieldNameIfMetaField() {
-    assertThat(sourceSchemas.matchesNonValueField(Optional.empty(), SchemaUtil.ROWTIME_NAME), is(true));
+    assertThat(sourceSchemas.matchesNonValueField(Optional.empty(), SystemColumns.ROWTIME_NAME), is(true));
   }
 
   @Test
   public void shouldMatchNonValueFieldNameIfAliaasedMetaField() {
-    assertThat(sourceSchemas.matchesNonValueField(Optional.of(ALIAS_2), SchemaUtil.ROWTIME_NAME), is(true));
+    assertThat(sourceSchemas.matchesNonValueField(Optional.of(ALIAS_2), SystemColumns.ROWTIME_NAME), is(true));
   }
 
   @Test

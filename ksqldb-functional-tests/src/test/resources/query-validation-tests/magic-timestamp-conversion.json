@@ -6,8 +6,8 @@
     {
       "name": "comparison predicate on BIGINT ROWTIME in WHERE",
       "statements": [
-        "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE ROWTIME > 1514764800001;"
+        "CREATE STREAM TEST (K STRING KEY, source int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, source AS THING FROM TEST WHERE ROWTIME > 1514764800001;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"source": 1}, "timestamp": 1514764800001},
@@ -23,8 +23,8 @@
     {
       "name": "comparison predicate on STRING ROWTIME in WHERE",
       "statements": [
-        "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE ROWTIME>'2018-01-01T00:00:00.001';"
+        "CREATE STREAM TEST (K STRING KEY, source int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, source AS THING FROM TEST WHERE ROWTIME>'2018-01-01T00:00:00.001';"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"source": 1}, "timestamp": 1514764800001},
@@ -40,8 +40,8 @@
     {
       "name": "comparison predicate on BIGINT window bounds in WHERE",
       "statements": [
-        "CREATE STREAM INPUT (source INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Session');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE 1581323504001 <= WINDOWSTART AND WINDOWEND <= 1581323505001;"
+        "CREATE STREAM INPUT (K STRING KEY, source INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Session');",
+        "CREATE STREAM OUTPUT AS SELECT K, source FROM INPUT WHERE 1581323504001 <= WINDOWSTART AND WINDOWEND <= 1581323505001;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": 1}, "window": {"start": 1581323504000, "end": 1581323505001, "type": "session"}},
@@ -55,8 +55,8 @@
     {
       "name": "comparison predicate on STRING window bounds in WHERE",
       "statements": [
-        "CREATE STREAM INPUT (source INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Session');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE '2020-02-10T08:31:44.001+0000' <= WINDOWSTART AND WINDOWEND <= '2020-02-10T08:31:45.001+0000';"
+        "CREATE STREAM INPUT (K STRING KEY, source INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Session');",
+        "CREATE STREAM OUTPUT AS SELECT K, source FROM INPUT WHERE '2020-02-10T08:31:44.001+0000' <= WINDOWSTART AND WINDOWEND <= '2020-02-10T08:31:45.001+0000';"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": 1}, "window": {"start": 1581323504000, "end": 1581323505001, "type": "session"}},
@@ -70,8 +70,8 @@
     {
       "name": "between predicate on BIGINT ROWTIME in WHERE",
       "statements": [
-        "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE ROWTIME BETWEEN 1514764800001 AND 1514764801000;"
+        "CREATE STREAM TEST (K STRING KEY, source int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, source AS THING FROM TEST WHERE ROWTIME BETWEEN 1514764800001 AND 1514764801000;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"source": 1}, "timestamp": 1514764799999},
@@ -87,8 +87,8 @@
     {
       "name": "between predicate on STRING ROWTIME in WHERE",
       "statements": [
-        "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE ROWTIME BETWEEN '2018-01-01T00:00:00.001' AND '2018-01-01T00:00:01';"
+        "CREATE STREAM TEST (K STRING KEY, source int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, source AS THING FROM TEST WHERE ROWTIME BETWEEN '2018-01-01T00:00:00.001' AND '2018-01-01T00:00:01';"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"source": 1}, "timestamp": 1514764799999},
@@ -104,8 +104,8 @@
     {
       "name": "between predicate on STRING WINDOWSTART in WHERE",
       "statements": [
-        "CREATE STREAM INPUT (source INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE WINDOWSTART BETWEEN '2020-02-10T08:31:44.001+0000' AND '2020-02-10T08:31:44.011+0000';"
+        "CREATE STREAM INPUT (K STRING KEY, source INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
+        "CREATE STREAM OUTPUT AS SELECT K, source FROM INPUT WHERE WINDOWSTART BETWEEN '2020-02-10T08:31:44.001+0000' AND '2020-02-10T08:31:44.011+0000';"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": 1}, "window": {"start": 1581323504000, "end": 1581323505000, "type": "time"}},
@@ -121,8 +121,8 @@
     {
       "name": "comparison predicate with STRING ROWTIME containing TZ in WHERE",
       "statements": [
-        "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE ROWTIME > '2019-01-01T00:00:00+0445';"
+        "CREATE STREAM TEST (K STRING KEY, source int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, source AS THING FROM TEST WHERE ROWTIME > '2019-01-01T00:00:00+0445';"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"source": null}, "timestamp": 0},
@@ -140,8 +140,8 @@
     {
       "name": "nested comparison expression on STRING ROWTIME in WHERE",
       "statements": [
-        "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE ROWTIME >= '2019-01-01T00:00:00' AND SOURCE=5;"
+        "CREATE STREAM TEST (K STRING KEY, source int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, source AS THING FROM TEST WHERE ROWTIME >= '2019-01-01T00:00:00' AND SOURCE=5;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"source": null}, "timestamp": 0},
@@ -158,8 +158,8 @@
     {
       "name": "partial STRING ROWTIME",
       "statements": [
-        "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE ROWTIME >= '2018';"
+        "CREATE STREAM TEST (K STRING KEY, source int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, source AS THING FROM TEST WHERE ROWTIME >= '2018';"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"source": null}, "timestamp": 0},

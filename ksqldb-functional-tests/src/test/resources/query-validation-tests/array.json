@@ -6,8 +6,8 @@
     {
       "name": "entries sorted",
       "statements": [
-        "CREATE STREAM TEST (INTMAP MAP<STRING, INT>, BIGINTMAP MAP<STRING, BIGINT>, DOUBLEMAP MAP<STRING, DOUBLE>, BOOLEANMAP MAP<STRING, BOOLEAN>, STRINGMAP MAP<STRING, STRING>, NULLMAP MAP<STRING, STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ENTRIES(INTMAP, TRUE), ENTRIES(BIGINTMAP, TRUE), ENTRIES(DOUBLEMAP, TRUE), ENTRIES(BOOLEANMAP, TRUE), ENTRIES(STRINGMAP, TRUE), ENTRIES(NULLMAP, TRUE) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, INTMAP MAP<STRING, INT>, BIGINTMAP MAP<STRING, BIGINT>, DOUBLEMAP MAP<STRING, DOUBLE>, BOOLEANMAP MAP<STRING, BOOLEAN>, STRINGMAP MAP<STRING, STRING>, NULLMAP MAP<STRING, STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, ENTRIES(INTMAP, TRUE), ENTRIES(BIGINTMAP, TRUE), ENTRIES(DOUBLEMAP, TRUE), ENTRIES(BOOLEANMAP, TRUE), ENTRIES(STRINGMAP, TRUE), ENTRIES(NULLMAP, TRUE) FROM TEST;"
       ],
       "inputs": [
         {
@@ -38,8 +38,8 @@
     {
       "name": "GENERATE_SERIES",
       "statements": [
-        "CREATE STREAM TEST (F0 INT, F1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT GENERATE_SERIES(F0, F1) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, F0 INT, F1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, GENERATE_SERIES(F0, F1) FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"F0": 0, "F1": 3}},
@@ -57,8 +57,8 @@
     {
       "name": "GENERATE_SERIES with step",
       "statements": [
-        "CREATE STREAM TEST (F0 INT, F1 INT, F2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT GENERATE_SERIES(F0, F1, F2) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, F0 INT, F1 INT, F2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, GENERATE_SERIES(F0, F1, F2) FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"F0": 0, "F1": 3, "F2": 1}},
@@ -80,8 +80,8 @@
     {
       "name": "array_length - primitives",
       "statements": [
-        "CREATE STREAM INPUT (boolean_array ARRAY<BOOLEAN>, int_array ARRAY<INT>, bigint_array ARRAY<BIGINT>, double_array ARRAY<DOUBLE>, string_array ARRAY<STRING>, decimal_array ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ARRAY_LENGTH(boolean_array) AS boolean_len, ARRAY_LENGTH(int_array) AS int_len, ARRAY_LENGTH(bigint_array) AS bigint_len, ARRAY_LENGTH(double_array) AS double_len, ARRAY_LENGTH(string_array) AS string_len , ARRAY_LENGTH(decimal_array) AS decimal_len FROM INPUT;"
+        "CREATE STREAM INPUT (ID STRING KEY, boolean_array ARRAY<BOOLEAN>, int_array ARRAY<INT>, bigint_array ARRAY<BIGINT>, double_array ARRAY<DOUBLE>, string_array ARRAY<STRING>, decimal_array ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, ARRAY_LENGTH(boolean_array) AS boolean_len, ARRAY_LENGTH(int_array) AS int_len, ARRAY_LENGTH(bigint_array) AS bigint_len, ARRAY_LENGTH(double_array) AS double_len, ARRAY_LENGTH(string_array) AS string_len , ARRAY_LENGTH(decimal_array) AS decimal_len FROM INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"boolean_array": [true], "int_array": [-1, 0], "bigint_array":  [-1, 0, 1], "double_array": [0.0, 0.1, 0.2, 0.3], "string_array": ["a", "b", "c", "d", "e"], "decimal_array": [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]}},
@@ -95,8 +95,8 @@
     {
       "name": "array_length - structured",
       "statements": [
-        "CREATE STREAM INPUT (array_array ARRAY<ARRAY<BOOLEAN>>, map_array ARRAY<MAP<STRING,INT>>, struct_array ARRAY<STRUCT<V BIGINT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ARRAY_LENGTH(array_array) AS array_len, ARRAY_LENGTH(map_array) AS map_len, ARRAY_LENGTH(struct_array) AS struct_len FROM INPUT;"
+        "CREATE STREAM INPUT (ID STRING KEY, array_array ARRAY<ARRAY<BOOLEAN>>, map_array ARRAY<MAP<STRING,INT>>, struct_array ARRAY<STRUCT<V BIGINT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, ARRAY_LENGTH(array_array) AS array_len, ARRAY_LENGTH(map_array) AS map_len, ARRAY_LENGTH(struct_array) AS struct_len FROM INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"array_array": [[]], "map_array": [{}, {}], "struct_array":  [{},{},{}]}},
@@ -110,8 +110,8 @@
     {
       "name": "multi-dimensional",
       "statements": [
-        "CREATE STREAM INPUT (col0 ARRAY<ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT col0[1][2] FROM INPUT;"
+        "CREATE STREAM INPUT (ID STRING KEY, col0 ARRAY<ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, col0[1][2] FROM INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"col0": [[0, 1],[2]]}}

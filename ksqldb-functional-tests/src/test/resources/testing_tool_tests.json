@@ -7,7 +7,7 @@
       "name": "project and filter",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE STREAM S1 as SELECT name FROM test where id > 100;"
+        "CREATE STREAM S1 as SELECT ROWKEY, name FROM test where id > 100;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
@@ -21,7 +21,7 @@
     {
       "statements": [
         "CREATE STREAM orders (ROWKEY INT KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;"
+        "CREATE STREAM S1 AS SELECT ROWKEY, ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;"
       ],
       "name": "searched case expression",
       "inputs": [
@@ -42,8 +42,8 @@
     {
       "name": "Json Map filter",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 as SELECT ID, THING FROM TEST WHERE THING['status']='false';"
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 as SELECT K, ID, THING FROM TEST WHERE THING['status']='false';"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 1, "thing": {"other": 11, "status": false}}},
@@ -61,7 +61,7 @@
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
         "CREATE STREAM TEST_STREAM (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
-        "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT ROWKEY, t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;",
         "CREATE STREAM foo AS SELECT t_id, name FROM LEFT_OUTER_JOIN WHERE t_id = 90;",
         "CREATE STREAM bar AS SELECT * FROM foo;"
       ],
@@ -97,7 +97,7 @@
       "name": "max tumbling",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE TABLE S2 as SELECT id, max(value) FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;",
+        "CREATE TABLE S2 as SELECT ROWKEY, id, max(value) FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;",
         "CREATE TABLE foo AS SELECT id from s2 where id = 100;"
       ],
       "inputs": [

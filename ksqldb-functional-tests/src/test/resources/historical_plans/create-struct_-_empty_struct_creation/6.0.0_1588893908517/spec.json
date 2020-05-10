@@ -1,0 +1,68 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893908517,
+  "path" : "query-validation-tests/create-struct.json",
+  "schemas" : {
+    "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR> NOT NULL",
+    "CSAS_BIG_STRUCT_0.BIG_STRUCT" : "STRUCT<S STRUCT<>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "empty struct creation",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "col1" : "foo"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "BIG_STRUCT",
+      "key" : "",
+      "value" : {
+        "S" : { }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "BIG_STRUCT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');", "CREATE STREAM BIG_STRUCT AS SELECT ID, STRUCT() AS s FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "BIG_STRUCT",
+        "type" : "stream",
+        "schema" : "ID STRING KEY, S STRUCT< >"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "BIG_STRUCT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

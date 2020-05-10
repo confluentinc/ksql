@@ -64,7 +64,6 @@ import io.confluent.ksql.execution.streams.StreamJoinedFactory;
 import io.confluent.ksql.execution.streams.StreamsFactories;
 import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -81,7 +80,6 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -124,9 +122,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SchemaKTableTest {
 
   private static final ColumnName KEY = ColumnName.of("Bob");
-
-  private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil
-      .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture
@@ -605,7 +600,10 @@ public class SchemaKTableTest {
         (KeyValue<String, GenericRow>) keySelector.apply("key", value);
 
     // Validate that the captured mapper produces the correct key
-    assertThat(keyValue.key, equalTo(STRING_KEY_BUILDER.build("bar|+|foo")));
+    assertThat(keyValue.key, equalTo(StructKeyUtil.keyBuilder(
+        ColumnName.of("KSQL_COL_0"),
+        SqlTypes.STRING
+    ).build("bar|+|foo")));
     assertThat(keyValue.value, equalTo(value));
   }
 

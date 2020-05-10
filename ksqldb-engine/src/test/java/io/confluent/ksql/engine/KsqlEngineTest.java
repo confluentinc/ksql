@@ -249,7 +249,7 @@ public class KsqlEngineTest {
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-        "create stream bar as select itemid, orderid from orders;",
+        "create stream bar as select ROWKEY, itemid, orderid from orders;",
         KSQL_CONFIG,
         Collections.emptyMap()
     );
@@ -297,10 +297,10 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    assertThat(e, rawMessage(containsString(
-        "Incompatible key fields for sink and results. "
-            + "Sink key field is ORDERTIME (type: BIGINT) "
-            + "while result key field is ORDERID (type: BIGINT)")));
+    assertThat(e, rawMessage(containsString("Incompatible schema between results and sink.")));
+    assertThat(e, rawMessage(containsString("Result schema is `ORDERID` BIGINT KEY, ")));
+    assertThat(e, rawMessage(containsString("Sink schema is `ROWKEY` BIGINT KEY, ")));
+
     assertThat(e, statementText(is(
         "insert into bar select * from orders partition by orderid;")));
   }
@@ -322,7 +322,7 @@ public class KsqlEngineTest {
         () -> execute(
             serviceContext,
             ksqlEngine,
-            "insert into bar select itemid from orders;",
+            "insert into bar select rowkey, itemid from orders;",
             KSQL_CONFIG,
             emptyMap()
         )
@@ -333,7 +333,7 @@ public class KsqlEngineTest {
         containsString(
             "Incompatible schema between results and sink.")));
     assertThat(e, statementText(
-        is("insert into bar select itemid from orders;")));
+        is("insert into bar select rowkey, itemid from orders;")));
   }
 
   @Test
@@ -1008,7 +1008,7 @@ public class KsqlEngineTest {
         () -> KsqlEngineTestUtil.execute(
             serviceContext,
             ksqlEngine,
-            "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;",
+            "CREATE STREAM FOO AS SELECT ORDERID, COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;",
             KSQL_CONFIG, Collections.emptyMap()
         )
     );
@@ -1018,7 +1018,7 @@ public class KsqlEngineTest {
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead.")));
     assertThat(e, statementText(is(
-        "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
+        "CREATE STREAM FOO AS SELECT ORDERID, COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
   }
 
   @Test
@@ -1046,7 +1046,7 @@ public class KsqlEngineTest {
   public void shouldThrowWhenTryExecuteCsasThatCreatesTable() {
     // Given:
     final PreparedStatement<?> statement = prepare(parse(
-        "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;").get(0));
+        "CREATE STREAM FOO AS SELECT ORDERID, COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;").get(0));
 
     // When:
     final KsqlStatementException e = assertThrows(
@@ -1062,7 +1062,7 @@ public class KsqlEngineTest {
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead.")));
     assertThat(e, statementText(is(
-        "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
+        "CREATE STREAM FOO AS SELECT ORDERID, COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
   }
 
   @Test

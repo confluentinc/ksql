@@ -1,0 +1,80 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893943751,
+  "path" : "query-validation-tests/serdes.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "deserialize nested primitive - value - JSON",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "schema" : {
+        "type" : "record",
+        "name" : "ignored",
+        "fields" : [ {
+          "name" : "FOO",
+          "type" : "int"
+        } ]
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 1
+        } ]
+      }
+    }
+  }
+}

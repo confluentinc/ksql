@@ -1,0 +1,96 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893943605,
+  "path" : "query-validation-tests/replace.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<REPLACE VARCHAR, REPLACE_NULL VARCHAR, REPLACE_W_NULL VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "replace - JSON",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : "anaconda"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : "popcorn"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "REPLACE" : "onocondo",
+        "REPLACE_NULL" : null,
+        "REPLACE_W_NULL" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "REPLACE" : null,
+        "REPLACE_NULL" : null,
+        "REPLACE_W_NULL" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "REPLACE" : "popcorn",
+        "REPLACE_NULL" : null,
+        "REPLACE_W_NULL" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, REPLACE(source, 'a', 'o') AS REPLACE, REPLACE(source, null, 'o') AS REPLACE_NULL, REPLACE(source, 'a', null) AS REPLACE_W_NULL FROM TEST;" ],
+    "properties" : {
+      "ksql.functions.substring.legacy.args" : false
+    },
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

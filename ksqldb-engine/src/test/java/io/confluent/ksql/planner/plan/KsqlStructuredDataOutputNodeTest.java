@@ -85,7 +85,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
-  private PlanNode sourceNode;
+  private FinalProjectNode sourceNode;
   @Mock
   private SchemaKStream<String> sourceStream;
   @Mock

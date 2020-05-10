@@ -11,9 +11,6 @@
         "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "input", "key": 1, "value": {"V0": 2, "V1": 3}}
       ],
@@ -32,9 +29,6 @@
         "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(V0) FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "input", "key": 1, "value": {"V0": 2, "V1": 3}}
       ],
@@ -53,9 +47,6 @@
         "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(V0 + V1) FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "input", "key": 1, "value": {"V0": 2, "V1": 3}}
       ],
@@ -74,9 +65,6 @@
         "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY AS_VALUE(ID);"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "input", "key": 1, "value": {"V0": 2, "V1": 3}}
       ],
@@ -95,9 +83,6 @@
         "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT AS_VALUE(ID) AS K, COUNT(1) FROM INPUT GROUP BY AS_VALUE(ID);"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "input", "key": 1, "value": {"V0": 2, "V1": 3}}
       ],
@@ -117,9 +102,6 @@
         "CREATE TABLE I2 (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='i2', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM I1 JOIN I2 ON AS_VALUE(I1.ID) = I2.ID;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "i2", "key": 1, "value": {"V0": 2, "V1": 3}},
         {"topic": "i1", "key": 1, "value": {"V0": 2, "V1": 3}}

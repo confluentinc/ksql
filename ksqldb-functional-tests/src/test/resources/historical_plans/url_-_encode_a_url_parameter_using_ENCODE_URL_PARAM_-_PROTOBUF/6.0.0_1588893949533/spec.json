@@ -1,0 +1,93 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893949533,
+  "path" : "query-validation-tests/url.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ENCODED VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "encode a url parameter using ENCODE_URL_PARAM - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "url" : "?foo $bar"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "url" : "hello&world"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "url" : "nothing"
+      },
+      "timestamp" : 2
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "ENCODED" : "%3Ffoo+%24bar"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "ENCODED" : "hello%26world"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "ENCODED" : "nothing"
+      },
+      "timestamp" : 2
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, URL_ENCODE_PARAM(url) as ENCODED FROM TEST;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

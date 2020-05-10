@@ -6,7 +6,7 @@
     {
       "name": "Should fail querying windowed table",
       "statements": [
-        "CREATE TABLE INPUT (x int) WITH (kafka_topic='test', value_format='JSON', WINDOW_TYPE='Session');",
+        "CREATE TABLE INPUT (K STRING PRIMARY KEY, x int) WITH (kafka_topic='test', value_format='JSON', WINDOW_TYPE='Session');",
         "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
       ],
       "expectedException": {

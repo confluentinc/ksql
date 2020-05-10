@@ -318,9 +318,12 @@ final class EngineExecutor {
     final LogicalSchema existingSchema = existing.getSchema();
 
     if (!resultSchema.equals(existingSchema)) {
-      throw new KsqlException("Incompatible schema between results and sink. "
+      throw new KsqlException("Incompatible schema between results and sink."
+          + System.lineSeparator()
           + "Result schema is " + resultSchema
-          + ", but the sink schema is " + existingSchema + ".");
+          + System.lineSeparator()
+          + "Sink schema is " + existingSchema
+      );
     }
 
     enforceKeyEquivalence(

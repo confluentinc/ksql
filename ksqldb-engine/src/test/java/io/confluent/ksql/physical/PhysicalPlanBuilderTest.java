@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThrows;
 
@@ -91,7 +90,7 @@ public class PhysicalPlanBuilderTest {
       + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test7', VALUE_FORMAT = 'JSON');";
 
-  private static final String simpleSelectFilter = "SELECT col0, col2 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
+  private static final String simpleSelectFilter = "SELECT rowkey, col0, col2 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
   private static final KsqlConfig INITIAL_CONFIG = KsqlConfigTestUtil.create("what-eva");
   private final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private KsqlEngine ksqlEngine;
@@ -149,6 +148,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
+        .valueColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.DOUBLE)
         .build()
@@ -184,55 +184,11 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCreateExecutionPlan() {
-    final String ddl =
-        "CREATE STREAM TEST1 ("
-            + "COL0 BIGINT, COL1 VARCHAR, COL2 STRING, COL3 DOUBLE,"
-            + " COL4 ARRAY<DOUBLE>, COL5 MAP<STRING, DOUBLE>)"
-            + " WITH (KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON');";
-    final String queryString =
-        "SELECT col0, sum(col3), count(col3) FROM test1"
-            + " WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;";
-    givenKafkaTopicsExist("test1");
-    execute(ddl);
-    final QueryMetadata metadata = executeQuery(queryString);
-    final String planText = metadata.getExecutionPlan();
-    final String[] lines = planText.split("\n");
-
-    assertThat(lines[0], startsWith(
-        " > [ PROJECT ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, KSQL_COL_0 DOUBLE, "
-            + "KSQL_COL_1 BIGINT |"));
-    assertThat(lines[1], startsWith(
-        "\t\t > [ AGGREGATE ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, "
-            + "COL3 DOUBLE, KSQL_AGG_VARIABLE_0 DOUBLE, "
-            + "KSQL_AGG_VARIABLE_1 BIGINT |"));
-    assertThat(lines[2], startsWith(
-        "\t\t\t\t > [ GROUP_BY ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL3 DOUBLE |"
-    ));
-    assertThat(lines[3], startsWith(
-        "\t\t\t\t\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL3 DOUBLE |"));
-    assertThat(lines[4], startsWith(
-        "\t\t\t\t\t\t\t\t > [ FILTER ] | Schema: ROWKEY STRING KEY, "
-            + "COL0 BIGINT, COL1 STRING, COL2 STRING, "
-            + "COL3 DOUBLE, COL4 ARRAY<DOUBLE>, "
-            + "COL5 MAP<STRING, DOUBLE>, "
-            + "ROWTIME BIGINT, ROWKEY STRING"
-            + " |"));
-    assertThat(lines[5], startsWith(
-        "\t\t\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, "
-            + "COL0 BIGINT, COL1 STRING, COL2 STRING, "
-            + "COL3 DOUBLE, COL4 ARRAY<DOUBLE>, "
-            + "COL5 MAP<STRING, DOUBLE>, "
-            + "ROWTIME BIGINT, ROWKEY STRING"
-            + " |"));
-  }
-
-  @Test
   public void shouldCreateExecutionPlanForInsert() {
-    final String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
+    final String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT rowkey, col0, col1, "
         + "col2 FROM "
         + "test1;";
-    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+    final String insertIntoQuery = "INSERT INTO s1 SELECT rowkey, col0, col1, col2 FROM test1;";
     givenKafkaTopicsExist("test1");
 
     final List<QueryMetadata> queryMetadataList = execute(
@@ -282,27 +238,6 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldRekeyIfPartitionByDoesNotMatchResultKey() {
-    final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
-    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
-    givenKafkaTopicsExist("test1");
-
-    final List<QueryMetadata> queryMetadataList = execute(
-        CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
-    assertThat(queryMetadataList, hasSize(2));
-    final String planText = queryMetadataList.get(1).getExecutionPlan();
-    final String[] lines = planText.split("\n");
-    assertThat(lines.length, equalTo(4));
-    assertThat(lines[0], equalTo(" > [ SINK ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING, COL2 "
-        + "DOUBLE | Logger: INSERTQUERY_1.S1"));
-    assertThat(lines[2],
-        containsString("[ REKEY ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE, ROWTIME BIGINT, ROWKEY STRING "
-            + "| Logger: INSERTQUERY_1.PartitionBy"));
-    assertThat(lines[1], containsString("[ PROJECT ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING"
-        + ", COL2 DOUBLE | Logger: INSERTQUERY_1.Project"));
-  }
-
-  @Test
   public void shouldRepartitionLeftStreamIfNotCorrectKey() {
     // Given:
     givenKafkaTopicsExist("test2", "test3");
@@ -316,7 +251,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(result.getExecutionPlan(), containsString(
-        "[ REKEY ] | Schema: ROWKEY BIGINT KEY, ID2"
+        "[ REKEY ] | Schema: COL1 BIGINT KEY, ID2"
     ));
   }
 
@@ -334,7 +269,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(result.getExecutionPlan(), containsString(
-        "[ REKEY ] | Schema: ROWKEY BIGINT KEY, ID3"
+        "[ REKEY ] | Schema: COL0 BIGINT KEY, ID3"
     ));
   }
 
@@ -462,7 +397,7 @@ public class PhysicalPlanBuilderTest {
     execute(CREATE_STREAM_TEST1);
 
     // When:
-    execute("CREATE STREAM TEST2 WITH(WRAP_SINGLE_VALUE=false) AS SELECT COL0 FROM TEST1;");
+    execute("CREATE STREAM TEST2 WITH(WRAP_SINGLE_VALUE=false) AS SELECT rowkey, COL0 FROM TEST1;");
 
     // Then:
     assertThat(engineMetastore.getSource(SourceName.of("TEST2")),
@@ -477,7 +412,7 @@ public class PhysicalPlanBuilderTest {
     execute(CREATE_TABLE_TEST4);
 
     // When:
-    execute("CREATE TABLE TEST5 AS SELECT COL0 FROM TEST4;");
+    execute("CREATE TABLE TEST5 AS SELECT rowkey, COL0 FROM TEST4;");
 
     // Then:
     assertThat(engineMetastore.getSource(SourceName.of("TEST5")),
@@ -491,7 +426,7 @@ public class PhysicalPlanBuilderTest {
     execute(CREATE_TABLE_TEST4);
 
     // When:
-    execute("CREATE TABLE TEST5 AS SELECT COL0 FROM TEST4;");
+    execute("CREATE TABLE TEST5 AS SELECT ROWKEY, COL0 FROM TEST4;");
 
     // Then:
     assertThat(engineMetastore.getSource(SourceName.of("TEST5")),

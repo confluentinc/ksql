@@ -93,8 +93,7 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
       final FunctionRegistry functionRegistry,
       final ImmutableAnalysis analysis,
       final AggregateAnalysisResult rewrittenAggregateAnalysis,
-      final List<SelectExpression> projectionExpressions,
-      final boolean anyKeyName
+      final List<SelectExpression> projectionExpressions
   ) {
     super(id, DataSourceType.KTABLE, schema, Optional.empty());
 
@@ -122,7 +121,7 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
 
     final Set<Expression> groupings = ImmutableSet.copyOf(groupBy.getGroupingExpressions());
     this.finalSelectExpressions = ImmutableList.copyOf(projection.stream()
-        .filter(e -> !anyKeyName || !groupings.contains(e.getExpression()))
+        .filter(e -> !groupings.contains(e.getExpression()))
         .collect(Collectors.toList()));
 
     this.havingExpressions = rewrittenAggregateAnalysis.getHavingExpression()

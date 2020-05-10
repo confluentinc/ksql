@@ -22,7 +22,8 @@ CREATE TABLE lookup2 (
 
 CREATE STREAM test_lookup1_output
     AS
-SELECT t.id AS id,
+SELECT t.lookup1,
+       t.id AS id,
        l1.value AS lookup1_value,
        t.lookup2 AS lookup2
   FROM test t
@@ -31,7 +32,8 @@ SELECT t.id AS id,
 
  CREATE STREAM test_lookup2_output
     AS
-SELECT t.id AS id,
+SELECT l2.id,
+       t.id AS id,
        t.lookup1_value AS loo,
        l2.value AS lookup2_value
   FROM test_lookup1_output t

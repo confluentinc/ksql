@@ -11,9 +11,6 @@
         "CREATE STREAM R (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT JOINKEY(ABS(L.ID), ABS(R.ID)) AS ID, L.ID, R.ID, L.V0, R.V1 FROM L INNER JOIN R WITHIN 1 SECOND ON ABS(L.id) = ABS(R.id);"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"V0": 2, "V1": 3}, "timestamp": 0},
         {"topic": "right_topic", "key": 1, "value": {"V0": 4, "V1": 5}, "timestamp": 100}
@@ -34,9 +31,6 @@
         "CREATE STREAM R (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT JOINKEY(ABS(L.ID), ABS(R.ID)) AS ID, L.ID, R.ID, L.V0, R.V1 FROM L LEFT JOIN R WITHIN 1 SECOND ON ABS(L.id) = ABS(R.id);"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"V0": 2, "V1": 3}, "timestamp": 0},
         {"topic": "right_topic", "key": 1, "value": {"V0": 4, "V1": 5}, "timestamp": 100}
@@ -58,9 +52,6 @@
         "CREATE TABLE R (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT JOINKEY(L.ID, R.ID) AS ID, L.ID, R.ID, L.V0, R.V1 FROM L FULL OUTER JOIN R ON L.id = R.id;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"V0": 2, "V1": 3}, "timestamp": 0},
         {"topic": "right_topic", "key": 1, "value": {"V0": 4, "V1": 5}, "timestamp": 100},
@@ -85,9 +76,6 @@
         "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT JOINKEY(T1.ID, T3.ID) AS ID, T1.V0, T2.V0, T3.V0 FROM T1 JOIN T2 ON T1.ID = T2.ID FULL JOIN T3 ON T1.ID = T3.ID;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "left", "key": 0, "value": {"V0": 1}, "timestamp": 0},
         {"topic": "right2", "key": 0, "value": {"V0": 3}, "timestamp": 2},
@@ -112,9 +100,6 @@
         "CREATE STREAM R (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT JOINKEY(L.ID, R.ID) AS ID, L.ID, R.ID, L.V0, R.V1 FROM L INNER JOIN R WITHIN 1 SECOND ON L.id = R.id;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"V0": 2, "V1": 3}, "timestamp": 0},
         {"topic": "right_topic", "key": 1, "value": {"V0": 4, "V1": 5}, "timestamp": 100}
@@ -134,9 +119,6 @@
         "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT ID, JOINKEY(ID, V0), V1 FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "input", "key": 1, "value": {"V0": 2, "V1": 3}}
       ],
@@ -156,9 +138,6 @@
         "CREATE TABLE R (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT JOINKEY(L.ID, R.ID), L.ID, R.ID, L.V0, R.V1 FROM L FULL OUTER JOIN R on L.id = R.id;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"V0": 2, "V1": 3}, "timestamp": 0},
         {"topic": "right_topic", "key": 1, "value": {"V0": 4, "V1": 5}, "timestamp": 100}
@@ -180,9 +159,6 @@
         "CREATE TABLE R (KSQL_COL_3 INT PRIMARY KEY, KSQL_COL_4 INT, KSQL_COL_5 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT JOINKEY(L.KSQL_COL_0, R.KSQL_COL_3), L.KSQL_COL_0, R.KSQL_COL_3, L.KSQL_COL_1, R.KSQL_COL_5 FROM L FULL OUTER JOIN R on L.KSQL_COL_0 = R.KSQL_COL_3;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"KSQL_COL_1": 2, "KSQL_COL_2": 3}, "timestamp": 0},
         {"topic": "right_topic", "key": 1, "value": {"KSQL_COL_4": 4, "KSQL_COL_5": 5}, "timestamp": 100}
@@ -204,9 +180,6 @@
         "CREATE STREAM R (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT JOINKEY(ABS(L.ID), ABS(R.ID)) AS ID, L.ID, R.ID, L.V0, R.V1 FROM L FULL OUTER JOIN R WITHIN 1 SECOND on ABS(R.id) = ABS(L.id);"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"V0": 2, "V1": 3}, "timestamp": 0},
         {"topic": "right_topic", "key": 1, "value": {"V0": 4, "V1": 5}, "timestamp": 100}
@@ -228,9 +201,6 @@
         "CREATE TABLE R (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT JOINKEY(L.ID, R.ID) AS ID, L.ID, R.ID, L.V0, R.V1 FROM L FULL OUTER JOIN R on R.id = L.id;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"V0": 2, "V1": 3}, "timestamp": 0},
         {"topic": "right_topic", "key": 1, "value": {"V0": 4, "V1": 5}, "timestamp": 100}
@@ -252,9 +222,6 @@
         "CREATE TABLE R (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT JOINKEY(ABS(R.ID), ABS(L.ID)) AS ID, L.ID, R.ID, L.V0, R.V1 FROM L INNER JOIN R on ABS(L.id) = ABS(R.id);"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "The query used to build `OUTPUT` must include the join expression JOINKEY(ABS(L.ID), ABS(R.ID)) in its projection.\nJOINKEY(ABS(L.ID), ABS(R.ID)) was added as a synthetic key column because the join criteria did not match any source column."

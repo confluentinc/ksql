@@ -561,7 +561,7 @@ public class CliTest {
     );
 
     testCreateStreamAsSelect(
-        "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
+        "SELECT ROWKEY, ITEMID, ORDERUNITS, PRICEARRAY FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
         resultSchema,
         expectedResults
     );
@@ -610,7 +610,7 @@ public class CliTest {
   @Test
   public void shouldHandlePullQuery() {
     // Given:
-    run("CREATE TABLE X AS SELECT COUNT(1) AS COUNT "
+    run("CREATE TABLE X AS SELECT ITEMID, COUNT(1) AS COUNT "
             + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
             + " GROUP BY ITEMID;",
         localCli
@@ -619,14 +619,14 @@ public class CliTest {
     // When:
     final Supplier<String> runner = () -> {
       // It's possible that the state store is not warm on the first invocation, hence the retry
-      run("SELECT ROWKEY, COUNT FROM X WHERE ROWKEY='ITEM_1';", localCli);
+      run("SELECT ITEMID, COUNT FROM X WHERE ITEMID='ITEM_1';", localCli);
       return terminal.getOutputString();
     };
 
     // Wait for warm store:
     assertThatEventually(runner, containsString("|ITEM_1"));
     assertRunCommand(
-        "SELECT ROWKEY, COUNT FROM X WHERE ROWKEY='ITEM_1';",
+        "SELECT ITEMID, COUNT FROM X WHERE ITEMID='ITEM_1';",
         containsRows(
             row("ITEM_1", "1")
         )
@@ -636,7 +636,7 @@ public class CliTest {
   @Test
   public void shouldOutputPullQueryHeader() {
     // Given:
-    run("CREATE TABLE Y AS SELECT COUNT(1) AS COUNT "
+    run("CREATE TABLE Y AS SELECT ITEMID, COUNT(1) AS COUNT "
             + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
             + " GROUP BY ITEMID;",
         localCli
@@ -645,11 +645,11 @@ public class CliTest {
     // When:
     final Supplier<String> runner = () -> {
       // It's possible that the state store is not warm on the first invocation, hence the retry
-      run("SELECT * FROM Y WHERE ROWKEY='ITEM_1';", localCli);
+      run("SELECT * FROM Y WHERE ITEMID='ITEM_1';", localCli);
       return terminal.getOutputString();
     };
 
-    assertThatEventually(runner, containsString("ROWKEY"));
+    assertThatEventually(runner, containsString("ITEMID"));
     assertThatEventually(runner, containsString("COUNT"));
   }
 
@@ -688,7 +688,9 @@ public class CliTest {
   @Test
   public void testSelectUDFs() {
     final String queryString = String.format(
-        "SELECT ITEMID, "
+        "SELECT "
+            + "ROWKEY, "
+            + "ITEMID, "
             + "ORDERUNITS*10 AS Col1, "
             + "PRICEARRAY[1]+10 AS Col2, "
             + "KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10 AS Col3, "

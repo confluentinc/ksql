@@ -374,29 +374,19 @@ public class DataSourceNodeTest {
   public void shouldThrowOnResolveSelectStarIfWrongSourceName() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> node.resolveSelectStar(Optional.of(SourceName.of("wrong")), true)
+        () -> node.resolveSelectStar(Optional.of(SourceName.of("wrong")))
     );
   }
 
   @Test
   public void shouldNotThrowOnResolveSelectStarIfRightSourceName() {
-    node.resolveSelectStar(Optional.of(SOME_SOURCE.getName()), true);
-  }
-
-  @Test
-  public void shouldResolveSelectStartToValueColumns() {
-    // When:
-    final Stream<ColumnName> result = node.resolveSelectStar(Optional.empty(), true);
-
-    // Then:
-    final List<ColumnName> columns = result.collect(Collectors.toList());
-    assertThat(columns, contains(FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY));
+    node.resolveSelectStar(Optional.of(SOME_SOURCE.getName()));
   }
 
   @Test
   public void shouldResolveSelectStartToAllColumns() {
     // When:
-    final Stream<ColumnName> result = node.resolveSelectStar(Optional.empty(), false);
+    final Stream<ColumnName> result = node.resolveSelectStar(Optional.empty());
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
@@ -410,7 +400,7 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    final Stream<ColumnName> result = node.resolveSelectStar(Optional.empty(), false);
+    final Stream<ColumnName> result = node.resolveSelectStar(Optional.empty());
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());

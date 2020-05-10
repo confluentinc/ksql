@@ -1,0 +1,101 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893936856,
+  "path" : "query-validation-tests/magic-timestamp-conversion.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SOURCE INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "comparison predicate on BIGINT window bounds in WHERE",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : 1
+      },
+      "window" : {
+        "start" : 1581323504000,
+        "end" : 1581323505001,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : 2
+      },
+      "window" : {
+        "start" : 1581323504001,
+        "end" : 1581323505001,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "source" : 3
+      },
+      "window" : {
+        "start" : 1581323504001,
+        "end" : 1581323505002,
+        "type" : "SESSION"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "SOURCE" : 2
+      },
+      "window" : {
+        "start" : 1581323504001,
+        "end" : 1581323505001,
+        "type" : "SESSION"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, source INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Session');", "CREATE STREAM OUTPUT AS SELECT K, source FROM INPUT WHERE 1581323504001 <= WINDOWSTART AND WINDOWEND <= 1581323505001;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

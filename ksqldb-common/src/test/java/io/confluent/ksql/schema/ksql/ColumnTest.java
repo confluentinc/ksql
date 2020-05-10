@@ -28,8 +28,8 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import org.junit.Test;
 
 public class ColumnTest {

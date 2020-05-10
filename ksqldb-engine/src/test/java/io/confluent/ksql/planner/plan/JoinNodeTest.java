@@ -29,7 +29,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -659,18 +658,18 @@ public class JoinNodeTest {
     // Given:
     final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
-    when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
-    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
+    when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
+    when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
 
     // When:
-    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty(), true);
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty());
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(ColumnName.of("l"), ColumnName.of("r")));
 
-    verify(left).resolveSelectStar(empty(), false);
-    verify(right).resolveSelectStar(empty(), false);
+    verify(left).resolveSelectStar(empty());
+    verify(right).resolveSelectStar(empty());
   }
 
   @Test
@@ -682,20 +681,20 @@ public class JoinNodeTest {
     final JoinNode joinNode =
         new JoinNode(nodeId, LEFT, joinKey, true, left, inner, empty());
 
-    when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
-    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
-    when(right2.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r2")));
+    when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
+    when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
+    when(right2.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r2")));
 
     // When:
-    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty(), true);
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty());
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(ColumnName.of("l"), ColumnName.of("r"), ColumnName.of("r2")));
 
-    verify(left).resolveSelectStar(empty(), false);
-    verify(right).resolveSelectStar(empty(), false);
-    verify(right2).resolveSelectStar(empty(), false);
+    verify(left).resolveSelectStar(empty());
+    verify(right).resolveSelectStar(empty());
+    verify(right2).resolveSelectStar(empty());
   }
 
   @Test
@@ -707,20 +706,20 @@ public class JoinNodeTest {
     final JoinNode joinNode =
         new JoinNode(nodeId, LEFT, joinKey, true, inner, left, empty());
 
-    when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
-    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
-    when(right2.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r2")));
+    when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
+    when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
+    when(right2.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r2")));
 
     // When:
-    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty(), true);
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty());
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(ColumnName.of("r"), ColumnName.of("r2"), ColumnName.of("l")));
 
-    verify(left).resolveSelectStar(empty(), false);
-    verify(right).resolveSelectStar(empty(), false);
-    verify(right2).resolveSelectStar(empty(), false);
+    verify(left).resolveSelectStar(empty());
+    verify(right).resolveSelectStar(empty());
+    verify(right2).resolveSelectStar(empty());
   }
 
   @Test
@@ -728,17 +727,17 @@ public class JoinNodeTest {
     // Given:
     final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
-    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
+    when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
 
     // When:
-    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.of(RIGHT_ALIAS), true);
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(Optional.of(RIGHT_ALIAS));
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(ColumnName.of("r")));
 
-    verify(left, never()).resolveSelectStar(any(), anyBoolean());
-    verify(right).resolveSelectStar(Optional.of(RIGHT_ALIAS), false);
+    verify(left, never()).resolveSelectStar(any());
+    verify(right).resolveSelectStar(Optional.of(RIGHT_ALIAS));
   }
 
   @Test
@@ -748,11 +747,11 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty());
 
-    when(left.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("l")));
-    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
+    when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
+    when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
 
     // When:
-    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty(), false);
+    final Stream<ColumnName> result = joinNode.resolveSelectStar(empty());
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
@@ -768,19 +767,19 @@ public class JoinNodeTest {
     final JoinNode joinNode =
         new JoinNode(nodeId, LEFT, joinKey, true, left, inner, empty());
 
-    when(right.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(ColumnName.of("r")));
+    when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
 
     // When:
     final Stream<ColumnName> result = joinNode
-        .resolveSelectStar(Optional.of(RIGHT_ALIAS), true);
+        .resolveSelectStar(Optional.of(RIGHT_ALIAS));
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(ColumnName.of("r")));
 
-    verify(left, never()).resolveSelectStar(any(), anyBoolean());
-    verify(right2, never()).resolveSelectStar(any(), anyBoolean());
-    verify(right).resolveSelectStar(Optional.of(RIGHT_ALIAS), false);
+    verify(left, never()).resolveSelectStar(any());
+    verify(right2, never()).resolveSelectStar(any());
+    verify(right).resolveSelectStar(Optional.of(RIGHT_ALIAS));
   }
 
   @Test

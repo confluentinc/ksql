@@ -6,41 +6,41 @@
     {
       "name": "filter rows where the ARRAY column contains a specified STRING",
       "statements": [
-        "CREATE STREAM test (colors ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT colors FROM test WHERE ARRAY_CONTAINS(colors, 'Pink');"
+        "CREATE STREAM test (ID STRING KEY, colors ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, colors FROM test WHERE ARRAY_CONTAINS(colors, 'Pink');"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": {"colors": ["Red", "Green"]}, "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": {"colors": ["Black"]}, "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": {"colors": ["Pink", "Yellow", "Pink"]}, "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": {"colors": ["White", "Pink"]}, "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": {"colors": ["Pink", null]}, "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": {"colors": null, "timestamp": 0}}
+        {"topic": "test_topic", "value": {"colors": ["Red", "Green"]}},
+        {"topic": "test_topic", "value": {"colors": ["Black"]}},
+        {"topic": "test_topic", "value": {"colors": ["Pink", "Yellow", "Pink"]}},
+        {"topic": "test_topic", "value": {"colors": ["White", "Pink"]}},
+        {"topic": "test_topic", "value": {"colors": ["Pink", null]}},
+        {"topic": "test_topic", "value": {"colors": null}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS":["Pink", "Yellow", "Pink"]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS":["White", "Pink"]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS":["Pink", null]}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"COLORS":["Pink", "Yellow", "Pink"]}},
+        {"topic": "OUTPUT", "value": {"COLORS":["White", "Pink"]}},
+        {"topic": "OUTPUT", "value": {"COLORS":["Pink", null]}}
       ]
     },
     {
       "name": "filter rows where the STRUCT->ARRAY column contains a specified STRING",
       "statements": [
-        "CREATE STREAM test (c1 STRUCT<colors ARRAY<STRING>>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT c1->colors AS colors FROM test WHERE ARRAY_CONTAINS(c1->colors, 'Pink');"
+        "CREATE STREAM test (ID STRING KEY, c1 STRUCT<colors ARRAY<STRING>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, c1->colors AS colors FROM test WHERE ARRAY_CONTAINS(c1->colors, 'Pink');"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": {"c1":{"colors": ["Red", "Green"]}}, "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": {"c1":{"colors": ["Black"]}}, "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": {"c1":{"colors": ["Pink", "Yellow", "Pink"]}}, "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": {"c1":{"colors": ["White", "Pink"]}}, "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": {"c1":{"colors": ["Pink", null]}}, "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": {"c1":{"colors": null}}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"c1":{"colors": ["Red", "Green"]}}},
+        {"topic": "test_topic", "value": {"c1":{"colors": ["Black"]}}},
+        {"topic": "test_topic", "value": {"c1":{"colors": ["Pink", "Yellow", "Pink"]}}},
+        {"topic": "test_topic", "value": {"c1":{"colors": ["White", "Pink"]}}},
+        {"topic": "test_topic", "value": {"c1":{"colors": ["Pink", null]}}},
+        {"topic": "test_topic", "value": {"c1":{"colors": null}}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS":["Pink", "Yellow", "Pink"]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS":["White", "Pink"]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS":["Pink", null]}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"COLORS":["Pink", "Yellow", "Pink"]}},
+        {"topic": "OUTPUT", "value": {"COLORS":["White", "Pink"]}},
+        {"topic": "OUTPUT", "value": {"COLORS":["Pink", null]}}
       ]
     }
   ]

@@ -1,0 +1,93 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893936842,
+  "path" : "query-validation-tests/magic-timestamp-conversion.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<THING INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "comparison predicate on STRING ROWTIME in WHERE",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "source" : 1
+      },
+      "timestamp" : 1514764800001
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "source" : 2
+      },
+      "timestamp" : 1546300808000
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "source" : 3
+      },
+      "timestamp" : 1514764800002
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : {
+        "source" : 4
+      },
+      "timestamp" : 1514764800000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "THING" : 2
+      },
+      "timestamp" : 1546300808000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "THING" : 3
+      },
+      "timestamp" : 1514764800002
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, source int) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, source AS THING FROM TEST WHERE ROWTIME>'2018-01-01T00:00:00.001';" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893942276,
+  "path" : "query-validation-tests/partition-by.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<K VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "int column",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : "10"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : "a"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint) with (kafka_topic='test_topic', value_format = 'delimited');", "CREATE STREAM OUTPUT AS SELECT * from TEST partition by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ID BIGINT KEY, K STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

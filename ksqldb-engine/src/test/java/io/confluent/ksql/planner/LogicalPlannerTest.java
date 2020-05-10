@@ -228,28 +228,6 @@ public class LogicalPlannerTest {
   }
 
   @Test
-  public void testSimpleAggregateLogicalPlan() {
-    final String simpleQuery = "SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( size 2 "
-                         + "second) "
-                         + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;";
-
-    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
-
-    assertThat(logicalPlan.getSources().get(0), instanceOf(AggregateNode.class));
-    final AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
-    assertThat(aggregateNode.getFunctionCalls().size(), equalTo(2));
-    assertThat(aggregateNode.getFunctionCalls().get(0).getName().text(), equalTo("SUM"));
-    assertThat(aggregateNode.getWindowExpression().get().getKsqlWindowExpression().toString(), equalTo(" TUMBLING ( SIZE 2 SECONDS ) "));
-    assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
-    assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("COL0"));
-    assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
-    assertThat(aggregateNode.getSchema().value().get(1).type(), equalTo(SqlTypes.DOUBLE));
-    assertThat(aggregateNode.getSchema().value().get(2).type(), equalTo(SqlTypes.BIGINT));
-    assertThat(logicalPlan.getSources().get(0).getSchema().value().size(), equalTo(3));
-
-  }
-
-  @Test
   public void testComplexAggregateLogicalPlan() {
     final String simpleQuery = "SELECT col0, sum(floor(col3)*100)/count(col3) FROM test1 window "
                          + "HOPPING ( size 2 second, advance by 1 second) "
@@ -265,8 +243,8 @@ public class LogicalPlannerTest {
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("COL0"));
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
-    assertThat(aggregateNode.getSchema().value().get(1).type(), equalTo(SqlTypes.DOUBLE));
-    assertThat(logicalPlan.getSources().get(0).getSchema().value().size(), equalTo(2));
+    assertThat(aggregateNode.getSchema().value().get(0).type(), equalTo(SqlTypes.DOUBLE));
+    assertThat(logicalPlan.getSources().get(0).getSchema().value().size(), equalTo(1));
   }
 
   @Test
@@ -333,21 +311,6 @@ public class LogicalPlannerTest {
     final String simpleQuery = "SELECT * FROM TEST2 INNER JOIN TEST3 ON TEST2.COL0=TEST3.COL0 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
-  }
-
-  @Test
-  public void shouldUpdateKeyToReflectProjectionAlias() {
-    // Given:
-    final String simpleQuery = "SELECT COL0 AS NEW_KEY FROM TEST2 EMIT CHANGES;";
-
-    // When:
-    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
-
-    // Then:
-    assertThat(logicalPlan.getKeyField().ref(), is(Optional.of(ColumnName.of("NEW_KEY"))));
-
-    final PlanNode source = logicalPlan.getSources().get(0);
-    assertThat(source.getKeyField().ref(), is(Optional.of(ColumnName.of("NEW_KEY"))));
   }
 
   private PlanNode buildLogicalPlan(final String query) {

@@ -1,7 +1,7 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');",
+    "statementText" : "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",

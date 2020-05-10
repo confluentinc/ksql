@@ -48,7 +48,6 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -124,7 +123,7 @@ public class PullQueryRoutingFunctionalTest {
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+          .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
       SerdeOption.none()
@@ -213,11 +212,11 @@ public class PullQueryRoutingFunctionalTest {
     );
     //Create table
     output = KsqlIdentifierTestUtil.uniqueIdentifierName();
-    sql = "SELECT * FROM " + output + " WHERE ROWKEY = '" + KEY + "';";
+    sql = "SELECT * FROM " + output + " WHERE USERID = '" + KEY + "';";
     List<KsqlEntity> res = makeAdminRequestWithResponse(
         REST_APP_0,
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " SELECT " + USER_PROVIDER.key() +  ", COUNT(1) AS COUNT FROM " + USERS_STREAM
             + " GROUP BY " + USER_PROVIDER.key() + ";"
     );
     QUERY_ID = extractQueryId(res.get(0).toString());

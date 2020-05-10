@@ -1,0 +1,90 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893912428,
+  "path" : "query-validation-tests/extract-json-field.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ARRAY_FIELD ARRAY<VARCHAR>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<COL1 VARCHAR, COL2 VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "extract JSON array field",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "array_field" : [ "{\"nested\": \"nest0\"}", "{\"nested\": \"nest1\"}" ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "array_field" : [ "{\"nested\": \"nest0\"}" ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "no" : "match"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "COL1" : "nest0",
+        "COL2" : "nest1"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "COL1" : "nest0",
+        "COL2" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "COL1" : null,
+        "COL2" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, array_field ARRAY<VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, EXTRACTJSONFIELD(array_field[1], '$.nested') AS Col1, EXTRACTJSONFIELD(array_field[2], '$.nested') AS Col2 FROM TEST;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -6,8 +6,8 @@
     {
       "name": "elect the second parameter",
       "statements": [
-        "CREATE STREAM TEST (message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ELT(2, 'ignored', message) as elem FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, ELT(2, 'ignored', message) as elem FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"message": "something"}, "timestamp": 0},
@@ -21,8 +21,8 @@
     {
       "name": "field the correct parameter",
       "statements": [
-        "CREATE STREAM TEST (a VARCHAR, b VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT FIELD('hello', a, b) as pos FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, a VARCHAR, b VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, FIELD('hello', a, b) as pos FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"a": "hello", "b":  "world"}, "timestamp": 0},
@@ -40,8 +40,8 @@
     {
       "name": "ELT should undo FIELD",
       "statements": [
-        "CREATE STREAM TEST (a VARCHAR, b VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ELT(FIELD('hello', a, b), a, b) as hello FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, a VARCHAR, b VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, ELT(FIELD('hello', a, b), a, b) as hello FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"a": "hello", "b":  "world"}, "timestamp": 0},

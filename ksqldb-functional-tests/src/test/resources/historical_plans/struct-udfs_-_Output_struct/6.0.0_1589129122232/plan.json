@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (VAL STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM TEST (K STRING KEY, VAL STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",
-      "schema" : "`ROWKEY` STRING KEY, `VAL` STRING",
+      "schema" : "`K` STRING KEY, `VAL` STRING",
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -18,11 +18,11 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT TEST_UDF() VALUE\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.K K,\n  TEST_UDF() VALUE\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`ROWKEY` STRING KEY, `VALUE` STRUCT<`A` STRING>",
+      "schema" : "`K` STRING KEY, `VALUE` STRUCT<`A` STRING>",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -60,7 +60,7 @@
                 "format" : "JSON"
               }
             },
-            "sourceSchema" : "`ROWKEY` STRING KEY, `VAL` STRING"
+            "sourceSchema" : "`K` STRING KEY, `VAL` STRING"
           },
           "selectExpressions" : [ "TEST_UDF() AS VALUE" ]
         },
@@ -115,7 +115,6 @@
     "ksql.udfs.enabled" : "true",
     "ksql.udf.enable.security.manager" : "true",
     "ksql.connect.worker.config" : "",
-    "ksql.any.key.name.enabled" : "false",
     "ksql.sink.window.change.log.additional.retention" : "1000000",
     "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
     "ksql.udf.collect.metrics" : "false",

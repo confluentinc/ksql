@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -225,6 +226,37 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("invalid query blah"));
+  }
+
+  @Test
+  public void shouldFailPollStreamedQueryResultIfSubscribed() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    streamedQueryResult.subscribe(new TestSubscriber<>());
+
+    // When
+    final Exception e = assertThrows(IllegalStateException.class, streamedQueryResult::poll);
+
+    // Then
+    assertThat(e.getMessage(), containsString("Cannot poll if subscriber has been set"));
+  }
+
+  @Test
+  public void shouldFailSubscribeStreamedQueryResultIfPolling() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    streamedQueryResult.poll(1, TimeUnit.NANOSECONDS);
+
+    // When
+    final Exception e = assertThrows(
+        IllegalStateException.class,
+        () -> streamedQueryResult.subscribe(new TestSubscriber<>())
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString("Cannot set subscriber if polling"));
   }
 
   @Test

@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -29,6 +30,7 @@ import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.vertx.ext.web.client.WebClient;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -91,11 +93,13 @@ public class ClientTest extends BaseApiTest {
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
-    shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size());
+    shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size(), false);
 
     String queryId = streamedQueryResult.queryID();
     assertThat(queryId, is(notNullValue()));
     verifyPushQueryServerState(DEFAULT_PUSH_QUERY, queryId);
+
+    assertThat(streamedQueryResult.isComplete(), is(false));
   }
 
   @Test
@@ -118,6 +122,8 @@ public class ClientTest extends BaseApiTest {
     String queryId = streamedQueryResult.queryID();
     assertThat(queryId, is(notNullValue()));
     verifyPushQueryServerState(DEFAULT_PUSH_QUERY, queryId);
+
+    assertThat(streamedQueryResult.isComplete(), is(false));
   }
 
   @Test
@@ -129,10 +135,13 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(streamedQueryResult.isComplete(), is(false));
 
-    shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size());
+    shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size(), true);
 
     verifyPullQueryServerState();
+
+    assertThat(streamedQueryResult.isComplete(), is(true));
   }
 
   @Test
@@ -144,6 +153,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(streamedQueryResult.isComplete(), is(false));
 
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
       final Row row = streamedQueryResult.poll();
@@ -151,8 +161,11 @@ public class ClientTest extends BaseApiTest {
       assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
       assertThat(row.columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
     }
+    assertThat(streamedQueryResult.poll(), is(nullValue()));
 
     verifyPullQueryServerState();
+
+    assertThat(streamedQueryResult.isComplete(), is(true));
   }
 
   @Test
@@ -168,6 +181,7 @@ public class ClientTest extends BaseApiTest {
     );
 
     // Then
+    assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("invalid query blah"));
   }
@@ -226,6 +240,7 @@ public class ClientTest extends BaseApiTest {
     );
 
     // Then
+    assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("invalid query blah"));
   }
@@ -262,7 +277,11 @@ public class ClientTest extends BaseApiTest {
     assertThat(server.getQueryIDs(), hasSize(0));
   }
 
-  private void shouldDeliver(final Publisher<Row> publisher, final int numRows) {
+  private void shouldDeliver(
+      final Publisher<Row> publisher,
+      final int numRows,
+      final boolean subscriberCompleted
+  ) {
     TestSubscriber<Row> subscriber = new TestSubscriber<Row>() {
       @Override
       public synchronized void onSubscribe(final Subscription sub) {
@@ -275,7 +294,7 @@ public class ClientTest extends BaseApiTest {
     for (int i = 0; i < numRows; i++) {
       assertThat(subscriber.getValues().get(i).values(), equalTo(rowWithIndexAsKsqlArray(i)));
     }
-    assertThat(subscriber.isCompleted(), equalTo(false));
+    assertThat(subscriber.isCompleted(), equalTo(subscriberCompleted));
     assertThat(subscriber.getError(), is(nullValue()));
   }
 

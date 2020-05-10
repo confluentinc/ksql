@@ -70,6 +70,7 @@ public class StreamQueryResponseHandler extends QueryResponseHandler<StreamedQue
 
   @Override
   protected void handleBodyEnd() {
+    queryResult.complete();
   }
 
   @Override

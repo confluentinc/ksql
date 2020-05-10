@@ -96,12 +96,6 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
-  public ClientOptions setTrustAll(final boolean trustAll) {
-    this.trustAll = trustAll;
-    return this;
-  }
-
-  @Override
   public ClientOptions setTrustStore(final String trustStorePath) {
     this.trustStorePath = trustStorePath;
     return this;
@@ -162,11 +156,6 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public boolean isVerifyHost() {
     return verifyHost;
-  }
-
-  @Override
-  public boolean isTrustAll() {
-    return trustAll;
   }
 
   @Override

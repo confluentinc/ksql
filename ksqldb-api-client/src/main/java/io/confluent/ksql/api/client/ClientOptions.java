@@ -29,8 +29,6 @@ public interface ClientOptions {
 
   ClientOptions setVerifyHost(boolean verifyHost);
 
-  ClientOptions setTrustAll(boolean trustAll);
-
   ClientOptions setTrustStore(String trustStorePath);
 
   ClientOptions setTrustStorePassword(String trustStorePassword);
@@ -52,8 +50,6 @@ public interface ClientOptions {
   boolean isUseClientAuth();
 
   boolean isVerifyHost();
-
-  boolean isTrustAll();
 
   boolean isUseBasicAuth();
 

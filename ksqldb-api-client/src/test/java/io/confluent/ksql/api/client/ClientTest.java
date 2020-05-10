@@ -141,7 +141,7 @@ public class ClientTest extends BaseApiTest {
 
     verifyPullQueryServerState();
 
-    assertThat(streamedQueryResult.isComplete(), is(true));
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
   }
 
   @Test
@@ -165,7 +165,48 @@ public class ClientTest extends BaseApiTest {
 
     verifyPullQueryServerState();
 
-    assertThat(streamedQueryResult.isComplete(), is(true));
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldStreamPushQueryWithLimitAsync() throws Exception {
+    // When
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+
+    shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size(), true);
+
+    verifyPushQueryServerState(DEFAULT_PUSH_QUERY_WITH_LIMIT);
+
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldStreamPushQueryWithLimitSync() throws Exception {
+    // When
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+
+    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
+      final Row row = streamedQueryResult.poll();
+      assertThat(row.values(), equalTo(rowWithIndexAsKsqlArray(i)));
+      assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
+      assertThat(row.columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
+    }
+
+    verifyPushQueryServerState(DEFAULT_PUSH_QUERY_WITH_LIMIT);
+
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
   }
 
   @Test
@@ -194,6 +235,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(batchedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(batchedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(batchedQueryResult.queryID(), is(nullValue()));
 
     final List<Row> rows = batchedQueryResult.rows();
     assertThat(rows, hasSize(DEFAULT_ROWS.size()));
@@ -207,7 +249,7 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldExecutePushQuery() throws Exception {
+  public void shouldExecutePushWithLimitQuery() throws Exception {
     // When
     final BatchedQueryResult batchedQueryResult =
         javaClient.executeQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
@@ -215,6 +257,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(batchedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(batchedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(batchedQueryResult.queryID(), is(notNullValue()));
 
     final List<Row> rows = batchedQueryResult.rows();
     assertThat(rows, hasSize(DEFAULT_ROWS.size()));
@@ -294,7 +337,7 @@ public class ClientTest extends BaseApiTest {
     for (int i = 0; i < numRows; i++) {
       assertThat(subscriber.getValues().get(i).values(), equalTo(rowWithIndexAsKsqlArray(i)));
     }
-    assertThat(subscriber.isCompleted(), equalTo(subscriberCompleted));
+    assertThatEventually(subscriber::isCompleted, equalTo(subscriberCompleted));
     assertThat(subscriber.getError(), is(nullValue()));
   }
 

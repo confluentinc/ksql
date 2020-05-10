@@ -39,8 +39,8 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
   private final Queue<T> buffer = new ArrayDeque<>();
   private final int bufferMaxSize;
   private Runnable drainHandler;
+  private boolean shouldSendComplete;
   private boolean complete;
-  private boolean completing;
 
   /**
    * Construct a BufferedPublisher
@@ -63,6 +63,7 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
     this(ctx);
     this.buffer.addAll(initialBuffer);
     complete = true;
+    shouldSendComplete = true;
   }
 
   /**
@@ -89,7 +90,7 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
    */
   public boolean accept(final T t) {
     checkContext();
-    if (completing) {
+    if (complete) {
       throw new IllegalStateException("Cannot call accept after complete is called");
     }
     if (!isCancelled()) {
@@ -124,15 +125,19 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
    */
   public void complete() {
     checkContext();
-    if (isCancelled() || completing) {
+    if (isCancelled() || complete) {
       return;
     }
-    completing = true;
+    complete = true;
     if (buffer.isEmpty() && getSubscriber() != null) {
       sendComplete();
     } else {
-      complete = true;
+      shouldSendComplete = true;
     }
+  }
+
+  protected boolean isComplete() {
+    return complete;
   }
 
   protected void maybeSend() {
@@ -150,8 +155,9 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
     }
 
     if (buffer.isEmpty() && !isCancelled()) {
-      if (complete) {
+      if (shouldSendComplete) {
         sendComplete();
+        shouldSendComplete = false;
       } else if (getDemand() > 0 && drainHandler != null) {
         final Runnable handler = drainHandler;
         ctx.runOnContext(v -> handler.run());

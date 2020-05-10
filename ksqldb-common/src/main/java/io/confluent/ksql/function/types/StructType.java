@@ -22,6 +22,11 @@ import java.util.stream.Collectors;
 
 public final class StructType extends ObjectType {
 
+  /**
+   * An empty struct accepts any struct as an instantiation.
+   */
+  public static final StructType ANY_STRUCT = StructType.builder().build();
+
   private final ImmutableMap<String, ParamType> schema;
 
   private StructType(final Map<String, ParamType> schema) {

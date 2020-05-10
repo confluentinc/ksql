@@ -20,14 +20,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.METHOD})
 /**
  * The {@code UdfSchemaProvider} annotation on a method tells KSQL to use this method to resolve
  * the return type of the udf at runtime.
  *
  * <p>The corresponding udf annotation must have the {@code schemaProvider} specified.
  */
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD})
 public @interface UdfSchemaProvider {
 
 }

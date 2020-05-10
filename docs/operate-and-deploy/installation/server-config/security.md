@@ -138,13 +138,7 @@ authentication.roles=admin,developer,user,ksq-user
 ```
 
 The `authentication.realm` config must match a section within
-`jaas_config.file`, which defines how the server authenticates users and
-should be passed as a JVM option during server start:
-
-```bash
-export KSQL_OPTS=-Djava.security.auth.login.config=/path/to/the/jaas_config.file
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
-```
+`jaas_config.file`, which defines how the server authenticates users.
 
 An example `jaas_config.file` is:
 
@@ -156,22 +150,31 @@ KsqlServer-Props {
 };
 ```
 
-The example `jaas_config.file` above uses the Jetty
-`PropertyFileLoginModule`, which itself authenticates users by checking
-for their credentials in a password file.
-
-Assign the `KsqlServer-Props` section to the `authentication.realm`
-config setting:
+In this example, the `authentication.realm` config should be set to `KsqlServer-Props`:
 
 ```properties
 authentication.realm=KsqlServer-Props
 ```
 
+The example `jaas_config.file` above uses the Jetty
+`PropertyFileLoginModule`, which itself authenticates users by checking
+for their credentials in a password file.
+
 You can also use other implementations of the standard Java
 `LoginModule` interface, such as `JDBCLoginModule` for reading
 credentials from a database or the `LdapLoginModule`.
 
-The file parameter is the location of the password file. The format is:
+The JAAS config file should be passed as a JVM option during server start,
+and the LoginModule implementation should provided to the server as well:
+
+```bash
+export KSQL_OPTS=-Djava.security.auth.login.config=/path/to/the/jaas_config.file
+export KSQL_CLASSPATH=<path-to-login-module-jar>/jetty-jaas-9.4.24.v20191120.jar
+<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
+```
+
+In the `PropertyFileLoginModule` example above, the file parameter is the
+location of the password file. The format is:
 
 ```properties
 <username>: <password-hash>[,<rolename> ...]

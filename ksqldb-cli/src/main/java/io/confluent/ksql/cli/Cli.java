@@ -39,12 +39,12 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
 import io.confluent.ksql.util.ParserUtil;
-import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.vertx.core.Context;
 import java.io.Closeable;
@@ -179,7 +179,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     } catch (final Exception exception) {
       serverVersion = "<unknown>";
     }
-    final String cliVersion = Version.getVersion();
+    final String cliVersion = AppInfo.getVersion();
 
     final String helpReminderMessage =
         "Having trouble? "

@@ -20,15 +20,16 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class Version {
+public final class AppInfo {
 
-  private static final Logger log = LoggerFactory.getLogger(Version.class);
+  private static final Logger log = LoggerFactory.getLogger(AppInfo.class);
   private static String version = "unknown";
+  private static String commitId = "unknown";
 
   static {
     try {
       final Properties props = new Properties();
-      try (InputStream resourceAsStream = Version.class.getResourceAsStream(
+      try (InputStream resourceAsStream = AppInfo.class.getResourceAsStream(
           "/version.properties")) {
         props.load(resourceAsStream);
       }
@@ -36,16 +37,32 @@ public final class Version {
     } catch (final Exception e) {
       log.warn("Error while loading version:", e);
     }
+
+    try {
+      final Properties props = new Properties();
+      try (InputStream resourceAsStream = AppInfo.class.getResourceAsStream(
+          "/git.properties")) {
+        props.load(resourceAsStream);
+      }
+      commitId = props.getProperty("git.commit.id", commitId).trim();
+    } catch (final Exception e) {
+      log.warn("Error while loading git properties:", e);
+    }
   }
 
-  private Version() {
+  private AppInfo() {
   }
 
   public static String getVersion() {
     return version;
   }
 
+  public static String getCommitId() {
+    return commitId;
+  }
+
   public static void main(final String[] args) {
     System.err.println(getVersion());
+    System.err.println(getCommitId());
   }
 }

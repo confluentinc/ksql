@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
-import io.confluent.ksql.util.Version;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Collector;
 import java.time.Clock;
@@ -50,7 +50,7 @@ public class BasicCollector extends Collector {
   public KsqlVersionMetrics collectMetrics() {
     final KsqlVersionMetrics metricsRecord = new KsqlVersionMetrics();
     metricsRecord.setTimestamp(TimeUnit.MILLISECONDS.toSeconds(clock.millis()));
-    metricsRecord.setConfluentPlatformVersion(Version.getVersion());
+    metricsRecord.setConfluentPlatformVersion(AppInfo.getVersion());
     metricsRecord.setKsqlComponentType(moduleType.name());
     metricsRecord.setIsActive(activenessSupplier.get());
     return metricsRecord;

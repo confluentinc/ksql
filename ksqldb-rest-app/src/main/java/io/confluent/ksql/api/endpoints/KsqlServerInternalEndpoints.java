@@ -20,6 +20,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
@@ -28,6 +29,7 @@ import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.LagReportingResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.vertx.core.WorkerExecutor;
 import java.util.Objects;
 import java.util.Optional;
@@ -95,11 +97,11 @@ public class KsqlServerInternalEndpoints implements InternalEndpoints {
   public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-
-    return endpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
-        ksqlSecurityContext -> ksqlResource.handleKsqlStatements(
-            ksqlSecurityContext,
-            request), workerExecutor);
+    return verifyInternalRequest(request)
+        .orElseGet(() -> endpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
+            ksqlSecurityContext -> ksqlResource.handleKsqlStatements(
+                ksqlSecurityContext,
+                request), workerExecutor));
   }
 
   @Override
@@ -107,10 +109,21 @@ public class KsqlServerInternalEndpoints implements InternalEndpoints {
       final WorkerExecutor workerExecutor,
       final CompletableFuture<Void> connectionClosedFuture,
       final ApiSecurityContext apiSecurityContext) {
-    return endpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
-        ksqlSecurityContext -> streamedQueryResource.streamQuery(
-            ksqlSecurityContext,
-            request,
-            connectionClosedFuture), workerExecutor);
+    return verifyInternalRequest(request)
+        .orElseGet(() -> endpointExecutor.executeOldApiEndpointOnWorker(apiSecurityContext,
+            ksqlSecurityContext -> streamedQueryResource.streamQuery(
+                ksqlSecurityContext,
+                request,
+                connectionClosedFuture), workerExecutor));
+  }
+
+  private Optional<CompletableFuture<EndpointResponse>> verifyInternalRequest(
+      final KsqlRequest request) {
+    if (!request.getRequestProperties()
+        .containsKey(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)) {
+      return Optional.of(CompletableFuture
+          .completedFuture(Errors.badRequest("Called internal API unintentionally")));
+    }
+    return Optional.empty();
   }
 }

@@ -434,6 +434,19 @@
       }
     },
     {
+      "name": "with STRING -> BIGINT cast",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, V0 STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by CAST(V0 AS BIGINT);"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "a", "value": {"V0": "10"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"V0": "10", "K": "a"}}
+      ]
+    },
+    {
       "name": "partition by with projection select all",
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",

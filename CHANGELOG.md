@@ -7,9 +7,16 @@
 * add multi-join expression support ([#5081](https://github.com/confluentinc/ksql/pull/5081)) ([002cd5a](https://github.com/confluentinc/ksql/commit/002cd5ad6473cbb000291e32ebe5a459d2870b61))
 * support more advanced suite of LIKE expressions ([#5013](https://github.com/confluentinc/ksql/pull/5013)) ([67cd9d9](https://github.com/confluentinc/ksql/commit/67cd9d91690039cc01f43438db1fbcd3fe4924ff))
 * add COALESCE function ([#4829](https://github.com/confluentinc/ksql/pull/4829)) ([251c237](https://github.com/confluentinc/ksql/commit/251c237c455f4cf3843628f41e4bbf57795cfd12))
-* add internal request to KsqlRequestConfig and SessionProperties ([#4771](https://github.com/confluentinc/ksql/pull/4771)) ([fc10cae](https://github.com/confluentinc/ksql/commit/fc10caeb6c164febd8041bc523e765fa6a6b77d8))
 * add GROUP BY support for any key names ([#4899](https://github.com/confluentinc/ksql/pull/4899)) ([e7cbdfc](https://github.com/confluentinc/ksql/commit/e7cbdfcc8c9853e2ae6dfcaf670e04f07ccd5444)), closes [#4898](https://github.com/confluentinc/ksql/issues/4898)
 * partition-by primitive key support (#4098) ([7addf88](https://github.com/confluentinc/ksql/commit/7addf8856a6d62a6890a5f2520eead26538233a6)), closes [#4098](https://github.com/confluentinc/ksql/issues/4098)
+* add KsqlQueryStatus to decouple from KafkaStreams.State ([#5029](https://github.com/confluentinc/ksql/pull/5029)) ([e8cbcde](https://github.com/confluentinc/ksql/commit/e8cbcde548e1f3078b1396173a3f55f86ee20626))
+* add multi-join expression support ([#5081](https://github.com/confluentinc/ksql/pull/5081)) ([002cd5a](https://github.com/confluentinc/ksql/commit/002cd5ad6473cbb000291e32ebe5a459d2870b61))
+* Adds rate limiting to pull queries ([#4951](https://github.com/confluentinc/ksql/pull/4951)) ([6284111](https://github.com/confluentinc/ksql/commit/6284111652252b63cfc233bdfc3e08dbff983bbd))
+* Do not allow access to new streaming endpoints using HTTP1.x ([#5193](https://github.com/confluentinc/ksql/pull/5193)) ([8b90035](https://github.com/confluentinc/ksql/commit/8b90035c6facf47d81dfd1616784b191141dce31))
+* fail startup if command contains incompatible version ([#5104](https://github.com/confluentinc/ksql/pull/5104)) ([a1751b1](https://github.com/confluentinc/ksql/commit/a1751b1689532ef9abd436d5f27fe9aa8ff555ac))
+* klip-14 - rowtime as pseduocolumn ([#5150](https://github.com/confluentinc/ksql/pull/5150)) ([d541420](https://github.com/confluentinc/ksql/commit/d541420acf61f0e0e7b25d91120886007dbdae01))
+* scatter gather query status from all servers in cluster for 'SHOW QUERIES [EXTENDED]' statement ([#4875](https://github.com/confluentinc/ksql/pull/4875)) ([7385a31](https://github.com/confluentinc/ksql/commit/7385a31dd33293b76e594649213da2abb81b8ddf))
+* transient queries added to show queries output ([#5105](https://github.com/confluentinc/ksql/pull/5105)) ([e8a2a63](https://github.com/confluentinc/ksql/commit/e8a2a63210219cbac7d979ec0915f1d2016398e2))
 
 ### Bug Fixes
 
@@ -61,12 +68,11 @@
 This only affects new statements. Any view previously created via a `CREATE STREAM AS SELECT` or `CREATE TABLE AS SELECT` statement is unaffected.
 * This release changes the system generated column name for any columns in projections that are struct field dereferences. Previously, the full path was used when generating the name, now only the final field name is used. For example, `SELECT someStruct->someField, ...` previously generated a column name of `SOMESTRUCT__SOMEFIELD` and now generates a name of `SOMEFIELD`. Generated column names may have a numeral appended to the end to ensure uniqueness, for example `SOMEFIELD_2`.
 
-  Note: it is recommended that you do not rely on system generated column names for production systems, because naming logic may change between releases. Providing an explicit alias ensures consistent naming across releases, for example, `SELECT someStruct->someField AS someField`.
-  Backward compatibility: existing running queries will not be affected by this change, and they will continue to run with the same column names. Any statements executed after the upgrade will use the new names where no explicit alias is provided. Add explicit aliases to your statements if you require the old names, for example: `SELECT someStruct->someField AS SOMESTRUCT__SOMEFIELD, ...`
+    Note: it is recommended that you do not rely on system generated column names for production systems, because naming logic may change between releases. Providing an explicit alias ensures consistent naming across releases, for example, `SELECT someStruct->someField AS someField`.
+    Backward compatibility: existing running queries will not be affected by this change, and they will continue to run with the same column names. Any statements executed after the upgrade will use the new names where no explicit alias is provided. Add explicit aliases to your statements if you require the old names, for example: `SELECT someStruct->someField AS SOMESTRUCT__SOMEFIELD, ...`
 
 * Existing queries that reference a single GROUP BY column in the projection would fail if they were resubmitted, due to a duplicate column. The same existing queries will continue to run if already running, i.e. this is only a change for newly submitted queries. Existing queries will use the old query semantics.
 * Any existing persistent queries, e.g. those created with `CREATE STREAM AS SELECT`, `CREATE TABLE AS SELECT` or `INSERT INTO`, will be unaffected: their column names will not change. Pull queries will be unaffected. Push queries, which rely on auto-generated column names, may see a change in column names.
-
 * The ksqlDB server no longer ships with Jetty. This means that when you start the server, you must supply Jetty-specific dependencies, like certain login modules used for basic authentication, by using the KSQL_CLASSPATH environment variable for them to be found.
 
 ## [0.8.1](https://github.com/confluentinc/ksql/releases/tag/v0.8.1-ksqldb) (2020-03-30)

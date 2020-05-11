@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.vertx.core.json.JsonArray;
 import java.util.List;
@@ -29,7 +30,8 @@ import org.junit.Test;
 public class RowImplTest {
 
   private static final List<String> COLUMN_NAMES = ImmutableList.of("f_str", "f_int", "f_long", "f_double", "f_bool");
-  private static final List<String> COLUMN_TYPES = ImmutableList.of("STRING", "INTEGER", "BIGINT", "DOUBLE", "BOOLEAN");
+  private static final List<ColumnType> COLUMN_TYPES = RowUtil.columnTypesFromStrings(
+      ImmutableList.of("STRING", "INTEGER", "BIGINT", "DOUBLE", "BOOLEAN"));
   private static final Map<String, Integer> COLUMN_NAME_TO_INDEX = RowUtil.valueToIndexMap(COLUMN_NAMES);
   private static final JsonArray VALUES = new JsonArray(ImmutableList.of("foo", 2, 1234L, 34.43, false));
 
@@ -42,11 +44,11 @@ public class RowImplTest {
 
   @Test
   public void shouldOneIndexColumnNames() {
-    assertThat(row.getObject(1), is("foo"));
-    assertThat(row.getObject(2), is(2));
-    assertThat(row.getObject(3), is(1234L));
-    assertThat(row.getObject(4), is(34.43));
-    assertThat(row.getObject(5), is(false));
+    assertThat(row.getValue(1), is("foo"));
+    assertThat(row.getValue(2), is(2));
+    assertThat(row.getValue(3), is(1234L));
+    assertThat(row.getValue(4), is(34.43));
+    assertThat(row.getValue(5), is(false));
   }
 
   @Test

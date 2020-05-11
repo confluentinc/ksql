@@ -18,11 +18,11 @@ package io.confluent.ksql.api.client.impl;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
+import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.InsertAck;
-import io.confluent.ksql.api.client.QueryResult;
-import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -73,12 +73,12 @@ public class ClientImpl implements Client {
   }
 
   @Override
-  public CompletableFuture<QueryResult> streamQuery(final String sql) {
+  public CompletableFuture<StreamedQueryResult> streamQuery(final String sql) {
     return streamQuery(sql, Collections.emptyMap());
   }
 
   @Override
-  public CompletableFuture<QueryResult> streamQuery(
+  public CompletableFuture<StreamedQueryResult> streamQuery(
       final String sql,
       final Map<String, Object> properties
   ) {
@@ -86,12 +86,12 @@ public class ClientImpl implements Client {
   }
 
   @Override
-  public CompletableFuture<List<Row>> executeQuery(final String sql) {
+  public CompletableFuture<BatchedQueryResult> executeQuery(final String sql) {
     return executeQuery(sql, Collections.emptyMap());
   }
 
   @Override
-  public CompletableFuture<List<Row>> executeQuery(
+  public CompletableFuture<BatchedQueryResult> executeQuery(
       final String sql,
       final Map<String, Object> properties
   ) {

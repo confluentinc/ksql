@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.api.client.impl;
 
-import io.confluent.ksql.api.client.QueryResult;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.vertx.core.Context;
@@ -27,22 +27,22 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class StreamQueryResponseHandler extends QueryResponseHandler<QueryResult> {
+public class StreamQueryResponseHandler extends QueryResponseHandler<StreamedQueryResult> {
 
-  private QueryResultImpl queryResult;
+  private StreamedQueryResultImpl queryResult;
   private Map<String, Integer> columnNameToIndex;
   private boolean paused;
 
   StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
-      final CompletableFuture<QueryResult> cf) {
+      final CompletableFuture<StreamedQueryResult> cf) {
     super(context, recordParser, cf);
   }
 
   @Override
   protected void handleMetadata(final QueryResponseMetadata queryResponseMetadata) {
-    this.queryResult = new QueryResultImpl(context, queryResponseMetadata.queryId,
+    this.queryResult = new StreamedQueryResultImpl(context, queryResponseMetadata.queryId,
         Collections.unmodifiableList(queryResponseMetadata.columnNames),
-        Collections.unmodifiableList(queryResponseMetadata.columnTypes));
+        RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes));
     this.columnNameToIndex = RowUtil.valueToIndexMap(queryResponseMetadata.columnNames);
     cf.complete(queryResult);
   }

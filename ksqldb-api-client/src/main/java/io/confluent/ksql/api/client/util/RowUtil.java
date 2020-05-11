@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.api.client.util;
 
+import io.confluent.ksql.api.client.ColumnType;
+import io.confluent.ksql.api.client.impl.ColumnTypeImpl;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class RowUtil {
 
@@ -31,5 +34,15 @@ public final class RowUtil {
       valueToIndex.put(values.get(i), i + 1);
     }
     return valueToIndex;
+  }
+
+  public static List<ColumnType> columnTypesFromStrings(final List<String> columnTypes) {
+    return columnTypes.stream().map(RowUtil::columnTypeFromString).collect(Collectors.toList());
+  }
+
+  private static ColumnType columnTypeFromString(final String columnType) {
+    final int bracketInd = columnType.indexOf('<');
+    final String primaryType = bracketInd == -1 ? columnType : columnType.substring(0, bracketInd);
+    return new ColumnTypeImpl(primaryType);
   }
 }

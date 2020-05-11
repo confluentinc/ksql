@@ -55,7 +55,7 @@ public class BaseApiTest {
 
   protected static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("name").add("age")
       .add("male");
-  protected static final JsonArray DEFAULT_COLUMN_TYPES = new JsonArray().add("STRING").add("INT")
+  protected static final JsonArray DEFAULT_COLUMN_TYPES = new JsonArray().add("STRING").add("INTEGER")
       .add("BOOLEAN");
   protected static final List<JsonArray> DEFAULT_ROWS = generateRows();
   protected static final JsonObject DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES = new JsonObject()

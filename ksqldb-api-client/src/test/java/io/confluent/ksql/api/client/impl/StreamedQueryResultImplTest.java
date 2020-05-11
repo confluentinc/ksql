@@ -29,18 +29,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.reactivestreams.Subscriber;
 
 @RunWith(MockitoJUnitRunner.class)
-public class QueryResultImplTest {
+public class StreamedQueryResultImplTest {
 
   @Mock
   private Context context;
   @Mock
   private Subscriber<Row> subscriber;
 
-  private QueryResultImpl queryResult;
+  private StreamedQueryResultImpl queryResult;
 
   @Before
   public void setUp() {
-    queryResult = new QueryResultImpl(context, "queryId", Collections.emptyList(), Collections.emptyList());
+    queryResult = new StreamedQueryResultImpl(context, "queryId", Collections.emptyList(), Collections.emptyList());
   }
 
   @Test

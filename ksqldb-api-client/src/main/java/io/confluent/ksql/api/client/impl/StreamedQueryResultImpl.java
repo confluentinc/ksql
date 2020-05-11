@@ -15,25 +15,30 @@
 
 package io.confluent.ksql.api.client.impl;
 
-import io.confluent.ksql.api.client.QueryResult;
+import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.reactivestreams.Subscriber;
 
-class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
+class StreamedQueryResultImpl extends BufferedPublisher<Row> implements StreamedQueryResult {
 
   private final String queryId;
   private final List<String> columnNames;
-  private final List<String> columnTypes;
+  private final List<ColumnType> columnTypes;
   private final PollableSubscriber pollableSubscriber;
   private volatile boolean polling;
   private boolean subscribing;
 
-  QueryResultImpl(final Context context, final String queryId, final List<String> columnNames,
-      final List<String> columnTypes) {
+  StreamedQueryResultImpl(
+      final Context context,
+      final String queryId,
+      final List<String> columnNames,
+      final List<ColumnType> columnTypes
+  ) {
     super(context);
     this.queryId = queryId;
     this.columnNames = columnNames;
@@ -47,7 +52,7 @@ class QueryResultImpl extends BufferedPublisher<Row> implements QueryResult {
   }
 
   @Override
-  public List<String> columnTypes() {
+  public List<ColumnType> columnTypes() {
     return columnTypes;
   }
 

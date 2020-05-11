@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import io.confluent.ksql.api.client.BatchedQueryResult;
+import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
@@ -30,20 +32,21 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>> {
+public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQueryResult> {
 
   private static final Logger log = LoggerFactory.getLogger(ExecuteQueryResponseHandler.class);
 
   private final List<Row> rows;
   private final int maxRows;
+  private String queryId;
   private List<String> columnNames;
-  private List<String> columnTypes;
+  private List<ColumnType> columnTypes;
   private Map<String, Integer> columnNameToIndex;
 
   ExecuteQueryResponseHandler(
       final Context context,
       final RecordParser recordParser,
-      final CompletableFuture<List<Row>> cf,
+      final CompletableFuture<BatchedQueryResult> cf,
       final int maxRows) {
     super(context, recordParser, cf);
     this.maxRows = maxRows;
@@ -52,8 +55,9 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>>
 
   @Override
   protected void handleMetadata(final QueryResponseMetadata queryResponseMetadata) {
+    queryId = queryResponseMetadata.queryId;
     columnNames = queryResponseMetadata.columnNames;
-    columnTypes = queryResponseMetadata.columnTypes;
+    columnTypes = RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes);
     columnNameToIndex = RowUtil.valueToIndexMap(columnNames);
   }
 
@@ -76,7 +80,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<List<Row>>
       throw new IllegalStateException("Body ended before metadata received");
     }
 
-    cf.complete(rows);
+    cf.complete(new BatchedQueryResultImpl(queryId, columnNames, columnTypes, rows));
   }
 
   @Override

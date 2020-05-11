@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import io.confluent.ksql.api.client.ColumnType;
+import io.confluent.ksql.api.client.KsqlArray;
+import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.vertx.core.json.JsonArray;
 import java.util.List;
@@ -24,19 +27,19 @@ import java.util.Objects;
 public class RowImpl implements Row {
 
   private final List<String> columnNames;
-  private final List<String> columnTypes;
-  private final List<Object> values;
+  private final List<ColumnType> columnTypes;
+  private final KsqlArray values;
   private final Map<String, Integer> columnNameToIndex;
 
   @SuppressWarnings("unchecked")
   public RowImpl(
       final List<String> columnNames,
-      final List<String> columnTypes,
+      final List<ColumnType> columnTypes,
       final JsonArray values,
       final Map<String, Integer> columnNameToIndex) {
     this.columnNames = Objects.requireNonNull(columnNames);
     this.columnTypes = Objects.requireNonNull(columnTypes);
-    this.values = Objects.requireNonNull(values).getList();
+    this.values = new KsqlArray(Objects.requireNonNull(values).getList());
     this.columnNameToIndex = Objects.requireNonNull(columnNameToIndex);
   }
 
@@ -46,28 +49,28 @@ public class RowImpl implements Row {
   }
 
   @Override
-  public List<String> columnTypes() {
+  public List<ColumnType> columnTypes() {
     return columnTypes;
   }
 
   @Override
-  public List<Object> values() {
+  public KsqlArray values() {
     return values;
   }
 
   @Override
-  public Object getObject(final int columnIndex) {
-    return values.get(columnIndex - 1);
+  public Object getValue(final int columnIndex) {
+    return values.getValue(columnIndex - 1);
   }
 
   @Override
-  public Object getObject(final String columnName) {
-    return getObject(indexFromName(columnName));
+  public Object getValue(final String columnName) {
+    return getValue(indexFromName(columnName));
   }
 
   @Override
   public String getString(final int columnIndex) {
-    return (String)getObject(columnIndex);
+    return values.getString(columnIndex - 1);
   }
 
   @Override
@@ -77,12 +80,7 @@ public class RowImpl implements Row {
 
   @Override
   public Integer getInt(final int columnIndex) {
-    final Number number = (Number)getObject(columnIndex);
-    if (number == null) {
-      return null;
-    } else {
-      return number instanceof Integer ? (Integer)number : number.intValue();
-    }
+    return values.getInteger(columnIndex - 1);
   }
 
   @Override
@@ -92,12 +90,7 @@ public class RowImpl implements Row {
 
   @Override
   public Long getLong(final int columnIndex) {
-    final Number number = (Number)getObject(columnIndex);
-    if (number == null) {
-      return null;
-    } else {
-      return number instanceof Long ? (Long)number : number.longValue();
-    }
+    return values.getLong(columnIndex - 1);
   }
 
   @Override
@@ -107,12 +100,7 @@ public class RowImpl implements Row {
 
   @Override
   public Double getDouble(final int columnIndex) {
-    final Number number = (Number)getObject(columnIndex);
-    if (number == null) {
-      return null;
-    } else {
-      return number instanceof Double ? (Double)number : number.doubleValue();
-    }
+    return values.getDouble(columnIndex - 1);
   }
 
   @Override
@@ -122,12 +110,32 @@ public class RowImpl implements Row {
 
   @Override
   public Boolean getBoolean(final int columnIndex) {
-    return (Boolean)getObject(columnIndex);
+    return values.getBoolean(columnIndex - 1);
   }
 
   @Override
   public Boolean getBoolean(final String columnName) {
     return getBoolean(indexFromName(columnName));
+  }
+
+  @Override
+  public KsqlObject getKsqlObject(final int columnIndex) {
+    return values.getKsqlObject(columnIndex - 1);
+  }
+
+  @Override
+  public KsqlObject getKsqlObject(final String columnName) {
+    return getKsqlObject(indexFromName(columnName));
+  }
+
+  @Override
+  public KsqlArray getKsqlArray(final int columnIndex) {
+    return values.getKsqlArray(columnIndex - 1);
+  }
+
+  @Override
+  public KsqlArray getKsqlArray(final String columnName) {
+    return getKsqlArray(indexFromName(columnName));
   }
 
   private int indexFromName(final String columnName) {

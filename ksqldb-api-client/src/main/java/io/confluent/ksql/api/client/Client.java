@@ -30,7 +30,7 @@ public interface Client {
    * @param sql statement of query to execute.
    * @return query result.
    */
-  CompletableFuture<QueryResult> streamQuery(String sql);
+  CompletableFuture<StreamedQueryResult> streamQuery(String sql);
 
   /**
    * Execute a query (push or pull) and receive the results one row at a time.
@@ -39,7 +39,7 @@ public interface Client {
    * @param properties query properties.
    * @return query result.
    */
-  CompletableFuture<QueryResult> streamQuery(String sql, Map<String, Object> properties);
+  CompletableFuture<StreamedQueryResult> streamQuery(String sql, Map<String, Object> properties);
 
   /**
    * Execute a query (push or pull) and receive all result rows together, once the query has
@@ -48,7 +48,7 @@ public interface Client {
    * @param sql statement of query to execute.
    * @return query result.
    */
-  CompletableFuture<List<Row>> executeQuery(String sql);
+  CompletableFuture<BatchedQueryResult> executeQuery(String sql);
 
   /**
    * Execute a query (push or pull) and receive all result rows together, once the query has
@@ -58,7 +58,7 @@ public interface Client {
    * @param properties query properties.
    * @return query result.
    */
-  CompletableFuture<List<Row>> executeQuery(String sql, Map<String, Object> properties);
+  CompletableFuture<BatchedQueryResult> executeQuery(String sql, Map<String, Object> properties);
 
   CompletableFuture<Void> insertInto(String streamName, Map<String, Object> row);
 

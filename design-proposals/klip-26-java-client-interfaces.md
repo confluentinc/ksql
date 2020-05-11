@@ -186,10 +186,9 @@ public interface StreamedQueryResult extends Publisher<Row> {
    * Block until a row becomes available or the timeout has elapsed.
    *
    * @param timeout amount of to wait for a row. Non-positive values are interpreted as no timeout.
-   * @param timeUnit unit for timeout param.
    * @return the row, if available; else, null.
    */
-  Row poll(long timeout, TimeUnit timeUnit);
+  Row poll(long timeout, Duration timeUnit);
 
   boolean isComplete();
 
@@ -538,7 +537,7 @@ once the query has completed:
    * @param sql statement of query to execute.
    * @return query result.
    */
-  CompletableFuture<BatchQueryResult> executeQuery(String sql);
+  CompletableFuture<BatchedQueryResult> executeQuery(String sql);
 
   /**
    * Execute a query (push or pull) and receive all result rows together, once the query has
@@ -548,19 +547,24 @@ once the query has completed:
    * @param properties query properties.
    * @return query result.
    */
-  CompletableFuture<BatchQueryResult> executeQuery(String sql, Map<String, Object> properties);
+  CompletableFuture<BatchedQueryResult> executeQuery(String sql, Map<String, Object> properties);
 ```
 where
 ```
-public interface BatchQueryResult {
+/**
+ * The result of a query (push or pull), returned as a single batch once the query has finished
+ * executing. For non-terminating push queries, {@code StreamedQueryResult} should be used instead.
+ */
+public interface BatchedQueryResult {
 
   List<String> columnNames();
 
   List<ColumnType> columnTypes();
 
   String queryID();
-  
-  List<Rows> rows();
+
+  List<Row> rows();
+}
 ```
 
 For a query to "complete" could mean:
@@ -571,7 +575,7 @@ For a query to "complete" could mean:
 We may want to introduce a limit to the number of rows that may be returned from these `executeQuery()` methods,
 in order to decrease the likelihood of running out of memory.
 
-For `BatchQueryResult`, the `columnNames()` and `columnTypes()` methods are not strictly necessary as this same information is contained in `Row`
+For `BatchedQueryResult`, the `columnNames()` and `columnTypes()` methods are not strictly necessary as this same information is contained in `Row`
 and (unlike the `StreamedQueryResult`) the rows are returned at the same time as the query result object itself.
 I think it's nice to have them for purposes of consistency but we remove them if others think the additional methods are redundant.
 

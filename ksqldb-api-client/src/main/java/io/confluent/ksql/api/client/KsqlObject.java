@@ -156,6 +156,15 @@ public class KsqlObject {
     return new KsqlObject(delegate.copy());
   }
 
+  public String toJsonString() {
+    return delegate.toString();
+  }
+
+  @Override
+  public String toString() {
+    return toJsonString();
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

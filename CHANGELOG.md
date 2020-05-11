@@ -10,12 +10,11 @@
 * add GROUP BY support for any key names ([#4899](https://github.com/confluentinc/ksql/pull/4899)) ([e7cbdfc](https://github.com/confluentinc/ksql/commit/e7cbdfcc8c9853e2ae6dfcaf670e04f07ccd5444)), closes [#4898](https://github.com/confluentinc/ksql/issues/4898)
 * partition-by primitive key support (#4098) ([7addf88](https://github.com/confluentinc/ksql/commit/7addf8856a6d62a6890a5f2520eead26538233a6)), closes [#4098](https://github.com/confluentinc/ksql/issues/4098)
 * add KsqlQueryStatus to decouple from KafkaStreams.State ([#5029](https://github.com/confluentinc/ksql/pull/5029)) ([e8cbcde](https://github.com/confluentinc/ksql/commit/e8cbcde548e1f3078b1396173a3f55f86ee20626))
-* add multi-join expression support ([#5081](https://github.com/confluentinc/ksql/pull/5081)) ([002cd5a](https://github.com/confluentinc/ksql/commit/002cd5ad6473cbb000291e32ebe5a459d2870b61))
 * Adds rate limiting to pull queries ([#4951](https://github.com/confluentinc/ksql/pull/4951)) ([6284111](https://github.com/confluentinc/ksql/commit/6284111652252b63cfc233bdfc3e08dbff983bbd))
 * Do not allow access to new streaming endpoints using HTTP1.x ([#5193](https://github.com/confluentinc/ksql/pull/5193)) ([8b90035](https://github.com/confluentinc/ksql/commit/8b90035c6facf47d81dfd1616784b191141dce31))
 * fail startup if command contains incompatible version ([#5104](https://github.com/confluentinc/ksql/pull/5104)) ([a1751b1](https://github.com/confluentinc/ksql/commit/a1751b1689532ef9abd436d5f27fe9aa8ff555ac))
 * klip-14 - rowtime as pseduocolumn ([#5150](https://github.com/confluentinc/ksql/pull/5150)) ([d541420](https://github.com/confluentinc/ksql/commit/d541420acf61f0e0e7b25d91120886007dbdae01))
-* scatter gather query status from all servers in cluster for 'SHOW QUERIES [EXTENDED]' statement ([#4875](https://github.com/confluentinc/ksql/pull/4875)) ([7385a31](https://github.com/confluentinc/ksql/commit/7385a31dd33293b76e594649213da2abb81b8ddf))
+* 'SHOW QUERIES [EXTENDED]' statement returns results for all nodes in the cluster ([#4875](https://github.com/confluentinc/ksql/pull/4875)) ([7385a31](https://github.com/confluentinc/ksql/commit/7385a31dd33293b76e594649213da2abb81b8ddf))
 * transient queries added to show queries output ([#5105](https://github.com/confluentinc/ksql/pull/5105)) ([e8a2a63](https://github.com/confluentinc/ksql/commit/e8a2a63210219cbac7d979ec0915f1d2016398e2))
 
 ### Bug Fixes
@@ -72,8 +71,10 @@ This only affects new statements. Any view previously created via a `CREATE STRE
     Backward compatibility: existing running queries will not be affected by this change, and they will continue to run with the same column names. Any statements executed after the upgrade will use the new names where no explicit alias is provided. Add explicit aliases to your statements if you require the old names, for example: `SELECT someStruct->someField AS SOMESTRUCT__SOMEFIELD, ...`
 
 * Existing queries that reference a single GROUP BY column in the projection would fail if they were resubmitted, due to a duplicate column. The same existing queries will continue to run if already running, i.e. this is only a change for newly submitted queries. Existing queries will use the old query semantics.
-* Any existing persistent queries, e.g. those created with `CREATE STREAM AS SELECT`, `CREATE TABLE AS SELECT` or `INSERT INTO`, will be unaffected: their column names will not change. Pull queries will be unaffected. Push queries, which rely on auto-generated column names, may see a change in column names.
+* Push queries, which rely on auto-generated column names, may see changes in column names. Pull queries and any existing persistent queries are unaffected, e.g. those created with `CREATE STREAM AS SELECT`, `CREATE TABLE AS SELECT` or `INSERT INTO`.
 * The ksqlDB server no longer ships with Jetty. This means that when you start the server, you must supply Jetty-specific dependencies, like certain login modules used for basic authentication, by using the KSQL_CLASSPATH environment variable for them to be found.
+
+    See [how to configure ksqlDB for basic HTTP authentication](https://github.com/confluentinc/ksql/blob/0.9.0-ksqldb/docs/operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-basic-http-authentication)
 
 ## [0.8.1](https://github.com/confluentinc/ksql/releases/tag/v0.8.1-ksqldb) (2020-03-30)
 

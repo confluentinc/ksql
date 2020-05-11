@@ -6,8 +6,8 @@
     {
       "name": "exp",
       "statements": [
-        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT exp(i) i, exp(l) l, exp(d) d FROM INPUT;"
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, exp(i) i, exp(l) l, exp(d) d FROM INPUT;"
       ],
       "inputs": [
         {"topic": "input", "value": {"i": null, "l": null, "d": null}},
@@ -25,8 +25,8 @@
     {
       "name": "ln",
       "statements": [
-        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ln(i) i, ln(l) l, ln(d) d FROM INPUT;"
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, ln(i) i, ln(l) l, ln(d) d FROM INPUT;"
       ],
       "inputs": [
         {"topic": "input", "value": {"i": null, "l": null, "d": null}},
@@ -44,8 +44,8 @@
     {
       "name": "sqrt",
       "statements": [
-        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT sqrt(i) i, sqrt(l) l, sqrt(d) d FROM INPUT;"
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, sqrt(i) i, sqrt(l) l, sqrt(d) d FROM INPUT;"
       ],
       "inputs": [
         {"topic": "input", "value": {"i": null, "l": null, "d": null}},
@@ -63,8 +63,8 @@
     {
       "name": "sign",
       "statements": [
-        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT sign(i) i, sign(l) l, sign(d) d FROM INPUT;"
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, sign(i) i, sign(l) l, sign(d) d FROM INPUT;"
       ],
       "inputs": [
         {"topic": "input", "value": {"i": null, "l": null, "d": null}},
@@ -82,8 +82,8 @@
     {
       "name": "floor",
       "statements": [
-        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE, b DECIMAL(2,1)) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM OUTPUT AS SELECT floor(i) i, floor(l) l, floor(d) d, floor(b) b FROM INPUT;"
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE, b DECIMAL(2,1)) WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT K, floor(i) i, floor(l) l, floor(d) d, floor(b) b FROM INPUT;"
       ],
       "inputs": [
         {"topic": "input", "value": {"i": null, "l": null, "d": null}},
@@ -119,8 +119,8 @@
     {
       "name": "calculate CEIL function",
       "statements": [
-        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE, b DECIMAL(2,1)) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM OUTPUT AS SELECT ceil(i) i, ceil(l) l, ceil(d) d, ceil(b) b FROM INPUT;"
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE, b DECIMAL(2,1)) WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT K, ceil(i) i, ceil(l) l, ceil(d) d, ceil(b) b FROM INPUT;"
       ],
       "inputs": [
         {"topic": "input", "value": {"i": null, "l": null, "d": null}},
@@ -156,8 +156,8 @@
     {
       "name": "abs",
       "statements": [
-        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE, b DECIMAL(2,1)) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM OUTPUT AS SELECT abs(i) i, abs(l) l, abs(d) d, abs(b) b FROM INPUT;"
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE, b DECIMAL(2,1)) WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT K, abs(i) i, abs(l) l, abs(d) d, abs(b) b FROM INPUT;"
       ],
       "inputs": [
         {"topic": "input", "value": {"i": null, "l": null, "d": null}},
@@ -175,8 +175,8 @@
     {
       "name": "round",
       "statements": [
-        "CREATE STREAM test (v DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ROUND(v) as R0, ROUND(v, 0) as R00, ROUND(v, 1) as R1, ROUND(v, 2) as R2, ROUND(v, 10) as R10, ROUND(v , -1) as 1R , ROUND(v , -2) as 2R  FROM test;"
+        "CREATE STREAM test (K STRING KEY, v DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, ROUND(v) as R0, ROUND(v, 0) as R00, ROUND(v, 1) as R1, ROUND(v, 2) as R2, ROUND(v, 10) as R10, ROUND(v , -1) as 1R , ROUND(v , -2) as 2R  FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"v" : 1.2}},
@@ -212,8 +212,8 @@
     {
       "name": "round with large DECIMAL values",
       "statements": [
-        "CREATE STREAM test (v DECIMAL(33, 16)) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT ROUND(v) as R0, ROUND(v, 0) as R00, ROUND(v, 1) as R1, ROUND(v, 2) as R2, ROUND(v, 10) as R10, ROUND(v , -1) as 1R , ROUND(v , -2) as 2R  FROM test;"
+        "CREATE STREAM test (ID STRING KEY, v DECIMAL(33, 16)) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT ID, ROUND(v) as R0, ROUND(v, 0) as R00, ROUND(v, 1) as R1, ROUND(v, 2) as R2, ROUND(v, 10) as R10, ROUND(v , -1) as 1R , ROUND(v , -2) as 2R  FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": "12345678987654321.2345678987654321"}
@@ -229,7 +229,7 @@
           {
             "name": "OUTPUT",
             "type": "stream",
-            "schema": "ROWKEY STRING KEY, R0 DECIMAL(17,0), R00 DECIMAL(33,16), R1 DECIMAL(33,16), R2 DECIMAL(33,16), R10 DECIMAL(33,16), 1R DECIMAL(33,16), 2R DECIMAL(33,16)"
+            "schema": "ID STRING KEY, R0 DECIMAL(17,0), R00 DECIMAL(33,16), R1 DECIMAL(33,16), R2 DECIMAL(33,16), R10 DECIMAL(33,16), 1R DECIMAL(33,16), 2R DECIMAL(33,16)"
           }
         ]
       }

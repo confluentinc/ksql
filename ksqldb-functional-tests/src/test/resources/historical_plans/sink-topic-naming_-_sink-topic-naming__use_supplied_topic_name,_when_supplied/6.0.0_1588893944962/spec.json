@@ -1,0 +1,66 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893944962,
+  "path" : "query-validation-tests/sink-topic-naming.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SOURCE VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "sink-topic-naming: use supplied topic name, when supplied",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "source" : "s1"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "Fred",
+      "key" : "1",
+      "value" : {
+        "SOURCE" : "s1"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "Fred",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT WITH(KAFKA_TOPIC = 'Fred') AS SELECT * FROM TEST;" ],
+    "properties" : {
+      "ksql.output.topic.name.prefix" : "some-prefix-"
+    },
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "Fred",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

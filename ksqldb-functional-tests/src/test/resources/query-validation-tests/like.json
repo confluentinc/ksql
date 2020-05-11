@@ -7,8 +7,8 @@
     {
       "name": "literal",
       "statements": [
-        "CREATE STREAM INPUT (id INT, val VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT id FROM INPUT WHERE val LIKE '%foo%';"
+        "CREATE STREAM INPUT (K STRING KEY, id INT, val VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, id FROM INPUT WHERE val LIKE '%foo%';"
       ],
       "inputs": [
         {"topic": "input", "value": {"id": 1, "val": "barfoobaz"}}
@@ -20,8 +20,8 @@
     {
       "name": "exp",
       "statements": [
-        "CREATE STREAM INPUT (id INT, val VARCHAR, pattern VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT id FROM INPUT WHERE val LIKE pattern;"
+        "CREATE STREAM INPUT (K STRING KEY, id INT, val VARCHAR, pattern VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, id FROM INPUT WHERE val LIKE pattern;"
       ],
       "inputs": [
         {"topic": "input", "value": {"id": 1, "val": "foo", "pattern": "foo"}},
@@ -38,8 +38,8 @@
     {
       "name": "escape",
       "statements": [
-        "CREATE STREAM INPUT (id INT, val VARCHAR, pattern VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT id FROM INPUT WHERE val LIKE pattern ESCAPE '!';"
+        "CREATE STREAM INPUT (K STRING KEY, id INT, val VARCHAR, pattern VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, id FROM INPUT WHERE val LIKE pattern ESCAPE '!';"
       ],
       "inputs": [
         {"topic": "input", "value": {"id": 1, "val": "%", "pattern": "!%"}},

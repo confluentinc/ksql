@@ -353,10 +353,8 @@ public class SchemaKStream<K> {
           + "See https://github.com/confluentinc/ksql/issues/4385.");
     }
 
-    final ExecutionStep<KStreamHolder<Struct>> step = ksqlConfig
-        .getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)
-        ? ExecutionStepFactory.streamSelectKey(contextStacker, sourceStep, keyExpression)
-        : ExecutionStepFactory.streamSelectKeyV1(contextStacker, sourceStep, keyExpression);
+    final ExecutionStep<KStreamHolder<Struct>> step = ExecutionStepFactory
+        .streamSelectKey(contextStacker, sourceStep, keyExpression);
 
     return new SchemaKStream<>(
         step,

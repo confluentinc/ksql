@@ -16,13 +16,11 @@
 package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * The user supplied projection.
@@ -39,11 +37,9 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
       final PlanNode source,
       final List<SelectExpression> projectExpressions,
       final LogicalSchema schema,
-      final Optional<ColumnName> keyFieldName,
-      final List<SelectItem> selectItems,
-      final boolean anyKeyName
+      final List<SelectItem> selectItems
   ) {
-    super(id, source, projectExpressions, schema, keyFieldName, false, anyKeyName);
+    super(id, source, projectExpressions, schema, false);
     this.projection = Projection.of(selectItems);
   }
 

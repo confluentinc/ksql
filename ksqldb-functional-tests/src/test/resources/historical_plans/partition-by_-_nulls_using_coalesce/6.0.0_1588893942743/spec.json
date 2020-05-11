@@ -1,0 +1,85 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893942743,
+  "path" : "query-validation-tests/partition-by.json",
+  "schemas" : {
+    "CSAS_REPARTITIONED_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR> NOT NULL",
+    "CSAS_REPARTITIONED_0.REPARTITIONED" : "STRUCT<ID BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "nulls using coalesce",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "fred"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "NAME" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : { }
+    } ],
+    "outputs" : [ {
+      "topic" : "REPARTITIONED",
+      "key" : "fred",
+      "value" : {
+        "ID" : 0
+      }
+    }, {
+      "topic" : "REPARTITIONED",
+      "key" : "default",
+      "value" : {
+        "ID" : 1
+      }
+    }, {
+      "topic" : "REPARTITIONED",
+      "key" : "default",
+      "value" : {
+        "ID" : 2
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "REPARTITIONED",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar) with (kafka_topic='test_topic', value_format = 'json');", "CREATE STREAM REPARTITIONED AS select COALESCE(name, 'default'), id from TEST partition by COALESCE(name, 'default');" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "REPARTITIONED",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

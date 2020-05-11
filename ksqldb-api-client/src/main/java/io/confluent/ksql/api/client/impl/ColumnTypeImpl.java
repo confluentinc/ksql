@@ -20,7 +20,7 @@ import java.util.Objects;
 
 public class ColumnTypeImpl implements ColumnType {
 
-  private Type type;
+  private final Type type;
 
   public ColumnTypeImpl(final String type) {
     this(Type.valueOf(type));

@@ -1,0 +1,131 @@
+{
+  "plan" : [ {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM EVENTS (K STRING KEY, ID INTEGER, FIELD0 STRING) WITH (KAFKA_TOPIC='events', VALUE_FORMAT='json');",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "EVENTS",
+      "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD0` STRING",
+      "topicName" : "events",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }
+    }
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM EVENTSTEST AS SELECT\n  EVENTS.K K,\n  EVENTS.ID ID,\n  'x_0' FIELD1,\n  EVENTS.FIELD0 FIELD0\nFROM EVENTS EVENTS\nWHERE (((((EVENTS.ID = 1) OR (EVENTS.ID = 2)) OR (EVENTS.ID = 3)) OR (EVENTS.ID = 4)) AND ((((((((((((((((((((((((((((((((((((((((((((((((EVENTS.FIELD0 = '0x10') OR (EVENTS.FIELD0 = '0x11')) OR (EVENTS.FIELD0 = '0x12')) OR (EVENTS.FIELD0 = '0x13')) OR (EVENTS.FIELD0 = '0x14')) OR (EVENTS.FIELD0 = '0x15')) OR (EVENTS.FIELD0 = '0x16')) OR (EVENTS.FIELD0 = '0x17')) OR (EVENTS.FIELD0 = '0x18')) OR (EVENTS.FIELD0 = '0x19')) OR (EVENTS.FIELD0 = '0x1A')) OR (EVENTS.FIELD0 = '0x1B')) OR (EVENTS.FIELD0 = '0x1C')) OR (EVENTS.FIELD0 = '0x1D')) OR (EVENTS.FIELD0 = '0x1E')) OR (EVENTS.FIELD0 = '0x1F')) OR (EVENTS.FIELD0 = '0x20')) OR (EVENTS.FIELD0 = '0x21')) OR (EVENTS.FIELD0 = '0x22')) OR (EVENTS.FIELD0 = '0x23')) OR (EVENTS.FIELD0 = '0x24')) OR (EVENTS.FIELD0 = '0x25')) OR (EVENTS.FIELD0 = '0x26')) OR (EVENTS.FIELD0 = '0x27')) OR (EVENTS.FIELD0 = '0x28')) OR (EVENTS.FIELD0 = '0x29')) OR (EVENTS.FIELD0 = '0x2A')) OR (EVENTS.FIELD0 = '0x2B')) OR (EVENTS.FIELD0 = '0x2C')) OR (EVENTS.FIELD0 = '0x2D')) OR (EVENTS.FIELD0 = '0x2E')) OR (EVENTS.FIELD0 = '0x2F')) OR (EVENTS.FIELD0 = '0x30')) OR (EVENTS.FIELD0 = '0x31')) OR (EVENTS.FIELD0 = '0x32')) OR (EVENTS.FIELD0 = '0x33')) OR (EVENTS.FIELD0 = '0x34')) OR (EVENTS.FIELD0 = '0x35')) OR (EVENTS.FIELD0 = '0x36')) OR (EVENTS.FIELD0 = '0x37')) OR (EVENTS.FIELD0 = '0x38')) OR (EVENTS.FIELD0 = '0x39')) OR (EVENTS.FIELD0 = '0x3A')) OR (EVENTS.FIELD0 = '0x3B')) OR (EVENTS.FIELD0 = '0x3C')) OR (EVENTS.FIELD0 = '0x3D')) OR (EVENTS.FIELD0 = '0x3E')) OR (EVENTS.FIELD0 = '0x3F')))\nEMIT CHANGES",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "EVENTSTEST",
+      "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD1` STRING, `FIELD0` STRING",
+      "topicName" : "EVENTSTEST",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }
+    },
+    "queryPlan" : {
+      "sources" : [ "EVENTS" ],
+      "sink" : "EVENTSTEST",
+      "physicalPlan" : {
+        "@type" : "streamSinkV1",
+        "properties" : {
+          "queryContext" : "EVENTSTEST"
+        },
+        "source" : {
+          "@type" : "streamSelectV1",
+          "properties" : {
+            "queryContext" : "Project"
+          },
+          "source" : {
+            "@type" : "streamFilterV1",
+            "properties" : {
+              "queryContext" : "WhereFilter"
+            },
+            "source" : {
+              "@type" : "streamSourceV1",
+              "properties" : {
+                "queryContext" : "KsqlTopic/Source"
+              },
+              "topicName" : "events",
+              "formats" : {
+                "keyFormat" : {
+                  "format" : "KAFKA"
+                },
+                "valueFormat" : {
+                  "format" : "JSON"
+                }
+              },
+              "sourceSchema" : "`K` STRING KEY, `ID` INTEGER, `FIELD0` STRING"
+            },
+            "filterExpression" : "(((((ID = 1) OR (ID = 2)) OR (ID = 3)) OR (ID = 4)) AND ((((((((((((((((((((((((((((((((((((((((((((((((FIELD0 = '0x10') OR (FIELD0 = '0x11')) OR (FIELD0 = '0x12')) OR (FIELD0 = '0x13')) OR (FIELD0 = '0x14')) OR (FIELD0 = '0x15')) OR (FIELD0 = '0x16')) OR (FIELD0 = '0x17')) OR (FIELD0 = '0x18')) OR (FIELD0 = '0x19')) OR (FIELD0 = '0x1A')) OR (FIELD0 = '0x1B')) OR (FIELD0 = '0x1C')) OR (FIELD0 = '0x1D')) OR (FIELD0 = '0x1E')) OR (FIELD0 = '0x1F')) OR (FIELD0 = '0x20')) OR (FIELD0 = '0x21')) OR (FIELD0 = '0x22')) OR (FIELD0 = '0x23')) OR (FIELD0 = '0x24')) OR (FIELD0 = '0x25')) OR (FIELD0 = '0x26')) OR (FIELD0 = '0x27')) OR (FIELD0 = '0x28')) OR (FIELD0 = '0x29')) OR (FIELD0 = '0x2A')) OR (FIELD0 = '0x2B')) OR (FIELD0 = '0x2C')) OR (FIELD0 = '0x2D')) OR (FIELD0 = '0x2E')) OR (FIELD0 = '0x2F')) OR (FIELD0 = '0x30')) OR (FIELD0 = '0x31')) OR (FIELD0 = '0x32')) OR (FIELD0 = '0x33')) OR (FIELD0 = '0x34')) OR (FIELD0 = '0x35')) OR (FIELD0 = '0x36')) OR (FIELD0 = '0x37')) OR (FIELD0 = '0x38')) OR (FIELD0 = '0x39')) OR (FIELD0 = '0x3A')) OR (FIELD0 = '0x3B')) OR (FIELD0 = '0x3C')) OR (FIELD0 = '0x3D')) OR (FIELD0 = '0x3E')) OR (FIELD0 = '0x3F')))"
+          },
+          "selectExpressions" : [ "ID AS ID", "'x_0' AS FIELD1", "FIELD0 AS FIELD0" ]
+        },
+        "formats" : {
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        },
+        "topicName" : "EVENTSTEST"
+      },
+      "queryId" : "CSAS_EVENTSTEST_0"
+    }
+  } ],
+  "configs" : {
+    "ksql.extension.dir" : "ext",
+    "ksql.streams.cache.max.bytes.buffering" : "0",
+    "ksql.security.extension.class" : null,
+    "ksql.transient.prefix" : "transient_",
+    "ksql.persistence.wrap.single.values" : "true",
+    "ksql.authorization.cache.expiry.time.secs" : "30",
+    "ksql.schema.registry.url" : "",
+    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+    "ksql.output.topic.name.prefix" : "",
+    "ksql.streams.auto.offset.reset" : "earliest",
+    "ksql.query.pull.enable.standby.reads" : "false",
+    "ksql.connect.url" : "http://localhost:8083",
+    "ksql.service.id" : "some.ksql.service.id",
+    "ksql.internal.topic.min.insync.replicas" : "1",
+    "ksql.streams.shutdown.timeout.ms" : "300000",
+    "ksql.internal.topic.replicas" : "1",
+    "ksql.insert.into.values.enabled" : "true",
+    "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",
+    "ksql.query.pull.max.qps" : "2147483647",
+    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
+    "ksql.access.validator.enable" : "auto",
+    "ksql.streams.bootstrap.servers" : "localhost:0",
+    "ksql.streams.commit.interval.ms" : "2000",
+    "ksql.metric.reporters" : "",
+    "ksql.query.pull.metrics.enabled" : "false",
+    "ksql.streams.auto.commit.interval.ms" : "0",
+    "ksql.metrics.extension" : null,
+    "ksql.streams.topology.optimization" : "all",
+    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.streams.num.stream.threads" : "4",
+    "ksql.timestamp.throw.on.invalid" : "false",
+    "ksql.authorization.cache.max.entries" : "10000",
+    "ksql.metrics.tags.custom" : "",
+    "ksql.pull.queries.enable" : "true",
+    "ksql.udfs.enabled" : "true",
+    "ksql.udf.enable.security.manager" : "true",
+    "ksql.connect.worker.config" : "",
+    "ksql.sink.window.change.log.additional.retention" : "1000000",
+    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.udf.collect.metrics" : "false",
+    "ksql.persistent.prefix" : "query_",
+    "ksql.query.persistent.active.limit" : "2147483647"
+  }
+}

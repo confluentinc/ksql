@@ -164,12 +164,10 @@ public final class QueryExecutor {
     final BuildResult built =
         kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
 
-    final LogicalSchema transientSchema = buildTransientQuerySchema(schema);
-
     return new TransientQueryMetadata(
         statementText,
         built.kafkaStreams,
-        transientSchema,
+        schema,
         sources,
         planSummary,
         queue,
@@ -222,12 +220,10 @@ public final class QueryExecutor {
     final BuildResult built =
         kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
 
-    final LogicalSchema transientSchema = buildTransientQuerySchema(schema);
-
     return new QueryMetadata(
         statementText,
         built.kafkaStreams,
-        transientSchema,
+        schema,
         sources,
         planSummary,
         applicationId,
@@ -440,15 +436,5 @@ public final class QueryExecutor {
             queryId,
             contextStacker
         ));
-  }
-
-  /*
-   * Transient queries only return value columns, so the schema of a transient query should
-   * only have the value columns.
-   */
-  private static LogicalSchema buildTransientQuerySchema(final LogicalSchema fullSchema) {
-    final LogicalSchema.Builder builder = LogicalSchema.builder();
-    builder.valueColumns(fullSchema.value());
-    return builder.build();
   }
 }

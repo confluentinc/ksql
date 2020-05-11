@@ -6,8 +6,8 @@
     {
       "name": "non-array to array",
       "statements": [
-        "CREATE STREAM TEST (f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(f0 as ARRAY<INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as ARRAY<INTEGER>) FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -17,8 +17,8 @@
     {
       "name": "array to array with same schema",
       "statements": [
-        "CREATE STREAM TEST (f0 ARRAY<INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(f0 as ARRAY<INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 ARRAY<INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as ARRAY<INTEGER>) FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"f0": [1, 3]}}
@@ -30,8 +30,8 @@
     {
       "name": "array to array with different element type",
       "statements": [
-        "CREATE STREAM TEST (f0 ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(f0 as ARRAY<INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as ARRAY<INTEGER>) FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -41,8 +41,8 @@
     {
       "name": "non-map to map",
       "statements": [
-        "CREATE STREAM TEST (f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(f0 as MAP<VARCHAR, INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as MAP<VARCHAR, INTEGER>) FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -52,8 +52,8 @@
     {
       "name": "map to map with same schema",
       "statements": [
-        "CREATE STREAM TEST (f0 MAP<VARCHAR, INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(f0 as MAP<VARCHAR, INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 MAP<VARCHAR, INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as MAP<VARCHAR, INTEGER>) FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"f0": {"this": 1}}}
@@ -65,8 +65,8 @@
     {
       "name": "map to map with different value type",
       "statements": [
-        "CREATE STREAM TEST (f0 MAP<STRING, BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(f0 as MAP<STRING, INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 MAP<STRING, BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as MAP<STRING, INTEGER>) FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -76,8 +76,8 @@
     {
       "name": "non-struct to struct",
       "statements": [
-        "CREATE STREAM TEST (f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(f0 as STRUCT<F0 VARCHAR, F1 INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRUCT<F0 VARCHAR, F1 INTEGER>) FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -87,8 +87,8 @@
     {
       "name": "struct to struct with same schema",
       "statements": [
-        "CREATE STREAM TEST (f0 STRUCT<F0 INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(f0 as STRUCT<F0 INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 STRUCT<F0 INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRUCT<F0 INTEGER>) FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"f0": {"f0": 1}}}
@@ -100,8 +100,8 @@
     {
       "name": "struct to struct with different schema",
       "statements": [
-        "CREATE STREAM TEST (f0 STRUCT<F0 BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(f0 as STRUCT<F0 INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 STRUCT<F0 BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRUCT<F0 INTEGER>) FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -111,8 +111,8 @@
     {
       "name": "to null",
       "statements": [
-        "CREATE STREAM TEST (f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(f0 as NULL) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as NULL) FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
@@ -122,8 +122,8 @@
     {
       "name": "no op",
       "statements": [
-        "CREATE STREAM TEST (b BOOLEAN, i INT, bi BIGINT, d DOUBLE, s VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT cast(b as BOOLEAN), cast(i as INT), cast(bi as BIGINT), cast(d as DOUBLE), cast(s as STRING) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, b BOOLEAN, i INT, bi BIGINT, d DOUBLE, s VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(b as BOOLEAN), cast(i as INT), cast(bi as BIGINT), cast(d as DOUBLE), cast(s as STRING) FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": "true,10,101,10.3,bob"}
@@ -135,8 +135,8 @@
     {
       "name": "of nulls",
       "statements": [
-        "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT cast(null as BOOLEAN), cast(null as INT), cast(null as BIGINT), cast(null as DOUBLE), cast(null as STRING), cast(null AS ARRAY<INT>), cast(null AS MAP<STRING, INT>), cast(null AS STRUCT<F0 INT>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(null as BOOLEAN), cast(null as INT), cast(null as BIGINT), cast(null as DOUBLE), cast(null as STRING), cast(null AS ARRAY<INT>), cast(null AS MAP<STRING, INT>), cast(null AS STRUCT<F0 INT>) FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {}}
@@ -148,8 +148,8 @@
     {
       "name": "decimal to decimal",
       "statements": [
-        "CREATE STREAM TEST (foo DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUT AS SELECT cast(foo AS DECIMAL(5,3)) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, foo DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUT AS SELECT ID, cast(foo AS DECIMAL(5,3)) FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "value": "10.12"},
@@ -165,8 +165,8 @@
     {
       "name": "integer to decimal",
       "statements": [
-        "CREATE STREAM TEST (foo INTEGER) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE STREAM OUT AS SELECT cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, foo INTEGER) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT ID, cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "value": {"foo": 1}},
@@ -184,8 +184,8 @@
     {
       "name": "double to decimal",
       "statements": [
-        "CREATE STREAM TEST (foo DOUBLE) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE STREAM OUT AS SELECT cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, foo DOUBLE) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT ID, cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "value": {"foo": 0.1}},
@@ -207,8 +207,8 @@
     {
       "name": "string to decimal",
       "statements": [
-        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE STREAM OUT AS SELECT cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, foo VARCHAR) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT ID, cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;"
       ],
       "inputs": [
         {"topic":  "test_topic", "value": {"foo": "0.1"}},
@@ -230,8 +230,8 @@
     {
       "name": "decimal to other",
       "statements": [
-        "CREATE STREAM TEST (val DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE STREAM OUT AS SELECT cast(val AS INT) as i, cast(val AS BIGINT) as l, cast(val as DOUBLE) as d, cast(val AS STRING) as s FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, val DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT ID, cast(val AS INT) as i, cast(val AS BIGINT) as l, cast(val as DOUBLE) as d, cast(val AS STRING) as s FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"val": "00.00"}},
@@ -249,8 +249,8 @@
     {
       "name": "integer to bigint",
       "statements": [
-        "CREATE STREAM INPUT (col0 INT, col1 INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE STREAM OUT AS SELECT cast((col0 - col1) AS BIGINT) as VAL FROM INPUT;"
+        "CREATE STREAM INPUT (ID STRING KEY, col0 INT, col1 INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT ID, cast((col0 - col1) AS BIGINT) as VAL FROM INPUT;"
       ],
       "inputs": [
         {"topic":  "test_topic", "value": {"col0": 1, "col1": 2}}
@@ -262,8 +262,8 @@
     {
       "name": "integer to string",
       "statements": [
-        "CREATE STREAM INPUT (col0 INT, col1 INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE STREAM OUT AS SELECT cast((col0 - col1) AS STRING) as VAL FROM INPUT;"
+        "CREATE STREAM INPUT (ID STRING KEY, col0 INT, col1 INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT ID, cast((col0 - col1) AS STRING) as VAL FROM INPUT;"
       ],
       "inputs": [
         {"topic":  "test_topic", "value": {"col0": 1, "col1": 2}}
@@ -275,8 +275,8 @@
     {
       "name": "double to int",
       "statements": [
-        "CREATE STREAM INPUT (col0 DOUBLE, col1 DOUBLE) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE STREAM OUT AS SELECT cast((col0 - col1) AS INT) as VAL FROM INPUT;"
+        "CREATE STREAM INPUT (ID STRING KEY, col0 DOUBLE, col1 DOUBLE) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT ID, cast((col0 - col1) AS INT) as VAL FROM INPUT;"
       ],
       "inputs": [
         {"topic":  "test_topic", "value": {"col0": 3.3, "col1": 2.1}}

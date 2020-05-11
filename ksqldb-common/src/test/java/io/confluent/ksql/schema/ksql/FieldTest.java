@@ -23,9 +23,9 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.schema.ksql.types.Field;
-import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import org.junit.Test;
 
 public class FieldTest {

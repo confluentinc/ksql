@@ -10,8 +10,8 @@
       "name": "do substring with just pos",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 6) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, SUBSTRING(source, 6) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "some_string"}},
@@ -28,8 +28,8 @@
       "name": "do substring with pos and length",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 6, 3) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS, SUBSTRING(source, 6, null) AS NULL_LEN FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, SUBSTRING(source, 6, 3) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS, SUBSTRING(source, 6, null) AS NULL_LEN FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "some_string"}},
@@ -46,8 +46,8 @@
       "name": "should default to current mode for new queries",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 6) AS SUBSTRING FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, SUBSTRING(source, 6) AS SUBSTRING FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "some_string"}}
@@ -59,7 +59,7 @@
     {
       "name": "in group by",
       "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS SUBSTRING FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
       ],
       "inputs": [
@@ -71,12 +71,12 @@
         {"topic": "test_topic", "value": "the final string"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "so", "value": "so,1"},
-        {"topic": "OUTPUT", "key": "an", "value": "an,1"},
-        {"topic": "OUTPUT", "key": "so", "value": "so,2"},
-        {"topic": "OUTPUT", "key": "an", "value": "an,2"},
-        {"topic": "OUTPUT", "key": "so", "value": "so,3"},
-        {"topic": "OUTPUT", "key": "th", "value": "th,1"}
+        {"topic": "OUTPUT", "key": "so", "value": "1"},
+        {"topic": "OUTPUT", "key": "an", "value": "1"},
+        {"topic": "OUTPUT", "key": "so", "value": "2"},
+        {"topic": "OUTPUT", "key": "an", "value": "2"},
+        {"topic": "OUTPUT", "key": "so", "value": "3"},
+        {"topic": "OUTPUT", "key": "th", "value": "1"}
       ]
     }
   ]

@@ -119,12 +119,12 @@ public class LagReportingAgentFunctionalTest {
     );
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
-        "CREATE TABLE USER_VIEWS AS SELECT count(*) FROM " + PAGE_VIEW_STREAM
+        "CREATE TABLE USER_VIEWS AS SELECT USERID, count(*) FROM " + PAGE_VIEW_STREAM
             + " GROUP BY USERID;"
     );
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
-        "CREATE TABLE USER_LATEST_VIEWTIME AS SELECT max(VIEWTIME) FROM " + PAGE_VIEW_STREAM
+        "CREATE TABLE USER_LATEST_VIEWTIME AS SELECT USERID, max(VIEWTIME) FROM " + PAGE_VIEW_STREAM
             + " GROUP BY USERID;"
     );
   }

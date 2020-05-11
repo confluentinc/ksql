@@ -1,0 +1,84 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893911402,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<F0 INT, TIME BIGINT, WSTART BIGINT, WEND BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "non-join leaves aliased system columns in output's value schema",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "k",
+      "value" : {
+        "F0" : 4
+      },
+      "timestamp" : 1,
+      "window" : {
+        "start" : 12,
+        "end" : 465,
+        "type" : "SESSION"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "k",
+      "value" : {
+        "F0" : 4,
+        "TIME" : 1,
+        "WSTART" : 12,
+        "WEND" : 465
+      },
+      "timestamp" : 1,
+      "window" : {
+        "start" : 12,
+        "end" : 465,
+        "type" : "SESSION"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, F0 INT) WITH (kafka_topic='input', value_format='JSON', window_type='session');", "CREATE STREAM OUTPUT AS SELECT K, F0, ROWTIME AS TIME, WINDOWSTART AS WSTART, WINDOWEND AS WEND FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

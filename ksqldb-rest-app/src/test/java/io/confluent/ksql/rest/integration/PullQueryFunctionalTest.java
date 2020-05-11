@@ -34,7 +34,6 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
@@ -103,7 +102,7 @@ public class PullQueryFunctionalTest {
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+          .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
       SerdeOption.none()
@@ -185,13 +184,13 @@ public class PullQueryFunctionalTest {
 
     makeAdminRequest(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " SELECT " + USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
             + " GROUP BY " + USER_PROVIDER.key() + ";"
     );
 
     waitForTableRows();
 
-    final String sql = "SELECT * FROM " + output + " WHERE ROWKEY = '" + key + "';";
+    final String sql = "SELECT * FROM " + output + " WHERE USERID = '" + key + "';";
 
     // When:
 
@@ -212,7 +211,7 @@ public class PullQueryFunctionalTest {
 
     makeAdminRequest(
         "CREATE TABLE " + output + " AS"
-            + " SELECT COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " SELECT " +  USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
             + " WINDOW TUMBLING (SIZE 1 SECOND)"
             + " GROUP BY " + USER_PROVIDER.key() + ";"
     );
@@ -220,7 +219,7 @@ public class PullQueryFunctionalTest {
     waitForTableRows();
 
     final String sql = "SELECT * FROM " + output
-        + " WHERE ROWKEY = '" + key + "'"
+        + " WHERE USERID = '" + key + "'"
         + " AND WINDOWSTART = " + BASE_TIME + ";";
 
     // When:
@@ -232,7 +231,7 @@ public class PullQueryFunctionalTest {
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(
-        key,                    // ROWKEY
+        key,                    // USERID
         BASE_TIME,              // WINDOWSTART
         BASE_TIME + ONE_SECOND, // WINDOWEND
         1                       // COUNT

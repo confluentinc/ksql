@@ -10,8 +10,8 @@
         "ksql.functions.substring.legacy.args": false
       },
       "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT INITCAP(source) AS INITCAP FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, INITCAP(source) AS INITCAP FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "some_string"}},

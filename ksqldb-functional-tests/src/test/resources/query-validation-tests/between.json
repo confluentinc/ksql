@@ -6,8 +6,8 @@
     {
       "name": "test BETWEEN with integers",
       "statements": [
-        "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 2 AND 4;"
+        "CREATE STREAM TEST (ID STRING KEY, source int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, source AS THING FROM TEST WHERE source BETWEEN 2 AND 4;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"source": null}, "timestamp": 0},
@@ -26,8 +26,8 @@
     {
       "name": "test BETWEEN with bigint",
       "statements": [
-        "CREATE STREAM TEST (source bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 2 AND 4;"
+        "CREATE STREAM TEST (ID STRING KEY, source bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, source AS THING FROM TEST WHERE source BETWEEN 2 AND 4;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"source": null}, "timestamp": 0},
@@ -46,8 +46,8 @@
     {
       "name": "test BETWEEN with floating point",
       "statements": [
-        "CREATE STREAM TEST (source double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 2 AND 3.9;"
+        "CREATE STREAM TEST (ID STRING KEY, source double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, source AS THING FROM TEST WHERE source BETWEEN 2 AND 3.9;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"source": null}, "timestamp": 0},
@@ -66,8 +66,8 @@
     {
       "name": "test BETWEEN with string values",
       "statements": [
-        "CREATE STREAM TEST (source string) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 'b' AND 'c';"
+        "CREATE STREAM TEST (ID STRING KEY, source string) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, source AS THING FROM TEST WHERE source BETWEEN 'b' AND 'c';"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"source": null}, "timestamp": 0},
@@ -86,8 +86,8 @@
     {
       "name": "test BETWEEN with integers and variable values",
       "statements": [
-        "CREATE STREAM TEST (source int, min int, max int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN min AND max;"
+        "CREATE STREAM TEST (ID STRING KEY, source int, min int, max int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, source AS THING FROM TEST WHERE source BETWEEN min AND max;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"source": null, "min":  0, "max": 2}, "timestamp": 0},
@@ -103,8 +103,8 @@
     {
       "name": "test BETWEEN with integers and expressions",
       "statements": [
-        "CREATE STREAM TEST (source int, avg int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source + 2 BETWEEN avg / 2 AND avg * 2;"
+        "CREATE STREAM TEST (ID STRING KEY, source int, avg int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, source AS THING FROM TEST WHERE source + 2 BETWEEN avg / 2 AND avg * 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"source": null, "avg":  10}, "timestamp": 0},
@@ -120,8 +120,8 @@
     {
       "name": "test NOT BETWEEN with integers",
       "statements": [
-        "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source NOT BETWEEN 2 AND 4;"
+        "CREATE STREAM TEST (ID STRING KEY, source int) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, source AS THING FROM TEST WHERE source NOT BETWEEN 2 AND 4;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"source": 1}, "timestamp": 0},
@@ -138,8 +138,8 @@
     {
       "name": "test BETWEEN with array dereference",
       "statements": [
-        "CREATE STREAM TEST (source array<int>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source[2] AS THING FROM TEST WHERE source[2] BETWEEN 2 AND 4;"
+        "CREATE STREAM TEST (ID STRING KEY, source array<int>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, source[2] AS THING FROM TEST WHERE source[2] BETWEEN 2 AND 4;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": {"source": [10,1]}, "timestamp": 0},
@@ -157,8 +157,8 @@
     {
       "name": "test BETWEEN with string values with substring",
       "statements": [
-        "CREATE STREAM TEST (source string) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN SUBSTRING('zb',2) AND 'c';"
+        "CREATE STREAM TEST (ID STRING KEY, source string) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, source AS THING FROM TEST WHERE source BETWEEN SUBSTRING('zb',2) AND 'c';"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": {"source": null}, "timestamp": 0},

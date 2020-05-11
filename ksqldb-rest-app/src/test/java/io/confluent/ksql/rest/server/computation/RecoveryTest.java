@@ -567,10 +567,10 @@ public class RecoveryTest {
   public void shouldRecoverRecreates() {
     server1.submitCommands(
         "CREATE STREAM A (C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "CREATE STREAM B AS SELECT C1 FROM A;",
+        "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;",
         "TERMINATE CsAs_b_0;",
         "DROP STREAM B;",
-        "CREATE STREAM B AS SELECT C2 FROM A;"
+        "CREATE STREAM B AS SELECT ROWKEY, C2 FROM A;"
     );
     shouldRecover(commands);
   }

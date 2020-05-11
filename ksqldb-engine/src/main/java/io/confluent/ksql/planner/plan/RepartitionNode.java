@@ -29,7 +29,6 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -44,7 +43,6 @@ public class RepartitionNode extends PlanNode {
   private final Expression originalPartitionBy;
   private final Expression partitionBy;
   private final KeyField keyField;
-  private final boolean anyKeyEnabled;
   private final boolean internal;
 
   public RepartitionNode(
@@ -54,7 +52,6 @@ public class RepartitionNode extends PlanNode {
       final Expression originalPartitionBy,
       final Expression partitionBy,
       final KeyField keyField,
-      final boolean anyKeyEnabled,
       final boolean internal
   ) {
     super(id, source.getNodeOutputType(), schema, source.getSourceName());
@@ -62,7 +59,6 @@ public class RepartitionNode extends PlanNode {
     this.originalPartitionBy = requireNonNull(originalPartitionBy, "originalPartitionBy");
     this.partitionBy = requireNonNull(partitionBy, "partitionBy");
     this.keyField = requireNonNull(keyField, "keyField");
-    this.anyKeyEnabled = anyKeyEnabled;
     this.internal = internal;
   }
 
@@ -101,10 +97,6 @@ public class RepartitionNode extends PlanNode {
   }
 
   public Expression resolveSelect(final int idx, final Expression expression) {
-    if (!anyKeyEnabled) {
-      return expression;
-    }
-
     return partitionBy.equals(expression)
         ? new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(getSchema().key()).name())
         : expression;
@@ -112,22 +104,8 @@ public class RepartitionNode extends PlanNode {
 
   @Override
   public Stream<ColumnName> resolveSelectStar(
-      final Optional<SourceName> sourceName,
-      final boolean valueOnly
+      final Optional<SourceName> sourceName
   ) {
-    if (!anyKeyEnabled) {
-      final boolean sourceNameMatches =
-          !sourceName.isPresent() || sourceName.equals(getSourceName());
-
-      if (sourceNameMatches && valueOnly) {
-        // Override set of value columns to take into account the repartition:
-        return getSchema().withoutPseudoAndKeyColsInValue().value().stream().map(Column::name);
-      }
-
-      // Set of all columns not changed by a repartition:
-      return super.resolveSelectStar(sourceName, valueOnly);
-    }
-
     if (sourceName.isPresent() && !sourceName.equals(getSourceName())) {
       throw new IllegalArgumentException("Expected sourceName of " + getSourceName()
           + ", but was " + sourceName.get());
@@ -135,12 +113,11 @@ public class RepartitionNode extends PlanNode {
 
     if (internal) {
       // An internal repartition is an impl detail, so should not change the set of columns:
-      return super.resolveSelectStar(sourceName, valueOnly);
+      return source.resolveSelectStar(sourceName);
     }
 
-    return valueOnly
-        ? getSchema().withoutPseudoAndKeyColsInValue().value().stream().map(Column::name)
-        : orderColumns(getSchema().value(), getSchema());
+    // Note: the 'value' columns include the key columns at this point:
+    return orderColumns(getSchema().value(), getSchema());
   }
 
   @Override

@@ -97,6 +97,11 @@ public class QueryExecutorTest {
       .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();
 
+  private static final LogicalSchema TRANSIENT_SINK_SCHEMA = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("col0"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
+      .build();
+
   private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
   private static final PhysicalSchema SINK_PHYSICAL_SCHEMA = PhysicalSchema.from(
       SINK_SCHEMA,
@@ -210,7 +215,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        SINK_SCHEMA,
+        TRANSIENT_SINK_SCHEMA,
         LIMIT
     );
 

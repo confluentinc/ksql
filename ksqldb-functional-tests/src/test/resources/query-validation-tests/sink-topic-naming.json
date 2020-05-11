@@ -6,7 +6,7 @@
     {
       "name": "sink-topic-naming: default topic name is stream name, in upper-case",
       "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OutPut AS SELECT * FROM TEST;"
       ],
       "inputs": [
@@ -22,7 +22,7 @@
         "ksql.output.topic.name.prefix": "some-prefix-"
       },
       "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT WITH(KAFKA_TOPIC = 'Fred') AS SELECT * FROM TEST;"
       ],
       "inputs": [
@@ -38,7 +38,7 @@
         "ksql.output.topic.name.prefix": "some-prefix-"
       },
       "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM TEST;"
       ],
       "inputs": [

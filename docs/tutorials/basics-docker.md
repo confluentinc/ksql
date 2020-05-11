@@ -70,7 +70,7 @@ simulate "user" and "pageview" data:
 
 ```bash
 docker run --network tutorials_default --rm --name datagen-pageviews \
-    confluentinc/ksql-examples:{{ site.cprelease }} \
+    confluentinc/ksqldb-examples:{{ site.cprelease }} \
     ksql-datagen \
         bootstrap-server=kafka:39092 \
         quickstart=pageviews \
@@ -81,7 +81,7 @@ docker run --network tutorials_default --rm --name datagen-pageviews \
 
 ```bash
 docker run --network tutorials_default --rm --name datagen-users \
-    confluentinc/ksql-examples:{{ site.cprelease }} \
+    confluentinc/ksqldb-examples:{{ site.cprelease }} \
     ksql-datagen \
         bootstrap-server=kafka:39092 \
         quickstart=users \
@@ -756,7 +756,7 @@ it running.
 
 ```bash
 docker run --network tutorials_default --rm  \
-  confluentinc/ksql-examples:{{ site.release }} \
+  confluentinc/ksqldb-examples:{{ site.release }} \
   ksql-datagen \
       quickstart=orders \
       format=json \
@@ -1147,7 +1147,7 @@ order data arriving from a local installation vs from a third-party:
 
 ```bash
 docker run --network tutorials_default --rm  --name datagen-orders-local \
-  confluentinc/ksql-examples:{{ site.release }} \
+  confluentinc/ksqldb-examples:{{ site.release }} \
   ksql-datagen \
       quickstart=orders \
       format=json \
@@ -1158,7 +1158,7 @@ docker run --network tutorials_default --rm  --name datagen-orders-local \
 
 ```bash
 docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
-  confluentinc/ksql-examples:{{ site.release }} \
+  confluentinc/ksqldb-examples:{{ site.release }} \
   ksql-datagen \
       quickstart=orders \
       format=json \

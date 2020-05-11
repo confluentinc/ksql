@@ -136,7 +136,6 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
-    assertThat(streamedQueryResult.isComplete(), is(false));
 
     shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size(), true);
 
@@ -154,7 +153,6 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
-    assertThat(streamedQueryResult.isComplete(), is(false));
 
     for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
       final Row row = streamedQueryResult.poll();

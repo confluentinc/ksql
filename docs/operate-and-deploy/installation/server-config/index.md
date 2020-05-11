@@ -353,9 +353,17 @@ unreachable beyond the internal network of the cluster, based on the port bound.
 Once again, you will want to utilize `ksql.advertised.listener` to now refer to the
 internal listener `ksql.internal.listener`.
 
+If you choose to enable pull queries and the high availability functionality which 
+use them, their system internal endpoints must now be whitelisted for skipping
+authentication since they have no user to authenticate, and are now only exposed
+within your internal network.
+
 
 ```properties
 listeners=https://0.0.0.0:8088
 ksql.advertised.listener=https://host1.internal.example.com:8099
+# Port 8099 is available only to the trusted internal network
 ksql.internal.listener=https://0.0.0.0:8099
+# Only necessary when enabling pull queries and HA
+authentication.skip.paths=/heartbeat,/lag
 ```

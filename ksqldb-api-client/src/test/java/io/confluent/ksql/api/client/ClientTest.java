@@ -31,13 +31,16 @@ import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
+import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.client.WebClient;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -57,6 +60,7 @@ public class ClientTest extends BaseApiTest {
   protected static final Map<String, Object> DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES =
       BaseApiTest.DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES.getMap();
   protected static final String DEFAULT_PUSH_QUERY_WITH_LIMIT = "select * from foo emit changes limit 10;";
+  protected static final List<KsqlArray> EXPECTED_ROWS = convertToClientRows(DEFAULT_JSON_ROWS);
 
   protected Client javaClient;
 
@@ -196,6 +200,7 @@ public class ClientTest extends BaseApiTest {
       final Row row = streamedQueryResult.poll();
       verifyRowWithIndex(row, i);
     }
+    assertThat(streamedQueryResult.poll(), is(nullValue()));
 
     verifyPushQueryServerState(DEFAULT_PUSH_QUERY_WITH_LIMIT);
 
@@ -332,7 +337,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(server.getQueryIDs(), hasSize(0));
   }
 
-  private void shouldReceiveRows(
+  private static void shouldReceiveRows(
       final Publisher<Row> publisher,
       final boolean subscriberCompleted
   ) {
@@ -360,13 +365,38 @@ public class ClientTest extends BaseApiTest {
   }
 
   private static void verifyRowWithIndex(final Row row, final int index) {
-    assertThat(row.values(), equalTo(rowWithIndexAsKsqlArray(index)));
+    // verify metadata
+    assertThat(row.values(), equalTo(EXPECTED_ROWS.get(index)));
     assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
     assertThat(row.columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
+
+    // verify type-based getters
+    assertThat(row.getString("f_str"), is("foo" + index));
+    assertThat(row.getInt("f_int"), is(index));
+    assertThat(row.getBoolean("f_bool"), is(index % 2 == 0));
+    assertThat(row.getLong("f_long"), is(Long.valueOf(index * index)));
+    assertThat(row.getDouble("f_double"), is(index + 0.1111));
+    assertThat(row.getDecimal("f_decimal"), is(BigDecimal.valueOf(index + 0.1)));
+    assertThat(row.getKsqlArray("f_array"), is(new KsqlArray().add("s" + index).add("t" + index)));
+    assertThat(row.getKsqlObject("f_map"), is(new KsqlObject().put("k" + index, "v" + index)));
+    assertThat(row.getKsqlObject("f_struct"), is(new KsqlObject().put("F1", "v" + index).put("F2", index)));
+    assertThat(row.getValue("f_null"), is(nullValue()));
+
+    // verify index-based getters are 1-indexed
+    assertThat(row.getString(1), is(row.getString("f_str")));
+
+    // verify isNull() evaluation
+    assertThat(row.isNull("f_null"), is(true));
+    assertThat(row.isNull("f_bool"), is(false));
+
+    // verify exception on invalid cast
+    assertThrows(ClassCastException.class, () -> row.getInt("f_str"));
   }
 
-  private static KsqlArray rowWithIndexAsKsqlArray(final int index) {
-    return new KsqlArray(DEFAULT_JSON_ROWS.get(index).getList());
+  private static List<KsqlArray> convertToClientRows(final List<JsonArray> rows) {
+    return rows.stream()
+        .map(row -> new KsqlArray(row.getList()))
+        .collect(Collectors.toList());
   }
 
   private static class TestSubscriber<T> implements Subscriber<T> {

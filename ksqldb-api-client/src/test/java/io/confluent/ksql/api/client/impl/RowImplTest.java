@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client.impl;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -120,5 +121,10 @@ public class RowImplTest {
     assertThat(row.isNull("f_null"), is(true));
     assertThat(row.isNull("f_bool"), is(false));
     assertThat(row.isNull("f_struct"), is(false));
+  }
+
+  @Test
+  public void shouldThrowExceptionOnInvalidCast() {
+    assertThrows(ClassCastException.class, () -> row.getInt("f_str"));
   }
 }

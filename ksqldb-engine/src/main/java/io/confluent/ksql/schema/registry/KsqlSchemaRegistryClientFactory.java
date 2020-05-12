@@ -29,15 +29,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
-import org.apache.kafka.common.network.Mode;
-import org.apache.kafka.common.security.ssl.SslFactory;
+import org.apache.kafka.common.security.auth.SslEngineFactory;
+import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
 
 /**
  * Configurable Schema Registry client factory, enabling SSL.
  */
 public class KsqlSchemaRegistryClientFactory {
 
-  private final SslFactory sslFactory;
+  private final SSLContext sslContext;
   private final Supplier<RestService> serviceSupplier;
   private final Map<String, Object> schemaRegistryClientConfigs;
   private final SchemaRegistryClientFactory schemaRegistryClientFactory;
@@ -56,17 +56,17 @@ public class KsqlSchemaRegistryClientFactory {
       final KsqlConfig config,
       final Map<String, String> schemaRegistryHttpHeaders
   ) {
-    this(config, newSchemaRegistrySslFactory(config), schemaRegistryHttpHeaders);
+    this(config, newSslContext(config), schemaRegistryHttpHeaders);
   }
 
   public KsqlSchemaRegistryClientFactory(
       final KsqlConfig config,
-      final SslFactory sslFactory,
+      final SSLContext sslContext,
       final Map<String, String> schemaRegistryHttpHeaders
   ) {
     this(config,
         () -> new RestService(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
-        sslFactory,
+        sslContext,
         CachedSchemaRegistryClient::new,
         schemaRegistryHttpHeaders
     );
@@ -78,10 +78,10 @@ public class KsqlSchemaRegistryClientFactory {
   @VisibleForTesting
   KsqlSchemaRegistryClientFactory(final KsqlConfig config,
                                   final Supplier<RestService> serviceSupplier,
-                                  final SslFactory sslFactory,
+                                  final SSLContext sslContext,
                                   final SchemaRegistryClientFactory schemaRegistryClientFactory,
                                   final Map<String, String> httpHeaders) {
-    this.sslFactory = sslFactory;
+    this.sslContext = sslContext;
     this.serviceSupplier = serviceSupplier;
     this.schemaRegistryClientConfigs = config.originalsWithPrefix(
         KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
@@ -92,16 +92,19 @@ public class KsqlSchemaRegistryClientFactory {
   }
 
   /**
-   * Creates an SslFactory configured to be used with the KsqlSchemaRegistryClient.
+   * Creates an SslContext configured to be used with the KsqlSchemaRegistryClient.
    */
-  public static SslFactory newSchemaRegistrySslFactory(final KsqlConfig config) {
-    final SslFactory sslFactory = new SslFactory(Mode.CLIENT);
-    configureSslFactory(config, sslFactory);
-    return sslFactory;
+  public static SSLContext newSslContext(final KsqlConfig config) {
+    final DefaultSslEngineFactory sslFactory = new DefaultSslEngineFactory();
+    configureSslEngineFactory(config, sslFactory);
+    return sslFactory.sslContext();
   }
 
   @VisibleForTesting
-  static void configureSslFactory(final KsqlConfig config, final SslFactory sslFactory) {
+  static void configureSslEngineFactory(
+      final KsqlConfig config,
+      final SslEngineFactory sslFactory
+  ) {
     sslFactory
         .configure(config.valuesWithPrefixOverride(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX));
   }
@@ -112,7 +115,6 @@ public class KsqlSchemaRegistryClientFactory {
     }
   
     final RestService restService = serviceSupplier.get();
-    final SSLContext sslContext = sslFactory.sslEngineBuilder().sslContext();
     if (sslContext != null) {
       restService.setSslSocketFactory(sslContext.getSocketFactory());
     }

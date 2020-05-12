@@ -36,9 +36,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
 import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.network.Mode;
-import org.apache.kafka.common.security.ssl.SslEngineBuilder;
-import org.apache.kafka.common.security.ssl.SslFactory;
+import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,9 +55,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
   private RestService restService;
 
   @Mock
-  private SslFactory sslFactory;
-  @Mock
-  private SslEngineBuilder sslEngineBuilder;
+  private DefaultSslEngineFactory sslEngineFactory;
 
   @Mock
   private KsqlSchemaRegistryClientFactory.SchemaRegistryClientFactory srClientFactory;
@@ -70,9 +66,6 @@ public class KsqlSchemaRegistryClientFactoryTest {
         .thenReturn(mock(CachedSchemaRegistryClient.class));
 
     when(restServiceSupplier.get()).thenReturn(restService);
-
-    when(sslFactory.sslEngineBuilder()).thenReturn(sslEngineBuilder);
-    when(sslEngineBuilder.sslContext()).thenReturn(SSL_CONTEXT);
   }
 
   @Test
@@ -83,10 +76,10 @@ public class KsqlSchemaRegistryClientFactoryTest {
     final Map<String, Object> expectedConfigs = defaultConfigs();
 
     // When:
-    KsqlSchemaRegistryClientFactory.configureSslFactory(config, sslFactory);
+    KsqlSchemaRegistryClientFactory.configureSslEngineFactory(config, sslEngineFactory);
 
     // Then:
-    verify(sslFactory).configure(expectedConfigs);
+    verify(sslEngineFactory).configure(expectedConfigs);
   }
 
   @Test
@@ -100,10 +93,10 @@ public class KsqlSchemaRegistryClientFactoryTest {
     expectedConfigs.put(SslConfigs.SSL_PROTOCOL_CONFIG, "SSLv3");
 
     // When:
-    KsqlSchemaRegistryClientFactory.configureSslFactory(config, sslFactory);
+    KsqlSchemaRegistryClientFactory.configureSslEngineFactory(config, sslEngineFactory);
 
     // Then:
-    verify(sslFactory).configure(expectedConfigs);
+    verify(sslEngineFactory).configure(expectedConfigs);
   }
 
   @Test
@@ -117,11 +110,11 @@ public class KsqlSchemaRegistryClientFactoryTest {
     expectedConfigs.put(SslConfigs.SSL_PROTOCOL_CONFIG, "SSLv3");
 
     // When:
-    KsqlSchemaRegistryClientFactory.configureSslFactory(config, sslFactory);
+    KsqlSchemaRegistryClientFactory.configureSslEngineFactory(config, sslEngineFactory);
 
 
     // Then:
-    verify(sslFactory).configure(expectedConfigs);
+    verify(sslEngineFactory).configure(expectedConfigs);
   }
 
   @Test
@@ -136,9 +129,9 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // When:
     SchemaRegistryClient client1 = new KsqlSchemaRegistryClientFactory(
-        config1, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
+        config1, restServiceSupplier, SSL_CONTEXT, srClientFactory, Collections.emptyMap()).get();
     SchemaRegistryClient client2 = new KsqlSchemaRegistryClientFactory(
-        config2, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
+        config2, restServiceSupplier, SSL_CONTEXT, srClientFactory, Collections.emptyMap()).get();
 
     // Then:
     assertThat(client1, instanceOf(DefaultSchemaRegistryClient.class));
@@ -162,7 +155,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // When:
     new KsqlSchemaRegistryClientFactory(
-        config, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
+        config, restServiceSupplier, SSL_CONTEXT, srClientFactory, Collections.emptyMap()).get();
 
     // Then:
     verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));
@@ -183,12 +176,12 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
   // Can't mock SSLContext.
   private static SSLContext getTestSslContext() {
-    final SslFactory sslFactory = new SslFactory(Mode.CLIENT);
+    final DefaultSslEngineFactory sslEngineFactory = new DefaultSslEngineFactory();
 
     final Map<String, Object> configs = new KsqlConfig(Collections.emptyMap())
         .valuesWithPrefixOverride(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
 
-    sslFactory.configure(configs);
-    return sslFactory.sslEngineBuilder().sslContext();
+    sslEngineFactory.configure(configs);
+    return sslEngineFactory.sslContext();
   }
 }

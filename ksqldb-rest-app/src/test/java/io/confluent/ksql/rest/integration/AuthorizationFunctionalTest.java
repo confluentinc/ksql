@@ -30,10 +30,13 @@ import static org.mockito.Mockito.doThrow;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
+import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
@@ -79,6 +82,8 @@ public class AuthorizationFunctionalTest {
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
+
+  KsqlHostInfoEntity HOST_ENTITY = new KsqlHostInfoEntity("host", 9000);
 
   @Mock
   private KsqlAuthorizationProvider authorizationProvider;
@@ -128,12 +133,12 @@ public class AuthorizationFunctionalTest {
   @Test
   public void shouldDenyAccess_internal() {
     // Given:
-    denyAccess(USER1, "GET", "/clusterStatus");
+    denyAccess(USER1, "POST", "/heartbeat");
 
     // When
     final AssertionError e = assertThrows(
         AssertionError.class,
-        () -> makeClusterStatusRequest(USER1)
+        () -> makeHeartbeat(USER1)
     );
 
     // Then:
@@ -143,13 +148,25 @@ public class AuthorizationFunctionalTest {
   @Test
   public void shouldAllowAccess_internal() {
     // Given:
-    allowAccess(USER1, "GET", "/clusterStatus");
+    allowAccess(USER1, "POST", "/heartbeat");
 
     // When:
-    final ClusterStatusResponse response = makeClusterStatusRequest(USER1);
+    final HeartbeatResponse response = makeHeartbeat(USER1);
 
     // Then:
-    assertThat(response.getClusterStatus().size(), is(1));
+    assertThat(response.getIsOk(), is(true));
+  }
+
+  @Test
+  public void shouldDenyAccess_internalPathNormaListener() {
+    // When
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> makeHeartbeatNormalListener(USER1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Can't call internal endpoint on public listener"));
   }
 
   private void allowAccess(final BasicCredentials user, final String method, final String path) {
@@ -167,8 +184,14 @@ public class AuthorizationFunctionalTest {
     return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql, Optional.of(credentials));
   }
 
-  private ClusterStatusResponse makeClusterStatusRequest(final BasicCredentials credentials) {
-    return HighAvailabilityTestUtil.sendClusterStatusRequest(REST_APP, Optional.of(credentials));
+  private HeartbeatResponse makeHeartbeat(final BasicCredentials credentials) {
+    return HighAvailabilityTestUtil.sendHeartbeatRequest(REST_APP,
+        HOST_ENTITY, 1000, Optional.of(credentials));
+  }
+
+  private HeartbeatResponse makeHeartbeatNormalListener(final BasicCredentials credentials) {
+    return HighAvailabilityTestUtil.sendHeartbeatRequestNormalListener(REST_APP,
+        HOST_ENTITY, 1000, Optional.of(credentials));
   }
 
   private static class PrincipalMatcher implements ArgumentMatcher<Principal> {

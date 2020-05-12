@@ -20,7 +20,9 @@ import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
@@ -81,10 +83,18 @@ public interface Endpoints {
 
   CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext);
 
+  CompletableFuture<EndpointResponse> executeHeartbeat(HeartbeatMessage heartbeatMessage,
+      ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeClusterStatus(ApiSecurityContext apiSecurityContext);
+
   CompletableFuture<EndpointResponse> executeStatus(String type, String entity, String action,
       ApiSecurityContext apiSecurityContext);
 
   CompletableFuture<EndpointResponse> executeAllStatuses(ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeLagReport(LagReportingMessage lagReportingMessage,
+      ApiSecurityContext apiSecurityContext);
 
   CompletableFuture<EndpointResponse> executeCheckHealth(ApiSecurityContext apiSecurityContext);
 

@@ -25,7 +25,6 @@ import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.PushQueryHandle;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.TransientQueryQueue;
@@ -64,9 +63,7 @@ public class QueryStreamRunner extends BasePerfRunner {
   @Override
   protected void configure() {
     this.queryStreamEndpoints = new QueryStreamEndpoints();
-    setNumWarmupRuns(5).setNumRuns(5).setRunMs(10000)
-        .setEndpoints(queryStreamEndpoints)
-        .setInternalEndpoints(queryStreamEndpoints);
+    setNumWarmupRuns(5).setNumRuns(5).setRunMs(10000).setEndpoints(queryStreamEndpoints);
   }
 
   @Override
@@ -89,7 +86,7 @@ public class QueryStreamRunner extends BasePerfRunner {
     Thread.sleep(500);
   }
 
-  private class QueryStreamEndpoints implements Endpoints, InternalEndpoints {
+  private class QueryStreamEndpoints implements Endpoints {
 
     private final Set<QueryStreamPublisher> publishers = new HashSet<>();
 

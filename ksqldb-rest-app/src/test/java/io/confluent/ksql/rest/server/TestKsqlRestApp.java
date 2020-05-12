@@ -85,8 +85,8 @@ public class TestKsqlRestApp extends ExternalResource {
   protected final Supplier<String> bootstrapServers;
   protected final Supplier<ServiceContext> serviceContext;
   protected final List<URL> listeners = new ArrayList<>();
-  protected final List<URL> internalListeners = new ArrayList<>();
   protected final Optional<BasicCredentials> credentials;
+  protected Optional<URL> internalListener;
   protected KsqlExecutionContext ksqlEngine;
   protected KsqlRestApplication ksqlRestApplication;
 
@@ -115,8 +115,8 @@ public class TestKsqlRestApp extends ExternalResource {
     return this.listeners;
   }
 
-  public List<URL> getInternalListeners() {
-    return this.internalListeners;
+  public Optional<URL> getInternalListener() {
+    return this.internalListener;
   }
 
   @SuppressWarnings("unused") // Part of public API
@@ -241,7 +241,7 @@ public class TestKsqlRestApp extends ExternalResource {
     try {
       ksqlRestApplication.startAsync();
       listeners.addAll(ksqlRestApplication.getListeners());
-      internalListeners.addAll(ksqlRestApplication.getInternalListeners());
+      internalListener = ksqlRestApplication.getInternalListener();
     } catch (final Exception var2) {
       throw new RuntimeException("Failed to start Ksql rest server", var2);
     }
@@ -256,7 +256,7 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     listeners.clear();
-    internalListeners.clear();
+    internalListener = null;
     try {
       ksqlRestApplication.triggerShutdown();
     } catch (final Exception e) {
@@ -305,9 +305,8 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   private URI getInternalListener(final String protocol) {
-    final URL url = getInternalListeners().stream()
+    final URL url = getInternalListener()
         .filter(l -> l.getProtocol().equalsIgnoreCase(protocol))
-        .findFirst()
         .orElseThrow(() -> new IllegalStateException("No " + protocol + " Listener found"));
 
     try {

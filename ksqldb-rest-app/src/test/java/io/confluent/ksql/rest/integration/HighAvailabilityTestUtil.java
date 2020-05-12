@@ -19,6 +19,7 @@ import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
+import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
@@ -39,19 +40,6 @@ class HighAvailabilityTestUtil {
 
   static ClusterStatusResponse sendClusterStatusRequest(final TestKsqlRestApp restApp) {
     try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient()) {
-      final RestResponse<ClusterStatusResponse> res = restClient.makeClusterStatusRequest();
-
-      if (res.isErroneous()) {
-        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
-      }
-      return res.getResponse();
-    }
-  }
-
-  static ClusterStatusResponse sendClusterStatusRequest(
-      final TestKsqlRestApp restApp,
-      final Optional<BasicCredentials> userCreds) {
-    try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient(userCreds)) {
       final RestResponse<ClusterStatusResponse> res = restClient.makeClusterStatusRequest();
 
       if (res.isErroneous()) {
@@ -183,6 +171,54 @@ class HighAvailabilityTestUtil {
             LOG.error("Unexpected exception in async request", t);
             return null;
           });
+    }
+  }
+
+  public static HeartbeatResponse sendHeartbeatRequest(
+      final TestKsqlRestApp restApp,
+      final KsqlHostInfoEntity hostInfoEntity,
+      final long timestamp,
+      final Optional<BasicCredentials> userCreds
+  ) {
+
+    try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient(userCreds)) {
+      RestResponse<HeartbeatResponse> res = restClient.makeAsyncHeartbeatRequest(
+          hostInfoEntity, timestamp)
+          .exceptionally(t -> {
+            LOG.error("Unexpected exception in async request", t);
+            return null;
+          }).get();
+
+      if (res.isErroneous()) {
+        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
+      }
+      return res.getResponse();
+    } catch (ExecutionException | InterruptedException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public static HeartbeatResponse sendHeartbeatRequestNormalListener(
+      final TestKsqlRestApp restApp,
+      final KsqlHostInfoEntity hostInfoEntity,
+      final long timestamp,
+      final Optional<BasicCredentials> userCreds
+  ) {
+
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
+      RestResponse<HeartbeatResponse> res = restClient.makeAsyncHeartbeatRequest(
+          hostInfoEntity, timestamp)
+          .exceptionally(t -> {
+            LOG.error("Unexpected exception in async request", t);
+            return null;
+          }).get();
+
+      if (res.isErroneous()) {
+        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
+      }
+      return res.getResponse();
+    } catch (ExecutionException | InterruptedException e) {
+      throw new AssertionError(e);
     }
   }
 

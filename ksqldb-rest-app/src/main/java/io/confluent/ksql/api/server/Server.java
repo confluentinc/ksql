@@ -18,7 +18,6 @@ package io.confluent.ksql.api.server;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityExtension;
@@ -43,7 +42,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.types.Password;
@@ -67,24 +65,20 @@ public class Server {
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private final int maxPushQueryCount;
   private final Set<String> deploymentIds = new HashSet<>();
-  private final InternalEndpoints internalEndpoints;
   private final KsqlSecurityExtension securityExtension;
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final List<URI> listeners = new ArrayList<>();
-  private final List<URI> internalListeners = new ArrayList<>();
+  private URI internalListener;
   private WorkerExecutor workerExecutor;
 
-  public Server(final Vertx vertx, final KsqlRestConfig config,
-      final Endpoints endpoints,
-      final InternalEndpoints internalEndpoints,
+  public Server(final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
       final KsqlSecurityExtension securityExtension,
       final Optional<AuthenticationPlugin> authenticationPlugin,
       final ServerState serverState) {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
-    this.internalEndpoints = Objects.requireNonNull(internalEndpoints);
     this.securityExtension = Objects.requireNonNull(securityExtension);
     this.authenticationPlugin = Objects.requireNonNull(authenticationPlugin);
     this.serverState = Objects.requireNonNull(serverState);
@@ -103,45 +97,23 @@ public class Server {
 
     final List<URI> listenUris = parseListeners(config);
     final Optional<URI> internalListenUri = parseInternalListener(config, listenUris);
-    // If there's no special internal endpoint listen URI, then just bind them with the rest of the
-    // endpoints.
-    final Optional<InternalEndpoints> combinedInternalEndpointsOptional =
-        Optional.ofNullable(!internalListenUri.isPresent() ? internalEndpoints : null);
+    final List<URI> allListenUris = new ArrayList<>(listenUris);
+    internalListenUri.ifPresent(allListenUris::add);
 
     final int instances = config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
-    deployFutures.addAll(setupPublicEndpoints(instances, listenUris,
-        combinedInternalEndpointsOptional));
-    deployFutures.addAll(setupInternalEndpoints(instances, internalListenUri));
-
-    final CompletableFuture<Void> allDeployFuture = CompletableFuture.allOf(deployFutures
-        .toArray(new CompletableFuture<?>[0]));
-
-    try {
-      allDeployFuture.get();
-      for (CompletableFuture<String> deployFuture : deployFutures) {
-        deploymentIds.add(deployFuture.get());
-      }
-    } catch (Exception e) {
-      throw new KsqlException("Failed to start API server", e);
-    }
-    log.info("API server started");
-  }
-
-  private static List<CompletableFuture<String>> setupEndpointsCommon(
-      final Vertx vertx,
-      final int instances,
-      final List<URI> listenUris,
-      final Function<URI, AbstractServerVerticle> verticleFactory,
-      final List<URI> listeners) {
-    final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
     final Map<URI, URI> uris = new ConcurrentHashMap<>();
-    for (URI listener : listenUris) {
+    for (URI listener : allListenUris) {
+      final Optional<Boolean> isInternalListener =
+          internalListenUri.map(uri -> uri.equals(listener));
 
       for (int i = 0; i < instances; i++) {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
-        final AbstractServerVerticle serverVerticle = verticleFactory.apply(listener);
+        final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
+            createHttpServerOptions(config, listener.getHost(), listener.getPort(),
+                listener.getScheme().equalsIgnoreCase("https")),
+            this, isInternalListener);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {
@@ -159,43 +131,23 @@ public class Server {
         deployFutures.add(deployFuture);
       }
     }
-    CompletableFuture.allOf(deployFutures.toArray(new CompletableFuture<?>[0])).thenApply(n -> {
-      for (URI uri : listenUris) {
-        listeners.add(uris.get(uri));
+
+    final CompletableFuture<Void> allDeployFuture = CompletableFuture.allOf(deployFutures
+        .toArray(new CompletableFuture<?>[0]));
+
+    try {
+      allDeployFuture.get();
+      for (CompletableFuture<String> deployFuture : deployFutures) {
+        deploymentIds.add(deployFuture.get());
       }
-      return null;
-    });
-    return deployFutures;
-
-  }
-
-  private List<CompletableFuture<String>> setupPublicEndpoints(
-      final int instances,
-      final List<URI> listenUris,
-      final Optional<InternalEndpoints> combinedInternalEndpointsOptional) {
-    return setupEndpointsCommon(vertx, instances, listenUris, (listener) ->
-        new ServerVerticle(endpoints,
-            combinedInternalEndpointsOptional,
-            createHttpServerOptions(config, listener.getHost(), listener.getPort(),
-                listener.getScheme().equalsIgnoreCase("https")),
-            this), listeners);
-  }
-
-  private List<CompletableFuture<String>> setupInternalEndpoints(
-      final int instances,
-      final Optional<URI> internalListenUri) {
-    final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
-
-    internalListenUri.ifPresent(listener -> {
-      deployFutures.addAll(
-          setupEndpointsCommon(vertx, instances, ImmutableList.of(listener), (l) ->
-              new InternalServerVerticle(internalEndpoints,
-                  createHttpServerOptions(config, l.getHost(), l.getPort(),
-                      listener.getScheme().equalsIgnoreCase("https")),
-                  this), internalListeners));
-    });
-
-    return deployFutures;
+    } catch (Exception e) {
+      throw new KsqlException("Failed to start API server", e);
+    }
+    for (URI uri : listenUris) {
+      listeners.add(uris.get(uri));
+    }
+    internalListenUri.ifPresent(uri -> internalListener = uris.get(uri));
+    log.info("API server started");
   }
 
   public synchronized void stop() {
@@ -277,8 +229,8 @@ public class Server {
     return ImmutableList.copyOf(listeners);
   }
 
-  public synchronized List<URI> getInternalListeners() {
-    return ImmutableList.copyOf(internalListeners);
+  public synchronized Optional<URI> getInternalListener() {
+    return Optional.ofNullable(internalListener);
   }
 
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,

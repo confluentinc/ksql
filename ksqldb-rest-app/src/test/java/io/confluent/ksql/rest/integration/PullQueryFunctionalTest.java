@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.integration;
 import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRows;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -30,7 +29,6 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -244,42 +242,11 @@ public class PullQueryFunctionalTest {
     )));
   }
 
-  @Test
-  public void shouldGetErrorForInternalRequest() {
-    // Given:
-    final String key = Iterables.get(USER_PROVIDER.data().keySet(), 0);
-
-    makeAdminRequest(
-        "CREATE TABLE " + output + " AS"
-            + " SELECT " + USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
-            + " GROUP BY " + USER_PROVIDER.key() + ";"
-    );
-
-    waitForTableRows();
-
-    final String sql = "SELECT * FROM " + output + " WHERE ROWKEY = '" + key + "';";
-
-    // When:
-
-    final KsqlErrorMessage errorMessage = makePullQueryRequestInternal(REST_APP_0, sql);
-
-    // Then:
-    assertThat(errorMessage.getMessage(), containsString("Called internal API unintentionally"));
-  }
-
   private static List<StreamedRow> makePullQueryRequest(
       final TestKsqlRestApp target,
       final String sql
   ) {
     return RestIntegrationTestUtil.makeQueryRequest(target, sql, validCreds());
-  }
-
-  private static KsqlErrorMessage makePullQueryRequestInternal(
-      final TestKsqlRestApp target,
-      final String sql
-  ) {
-    return RestIntegrationTestUtil.makeQueryRequestInternalWithError(target, sql, validCreds(),
-        null);
   }
 
   private static void makeAdminRequest(final String sql) {

@@ -181,23 +181,6 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  static KsqlErrorMessage makeQueryRequestInternalWithError(
-      final TestKsqlRestApp restApp,
-      final String sql,
-      final Optional<BasicCredentials> userCreds,
-      final Map<String, ?> properties
-  ) {
-    try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient(userCreds)) {
-
-      final RestResponse<List<StreamedRow>> res =
-          restClient.makeQueryRequest(sql, null, properties);
-
-      throwOnNoError(res);
-
-      return res.getErrorMessage();
-    }
-  }
-
   static KsqlErrorMessage makeQueryRequestWithError(
       final TestKsqlRestApp restApp,
       final String sql,

@@ -111,7 +111,7 @@ public class AuthTest extends ApiTest {
 
   @Override
   protected void createServer(KsqlRestConfig serverConfig) {
-    server = new Server(vertx, serverConfig, testEndpoints, testEndpoints,
+    server = new Server(vertx, serverConfig, testEndpoints,
         new KsqlSecurityExtension() {
           @Override
           public void initialize(final KsqlConfig ksqlConfig) {

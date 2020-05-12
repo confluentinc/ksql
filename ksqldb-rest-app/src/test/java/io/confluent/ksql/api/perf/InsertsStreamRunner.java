@@ -19,7 +19,6 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.reactive.BufferedPublisher;
@@ -54,10 +53,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
 
   @Override
   public void configure() {
-    InsertsStreamEndpoints insertsStreamEndpoints = new InsertsStreamEndpoints();
-    setNumWarmupRuns(5).setNumRuns(5).setRunMs(10000)
-        .setEndpoints(insertsStreamEndpoints)
-        .setInternalEndpoints(insertsStreamEndpoints);
+    setNumWarmupRuns(5).setNumRuns(5).setRunMs(10000).setEndpoints(new InsertsStreamEndpoints());
   }
 
   @Override
@@ -157,7 +153,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
     }
   }
 
-  private class InsertsStreamEndpoints implements Endpoints, InternalEndpoints {
+  private class InsertsStreamEndpoints implements Endpoints {
 
     @Override
     public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,

@@ -32,10 +32,8 @@ import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.endpoints.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
-import io.confluent.ksql.api.endpoints.KsqlServerInternalEndpoints;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.InternalEndpoints;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -311,20 +309,15 @@ public final class KsqlRestApplication implements Executable {
           ksqlResource,
           streamedQueryResource,
           serverInfoResource,
+          heartbeatResource,
+          clusterStatusResource,
           statusResource,
+          lagReportingResource,
           healthCheckResource,
           serverMetadataResource,
           wsQueryEndpoint
       );
-      final InternalEndpoints internalEndpoints = new KsqlServerInternalEndpoints(
-          ksqlSecurityContextProvider,
-          heartbeatResource,
-          clusterStatusResource,
-          lagReportingResource,
-          ksqlResource,
-          streamedQueryResource
-      );
-      apiServer = new Server(vertx, ksqlRestConfig, endpoints, internalEndpoints, securityExtension,
+      apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState);
       apiServer.start();
 
@@ -540,14 +533,14 @@ public final class KsqlRestApplication implements Executable {
     }).collect(Collectors.toList());
   }
 
-  List<URL> getInternalListeners() {
-    return apiServer.getInternalListeners().stream().map(uri -> {
+  Optional<URL> getInternalListener() {
+    return apiServer.getInternalListener().map(uri -> {
       try {
         return uri.toURL();
       } catch (MalformedURLException e) {
         throw new KsqlException(e);
       }
-    }).collect(Collectors.toList());
+    });
   }
 
   public static KsqlRestApplication buildApplication(final KsqlRestConfig restConfig) {

@@ -15,11 +15,19 @@
 
 package io.confluent.ksql.api.client;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThrows;
+
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import javax.net.ssl.SSLHandshakeException;
 import org.apache.kafka.common.config.SslConfigs;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,27 +35,18 @@ public class ClientTlsTest extends ClientTest {
 
   protected static final Logger log = LoggerFactory.getLogger(ClientTlsTest.class);
 
+  protected static final String TRUST_STORE_PATH = ServerKeyStore.keyStoreProps()
+      .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+  protected static final String TRUST_STORE_PASSWORD = ServerKeyStore.keyStoreProps()
+      .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+  protected static final String KEY_STORE_PATH = ServerKeyStore.keyStoreProps()
+      .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+  protected static final String KEY_STORE_PASSWORD = ServerKeyStore.keyStoreProps()
+      .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+
   @Override
   protected KsqlRestConfig createServerConfig() {
-
-    String keyStorePath = ServerKeyStore.keyStoreProps()
-        .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-    String keyStorePassword = ServerKeyStore.keyStoreProps()
-        .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-    String trustStorePath = ServerKeyStore.keyStoreProps()
-        .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-    String trustStorePassword = ServerKeyStore.keyStoreProps()
-        .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-
-    Map<String, Object> config = new HashMap<>();
-    config.put(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0");
-    config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath);
-    config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword);
-    config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStorePath);
-    config.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword);
-    config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
-
-    return new KsqlRestConfig(config);
+    return new KsqlRestConfig(serverConfigWithTls());
   }
 
   @Override
@@ -56,8 +55,42 @@ public class ClientTlsTest extends ClientTest {
         .setHost("localhost")
         .setPort(server.getListeners().get(0).getPort())
         .setUseTls(true)
-        .setVerifyHost(false)
-        .setTrustAll(true);
+        .setTrustStore(TRUST_STORE_PATH)
+        .setTrustStorePassword(TRUST_STORE_PASSWORD)
+        .setVerifyHost(false);
   }
 
+  @Test
+  public void shouldFailRequestIfServerNotInTrustStore() {
+    // Given
+    final Client client = Client.create(clientOptionsWithoutTrustStore(), vertx);
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally,
+        () -> client.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(SSLHandshakeException.class));
+    assertThat(e.getCause().getMessage(), containsString("Failed to create SSL connection"));
+  }
+
+  private ClientOptions clientOptionsWithoutTrustStore() {
+    return ClientOptions.create()
+        .setHost("localhost")
+        .setPort(server.getListeners().get(0).getPort())
+        .setUseTls(true)
+        .setVerifyHost(false);
+  }
+
+  protected static Map<String, Object> serverConfigWithTls() {
+    Map<String, Object> config = new HashMap<>();
+    config.put(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0");
+    config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KEY_STORE_PATH);
+    config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEY_STORE_PASSWORD);
+    config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
+
+    return config;
+  }
 }

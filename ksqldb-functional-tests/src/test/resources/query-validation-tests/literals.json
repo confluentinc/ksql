@@ -86,7 +86,7 @@
       "name": "BIGINT literal negative overflow",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS select K, id, -9223372036854775808 FROM INPUT;"
+        "CREATE STREAM OUTPUT AS select K, id, -9223372036854775809 FROM INPUT;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",

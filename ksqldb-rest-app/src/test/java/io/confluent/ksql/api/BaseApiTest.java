@@ -53,8 +53,8 @@ public class BaseApiTest {
 
   protected static final Logger log = LoggerFactory.getLogger(BaseApiTest.class);
 
-  protected static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("name").add("age")
-      .add("male");
+  protected static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("f_str").add("f_int")
+      .add("f_bool");
   protected static final JsonArray DEFAULT_COLUMN_TYPES = new JsonArray().add("STRING").add("INTEGER")
       .add("BOOLEAN");
   protected static final List<JsonArray> DEFAULT_ROWS = generateRows();

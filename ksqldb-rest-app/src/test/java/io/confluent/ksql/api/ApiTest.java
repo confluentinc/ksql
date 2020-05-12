@@ -799,9 +799,9 @@ public class ApiTest extends BaseApiTest {
     List<JsonObject> rows = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       JsonObject row = new JsonObject()
-          .put("name", "foo" + i)
-          .put("age", i)
-          .put("male", i % 2 == 0);
+          .put("f_str", "foo" + i)
+          .put("f_int", i)
+          .put("f_bool", i % 2 == 0);
       rows.add(row);
     }
     return rows;

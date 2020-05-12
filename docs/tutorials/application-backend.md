@@ -284,6 +284,8 @@ INSERT INTO player_events (
 );
 ```
 
+And materialize the stream into a table so that it can be queried by the web interface. The `LATEST_BY_OFFSET` aggregation tells ksqlDB to keep the last profile image it receives for each player, effectively treating it like an update.
+
 ```sql
 CREATE TABLE player_profiles AS
     SELECT player, LATEST_BY_OFFSET(avatar) AS avatar

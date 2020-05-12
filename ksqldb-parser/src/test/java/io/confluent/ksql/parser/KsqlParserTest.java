@@ -34,6 +34,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -83,8 +84,8 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -337,12 +338,26 @@ public class KsqlParserTest {
     final SingleColumn column0
         = (SingleColumn) query.getSelect().getSelectItems().get(0);
     assertThat(column0.getAlias().isPresent(), is(false));
+    assertThat(column0.getExpression(), instanceOf(IntegerLiteral.class));
+    final IntegerLiteral aue = (IntegerLiteral) column0.getExpression();
+    assertThat(aue.getValue(), equalTo(-12345));
+  }
+
+  @Test
+  public void shouldParseDoubleNegativeInteger() {
+    final String queryStr = "SELECT -(-12345) FROM test1;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
+    assertThat(statement, instanceOf(Query.class));
+    final Query query = (Query) statement;
+    final SingleColumn column0
+        = (SingleColumn) query.getSelect().getSelectItems().get(0);
+    assertThat(column0.getAlias().isPresent(), is(false));
     assertThat(column0.getExpression(), instanceOf(ArithmeticUnaryExpression.class));
     final ArithmeticUnaryExpression aue = (ArithmeticUnaryExpression) column0.getExpression();
-    assertThat(aue.getValue(), instanceOf(IntegerLiteral.class));
-    assertThat(((IntegerLiteral) aue.getValue()).getValue(), equalTo(12345));
-    assertThat(aue.getSign(), equalTo(ArithmeticUnaryExpression.Sign.MINUS));
+    assertThat(aue.getSign(), equalTo(Sign.MINUS));
+    assertThat(((IntegerLiteral) aue.getValue()).getValue(), equalTo(-12345));
   }
+
 
   @Test
   public void testBooleanLogicalExpression() {
@@ -428,6 +443,17 @@ public class KsqlParserTest {
   public void testReservedColumnIdentifers() {
     assertQuerySucceeds("SELECT ROWTIME as ROWTIME FROM test1 t1;");
     assertQuerySucceeds("SELECT ROWKEY as ROWKEY FROM test1 t1;");
+  }
+
+  @Test
+  public void testNegativeInWith() {
+    // When:
+    final CreateSource stmt = (CreateSource) KsqlParserTestUtil.buildSingleAst(
+        "CREATE STREAM foozball (id VARCHAR) WITH (kafka_topic='foozball', value_format='json', partitions=1, replicas=-1);",
+        metaStore).getStatement();
+
+    // Then:
+    assertThat(stmt.getProperties().getReplicas(), is(Optional.of((short) -1)));
   }
 
   @Test

@@ -38,8 +38,6 @@ import org.junit.Test;
 
 public class CorsTest extends BaseApiTest {
 
-  private Map<String, Object> config = new HashMap<>();
-
   private static final String ACCESS_CONTROL_ALLOW_ORIGIN_HEADER = "Access-Control-Allow-Origin";
   private static final String ACCESS_CONTROL_ALLOW_METHODS_HEADER = "Access-Control-Allow-Methods";
   private static final String ACCESS_CONTROL_ALLOW_HEADERS_HEADER = "Access-Control-Allow-Headers";
@@ -52,6 +50,8 @@ public class CorsTest extends BaseApiTest {
 
   private static final String URI = "/query-stream";
   private static final String ORIGIN = "wibble.com";
+
+  private final Map<String, Object> config = new HashMap<>();
 
   @Before
   public void setUp() {

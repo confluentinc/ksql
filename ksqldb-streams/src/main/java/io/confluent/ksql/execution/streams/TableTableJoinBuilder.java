@@ -22,16 +22,21 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.streams.kstream.KTable;
 
 public final class TableTableJoinBuilder {
+
   private TableTableJoinBuilder() {
   }
 
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> left,
       final KTableHolder<K> right,
-      final TableTableJoin join) {
+      final TableTableJoin<K> join
+  ) {
     final LogicalSchema leftSchema = left.getSchema();
     final LogicalSchema rightSchema = right.getSchema();
-    final JoinParams joinParams = JoinParamsFactory.create(leftSchema, rightSchema);
+
+    final JoinParams joinParams = JoinParamsFactory
+        .create(join.getKeyColName(), leftSchema, rightSchema);
+
     final KTable<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
@@ -46,6 +51,7 @@ public final class TableTableJoinBuilder {
       default:
         throw new IllegalStateException("invalid join type");
     }
+
     return left.withTable(result, joinParams.getSchema());
   }
 }

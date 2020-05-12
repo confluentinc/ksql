@@ -1,0 +1,134 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893912705,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ID INT, KSQL_INTERNAL_COL_1 INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID INT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<COUNT BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "only key column (stream->table)",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 11,
+      "value" : { },
+      "timestamp" : 12345
+    }, {
+      "topic" : "test_topic",
+      "key" : 10,
+      "value" : { },
+      "timestamp" : 12365
+    }, {
+      "topic" : "test_topic",
+      "key" : 11,
+      "value" : { },
+      "timestamp" : 12375
+    } ],
+    "outputs" : [ {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : 11,
+      "value" : {
+        "ID" : 11,
+        "KSQL_AGG_VARIABLE_0" : 1
+      },
+      "timestamp" : 12345
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : 10,
+      "value" : {
+        "ID" : 10,
+        "KSQL_AGG_VARIABLE_0" : 1
+      },
+      "timestamp" : 12365
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : 11,
+      "value" : {
+        "ID" : 11,
+        "KSQL_AGG_VARIABLE_0" : 2
+      },
+      "timestamp" : 12375
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 11,
+      "value" : {
+        "COUNT" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : {
+        "COUNT" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 11,
+      "value" : {
+        "COUNT" : 2
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "table",
+        "schema" : "ID INT KEY, COUNT BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ],
+        "blackList" : ".*-repartition"
+      }
+    }
+  }
+}

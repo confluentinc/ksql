@@ -27,8 +27,8 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Version;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -87,7 +87,7 @@ public class ServerMetadataResourceTest {
     assertThat(
         serverMetadata,
         equalTo(new ServerMetadata(
-            Version.getVersion(),
+            AppInfo.getVersion(),
             ServerClusterId.of(KAFKA_CLUSTER_ID, KSQL_SERVICE_ID))
         )
     );

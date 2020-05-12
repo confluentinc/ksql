@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +98,49 @@ public final class ColumnNames {
             : nextKsqlColAlias();
       }
     };
+  }
+
+  /**
+   * Short hand helper for when only a single alias is required.
+   *
+   * <p>Short hand for:
+   * <pre>
+   * {@code
+   *   ColumnNames.columnAliasGenerator(Arrays.stream(schemas)).uniqueAliasFor(e);
+   * }
+   * </pre>
+   *
+   * @param e the expression an alias is needed for.
+   * @param schemas the source schemas.
+   * @return a unique column name.
+   */
+  public static ColumnName uniqueAliasFor(final Expression e, final LogicalSchema... schemas) {
+    if (schemas.length == 0) {
+      throw new IllegalArgumentException("At least once schema should be provided");
+    }
+
+    return columnAliasGenerator(Arrays.stream(schemas)).uniqueAliasFor(e);
+  }
+
+  /**
+   * Short hand helper for when only a single generated alias is required.
+   *
+   * <p>Short hand for:
+   * <pre>
+   * {@code
+   *   ColumnNames.columnAliasGenerator(Arrays.stream(schemas)).nextKsqlColAlias();
+   * }
+   * </pre>
+   *
+   * @param schemas the source schemas.
+   * @return a unique column name.
+   */
+  public static ColumnName nextKsqlColAlias(final LogicalSchema... schemas) {
+    if (schemas.length == 0) {
+      throw new IllegalArgumentException("At least once schema should be provided");
+    }
+
+    return columnAliasGenerator(Arrays.stream(schemas)).nextKsqlColAlias();
   }
 
   /**

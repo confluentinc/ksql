@@ -94,9 +94,9 @@ public final class StepSchemaResolver {
       = HandlerMaps.forClass(ExecutionStep.class)
       .withArgTypes(StepSchemaResolver.class, JoinSchemas.class)
       .withReturnType(LogicalSchema.class)
-      .put(StreamTableJoin.class, StepSchemaResolver::handleJoin)
-      .put(StreamStreamJoin.class, StepSchemaResolver::handleJoin)
-      .put(TableTableJoin.class, StepSchemaResolver::handleJoin)
+      .put(StreamTableJoin.class, StepSchemaResolver::handleStreamTableJoin)
+      .put(StreamStreamJoin.class, StepSchemaResolver::handleStreamStreamJoin)
+      .put(TableTableJoin.class, StepSchemaResolver::handleTableTableJoin)
       .build();
 
   private final KsqlConfig ksqlConfig;
@@ -185,7 +185,7 @@ public final class StepSchemaResolver {
     );
 
     return GroupByParamsFactory
-        .buildSchema(sourceSchema, compiledGroupBy, streamGroupBy.getAlias(), ksqlConfig);
+        .buildSchema(sourceSchema, compiledGroupBy);
   }
 
   private LogicalSchema handleTableGroupBy(
@@ -201,7 +201,7 @@ public final class StepSchemaResolver {
     );
 
     return GroupByParamsFactory
-        .buildSchema(sourceSchema, compiledGroupBy, tableGroupBy.getAlias(), ksqlConfig);
+        .buildSchema(sourceSchema, compiledGroupBy);
   }
 
   private LogicalSchema handleStreamSelect(
@@ -234,7 +234,6 @@ public final class StepSchemaResolver {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
         step.getKeyExpression(),
-        step.getAlias(),
         functionRegistry
     );
   }
@@ -247,8 +246,32 @@ public final class StepSchemaResolver {
     return buildSourceSchema(schema, true);
   }
 
-  private LogicalSchema handleJoin(final JoinSchemas schemas, final ExecutionStep<?> step) {
-    return JoinParamsFactory.createSchema(schemas.left, schemas.right);
+  private LogicalSchema handleStreamStreamJoin(
+      final JoinSchemas schemas,
+      final StreamStreamJoin<?> step
+  ) {
+    return handleJoin(schemas, step.getKeyColName());
+  }
+
+  private LogicalSchema handleStreamTableJoin(
+      final JoinSchemas schemas,
+      final StreamTableJoin<?> step
+  ) {
+    return handleJoin(schemas, step.getKeyColName());
+  }
+
+  private LogicalSchema handleTableTableJoin(
+      final JoinSchemas schemas,
+      final TableTableJoin<?> step
+  ) {
+    return handleJoin(schemas, step.getKeyColName());
+  }
+
+  private LogicalSchema handleJoin(
+      final JoinSchemas schemas,
+      final ColumnName keyColName
+  ) {
+    return JoinParamsFactory.createSchema(keyColName, schemas.left, schemas.right);
   }
 
   private LogicalSchema handleTableAggregate(

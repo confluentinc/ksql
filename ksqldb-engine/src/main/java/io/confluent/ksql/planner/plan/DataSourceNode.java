@@ -15,22 +15,25 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.util.GrammaticalJoiner.and;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKSourceFactory;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -119,16 +122,27 @@ public class DataSourceNode extends PlanNode {
 
   @Override
   public Stream<ColumnName> resolveSelectStar(
-      final Optional<SourceName> sourceName, final boolean valueOnly
+      final Optional<SourceName> sourceName
   ) {
     if (sourceName.isPresent() && !sourceName.equals(getSourceName())) {
       throw new IllegalArgumentException("Expected alias of " + getAlias()
           + ", but was " + sourceName.get());
     }
 
-    return valueOnly
-        ? getSchema().withoutPseudoAndKeyColsInValue().value().stream().map(Column::name)
-        : orderColumns(getSchema().value(), getSchema());
+    // Note: the 'value' columns include the key columns at this point:
+    return orderColumns(getSchema().value(), getSchema());
+  }
+
+  @Override
+  void validateKeyPresent(final SourceName sinkName, final Projection projection) {
+    final ColumnName keyName = Iterables.getOnlyElement(getSchema().key()).name();
+
+    if (!projection.containsExpression(new QualifiedColumnReferenceExp(getAlias(), keyName))
+        && !projection.containsExpression(new UnqualifiedColumnReferenceExp(keyName))
+    ) {
+      throwKeysNotIncludedError(sinkName, "key column", ImmutableList.of(
+          (ColumnReferenceExp) new UnqualifiedColumnReferenceExp(keyName)), and());
+    }
   }
 
   private static LogicalSchema buildSchema(final DataSource dataSource) {
@@ -137,28 +151,6 @@ public class DataSourceNode extends PlanNode {
     // and a KS transformValues to add the implicit fields
     return dataSource.getSchema()
         .withPseudoAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
-  }
-
-  @SuppressWarnings("UnstableApiUsage")
-  private static Stream<ColumnName> orderColumns(
-      final List<Column> columns,
-      final LogicalSchema schema
-  ) {
-    // When doing a `select *` key columns should be at the front of the column list
-    // but are added at the back during processing for performance reasons.
-    // Switch them around here:
-    final Stream<Column> keys = columns.stream()
-        .filter(c -> schema.isKeyColumn(c.name()));
-
-    final Stream<Column> windowBounds = columns.stream()
-        .filter(c -> SystemColumns.isWindowBound(c.name()));
-
-    final Stream<Column> values = columns.stream()
-        .filter(c -> !SystemColumns.isWindowBound(c.name()))
-        .filter(c -> !SystemColumns.isPseudoColumn(c.name()))
-        .filter(c -> !schema.isKeyColumn(c.name()));
-
-    return Streams.concat(keys, windowBounds, values).map(Column::name);
   }
 
   @Immutable

@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
@@ -33,8 +32,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.tree.GroupBy;
-import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -312,32 +309,6 @@ public class AstSanitizerTest {
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
         new SingleColumn(column(TEST1_NAME, "COL1"), Optional.of(ColumnName.of("BOB")))
     ))));
-  }
-
-  @Test
-  public void shouldRemoveAliasFromPartitionByIfNoOp() {
-    // Given:
-    final Statement stmt = givenQuery("SELECT * FROM TEST1 PARTITION BY COL1 AS COL1;");
-
-    // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
-
-    // Then:
-    assertThat(result.getPartitionBy(), is(not(Optional.empty())));
-    assertThat(result.getPartitionBy().flatMap(PartitionBy::getAlias), is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldRemoveAliasFromGroupByIfNoOp() {
-    // Given:
-    final Statement stmt = givenQuery("SELECT COUNT(1) FROM TEST1 GROUP BY COL1 AS COL1;");
-
-    // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
-
-    // Then:
-    assertThat(result.getGroupBy(), is(not(Optional.empty())));
-    assertThat(result.getGroupBy().flatMap(GroupBy::getAlias), is(Optional.empty()));
   }
 
   private static Statement givenQuery(final String sql) {

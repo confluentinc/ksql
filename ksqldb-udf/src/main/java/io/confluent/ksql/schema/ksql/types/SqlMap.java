@@ -18,13 +18,16 @@ package io.confluent.ksql.schema.ksql.types;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.JavaToSqlTypeConverter;
+import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import java.util.Map;
 import java.util.Objects;
 
 @Immutable
 public final class SqlMap extends SqlType {
 
-  public static final SqlType KEY_TYPE = SqlTypes.STRING;
+  private static final SqlType KEY_TYPE = SqlTypes.STRING;
 
   private final SqlType valueType;
 
@@ -40,7 +43,37 @@ public final class SqlMap extends SqlType {
   public SqlType getValueType() {
     return valueType;
   }
-  
+
+  @Override
+  public void validateValue(final Object value) {
+    if (value == null) {
+      return;
+    }
+
+    if (!(value instanceof Map)) {
+      final SqlBaseType sqlBaseType = JavaToSqlTypeConverter.instance()
+          .toSqlType(value.getClass());
+
+      throw new DataException("Expected MAP, got " + sqlBaseType);
+    }
+
+    final Map<?, ?> map = (Map<?, ?>) value;
+
+    map.forEach((k, v) -> {
+      try {
+        KEY_TYPE.validateValue(k);
+      } catch (final DataException e) {
+        throw new DataException("MAP key: " + e.getMessage(), e);
+      }
+
+      try {
+        valueType.validateValue(v);
+      } catch (final DataException e) {
+        throw new DataException("MAP value for key '" + k + "': " + e.getMessage(), e);
+      }
+    });
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

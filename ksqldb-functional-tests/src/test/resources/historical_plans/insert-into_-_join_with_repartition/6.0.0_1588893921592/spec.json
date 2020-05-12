@@ -1,0 +1,192 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893921592,
+  "path" : "query-validation-tests/insert-into.json",
+  "schemas" : {
+    "INSERTQUERY_0.KafkaTopic_Left.Source" : "STRUCT<K VARCHAR> NOT NULL",
+    "INSERTQUERY_0.KafkaTopic_Right.Source" : "STRUCT<K VARCHAR> NOT NULL",
+    "INSERTQUERY_0.Join.Left" : "STRUCT<S1_K VARCHAR, S1_ROWTIME BIGINT, S1_ID VARCHAR> NOT NULL",
+    "INSERTQUERY_0.Join.Right" : "STRUCT<S2_K VARCHAR, S2_ROWTIME BIGINT, S2_ID VARCHAR> NOT NULL",
+    "INSERTQUERY_0.OUTPUT" : "STRUCT<DATA VARCHAR, I INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "join with repartition",
+    "inputs" : [ {
+      "topic" : "s1",
+      "key" : "s1-key",
+      "value" : {
+        "K" : "v1"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "s2",
+      "key" : "s2-key",
+      "value" : {
+        "K" : "v1"
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-Join-left-repartition",
+      "key" : "v1",
+      "value" : {
+        "S1_K" : "v1",
+        "S1_ROWTIME" : 0,
+        "S1_ID" : "s1-key"
+      }
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
+      "key" : "v1",
+      "value" : {
+        "S1_K" : "v1",
+        "S1_ROWTIME" : 0,
+        "S1_ID" : "s1-key"
+      },
+      "window" : {
+        "start" : 0,
+        "end" : 1000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-Join-right-repartition",
+      "key" : "v1",
+      "value" : {
+        "S2_K" : "v1",
+        "S2_ROWTIME" : 0,
+        "S2_ID" : "s2-key"
+      }
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
+      "key" : "v1",
+      "value" : {
+        "S2_K" : "v1",
+        "S2_ROWTIME" : 0,
+        "S2_ID" : "s2-key"
+      },
+      "window" : {
+        "start" : 0,
+        "end" : 1000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "v1",
+      "value" : {
+        "DATA" : "s1-keys2-key",
+        "I" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-Join-left-repartition",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-Join-right-repartition",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "s1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "s2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE1 (ID STRING KEY, k VARCHAR) WITH (kafka_topic='s1', value_format='JSON');", "CREATE STREAM SOURCE2 (ID STRING KEY, k VARCHAR) WITH (kafka_topic='s2', value_format='JSON');", "CREATE STREAM OUTPUT (k VARCHAR KEY, data VARCHAR, i INT) WITH (kafka_topic='OUTPUT', value_format='JSON', PARTITIONS=1);", "INSERT INTO OUTPUT SELECT S1.K AS K, S1.ID + S2.ID as DATA, 1 as I FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON S1.k = S2.k;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-Join-left-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-Join-right-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "s1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "s2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

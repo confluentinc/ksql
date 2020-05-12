@@ -7,7 +7,7 @@
       "name": "create simple type",
       "statements": [
         "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;",
-        "CREATE TABLE addresses (address ADDRESS) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE TABLE addresses (K STRING PRIMARY KEY, address ADDRESS) WITH (kafka_topic='test', value_format='JSON');",
         "CREATE TABLE copy AS SELECT * FROM addresses;"
       ],
       "inputs": [
@@ -22,7 +22,7 @@
       "statements": [
         "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;",
         "CREATE TYPE PERSON AS STRUCT<name VARCHAR, address ADDRESS>;",
-        "CREATE TABLE people (person PERSON) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE TABLE people (K STRING PRIMARY KEY, person PERSON) WITH (kafka_topic='test', value_format='JSON');",
         "CREATE TABLE copy AS SELECT * FROM people;"
       ],
       "inputs": [

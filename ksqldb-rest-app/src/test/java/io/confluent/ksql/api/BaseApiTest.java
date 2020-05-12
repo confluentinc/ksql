@@ -55,7 +55,7 @@ public class BaseApiTest {
 
   protected static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("name").add("age")
       .add("male");
-  protected static final JsonArray DEFAULT_COLUMN_TYPES = new JsonArray().add("STRING").add("INT")
+  protected static final JsonArray DEFAULT_COLUMN_TYPES = new JsonArray().add("STRING").add("INTEGER")
       .add("BOOLEAN");
   protected static final List<JsonArray> DEFAULT_ROWS = generateRows();
   protected static final JsonObject DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES = new JsonObject()
@@ -213,6 +213,19 @@ public class BaseApiTest {
     assertThat(error.getString("message"), is(message));
   }
 
+  protected static JsonArray rowWithIndex(final int index) {
+    return new JsonArray().add("foo" + index).add(index).add(index % 2 == 0);
+  }
+
+  private static List<JsonArray> generateRows() {
+    List<JsonArray> rows = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      JsonArray row = rowWithIndex(i);
+      rows.add(row);
+    }
+    return rows;
+  }
+
   @SuppressWarnings("unchecked")
   protected void setDefaultRowGenerator() {
     List<GenericRow> rows = new ArrayList<>();
@@ -225,14 +238,4 @@ public class BaseApiTest {
             DEFAULT_COLUMN_TYPES.getList(),
             rows));
   }
-
-  private static List<JsonArray> generateRows() {
-    List<JsonArray> rows = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
-      JsonArray row = new JsonArray().add("foo" + i).add(i).add(i % 2 == 0);
-      rows.add(row);
-    }
-    return rows;
-  }
-
 }

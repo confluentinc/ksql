@@ -80,7 +80,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.doCreateInto = doCreateInto;
     this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
 
-    validate(source);
+    validate(source, intoSourceName);
   }
 
   public boolean isDoCreateInto() {
@@ -132,7 +132,17 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
   }
 
-  private static void validate(final PlanNode source) {
+  private static void validate(
+      final PlanNode source,
+      final SourceName intoSourceName
+  ) {
+    if (!(source instanceof VerifiableNode)) {
+      throw new IllegalArgumentException("VerifiableNode required");
+    }
+
+    ((VerifiableNode) source)
+        .validateKeyPresent(intoSourceName);
+
     final LogicalSchema schema = source.getSchema();
 
     final String duplicates = schema.columns().stream()

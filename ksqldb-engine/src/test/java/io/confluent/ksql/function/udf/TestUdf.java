@@ -15,11 +15,19 @@
 
 package io.confluent.ksql.function.udf;
 
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.List;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
 @UdfDescription(name="test_udf", description = "test")
 @SuppressWarnings("unused")
 public class TestUdf {
+
+  private static final SqlStruct RETURN =
+      SqlStruct.builder().field("A", SqlTypes.STRING).build();
 
   @Udf(description = "returns the method name")
   public String doStuffIntString(final int arg1, final String arg2) {
@@ -46,5 +54,17 @@ public class TestUdf {
       @UdfParameter(schema = "STRUCT<A VARCHAR>") final Struct struct
   ) {
     return struct.getString("A");
+  }
+
+  @Udf(description = "returns the value of 'STRUCT<A VARCHAR>'", schemaProvider = "structProvider")
+  public Struct returnStructStuff() {
+    return new Struct(
+        SchemaBuilder.struct().field("A", SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build()
+    ).put("A", "foo");
+  }
+
+  @UdfSchemaProvider
+  public SqlType structProvider(final List<SqlType> params) {
+    return RETURN;
   }
 }

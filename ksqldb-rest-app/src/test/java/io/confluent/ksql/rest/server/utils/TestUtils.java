@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.utils;
 
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.schema.utils.Pair;
+import io.confluent.ksql.util.Pair;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ import java.util.Optional;
 
 public class TestUtils {
 
-  public List<Pair<CommandId, Command>> getAllPriorCommandRecords() {
+  public static List<Pair<CommandId, Command>> getAllPriorCommandRecords() {
     final List<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
 
     final Command csCommand = new Command("CREATE STREAM pageview "

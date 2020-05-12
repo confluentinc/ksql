@@ -15,16 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.types.ParamTypes;
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Collections;
-import org.apache.kafka.common.KafkaException;
-import org.junit.Test;
-
 import static com.google.common.collect.ImmutableList.of;
 import static io.confluent.ksql.function.KsqlScalarFunction.create;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
@@ -33,6 +23,13 @@ import static java.util.Collections.emptyList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
+
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.name.FunctionName;
+import org.apache.kafka.common.KafkaException;
+import org.junit.Test;
 
 public class UdfFactoryTest {
 

@@ -6,8 +6,8 @@
     {
       "name": "searched case expression",
       "statements": [
-        "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;"
+        "CREATE STREAM orders (ID STRING KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ORDERUNITS": 6.0}},
@@ -23,8 +23,8 @@
     {
       "name": "searched case with arithmetic expression in result",
       "statements": [
-        "CREATE STREAM orders (orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN orderid + 2 END AS case_resault FROM orders;"
+        "CREATE STREAM orders (ID STRING KEY, orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits < 2.0 THEN orderid + 2 END AS case_resault FROM orders;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ORDERID": 4, "ORDERUNITS": 1.9}},
@@ -40,8 +40,8 @@
     {
       "name": "searched case with null in when",
       "statements": [
-        "CREATE STREAM orders (orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits > 2.0 THEN 'foo' ELSE 'default' END AS case_resault FROM orders;"
+        "CREATE STREAM orders (ID STRING KEY, orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits > 2.0 THEN 'foo' ELSE 'default' END AS case_resault FROM orders;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ORDERID": 1}},
@@ -58,8 +58,8 @@
     {
       "name": "searched case returning null in first branch",
       "statements": [
-        "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN null WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders;"
+        "CREATE STREAM orders (ID STRING KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits < 2.0 THEN null WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ORDERUNITS": 4.2}},
@@ -75,8 +75,8 @@
     {
       "name": "searched case returning null in later branch",
       "statements": [
-        "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN null ELSE 'large' END AS case_result FROM orders;"
+        "CREATE STREAM orders (ID STRING KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN null ELSE 'large' END AS case_result FROM orders;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ORDERUNITS": 4.2}},
@@ -92,8 +92,8 @@
     {
       "name": "searched case returning null in default branch",
       "statements": [
-        "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN 'small' ELSE null END AS case_result FROM orders;"
+        "CREATE STREAM orders (ID STRING KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits < 2.0 THEN 'small' ELSE null END AS case_result FROM orders;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ORDERUNITS": 4.2}},
@@ -107,8 +107,8 @@
     {
       "name": "searched case returning null in all branch",
       "statements": [
-        "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN null ELSE null END AS case_result FROM orders;"
+        "CREATE STREAM orders (ID STRING KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits < 2.0 THEN null ELSE null END AS case_result FROM orders;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -118,8 +118,8 @@
     {
       "name": "searched case expression with structs, multiple expression and the same type",
       "statements": [
-        "CREATE STREAM orders (address STRUCT <city varchar, state varchar>, itemid STRUCT<NAME VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT CASE WHEN ADDRESS->STATE = 'STATE_1' THEN ITEMID->NAME WHEN ADDRESS->STATE = 'STATE_3' THEN ADDRESS->CITY ELSE 'default' END AS case_resault FROM orders;"
+        "CREATE STREAM orders (ID STRING KEY, address STRUCT <city varchar, state varchar>, itemid STRUCT<NAME VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT ID, CASE WHEN ADDRESS->STATE = 'STATE_1' THEN ITEMID->NAME WHEN ADDRESS->STATE = 'STATE_3' THEN ADDRESS->CITY ELSE 'default' END AS case_resault FROM orders;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ITEMID": {"NAME": "Food"}, "ADDRESS": {"CITY": "CITY_0", "STATE": "STATE_1"}}},
@@ -143,8 +143,8 @@
         "Hence this test case would throw if execution was not lazy"
       ],
       "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT CASE WHEN WHENCONDITION(true, true) THEN WHENRESULT(100, true) WHEN WHENCONDITION(true, false) THEN WHENRESULT(200, false) ELSE WHENRESULT(300, false)END FROM input;"
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, CASE WHEN WHENCONDITION(true, true) THEN WHENRESULT(100, true) WHEN WHENCONDITION(true, false) THEN WHENRESULT(200, false) ELSE WHENRESULT(300, false)END FROM input;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {}}
@@ -160,8 +160,8 @@
         "Hence this test case would throw if execution was not lazy"
       ],
       "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT CASE WHEN WHENCONDITION(false, true) THEN WHENRESULT(100, false) WHEN WHENCONDITION(false, true) THEN WHENRESULT(200, false) ELSE WHENRESULT(300, true) END FROM input;"
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, CASE WHEN WHENCONDITION(false, true) THEN WHENRESULT(100, false) WHEN WHENCONDITION(false, true) THEN WHENRESULT(200, false) ELSE WHENRESULT(300, true) END FROM input;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {}}

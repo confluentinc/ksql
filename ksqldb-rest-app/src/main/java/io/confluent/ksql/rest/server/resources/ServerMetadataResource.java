@@ -20,8 +20,8 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Version;
 import java.util.Objects;
 
 public final class ServerMetadataResource {
@@ -45,7 +45,7 @@ public final class ServerMetadataResource {
       final KsqlConfig ksqlConfig
   ) {
     return new ServerMetadataResource(new ServerMetadata(
-        Version.getVersion(),
+        AppInfo.getVersion(),
         ServerClusterId.of(
             KafkaClusterUtil.getKafkaClusterId(serviceContext),
             ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)

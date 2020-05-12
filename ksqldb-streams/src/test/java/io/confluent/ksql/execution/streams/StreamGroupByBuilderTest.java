@@ -38,7 +38,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -123,8 +122,6 @@ public class StreamGroupByBuilderTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private Optional<ColumnName> alias;
-  @Mock
   private KStreamHolder<Struct> streamHolder;
   @Mock
   private ParamsFactory paramsFactory;
@@ -146,7 +143,7 @@ public class StreamGroupByBuilderTest {
     when(streamHolder.getSchema()).thenReturn(SCHEMA);
     when(streamHolder.getStream()).thenReturn(sourceStream);
 
-    when(paramsFactory.build(any(), any(), any(), any(), any())).thenReturn(groupByParams);
+    when(paramsFactory.build(any(), any(), any())).thenReturn(groupByParams);
 
     when(groupByParams.getSchema()).thenReturn(REKEYED_SCHEMA);
     when(groupByParams.getMapper()).thenReturn(mapper);
@@ -166,8 +163,7 @@ public class StreamGroupByBuilderTest {
         PROPERTIES,
         sourceStep,
         FORMATS,
-        GROUP_BY_EXPRESSIONS,
-        alias
+        GROUP_BY_EXPRESSIONS
     );
 
     groupByKey = new StreamGroupByKey(PROPERTIES, sourceStep, FORMATS);
@@ -196,9 +192,7 @@ public class StreamGroupByBuilderTest {
     verify(paramsFactory).build(
         eq(SCHEMA),
         any(),
-        eq(alias),
-        eq(processingLogger),
-        eq(ksqlConfig)
+        eq(processingLogger)
     );
   }
 
@@ -284,7 +278,7 @@ public class StreamGroupByBuilderTest {
     builder.build(streamHolder, groupByKey);
 
     // Then:
-    verify(paramsFactory, never()).build(any(), any(), any(), any(), any());
+    verify(paramsFactory, never()).build(any(), any(), any());
   }
 
   @Test

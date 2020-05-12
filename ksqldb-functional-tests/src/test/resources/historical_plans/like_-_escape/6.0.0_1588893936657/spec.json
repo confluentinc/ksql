@@ -1,0 +1,73 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893936657,
+  "path" : "query-validation-tests/like.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID INT, VAL VARCHAR, PATTERN VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "escape",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "id" : 1,
+        "val" : "%",
+        "pattern" : "!%"
+      }
+    }, {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "id" : -1,
+        "val" : "x",
+        "pattern" : "!%"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ID" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, id INT, val VARCHAR, pattern VARCHAR) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, id FROM INPUT WHERE val LIKE pattern ESCAPE '!';" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

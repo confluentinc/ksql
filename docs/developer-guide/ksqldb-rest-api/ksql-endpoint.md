@@ -72,6 +72,7 @@ Response JSON Object:
 - **streams[i].topic** (string): The topic backing the stream.
 - **streams[i].format** (string): The serialization format of the data in the
   stream. One of JSON, AVRO, PROTOBUF, or DELIMITED.
+- **streams[i].type** (string): The source type. Always returns `STREAM`.
 
 **LIST TABLES, SHOW TABLES**
 
@@ -82,6 +83,8 @@ Response JSON Object:
 - **tables[i].topic** (string): The topic backing the table.
 - **tables[i].format** (string): The serialization format of the data in the
   table. One of JSON, AVRO, PROTOBUF, or DELIMITED.
+- **tables[i].type** (string): The source type. Always returns `TABLE`.
+- **tables[i].isWindowed** (boolean): `true` if the table provides windowed results; otherwise, `false`.
 
 **LIST QUERIES, SHOW QUERIES**
 

@@ -64,6 +64,7 @@
         <module>ksqldb-rocksdb-config-setter</module>
         <module>ksqldb-docker</module>
         <module>ksqldb-api-reactive-streams-tck</module>
+        <module>ksqldb-api-client</module>
     </modules>
 
     <repositories>
@@ -130,6 +131,7 @@
         <compile.warnings-flag>-Werror</compile.warnings-flag>
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.28.v20200408</jetty.version>
+        <git-commit-id-plugin.version>2.2.1</git-commit-id-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -571,6 +573,24 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>2.2.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+                </configuration>
             </plugin>
         </plugins>
     </build>

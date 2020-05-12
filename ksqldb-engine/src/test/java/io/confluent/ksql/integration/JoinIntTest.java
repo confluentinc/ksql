@@ -95,15 +95,12 @@ public class JoinIntTest {
                                           final Format dataSourceSerDe)
       throws Exception {
 
-    final String queryString = String.format(
-            "CREATE STREAM %s AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN"
-            + " %s on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1' ;",
-            testStreamName,
-            orderStreamName,
-            itemTableName,
-            orderStreamName,
-            itemTableName,
-            orderStreamName);
+    final String queryString =
+            "CREATE STREAM " + testStreamName + " AS "
+                + "SELECT " + orderStreamName + ".ITEMID, ORDERID, ORDERUNITS, DESCRIPTION "
+                + "FROM " + orderStreamName + " LEFT JOIN " + itemTableName + " "
+                + "on " + orderStreamName + ".ITEMID = " + itemTableName + ".ID "
+                + "WHERE " + orderStreamName + ".ITEMID = 'ITEM_1' ;";
 
     ksqlContext.sql(queryString);
 
@@ -116,7 +113,7 @@ public class JoinIntTest {
     );
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
-        genericRow("ORDER_1", "ITEM_1", 10.0, "home cinema")
+        genericRow("ORDER_1", 10.0, "home cinema")
     );
 
     final Map<String, GenericRow> results = new HashMap<>();
@@ -148,29 +145,20 @@ public class JoinIntTest {
   public void shouldInsertLeftJoinOrderAndItems() throws Exception {
     final String testStreamName = "OrderedWithDescription".toUpperCase();
 
-    final String csasQueryString = String.format(
-        "CREATE STREAM %s AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN "
-        + "%s " +
-        " on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'Hello' ;",
-        testStreamName,
-        ORDER_STREAM_NAME_JSON,
-        ITEM_TABLE_NAME_JSON,
-        ORDER_STREAM_NAME_JSON,
-        ITEM_TABLE_NAME_JSON,
-        ORDER_STREAM_NAME_JSON
-    );
+    final String commonSql =
+        "SELECT " + ORDER_STREAM_NAME_JSON + ".ITEMID, ORDERID, ORDERUNITS, DESCRIPTION "
+            + "FROM " + ORDER_STREAM_NAME_JSON + " LEFT JOIN " + ITEM_TABLE_NAME_JSON + " "
+            + " on " + ORDER_STREAM_NAME_JSON + ".ITEMID = " + ITEM_TABLE_NAME_JSON + ".ID ";
 
-    final String insertQueryString = String.format(
-        "INSERT INTO %s SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN "
-        + "%s " +
-        " on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1' ;",
-        testStreamName,
-        ORDER_STREAM_NAME_JSON,
-        ITEM_TABLE_NAME_JSON,
-        ORDER_STREAM_NAME_JSON,
-        ITEM_TABLE_NAME_JSON,
-        ORDER_STREAM_NAME_JSON
-    );
+    final String csasQueryString = "CREATE STREAM " + testStreamName + " AS "
+        + commonSql
+        + "WHERE " + ORDER_STREAM_NAME_JSON + ".ITEMID = 'Hello' ;";
+
+    final String insertQueryString =
+        "INSERT INTO " + testStreamName + " "
+            + commonSql
+            + "WHERE " + ORDER_STREAM_NAME_JSON + ".ITEMID = 'ITEM_1' ;";
+
 
     ksqlContext.sql(csasQueryString);
     ksqlContext.sql(insertQueryString);
@@ -185,7 +173,7 @@ public class JoinIntTest {
 
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
-        genericRow("ORDER_1", "ITEM_1", 10.0, "home cinema")
+        genericRow("ORDER_1", 10.0, "home cinema")
     );
 
     final Map<String, GenericRow> results = new HashMap<>();
@@ -234,15 +222,15 @@ public class JoinIntTest {
 
   @Test
   public void shouldUseTimeStampFieldFromStream() throws Exception {
-    final String queryString = String.format(
-        "CREATE STREAM JOINED AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN"
-            + " %s on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1';"
-            + "CREATE STREAM OUTPUT AS SELECT ORDERID, DESCRIPTION, ROWTIME AS RT FROM JOINED;",
-        ORDER_STREAM_NAME_AVRO,
-        ITEM_TABLE_NAME_AVRO,
-        ORDER_STREAM_NAME_AVRO,
-        ITEM_TABLE_NAME_AVRO,
-        ORDER_STREAM_NAME_AVRO);
+    final String queryString = "CREATE STREAM JOINED AS "
+        + "SELECT " + ORDER_STREAM_NAME_AVRO + ".ITEMID, ORDERID, ORDERUNITS, DESCRIPTION "
+        + "FROM " + ORDER_STREAM_NAME_AVRO + " LEFT JOIN " + ITEM_TABLE_NAME_AVRO + " "
+        + "ON " + ORDER_STREAM_NAME_AVRO + ".ITEMID = " + ITEM_TABLE_NAME_AVRO + ".ID "
+        + "WHERE "  + ORDER_STREAM_NAME_AVRO + ".ITEMID = 'ITEM_1';"
+        + ""
+        + "CREATE STREAM OUTPUT AS "
+        + "SELECT ITEMID, ORDERID, DESCRIPTION, ROWTIME AS RT "
+        + "FROM JOINED;";
 
     ksqlContext.sql(queryString);
 

@@ -42,12 +42,12 @@ import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
@@ -161,7 +161,7 @@ public class StandaloneExecutor implements Executable {
 
     WelcomeMsgUtils.displayWelcomeMessage(80, writer);
     writer.printf("Server %s started with query file %s. Interactive mode is disabled.%n",
-                  Version.getVersion(),
+                  AppInfo.getVersion(),
                   queriesFile);
 
     writer.flush();

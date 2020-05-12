@@ -34,20 +34,20 @@ builds and runs the application on available ksqlDB servers. Each ksqlDB
 Server instance runs a ksqlDB engine. Under the hood, the engine
 parses your SQL statements and builds corresponding Kafka Streams
 topologies. The ksqlDB engine is implemented in the
-[KsqlEngine.java](https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/engine/KsqlEngine.java)
+[KsqlEngine.java](https://github.com/confluentinc/ksql/blob/master/ksqldb-engine/src/main/java/io/confluent/ksql/engine/KsqlEngine.java)
 class.
 - ksqlDB CLI: The ksqlDB CLI provides a console with a command-line interface
 for the ksqlDB engine. Use the ksqlDB CLI to interact with ksqlDB Server
 instances and develop your streaming applications. The ksqlDB CLI is
 designed to be familiar to users of MySQL, Postgres, and similar
 applications. The ksqlDB CLI is implemented in the
-[io.confluent.ksql.cli](https://github.com/confluentinc/ksql/tree/master/ksql-cli/src/main/java/io/confluent/ksql/cli)
+[io.confluent.ksql.cli](https://github.com/confluentinc/ksql/tree/master/ksqldb-cli/src/main/java/io/confluent/ksql/cli)
 package.
 - REST Interface: The REST server interface enables communicating with the
 ksqlDB engine from the CLI, {{ site.c3 }}, or from any other REST client. For
 more information, see [ksqlDB REST API Reference](../developer-guide/api.md).
 The ksqlDB REST server is implemented in the
-[KsqlRestApplication.java](https://github.com/confluentinc/ksql/blob/master/ksql-rest-app/src/main/java/io/confluent/ksql/rest/server/KsqlRestApplication.java)
+[KsqlRestApplication.java](https://github.com/confluentinc/ksql/blob/master/ksqldb-rest-app/src/main/java/io/confluent/ksql/rest/server/KsqlRestApplication.java)
 class.
 
 When you deploy your ksqlDB application, it runs on ksqlDB Server instances
@@ -301,7 +301,7 @@ statement might resemble:
 |                        |                                                                                                                                                         |     |
 
 The ksqlDB metastore is implemented in the
-[io.confluent.ksql.metastore](https://github.com/confluentinc/ksql/tree/master/ksql-metastore/src/main/java/io/confluent/ksql/metastore)
+[io.confluent.ksql.metastore](https://github.com/confluentinc/ksql/tree/master/ksqldb-metastore/src/main/java/io/confluent/ksql/metastore)
 package.
 
 ### Express Your Application as a SQL Statement
@@ -334,7 +334,7 @@ syntax tree (AST). The ksqlDB engine uses the AST to plan the query.
 
 The SQL statement parser is based on [ANTLR](https://www.antlr.org/)
 and is implemented in the
-[io.confluent.ksql.parser](https://github.com/confluentinc/ksql/tree/master/ksql-parser/src/main)
+[io.confluent.ksql.parser](https://github.com/confluentinc/ksql/tree/master/ksqldb-parser/src/main)
 package.
 
 ### ksqlDB Creates the Logical Plan
@@ -362,13 +362,13 @@ The generated code is based on the ksqlDB classes, `SchemaKStream` and
 `SchemaKTable`:
 
 -   A ksqlDB stream is rendered as a
-    [SchemaKStream](https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/structured/SchemaKStream.java)
+    [SchemaKStream](https://github.com/confluentinc/ksql/blob/master/ksqldb-engine/src/main/java/io/confluent/ksql/structured/SchemaKStream.java)
     instance, which is a
     [KStream](https://docs.confluent.io/current/streams/javadocs/org/apache/kafka/streams/kstream/KStream.html)
     with a
     [Schema](https://kafka.apache.org/20/javadoc/org/apache/kafka/connect/data/Schema.html).
 -   A ksqlDB table is rendered as a
-    [SchemaKTable](https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/structured/SchemaKTable.java)
+    [SchemaKTable](https://github.com/confluentinc/ksql/blob/master/ksqldb-engine/src/main/java/io/confluent/ksql/structured/SchemaKTable.java)
     instance, which is a
     [KTable](https://docs.confluent.io/current/streams/javadocs/org/apache/kafka/streams/kstream/KTable.html)
     with a

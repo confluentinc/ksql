@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# exit when any command fails
+set -e
+
+echo -e "## Bringing up containers:\n"
+docker-compose up -d
+
+echo -e "\n## Waiting for ksqlDB to start:"
+until curl -s --fail -X "POST" "http://localhost:8088/ksql" \
+  -H "Content-Type: application/json; charset=utf-8" \
+  -d '{"ksql":"SHOW STREAMS;"}'
+do
+   sleep 5
+   echo -n "."
+done
+
+echo -e "\n## Starting ksqlDB CLI:\n"
+docker exec -it ksqldb-cli ksql http://primary-ksqldb-server:8088
+
+
+
+

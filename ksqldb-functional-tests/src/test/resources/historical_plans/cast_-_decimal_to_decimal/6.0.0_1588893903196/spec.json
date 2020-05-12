@@ -32,7 +32,7 @@
     }, {
       "topic" : "OUT",
       "key" : "",
-      "value" : "00.000"
+      "value" : "0.000"
     } ],
     "topics" : [ {
       "name" : "test_topic",

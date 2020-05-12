@@ -185,7 +185,7 @@
         {"topic": "test", "value": {"A": "10.10", "B":  "0.00"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"RESULT": "05.00"}},
+        {"topic": "TEST2", "value": {"RESULT": "5.00"}},
         {"topic": "TEST2", "value": {"RESULT": "15.10"}},
         {"topic": "TEST2", "value": {"RESULT": "10.10"}}
       ]
@@ -204,7 +204,7 @@
       "outputs": [
         {"topic": "TEST2", "value": {"RESULT": "20.2000"}},
         {"topic": "TEST2", "value": {"RESULT": "-20.2000"}},
-        {"topic": "TEST2", "value": {"RESULT": "00.0000"}}
+        {"topic": "TEST2", "value": {"RESULT": "0.0000"}}
       ]
     },
     {
@@ -222,8 +222,8 @@
         {"topic": "test", "value": {"A": "10.10", "B":  "00.00"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"RESULT": "005.0500000"}},
-        {"topic": "TEST2", "value": {"RESULT": "-005.0500000"}},
+        {"topic": "TEST2", "value": {"RESULT": "5.0500000"}},
+        {"topic": "TEST2", "value": {"RESULT": "-5.0500000"}},
         {"topic": "TEST2", "value": {"RESULT": null}}
       ]
     },

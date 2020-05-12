@@ -94,7 +94,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
-    shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size(), false);
+    shouldDeliver(streamedQueryResult, DEFAULT_JSON_ROWS.size(), false);
 
     String queryId = streamedQueryResult.queryID();
     assertThat(queryId, is(notNullValue()));
@@ -113,7 +113,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
-    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
+    for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       final Row row = streamedQueryResult.poll();
       assertThat(row.values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
@@ -137,7 +137,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
-    shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size(), true);
+    shouldDeliver(streamedQueryResult, DEFAULT_JSON_ROWS.size(), true);
 
     verifyPullQueryServerState();
 
@@ -154,7 +154,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
 
-    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
+    for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       final Row row = streamedQueryResult.poll();
       assertThat(row.values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
@@ -178,7 +178,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
     assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
-    shouldDeliver(streamedQueryResult, DEFAULT_ROWS.size(), true);
+    shouldDeliver(streamedQueryResult, DEFAULT_JSON_ROWS.size(), true);
 
     verifyPushQueryServerState(DEFAULT_PUSH_QUERY_WITH_LIMIT);
 
@@ -196,7 +196,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
     assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
-    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
+    for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       final Row row = streamedQueryResult.poll();
       assertThat(row.values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(row.columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
@@ -268,8 +268,8 @@ public class ClientTest extends BaseApiTest {
     assertThat(batchedQueryResult.queryID(), is(nullValue()));
 
     final List<Row> rows = batchedQueryResult.rows();
-    assertThat(rows, hasSize(DEFAULT_ROWS.size()));
-    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
+    assertThat(rows, hasSize(DEFAULT_JSON_ROWS.size()));
+    for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       assertThat(rows.get(i).values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(rows.get(i).columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
       assertThat(rows.get(i).columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
@@ -290,8 +290,8 @@ public class ClientTest extends BaseApiTest {
     assertThat(batchedQueryResult.queryID(), is(notNullValue()));
 
     final List<Row> rows = batchedQueryResult.rows();
-    assertThat(rows, hasSize(DEFAULT_ROWS.size()));
-    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
+    assertThat(rows, hasSize(DEFAULT_JSON_ROWS.size()));
+    for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       assertThat(rows.get(i).values(), equalTo(rowWithIndexAsKsqlArray(i)));
       assertThat(rows.get(i).columnNames(), equalTo(DEFAULT_COLUMN_NAMES));
       assertThat(rows.get(i).columnTypes(), equalTo(DEFAULT_COLUMN_TYPES));
@@ -372,7 +372,7 @@ public class ClientTest extends BaseApiTest {
   }
 
   private static KsqlArray rowWithIndexAsKsqlArray(final int index) {
-    return new KsqlArray(rowWithIndex(index).getList());
+    return new KsqlArray(DEFAULT_JSON_ROWS.get(index).getList());
   }
 
   private static class TestSubscriber<T> implements Subscriber<T> {

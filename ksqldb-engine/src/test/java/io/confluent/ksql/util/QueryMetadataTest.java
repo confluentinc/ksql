@@ -135,7 +135,7 @@ public class QueryMetadataTest {
     when(kafkaStreams.state()).thenReturn(State.PENDING_SHUTDOWN);
 
     // When:
-    final String state = query.getState();
+    final String state = query.getState().toString();
 
     // Then:
     assertThat(state, is("PENDING_SHUTDOWN"));

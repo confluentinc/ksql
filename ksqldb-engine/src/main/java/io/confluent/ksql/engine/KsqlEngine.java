@@ -54,6 +54,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -279,7 +280,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private void unregisterQuery(final ServiceContext serviceContext, final QueryMetadata query) {
     final String applicationId = query.getQueryApplicationId();
 
-    if (!query.getState().equalsIgnoreCase("NOT_RUNNING")) {
+    if (!query.getState().equals(State.NOT_RUNNING)) {
       log.warn(
           "Unregistering query that has not terminated. "
               + "This may happen when streams threads are hung. State: " + query.getState()

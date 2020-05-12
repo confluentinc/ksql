@@ -254,7 +254,7 @@ public class ListSourceExecutorTest {
 
     // Then:
     final QueryStatusCount queryStatusCount = QueryStatusCount.fromStreamsStateCounts(
-        Collections.singletonMap(KafkaStreams.State.valueOf(metadata.getState()), 1));
+        Collections.singletonMap(metadata.getState(), 1));
 
     assertThat(sourceDescription.getSourceDescription(),
         equalTo(SourceDescriptionFactory.create(

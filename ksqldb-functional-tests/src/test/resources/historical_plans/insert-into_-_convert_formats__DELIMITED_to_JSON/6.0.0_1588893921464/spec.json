@@ -1,0 +1,76 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893921464,
+  "path" : "query-validation-tests/insert-into.json",
+  "schemas" : {
+    "INSERTQUERY_1.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
+    "INSERTQUERY_1.OUTPUT" : "STRUCT<DATA VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "convert formats: DELIMITED to JSON",
+    "inputs" : [ {
+      "topic" : "insert-source",
+      "key" : "k1",
+      "value" : {
+        "data" : "v1"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : "v1"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "stream-source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "insert-source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE1 (K STRING KEY, data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');", "CREATE STREAM SOURCE2 (K STRING KEY, data VARCHAR) WITH (kafka_topic='insert-source', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;", "INSERT INTO OUTPUT SELECT * FROM SOURCE2;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "insert-source",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "stream-source",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

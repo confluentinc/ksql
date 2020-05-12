@@ -1,0 +1,91 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893946581,
+  "path" : "query-validation-tests/table-functions.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<MY_ARR ARRAY<BIGINT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<MY_ARR ARRAY<BIGINT>, VAL BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "with select *",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "MY_ARR" : [ 1, 2 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "MY_ARR" : [ 3, 4 ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "MY_ARR" : [ 1, 2 ],
+        "VAL" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "MY_ARR" : [ 1, 2 ],
+        "VAL" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "MY_ARR" : [ 3, 4 ],
+        "VAL" : 3
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "MY_ARR" : [ 3, 4 ],
+        "VAL" : 4
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT *, EXPLODE(MY_ARR) VAL FROM TEST;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -6,8 +6,8 @@
     {
       "name": "with valid zone",
       "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss zzz','America/Los_Angeles') FROM input;"
+        "CREATE STREAM INPUT (K STRING KEY, IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss zzz','America/Los_Angeles') FROM input;"
       ],
       "inputs": [
         {"topic": "input", "value": {}, "timestamp": 1526075913000}

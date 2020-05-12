@@ -176,19 +176,6 @@ public final class CreateSourceFactory {
       if (SystemColumns.isSystemColumn(e.getName())) {
         throw new KsqlException("'" + e.getName().text() + "' is a reserved column name.");
       }
-
-      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED)) {
-        final boolean isRowKey = e.getName().equals(SystemColumns.ROWKEY_NAME);
-        if (e.getNamespace().isKey()) {
-          if (!isRowKey) {
-            throw new KsqlException("'" + e.getName().text() + "' is an invalid KEY column name. "
-                + "KSQL currently only supports KEY columns named ROWKEY.");
-          }
-        } else if (isRowKey) {
-          throw new KsqlException("'" + e.getName().text() + "' is a reserved column name. "
-              + "It can only be used for KEY columns.");
-        }
-      }
     });
 
     return tableElements.toLogicalSchema(true);

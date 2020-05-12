@@ -3,8 +3,8 @@
     {
       "name": "< operator",
       "statements": [
-        "CREATE STREAM INPUT (text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS select text, text < 'b2' from INPUT;"
+        "CREATE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select K, text, text < 'b2' from INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": "a1"},
@@ -29,7 +29,7 @@
           {
             "name": "OUTPUT",
             "type": "stream",
-            "schema": "ROWKEY STRING KEY, TEXT STRING, KSQL_COL_0 BOOLEAN"
+            "schema": "K STRING KEY, TEXT STRING, KSQL_COL_0 BOOLEAN"
           }
         ]
       }
@@ -37,8 +37,8 @@
     {
       "name": "LCASE, UCASE, TRIM SUBSTRING",
       "statements": [
-        "CREATE STREAM INPUT (text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS select LCASE(text), UCASE(text), TRIM(text), SUBSTRING(text, 2, 5) from INPUT;"
+        "CREATE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select K, LCASE(text), UCASE(text), TRIM(text), SUBSTRING(text, 2, 5) from INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": "lower"},
@@ -61,7 +61,7 @@
           {
             "name": "OUTPUT",
             "type": "stream",
-            "schema": "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING, KSQL_COL_2 STRING, KSQL_COL_3 STRING"
+            "schema": "K STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING, KSQL_COL_2 STRING, KSQL_COL_3 STRING"
           }
         ]
       }

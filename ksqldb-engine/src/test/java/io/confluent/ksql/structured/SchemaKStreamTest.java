@@ -515,7 +515,7 @@ public class SchemaKStreamTest {
     assertThat(
         rekeyedSchemaKStream.getSourceStep(),
         equalTo(
-            ExecutionStepFactory.streamSelectKeyV1(
+            ExecutionStepFactory.streamSelectKey(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
                 new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))

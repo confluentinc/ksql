@@ -22,7 +22,7 @@
       "outputs": [
         {"topic": "T1", "key": 0,"value": null, "window": {"start": 0, "end": 30000, "type": "time"}},
         {"topic": "T1", "key": 1,"value": null, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "T1", "key": 1,"value": "1,105", "window": {"start": 0, "end": 30000, "type": "time"}}
+        {"topic": "T1", "key": 1,"value": "105", "window": {"start": 0, "end": 30000, "type": "time"}}
       ]
     },
     {
@@ -39,11 +39,11 @@
         {"topic": "test_topic", "key": 1,"value": "1,one,10"}
       ],
       "outputs": [
-        {"topic": "AVG", "key": 0,"value": "0,50"},
-        {"topic": "AVG", "key": 0,"value": "0,30"},
+        {"topic": "AVG", "key": 0,"value": "50"},
+        {"topic": "AVG", "key": 0,"value": "30"},
         {"topic": "AVG", "key": 0,"value": null},
-        {"topic": "AVG", "key": 1,"value": "1,100"},
-        {"topic": "AVG", "key": 1,"value": "1,55"}
+        {"topic": "AVG", "key": 1,"value": "100"},
+        {"topic": "AVG", "key": 1,"value": "55"}
       ]
     }
 

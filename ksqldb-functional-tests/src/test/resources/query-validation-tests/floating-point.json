@@ -6,8 +6,8 @@
     {
       "name": "filter by DOUBLE",
       "statements": [
-        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ROWKEY > 0.1;"
+        "CREATE STREAM INPUT (K DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE K > 0.1;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0.0, "value": {"ID": 0}},
@@ -25,8 +25,8 @@
     {
       "name": "with exponent",
       "statements": [
-        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ROWKEY > 1e-1;"
+        "CREATE STREAM INPUT (K DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE K > 1e-1;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0.0, "value": {"ID": 0}},

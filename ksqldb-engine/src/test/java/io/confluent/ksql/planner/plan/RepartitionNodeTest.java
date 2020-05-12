@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -86,51 +85,33 @@ public class RepartitionNodeTest {
   public void setUp() {
     when(parent.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(parent.getSourceName()).thenReturn(Optional.of(SOURCE_NAME));
-    when(parent.resolveSelectStar(any(), anyBoolean())).thenReturn(PARENT_COL_NAMES.stream());
+    when(parent.resolveSelectStar(any())).thenReturn(PARENT_COL_NAMES.stream());
 
     repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy,
-        rewrittenPartitionBy, KeyField.none(), false, false);
+        rewrittenPartitionBy, KeyField.none(), false);
   }
 
   @Test
   public void shouldResolveSelectStarIfSourceMatchesAndValuesOnly() {
     // When:
     final Stream<ColumnName> result = repartitionNode.resolveSelectStar(
-        Optional.of(SOURCE_NAME),
-        true
+        Optional.of(SOURCE_NAME)
     );
 
     // Then:
-    final List<ColumnName> names = result.collect(Collectors.toList());
-    assertThat(names, contains(V0, V1, V2));
+    assertThat(result.collect(Collectors.toList()), contains(K0, V0, V1, V2));
   }
 
   @Test
   public void shouldResolveSelectStarIfSourceNotProvidedAndValuesOnly() {
     // When:
     final Stream<ColumnName> result = repartitionNode.resolveSelectStar(
-        Optional.empty(),
-        true
+        Optional.empty()
     );
 
     // Then:
     final List<ColumnName> names = result.collect(Collectors.toList());
-    assertThat(names, contains(V0, V1, V2));
-  }
-
-  @Test
-  public void shouldPassResolveSelectStarToParentIfNotValuesOnly() {
-    // When:
-    final Stream<ColumnName> result = repartitionNode.resolveSelectStar(
-        Optional.empty(),
-        false
-    );
-
-    // Then:
-    final List<ColumnName> names = result.collect(Collectors.toList());
-    assertThat(names, is(PARENT_COL_NAMES));
-
-    verify(parent).resolveSelectStar(Optional.empty(), false);
+    assertThat(names, contains(K0, V0, V1, V2));
   }
 
   @Test
@@ -140,15 +121,13 @@ public class RepartitionNodeTest {
 
     // When:
     final Stream<ColumnName> result = repartitionNode.resolveSelectStar(
-        Optional.empty(),
-        false
+        Optional.empty()
     );
 
     // Then:
-    final List<ColumnName> names = result.collect(Collectors.toList());
-    assertThat(names, is(PARENT_COL_NAMES));
+    verify(parent).resolveSelectStar(Optional.empty());
 
-    verify(parent).resolveSelectStar(Optional.empty(), false);
+    assertThat(result.collect(Collectors.toList()), is(PARENT_COL_NAMES));
   }
 
   @Test
@@ -193,11 +172,11 @@ public class RepartitionNodeTest {
 
   private void givenAnyKeyEnabled() {
     repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy,
-        rewrittenPartitionBy, KeyField.none(), true, false);
+        rewrittenPartitionBy, KeyField.none(), false);
   }
 
   private void givenInternalRepartition() {
     repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy,
-        rewrittenPartitionBy, KeyField.none(), true, true);
+        rewrittenPartitionBy, KeyField.none(), true);
   }
 }

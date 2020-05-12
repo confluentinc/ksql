@@ -132,7 +132,7 @@ public class WindowingIntTest {
 
     final Map<String, GenericRow> expected = ImmutableMap.of(
         "ITEM_1",
-        genericRow("ITEM_1", 2L, 20.0, 2.0)
+        genericRow(2L, 20.0, 2.0)
     );
 
     // Then:
@@ -151,7 +151,7 @@ public class WindowingIntTest {
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
         new Windowed<>("ITEM_1", new TimeWindow(tenSecWindowStartMs, Long.MAX_VALUE)),
-        genericRow("ITEM_1", 2L, 20.0, 100.0)
+        genericRow(2L, 20.0, 100.0)
     );
 
     // Then:
@@ -172,9 +172,9 @@ public class WindowingIntTest {
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
         new Windowed<>("ITEM_1", new TimeWindow(firstWindowStart, Long.MAX_VALUE)),
-        genericRow("ITEM_1", 2L, 20.0, 200.0),
+        genericRow(2L, 20.0, 200.0),
         new Windowed<>("ITEM_1", new TimeWindow(secondWindowStart, Long.MAX_VALUE)),
-        genericRow("ITEM_1", 2L, 20.0, 200.0)
+        genericRow(2L, 20.0, 200.0)
     );
 
     // Then:
@@ -195,17 +195,17 @@ public class WindowingIntTest {
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap
         .<Windowed<String>, GenericRow>builder()
         .put(new Windowed<>("ORDER_1", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_1", 2L, 20.0))
+            genericRow(2L, 20.0))
         .put(new Windowed<>("ORDER_2", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_2", 2L, 40.0))
+            genericRow(2L, 40.0))
         .put(new Windowed<>("ORDER_3", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_3", 2L, 60.0))
+            genericRow(2L, 60.0))
         .put(new Windowed<>("ORDER_4", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_4", 2L, 80.0))
+            genericRow(2L, 80.0))
         .put(new Windowed<>("ORDER_5", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_5", 2L, 100.0))
+            genericRow(2L, 100.0))
         .put(new Windowed<>("ORDER_6", new SessionWindow(batch0SentMs, sessionEnd)),
-            genericRow("ORDER_6", 6L, 420.0))
+            genericRow(6L, 420.0))
         .build();
 
     // Then:
@@ -228,7 +228,8 @@ public class WindowingIntTest {
       final Map<K, GenericRow> expected,
       final Matcher<? super Map<K, GenericRow>> tableRowMatcher
   ) {
-    final Deserializer keyDeserializer = getKeyDeserializerFor(expected.keySet().iterator().next());
+    final Deserializer<K> keyDeserializer =
+        (Deserializer<K>) getKeyDeserializerFor(expected.keySet().iterator().next());
 
     TEST_HARNESS.verifyAvailableRows(
         streamName, hasUniqueRecords(tableRowMatcher), JSON, resultSchema, keyDeserializer,

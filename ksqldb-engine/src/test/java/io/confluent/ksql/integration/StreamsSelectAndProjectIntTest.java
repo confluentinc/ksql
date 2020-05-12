@@ -162,10 +162,10 @@ public class StreamsSelectAndProjectIntTest {
   public void shouldUseStringTimestampWithFormat() throws Exception {
     ksqlContext.sql("CREATE STREAM " + intermediateStream +
         " WITH (timestamp='TIMESTAMP', timestamp_format='yyyy-MM-dd') AS"
-        + " SELECT ORDERID, TIMESTAMP FROM " + AVRO_STREAM_NAME + " WHERE ITEMID='ITEM_6';"
+        + " SELECT ROWKEY, ORDERID, TIMESTAMP FROM " + AVRO_STREAM_NAME + " WHERE ITEMID='ITEM_6';"
         + ""
         + " CREATE STREAM " + resultStream + " AS"
-        + " SELECT ORDERID, TIMESTAMP from " + intermediateStream + ";");
+        + " SELECT ROWKEY, ORDERID, TIMESTAMP from " + intermediateStream + ";");
 
     final List<ConsumerRecord<byte[], byte[]>> records =
         TEST_HARNESS.verifyAvailableRecords(resultStream.toUpperCase(), 1);
@@ -178,7 +178,7 @@ public class StreamsSelectAndProjectIntTest {
   @Test
   public void shouldUseTimestampExtractedFromDDLStatement() throws Exception {
     ksqlContext.sql("CREATE STREAM " + resultStream + " WITH(timestamp='ordertime')"
-        + " AS SELECT ORDERID, ORDERTIME FROM " + AVRO_TIMESTAMP_STREAM_NAME
+        + " AS SELECT ROWKEY, ORDERID, ORDERTIME FROM " + AVRO_TIMESTAMP_STREAM_NAME
         + " WHERE ITEMID='ITEM_4';");
 
     final List<ConsumerRecord<byte[], byte[]>> records =
@@ -199,8 +199,8 @@ public class StreamsSelectAndProjectIntTest {
                 + "RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
                 + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'; "
                 + ""
-                + "CREATE STREAM %s AS SELECT ROWKEY AS NEWRKEY, "
-                + "ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
+                + "CREATE STREAM %s AS SELECT RKEY AS NEWRKEY, "
+                + "ROWTIME AS NEWRTIME, AS_VALUE(RKEY) AS RKEY, RTIME, RT100, ORDERID, ITEMID "
                 + "FROM %s ;", intermediateStream,
             inputStreamName, resultStream, intermediateStream);
 
@@ -245,14 +245,14 @@ public class StreamsSelectAndProjectIntTest {
 
     assertThat(results.get(0).key(), is(8L));
     assertThat(results.get(0).value(),
-        is(genericRow(8L, recordMetadataMap.get(8L).timestamp(), "ITEM_8")));
+        is(genericRow(recordMetadataMap.get(8L).timestamp(), "ITEM_8")));
   }
 
   private void testSelectProject(
       final String inputStreamName,
       final Format dataSourceSerDe
   ) {
-    ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ITEMID, ORDERUNITS, "
+    ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ROWKEY, ITEMID, ORDERUNITS, "
                                   + "PRICEARRAY FROM %s;", resultStream, inputStreamName));
 
     final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
@@ -270,6 +270,7 @@ public class StreamsSelectAndProjectIntTest {
   public void testSelectProjectAvroJson() {
 
     ksqlContext.sql(String.format("CREATE STREAM %s WITH ( value_format = 'JSON') AS SELECT "
+                                  + "ROWKEY, "
                                   + "ITEMID, "
                                   + "ORDERUNITS, "
         + "PRICEARRAY FROM %s;", resultStream, AVRO_STREAM_NAME));
@@ -318,10 +319,10 @@ public class StreamsSelectAndProjectIntTest {
 
   @Test
   public void testInsertIntoJson() {
-    givenStreamExists(resultStream, "ITEMID, ORDERUNITS, PRICEARRAY", JSON_STREAM_NAME);
+    givenStreamExists(resultStream, "ROWKEY, ITEMID, ORDERUNITS, PRICEARRAY", JSON_STREAM_NAME);
 
     ksqlContext.sql("INSERT INTO " + resultStream +
-        " SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + JSON_STREAM_NAME + ";");
+        " SELECT ROWKEY, ITEMID, ORDERUNITS, PRICEARRAY FROM " + JSON_STREAM_NAME + ";");
 
     final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
@@ -336,10 +337,10 @@ public class StreamsSelectAndProjectIntTest {
   @Test
   public void testInsertIntoAvro() {
 
-    givenStreamExists(resultStream, "ITEMID, ORDERUNITS, PRICEARRAY", AVRO_STREAM_NAME);
+    givenStreamExists(resultStream, "ROWKEY, ITEMID, ORDERUNITS, PRICEARRAY", AVRO_STREAM_NAME);
 
     ksqlContext.sql("INSERT INTO " + resultStream + " "
-        + "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + AVRO_STREAM_NAME + ";");
+        + "SELECT ROWKEY, ITEMID, ORDERUNITS, PRICEARRAY FROM " + AVRO_STREAM_NAME + ";");
 
     final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),

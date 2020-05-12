@@ -6,8 +6,8 @@
     {
       "name": "concat fields using CONCAT",
       "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT CONCAT('prefix-', CONCAT(source, '-postfix')) AS THING FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, CONCAT('prefix-', CONCAT(source, '-postfix')) AS THING FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "s1"}},
@@ -21,8 +21,8 @@
     {
       "name": "concat fields using '+' operator",
       "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT 'prefix-' + source + '-postfix' AS THING FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, 'prefix-' + source + '-postfix' AS THING FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "s1"}},
@@ -36,8 +36,8 @@
     {
       "name": "should handle characters the must be escaped in java",
       "statements": [
-        "CREATE STREAM INPUT (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT CONCAT('\"', CONCAT(source, '\\')) AS THING FROM INPUT;"
+        "CREATE STREAM INPUT (ID STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, CONCAT('\"', CONCAT(source, '\\')) AS THING FROM INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "foo"}},
@@ -51,8 +51,8 @@
     {
       "name": "should handle characters the must be escaped in sql",
       "statements": [
-        "CREATE STREAM INPUT (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT CONCAT('''', CONCAT(source, '''')) AS THING FROM INPUT;"
+        "CREATE STREAM INPUT (ID STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, CONCAT('''', CONCAT(source, '''')) AS THING FROM INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "foo"}}

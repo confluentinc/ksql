@@ -99,16 +99,14 @@ public abstract class PlanNode {
    * corresponding set of columns.
    *
    * @param sourceName the name of the source
-   * @param valueOnly {@code false} if key & system columns should be included.
    * @return the list of columns.
    */
   public Stream<ColumnName> resolveSelectStar(
-      final Optional<SourceName> sourceName,
-      final boolean valueOnly
+      final Optional<SourceName> sourceName
   ) {
     return getSources().stream()
         .filter(s -> !sourceName.isPresent() || sourceName.equals(s.getSourceName()))
-        .flatMap(s -> s.resolveSelectStar(sourceName, valueOnly));
+        .flatMap(s -> s.resolveSelectStar(sourceName));
   }
 
   /**

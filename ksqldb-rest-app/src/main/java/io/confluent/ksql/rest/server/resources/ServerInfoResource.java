@@ -20,8 +20,8 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Version;
 import java.util.function.Supplier;
 
 public class ServerInfoResource {
@@ -31,7 +31,7 @@ public class ServerInfoResource {
   public ServerInfoResource(final ServiceContext serviceContext, final KsqlConfig ksqlConfig) {
     this.serverInfo = Suppliers.memoize(
         () -> new ServerInfo(
-            Version.getVersion(),
+            AppInfo.getVersion(),
             KafkaClusterUtil.getKafkaClusterId(serviceContext),
             ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
         )

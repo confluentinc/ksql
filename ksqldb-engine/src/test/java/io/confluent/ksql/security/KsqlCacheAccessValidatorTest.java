@@ -15,18 +15,6 @@
 
 package io.confluent.ksql.security;
 
-import com.google.common.base.Ticker;
-import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
-import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.common.acl.AclOperation;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.concurrent.TimeUnit;
-
 import static org.apache.kafka.common.acl.AclOperation.READ;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
@@ -34,6 +22,17 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import com.google.common.base.Ticker;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.acl.AclOperation;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlCacheAccessValidatorTest {

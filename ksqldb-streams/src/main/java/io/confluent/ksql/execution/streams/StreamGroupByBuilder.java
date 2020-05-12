@@ -31,7 +31,6 @@ import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -98,7 +97,7 @@ public final class StreamGroupByBuilder {
     final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
 
     final GroupByParams params = paramsFactory
-        .build(sourceSchema, groupBy, logger, queryBuilder.getKsqlConfig());
+        .build(sourceSchema, groupBy, logger);
 
     final Grouped<Struct, GenericRow> grouped = buildGrouped(
         formats,
@@ -144,8 +143,7 @@ public final class StreamGroupByBuilder {
     GroupByParams build(
         LogicalSchema sourceSchema,
         List<ExpressionMetadata> groupBys,
-        ProcessingLogger logger,
-        KsqlConfig ksqlConfig
+        ProcessingLogger logger
     );
   }
 }

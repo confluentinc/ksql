@@ -9,9 +9,6 @@
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, ID IS NULL AS ID_NULL, NAME IS NULL AS NAME_NULL FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"NAME": "not null"}},
         {"topic": "test_topic", "key": null, "value": {"NAME": null}},
@@ -29,9 +26,6 @@
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, ID IS NOT NULL AS ID_NULL, NAME IS NOT NULL AS NAME_NULL FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"NAME": "not null"}},
         {"topic": "test_topic", "key": null, "value": {"NAME": null}},
@@ -49,9 +43,6 @@
         "CREATE STREAM INPUT (ID INT KEY, COL0 BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, ID = COL0, NULL IS NULL FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "test_topic", "key": null, "value": {"COL0": 12344}},
         {"topic": "test_topic", "key": null, "value": {"COL0": null}},
@@ -69,9 +60,6 @@
         "CREATE STREAM INPUT (ID INT KEY, COL0 BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, NULL <> NULL FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Comparison with NULL not supported: NULL <> NULL"
@@ -83,9 +71,6 @@
         "CREATE STREAM INPUT (COL0 INT KEY, COL1 INT, COL2 STRING, COL3 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT COL0, COALESCE(COL0, COL1, COL0, COL1) AS A, COALESCE(COL2, 'x') AS B, COALESCE(COL3, ARRAY[10, 20]) AS C FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"COL1": 2, "COL2": "not null", "COL3": [1, 2, 3]}},
         {"topic": "test_topic", "key": null, "value": {}},
@@ -105,9 +90,6 @@
         "CREATE STREAM INPUT (COL0 INT KEY, COL1 STRING, COL2 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT COL0, COALESCE() FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Function 'COALESCE' does not accept parameters ()"
@@ -119,9 +101,6 @@
         "CREATE STREAM INPUT (COL0 INT KEY, COL1 STRING, COL2 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT COL0, IFNULL(COL0, 10) AS A, IFNULL(COL1, 'x') AS B, IFNULL(COL2, ARRAY[10, 20]) AS C FROM INPUT;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"COL1": "not null", "COL2": [1, 2, 3]}},
         {"topic": "test_topic", "key": null, "value": {}},
@@ -140,9 +119,6 @@
       "statements": [
         "CREATE STREAM INPUT (ROWKEY INT KEY, COL0 NULL) WITH (kafka_topic='test_topic', value_format='JSON');"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
         "message": "mismatched input 'NULL'"
@@ -153,9 +129,6 @@
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, COL0 ARRAY<NULL>) WITH (kafka_topic='test_topic', value_format='JSON');"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
         "message": "mismatched input 'NULL'"
@@ -166,9 +139,6 @@
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, COL0 MAP<STRING, NULL>) WITH (kafka_topic='test_topic', value_format='JSON');"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
         "message": "mismatched input 'NULL'"
@@ -179,9 +149,6 @@
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, COL0 STRUCT<fo NULL>) WITH (kafka_topic='test_topic', value_format='JSON');"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
         "message": "mismatched input 'NULL'"
@@ -194,9 +161,6 @@
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.A = null;"
       ],
-      "properties": {
-        "ksql.any.key.name.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid comparison expression 'null' in join '(L.A = null)'. Each side of the join comparision must contain references from exactly one source."

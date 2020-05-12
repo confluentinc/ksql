@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -72,8 +71,8 @@ public class PlanNodeTest {
     when(source1.getSourceName()).thenReturn(Optional.of(SOURCE_1_NAME));
     when(source2.getSourceName()).thenReturn(Optional.of(SOURCE_2_NAME));
 
-    when(source1.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(COL0, COL1));
-    when(source2.resolveSelectStar(any(), anyBoolean())).thenReturn(Stream.of(COL2, COL3));
+    when(source1.resolveSelectStar(any())).thenReturn(Stream.of(COL0, COL1));
+    when(source2.resolveSelectStar(any())).thenReturn(Stream.of(COL2, COL3));
   }
 
   @Test
@@ -88,28 +87,28 @@ public class PlanNodeTest {
   @Test
   public void shouldResolveUnaliasedSelectStarByCallingAllSources() {
     // When:
-    final Stream<ColumnName> result = planNode.resolveSelectStar(Optional.empty(), true);
+    final Stream<ColumnName> result = planNode.resolveSelectStar(Optional.empty());
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(COL0, COL1, COL2, COL3));
 
-    verify(source1).resolveSelectStar(Optional.empty(), true);
-    verify(source2).resolveSelectStar(Optional.empty(), true);
+    verify(source1).resolveSelectStar(Optional.empty());
+    verify(source2).resolveSelectStar(Optional.empty());
   }
 
   @Test
   public void shouldResolveAliasedSelectStarByCallingOnlyCorrectParent() {
     // When:
-    final Stream<ColumnName> result = planNode.resolveSelectStar(Optional.of(SOURCE_2_NAME), false
+    final Stream<ColumnName> result = planNode.resolveSelectStar(Optional.of(SOURCE_2_NAME)
     );
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(COL2, COL3));
 
-    verify(source1, never()).resolveSelectStar(any(), anyBoolean());
-    verify(source2).resolveSelectStar(Optional.of(SOURCE_2_NAME), false);
+    verify(source1, never()).resolveSelectStar(any());
+    verify(source2).resolveSelectStar(Optional.of(SOURCE_2_NAME));
   }
 
   private final class TestPlanNode extends PlanNode {

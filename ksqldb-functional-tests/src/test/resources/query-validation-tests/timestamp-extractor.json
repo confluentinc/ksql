@@ -6,8 +6,8 @@
     {
       "name": "KSQL default timestamp extractor",
       "statements": [
-        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM TS AS SELECT id FROM test;"
+        "CREATE STREAM TEST (K STRING KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TS AS SELECT K, id FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ID": 1}, "timestamp": 1526075913000},
@@ -23,8 +23,8 @@
     {
       "name": "KSQL default timestamp extractor with format",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, TS varchar) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='ts', timestamp_format='yy-MM-dd HH:mm:ssX');",
-        "CREATE STREAM TS AS SELECT id FROM test;"
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, TS varchar) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='ts', timestamp_format='yy-MM-dd HH:mm:ssX');",
+        "CREATE STREAM TS AS SELECT K, id FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ID": 1, "TS": "10-04-19 12:00:17Z"}},
@@ -39,8 +39,8 @@
     {
       "name": "KSQL throw on invalid timestamp extractor with format",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, TS varchar) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='ts', timestamp_format='yy-MM-dd HH:mm:ssX');",
-        "CREATE STREAM TS AS SELECT id FROM test;"
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, TS varchar) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='ts', timestamp_format='yy-MM-dd HH:mm:ssX');",
+        "CREATE STREAM TS AS SELECT K, id FROM test;"
       ],
       "properties": {
         "ksql.timestamp.throw.on.invalid": "true"
@@ -56,8 +56,8 @@
     {
       "name": "KSQL override timestamp extractor",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, TS bigint) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='ts');",
-        "CREATE STREAM TS AS SELECT id FROM test;"
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, TS bigint) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='ts');",
+        "CREATE STREAM TS AS SELECT K, id FROM test;"
       ],
       "properties": {
         "ksql.streams.default.timestamp.extractor": "org.apache.kafka.streams.processor.LogAndSkipOnInvalidTimestamp"

@@ -1,0 +1,71 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893935023,
+  "path" : "query-validation-tests/key-field.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO INT, BAR INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "stream | initially set | partition by (different) | key not in value | -",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : 1,
+      "value" : {
+        "foo" : 1,
+        "bar" : 2
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "FOO" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT bar, foo FROM INPUT PARTITION BY bar;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "stream"
+      }, {
+        "name" : "OUTPUT",
+        "type" : "stream"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

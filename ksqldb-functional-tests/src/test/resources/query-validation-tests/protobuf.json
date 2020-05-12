@@ -3,7 +3,7 @@
     {
       "name": "protobuf primitives",
       "statements": [
-        "CREATE STREAM INPUT (i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF');",
         "CREATE STREAM OUTPUT as SELECT * FROM input;"
       ],
       "inputs": [{"topic": "input", "value": {"i": 1, "l": 1, "d": 1.2, "b": true, "s": "foo"}}],
@@ -21,7 +21,7 @@
     {
       "name": "protobuf defaults - top level nulls are defaulted to 0",
       "statements": [
-        "CREATE STREAM INPUT (i INTEGER) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM INPUT (K STRING KEY, i INTEGER) WITH (kafka_topic='input', value_format='PROTOBUF');",
         "CREATE STREAM OUTPUT as SELECT * FROM input;"
       ],
       "inputs": [

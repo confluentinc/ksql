@@ -1,0 +1,65 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893944201,
+  "path" : "query-validation-tests/serdes.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO VARCHAR, FOO2 VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "VARCHAR"
+  },
+  "testCase" : {
+    "name" : "serialization should pick up value wrapping from config",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : "bar",
+        "FOO2" : "blar"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "bar"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, foo STRING, foo2 STRING) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, foo FROM INPUT;" ],
+    "properties" : {
+      "ksql.persistence.wrap.single.values" : "false"
+    },
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

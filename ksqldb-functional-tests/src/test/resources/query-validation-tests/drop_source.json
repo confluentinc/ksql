@@ -6,9 +6,9 @@
     {
       "name": "drop an existing stream should succeed",
       "statements": [
-        "CREATE STREAM input2 (data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM input2 (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
         "DROP STREAM input2;",
-        "CREATE STREAM input (data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM input (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
         "CREATE STREAM output AS SELECT * FROM input;"
       ],
       "inputs": [
@@ -32,7 +32,7 @@
       "name": "drop if exists a non-existing stream should succeed",
       "statements": [
         "DROP STREAM IF EXISTS test;",
-        "CREATE STREAM input (data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM input (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
         "CREATE STREAM output AS SELECT * FROM input;"
       ],
       "inputs": [
@@ -45,9 +45,9 @@
     {
       "name": "drop if exists an existing stream should succeed",
       "statements": [
-        "CREATE STREAM input2 (data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM input2 (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
         "DROP STREAM IF EXISTS input2;",
-        "CREATE STREAM input (data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM input (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
         "CREATE STREAM output AS SELECT * FROM input;"
       ],
       "inputs": [

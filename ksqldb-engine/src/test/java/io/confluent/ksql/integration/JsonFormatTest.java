@@ -205,7 +205,7 @@ public class JsonFormatTest {
 
   @Test
   public void testJsonStreamExtractor() {
-    final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
+    final String queryString = String.format("CREATE STREAM %s AS SELECT ROWKEY, EXTRACTJSONFIELD"
             + "(message, '$.log.cloud') "
             + "FROM %s;",
         streamName, messageLogStream);
@@ -222,7 +222,7 @@ public class JsonFormatTest {
 
   @Test
   public void testJsonStreamExtractorNested() {
-    final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
+    final String queryString = String.format("CREATE STREAM %s AS SELECT ROWKEY, EXTRACTJSONFIELD"
                     + "(message, '$.log.logs[0].entry') "
                     + "FROM %s;",
             streamName, messageLogStream);

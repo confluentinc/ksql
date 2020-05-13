@@ -19,6 +19,13 @@ import io.confluent.ksql.function.udaf.Udaf;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.SEQ_FIELD;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_BOOLEAN;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_DOUBLE;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_INTEGER;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_LONG;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_STRING;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.VAL_FIELD;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -28,7 +35,7 @@ public class EarliestByOffsetUdafTest {
   public void shouldInitialize() {
     // Given:
     final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset
-        .earliest(EarliestByOffset.STRUCT_LONG);
+        .earliest(STRUCT_LONG);
 
     // When:
     Struct init = udaf.initialize();
@@ -44,10 +51,10 @@ public class EarliestByOffsetUdafTest {
 
     // When:
     Struct res = udaf
-        .aggregate(123, EarliestByOffset.createStruct(EarliestByOffset.STRUCT_INTEGER, 321));
+        .aggregate(123, EarliestByOffset.createStruct(STRUCT_INTEGER, 321));
 
     // Then:
-    assertThat(res.get(EarliestByOffset.VAL_FIELD), is(321));
+    assertThat(res.get(VAL_FIELD), is(321));
   }
 
   @Test
@@ -55,8 +62,8 @@ public class EarliestByOffsetUdafTest {
     // Given:
     final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliestInteger();
 
-    Struct agg1 = EarliestByOffset.createStruct(EarliestByOffset.STRUCT_INTEGER, 123);
-    Struct agg2 = EarliestByOffset.createStruct(EarliestByOffset.STRUCT_INTEGER, 321);
+    Struct agg1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
+    Struct agg2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
 
     // When:
     Struct merged1 = udaf.merge(agg1, agg2);
@@ -74,16 +81,16 @@ public class EarliestByOffsetUdafTest {
 
     EarliestByOffset.sequence.set(Long.MAX_VALUE);
 
-    Struct agg1 = EarliestByOffset.createStruct(EarliestByOffset.STRUCT_INTEGER, 123);
-    Struct agg2 = EarliestByOffset.createStruct(EarliestByOffset.STRUCT_INTEGER, 321);
+    Struct agg1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
+    Struct agg2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
 
     // When:
     Struct merged1 = udaf.merge(agg1, agg2);
     Struct merged2 = udaf.merge(agg2, agg1);
 
     // Then:
-    assertThat(agg1.getInt64(EarliestByOffset.SEQ_FIELD), is(Long.MAX_VALUE));
-    assertThat(agg2.getInt64(EarliestByOffset.SEQ_FIELD), is(Long.MIN_VALUE));
+    assertThat(agg1.getInt64(SEQ_FIELD), is(Long.MAX_VALUE));
+    assertThat(agg2.getInt64(SEQ_FIELD), is(Long.MIN_VALUE));
     assertThat(merged1, is(agg1));
     assertThat(merged2, is(agg1));
   }
@@ -96,10 +103,10 @@ public class EarliestByOffsetUdafTest {
 
     // When:
     Struct res = udaf
-        .aggregate(123L, EarliestByOffset.createStruct(EarliestByOffset.STRUCT_LONG, 321L));
+        .aggregate(123L, EarliestByOffset.createStruct(STRUCT_LONG, 321L));
 
     // Then:
-    assertThat(res.getInt64(EarliestByOffset.VAL_FIELD), is(321L));
+    assertThat(res.getInt64(VAL_FIELD), is(321L));
   }
 
   @Test
@@ -109,10 +116,10 @@ public class EarliestByOffsetUdafTest {
 
     // When:
     Struct res = udaf
-        .aggregate(1.1d, EarliestByOffset.createStruct(EarliestByOffset.STRUCT_DOUBLE, 2.2d));
+        .aggregate(1.1d, EarliestByOffset.createStruct(STRUCT_DOUBLE, 2.2d));
 
     // Then:
-    assertThat(res.getFloat64(EarliestByOffset.VAL_FIELD), is(2.2d));
+    assertThat(res.getFloat64(VAL_FIELD), is(2.2d));
   }
 
   @Test
@@ -122,10 +129,10 @@ public class EarliestByOffsetUdafTest {
 
     // When:
     Struct res = udaf
-        .aggregate(true, EarliestByOffset.createStruct(EarliestByOffset.STRUCT_BOOLEAN, false));
+        .aggregate(true, EarliestByOffset.createStruct(STRUCT_BOOLEAN, false));
 
     // Then:
-    assertThat(res.getBoolean(EarliestByOffset.VAL_FIELD), is(false));
+    assertThat(res.getBoolean(VAL_FIELD), is(false));
   }
 
   @Test
@@ -135,9 +142,9 @@ public class EarliestByOffsetUdafTest {
 
     // When:
     Struct res = udaf
-        .aggregate("foo", EarliestByOffset.createStruct(EarliestByOffset.STRUCT_STRING, "bar"));
+        .aggregate("foo", EarliestByOffset.createStruct(STRUCT_STRING, "bar"));
 
     // Then:
-    assertThat(res.getString(EarliestByOffset.VAL_FIELD), is("bar"));
+    assertThat(res.getString(VAL_FIELD), is("bar"));
   }
 }

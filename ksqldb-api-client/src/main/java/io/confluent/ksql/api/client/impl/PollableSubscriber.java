@@ -34,6 +34,7 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   private final BlockingQueue<Row> queue = new LinkedBlockingQueue<>();
   private final Consumer<Exception> errorHandler;
   private int tokens;
+  private volatile boolean complete;
   private volatile boolean closed;
 
   public PollableSubscriber(final Context context, final Consumer<Exception> errorHandler) {
@@ -59,11 +60,15 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
 
   @Override
   protected void handleComplete() {
-    close();
+    complete = true;
   }
 
   public synchronized Row poll(final long timeout, final TimeUnit timeUnit) {
     if (closed) {
+      return null;
+    }
+    if (complete && queue.isEmpty()) {
+      close();
       return null;
     }
     final long timeoutNs = timeUnit.toNanos(timeout);

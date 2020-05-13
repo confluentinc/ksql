@@ -574,9 +574,13 @@ public class KsqlRestConfig extends AbstractConfig {
       final Function<URL, Integer> portResolver,
       final Logger logger
   ) {
-    return getString(ADVERTISED_LISTENER_CONFIG) == null
-        ? getInterNodeListenerFromFirstListener(portResolver, logger)
-        : getInterNodeListenerFromExplicitConfig(logger);
+    if (getString(ADVERTISED_LISTENER_CONFIG) == null) {
+      return getString(INTERNAL_LISTENER_CONFIG) == null
+          ? getInterNodeListenerFromFirstListener(portResolver, logger)
+          : getInterNodeListenerFromInternalListener(portResolver, logger);
+    } else {
+      return getInterNodeListenerFromExplicitConfig(logger);
+    }
   }
 
   private URL getInterNodeListenerFromFirstListener(
@@ -605,6 +609,37 @@ public class KsqlRestConfig extends AbstractConfig {
         listener,
         Optional.of(address),
         "first '" + LISTENERS_CONFIG + "'"
+    );
+
+    return listener;
+  }
+
+  private URL getInterNodeListenerFromInternalListener(
+      final Function<URL, Integer> portResolver,
+      final Logger logger
+  ) {
+    final String configValue = getString(INTERNAL_LISTENER_CONFIG);
+
+    final URL internalListener = parseUrl(configValue, INTERNAL_LISTENER_CONFIG);
+
+    final InetAddress address = parseInetAddress(internalListener.getHost())
+        .orElseThrow(() -> new ConfigException(
+            INTERNAL_LISTENER_CONFIG,
+            configValue,
+            "Could not resolve internal host"
+        ));
+
+    final URL listener = sanitizeInterNodeListener(
+        internalListener,
+        portResolver,
+        address.isAnyLocalAddress()
+    );
+
+    logInterNodeListener(
+        logger,
+        listener,
+        Optional.of(address),
+        "'" + INTERNAL_LISTENER_CONFIG + "'"
     );
 
     return listener;

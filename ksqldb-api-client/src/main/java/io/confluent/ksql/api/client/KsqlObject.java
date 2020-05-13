@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -190,6 +191,21 @@ public class KsqlObject {
   @Override
   public int hashCode() {
     return Objects.hashCode(delegate);
+  }
+
+  public static KsqlObject fromArray(final List<String> keys, final KsqlArray values) {
+    if (values == null || keys == null) {
+      return null;
+    }
+    if (keys.size() != values.size()) {
+      throw new IllegalArgumentException("Size of keys and values must match.");
+    }
+
+    final KsqlObject ret = new KsqlObject();
+    for (int i = 0; i < keys.size(); i++) {
+      ret.put(keys.get(i), values.getValue(i));
+    }
+    return ret;
   }
 
   private static JsonObject toJsonObject(final KsqlObject ksqlObject) {

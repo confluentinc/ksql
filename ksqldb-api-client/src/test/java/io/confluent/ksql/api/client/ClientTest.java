@@ -17,6 +17,7 @@ package io.confluent.ksql.api.client;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -32,6 +33,7 @@ import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -391,6 +393,46 @@ public class ClientTest extends BaseApiTest {
 
     // verify exception on invalid cast
     assertThrows(ClassCastException.class, () -> row.getInt("f_str"));
+
+    // verify KsqlArray methods
+    final KsqlArray values = row.values();
+    assertThat(values.size(), is(DEFAULT_COLUMN_NAMES.size()));
+    assertThat(values.isEmpty(), is(false));
+    assertThat(values.getString(0), is(row.getString("f_str")));
+    assertThat(values.getInteger(1), is(row.getInt("f_int")));
+    assertThat(values.getBoolean(2), is(row.getBoolean("f_bool")));
+    assertThat(values.getLong(3), is(row.getLong("f_long")));
+    assertThat(values.getDouble(4), is(row.getDouble("f_double")));
+    assertThat(values.getDecimal(5), is(row.getDecimal("f_decimal")));
+    assertThat(values.getKsqlArray(6), is(row.getKsqlArray("f_array")));
+    assertThat(values.getKsqlObject(7), is(row.getKsqlObject("f_map")));
+    assertThat(values.getKsqlObject(8), is(row.getKsqlObject("f_struct")));
+    assertThat(values.getValue(9), is(nullValue()));
+    assertThat(values.contains("foo" + index), is(true));
+    assertThat(values.contains(null), is(true));
+    assertThat(values.contains("bad"), is(false));
+    assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
+    assertThat(values.toString(), is(values.toJsonString()));
+
+    // verify KsqlObject methods
+    final KsqlObject obj = row.asObject();
+    assertThat(obj.size(), is(DEFAULT_COLUMN_NAMES.size()));
+    assertThat(obj.isEmpty(), is(false));
+    assertThat(obj.fieldNames(), contains(DEFAULT_COLUMN_NAMES.toArray()));
+    assertThat(obj.getString("f_str"), is(row.getString("f_str")));
+    assertThat(obj.getInteger("f_int"), is(row.getInt("f_int")));
+    assertThat(obj.getBoolean("f_bool"), is(row.getBoolean("f_bool")));
+    assertThat(obj.getLong("f_long"), is(row.getLong("f_long")));
+    assertThat(obj.getDouble("f_double"), is(row.getDouble("f_double")));
+    assertThat(obj.getDecimal("f_decimal"), is(row.getDecimal("f_decimal")));
+    assertThat(obj.getKsqlArray("f_array"), is(row.getKsqlArray("f_array")));
+    assertThat(obj.getKsqlObject("f_map"), is(row.getKsqlObject("f_map")));
+    assertThat(obj.getKsqlObject("f_struct"), is(row.getKsqlObject("f_struct")));
+    assertThat(obj.getValue("f_null"), is(nullValue()));
+    assertThat(obj.containsKey("f_str"), is(true));
+    assertThat(obj.containsKey("f_bad"), is(false));
+    assertThat(obj.toJsonString(), is((new JsonObject(obj.getMap())).toString()));
+    assertThat(obj.toString(), is(obj.toJsonString()));
   }
 
   private static List<KsqlArray> convertToClientRows(final List<JsonArray> rows) {

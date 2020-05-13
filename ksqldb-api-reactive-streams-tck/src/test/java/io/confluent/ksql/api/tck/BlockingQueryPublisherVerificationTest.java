@@ -75,7 +75,7 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
     private final TransientQueryQueue queue;
 
     public TestQueryHandle(final long elements) {
-      final OptionalInt limit = elements == 0 || elements == Long.MAX_VALUE
+      final OptionalInt limit = elements == Long.MAX_VALUE
           ? OptionalInt.empty()
           : OptionalInt.of((int) elements);
 

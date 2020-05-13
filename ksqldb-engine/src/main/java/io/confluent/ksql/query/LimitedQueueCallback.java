@@ -32,7 +32,7 @@ public final class LimitedQueueCallback implements LimitQueueCallback {
   };
 
   LimitedQueueCallback(final int limit) {
-    if (limit <= 0) {
+    if (limit < 0) {
       throw new IllegalArgumentException("limit must be positive, was:" + limit);
     }
     this.remaining = new AtomicInteger(limit);
@@ -42,6 +42,9 @@ public final class LimitedQueueCallback implements LimitQueueCallback {
   @Override
   public void setLimitHandler(final LimitHandler limitHandler) {
     this.limitHandler = Objects.requireNonNull(limitHandler, "limitHandler");
+    if (remaining.get() == 0) {
+      limitHandler.limitReached();
+    }
   }
 
   @Override

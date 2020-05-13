@@ -74,6 +74,13 @@ public class TestQueryPublisher extends BasePublisher<GenericRow> implements Que
     }
   }
 
+  public void sendError() {
+    if (rowsBeforePublisherError != -1) {
+      throw new IllegalStateException("Cannot send error if rowsBeforePublisherError is set");
+    }
+    getSubscriber().onError(new RuntimeException("Failure in processing"));
+  }
+
   @Override
   public List<String> getColumnNames() {
     return rowGenerator.getColumnNames();

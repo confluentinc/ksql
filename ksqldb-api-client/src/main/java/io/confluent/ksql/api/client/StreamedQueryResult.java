@@ -23,6 +23,8 @@ import org.reactivestreams.Publisher;
  * The result of a query (push or pull), streamed one row at time. Records may be consumed by either
  * subscribing to the publisher or polling (blocking) for one record at a time. These two methods of
  * consumption are mutually exclusive; only one method may be used (per StreamedQueryResult).
+ *
+ * <p>The {@code subscribe()} method cannot be called if {@code isFailed()} is true.
  */
 public interface StreamedQueryResult extends Publisher<Row> {
 
@@ -48,7 +50,23 @@ public interface StreamedQueryResult extends Publisher<Row> {
    */
   Row poll(long timeout, TimeUnit timeUnit);
 
+  /**
+   * A {@code StreamedQueryResult} is complete if the HTTP connection associated with this query has
+   * been ended gracefully. Once complete, the @{code StreamedQueryResult} will continue to deliver
+   * any remaining rows, then call {@code onComplete()} on the subscriber, if present.
+   *
+   * @return whether the {@code StreamedQueryResult} is complete.
+   */
   boolean isComplete();
+
+  /**
+   * A {@code StreamedQueryResult} is failed if an error is received from the server. Once failed,
+   * {@code onError()} is called on the subscriber, if present, any existing {@code poll()} calls
+   * will return null, and new calls to {@code poll()} and {@code subscribe()} will be rejected.
+   *
+   * @return whether the {@code StreamedQueryResult} is complete.
+   */
+  boolean isFailed();
 
   void close();
 

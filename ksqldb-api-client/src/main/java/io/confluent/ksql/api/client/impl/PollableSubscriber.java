@@ -36,6 +36,7 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   private int tokens;
   private volatile boolean complete;
   private volatile boolean closed;
+  private volatile boolean failed;
 
   public PollableSubscriber(final Context context, final Consumer<Exception> errorHandler) {
     super(context);
@@ -55,6 +56,7 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
 
   @Override
   protected void handleError(final Throwable t) {
+    failed = true;
     errorHandler.accept(new Exception(t));
   }
 
@@ -64,11 +66,7 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   }
 
   public synchronized Row poll(final long timeout, final TimeUnit timeUnit) {
-    if (closed) {
-      return null;
-    }
-    if (complete && queue.isEmpty()) {
-      close();
+    if (closed || failed) {
       return null;
     }
     final long timeoutNs = timeUnit.toNanos(timeout);
@@ -90,12 +88,15 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
           tokens--;
           checkRequestTokens();
           return row;
+        } else if (complete) {
+          // If complete, close once the queue has been emptied
+          close();
         }
       } catch (InterruptedException e) {
         return null;
       }
       remainingTime = end - System.nanoTime();
-    } while (!closed && remainingTime > 0);
+    } while (!closed && !failed && remainingTime > 0);
     return null;
   }
 

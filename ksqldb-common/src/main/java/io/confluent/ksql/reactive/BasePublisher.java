@@ -37,6 +37,8 @@ public abstract class BasePublisher<T> implements Publisher<T> {
   private Subscriber<? super T> subscriber;
   private long demand;
   private boolean cancelled;
+  private boolean sentComplete;
+  private Exception failure;
 
   public BasePublisher(final Context ctx) {
     this.ctx = Objects.requireNonNull(ctx);
@@ -49,6 +51,10 @@ public abstract class BasePublisher<T> implements Publisher<T> {
    */
   @Override
   public void subscribe(final Subscriber<? super T> subscriber) {
+    if (isFailed()) {
+      throw new IllegalStateException(
+          "Cannot subscribe to failed publisher. Failure cause: " + failure);
+    }
     Objects.requireNonNull(subscriber);
     if (VertxUtils.isEventLoopAndSameContext(ctx)) {
       doSubscribe(subscriber);
@@ -77,18 +83,18 @@ public abstract class BasePublisher<T> implements Publisher<T> {
       } else {
         log.error("Failure in publisher", e);
       }
-      cancelled = true;
-    } catch (Throwable t) {
-      logError("Exceptions must not be thrown from onError", t);
+      failure = e;
+    } catch (Exception ex) {
+      logError("Exceptions must not be thrown from onError", ex);
     }
   }
 
   protected void sendComplete() {
     try {
-      cancelled = true;
+      sentComplete = true;
       subscriber.onComplete();
-    } catch (Throwable t) {
-      logError("Exceptions must not be thrown from onComplete", t);
+    } catch (Exception ex) {
+      logError("Exceptions must not be thrown from onComplete", ex);
     }
   }
 
@@ -98,8 +104,8 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     }
     try {
       subscriber.onNext(val);
-    } catch (final Throwable t) {
-      logError("Exceptions must not be thrown from onNext", t);
+    } catch (final Exception ex) {
+      logError("Exceptions must not be thrown from onNext", ex);
     }
     // If demand == Long.MAX_VALUE this means "infinite demand"
     if (demand != Long.MAX_VALUE) {
@@ -115,8 +121,16 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     return subscriber;
   }
 
+  protected boolean hasSentComplete() {
+    return sentComplete;
+  }
+
   protected boolean isCancelled() {
     return cancelled;
+  }
+
+  protected boolean isFailed() {
+    return failure != null;
   }
 
   /**
@@ -174,9 +188,9 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     subscriber = null;
   }
 
-  private void logError(final String message, final Throwable t) {
-    log.error(message, t);
-    cancelled = true;
+  private void logError(final String message, final Exception e) {
+    log.error(message, e);
+    failure = e;
   }
 
   private class Sub implements Subscription {

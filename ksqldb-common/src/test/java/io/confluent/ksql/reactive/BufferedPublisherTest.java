@@ -17,8 +17,12 @@ package io.confluent.ksql.reactive;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 
 import io.confluent.ksql.test.util.AsyncAssert;
@@ -235,6 +239,110 @@ public class BufferedPublisherTest extends PublisherTestBase<String> {
     shouldDeliver(num, num);
   }
 
+  @Test
+  public void shouldNotAllowSubscribeAfterError() throws Exception {
+    // Given
+    execOnContextAndWait(() -> getBufferedPublisher().sendError(new RuntimeException("boom")));
+
+    AtomicBoolean failed = new AtomicBoolean();
+    execOnContextAndWait(() -> {
+      try {
+        TestSubscriber<String> subscriber = new TestSubscriber<>(context);
+        // When
+        getBufferedPublisher().subscribe(subscriber);
+        failed.set(true);
+      } catch (IllegalStateException e) {
+        // Then
+        if (!e.getMessage().contains("Cannot subscribe to failed publisher")
+            || !e.getMessage().contains("boom")) {
+          failed.set(true);
+        }
+      }
+    });
+    assertThat(failed.get(), equalTo(false));
+  }
+
+  @Test
+  public void shouldSendBufferedRowsAfterComplete() throws Exception {
+    // Given
+    TestSubscriber<String> subscriber = new TestSubscriber<String>(context) {
+      @Override
+      public synchronized void onSubscribe(final Subscription sub) {
+        super.onSubscribe(sub);
+      }
+    };
+    subscribeOnContext(subscriber);
+    loadPublisher(2);
+    execOnContextAndWait(getBufferedPublisher()::complete);
+
+    // When
+    subscriber.getSub().request(1);
+
+    // Then
+    assertThatEventually(subscriber::getValues, hasSize(1));
+    assertThat(subscriber.getValues().get(0), equalTo(expectedValue(0)));
+    assertThat(subscriber.getError(), is(nullValue()));
+    assertThat(subscriber.isCompleted(), equalTo(false));
+
+    // When
+    subscriber.getSub().request(1);
+
+    // Then
+    assertThatEventually(subscriber::getValues, hasSize(2));
+    assertThat(subscriber.getValues().get(1), equalTo(expectedValue(1)));
+    assertThat(subscriber.getError(), is(nullValue()));
+    assertThatEventually(subscriber::isCompleted, equalTo(true));
+  }
+
+  @Test
+  public void shouldAllowSubscribeAfterComplete() throws Exception {
+    // Given
+    loadPublisher(2);
+    execOnContextAndWait(getBufferedPublisher()::complete);
+
+    // When
+    TestSubscriber<String> subscriber = new TestSubscriber<String>(context) {
+      @Override
+      public synchronized void onSubscribe(final Subscription sub) {
+        super.onSubscribe(sub);
+        sub.request(2);
+      }
+    };
+    subscribeOnContext(subscriber);
+
+    // Then
+    assertThatEventually(subscriber::getValues, hasSize(2));
+    for (int i = 0; i < 2; i++) {
+      assertThat(subscriber.getValues().get(i), equalTo(expectedValue(i)));
+    }
+    assertThatEventually(subscriber::isCompleted, equalTo(true));
+    assertThat(subscriber.getError(), is(nullValue()));
+  }
+
+  @Test
+  public void shouldSendBufferedRowsAfterError() throws Exception {
+    // Given
+    TestSubscriber<String> subscriber = new TestSubscriber<String>(context) {
+      @Override
+      public synchronized void onSubscribe(final Subscription sub) {
+        super.onSubscribe(sub);
+      }
+    };
+    subscribeOnContext(subscriber);
+    loadPublisher(1);
+    execOnContextAndWait(() -> getBufferedPublisher().sendError(new RuntimeException("boom")));
+
+    // When
+    subscriber.getSub().request(1);
+
+    // Then
+    assertThatEventually(subscriber::getValues, hasSize(1));
+    assertThat(subscriber.getValues().get(0), equalTo(expectedValue(0)));
+    assertThatEventually(subscriber::getError, instanceOf(RuntimeException.class));
+    assertThat(subscriber.getError().getMessage(), containsString("boom"));
+    assertThat(subscriber.isCompleted(), equalTo(false));
+  }
+
   @Override
   protected void loadPublisher(int num) throws Exception {
     execOnContextAndWait(() -> {
@@ -243,6 +351,5 @@ public class BufferedPublisherTest extends PublisherTestBase<String> {
       }
     });
   }
-
 
 }

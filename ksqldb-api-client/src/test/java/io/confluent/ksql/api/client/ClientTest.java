@@ -28,7 +28,9 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.api.BaseApiTest;
+import io.confluent.ksql.api.TestQueryPublisher;
 import io.confluent.ksql.api.client.util.RowUtil;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
@@ -40,6 +42,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -232,7 +236,7 @@ public class ClientTest extends BaseApiTest {
     // Given
     final StreamedQueryResult streamedQueryResult =
         javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
-    streamedQueryResult.subscribe(new TestSubscriber<>());
+    subscribeAndWait(streamedQueryResult);
 
     // When
     final Exception e = assertThrows(IllegalStateException.class, streamedQueryResult::poll);
@@ -256,6 +260,138 @@ public class ClientTest extends BaseApiTest {
 
     // Then
     assertThat(e.getMessage(), containsString("Cannot set subscriber if polling"));
+  }
+
+  @Test
+  public void shouldFailPollStreamedQueryResultIfFailed() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    sendQueryPublisherError();
+    assertThatEventually(streamedQueryResult::isFailed, is(true));
+
+    // When
+    final Exception e = assertThrows(
+        IllegalStateException.class,
+        () -> streamedQueryResult.poll()
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString("Cannot poll on StreamedQueryResult that has failed"));
+  }
+
+  @Test
+  public void shouldReturnFromPollStreamedQueryResultOnError() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
+      streamedQueryResult.poll();
+    }
+
+    CountDownLatch latch = new CountDownLatch(1);
+    new Thread(() -> {
+      // This poll() call blocks as there are no more rows to be returned
+      final Row row = streamedQueryResult.poll();
+      assertThat(row, is(nullValue()));
+      latch.countDown();
+    }).start();
+
+    // When
+    sendQueryPublisherError();
+
+    // Then: poll() call terminates because of the error
+    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
+  }
+
+  @Test
+  public void shouldPropagateErrorWhenStreamingFromStreamQuery() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    final TestSubscriber<Row> subscriber = subscribeAndWait(streamedQueryResult);
+
+    // When
+    sendQueryPublisherError();
+
+    // Then
+    assertThatEventually(subscriber::getError, is(notNullValue()));
+    assertThat(subscriber.getError(), instanceOf(KsqlApiException.class));
+    assertThat(subscriber.getError().getMessage(), containsString("Error in processing query"));
+
+    assertThatEventually(streamedQueryResult::isFailed, is(true));
+    assertThat(streamedQueryResult.isComplete(), is(false));
+    assertThat(subscriber.isCompleted(), equalTo(false));
+  }
+
+  @Test
+  public void shouldDeliverBufferedRowsViaPollIfComplete() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+
+    // When / Then
+    for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
+      final Row row = streamedQueryResult.poll();
+      verifyRowWithIndex(row, i);
+    }
+    assertThat(streamedQueryResult.poll(), is(nullValue()));
+  }
+
+  @Test
+  public void shouldDeliverBufferedRowsOnErrorIfStreaming() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    TestSubscriber<Row> subscriber = subscribeAndWait(streamedQueryResult);
+    sendQueryPublisherError();
+    assertThatEventually(streamedQueryResult::isFailed, is(true));
+    assertThat(subscriber.getValues(), hasSize(0));
+
+    // When
+    subscriber.getSub().request(DEFAULT_JSON_ROWS.size());
+
+    // Then
+    assertThatEventually(subscriber::getError, is(notNullValue()));
+    assertThatEventually(subscriber::getValues, hasSize(DEFAULT_JSON_ROWS.size()));
+    verifyRows(subscriber.getValues());
+  }
+
+  @Test
+  public void shouldFailSubscribeStreamedQueryResultOnError() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    sendQueryPublisherError();
+    assertThatEventually(streamedQueryResult::isFailed, is(true));
+
+    // When
+    final Exception e = assertThrows(
+        IllegalStateException.class,
+        () -> streamedQueryResult.subscribe(new TestSubscriber<>())
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString("Cannot subscribe to failed publisher"));
+  }
+
+  @Test
+  public void shouldAllowSubscribeStreamedQueryResultIfComplete() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+
+    // When
+    TestSubscriber<Row> subscriber = subscribeAndWait(streamedQueryResult);
+    assertThat(subscriber.getValues(), hasSize(0));
+    subscriber.getSub().request(DEFAULT_JSON_ROWS.size());
+
+    // Then
+    assertThatEventually(subscriber::getValues, hasSize(DEFAULT_JSON_ROWS.size()));
+    verifyRows(subscriber.getValues());
+    assertThat(subscriber.getError(), is(nullValue()));
   }
 
   @Test
@@ -339,6 +475,13 @@ public class ClientTest extends BaseApiTest {
     assertThat(server.getQueryIDs(), hasSize(0));
   }
 
+  private void sendQueryPublisherError() {
+    final Set<TestQueryPublisher> queryPublishers = testEndpoints.getQueryPublishers();
+    assertThat(queryPublishers, hasSize(1));
+    final TestQueryPublisher queryPublisher = queryPublishers.stream().findFirst().get();
+    queryPublisher.sendError();
+  }
+
   private static void shouldReceiveRows(
       final Publisher<Row> publisher,
       final boolean subscriberCompleted
@@ -357,6 +500,20 @@ public class ClientTest extends BaseApiTest {
 
     assertThatEventually(subscriber::isCompleted, equalTo(subscriberCompleted));
     assertThat(subscriber.getError(), is(nullValue()));
+  }
+
+  private static <T> TestSubscriber<T> subscribeAndWait(final Publisher<T> publisher) throws Exception {
+    CountDownLatch latch = new CountDownLatch(1);
+    TestSubscriber<T> subscriber = new TestSubscriber<T>() {
+      @Override
+      public synchronized void onSubscribe(final Subscription sub) {
+        super.onSubscribe(sub);
+        latch.countDown();
+      }
+    };
+    publisher.subscribe(subscriber);
+    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
+    return subscriber;
   }
 
   private static void verifyRows(final List<Row> rows) {

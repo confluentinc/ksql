@@ -56,7 +56,8 @@ INSERT INTO s1 (
 To access a struct in a query, start with the name of a column and add `->` each time you want to drill into a key. This query selects column `a`, `b`, the key `c` within `b`, and the key `d` within `b`:
 
 ```sql
-SELECT a, b,
+SELECT a,
+       b,
        b->c,
        b->d
 FROM s1
@@ -124,7 +125,8 @@ INSERT INTO s2 (
 To access a map in a query, start with the name of a column and add `[]` each time you want to drill into a key. This query selects column `a`, `b`, the key `c` within `b`, and the key `d` within `b`:
 
 ```sql
-SELECT a, b,
+SELECT a,
+       b,
        b['c'] AS C,
        b['d'] AS D
 FROM s2
@@ -191,7 +193,8 @@ INSERT INTO s3 (
 To access an array in a query, start with the name of a column and add `[]` each index you want to drill into. This query selects column `a`, `b`, the first element of `b`, the second element of `b`, the third element of `b`, and the last element of `b`:
 
 ```sql
-SELECT a, b,
+SELECT a,
+       b,
        b[1] AS b_1,
        b[2] AS b_2,
        b[3] AS b_3, b[-1] AS b_minus_1
@@ -294,7 +297,8 @@ INSERT INTO s4 (
 To nested values, use the destructuring syntax from each data type. Notice how you can chain them together:
 
 ```sql
-SELECT a, b,
+SELECT a,
+       b,
        b->c[2] AS c_2,
        b->d['x']->f,
        b->d['y']->e

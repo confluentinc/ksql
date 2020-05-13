@@ -234,11 +234,14 @@ public final class KsqlRestApplication implements Executable {
     this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
+    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     this.vertx = Vertx.vertx(
         new VertxOptions()
             .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
             .setMaxWorkerExecuteTime(Long.MAX_VALUE)
-            .setMetricsOptions(new DropwizardMetricsOptions().setJmxEnabled(true)));
+            .setMetricsOptions(
+                new DropwizardMetricsOptions().setJmxEnabled(true).setBaseName(serviceId)
+                    .setJmxDomain("io.confluent.ksql.metrics")));
     this.vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);

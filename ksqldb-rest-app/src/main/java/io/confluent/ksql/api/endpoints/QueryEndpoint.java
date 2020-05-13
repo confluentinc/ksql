@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.schema.ksql.Column;
@@ -31,7 +32,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
@@ -39,8 +40,8 @@ import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 
 public class QueryEndpoint {
 
@@ -75,17 +76,18 @@ public class QueryEndpoint {
     }
   }
 
-  private QueryPublisher createPushQueryPublisher(final Context context,
+  private QueryPublisher createPushQueryPublisher(
+      final Context context,
       final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> statement, final WorkerExecutor workerExecutor) {
+      final ConfiguredStatement<Query> statement,
+      final WorkerExecutor workerExecutor
+  ) {
+    final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
-    final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context,
-        workerExecutor);
-    final QueryMetadata queryMetadata = ksqlEngine
-        .executeQuery(serviceContext, statement, publisher);
-    final KsqlQueryHandle queryHandle = new KsqlQueryHandle(queryMetadata,
-        statement.getStatement().getLimit());
-    publisher.setQueryHandle(queryHandle);
+    final TransientQueryMetadata queryMetadata = ksqlEngine.executeQuery(serviceContext, statement);
+
+    publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata));
+
     return publisher;
   }
 
@@ -145,12 +147,10 @@ public class QueryEndpoint {
 
   private static class KsqlQueryHandle implements PushQueryHandle {
 
-    private final QueryMetadata queryMetadata;
-    private final OptionalInt limit;
+    private final TransientQueryMetadata queryMetadata;
 
-    KsqlQueryHandle(final QueryMetadata queryMetadata, final OptionalInt limit) {
-      this.queryMetadata = queryMetadata;
-      this.limit = limit;
+    KsqlQueryHandle(final TransientQueryMetadata queryMetadata) {
+      this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
     }
 
     @Override
@@ -164,11 +164,6 @@ public class QueryEndpoint {
     }
 
     @Override
-    public OptionalInt getLimit() {
-      return limit;
-    }
-
-    @Override
     public void start() {
       queryMetadata.start();
     }
@@ -177,6 +172,10 @@ public class QueryEndpoint {
     public void stop() {
       queryMetadata.close();
     }
-  }
 
+    @Override
+    public BlockingRowQueue getQueue() {
+      return queryMetadata.getRowQueue();
+    }
+  }
 }

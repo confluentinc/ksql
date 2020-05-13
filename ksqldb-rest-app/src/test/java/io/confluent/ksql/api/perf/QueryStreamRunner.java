@@ -26,6 +26,8 @@ import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.PushQueryHandle;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
@@ -201,6 +203,8 @@ public class QueryStreamRunner extends BasePerfRunner {
 
   private static class TestQueryHandle implements PushQueryHandle {
 
+    private final TransientQueryQueue queue = new TransientQueryQueue(OptionalInt.empty());
+
     @Override
     public List<String> getColumnNames() {
       return DEFAULT_COLUMN_NAMES;
@@ -212,8 +216,8 @@ public class QueryStreamRunner extends BasePerfRunner {
     }
 
     @Override
-    public OptionalInt getLimit() {
-      return OptionalInt.empty();
+    public BlockingRowQueue getQueue() {
+      return queue;
     }
 
     @Override
@@ -230,6 +234,7 @@ public class QueryStreamRunner extends BasePerfRunner {
     private static final int SEND_BATCH_SIZE = 200;
     private volatile boolean closed;
     private Thread thread;
+    private TransientQueryQueue queue;
 
     public QueryStreamPublisher(final Context ctx, final WorkerExecutor workerExecutor) {
       super(ctx, workerExecutor);
@@ -238,6 +243,12 @@ public class QueryStreamRunner extends BasePerfRunner {
     public void start() {
       thread = new Thread(this);
       thread.start();
+    }
+
+    @Override
+    public void setQueryHandle(final PushQueryHandle queryHandle) {
+      this.queue = (TransientQueryQueue) queryHandle.getQueue();
+      super.setQueryHandle(queryHandle);
     }
 
     public void close() {
@@ -252,10 +263,9 @@ public class QueryStreamRunner extends BasePerfRunner {
     public void run() {
       while (!closed) {
         for (int i = 0; i < SEND_BATCH_SIZE; i++) {
-          accept(DEFAULT_ROW);
+          queue.acceptRow(DEFAULT_ROW);
         }
       }
     }
   }
-
 }

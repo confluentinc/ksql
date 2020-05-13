@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
@@ -59,7 +60,8 @@ public abstract class QueryMetadata {
   private boolean everStarted = false;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  public QueryMetadata(
+  @VisibleForTesting
+  QueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,

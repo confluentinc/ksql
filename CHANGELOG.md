@@ -1,5 +1,9 @@
 # Change Log
 
+## Upgrading
+
+If you're upgrading from a ksqlDB version < 0.7, please make sure to read and follow these [upgrade instructions](./docs-md/operate-and-deploy/installation/upgrading.md).
+
 ## [0.8.1](https://github.com/confluentinc/ksql/releases/tag/v0.8.1-ksqldb) (2020-03-30)
 
 ### Bug Fixes

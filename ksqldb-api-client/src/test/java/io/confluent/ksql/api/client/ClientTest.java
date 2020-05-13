@@ -379,9 +379,17 @@ public class ClientTest extends BaseApiTest {
     assertThat(row.getLong("f_long"), is(Long.valueOf(index * index)));
     assertThat(row.getDouble("f_double"), is(index + 0.1111));
     assertThat(row.getDecimal("f_decimal"), is(BigDecimal.valueOf(index + 0.1)));
-    assertThat(row.getKsqlArray("f_array"), is(new KsqlArray().add("s" + index).add("t" + index)));
-    assertThat(row.getKsqlObject("f_map"), is(new KsqlObject().put("k" + index, "v" + index)));
-    assertThat(row.getKsqlObject("f_struct"), is(new KsqlObject().put("F1", "v" + index).put("F2", index)));
+    final KsqlArray arrayVal = row.getKsqlArray("f_array");
+    assertThat(arrayVal, is(new KsqlArray().add("s" + index).add("t" + index)));
+    assertThat(arrayVal.getString(0), is("s" + index));
+    assertThat(arrayVal.getString(1), is("t" + index));
+    final KsqlObject mapVal = row.getKsqlObject("f_map");
+    assertThat(mapVal, is(new KsqlObject().put("k" + index, "v" + index)));
+    assertThat(mapVal.getString("k" + index), is("v" + index));
+    final KsqlObject structVal = row.getKsqlObject("f_struct");
+    assertThat(structVal, is(new KsqlObject().put("F1", "v" + index).put("F2", index)));
+    assertThat(structVal.getString("F1"), is("v" + index));
+    assertThat(structVal.getInteger("F2"), is(index));
     assertThat(row.getValue("f_null"), is(nullValue()));
 
     // verify index-based getters are 1-indexed

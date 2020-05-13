@@ -1,5 +1,9 @@
 # Change Log
 
+## Upgrading
+
+If you're upgrading from a ksqlDB version before 0.7, follow these [upgrade instructions](./docs-md/operate-and-deploy/installation/upgrading.md).
+
 ## [0.8.1](https://github.com/confluentinc/ksql/releases/tag/v0.8.1-ksqldb) (2020-03-30)
 
 ### Bug Fixes
@@ -614,4 +618,3 @@ This change splits "SHOW TOPICS" into two commands:
 
 Release notes for KSQL releases prior to ksqlDB v0.6.0 can be found at
 [docs/changelog.rst](https://github.com/confluentinc/ksql/blob/5.4.1-post/docs/changelog.rst).
-

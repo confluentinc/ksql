@@ -39,7 +39,7 @@ public interface BlockingRowQueue {
   void setLimitHandler(LimitHandler limitHandler);
 
   /**
-   * Sets the called back that will be called any time a new row is accepted into the queue.
+   * Sets the callback that will be called any time a new row is accepted into the queue.
    *
    * @param callback the callback.
    */

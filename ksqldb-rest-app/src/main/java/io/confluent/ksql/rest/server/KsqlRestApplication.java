@@ -968,7 +968,7 @@ public final class KsqlRestApplication implements Executable {
   private DropwizardMetricsOptions setUpHttpMetrics(final KsqlConfig ksqlConfig) {
     final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
-        .setJmxEnabled(true).setBaseName(serviceId)
+        .setJmxEnabled(true).setBaseName("_confluent-ksql-" + serviceId)
         .setJmxDomain("io.confluent.ksql.metrics");
     final List<Match> matches = MonitoredEndpoints.getMonitoredEndpoints();
     for (Match match : matches) {

@@ -93,12 +93,12 @@ public class CreateSourceCommandTest {
         "The KEY field (keyField) identified in the "
             + "WITH clause is of a different type to the actual key column."));
     assertThat(e.getMessage(), containsString(
-        "Use of the KEY field is deprecated. Remove the KEY field from the WITH clause and "
-            + "specify the name of the key column by adding 'keyField STRING KEY' to the schema."));
+        "Either change the type of the KEY field to match ROWKEY, or explicitly set "
+            + "ROWKEY to the type of the KEY field by adding 'ROWKEY STRING KEY' in the schema."));
     assertThat(e.getMessage(), containsString(
         "KEY field type: STRING"));
     assertThat(e.getMessage(), containsString(
-        "key column type: INTEGER"));
+        "ROWKEY type: INTEGER"));
   }
 
   @Test

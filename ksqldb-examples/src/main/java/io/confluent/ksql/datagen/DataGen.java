@@ -72,7 +72,7 @@ public final class DataGen {
 
     final Properties props = getProperties(arguments);
     final DataGenProducer dataProducer = ProducerFactory
-        .getProducer(arguments.keyFormat, arguments.valueFormat, props);
+        .getProducer(arguments.keyFormat, arguments.valueFormat, arguments.valueDelimiter, props);
     final Optional<RateLimiter> rateLimiter = arguments.msgRate != -1
         ? Optional.of(RateLimiter.create(arguments.msgRate)) : Optional.empty();
 
@@ -138,25 +138,29 @@ public final class DataGen {
     final String newLine = System.lineSeparator();
     System.err.println(
         "usage: DataGen " + newLine
-        + "[help] " + newLine
-        + "[bootstrap-server=<kafka bootstrap server(s)> (defaults to localhost:9092)] " + newLine
-        + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or "
-        + "'pageviews')] " + newLine
-        + "schema=<avro schema file> " + newLine
-        + "[schemaRegistryUrl=<url for Confluent Schema Registry> "
-        + "(defaults to http://localhost:8081)] " + newLine
-        + "key-format=<message key format> (case-insensitive; one of 'avro', 'json', 'kafka' or "
-        + "'delimited') " + newLine
-        + "value-format=<message value format> (case-insensitive; one of 'avro', 'json' or "
+            + "[help] " + newLine
+            + "[bootstrap-server=<kafka bootstrap server(s)> (defaults to localhost:9092)] "
+            + newLine
+            + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or "
+            + "'pageviews')] " + newLine
+            + "schema=<avro schema file> " + newLine
+            + "[schemaRegistryUrl=<url for Confluent Schema Registry> "
+            + "(defaults to http://localhost:8081)] " + newLine
+            + "key-format=<message key format> (case-insensitive; one of 'avro', 'json', 'kafka' "
+            + "or 'delimited') " + newLine
+            + "value-format=<message value format> (case-insensitive; one of 'avro', 'json' or "
             + "'delimited') " + newLine
-        + "topic=<kafka topic name> " + newLine
-        + "key=<name of key column> " + newLine
-        + "[iterations=<number of rows> (if no value is specified, datagen will produce "
+            + "valueDelimiter=<message value delimiter> (case-insensitive; delimiter to use when "
+            + "using delimited value format. Must be a single character or special values 'SPACE' "
+            + "or 'TAB'. Defaults to ',')" + newLine
+            + "topic=<kafka topic name> " + newLine
+            + "key=<name of key column> " + newLine
+            + "[iterations=<number of rows> (if no value is specified, datagen will produce "
             + "indefinitely)] " + newLine
-        + "[propertiesFile=<file specifying Kafka client properties>] " + newLine
-        + "[nThreads=<number of producer threads to start>] " + newLine
-        + "[msgRate=<rate to produce in msgs/second>] " + newLine
-        + "[printRows=<true|false>]" + newLine
+            + "[propertiesFile=<file specifying Kafka client properties>] " + newLine
+            + "[nThreads=<number of producer threads to start>] " + newLine
+            + "[msgRate=<rate to produce in msgs/second>] " + newLine
+            + "[printRows=<true|false>]" + newLine
     );
   }
 
@@ -167,7 +171,7 @@ public final class DataGen {
     private final Supplier<InputStream> schemaFile;
     private final Format keyFormat;
     private final Format valueFormat;
-    private final Character valueDelimiter;
+    private final String valueDelimiter;
     private final String topicName;
     private final String keyName;
     private final int iterations;
@@ -184,7 +188,7 @@ public final class DataGen {
         final Supplier<InputStream> schemaFile,
         final Format keyFormat,
         final Format valueFormat,
-        final Character valueDelimiter,
+        final String valueDelimiter,
         final String topicName,
         final String keyName,
         final int iterations,
@@ -229,7 +233,7 @@ public final class DataGen {
               .put("value-format", (builder, arg) -> builder.valueFormat = parseFormat(arg))
               // "format" is maintained for backwards compatibility, but should be removed later.
               .put("format", (builder, argVal) -> builder.valueFormat = parseFormat(argVal))
-              .put("value_delimiter",
+              .put("valueDelimiter",
                   (builder, argVal) -> builder.valueDelimiter = parseValueDelimiter(argVal))
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
@@ -258,7 +262,7 @@ public final class DataGen {
       private Supplier<InputStream> schemaFile;
       private Format keyFormat;
       private Format valueFormat;
-      private char valueDelimiter;
+      private String valueDelimiter;
       private String topicName;
       private String keyName;
       private int iterations;
@@ -275,7 +279,7 @@ public final class DataGen {
         schemaFile = null;
         keyFormat = FormatFactory.KAFKA;
         valueFormat = null;
-        valueDelimiter = ',';
+        valueDelimiter = null;
         topicName = null;
         keyName = null;
         iterations = -1;
@@ -473,7 +477,7 @@ public final class DataGen {
         }
       }
 
-      private static Character parseValueDelimiter(final String valueDelimiterString) {
+      private static String parseValueDelimiter(final String valueDelimiterString) {
         if (valueDelimiterString == null) {
           return null;
         } else {
@@ -485,7 +489,7 @@ public final class DataGen {
                 valueDelimiterString
             ));
           }
-          return valueDelimiterString.charAt(0);
+          return valueDelimiterString;
         }
       }
 

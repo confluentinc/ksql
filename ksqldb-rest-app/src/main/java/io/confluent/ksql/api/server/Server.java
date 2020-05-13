@@ -146,7 +146,9 @@ public class Server {
     for (URI uri : listenUris) {
       listeners.add(uris.get(uri));
     }
-    internalListenUri.ifPresent(uri -> internalListener = uris.get(uri));
+    if (internalListenUri.isPresent()) {
+      internalListener = uris.get(internalListenUri.get());
+    }
     log.info("API server started");
   }
 

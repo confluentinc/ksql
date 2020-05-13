@@ -29,7 +29,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
@@ -49,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
-import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
 import org.easymock.EasyMockRunner;
 import org.easymock.IAnswer;
@@ -72,13 +70,11 @@ public class QueryStreamWriterTest {
       .build();
 
   @Mock(MockType.NICE)
-  private KsqlEngine ksqlEngine;
-  @Mock(MockType.NICE)
   private TransientQueryMetadata queryMetadata;
   @Mock(MockType.NICE)
   private BlockingRowQueue rowQueue;
   private Capture<Thread.UncaughtExceptionHandler> ehCapture;
-  private Capture<Collection<KeyValue<String, GenericRow>>> drainCapture;
+  private Capture<Collection<GenericRow>> drainCapture;
   private Capture<LimitHandler> limitHandlerCapture;
   private QueryStreamWriter writer;
   private ByteArrayOutputStream out;
@@ -182,7 +178,7 @@ public class QueryStreamWriterTest {
   }
 
   private void createWriter() {
-    replay(queryMetadata, ksqlEngine, rowQueue);
+    replay(queryMetadata, rowQueue);
 
     writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper, new CompletableFuture<>());
 
@@ -196,12 +192,12 @@ public class QueryStreamWriterTest {
 
   private IAnswer<Integer> rows(final Object... rows) {
     return () -> {
-      final Collection<KeyValue<String, GenericRow>> output = drainCapture.getValue();
+      final Collection<GenericRow> output = drainCapture.getValue();
 
       Arrays.stream(rows)
           .map(ImmutableList::of)
           .map(QueryStreamWriterTest::genericRow)
-          .forEach(row -> output.add(new KeyValue<>("no used", row)));
+          .forEach(output::add);
 
       return rows.length;
     };

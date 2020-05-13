@@ -17,35 +17,30 @@ package io.confluent.ksql.query;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
-import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.kstream.ForeachAction;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Windowed;
 
 /**
  * A queue of rows for transient queries.
  */
-class TransientQueryQueue implements BlockingRowQueue {
+public class TransientQueryQueue implements BlockingRowQueue {
 
-  private final LimitQueueCallback callback;
-  private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
+  public static final int BLOCKING_QUEUE_CAPACITY = 500;
+
+  private final BlockingQueue<GenericRow> rowQueue;
   private final int offerTimeoutMs;
+  private LimitQueueCallback callback;
   private volatile boolean closed = false;
 
-  TransientQueryQueue(final KStream<?, GenericRow> kstream, final OptionalInt limit) {
-    this(kstream, limit, 100, 100);
+  public TransientQueryQueue(final OptionalInt limit) {
+    this(limit, BLOCKING_QUEUE_CAPACITY, 100);
   }
 
   @VisibleForTesting
   TransientQueryQueue(
-      final KStream<?, GenericRow> kstream,
       final OptionalInt limit,
       final int queueSizeLimit,
       final int offerTimeoutMs
@@ -55,8 +50,6 @@ class TransientQueryQueue implements BlockingRowQueue {
         : new UnlimitedQueueCallback();
     this.rowQueue = new LinkedBlockingQueue<>(queueSizeLimit);
     this.offerTimeoutMs = offerTimeoutMs;
-
-    kstream.foreach(new QueuePopulator<>());
   }
 
   @Override
@@ -65,13 +58,41 @@ class TransientQueryQueue implements BlockingRowQueue {
   }
 
   @Override
-  public KeyValue<String, GenericRow> poll(final long timeout, final TimeUnit unit)
+  public void setQueuedCallback(final Runnable queuedCallback) {
+    final LimitQueueCallback parent = callback;
+
+    callback = new LimitQueueCallback() {
+      @Override
+      public boolean shouldQueue() {
+        return parent.shouldQueue();
+      }
+
+      @Override
+      public void onQueued() {
+        parent.onQueued();
+        queuedCallback.run();
+      }
+
+      @Override
+      public void setLimitHandler(final LimitHandler limitHandler) {
+        parent.setLimitHandler(limitHandler);
+      }
+    };
+  }
+
+  @Override
+  public GenericRow poll(final long timeout, final TimeUnit unit)
       throws InterruptedException {
     return rowQueue.poll(timeout, unit);
   }
 
   @Override
-  public void drainTo(final Collection<? super KeyValue<String, GenericRow>> collection) {
+  public GenericRow poll() {
+    return rowQueue.poll();
+  }
+
+  @Override
+  public void drainTo(final Collection<? super GenericRow> collection) {
     rowQueue.drainTo(collection);
   }
 
@@ -81,45 +102,34 @@ class TransientQueryQueue implements BlockingRowQueue {
   }
 
   @Override
+  public boolean isEmpty() {
+    return rowQueue.isEmpty();
+  }
+
+  @Override
   public void close() {
     closed = true;
   }
 
-  @VisibleForTesting
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  final class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
-
-    @Override
-    public void apply(final K key, final GenericRow row) {
-      try {
-        if (row == null) {
-          return;
-        }
-
-        if (!callback.shouldQueue()) {
-          return;
-        }
-
-        final KeyValue<String, GenericRow> kv = new KeyValue<>(getStringKey(key), row);
-
-        while (!closed) {
-          if (rowQueue.offer(kv, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
-            callback.onQueued();
-            break;
-          }
-        }
-      } catch (final InterruptedException e) {
-        throw new KsqlException("InterruptedException while enqueueing:" + key);
-      }
-    }
-
-    private String getStringKey(final K key) {
-      if (key instanceof Windowed) {
-        final Windowed<?> windowedKey = (Windowed<?>) key;
-        return String.format("%s : %s", windowedKey.key(), windowedKey.window());
+  public void acceptRow(final GenericRow row) {
+    try {
+      if (row == null) {
+        return;
       }
 
-      return Objects.toString(key);
+      if (!callback.shouldQueue()) {
+        return;
+      }
+
+      while (!closed) {
+        if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
+          callback.onQueued();
+          break;
+        }
+      }
+    } catch (final InterruptedException e) {
+      // Forced shutdown?
+      Thread.currentThread().interrupt();
     }
   }
 }

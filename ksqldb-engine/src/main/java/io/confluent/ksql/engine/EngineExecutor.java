@@ -18,7 +18,6 @@ package io.confluent.ksql.engine;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
@@ -53,13 +52,11 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
-import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 
 /**
  * Executor of {@code PreparedStatement} within a specific {@code EngineContext} and using a
@@ -136,28 +133,6 @@ final class EngineExecutor {
             plans.physicalPlan.getPhysicalPlan()),
         outputNode.getSchema(),
         outputNode.getLimit()
-    );
-  }
-
-  QueryMetadata executeQuery(final ConfiguredStatement<Query> statement,
-      final Consumer<GenericRow> rowConsumer) {
-    final ExecutorPlans plans = planQuery(statement, statement.getStatement(), Optional.empty());
-    final OutputNode outputNode = plans.logicalPlan.getNode().get();
-    final QueryExecutor executor = engineContext.createQueryExecutor(
-        ksqlConfig,
-        overriddenProperties,
-        serviceContext
-    );
-    return executor.buildTransientQuery(
-        statement.getStatementText(),
-        plans.physicalPlan.getQueryId(),
-        getSourceNames(outputNode),
-        plans.physicalPlan.getPhysicalPlan(),
-        buildPlanSummary(
-            plans.physicalPlan.getQueryId(),
-            plans.physicalPlan.getPhysicalPlan()),
-        outputNode.getSchema(),
-        rowConsumer
     );
   }
 

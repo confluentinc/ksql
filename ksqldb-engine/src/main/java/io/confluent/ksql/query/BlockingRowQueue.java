@@ -19,7 +19,6 @@ import io.confluent.ksql.GenericRow;
 import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.streams.KeyValue;
 
 /**
  * The queue between the Kafka-streams topology and the client connection.
@@ -40,19 +39,36 @@ public interface BlockingRowQueue {
   void setLimitHandler(LimitHandler limitHandler);
 
   /**
-   * Poll the queue for a single row
+   * Sets the called back that will be called any time a new row is accepted into the queue.
    *
+   * @param callback the callback.
+   */
+  void setQueuedCallback(Runnable callback);
+
+  /**
+   * Poll the queue for a single row, with a timeout.
+   *
+   * @return the next row
    * @see BlockingQueue#poll(long, TimeUnit)
    */
-  KeyValue<String, GenericRow> poll(long timeout, TimeUnit unit)
+  GenericRow poll(long timeout, TimeUnit unit)
       throws InterruptedException;
+
+  /**
+   * Poll the queue for a single row.
+   *
+   * @return the next row
+   * @see BlockingQueue#poll()
+   */
+  GenericRow poll();
 
   /**
    * Drain the queue to the supplied {@code collection}.
    *
+   * @param collection the collection to add drained rows to.
    * @see BlockingQueue#drainTo(Collection)
    */
-  void drainTo(Collection<? super KeyValue<String, GenericRow>> collection);
+  void drainTo(Collection<? super GenericRow> collection);
 
   /**
    * The size of the queue.
@@ -60,6 +76,11 @@ public interface BlockingRowQueue {
    * @see BlockingQueue#size()
    */
   int size();
+
+  /**
+   * @return {@code true} if the queue is empty, false otherwise.
+   */
+  boolean isEmpty();
 
   /**
    * Close the queue.

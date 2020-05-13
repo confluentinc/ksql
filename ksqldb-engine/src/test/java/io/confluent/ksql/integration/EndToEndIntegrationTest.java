@@ -57,7 +57,6 @@ import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Configurable;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.apache.kafka.test.TestUtils;
@@ -214,7 +213,7 @@ public class EndToEndIntegrationTest {
     final TransientQueryMetadata queryMetadata = executeStatement(
         "SELECT * from pageviews_female EMIT CHANGES;");
 
-    final List<KeyValue<String, GenericRow>> results = new ArrayList<>();
+    final List<GenericRow> results = new ArrayList<>();
     final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
 
     // From the mock data, we expect exactly 3 page views from female users.
@@ -224,7 +223,7 @@ public class EndToEndIntegrationTest {
     TestUtils.waitForCondition(() -> {
       try {
         log.debug("polling from pageviews_female");
-        final KeyValue<String, GenericRow> nextRow = rowQueue.poll(1, TimeUnit.SECONDS);
+        final GenericRow nextRow = rowQueue.poll(1, TimeUnit.SECONDS);
         if (nextRow != null) {
           results.add(nextRow);
         } else {
@@ -244,8 +243,8 @@ public class EndToEndIntegrationTest {
     final List<String> actualPages = new ArrayList<>();
     final List<String> actualUsers = new ArrayList<>();
 
-    for (final KeyValue<String, GenericRow> result : results) {
-      final List<Object> columns = result.value.values();
+    for (final GenericRow result : results) {
+      final List<Object> columns = result.values();
       log.debug("pageview join: {}", columns);
 
       assertThat(columns, hasSize(4));
@@ -408,12 +407,10 @@ public class EndToEndIntegrationTest {
         30_000,
         expectedRows + " rows were not available after 30 seconds");
 
-    final List<KeyValue<String, GenericRow>> rows = new ArrayList<>();
+    final List<GenericRow> rows = new ArrayList<>();
     rowQueue.drainTo(rows);
 
-    return rows.stream()
-        .map(kv -> kv.value)
-        .collect(Collectors.toList());
+    return rows;
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {

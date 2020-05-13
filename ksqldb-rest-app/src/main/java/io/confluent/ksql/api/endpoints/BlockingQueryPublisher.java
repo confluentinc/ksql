@@ -19,16 +19,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.PushQueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.reactive.BasePublisher;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Objects;
-import java.util.OptionalInt;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,21 +38,17 @@ import org.slf4j.LoggerFactory;
  * many push queries in the server at any one time as we can end up with a lot of threads.
  */
 public class BlockingQueryPublisher extends BasePublisher<GenericRow>
-    implements QueryPublisher, Consumer<GenericRow> {
+    implements QueryPublisher {
 
   private static final Logger log = LoggerFactory.getLogger(BlockingQueryPublisher.class);
 
   public static final int SEND_MAX_BATCH_SIZE = 200;
-  public static final int BLOCKING_QUEUE_CAPACITY = 500;
 
-  private final BlockingQueue<GenericRow> queue = new LinkedBlockingQueue<>(
-      BLOCKING_QUEUE_CAPACITY);
   private final WorkerExecutor workerExecutor;
+  private BlockingRowQueue queue;
   private PushQueryHandle queryHandle;
   private List<String> columnNames;
   private List<String> columnTypes;
-  private OptionalInt limit;
-  private int numAccepted;
   private boolean complete;
   private volatile boolean closed;
 
@@ -67,10 +59,12 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
   }
 
   public void setQueryHandle(final PushQueryHandle queryHandle) {
-    this.queryHandle = Objects.requireNonNull(queryHandle);
-    this.limit = queryHandle.getLimit();
     this.columnNames = queryHandle.getColumnNames();
     this.columnTypes = queryHandle.getColumnTypes();
+    this.queue = queryHandle.getQueue();
+    this.queue.setQueuedCallback(this::maybeSend);
+    this.queue.setLimitHandler(() -> complete = true);
+    this.queryHandle = queryHandle;
   }
 
   @Override
@@ -91,32 +85,6 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
     // Run async as it can block
     executeOnWorker(queryHandle::stop);
     super.close();
-  }
-
-  @Override
-  public synchronized void accept(final GenericRow row) {
-    Objects.requireNonNull(row);
-
-    if (closed || complete || !hasReachedLimit()) {
-      return;
-    }
-
-    while (!closed) {
-      try {
-        // Don't block for more than a little while each time to allow close to work
-        if (queue.offer(row, 250, TimeUnit.MILLISECONDS)) {
-          numAccepted++;
-          maybeSend();
-          return;
-        }
-      } catch (InterruptedException ignore) {
-        return;
-      }
-    }
-  }
-
-  public int queueSize() {
-    return queue.size();
   }
 
   @Override
@@ -143,21 +111,6 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
     });
   }
 
-  private boolean hasReachedLimit() {
-    if (limit.isPresent()) {
-      final int lim = limit.getAsInt();
-      if (numAccepted == lim) {
-        // Reached limit
-        return false;
-      }
-      if (numAccepted == lim - 1) {
-        // Set to complete after delivering any buffered rows
-        complete = true;
-      }
-    }
-    return true;
-  }
-
   @SuppressFBWarnings(
       value = "IS2_INCONSISTENT_SYNC",
       justification = "Vert.x ensures this is executed on event loop only")
@@ -179,5 +132,4 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
       }
     }
   }
-
 }

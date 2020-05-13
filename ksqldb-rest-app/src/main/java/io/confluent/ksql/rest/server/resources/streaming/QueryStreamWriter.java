@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,12 +71,12 @@ class QueryStreamWriter implements StreamingOutput {
       write(out, buildHeader());
 
       while (!connectionClosed && queryMetadata.isRunning() && !limitReached) {
-        final KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(
+        final GenericRow value = queryMetadata.getRowQueue().poll(
             disconnectCheckInterval,
             TimeUnit.MILLISECONDS
         );
         if (value != null) {
-          write(out, StreamedRow.row(value.value));
+          write(out, StreamedRow.row(value));
         } else {
           // If no new rows have been written, the user may have terminated the connection without
           // us knowing. Check by trying to write a single newline.
@@ -151,11 +150,11 @@ class QueryStreamWriter implements StreamingOutput {
   }
 
   private void drain(final OutputStream out) throws IOException {
-    final List<KeyValue<String, GenericRow>> rows = Lists.newArrayList();
+    final List<GenericRow> rows = Lists.newArrayList();
     queryMetadata.getRowQueue().drainTo(rows);
 
-    for (final KeyValue<String, GenericRow> row : rows) {
-      write(out, StreamedRow.row(row.value));
+    for (final GenericRow row : rows) {
+      write(out, StreamedRow.row(row));
     }
   }
 

@@ -16,7 +16,6 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -52,7 +51,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -232,24 +230,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       // add the statement text to the KsqlException
       throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
     }
-  }
-
-  @Override
-  public QueryMetadata executeQuery(
-      final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> statement,
-      final Consumer<GenericRow> rowConsumer
-  ) {
-    final QueryMetadata query = EngineExecutor
-        .create(
-            primaryContext,
-            serviceContext,
-            statement.getConfig(),
-            statement.getConfigOverrides()
-        )
-        .executeQuery(statement, rowConsumer);
-    registerQuery(query);
-    return query;
   }
 
   @Override

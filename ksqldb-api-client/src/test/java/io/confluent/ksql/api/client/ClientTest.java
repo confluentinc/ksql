@@ -376,7 +376,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(row.getString("f_str"), is("foo" + index));
     assertThat(row.getInt("f_int"), is(index));
     assertThat(row.getBoolean("f_bool"), is(index % 2 == 0));
-    assertThat(row.getLong("f_long"), is(Long.valueOf(index * index)));
+    assertThat(row.getLong("f_long"), is(Long.valueOf(index) * index));
     assertThat(row.getDouble("f_double"), is(index + 0.1111));
     assertThat(row.getDecimal("f_decimal"), is(BigDecimal.valueOf(index + 0.1)));
     final KsqlArray arrayVal = row.getKsqlArray("f_array");

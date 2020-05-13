@@ -349,7 +349,7 @@ public class KsqlEngineMetricsTest {
       final List<PersistentQueryMetadata> queryMetadataList = new ArrayList<>();
       for (int i = 0; i < numberOfQueries; i++) {
         final PersistentQueryMetadata query = mock(PersistentQueryMetadata.class);
-        when(query.getState()).thenReturn(state.toString());
+        when(query.getState()).thenReturn(state);
         queryMetadataList.add(query);
       }
       return queryMetadataList;

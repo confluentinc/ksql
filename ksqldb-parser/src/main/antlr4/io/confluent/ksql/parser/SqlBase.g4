@@ -311,9 +311,9 @@ sourceName
     ;
 
 number
-    : DECIMAL_VALUE         #decimalLiteral
-    | FLOATING_POINT_VALUE  #floatLiteral
-    | INTEGER_VALUE         #integerLiteral
+    : MINUS? DECIMAL_VALUE         #decimalLiteral
+    | MINUS? FLOATING_POINT_VALUE  #floatLiteral
+    | MINUS? INTEGER_VALUE         #integerLiteral
     ;
 
 literal

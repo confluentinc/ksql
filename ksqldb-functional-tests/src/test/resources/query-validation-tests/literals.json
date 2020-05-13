@@ -84,14 +84,13 @@
     },
     {
       "name": "BIGINT literal negative overflow",
-      "note": "Long.MIN_VALUE is actually -9223372036854775808, which KSQL can not handle as the LongLiteral is stored unsigned",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS select K, id, -9223372036854775808 FROM INPUT;"
+        "CREATE STREAM OUTPUT AS select K, id, -9223372036854775809 FROM INPUT;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "Failed to prepare statement: line 2:41: Invalid numeric literal: 9223372036854775808"
+        "message": "Invalid numeric literal: -9223372036854775809"
       }
     },
     {
@@ -109,11 +108,11 @@
       "name": "DOUBLE literal negative overflow",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS select K, id, -1.7976931348623159E308 FROM INPUT;"
+        "CREATE STREAM OUTPUT AS select K, id, -1.7976931348623160E308 FROM INPUT;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "Failed to prepare statement: line 2:41: Number overflows DOUBLE: 1.7976931348623159E308"
+        "message": "Number overflows DOUBLE: -1.7976931348623160E308"
       }
     }
   ]

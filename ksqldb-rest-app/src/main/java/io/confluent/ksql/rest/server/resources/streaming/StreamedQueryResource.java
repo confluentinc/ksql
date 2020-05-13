@@ -298,7 +298,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         query,
         disconnectCheckInterval.toMillis(),
         OBJECT_MAPPER,
-        connectionClosedFuture);
+        connectionClosedFuture
+    );
 
     log.info("Streaming query '{}'", statement.getStatementText());
     return EndpointResponse.ok(queryStreamWriter);

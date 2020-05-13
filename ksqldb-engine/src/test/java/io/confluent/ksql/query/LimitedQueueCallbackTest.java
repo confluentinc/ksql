@@ -82,6 +82,18 @@ public class LimitedQueueCallbackTest {
   }
 
   @Test
+  public void shouldCallLimitHandlerImmediatelyIfLimitZero() {
+    // Given:
+    callback = new LimitedQueueCallback(0);
+
+    // When:
+    callback.setLimitHandler(limitHandler);
+
+    // Then:
+    verify(limitHandler).limitReached();
+  }
+
+  @Test
   public void shouldBeThreadSafe() {
     // Given:
     final int theLimit = 100;

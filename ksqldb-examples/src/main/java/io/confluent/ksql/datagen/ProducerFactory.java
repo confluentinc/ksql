@@ -23,7 +23,10 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import org.apache.kafka.common.serialization.Serializer;
@@ -40,6 +43,7 @@ final class ProducerFactory {
   static DataGenProducer getProducer(
       final Format keyFormat,
       final Format valueFormat,
+      final String valueDelimiter,
       final Properties props
   ) {
     final KsqlConfig ksqlConfig = new KsqlConfig(props);
@@ -50,8 +54,19 @@ final class ProducerFactory {
     final SerializerFactory<Struct> keySerializerFactory =
         keySerializerFactory(keyFormat, ksqlConfig, srClient);
 
+    final Map<String, String> formatInfoProperties = new HashMap<>();
+    if (valueDelimiter != null) {
+
+      if (!(valueFormat instanceof DelimitedFormat)) {
+        throw new IllegalArgumentException(
+            "valueDelimiter can only be specified with delimited format");
+      }
+
+      formatInfoProperties.put(DelimitedFormat.DELIMITER, valueDelimiter);
+    }
+
     final SerializerFactory<GenericRow> valueSerializerFactory =
-        valueSerializerFactory(valueFormat, ksqlConfig, srClient);
+        valueSerializerFactory(valueFormat, ksqlConfig, srClient, formatInfoProperties);
 
     return new DataGenProducer(
         keySerializerFactory,
@@ -87,7 +102,8 @@ final class ProducerFactory {
   private static SerializerFactory<GenericRow> valueSerializerFactory(
       final Format valueFormat,
       final KsqlConfig ksqlConfig,
-      final Optional<SchemaRegistryClient> srClient
+      final Optional<SchemaRegistryClient> srClient,
+      final Map<String, String> formatInfoProperties
   ) {
     return new SerializerFactory<GenericRow>() {
       @Override
@@ -98,7 +114,7 @@ final class ProducerFactory {
       @Override
       public Serializer<GenericRow> create(final PersistenceSchema schema) {
         return VALUE_SERDE_FACTORY.create(
-            FormatInfo.of(valueFormat.name()),
+            FormatInfo.of(valueFormat.name(), formatInfoProperties),
             schema,
             ksqlConfig,
             srClient::get,

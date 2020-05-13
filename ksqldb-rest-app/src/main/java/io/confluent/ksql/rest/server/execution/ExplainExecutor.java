@@ -38,8 +38,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.Optional;
 
-import org.apache.kafka.streams.KafkaStreams;
-
 /**
  * Explains the execution of either an existing persistent query or a statement
  * that has not yet been issued.
@@ -147,7 +145,7 @@ public final class ExplainExecutor {
         Collections.singletonMap(
             new KsqlHostInfoEntity(sessionProperties.getKsqlHostInfo()),
                 KsqlConstants.fromStreamsState(
-                    KafkaStreams.State.valueOf(metadata.getState()))
+                    metadata.getState())
         ));
   }
 

@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -126,8 +127,8 @@ public abstract class QueryMetadata {
     kafkaStreams.setUncaughtExceptionHandler(handler);
   }
 
-  public String getState() {
-    return kafkaStreams.state().toString();
+  public State getState() {
+    return kafkaStreams.state();
   }
 
   public String getExecutionPlan() {

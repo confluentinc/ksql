@@ -332,7 +332,7 @@ public class KsqlEngineMetrics implements Closeable {
         (metricConfig, l) ->
             ksqlEngine.getPersistentQueries()
                 .stream()
-                .filter(queryMetadata -> queryMetadata.getState().equals(state.toString()))
+                .filter(queryMetadata -> queryMetadata.getState().equals(state))
                 .count();
     final String description = String.format("Count of queries in %s state.", state.toString());
     final MetricName metricName = metrics.metricName(name, group, description, tags);

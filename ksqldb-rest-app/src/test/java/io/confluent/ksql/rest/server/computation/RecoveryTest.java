@@ -454,7 +454,7 @@ public class RecoveryTest {
       this.sinkNamesMatcher = equalTo(metadata.getSinkName());
       this.resultSchemaMatcher = equalTo(metadata.getLogicalSchema());
       this.sqlMatcher = equalTo(metadata.getStatementString());
-      this.stateMatcher = equalTo(metadata.getState());
+      this.stateMatcher = equalTo(metadata.getState().toString());
     }
 
     @Override
@@ -509,7 +509,7 @@ public class RecoveryTest {
       }
       return test(
           stateMatcher,
-          metadata.getState(),
+          metadata.getState().toString(),
           description,
           "state mismatch: ");
     }

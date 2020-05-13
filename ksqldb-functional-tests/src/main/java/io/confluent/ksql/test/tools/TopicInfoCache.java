@@ -32,12 +32,16 @@ import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -179,32 +183,48 @@ public class TopicInfoCache {
       return valueFormat;
     }
 
+    @SuppressWarnings("unchecked")
+    private Serializer<Object> getSerializer(
+        final SerdeSupplier<?> serdeSupplier,
+        final Format format,
+        final LogicalSchema schema,
+        final boolean isKey
+    ) {
+      final Serializer<Object> rawSerializer =
+          (Serializer<Object>) serdeSupplier.getSerializer(srClient);
+      rawSerializer.configure(ImmutableMap.of(
+          AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
+      ), isKey);
+      Serializer<Object> serializer;
+      if (format.name().equals(KafkaFormat.NAME)
+          && schema.value().get(0).type().equals(SqlTypes.DOUBLE)) {
+        serializer = (topic, o) -> (o instanceof BigDecimal)
+            ? rawSerializer.serialize(topic, (((BigDecimal) o).doubleValue()))
+            : rawSerializer.serialize(topic, o);
+      } else {
+        serializer = rawSerializer;
+      }
+      return serializer;
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Serializer<Object> getKeySerializer() {
-      final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
-          .getKeySerdeSupplier(keyFormat, schema);
-
-      final Serializer<?> serializer = keySerdeSupplier.getSerializer(srClient);
-
-      serializer.configure(ImmutableMap.of(
-          AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
-      ), true);
-
-      return (Serializer) serializer;
+      return getSerializer(
+          SerdeUtil.getKeySerdeSupplier(keyFormat, schema),
+          keyFormat.getFormat(),
+          schema,
+          true
+      );
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Serializer<Object> getValueSerializer() {
-      final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(valueFormat.getFormat(), schema);
-
-      final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient);
-
-      serializer.configure(ImmutableMap.of(
-          AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
-      ), false);
-
-      return (Serializer) serializer;
+      return getSerializer(
+          SerdeUtil.getSerdeSupplier(valueFormat.getFormat(), schema),
+          valueFormat.getFormat(),
+          schema,
+          false
+      );
     }
 
     public Deserializer<?> getKeyDeserializer() {

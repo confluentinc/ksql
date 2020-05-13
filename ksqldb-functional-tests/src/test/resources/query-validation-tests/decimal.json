@@ -64,7 +64,7 @@
         {"topic": "OUTPUT", "value": {"DEC": 0.1}},
         {"topic": "OUTPUT", "value": {"DEC": 0.01}},
         {"topic": "OUTPUT", "value": {"DEC": 0.001}},
-        {"topic": "OUTPUT", "value": {"DEC": 0.00010}}
+        {"topic": "OUTPUT", "value": {"DEC": 0.0001}}
       ],
       "post": {
         "sources": [
@@ -74,7 +74,6 @@
       }
     },
     {
-      "enabled": false,
       "name": "JSON should not trim trailing zeros",
       "comment": "Disabled until https://github.com/confluentinc/ksql/issues/4710 is done",
       "statements": [
@@ -91,8 +90,8 @@
       ],
       "post": {
         "sources": [
-          {"name": "INPUT", "type": "stream", "schema": "ROWKEY STRING KEY, DEC DECIMAL(6,4)"},
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, DEC DECIMAL(6,4)"}
+          {"name": "INPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"}
         ]
       }
     },

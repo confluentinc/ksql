@@ -129,23 +129,25 @@ public class KsqlRestConfig extends AbstractConfig {
 
   public static final String ADVERTISED_LISTENER_CONFIG =
       KSQL_CONFIG_PREFIX + "advertised.listener";
-  private static final String ADVERTISED_LISTENER_DOC =
-      "The listener used for communication between KSQL nodes in the cluster, if different to the '"
-          + LISTENERS_CONFIG + "' config property. "
-          + "In IaaS environments, this may need to be different from the interface to which "
-          + "the server binds. If this is not set, the first value from listeners will be used. "
-          + "Unlike listeners, it is not valid to use the 0.0.0.0 (IPv4) or [::] (IPv6) "
-          + "wildcard addresses.";
-
   public static final String INTERNAL_LISTENER_CONFIG =
       KSQL_CONFIG_PREFIX + "internal.listener";
+  private static final String ADVERTISED_LISTENER_DOC =
+      "The listener this node will share with other ksqlDB nodes in the cluster for internal "
+          + "communication. In IaaS environments, this may need to be different from the interface "
+          + "to which the server binds. "
+          + "If this is not set, the advertised listener will either default to "
+          +  INTERNAL_LISTENER_CONFIG + ", if set, or else the first value from "
+          +  LISTENERS_CONFIG + " will be used. "
+          + "It is not valid to use the 0.0.0.0 (IPv4) or [::] (IPv6) wildcard addresses.";
+
   private static final String INTERNAL_LISTENER_DOC =
-      "The listener used for binding internal endpoints, if different to the '"
-          + LISTENERS_CONFIG + "' config property. "
-          + "This is the same endpoint referred to by ksql.advertised.listener, which is also used "
-          + "for internal requests."
-          + "In IaaS environments, this may need to be different from the interface to which"
-          + "the other endpoints bind.";
+      "The listener used for inter-node communication, if different to the '"
+          + LISTENERS_CONFIG + "' config. "
+          + "The " + ADVERTISED_LISTENER_CONFIG + " config can be set to provide an "
+          + "externally routable name for this listener, if required. "
+          + "This listener can be used to bind a separate port or network interface for the "
+          + "internal endpoints, separate from the external client endpoints, and provide a "
+          + "layer of security at the network level.";
 
   static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG =
       "query.stream.disconnect.check";

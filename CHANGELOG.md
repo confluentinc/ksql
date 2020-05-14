@@ -2,7 +2,7 @@
 
 ## Upgrading
 
-If you're upgrading from a ksqlDB version before 0.7, follow these [upgrade instructions](./docs-md/operate-and-deploy/installation/upgrading.md).
+If you're upgrading from a ksqlDB version before 0.7, follow these [upgrade instructions](https://docs.ksqldb.io/en/latest/operate-and-deploy/installation/upgrading/#upgrade-notes).
 
 ## [0.8.1](https://github.com/confluentinc/ksql/releases/tag/v0.8.1-ksqldb) (2020-03-30)
 

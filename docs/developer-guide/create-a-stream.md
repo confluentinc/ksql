@@ -99,7 +99,7 @@ For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 ```
 
 You may notice that ksqlDB has added a key column named `ROWKEY`.
-This is the default key column added if you do not provide one.
+This is the default key column that ksqlDB adds if you don't provide one.
 If your data doesn't contain a {{ site.ak }} serialized
 `STRING` in the {{ site.ak }} message key, don't use `ROWKEY` in your SQL statements,
 because this may cause unexpected results.

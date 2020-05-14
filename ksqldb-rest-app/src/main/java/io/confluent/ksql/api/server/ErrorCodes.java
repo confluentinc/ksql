@@ -33,6 +33,7 @@ public final class ErrorCodes {
   public static final int ERROR_FAILED_AUTHENTICATION = 9;
   public static final int ERROR_FAILED_AUTHORIZATION = 10;
   public static final int ERROR_HTTP2_ONLY = 11;
+  public static final int ERROR_CODE_INTERNAL_ONLY = 12;
 
   public static final int ERROR_CODE_INTERNAL_ERROR = 100;
 

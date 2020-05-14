@@ -533,6 +533,16 @@ public final class KsqlRestApplication implements Executable {
     }).collect(Collectors.toList());
   }
 
+  Optional<URL> getInternalListener() {
+    return apiServer.getInternalListener().map(uri -> {
+      try {
+        return uri.toURL();
+      } catch (MalformedURLException e) {
+        throw new KsqlException(e);
+      }
+    });
+  }
+
   public static KsqlRestApplication buildApplication(final KsqlRestConfig restConfig) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =

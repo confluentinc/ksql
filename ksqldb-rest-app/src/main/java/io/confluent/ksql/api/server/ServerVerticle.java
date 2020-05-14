@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class ServerVerticle extends AbstractVerticle {
-
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final Logger log = LoggerFactory.getLogger(ServerVerticle.class);
 
@@ -62,12 +61,17 @@ public class ServerVerticle extends AbstractVerticle {
   private final Server server;
   private ConnectionQueryManager connectionQueryManager;
   private HttpServer httpServer;
+  private final Optional<Boolean> isInternalListener;
 
-  public ServerVerticle(final Endpoints endpoints, final HttpServerOptions httpServerOptions,
-      final Server server) {
+  public ServerVerticle(
+      final Endpoints endpoints,
+      final HttpServerOptions httpServerOptions,
+      final Server server,
+      final Optional<Boolean> isInternalListener) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
     this.server = Objects.requireNonNull(server);
+    this.isInternalListener = Objects.requireNonNull(isInternalListener);
   }
 
   @Override
@@ -110,6 +114,9 @@ public class ServerVerticle extends AbstractVerticle {
     PortedEndpoints.setupFailureHandler(router);
 
     router.route().failureHandler(ServerVerticle::failureHandler);
+
+    isInternalListener.ifPresent(isInternal ->
+        router.route().handler(new InternalEndpointHandler(isInternal)));
 
     setupAuthHandlers(router);
 
@@ -273,5 +280,4 @@ public class ServerVerticle extends AbstractVerticle {
     routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
         .end(new JsonObject().toBuffer());
   }
-
 }

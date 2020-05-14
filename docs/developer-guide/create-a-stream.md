@@ -102,7 +102,7 @@ You may notice that ksqlDB has added a key column named `ROWKEY`.
 This is the default key column added if you do not provide one.
 If your data does not contain a Kafka serialized
 `STRING` in the Kafka message key you should not use `ROWKEY` in your SQL statements,
-as the behaviour will be undefined.
+because this may cause unexpected results.
 
 ### Create a Stream with a Specified Key
 

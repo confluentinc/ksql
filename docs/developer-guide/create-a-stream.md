@@ -106,7 +106,7 @@ as the behaviour will be undefined.
 
 ### Create a Stream with a Specified Key
 
-The previous SQL statement does not define a column to represent the data in the
+The previous SQL statement doesn't define a column to represent the data in the
 {{ site.ak }} message key in the underlying {{ site.ak }} topic, so the system adds a
 `ROWKEY` column with type `STRING`.
 

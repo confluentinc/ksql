@@ -64,7 +64,7 @@ public interface StreamedQueryResult extends Publisher<Row> {
    * {@code onError()} is called on the subscriber, if present, any existing {@code poll()} calls
    * will return null, and new calls to {@code poll()} and {@code subscribe()} will be rejected.
    *
-   * @return whether the {@code StreamedQueryResult} is complete.
+   * @return whether the {@code StreamedQueryResult} is failed.
    */
   boolean isFailed();
 

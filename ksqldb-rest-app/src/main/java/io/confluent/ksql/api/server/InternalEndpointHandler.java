@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import com.google.common.collect.ImmutableSet;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Set;
@@ -35,7 +36,7 @@ public class InternalEndpointHandler implements Handler<RoutingContext> {
   public void handle(final RoutingContext routingContext) {
     if (INTERNAL_PATHS.contains(routingContext.normalisedPath())
         && !isFromInternalListener) {
-      routingContext.fail(400,
+      routingContext.fail(HttpResponseStatus.BAD_REQUEST.code(),
           new KsqlApiException("Can't call internal endpoint on public listener",
               ErrorCodes.ERROR_CODE_INTERNAL_ONLY));
     } else {

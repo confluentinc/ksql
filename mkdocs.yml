@@ -71,7 +71,7 @@ nav:
       - Synopsis: how-to-guides/synposis.md
       - Query:
           - Query structured data: how-to-guides/query-structured-data.md
-          - Convert a stream to a table: how-to-guides/convert-stream-to-table.md
+          - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:

@@ -1,10 +1,22 @@
 # How to query structured data
 
-## What is it?
+## The problem
 
 You have events that contain structured data types like structs, maps, and arrays. You want to write them to ksqlDB and read their inner contents with queries. Because ksqlDB represents events as a flat series of columns, you need a bit of syntax to work with these data types. This is sometimes called "destructuring".
 
-## Structs
+## In action
+
+```sql
+SELECT a->d    AS d,   -- destructure a struct
+       b[1]    AS b_1  -- destructure an array
+       c['k1'] AS k1   -- destructure a map
+FROM s1
+EMIT CHANGES;
+```
+
+## Data types
+
+### Structs
 
 Structs are an associative data type that map `VARCHAR` keys to values of any type. Destructure structs by using arrow syntax (`->`).
 
@@ -14,39 +26,39 @@ Begin by telling ksqlDB to start all queries from earliest point in each topic.
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-Make a stream `s1` with two columns: `a` and `b`. `b` is a struct with `VARCHAR` keys `c` and `d`, who's value data types are `VARCHAR` and `INT` respectively.
+Make a stream `s2` with two columns: `a` and `b`. `b` is a struct with `VARCHAR` keys `c` and `d`, who's value data types are `VARCHAR` and `INT` respectively.
 
 ```sql
-CREATE STREAM s1 (
+CREATE STREAM s2 (
     a VARCHAR,
     b STRUCT<
         c VARCHAR,
         d INT
     >
 ) WITH (
-    kafka_topic = 's1',
+    kafka_topic = 's2',
     partitions = 1,
     value_format = 'avro',
     key = 'a'
 );
 ```
 
-Insert some events into `s1`. You can represent a struct literal by using the `STRUCT` constructor, which takes a variable number of key/value arguments.
+Insert some events into `s2`. You can represent a struct literal by using the `STRUCT` constructor, which takes a variable number of key/value arguments.
 
 ```sql
-INSERT INTO s1 (
+INSERT INTO s2 (
     a, b
 ) VALUES (
     'k1', STRUCT(c := 'v1', d := 5)
 );
 
-INSERT INTO s1 (
+INSERT INTO s2 (
     a, b
 ) VALUES (
     'k2', STRUCT(c := 'v2', d := 6)
 );
 
-INSERT INTO s1 (
+INSERT INTO s2 (
     a, b
 ) VALUES (
     'k3', STRUCT(c := 'v3', d := 7)
@@ -60,7 +72,7 @@ SELECT a,
        b,
        b->c,
        b->d
-FROM s1
+FROM s2
 EMIT CHANGES;
 ```
 
@@ -76,7 +88,7 @@ This query should return the following results. Notice that the column names for
 ```
 
 
-## Maps
+### Maps
 
 Maps are an associative data type that map keys of any type to values of any type. The types across all keys must be the same. The same rule holds for values. Destructure maps using bracket syntax (`[]`).
 
@@ -86,36 +98,36 @@ Begin by telling ksqlDB to start all queries from earliest point in each topic.
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-Make a stream `s2` with two columns: `a` and `b`. `b` is a map with `VARCHAR` keys and `INT` values.
+Make a stream `s3` with two columns: `a` and `b`. `b` is a map with `VARCHAR` keys and `INT` values.
 
 ```sql
-CREATE STREAM s2 (
+CREATE STREAM s3 (
     a VARCHAR,
     b MAP<VARCHAR, INT>
 ) WITH (
-    kafka_topic = 's2',
+    kafka_topic = 's3',
     partitions = 1,
     value_format = 'avro',
     key = 'a'
 );
 ```
 
-Insert some events into `s2`. You can represent a MAP literal by using the `MAP` constructor, which takes a variable number of key/value arguments. `c` and `d` are used consistently in this example, but the key names can be heterogeneous in practice.
+Insert some events into `s3`. You can represent a MAP literal by using the `MAP` constructor, which takes a variable number of key/value arguments. `c` and `d` are used consistently in this example, but the key names can be heterogeneous in practice.
 
 ```sql
-INSERT INTO s2 (
+INSERT INTO s3 (
     a, b
 ) VALUES (
     'k1', MAP('c' := 2, 'd' := 4)
 );
 
-INSERT INTO s2 (
+INSERT INTO s3 (
     a, b
 ) VALUES (
     'k2', MAP('c' := 4, 'd' := 8)
 );
 
-INSERT INTO s2 (
+INSERT INTO s3 (
     a, b
 ) VALUES (
     'k3', MAP('c' := 8, 'd' := 16)
@@ -129,7 +141,7 @@ SELECT a,
        b,
        b['c'] AS C,
        b['d'] AS D
-FROM s2
+FROM s3
 EMIT CHANGES;
 ```
 
@@ -144,7 +156,7 @@ This query should return the following results. The last two column names have b
 |k3                            |{c=8, d=16}                   |8                             |16                            |
 ```
 
-## Arrays
+### Arrays
 
 Arrays are a collection data type that contain a sequence of values of a single type. Destructure arrays using bracket syntax (`[]`).
 
@@ -154,36 +166,36 @@ Begin by telling ksqlDB to start all queries from earliest point in each topic.
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-Make a stream `s3` with two columns: `a` and `b`. `b` is an array with `INT` elements.
+Make a stream `s4` with two columns: `a` and `b`. `b` is an array with `INT` elements.
 
 ```sql
-CREATE STREAM s3 (
+CREATE STREAM s4 (
     a VARCHAR,
     b ARRAY<INT>
 ) WITH (
-    kafka_topic = 's3',
+    kafka_topic = 's4',
     partitions = 1,
     value_format = 'avro',
     key = 'a'
 );
 ```
 
-Insert some events into `s3`. You can represent an array literal by using the `ARRAY` constructor, which takes a variable number of elements.
+Insert some events into `s4`. You can represent an array literal by using the `ARRAY` constructor, which takes a variable number of elements.
 
 ```sql
-INSERT INTO s3 (
+INSERT INTO s4 (
     a, b
 ) VALUES (
     'k1', ARRAY[1]
 );
 
-INSERT INTO s3 (
+INSERT INTO s4 (
     a, b
 ) VALUES (
     'k2', ARRAY[2, 3]
 );
 
-INSERT INTO s3 (
+INSERT INTO s4 (
     a, b
 ) VALUES (
     'k3', ARRAY[4, 5, 6]
@@ -198,7 +210,7 @@ SELECT a,
        b[1] AS b_1,
        b[2] AS b_2,
        b[3] AS b_3, b[-1] AS b_minus_1
-FROM s3
+FROM s4
 EMIT CHANGES;
 ```
 
@@ -213,7 +225,7 @@ This query should return the following results. Notice that index `1` represents
 |k3                 |[4, 5, 6]          |4                  |5                  |6                  |6                  |
 ```
 
-## Deeply nested data types
+## Deeply nested data
 
 You may have structured data types that are nested within one another. Each data type's destructuring syntax composes irrespective of how it is nested.
 

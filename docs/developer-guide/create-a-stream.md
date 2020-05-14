@@ -107,7 +107,7 @@ as the behaviour will be undefined.
 ### Create a Stream with a Specified Key
 
 The previous SQL statement does not define a column to represent the data in the
-Kafka message key in the underlying Kafka topic. The system therefore added a
+{{ site.ak }} message key in the underlying {{ site.ak }} topic, so the system adds a
 `ROWKEY` column with type `STRING`.
 
 If the {{ site.ak }} message key is serialized in a key format that ksqlDB supports (currently `KAFKA`),

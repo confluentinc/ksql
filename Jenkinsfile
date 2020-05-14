@@ -167,7 +167,7 @@ def job = {
             withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
                 ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"],
                 ["github/confluent_jenkins", "user", "GIT_USER"],
-                ["github/confluent_jenkins", "password", "GIT_TOKEN"]]) {
+                ["github/confluent_jenkins", "access_token", "GIT_TOKEN"]]) {
                 withEnv(["GIT_CREDENTIAL=${env.GIT_USER}:${env.GIT_TOKEN}"]) {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {

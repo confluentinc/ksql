@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.confluent.ksql.test.tools.Record;
@@ -40,7 +41,8 @@ import java.util.Optional;
 @JsonSerialize(using = RecordNode.Serializer.class)
 public final class RecordNode {
 
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper objectMapper = new ObjectMapper()
+      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
   private final String topicName;
   private final Optional<Object> key;

@@ -24,10 +24,11 @@ import com.google.errorprone.annotations.Immutable;
 public class InsertAck {
 
   public final long seq;
-  public final String status = "ok";
+  public final String status;
 
   public InsertAck(final long seq) {
     this.seq = seq;
+    this.status = "ok";
   }
 
   @Override

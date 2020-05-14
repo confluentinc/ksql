@@ -35,9 +35,9 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
   protected final Context ctx;
   private volatile Subscriber<? super T> subscriber;
-  private volatile long demand;
-  private volatile boolean cancelled;
-  private volatile boolean sentComplete;
+  private long demand;
+  private boolean cancelled;
+  private boolean sentComplete;
   private volatile Exception failure;
 
   public BasePublisher(final Context ctx) {

@@ -140,6 +140,7 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
     return complete;
   }
 
+  @Override
   protected void maybeSend() {
     int numSent = 0;
     while (getDemand() > 0 && !buffer.isEmpty()) {

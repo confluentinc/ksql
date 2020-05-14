@@ -42,6 +42,9 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
+import java.util.Map;
+
+import io.confluent.ksql.util.KsqlRequestConfig;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.common.KafkaFuture;
@@ -55,6 +58,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class HealthCheckAgentTest {
 
   private static final String SERVER_ADDRESS = "http://serverhost:8088";
+  private static final Map<String, Object> REQUEST_PROPERTIES =
+      ImmutableMap.of(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true);
   private static URI SERVER_URI;
   static {
     try {
@@ -80,7 +85,7 @@ public class HealthCheckAgentTest {
 
   @Before
   public void setUp() {
-    when(ksqlClient.makeKsqlRequest(eq(SERVER_URI), any(), eq(ImmutableMap.of()))).thenReturn(successfulResponse);
+    when(ksqlClient.makeKsqlRequest(eq(SERVER_URI), any(), eq(REQUEST_PROPERTIES))).thenReturn(successfulResponse);
     when(restConfig.getList(KsqlRestConfig.LISTENERS_CONFIG))
         .thenReturn(ImmutableList.of(SERVER_ADDRESS));
     when(successfulResponse.isSuccessful()).thenReturn(true);
@@ -105,7 +110,7 @@ public class HealthCheckAgentTest {
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
 
     // Then:
-    verify(ksqlClient, atLeastOnce()).makeKsqlRequest(eq(SERVER_URI), any(), eq(ImmutableMap.of()));
+    verify(ksqlClient, atLeastOnce()).makeKsqlRequest(eq(SERVER_URI), any(), eq(REQUEST_PROPERTIES));
     assertThat(response.getDetails().get(METASTORE_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getIsHealthy(), is(true));
@@ -114,7 +119,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnUnhealthyIfMetastoreCheckFails() {
     // Given:
-    when(ksqlClient.makeKsqlRequest(SERVER_URI, "list streams; list tables; list queries;", ImmutableMap.of()))
+    when(ksqlClient.makeKsqlRequest(SERVER_URI, "list streams; list tables; list queries;", REQUEST_PROPERTIES))
         .thenReturn(unSuccessfulResponse);
 
     // When:

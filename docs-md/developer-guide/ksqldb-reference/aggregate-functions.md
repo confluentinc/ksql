@@ -16,7 +16,9 @@ For more information, see
   - [COLLECT_LIST](#collectlist)
   - [COLLECT_SET](#collectset)
   - [COUNT](#count)
+  - [EARLIEST_BY_OFFSET](#earliest_by_offset)
   - [HISTOGRAM](#histogram)
+  - [LATEST_BY_OFFSET](#latest_by_offset)
   - [MAX](#max)
   - [MIN](#min)
   - [SUM](#sum)
@@ -100,6 +102,15 @@ Returns the _approximate_ number of unique values of `col1` in a group.
 The function implementation uses [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog)
 to estimate cardinalties of 10^9 with a typical standard error of 2%.
 
+EARLIEST_BY_OFFSET
+------------------
+
+`EARLIEST_BY_OFFSET(col1)`
+
+Stream
+
+Return the earliest value for a given column. Earliest here is defined as the value in the partition
+with the lowest offset. Rows that have `col1` set to null are ignored.
 
 HISTOGRAM
 ---------
@@ -128,8 +139,7 @@ LATEST_BY_OFFSET
 Stream
 
 Return the latest value for a given column. Latest here is defined as the value in the partition
-with the greatest offset.
-Note: rows where `col1` is null will be ignored.
+with the greatest offset. Rows that have `col1` set to null are ignored.
 
 MAX
 ---

@@ -34,11 +34,11 @@ public abstract class BasePublisher<T> implements Publisher<T> {
   private static final Logger log = LoggerFactory.getLogger(BasePublisher.class);
 
   protected final Context ctx;
-  private Subscriber<? super T> subscriber;
-  private long demand;
-  private boolean cancelled;
-  private boolean sentComplete;
-  private Exception failure;
+  private volatile Subscriber<? super T> subscriber;
+  private volatile long demand;
+  private volatile boolean cancelled;
+  private volatile boolean sentComplete;
+  private volatile Exception failure;
 
   public BasePublisher(final Context ctx) {
     this.ctx = Objects.requireNonNull(ctx);

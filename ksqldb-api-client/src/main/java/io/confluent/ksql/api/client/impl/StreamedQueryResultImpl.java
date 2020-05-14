@@ -117,7 +117,7 @@ class StreamedQueryResultImpl extends BufferedPublisher<Row> implements Streamed
     pollableSubscriber.close();
   }
 
-  private void handleErrorWhilePolling(final Exception e) {
-    log.error("Unexpected error while polling: " + e);
+  private void handleErrorWhilePolling(final Throwable t) {
+    log.error("Unexpected error while polling: " + t);
   }
 }

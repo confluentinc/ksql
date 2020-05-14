@@ -32,13 +32,13 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   private static final long MAX_POLL_NANOS = TimeUnit.MILLISECONDS.toNanos(100);
 
   private final BlockingQueue<Row> queue = new LinkedBlockingQueue<>();
-  private final Consumer<Exception> errorHandler;
+  private final Consumer<Throwable> errorHandler;
   private int tokens;
   private volatile boolean complete;
   private volatile boolean closed;
   private volatile boolean failed;
 
-  public PollableSubscriber(final Context context, final Consumer<Exception> errorHandler) {
+  public PollableSubscriber(final Context context, final Consumer<Throwable> errorHandler) {
     super(context);
 
     this.errorHandler = Objects.requireNonNull(errorHandler);
@@ -57,7 +57,7 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   @Override
   protected void handleError(final Throwable t) {
     failed = true;
-    errorHandler.accept(new Exception(t));
+    errorHandler.accept(t);
   }
 
   @Override

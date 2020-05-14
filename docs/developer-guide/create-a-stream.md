@@ -113,7 +113,7 @@ Kafka message key in the underlying Kafka topic. The system therefore added a
 Where the Kafka message key is serialized in a key format ksqlDB supports, (currently only `KAFKA`),
 you can specify the key in the column list of the CREATE STREAM statement.
 
-For example, the Kafka message key of the pageviews topic is a `BIGINT` containing the `viewtime`.
+For example, the {{ site.ak }}  message key of the `pageviews` topic is a `BIGINT` containing the `viewtime`,
 so you can write the CREATE STREAM statement like this:
 
 ```sql

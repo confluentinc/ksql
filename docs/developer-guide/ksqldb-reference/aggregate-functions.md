@@ -17,6 +17,7 @@ For more information, see
   - [COLLECT_SET](#collect_set)
   - [COUNT](#count)
   - [COUNT_DISTINCT](#count_distinct)
+  - [EARLIEST_BY_OFFSET](#earliest_by_offset)
   - [HISTOGRAM](#histogram)
   - [LATEST_BY_OFFSET](#latest_by_offset)
   - [MAX](#max)
@@ -99,6 +100,16 @@ Stream, Table
 Returns the _approximate_ number of unique values of `col1` in a group.
 The function implementation uses [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog)
 to estimate cardinalities of 10^9 with a typical standard error of 2%.
+
+EARLIEST_BY_OFFSET
+------------------
+
+`EARLIEST_BY_OFFSET(col1)`
+
+Stream
+
+Return the earliest value for a given column. Earliest here is defined as the value in the partition
+with the lowest offset. Rows that have `col1` set to null are ignored.
 
 
 HISTOGRAM

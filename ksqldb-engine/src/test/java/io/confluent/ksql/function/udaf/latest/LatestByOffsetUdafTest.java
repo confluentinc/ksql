@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf.latest;
 
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_LONG;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -23,13 +24,20 @@ import io.confluent.ksql.function.udaf.Udaf;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.SEQ_FIELD;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_BOOLEAN;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_DOUBLE;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_INTEGER;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_STRING;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.VAL_FIELD;
+
 public class LatestByOffsetUdafTest {
 
   @Test
   public void shouldInitialize() {
     // Given:
     final Udaf<Integer, Struct, Integer> udaf = LatestByOffset
-        .latest(LatestByOffset.STRUCT_LONG);
+        .latest(STRUCT_LONG);
 
     // When:
     Struct init = udaf.initialize();
@@ -45,10 +53,10 @@ public class LatestByOffsetUdafTest {
 
     // When:
     Struct res = udaf
-        .aggregate(123, LatestByOffset.createStruct(LatestByOffset.STRUCT_INTEGER, 321));
+        .aggregate(123, LatestByOffset.createStruct(STRUCT_INTEGER, 321));
 
     // Then:
-    assertThat(res.get(LatestByOffset.VAL_FIELD), is(123));
+    assertThat(res.get(VAL_FIELD), is(123));
   }
 
   @Test
@@ -56,8 +64,8 @@ public class LatestByOffsetUdafTest {
     // Given:
     final Udaf<Integer, Struct, Integer> udaf = LatestByOffset.latestInteger();
 
-    Struct agg1 = LatestByOffset.createStruct(LatestByOffset.STRUCT_INTEGER, 123);
-    Struct agg2 = LatestByOffset.createStruct(LatestByOffset.STRUCT_INTEGER, 321);
+    Struct agg1 = LatestByOffset.createStruct(STRUCT_INTEGER, 123);
+    Struct agg2 = LatestByOffset.createStruct(STRUCT_INTEGER, 321);
 
     // When:
     Struct merged1 = udaf.merge(agg1, agg2);
@@ -75,16 +83,16 @@ public class LatestByOffsetUdafTest {
 
     LatestByOffset.sequence.set(Long.MAX_VALUE);
 
-    Struct agg1 = LatestByOffset.createStruct(LatestByOffset.STRUCT_INTEGER, 123);
-    Struct agg2 = LatestByOffset.createStruct(LatestByOffset.STRUCT_INTEGER, 321);
+    Struct agg1 = LatestByOffset.createStruct(STRUCT_INTEGER, 123);
+    Struct agg2 = LatestByOffset.createStruct(STRUCT_INTEGER, 321);
 
     // When:
     Struct merged1 = udaf.merge(agg1, agg2);
     Struct merged2 = udaf.merge(agg2, agg1);
 
     // Then:
-    assertThat(agg1.getInt64(LatestByOffset.SEQ_FIELD), is(Long.MAX_VALUE));
-    assertThat(agg2.getInt64(LatestByOffset.SEQ_FIELD), is(Long.MIN_VALUE));
+    assertThat(agg1.getInt64(SEQ_FIELD), is(Long.MAX_VALUE));
+    assertThat(agg2.getInt64(SEQ_FIELD), is(Long.MIN_VALUE));
     assertThat(merged1, is(agg2));
     assertThat(merged2, is(agg2));
   }
@@ -97,10 +105,10 @@ public class LatestByOffsetUdafTest {
 
     // When:
     Struct res = udaf
-        .aggregate(123L, LatestByOffset.createStruct(LatestByOffset.STRUCT_LONG, 321L));
+        .aggregate(123L, LatestByOffset.createStruct(STRUCT_LONG, 321L));
 
     // Then:
-    assertThat(res.getInt64(LatestByOffset.VAL_FIELD), is(123L));
+    assertThat(res.getInt64(VAL_FIELD), is(123L));
   }
 
   @Test
@@ -110,10 +118,10 @@ public class LatestByOffsetUdafTest {
 
     // When:
     Struct res = udaf
-        .aggregate(1.1d, LatestByOffset.createStruct(LatestByOffset.STRUCT_DOUBLE, 2.2d));
+        .aggregate(1.1d, LatestByOffset.createStruct(STRUCT_DOUBLE, 2.2d));
 
     // Then:
-    assertThat(res.getFloat64(LatestByOffset.VAL_FIELD), is(1.1d));
+    assertThat(res.getFloat64(VAL_FIELD), is(1.1d));
   }
 
   @Test
@@ -123,10 +131,10 @@ public class LatestByOffsetUdafTest {
 
     // When:
     Struct res = udaf
-        .aggregate(true, LatestByOffset.createStruct(LatestByOffset.STRUCT_BOOLEAN, false));
+        .aggregate(true, LatestByOffset.createStruct(STRUCT_BOOLEAN, false));
 
     // Then:
-    assertThat(res.getBoolean(LatestByOffset.VAL_FIELD), is(true));
+    assertThat(res.getBoolean(VAL_FIELD), is(true));
   }
 
   @Test
@@ -136,10 +144,10 @@ public class LatestByOffsetUdafTest {
 
     // When:
     Struct res = udaf
-        .aggregate("foo", LatestByOffset.createStruct(LatestByOffset.STRUCT_STRING, "bar"));
+        .aggregate("foo", LatestByOffset.createStruct(STRUCT_STRING, "bar"));
 
     // Then:
-    assertThat(res.getString(LatestByOffset.VAL_FIELD), is("foo"));
+    assertThat(res.getString(VAL_FIELD), is("foo"));
   }
 
 }

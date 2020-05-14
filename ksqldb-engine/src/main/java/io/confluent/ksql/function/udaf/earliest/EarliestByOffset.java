@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf.latest;
+package io.confluent.ksql.function.udaf.earliest;
 
 import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.SEQ_FIELD;
 import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_BOOLEAN;
@@ -32,47 +32,46 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 @UdafDescription(
-    name = "LATEST_BY_OFFSET",
-    description = LatestByOffset.DESCRIPTION
+    name = "EARLIEST_BY_OFFSET",
+    description = EarliestByOffset.DESCRIPTION
 )
-public final class LatestByOffset {
-
+public final class EarliestByOffset {
   static final String DESCRIPTION =
-      "This function returns the most recent value for the column, computed by offset.";
+      "This function returns the oldest value for the column, computed by offset.";
 
-  private LatestByOffset() {
+  private EarliestByOffset() {
   }
 
   static AtomicLong sequence = new AtomicLong();
 
-  @UdafFactory(description = "return the latest value of an integer column",
+  @UdafFactory(description = "return the earliest value of an integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
-  public static Udaf<Integer, Struct, Integer> latestInteger() {
-    return latest(STRUCT_INTEGER);
+  public static Udaf<Integer, Struct, Integer> earliestInteger() {
+    return earliest(STRUCT_INTEGER);
   }
 
-  @UdafFactory(description = "return the latest value of an big integer column",
+  @UdafFactory(description = "return the earliest value of an big integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BIGINT>")
-  public static Udaf<Long, Struct, Long> latestLong() {
-    return latest(STRUCT_LONG);
+  public static Udaf<Long, Struct, Long> earliestLong() {
+    return earliest(STRUCT_LONG);
   }
 
-  @UdafFactory(description = "return the latest value of a double column",
+  @UdafFactory(description = "return the earliest value of a double column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL DOUBLE>")
-  public static Udaf<Double, Struct, Double> latestDouble() {
-    return latest(STRUCT_DOUBLE);
+  public static Udaf<Double, Struct, Double> earliestDouble() {
+    return earliest(STRUCT_DOUBLE);
   }
 
-  @UdafFactory(description = "return the latest value of a boolean column",
+  @UdafFactory(description = "return the earliest value of a boolean column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BOOLEAN>")
-  public static Udaf<Boolean, Struct, Boolean> latestBoolean() {
-    return latest(STRUCT_BOOLEAN);
+  public static Udaf<Boolean, Struct, Boolean> earliestBoolean() {
+    return earliest(STRUCT_BOOLEAN);
   }
 
-  @UdafFactory(description = "return the latest value of a string column",
+  @UdafFactory(description = "return the earliest value of a string column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL STRING>")
-  public static Udaf<String, Struct, String> latestString() {
-    return latest(STRUCT_STRING);
+  public static Udaf<String, Struct, String> earliestString() {
+    return earliest(STRUCT_STRING);
   }
 
   static <T> Struct createStruct(final Schema schema, final T val) {
@@ -86,8 +85,8 @@ public final class LatestByOffset {
     return sequence.getAndIncrement();
   }
 
-  @UdafFactory(description = "Latest by offset")
-  static <T> Udaf<T, Struct, T> latest(final Schema structSchema) {
+  @UdafFactory(description = "Earliest by offset")
+  static <T> Udaf<T, Struct, T> earliest(final Schema structSchema) {
     return new Udaf<T, Struct, T>() {
 
       @Override
@@ -97,7 +96,7 @@ public final class LatestByOffset {
 
       @Override
       public Struct aggregate(final T current, final Struct aggregate) {
-        if (current == null) {
+        if (current == null || aggregate.get(VAL_FIELD) != null) {
           return aggregate;
         } else {
           return createStruct(structSchema, current);
@@ -106,9 +105,9 @@ public final class LatestByOffset {
 
       @Override
       public Struct merge(final Struct aggOne, final Struct aggTwo) {
-        // When merging we need some way of evaluating the "latest' one.
+        // When merging we need some way of evaluating the "earliest' one.
         // We do this by keeping track of the sequence of when it was originally processed
-        if (compareStructs(aggOne, aggTwo) >= 0) {
+        if (compareStructs(aggOne, aggTwo) < 0) {
           return aggOne;
         } else {
           return aggTwo;
@@ -122,5 +121,4 @@ public final class LatestByOffset {
       }
     };
   }
-
 }

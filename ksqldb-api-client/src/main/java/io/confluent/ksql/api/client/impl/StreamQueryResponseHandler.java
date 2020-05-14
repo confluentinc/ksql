@@ -18,16 +18,22 @@ package io.confluent.ksql.api.client.impl;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.util.RowUtil;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class StreamQueryResponseHandler extends QueryResponseHandler<StreamedQueryResult> {
+
+  private static final Logger log = LoggerFactory.getLogger(StreamQueryResponseHandler.class);
 
   private StreamedQueryResultImpl queryResult;
   private Map<String, Integer> columnNameToIndex;
@@ -53,18 +59,32 @@ public class StreamQueryResponseHandler extends QueryResponseHandler<StreamedQue
       throw new IllegalStateException("handleRow called before metadata processed");
     }
 
-    final JsonArray values = new JsonArray(buff);
-    final Row row = new RowImpl(
-        queryResult.columnNames(),
-        queryResult.columnTypes(),
-        values,
-        columnNameToIndex
-    );
-    final boolean full = queryResult.accept(row);
-    if (full && !paused) {
-      recordParser.pause();
-      queryResult.drainHandler(this::publisherReceptive);
-      paused = true;
+    final Object json = buff.toJson();
+    if (json instanceof JsonArray) {
+      final Row row = new RowImpl(
+          queryResult.columnNames(),
+          queryResult.columnTypes(),
+          (JsonArray) json,
+          columnNameToIndex
+      );
+      final boolean full = queryResult.accept(row);
+      if (full && !paused) {
+        recordParser.pause();
+        queryResult.drainHandler(this::publisherReceptive);
+        paused = true;
+      }
+    } else if (json instanceof JsonObject) {
+      final JsonObject error = (JsonObject) json;
+      if ("error".equals(error.getString("status"))) {
+        queryResult.handleError(new KsqlApiException(
+            error.getString("message"),
+            error.getInteger("errorCode"))
+        );
+      } else {
+        throw new RuntimeException("Unexpected response from server: " + error);
+      }
+    } else {
+      throw new RuntimeException("Could not decode JSON: " + json);
     }
   }
 

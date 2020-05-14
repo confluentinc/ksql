@@ -32,11 +32,13 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   private static final long MAX_POLL_NANOS = TimeUnit.MILLISECONDS.toNanos(100);
 
   private final BlockingQueue<Row> queue = new LinkedBlockingQueue<>();
-  private final Consumer<Exception> errorHandler;
+  private final Consumer<Throwable> errorHandler;
   private int tokens;
+  private volatile boolean complete;
   private volatile boolean closed;
+  private volatile boolean failed;
 
-  public PollableSubscriber(final Context context, final Consumer<Exception> errorHandler) {
+  public PollableSubscriber(final Context context, final Consumer<Throwable> errorHandler) {
     super(context);
 
     this.errorHandler = Objects.requireNonNull(errorHandler);
@@ -54,16 +56,17 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
 
   @Override
   protected void handleError(final Throwable t) {
-    errorHandler.accept(new Exception(t));
+    failed = true;
+    errorHandler.accept(t);
   }
 
   @Override
   protected void handleComplete() {
-    close();
+    complete = true;
   }
 
   public synchronized Row poll(final long timeout, final TimeUnit timeUnit) {
-    if (closed) {
+    if (closed || failed) {
       return null;
     }
     final long timeoutNs = timeUnit.toNanos(timeout);
@@ -85,12 +88,15 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
           tokens--;
           checkRequestTokens();
           return row;
+        } else if (complete) {
+          // If complete, close once the queue has been emptied
+          close();
         }
       } catch (InterruptedException e) {
         return null;
       }
       remainingTime = end - System.nanoTime();
-    } while (!closed && remainingTime > 0);
+    } while (!closed && !failed && remainingTime > 0);
     return null;
   }
 

@@ -60,6 +60,11 @@ public class RowImpl implements Row {
   }
 
   @Override
+  public KsqlObject asObject() {
+    return KsqlObject.fromArray(columnNames, values);
+  }
+
+  @Override
   public boolean isNull(final int columnIndex) {
     return getValue(columnIndex) == null;
   }

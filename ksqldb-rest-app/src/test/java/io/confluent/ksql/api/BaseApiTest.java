@@ -19,8 +19,11 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
@@ -38,12 +41,17 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -53,11 +61,18 @@ public class BaseApiTest {
 
   protected static final Logger log = LoggerFactory.getLogger(BaseApiTest.class);
 
-  protected static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("name").add("age")
-      .add("male");
+  protected static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("f_str").add("f_int")
+      .add("f_bool").add("f_long").add("f_double").add("f_decimal")
+      .add("f_array").add("f_map").add("f_struct").add("f_null");
   protected static final JsonArray DEFAULT_COLUMN_TYPES = new JsonArray().add("STRING").add("INTEGER")
-      .add("BOOLEAN");
-  protected static final List<JsonArray> DEFAULT_ROWS = generateRows();
+      .add("BOOLEAN").add("BIGINT").add("DOUBLE").add("DECIMAL(4, 2)")
+      .add("ARRAY<STRING>").add("MAP<STRING, STRING>").add("STRUCT<`F1` STRING, `F2` INTEGER>").add("INTEGER");
+  protected static final Schema F_STRUCT_SCHEMA = SchemaBuilder.struct()
+        .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("F2", Schema.OPTIONAL_INT32_SCHEMA)
+        .optional().build();
+  protected static final List<GenericRow> DEFAULT_GENERIC_ROWS = generateGenericRows();
+  protected static final List<JsonArray> DEFAULT_JSON_ROWS = convertToJsonRows(DEFAULT_GENERIC_ROWS);
   protected static final JsonObject DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES = new JsonObject()
       .put("prop1", "val1").put("prop2", 23);
   protected static final String DEFAULT_PULL_QUERY = "select * from foo where rowkey='1234';";
@@ -166,7 +181,7 @@ public class BaseApiTest {
       } catch (Throwable t) {
         return Integer.MAX_VALUE;
       }
-    }, is(DEFAULT_ROWS.size()));
+    }, is(DEFAULT_JSON_ROWS.size()));
 
     // Note, the response hasn't ended at this point
     assertThat(writeStream.isEnded(), is(false));
@@ -213,29 +228,44 @@ public class BaseApiTest {
     assertThat(error.getString("message"), is(message));
   }
 
-  protected static JsonArray rowWithIndex(final int index) {
-    return new JsonArray().add("foo" + index).add(index).add(index % 2 == 0);
+  private static GenericRow rowWithIndex(final int index) {
+    final Struct structField = new Struct(F_STRUCT_SCHEMA);
+    structField.put("F1", "v" + index);
+    structField.put("F2", index);
+    return GenericRow.genericRow(
+        "foo" + index,
+        index,
+        index % 2 == 0,
+        index * index,
+        index + 0.1111,
+        BigDecimal.valueOf(index + 0.1),
+        ImmutableList.of("s" + index, "t" + index),
+        ImmutableMap.of("k" + index, "v" + index),
+        structField,
+        null
+    );
   }
 
-  private static List<JsonArray> generateRows() {
-    List<JsonArray> rows = new ArrayList<>();
+  private static List<GenericRow> generateGenericRows() {
+    List<GenericRow> rows = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      JsonArray row = rowWithIndex(i);
-      rows.add(row);
+      rows.add(rowWithIndex(i));
     }
     return rows;
   }
 
+  private static List<JsonArray> convertToJsonRows(final List<GenericRow> rows) {
+    return rows.stream()
+        .map(row -> PojoCodec.serializeObject(row).toJsonObject().getJsonArray("columns"))
+        .collect(Collectors.toList());
+  }
+
   @SuppressWarnings("unchecked")
   protected void setDefaultRowGenerator() {
-    List<GenericRow> rows = new ArrayList<>();
-    for (JsonArray ja : DEFAULT_ROWS) {
-      rows.add(GenericRow.fromList(ja.getList()));
-    }
     testEndpoints.setRowGeneratorFactory(
         () -> new ListRowGenerator(
             DEFAULT_COLUMN_NAMES.getList(),
             DEFAULT_COLUMN_TYPES.getList(),
-            rows));
+            DEFAULT_GENERIC_ROWS));
   }
 }

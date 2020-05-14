@@ -17,14 +17,10 @@ package io.confluent.ksql.execution.ddl.commands;
 
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -32,9 +28,9 @@ import java.util.Optional;
  * Base class of create table/stream command
  */
 public abstract class CreateSourceCommand implements DdlCommand {
+
   private final SourceName sourceName;
   private final LogicalSchema schema;
-  private final Optional<ColumnName> keyField;
   private final Optional<TimestampColumn> timestampColumn;
   private final String topicName;
   private final Formats formats;
@@ -43,7 +39,6 @@ public abstract class CreateSourceCommand implements DdlCommand {
   CreateSourceCommand(
       final SourceName sourceName,
       final LogicalSchema schema,
-      final Optional<ColumnName> keyField,
       final Optional<TimestampColumn> timestampColumn,
       final String topicName,
       final Formats formats,
@@ -51,14 +46,13 @@ public abstract class CreateSourceCommand implements DdlCommand {
   ) {
     this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
     this.schema = Objects.requireNonNull(schema, "schema");
-    this.keyField = Objects.requireNonNull(keyField, "keyField");
     this.timestampColumn =
         Objects.requireNonNull(timestampColumn, "timestampColumn");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
 
-    validate(schema, keyField);
+    validate(schema);
   }
 
   public SourceName getSourceName() {
@@ -73,10 +67,6 @@ public abstract class CreateSourceCommand implements DdlCommand {
     return timestampColumn;
   }
 
-  public Optional<ColumnName> getKeyField() {
-    return keyField;
-  }
-
   public String getTopicName() {
     return topicName;
   }
@@ -89,7 +79,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
     return windowInfo;
   }
 
-  private static void validate(final LogicalSchema schema, final Optional<ColumnName> keyField) {
+  private static void validate(final LogicalSchema schema) {
     if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
       throw new IllegalArgumentException("Schema contains system columns in value schema");
     }
@@ -97,29 +87,6 @@ public abstract class CreateSourceCommand implements DdlCommand {
     if (schema.key().size() != 1) {
       throw new UnsupportedOperationException("Only single key columns supported. "
           + "Got: " + schema.key() + " (" + schema.key().size() + ")");
-    }
-
-    if (keyField.isPresent()) {
-      final SqlType keyFieldType = schema.findColumn(keyField.get())
-          .map(Column::type)
-          .orElseThrow(IllegalArgumentException::new);
-
-      final SqlType keyType = schema.key().get(0).type();
-
-      if (!keyFieldType.equals(keyType)) {
-        throw new KsqlException("The KEY field ("
-            + keyField.get().text()
-            + ") identified in the WITH clause is of a different type to the actual key column."
-            + System.lineSeparator()
-            + "Use of the KEY field is deprecated. Remove the KEY field from the WITH clause and "
-            + "specify the name of the key column by adding "
-            + "'" + keyField.get().text() + " " + keyFieldType + " KEY' to the schema."
-            + System.lineSeparator()
-            + "KEY field type: " + keyFieldType
-            + System.lineSeparator()
-            + "key column type: " + keyType
-        );
-      }
     }
   }
 
@@ -134,7 +101,6 @@ public abstract class CreateSourceCommand implements DdlCommand {
     final CreateSourceCommand that = (CreateSourceCommand) o;
     return Objects.equals(sourceName, that.sourceName)
         && Objects.equals(schema, that.schema)
-        && Objects.equals(keyField, that.keyField)
         && Objects.equals(timestampColumn, that.timestampColumn)
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
@@ -144,6 +110,6 @@ public abstract class CreateSourceCommand implements DdlCommand {
   @Override
   public int hashCode() {
     return Objects
-        .hash(sourceName, schema, keyField, timestampColumn, topicName, formats, windowInfo);
+        .hash(sourceName, schema, timestampColumn, topicName, formats, windowInfo);
   }
 }

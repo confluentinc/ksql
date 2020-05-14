@@ -26,7 +26,6 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -42,7 +41,6 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -165,8 +163,8 @@ final class EngineExecutor {
 
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
           statement.getStatementText(),
-          outputNode,
-          plans.physicalPlan.getKeyField().get());
+          outputNode
+      );
 
       validateQuery(outputNode.getNodeOutputType(), statement);
 
@@ -227,11 +225,10 @@ final class EngineExecutor {
 
   private Optional<DdlCommand> maybeCreateSinkDdl(
       final String sql,
-      final KsqlStructuredDataOutputNode outputNode,
-      final KeyField keyField
+      final KsqlStructuredDataOutputNode outputNode
   ) {
     if (!outputNode.isDoCreateInto()) {
-      validateExistingSink(outputNode, keyField);
+      validateExistingSink(outputNode);
       return Optional.empty();
     }
 
@@ -246,7 +243,6 @@ final class EngineExecutor {
       ddl = new CreateStreamCommand(
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
-          keyField.ref(),
           outputNode.getTimestampColumn(),
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
@@ -256,7 +252,6 @@ final class EngineExecutor {
       ddl = new CreateTableCommand(
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
-          keyField.ref(),
           outputNode.getTimestampColumn(),
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
@@ -270,8 +265,7 @@ final class EngineExecutor {
   }
 
   private void validateExistingSink(
-      final KsqlStructuredDataOutputNode outputNode,
-      final KeyField keyField
+      final KsqlStructuredDataOutputNode outputNode
   ) {
     final SourceName name = outputNode.getIntoSourceName();
     final DataSource existing = engineContext.getMetaStore().getSource(name);
@@ -300,43 +294,6 @@ final class EngineExecutor {
           + "Sink schema is " + existingSchema
       );
     }
-
-    enforceKeyEquivalence(
-        existing.getKeyField().resolve(existingSchema),
-        keyField.resolve(resultSchema)
-    );
-  }
-
-  private static void enforceKeyEquivalence(
-      final Optional<Column> sinkKeyCol,
-      final Optional<Column> resultKeyCol
-  ) {
-    if (!sinkKeyCol.isPresent() && !resultKeyCol.isPresent()) {
-      return;
-    }
-
-    if (sinkKeyCol.isPresent()
-        && resultKeyCol.isPresent()
-        && sinkKeyCol.get().name().equals(resultKeyCol.get().name())
-        && Objects.equals(sinkKeyCol.get().type(), resultKeyCol.get().type())) {
-      return;
-    }
-
-    throwIncompatibleKeysException(sinkKeyCol, resultKeyCol);
-  }
-
-  private static void throwIncompatibleKeysException(
-      final Optional<Column> sinkKeyCol,
-      final Optional<Column> resultKeyCol
-  ) {
-    throw new KsqlException(String.format(
-        "Incompatible key fields for sink and results. Sink"
-            + " key field is %s (type: %s) while result key "
-            + "field is %s (type: %s)",
-        sinkKeyCol.map(c -> c.name().text()).orElse(null),
-        sinkKeyCol.map(Column::type).orElse(null),
-        resultKeyCol.map(c -> c.name().text()).orElse(null),
-        resultKeyCol.map(Column::type).orElse(null)));
   }
 
   private static void validateQuery(

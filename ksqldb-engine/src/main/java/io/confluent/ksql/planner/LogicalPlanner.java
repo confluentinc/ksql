@@ -41,7 +41,6 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.AsValue;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -70,7 +69,6 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -160,7 +158,6 @@ public class LogicalPlanner {
         sourcePlanNode,
         inputSchema,
         timestampColumn,
-        sourcePlanNode.getKeyField(),
         intoDataSource.getKsqlTopic(),
         analysis.getLimitClause(),
         intoDataSource.isCreate(),
@@ -210,9 +207,6 @@ public class LogicalPlanner {
     final GroupBy groupBy = analysis.getGroupBy()
         .orElseThrow(IllegalStateException::new);
 
-    final List<Expression> groupByExps = groupBy
-        .getGroupingExpressions();
-
     final List<SelectExpression> projectionExpressions = buildSelectExpressions(
         sourcePlanNode,
         analysis.getSelectItems()
@@ -220,17 +214,6 @@ public class LogicalPlanner {
 
     final LogicalSchema schema =
         buildAggregateSchema(sourcePlanNode, groupBy, projectionExpressions);
-
-    final Expression groupBySingle = groupByExps.size() == 1
-        ? groupByExps.get(0)
-        : null;
-
-    final Optional<ColumnName> keyFieldName = getSelectAliasMatching(
-        (expression, alias) ->
-            expression.equals(groupBySingle)
-                && !SystemColumns.isSystemColumn(alias)
-                && !schema.isKeyColumn(alias),
-        projectionExpressions);
 
     final RewrittenAggregateAnalysis aggregateAnalysis = new RewrittenAggregateAnalysis(
         aggregateAnalyzer.analyze(analysis, projectionExpressions),
@@ -250,7 +233,6 @@ public class LogicalPlanner {
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
         schema,
-        keyFieldName,
         groupBy,
         functionRegistry,
         analysis,
@@ -429,33 +411,6 @@ public class LogicalPlanner {
     final Expression rewrittenPartitionBy =
         ExpressionTreeRewriter.rewriteWith(plugin, partitionBy);
 
-    final KeyField keyField;
-
-    if (!(rewrittenPartitionBy instanceof UnqualifiedColumnReferenceExp)) {
-      keyField = KeyField.none();
-    } else {
-      final ColumnName columnName = ((UnqualifiedColumnReferenceExp) rewrittenPartitionBy)
-          .getColumnName();
-
-      final LogicalSchema sourceSchema = sourceNode.getSchema();
-
-      final Column proposedKey = sourceSchema
-          .findColumn(columnName)
-          .orElseThrow(IllegalStateException::new);
-
-      switch (proposedKey.namespace()) {
-        case KEY:
-          keyField = sourceNode.getKeyField();
-          break;
-        case VALUE:
-          keyField = KeyField.of(columnName);
-          break;
-        default:
-          keyField = KeyField.none();
-          break;
-      }
-    }
-
     final LogicalSchema schema =
         buildRepartitionedSchema(sourceNode, rewrittenPartitionBy);
 
@@ -465,7 +420,6 @@ public class LogicalPlanner {
         schema,
         partitionBy,
         rewrittenPartitionBy,
-        keyField,
         internal
     );
   }
@@ -640,19 +594,6 @@ public class LogicalPlanner {
     );
   }
 
-  private static Optional<ColumnName> getSelectAliasMatching(
-      final BiFunction<Expression, ColumnName, Boolean> matcher,
-      final List<SelectExpression> projection
-  ) {
-    for (final SelectExpression select : projection) {
-      if (matcher.apply(select.getExpression(), select.getAlias())) {
-        return Optional.of(select.getAlias());
-      }
-    }
-
-    return Optional.empty();
-  }
-
   private LogicalSchema buildProjectionSchema(
       final LogicalSchema parentSchema,
       final List<SelectExpression> projection
@@ -782,30 +723,6 @@ public class LogicalPlanner {
         partitionBy,
         functionRegistry
     );
-  }
-
-  private static boolean exactlyMatchesKeyColumns(
-      final Expression expression,
-      final LogicalSchema schema
-  ) {
-    if (schema.key().size() != 1) {
-      // Currently only support single key column:
-      return false;
-    }
-
-    if (!(expression instanceof ColumnReferenceExp)) {
-      // Anything not a column ref can't be a match:
-      return false;
-    }
-
-    final ColumnName columnName = ((ColumnReferenceExp) expression).getColumnName();
-
-    final Namespace ns = schema
-        .findColumn(columnName)
-        .map(Column::namespace)
-        .orElse(Namespace.VALUE);
-
-    return ns == Namespace.KEY;
   }
 
   private static List<SelectExpression> selectWithPrependAlias(

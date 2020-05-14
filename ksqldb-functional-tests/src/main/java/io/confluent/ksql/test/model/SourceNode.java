@@ -45,7 +45,6 @@ final class SourceNode {
 
   private final String name;
   private final String type;
-  private final Optional<KeyFieldNode> keyField;
   private final Optional<String> schema;
   private final Optional<KeyFormatNode> keyFormat;
 
@@ -53,13 +52,11 @@ final class SourceNode {
   SourceNode(
       final String name,
       final String type,
-      final Optional<KeyFieldNode> keyField,
       final Optional<String> schema,
       final Optional<KeyFormatNode> keyFormat
   ) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
-    this.keyField = Objects.requireNonNull(keyField, "keyField");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
 
@@ -99,11 +96,6 @@ final class SourceNode {
     final Matcher<Object> typeMatcher = IsInstanceOf
         .instanceOf(toType(type));
 
-    final Matcher<DataSource> keyFieldMatcher = keyField
-        .map(KeyFieldNode::build)
-        .map(MetaStoreMatchers::hasKeyField)
-        .orElse(null);
-
     final Matcher<DataSource> schemaMatcher = schema
         .map(SourceNode::parseSchema)
         .map(Matchers::is)
@@ -116,7 +108,7 @@ final class SourceNode {
         .orElse(null);
 
     final Matcher<DataSource>[] matchers = Stream
-        .of(nameMatcher, typeMatcher, keyFieldMatcher, schemaMatcher, keyFormatMatcher)
+        .of(nameMatcher, typeMatcher, schemaMatcher, keyFormatMatcher)
         .filter(Objects::nonNull)
         .toArray(Matcher[]::new);
 
@@ -153,16 +145,13 @@ final class SourceNode {
       final String name = JsonParsingUtil.getRequired("name", node, jp, String.class);
       final String type = JsonParsingUtil.getRequired("type", node, jp, String.class);
 
-      final Optional<KeyFieldNode> keyField = JsonParsingUtil
-          .getOptionalOrElse("keyField", node, jp, KeyFieldNode.class, KeyFieldNode.none());
-
       final Optional<String> rawSchema = JsonParsingUtil
           .getOptional("schema", node, jp, String.class);
 
       final Optional<KeyFormatNode> keyFormat = JsonParsingUtil
           .getOptional("keyFormat", node, jp, KeyFormatNode.class);
 
-      return new SourceNode(name, type, keyField, rawSchema, keyFormat);
+      return new SourceNode(name, type, rawSchema, keyFormat);
     }
   }
 }

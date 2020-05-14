@@ -34,9 +34,7 @@ import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -56,7 +54,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ExecutionStep<KTableHolder<K>> sourceTableStep,
       final LogicalSchema schema,
       final KeyFormat keyFormat,
-      final KeyField keyField,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
@@ -64,7 +61,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         null,
         schema,
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -90,7 +86,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         step,
         resolveSchema(step),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -111,7 +106,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         step,
         resolveSchema(step),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -123,7 +117,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
-    final KeyField keyField = findKeyField(selectExpressions);
     final TableSelect<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,
         sourceTableStep,
@@ -134,7 +127,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         step,
         resolveSchema(step),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -173,11 +165,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   ) {
     final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
 
-    final ColumnName aggregateKeyName = groupedKeyNameFor(groupByExpressions);
-    final Optional<ColumnName> newKeyField = getSchema()
-        .findValueColumn(aggregateKeyName)
-        .map(Column::name);
-
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
         contextStacker,
         sourceTableStep,
@@ -189,7 +176,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         step,
         resolveSchema(step),
         groupedKeyFormat,
-        KeyField.of(newKeyField),
         ksqlConfig,
         functionRegistry);
   }
@@ -197,7 +183,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> join(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
-      final KeyField keyField,
       final Stacker contextStacker
   ) {
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
@@ -211,7 +196,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         step,
         resolveSchema(step, schemaKTable),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -220,7 +204,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
-      final KeyField keyField,
       final Stacker contextStacker
   ) {
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
@@ -234,7 +217,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         step,
         resolveSchema(step, schemaKTable),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -243,7 +225,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> outerJoin(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
-      final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
@@ -257,7 +238,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         step,
         resolveSchema(step, schemaKTable),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );

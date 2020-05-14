@@ -72,11 +72,6 @@ public interface DataSource {
   Set<SerdeOption> getSerdeOptions();
 
   /**
-   * @return the key field of the source.
-   */
-  KeyField getKeyField();
-
-  /**
    * @return the topic backing the source.
    */
   KsqlTopic getKsqlTopic();

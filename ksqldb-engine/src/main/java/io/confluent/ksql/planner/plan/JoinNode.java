@@ -35,7 +35,6 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.streams.JoinParamsFactory;
 import io.confluent.ksql.function.udf.JoinKeyUdf;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -72,7 +71,6 @@ public class JoinNode extends PlanNode {
   private final boolean finalJoin;
   private final PlanNode left;
   private final PlanNode right;
-  private final KeyField keyField;
   private final Optional<WithinExpression> withinExpression;
 
   public JoinNode(
@@ -97,14 +95,6 @@ public class JoinNode extends PlanNode {
     this.left = requireNonNull(left, "left");
     this.right = requireNonNull(right, "right");
     this.withinExpression = requireNonNull(withinExpression, "withinExpression");
-    this.keyField = joinType == JoinType.OUTER
-        ? KeyField.none() // Both source key columns can be null, hence neither can be the keyField
-        : left.getKeyField();
-  }
-
-  @Override
-  public KeyField getKeyField() {
-    return keyField;
   }
 
   @Override
@@ -323,7 +313,6 @@ public class JoinNode extends PlanNode {
           return leftStream.leftJoin(
               rightStream,
               joinNode.getKeyColumnName(),
-              joinNode.keyField,
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
               getFormatForSource(joinNode.right),
@@ -333,7 +322,6 @@ public class JoinNode extends PlanNode {
           return leftStream.outerJoin(
               rightStream,
               joinNode.getKeyColumnName(),
-              joinNode.keyField,
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
               getFormatForSource(joinNode.right),
@@ -343,7 +331,6 @@ public class JoinNode extends PlanNode {
           return leftStream.join(
               rightStream,
               joinNode.getKeyColumnName(),
-              joinNode.keyField,
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
               getFormatForSource(joinNode.right),
@@ -383,7 +370,6 @@ public class JoinNode extends PlanNode {
           return leftStream.leftJoin(
               rightTable,
               joinNode.getKeyColumnName(),
-              joinNode.keyField,
               getFormatForSource(joinNode.left),
               contextStacker
           );
@@ -392,7 +378,6 @@ public class JoinNode extends PlanNode {
           return leftStream.join(
               rightTable,
               joinNode.getKeyColumnName(),
-              joinNode.keyField,
               getFormatForSource(joinNode.left),
               contextStacker
           );
@@ -432,19 +417,16 @@ public class JoinNode extends PlanNode {
           return leftTable.leftJoin(
               rightTable,
               joinNode.getKeyColumnName(),
-              joinNode.keyField,
               contextStacker);
         case INNER:
           return leftTable.join(
               rightTable,
               joinNode.getKeyColumnName(),
-              joinNode.keyField,
               contextStacker);
         case OUTER:
           return leftTable.outerJoin(
               rightTable,
               joinNode.getKeyColumnName(),
-              joinNode.keyField,
               contextStacker);
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);

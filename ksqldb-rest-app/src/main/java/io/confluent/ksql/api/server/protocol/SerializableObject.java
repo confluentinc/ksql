@@ -20,10 +20,8 @@ import io.vertx.core.buffer.Buffer;
 /**
  * An object that can be serialized to a buffer
  */
-public abstract class SerializableObject {
+public interface SerializableObject {
 
-  public Buffer toBuffer() {
-    return PojoCodec.serializeObject(this);
-  }
+  Buffer toBuffer();
 
 }

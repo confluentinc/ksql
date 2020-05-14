@@ -15,18 +15,12 @@
 
 package io.confluent.ksql.api.server.protocol;
 
-import com.google.errorprone.annotations.Immutable;
+import io.vertx.core.buffer.Buffer;
 
-/**
- * Represents an error on an insert stream
- */
-@Immutable
-public class InsertError extends ErrorResponse {
+public abstract class AbstractSerializableObject implements SerializableObject {
 
-  public final long seq;
-
-  public InsertError(final long seq, final int errorCode, final String message) {
-    super(errorCode, message);
-    this.seq = seq;
+  @Override
+  public Buffer toBuffer() {
+    return PojoCodec.serializeObject(this);
   }
 }

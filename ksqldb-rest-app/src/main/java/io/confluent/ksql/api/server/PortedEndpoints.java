@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.rest.Errors.toErrorCode;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
@@ -276,7 +277,7 @@ class PortedEndpoints {
         requestObject = OBJECT_MAPPER.readValue(routingContext.getBody().getBytes(), requestClass);
       } catch (Exception e) {
         routingContext.fail(BAD_REQUEST.code(),
-            new KsqlApiException("Malformed JSON", ErrorCodes.ERROR_CODE_MALFORMED_REQUEST));
+            new KsqlApiException("Malformed JSON", ERROR_CODE_BAD_REQUEST));
         return;
       }
     } else {

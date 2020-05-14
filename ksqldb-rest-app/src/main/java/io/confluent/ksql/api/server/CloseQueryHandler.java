@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 import io.confluent.ksql.api.server.protocol.CloseQueryArgs;
@@ -50,7 +50,7 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
       routingContext
           .fail(BAD_REQUEST.code(),
               new KsqlApiException("No query with id " + closeQueryArgs.get().queryId,
-                  ERROR_CODE_UNKNOWN_QUERY_ID));
+                  ERROR_CODE_BAD_REQUEST));
       return;
     }
     query.get().close();

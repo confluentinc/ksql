@@ -217,14 +217,14 @@ public class BaseApiTest {
 
   protected static void validateError(final int errorCode, final String message,
       final JsonObject error) {
-    assertThat(error.size(), is(3));
+    assertThat(error.size(), is(5));
     validateErrorCommon(errorCode, message, error);
   }
 
   protected static void validateErrorCommon(final int errorCode, final String message,
       final JsonObject error) {
     assertThat(error.getString("status"), is("error"));
-    assertThat(error.getInteger("errorCode"), is(errorCode));
+    assertThat(error.getInteger("error_code"), is(errorCode));
     assertThat(error.getString("message"), is(message));
   }
 

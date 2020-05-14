@@ -25,7 +25,7 @@ import java.util.Objects;
  * Represents the metadata of a query stream response
  */
 @Immutable
-public class QueryResponseMetadata extends SerializableObject {
+public class QueryResponseMetadata extends AbstractSerializableObject {
 
   public final String queryId;
   public final ImmutableList<String> columnNames;

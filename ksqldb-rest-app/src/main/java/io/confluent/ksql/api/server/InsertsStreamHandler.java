@@ -18,6 +18,8 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.api.server.QueryStreamHandler.DELIMITED_CONTENT_TYPE;
 import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
 import static io.confluent.ksql.api.server.ServerUtils.deserialiseObject;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
@@ -167,7 +169,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       routingContext.fail(INTERNAL_SERVER_ERROR.code(),
           new KsqlApiException("The server encountered an internal error when processing inserts."
               + " Please consult the server logs for more information.",
-              ErrorCodes.ERROR_CODE_INTERNAL_ERROR));
+              ERROR_CODE_SERVER_ERROR));
       return null;
     }
 
@@ -179,7 +181,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       } catch (DecodeException e) {
         final InsertError errorResponse = new InsertError(
             seq,
-            ErrorCodes.ERROR_CODE_MALFORMED_REQUEST,
+            ERROR_CODE_BAD_REQUEST,
             "Invalid JSON in inserts stream");
         insertsStreamResponseWriter.writeError(errorResponse).end();
         acksSubscriber.cancel();

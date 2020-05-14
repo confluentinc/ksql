@@ -21,7 +21,7 @@ import com.google.errorprone.annotations.Immutable;
  * Represents a response to an insert
  */
 @Immutable
-public class InsertAck extends SerializableObject {
+public class InsertAck extends AbstractSerializableObject {
 
   public final long seq;
   public final String status;

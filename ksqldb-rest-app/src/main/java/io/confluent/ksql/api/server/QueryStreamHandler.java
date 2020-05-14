@@ -16,6 +16,8 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
@@ -123,7 +125,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       final Throwable actual = t.getCause();
       if (actual instanceof KsqlStatementException) {
         routingContext.fail(BAD_REQUEST.code(),
-            new KsqlApiException(actual.getMessage(), ErrorCodes.ERROR_CODE_INVALID_QUERY));
+            new KsqlApiException(actual.getMessage(), ERROR_CODE_BAD_STATEMENT));
         return null;
       } else if (actual instanceof KsqlApiException) {
         routingContext.fail(BAD_REQUEST.code(), actual);
@@ -134,7 +136,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     routingContext.fail(INTERNAL_SERVER_ERROR.code(), new KsqlApiException(
         "The server encountered an internal error when processing the query."
             + " Please consult the server logs for more information.",
-        ErrorCodes.ERROR_CODE_INTERNAL_ERROR));
+        ERROR_CODE_SERVER_ERROR));
     return null;
   }
 

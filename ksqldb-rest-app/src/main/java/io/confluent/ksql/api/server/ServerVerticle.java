@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 
@@ -161,11 +164,11 @@ public class ServerVerticle extends AbstractVerticle {
       } else {
         final int errorCode;
         if (statusCode == UNAUTHORIZED.code()) {
-          errorCode = ErrorCodes.ERROR_FAILED_AUTHENTICATION;
+          errorCode = ERROR_CODE_UNAUTHORIZED;
         } else if (statusCode == FORBIDDEN.code()) {
-          errorCode = ErrorCodes.ERROR_FAILED_AUTHORIZATION;
+          errorCode = ERROR_CODE_FORBIDDEN;
         } else {
-          errorCode = ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
+          errorCode = ERROR_CODE_SERVER_ERROR;
         }
         handleError(
             routingContext.response(),
@@ -232,7 +235,7 @@ public class ServerVerticle extends AbstractVerticle {
       // is configured, but auth header is not basic auth
       routingContext
           .fail(UNAUTHORIZED.code(),
-              new KsqlApiException("Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION));
+              new KsqlApiException("Unauthorized", ERROR_CODE_UNAUTHORIZED));
     }
   }
 

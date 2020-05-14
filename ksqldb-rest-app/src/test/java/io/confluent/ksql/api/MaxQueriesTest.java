@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_MAX_PUSH_QUERIES_EXCEEDED;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -47,7 +47,8 @@ public class MaxQueriesTest extends BaseApiTest {
             DEFAULT_PUSH_QUERY_REQUEST_BODY.toBuffer());
         assertThat(response.statusCode(), is(400));
         QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-        validateError(ERROR_MAX_PUSH_QUERIES_EXCEEDED, "Maximum number of push queries exceeded",
+        validateError(ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED,
+            "Maximum number of push queries exceeded",
             queryResponse.responseObject);
       } else {
         // When:

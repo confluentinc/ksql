@@ -15,11 +15,9 @@
 
 package io.confluent.ksql.api;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INVALID_QUERY;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
@@ -228,7 +226,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusCode(), is(400));
     assertThat(response.statusMessage(), is("Bad Request"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No sql in arguments", queryResponse.responseObject);
+    validateError(ERROR_CODE_BAD_REQUEST, "No sql in arguments", queryResponse.responseObject);
   }
 
   @Test
@@ -246,7 +244,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("OK"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size() - 1));
-    validateError(ERROR_CODE_INTERNAL_ERROR, "Error in processing query", queryResponse.error);
+    validateError(ERROR_CODE_SERVER_ERROR, "Error in processing query", queryResponse.error);
     assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
     assertThat(server.getQueryIDs().isEmpty(), is(true));
   }
@@ -343,7 +341,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("Bad Request"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No queryId in arguments",
+    validateError(ERROR_CODE_BAD_REQUEST, "No queryId in arguments",
         queryResponse.responseObject);
   }
 
@@ -361,7 +359,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusCode(), is(400));
     assertThat(response.statusMessage(), is("Bad Request"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_UNKNOWN_QUERY_ID, "No query with id xyzfasgf",
+    validateError(ERROR_CODE_BAD_REQUEST, "No query with id xyzfasgf",
         queryResponse.responseObject);
   }
 
@@ -471,7 +469,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("Bad Request"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No target in arguments", queryResponse.responseObject);
+    validateError(ERROR_CODE_BAD_REQUEST, "No target in arguments", queryResponse.responseObject);
   }
 
   @Test
@@ -502,7 +500,7 @@ public class ApiTest extends BaseApiTest {
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
     assertThat(insertsResponse.acks, hasSize(rows.size() - 1));
-    validateInsertStreamError(ERROR_CODE_INTERNAL_ERROR, "Error in processing inserts",
+    validateInsertStreamError(ERROR_CODE_SERVER_ERROR, "Error in processing inserts",
         insertsResponse.error,
         (long) rows.size() - 1);
     assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
@@ -541,7 +539,7 @@ public class ApiTest extends BaseApiTest {
 
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
-    validateInsertStreamError(ERROR_CODE_MALFORMED_REQUEST, "Invalid JSON in inserts stream",
+    validateInsertStreamError(ERROR_CODE_BAD_REQUEST, "Invalid JSON in inserts stream",
         insertsResponse.error, (long) rows.size() - 1);
 
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
@@ -742,7 +740,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusCode(), is(400));
     assertThat(response.statusMessage(), is("Bad Request"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MALFORMED_REQUEST, "Malformed JSON in request",
+    validateError(ERROR_CODE_BAD_REQUEST, "Malformed JSON in request",
         queryResponse.responseObject);
   }
 
@@ -762,7 +760,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("Bad Request"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_INVALID_QUERY, pfe.getMessage(),
+    validateError(ERROR_CODE_BAD_STATEMENT, pfe.getMessage(),
         queryResponse.responseObject);
   }
 
@@ -782,7 +780,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("Internal Server Error"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_INTERNAL_ERROR,
+    validateError(ERROR_CODE_SERVER_ERROR,
         "The server encountered an internal error when processing the query." +
             " Please consult the server logs for more information.",
         queryResponse.responseObject);
@@ -790,7 +788,7 @@ public class ApiTest extends BaseApiTest {
 
   private static void validateInsertStreamError(final int errorCode, final String message,
       final JsonObject error, final long sequence) {
-    assertThat(error.size(), is(4));
+    assertThat(error.size(), is(6));
     validateErrorCommon(errorCode, message, error);
     assertThat(error.getLong("seq"), is(sequence));
   }

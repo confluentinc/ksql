@@ -16,30 +16,22 @@
 package io.confluent.ksql.api.server.protocol;
 
 import com.google.errorprone.annotations.Immutable;
-import java.util.Objects;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.vertx.core.buffer.Buffer;
 
 /**
  * Represents an error response
  */
 @Immutable
-public class ErrorResponse extends SerializableObject {
+public class ErrorResponse extends KsqlErrorMessage implements SerializableObject {
 
-  public final String status;
-  public final int errorCode;
-  public final String message;
+  public final String status = "error";
 
   public ErrorResponse(final int errorCode, final String message) {
-    this.status = "error";
-    this.errorCode = errorCode;
-    this.message = Objects.requireNonNull(message);
+    super(errorCode, message);
   }
 
-  @Override
-  public String toString() {
-    return "ErrorResponse{"
-        + "status='" + status + '\''
-        + ", errorCode=" + errorCode
-        + ", message='" + message + '\''
-        + '}';
+  public Buffer toBuffer() {
+    return PojoCodec.serializeObject(this);
   }
 }

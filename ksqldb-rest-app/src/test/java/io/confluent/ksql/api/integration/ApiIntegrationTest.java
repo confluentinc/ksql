@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.integration;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,7 +27,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
@@ -354,7 +355,7 @@ public class ApiIntegrationTest {
         .put("PAGEID", "PAGE23");
 
     // Then:
-    shouldFailToInsert(row, ErrorCodes.ERROR_CODE_MISSING_KEY_FIELD,
+    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
         "Key field must be specified: ROWKEY");
   }
 
@@ -369,7 +370,7 @@ public class ApiIntegrationTest {
         .put("PAGEID", "PAGE23");
 
     // Then:
-    shouldFailToInsert(row, ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD,
+    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
         "Can't coerce a field of type class java.lang.Boolean (true) into type BIGINT");
   }
 
@@ -384,7 +385,7 @@ public class ApiIntegrationTest {
         .put("PAGEID", "PAGE23");
 
     // Then:
-    shouldFailToInsert(row, ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD,
+    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
         "Can't coerce a field of type class java.lang.Integer (123) into type STRING");
   }
 
@@ -409,7 +410,7 @@ public class ApiIntegrationTest {
     assertThat(response.rows, hasSize(0));
     assertThat(response.responseObject.getString("status"), is("error"));
     assertThat(response.responseObject.getInteger("errorCode"),
-        is(ErrorCodes.ERROR_CODE_INVALID_QUERY));
+        is(ERROR_CODE_BAD_STATEMENT));
     assertThat(response.responseObject.getString("message"),
         startsWith(message));
   }

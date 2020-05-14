@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_HTTP2_ONLY;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 import io.confluent.ksql.api.server.protocol.PojoCodec;
@@ -71,7 +71,7 @@ public final class ServerUtils {
     if (routingContext.request().version() != HttpVersion.HTTP_2) {
       routingContext.fail(BAD_REQUEST.code(),
           new KsqlApiException("This endpoint is only available when using HTTP2",
-              ErrorCodes.ERROR_HTTP2_ONLY));
+              ERROR_CODE_HTTP2_ONLY));
       return false;
     } else {
       return true;
@@ -90,14 +90,14 @@ public final class ServerUtils {
     public void onMissingParam(final String paramName) {
       routingContext
           .fail(BAD_REQUEST.code(), new KsqlApiException("No " + paramName + " in arguments",
-              ERROR_CODE_MISSING_PARAM));
+              ERROR_CODE_BAD_REQUEST));
     }
 
     @Override
     public void onInvalidJson() {
       routingContext
           .fail(BAD_REQUEST.code(), new KsqlApiException("Malformed JSON in request",
-              ERROR_CODE_MALFORMED_REQUEST));
+              ERROR_CODE_BAD_REQUEST));
     }
   }
 

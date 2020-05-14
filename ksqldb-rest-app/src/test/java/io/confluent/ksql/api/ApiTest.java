@@ -27,12 +27,12 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.api.utils.SendStream;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;

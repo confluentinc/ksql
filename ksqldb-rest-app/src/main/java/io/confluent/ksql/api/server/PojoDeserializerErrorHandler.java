@@ -13,20 +13,24 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server.protocol;
-
-import com.google.errorprone.annotations.Immutable;
+package io.confluent.ksql.api.server;
 
 /**
- * Represents an error on an insert stream
+ * Handles errors during deserialization of JSON into POJOs using PojoCodec. The Jackson exceptions
+ * are grungy and require parsing to extract useful information so this sanitises it a bit.
  */
-@Immutable
-public class InsertError extends ErrorResponse {
+public interface PojoDeserializerErrorHandler {
 
-  public final long seq;
+  /**
+   * Called when a POJO fails to deserialise because the JSON contains a missing mandatory param
+   *
+   * @param paramName the name of the param
+   */
+  void onMissingParam(String paramName);
 
-  public InsertError(final long seq, final int errorCode, final String message) {
-    super(errorCode, message);
-    this.seq = seq;
-  }
+  /**
+   * Called when a POJO fails to deserialise because the JSON is not well formed
+   */
+  void onInvalidJson();
 }
+

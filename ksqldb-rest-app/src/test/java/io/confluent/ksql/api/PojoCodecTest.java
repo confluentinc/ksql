@@ -21,8 +21,8 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.ksql.api.server.protocol.PojoCodec;
-import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
+import io.confluent.ksql.api.server.PojoCodec;
+import io.confluent.ksql.api.server.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import java.util.Optional;

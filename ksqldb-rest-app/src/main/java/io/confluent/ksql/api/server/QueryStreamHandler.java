@@ -22,9 +22,9 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
-import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
-import io.confluent.ksql.api.server.protocol.QueryStreamArgs;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.rest.entity.QueryResponseMetadata;
+import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
@@ -58,7 +58,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     this.context = Objects.requireNonNull(context);
     this.server = Objects.requireNonNull(server);
   }
-
 
   @Override
   public void handle(final RoutingContext routingContext) {

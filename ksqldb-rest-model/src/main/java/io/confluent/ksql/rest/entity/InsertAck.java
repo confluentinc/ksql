@@ -13,15 +13,28 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server.protocol;
+package io.confluent.ksql.rest.entity;
 
-import io.vertx.core.buffer.Buffer;
+import com.google.errorprone.annotations.Immutable;
 
 /**
- * An object that can be serialized to a buffer
+ * Represents a response to an insert
  */
-public interface SerializableObject {
+@Immutable
+public class InsertAck {
 
-  Buffer toBuffer();
+  public final long seq;
+  public final String status = "ok";
 
+  public InsertAck(final long seq) {
+    this.seq = seq;
+  }
+
+  @Override
+  public String toString() {
+    return "InsertAck{"
+        + "seq=" + seq
+        + ", status='" + status + '\''
+        + '}';
+  }
 }

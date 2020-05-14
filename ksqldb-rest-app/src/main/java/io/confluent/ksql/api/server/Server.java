@@ -20,6 +20,7 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityExtension;

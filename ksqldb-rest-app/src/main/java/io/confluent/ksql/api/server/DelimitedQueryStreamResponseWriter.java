@@ -16,9 +16,8 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
-import io.confluent.ksql.api.server.protocol.PojoCodec;
-import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;
 
@@ -49,7 +48,7 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
 
   @Override
   public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
-    response.write(metaData.toBuffer().appendString("\n"));
+    response.write(PojoCodec.serializeObject(metaData).appendString("\n"));
     return this;
   }
 
@@ -60,8 +59,8 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   }
 
   @Override
-  public QueryStreamResponseWriter writeError(final ErrorResponse error) {
-    response.write(error.toBuffer().appendString("\n"));
+  public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
+    response.write(PojoCodec.serializeObject(error).appendString("\n"));
     return this;
   }
 

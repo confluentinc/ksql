@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server.protocol;
+package io.confluent.ksql.api.server;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;

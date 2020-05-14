@@ -21,8 +21,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.api.utils.QueryResponse;
+import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;

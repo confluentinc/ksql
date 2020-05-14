@@ -13,25 +13,42 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server.protocol;
+package io.confluent.ksql.rest.entity;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.vertx.core.buffer.Buffer;
+import java.util.Objects;
 
 /**
- * Represents an error response
+ * Surprisingly, the id of a push query
  */
 @Immutable
-public class ErrorResponse extends KsqlErrorMessage implements SerializableObject {
+public class PushQueryId {
 
-  public final String status = "error";
+  private final String id;
 
-  public ErrorResponse(final int errorCode, final String message) {
-    super(errorCode, message);
+  public PushQueryId(final String id) {
+    this.id = Objects.requireNonNull(id);
   }
 
-  public Buffer toBuffer() {
-    return PojoCodec.serializeObject(this);
+  @Override
+  public String toString() {
+    return id;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final PushQueryId that = (PushQueryId) o;
+    return Objects.equals(id, that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
   }
 }

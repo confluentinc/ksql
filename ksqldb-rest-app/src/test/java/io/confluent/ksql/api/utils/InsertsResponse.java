@@ -17,7 +17,6 @@ package io.confluent.ksql.api.utils;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 import io.vertx.core.json.JsonObject;
@@ -35,13 +34,12 @@ public class InsertsResponse {
     JsonObject error = null;
     for (int i = 0; i < parts.length; i++) {
       JsonObject jsonObject = new JsonObject(parts[i]);
-      String status = jsonObject.getString("status");
-      assertThat(status, is(notNullValue()));
-      if (status.equals("ok")) {
-        acks.add(jsonObject);
-      } else {
+      Integer errCode = jsonObject.getInteger("error_code");
+      if (errCode != null) {
         assertThat(error, is(nullValue()));
         error = jsonObject;
+      } else {
+        acks.add(jsonObject);
       }
     }
     this.error = error;

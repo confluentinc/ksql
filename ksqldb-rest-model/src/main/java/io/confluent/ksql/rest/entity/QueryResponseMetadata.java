@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server.protocol;
+package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -25,7 +25,7 @@ import java.util.Objects;
  * Represents the metadata of a query stream response
  */
 @Immutable
-public class QueryResponseMetadata extends AbstractSerializableObject {
+public class QueryResponseMetadata {
 
   public final String queryId;
   public final ImmutableList<String> columnNames;

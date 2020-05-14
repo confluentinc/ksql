@@ -13,42 +13,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.rest.entity;
 
 import com.google.errorprone.annotations.Immutable;
-import java.util.Objects;
 
 /**
- * Surprisingly, the id of a push query
+ * Represents an error on an insert stream
  */
 @Immutable
-public class PushQueryId {
+public class InsertError extends KsqlErrorMessage {
 
-  private final String id;
+  public final String status = "error";
+  public final long seq;
 
-  public PushQueryId(final String id) {
-    this.id = Objects.requireNonNull(id);
-  }
-
-  @Override
-  public String toString() {
-    return id;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final PushQueryId that = (PushQueryId) o;
-    return Objects.equals(id, that.id);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(id);
+  public InsertError(final long seq, final int errorCode, final String message) {
+    super(errorCode, message);
+    this.seq = seq;
   }
 }

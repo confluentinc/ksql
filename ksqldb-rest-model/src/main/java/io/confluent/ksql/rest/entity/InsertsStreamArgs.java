@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server.protocol;
+package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.json.JsonObject;

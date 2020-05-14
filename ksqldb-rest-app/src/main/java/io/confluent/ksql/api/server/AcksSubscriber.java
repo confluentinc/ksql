@@ -17,9 +17,9 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 
-import io.confluent.ksql.api.server.protocol.InsertAck;
-import io.confluent.ksql.api.server.protocol.InsertError;
 import io.confluent.ksql.reactive.BaseSubscriber;
+import io.confluent.ksql.rest.entity.InsertAck;
+import io.confluent.ksql.rest.entity.InsertError;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;

@@ -23,10 +23,10 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
-import io.confluent.ksql.api.server.protocol.InsertError;
-import io.confluent.ksql.api.server.protocol.InsertsStreamArgs;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.reactive.BufferedPublisher;
+import io.confluent.ksql.rest.entity.InsertError;
+import io.confluent.ksql.rest.entity.InsertsStreamArgs;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.WorkerExecutor;

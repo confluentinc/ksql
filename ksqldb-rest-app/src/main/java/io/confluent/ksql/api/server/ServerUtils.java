@@ -19,8 +19,6 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_HTTP2_ONLY;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
-import io.confluent.ksql.api.server.protocol.PojoCodec;
-import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;

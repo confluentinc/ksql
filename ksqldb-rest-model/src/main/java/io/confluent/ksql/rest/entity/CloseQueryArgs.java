@@ -13,33 +13,29 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server.protocol;
+package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.vertx.core.json.JsonObject;
-import java.util.Map;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 /**
- * Represents the arguments to a query stream request
+ * Represents the arguments to a close query request
  */
-public class QueryStreamArgs {
+@Immutable
+public class CloseQueryArgs {
 
-  public final String sql;
-  public final JsonObject properties;
+  public final PushQueryId queryId;
 
-  public QueryStreamArgs(final @JsonProperty(value = "sql", required = true) String sql,
-      final @JsonProperty(value = "properties")
-          Map<String, Object> properties) {
-    this.sql = Objects.requireNonNull(sql);
-    this.properties = properties == null ? new JsonObject() : new JsonObject(properties);
+  public CloseQueryArgs(
+      final @JsonProperty(value = "queryId", required = true) PushQueryId queryId) {
+    this.queryId = Objects.requireNonNull(queryId);
   }
 
   @Override
   public String toString() {
-    return "QueryStreamArgs{"
-        + "sql='" + sql + '\''
-        + ", properties=" + properties
+    return "CloseQueryArgs{"
+        + "queryID='" + queryId + '\''
         + '}';
   }
 }

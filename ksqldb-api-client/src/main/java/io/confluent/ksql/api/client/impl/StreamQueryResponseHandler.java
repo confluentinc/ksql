@@ -19,7 +19,7 @@ import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
-import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
+import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;

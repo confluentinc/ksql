@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.net.URI;
 import java.util.Collections;
@@ -99,7 +100,10 @@ public class HealthCheckAgent {
     public HealthCheckResponseDetail check(final HealthCheckAgent healthCheckAgent) {
       final RestResponse<KsqlEntityList> response =
           healthCheckAgent.ksqlClient
-              .makeKsqlRequest(healthCheckAgent.serverEndpoint, ksqlStatement, ImmutableMap.of());
+              .makeKsqlRequest(
+                  healthCheckAgent.serverEndpoint,
+                  ksqlStatement,
+                  ImmutableMap.of(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true));
       return new HealthCheckResponseDetail(response.isSuccessful());
     }
   }

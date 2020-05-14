@@ -28,7 +28,7 @@ differs from the join column. In these cases, ksqlDB internally repartitions
 the stream, which implicitly defines the correct key for it.
 
 !!! important
-    Be aware that Kafka guarantees the relative order of any two messages from
+    {{ site.ak }} guarantees the relative order of any two messages from
     one source partition only if they are both in the same partition
     after the repartition. Otherwise, {{ site.ak }} is likely to interleave messages.
     The use case will determine if these ordering guarantees are acceptable.

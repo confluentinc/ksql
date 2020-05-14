@@ -25,7 +25,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -65,8 +68,8 @@ public class UdfIntTest {
   private static final String DELIMITED_TOPIC_NAME = "delimitedTopic";
   private static final String DELIMITED_STREAM_NAME = "items_delimited";
 
-  private static Map<Long, RecordMetadata> jsonRecordMetadataMap;
-  private static Map<Long, RecordMetadata> avroRecordMetadataMap;
+  private static Multimap<String, RecordMetadata> jsonRecordMetadataMap;
+  private static Multimap<String, RecordMetadata> avroRecordMetadataMap;
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -96,11 +99,9 @@ public class UdfIntTest {
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
     final ItemDataProvider itemDataProvider = new ItemDataProvider();
 
-    jsonRecordMetadataMap = ImmutableMap.copyOf(
-        TEST_HARNESS.produceRows(JSON_TOPIC_NAME, orderDataProvider, JSON));
+    jsonRecordMetadataMap = TEST_HARNESS.produceRows(JSON_TOPIC_NAME, orderDataProvider, JSON);
 
-    avroRecordMetadataMap = ImmutableMap.copyOf(
-        TEST_HARNESS.produceRows(AVRO_TOPIC_NAME, orderDataProvider, AVRO));
+    avroRecordMetadataMap = TEST_HARNESS.produceRows(AVRO_TOPIC_NAME, orderDataProvider, AVRO);
 
     TEST_HARNESS.produceRows(DELIMITED_TOPIC_NAME, itemDataProvider, DELIMITED);
   }
@@ -117,7 +118,7 @@ public class UdfIntTest {
         break;
       default:
         this.testData =
-            new TestData(format, DELIMITED_TOPIC_NAME, DELIMITED_STREAM_NAME, ImmutableMap.of());
+            new TestData(format, DELIMITED_TOPIC_NAME, DELIMITED_STREAM_NAME, ImmutableListMultimap.of());
         break;
     }
   }
@@ -137,7 +138,7 @@ public class UdfIntTest {
     // Given:
     final String queryString = String.format(
         "CREATE STREAM \"%s\" AS SELECT "
-            + "ROWKEY, "
+            + "ORDERID, "
             + "ITEMID, "
             + "ORDERUNITS*10, "
             + "PRICEARRAY[1]+10, "
@@ -154,7 +155,7 @@ public class UdfIntTest {
     // Then:
     final Map<String, GenericRow> results = consumeOutputMessages();
 
-    assertThat(results, is(ImmutableMap.of(8L,
+    assertThat(results, is(ImmutableMap.of("ORDER_6",
         genericRow("ITEM_8", 800.0, 1110.0, 12.0, true))));
   }
 
@@ -165,7 +166,7 @@ public class UdfIntTest {
     // Given:
     final String queryString = String.format(
         "CREATE STREAM \"%s\" AS SELECT "
-            + "ROWKEY, "
+            + "ORDERID, "
             + "CAST (ORDERUNITS AS INTEGER), "
             + "CAST( PRICEARRAY[2]>1000 AS STRING), "
             + "CAST (SUBSTRING(ITEMID, 6) AS DOUBLE), "
@@ -181,7 +182,7 @@ public class UdfIntTest {
     // Then:
     final Map<String, GenericRow> results = consumeOutputMessages();
 
-    assertThat(results, is(ImmutableMap.of(8L,
+    assertThat(results, is(ImmutableMap.of("ORDER_6",
         genericRow(80, "true", 8.0, "80.0"))));
   }
 
@@ -192,11 +193,11 @@ public class UdfIntTest {
     // Given:
     final String queryString = String.format(
         "CREATE STREAM \"%s\" AS SELECT "
-            + "ROWKEY AS RKEY, ROWTIME+10000 AS RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
+            + "ROWTIME+10000 AS RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
             + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';"
             + ""
             + "CREATE STREAM \"%s\" AS SELECT "
-            + "RKEY AS NEWRKEY, ROWTIME AS NEWRTIME, AS_VALUE(RKEY) AS RKEY, RTIME, RT100, ORDERID, ITEMID "
+            + "ROWTIME AS NEWRTIME, RTIME, RT100, ORDERID, ITEMID "
             + "FROM %s;",
         intermediateStream, testData.sourceStreamName, resultStreamName, intermediateStream);
 
@@ -204,12 +205,12 @@ public class UdfIntTest {
     ksqlContext.sql(queryString);
 
     // Then:
-    final Map<Long, GenericRow> results = consumeOutputMessages();
+    final Map<String, GenericRow> results = consumeOutputMessages();
 
-    final long ts = testData.recordMetadata.get(8L).timestamp();
+    final long ts = testData.getLast("ORDER_6").timestamp();
 
-    assertThat(results, equalTo(ImmutableMap.of(8L,
-        genericRow(ts, 8L, ts + 10000, ts + 100, "ORDER_6", "ITEM_8"))));
+    assertThat(results, equalTo(ImmutableMap.of("ORDER_6",
+        genericRow(ts, ts + 10000, ts + 100, "ITEM_8"))));
   }
 
   @Test
@@ -218,7 +219,7 @@ public class UdfIntTest {
 
     // Given:
     final String queryString = String.format(
-        "CREATE STREAM \"%s\" AS SELECT ROWKEY, ID, DESCRIPTION FROM %s WHERE ID LIKE '%%_1';",
+        "CREATE STREAM \"%s\" AS SELECT ID, DESCRIPTION FROM %s WHERE ID LIKE '%%_1';",
         resultStreamName, DELIMITED_STREAM_NAME
     );
 
@@ -229,21 +230,20 @@ public class UdfIntTest {
     final Map<String, GenericRow> results = consumeOutputMessages();
 
     assertThat(results, equalTo(Collections.singletonMap("ITEM_1",
-        genericRow("ITEM_1", "home cinema"))));
+        genericRow("home cinema"))));
   }
 
   private void createSourceStream() {
     if (testData.format == DELIMITED) {
       // Delimited does not support array or map types, so use simplier schema:
       ksqlContext.sql(String.format("CREATE STREAM %s "
-              + "(ROWKEY STRING KEY, ID varchar, DESCRIPTION varchar) WITH "
+              + "(ID varchar KEY, DESCRIPTION varchar) WITH "
               + "(kafka_topic='%s', value_format='%s');",
           testData.sourceStreamName, testData.sourceTopicName, testData.format.name()));
     } else {
       ksqlContext.sql(String.format("CREATE STREAM %s ("
-              + "ROWKEY BIGINT KEY, "
+              + "ORDERID varchar KEY, "
               + "ORDERTIME bigint, "
-              + "ORDERID varchar, "
               + "ITEMID varchar, "
               + "ORDERUNITS double, "
               + "TIMESTAMP varchar, "
@@ -277,17 +277,21 @@ public class UdfIntTest {
     private final Format format;
     private final String sourceStreamName;
     private final String sourceTopicName;
-    private final Map<Long, RecordMetadata> recordMetadata;
+    private final Multimap<String, RecordMetadata> recordMetadata;
 
     private TestData(
         final Format format,
         final String sourceTopicName,
         final String sourceStreamName,
-        final Map<Long, RecordMetadata> recordMetadata) {
+        final Multimap<String, RecordMetadata> recordMetadata) {
       this.format = format;
       this.sourceStreamName = sourceStreamName;
       this.sourceTopicName = sourceTopicName;
       this.recordMetadata = recordMetadata;
+    }
+
+    RecordMetadata getLast(final String key) {
+      return Iterables.getLast(recordMetadata.get(key));
     }
   }
 }

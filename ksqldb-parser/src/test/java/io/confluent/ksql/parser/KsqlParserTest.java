@@ -47,7 +47,6 @@ import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
@@ -159,7 +158,6 @@ public class KsqlParserTest {
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.none(),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -178,7 +176,6 @@ public class KsqlParserTest {
         SourceName.of("ITEMID"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("ITEMID")),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -557,8 +554,8 @@ public class KsqlParserTest {
   public void testCreateTable() {
     // When:
     final CreateTable result = (CreateTable) KsqlParserTestUtil.buildSingleAst(
-        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-            + "WITH (kafka_topic='foo', value_format='json', key='userid');", metaStore).getStatement();
+        "CREATE TABLE users (usertime bigint, userid varchar PRIMARY KEY, regionid varchar, gender varchar) "
+            + "WITH (kafka_topic='foo', value_format='json');", metaStore).getStatement();
 
     // Then:
     assertThat(result.getName(), equalTo(SourceName.of("USERS")));
@@ -566,7 +563,6 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
     assertThat(result.getProperties().getValueFormat(), equalTo(FormatFactory.JSON));
-    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of(ColumnName.of("USERID"))));
   }
 
   @Test
@@ -1229,20 +1225,6 @@ public class KsqlParserTest {
     // Then:
     final SearchedCaseExpression searchedCaseExpression = getSearchedCaseExpressionFromCsas(statement);
     assertThat(searchedCaseExpression.getDefaultValue().isPresent(), equalTo(false));
-  }
-
-  // https://github.com/confluentinc/ksql/issues/2287
-  @Test
-  public void shouldThrowHelpfulErrorMessageIfKeyFieldNotQuoted() {
-    // When:
-    final Exception e = assertThrows(
-        ParseFailedException.class,
-        () -> KsqlParserTestUtil.buildSingleAst("CREATE STREAM S (ID INT) WITH (KEY=ID);", metaStore)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "mismatched input 'ID'"));
   }
 
   @Test

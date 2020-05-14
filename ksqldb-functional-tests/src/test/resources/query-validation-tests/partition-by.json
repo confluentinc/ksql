@@ -390,7 +390,7 @@
     {
       "name": "bigint key field",
       "statements": [
-        "CREATE STREAM TEST (K BIGINT KEY, ID BIGINT) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM TEST (K BIGINT KEY, ID BIGINT) with (kafka_topic='test_topic', value_format = 'delimited');",
         "CREATE STREAM OUTPUT AS select * from TEST partition by ID;"
       ],
       "inputs": [
@@ -462,7 +462,7 @@
     {
       "name": "partition by with null value",
       "statements": [
-        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
         "CREATE STREAM REPARTITIONED AS select * from TEST partition by name;"
       ],
       "inputs": [
@@ -492,7 +492,7 @@
     {
       "name": "aliased key field - different name",
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, ID varchar, NAME varchar) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM TEST (K STRING KEY, ID varchar, NAME varchar) with (kafka_topic='test_topic', value_format = 'delimited');",
         "CREATE STREAM REPARTITIONED AS select ID + '_new' AS ID_new, NAME from TEST partition by ID_NEW;"
       ],
       "expectedException": {
@@ -555,9 +555,9 @@
     {
       "name": "partition by key in join on key",
       "statements": [
-        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON', KEY='A');",
-        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON', KEY='C');",
-        "CREATE STREAM OUTPUT AS SELECT L.K AS LK, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.A = R.C PARTITION BY L.K;"
+        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT L.K AS LK, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.K = R.K PARTITION BY L.K;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": "join", "value": {"A": "join", "B": "b"}},
@@ -575,8 +575,8 @@
     {
       "name": "partition by key in join on non-key",
       "statements": [
-        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON', KEY='A');",
-        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON', KEY='C');",
+        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT L.K AS LK, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.D PARTITION BY L.K;"
       ],
       "inputs": [
@@ -590,9 +590,9 @@
     {
       "name": "partition by Key in join on Key ALIASED",
       "statements": [
-        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON', KEY='A');",
-        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON', KEY='C');",
-        "CREATE STREAM OUTPUT AS SELECT L.A, L.K, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.A = R.C PARTITION BY L.A;"
+        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT L.A, L.K, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.K = R.K PARTITION BY L.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": "join", "value": {"A": "join", "B": "b"}},
@@ -603,7 +603,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "keyField": null}
+          {"name": "OUTPUT", "type": "stream"}
         ],
         "topics": {
           "blacklist": ".*-repartition"
@@ -613,8 +613,8 @@
     {
       "name": "partition by non-Key in join on Key",
       "statements": [
-        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON', KEY='A');",
-        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON', KEY='C');",
+        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT L.B, L.K, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.A = R.C PARTITION BY L.B;"
       ],
       "inputs": [
@@ -626,15 +626,15 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "keyField": null}
+          {"name": "OUTPUT", "type": "stream"}
         ]
       }
     },
     {
       "name": "partition by non-Key in join on non-Key",
       "statements": [
-        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON', KEY='A');",
-        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON', KEY='C');",
+        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT L.B, L.K, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.D PARTITION BY L.B;"
       ],
       "inputs": [
@@ -646,7 +646,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "keyField": null}
+          {"name": "OUTPUT", "type": "stream"}
         ]
       }
     },

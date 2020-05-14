@@ -140,9 +140,9 @@ public class ApiIntegrationTest {
     // Then:
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(
-        new JsonArray().add("ROWKEY").add("VIEWTIME").add("USERID").add("PAGEID")));
+        new JsonArray().add("PAGEID").add("USERID").add("VIEWTIME")));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(
-        new JsonArray().add("BIGINT").add("BIGINT").add("STRING").add("STRING")));
+        new JsonArray().add("STRING").add("STRING").add("BIGINT")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
 
@@ -350,12 +350,11 @@ public class ApiIntegrationTest {
     // Given:
     JsonObject row = new JsonObject()
         .put("VIEWTIME", 1000)
-        .put("USERID", "User123")
-        .put("PAGEID", "PAGE23");
+        .put("USERID", "User123");
 
     // Then:
     shouldFailToInsert(row, ErrorCodes.ERROR_CODE_MISSING_KEY_FIELD,
-        "Key field must be specified: ROWKEY");
+        "Key field must be specified: PAGEID");
   }
 
   @Test
@@ -363,14 +362,13 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
-        .put("ROWKEY", true)
+        .put("PAGEID", true)
         .put("VIEWTIME", 1000)
-        .put("USERID", "User123")
-        .put("PAGEID", "PAGE23");
+        .put("USERID", "User123");
 
     // Then:
     shouldFailToInsert(row, ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD,
-        "Can't coerce a field of type class java.lang.Boolean (true) into type BIGINT");
+        "Can't coerce a field of type class java.lang.Boolean (true) into type STRING");
   }
 
   @Test
@@ -393,7 +391,7 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject();
-    row.put("ROWKEY", 10);
+    row.put("PAGEID", "10");
     row.put("VIEWTIME", 1000);
     row.put("USERID", "User123");
 

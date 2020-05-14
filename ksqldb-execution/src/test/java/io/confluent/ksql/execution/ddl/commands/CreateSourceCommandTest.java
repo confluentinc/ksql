@@ -28,7 +28,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -39,7 +38,6 @@ public class CreateSourceCommandTest {
   private static final Formats FORAMTS = mock(Formats.class);
   private static final ColumnName K0 = ColumnName.of("k0");
   private static final ColumnName K1 = ColumnName.of("k1");
-  private static final ColumnName KEY_FIELD = ColumnName.of("keyField");
 
 
   @Test(expected = UnsupportedOperationException.class)
@@ -57,70 +55,10 @@ public class CreateSourceCommandTest {
         SOURCE_NAME,
         schema,
         Optional.empty(),
-        Optional.empty(),
         TOPIC_NAME,
         FORAMTS,
         Optional.empty()
     );
-  }
-
-  @Test
-  public void shouldThrowIfKeyFieldDoesNotMatchKeyType() {
-    // Given:
-    final ColumnName keyField = ColumnName.of("keyField");
-
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(K0, SqlTypes.INTEGER)
-        .valueColumn(keyField, SqlTypes.STRING)
-        .build();
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> new TestCommand(
-            SOURCE_NAME,
-            schema,
-            Optional.of(keyField),
-            Optional.empty(),
-            TOPIC_NAME,
-            FORAMTS,
-            Optional.empty()
-        )
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "The KEY field (keyField) identified in the "
-            + "WITH clause is of a different type to the actual key column."));
-    assertThat(e.getMessage(), containsString(
-        "Use of the KEY field is deprecated. Remove the KEY field from the WITH clause and "
-            + "specify the name of the key column by adding 'keyField STRING KEY' to the schema."));
-    assertThat(e.getMessage(), containsString(
-        "KEY field type: STRING"));
-    assertThat(e.getMessage(), containsString(
-        "key column type: INTEGER"));
-  }
-
-  @Test
-  public void shouldNotThrowIfKeyFieldMatchesKeyType() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(K0, SqlTypes.INTEGER)
-        .valueColumn(KEY_FIELD, SqlTypes.INTEGER)
-        .build();
-
-    // When:
-    new TestCommand(
-        SOURCE_NAME,
-        schema,
-        Optional.of(KEY_FIELD),
-        Optional.empty(),
-        TOPIC_NAME,
-        FORAMTS,
-        Optional.empty()
-    );
-
-    // Then: builds without error
   }
 
   @Test
@@ -137,7 +75,6 @@ public class CreateSourceCommandTest {
         () -> new TestCommand(
             SOURCE_NAME,
             schema,
-            Optional.empty(),
             Optional.empty(),
             TOPIC_NAME,
             FORAMTS,
@@ -165,7 +102,6 @@ public class CreateSourceCommandTest {
             SOURCE_NAME,
             schema,
             Optional.empty(),
-            Optional.empty(),
             TOPIC_NAME,
             FORAMTS,
             Optional.empty()
@@ -182,13 +118,12 @@ public class CreateSourceCommandTest {
     TestCommand(
         final SourceName sourceName,
         final LogicalSchema schema,
-        final Optional<ColumnName> keyField,
         final Optional<TimestampColumn> timestampColumn,
         final String topicName,
         final Formats formats,
         final Optional<WindowInfo> windowInfo
     ) {
-      super(sourceName, schema, keyField, timestampColumn, topicName, formats, windowInfo);
+      super(sourceName, schema, timestampColumn, topicName, formats, windowInfo);
     }
 
     @Override

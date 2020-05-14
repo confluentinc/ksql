@@ -23,7 +23,6 @@ public class SourceNodeTest {
   static final SourceNode INSTANCE = new SourceNode(
       "bob",
       "stream",
-      Optional.empty(),
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE)
   );

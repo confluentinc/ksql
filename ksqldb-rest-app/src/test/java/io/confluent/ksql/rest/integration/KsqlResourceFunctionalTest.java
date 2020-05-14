@@ -36,7 +36,6 @@ import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -154,8 +153,7 @@ public class KsqlResourceFunctionalTest {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-            .valueColumn(ColumnName.of("AUTHOR"), SqlTypes.STRING)
+            .keyColumn(ColumnName.of("AUTHOR"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("TITLE"), SqlTypes.STRING)
             .build(),
         SerdeOption.none()
@@ -172,8 +170,8 @@ public class KsqlResourceFunctionalTest {
 
     // When:
     final List<KsqlEntity> results = makeKsqlRequest(""
-        + "CREATE STREAM books (author VARCHAR, title VARCHAR) "
-        + "WITH (kafka_topic='books', key='author', value_format='avro', partitions=1);"
+        + "CREATE STREAM books (author VARCHAR KEY, title VARCHAR) "
+        + "WITH (kafka_topic='books', value_format='avro', partitions=1);"
         + " "
         + "INSERT INTO BOOKS (ROWTIME, author, title) VALUES (123, 'Metamorphosis', 'Franz Kafka');"
     );
@@ -185,7 +183,7 @@ public class KsqlResourceFunctionalTest {
         "books",
         contains(matches(
             "Metamorphosis",
-            genericRow("Metamorphosis", "Franz Kafka"),
+            genericRow("Franz Kafka"),
             0,
             0L,
             123L)),

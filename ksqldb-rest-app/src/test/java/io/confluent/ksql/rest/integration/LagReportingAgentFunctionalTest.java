@@ -64,13 +64,13 @@ public class LagReportingAgentFunctionalTest {
       "_confluent-ksql-default_query_CTAS_USER_LATEST_VIEWTIME_5",
       "Aggregate-Aggregate-Materialize");
 
-  private static final KsqlHostInfoEntity HOST0 = new KsqlHostInfoEntity("localhost", 8088);
-  private static final KsqlHostInfoEntity HOST1 = new KsqlHostInfoEntity("localhost", 8089);
+  private static final KsqlHostInfoEntity HOST0 = new KsqlHostInfoEntity("localhost", 8288);
+  private static final KsqlHostInfoEntity HOST1 = new KsqlHostInfoEntity("localhost", 8289);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8288")
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .withProperty(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
@@ -86,7 +86,7 @@ public class LagReportingAgentFunctionalTest {
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8289")
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .withProperty(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)

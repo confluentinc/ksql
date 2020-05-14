@@ -71,6 +71,7 @@ public class StandaloneExecutorFunctionalTest {
   private static final String AVRO_TOPIC = "avro-topic";
   private static final String JSON_TOPIC = "json-topic";
   private static int DATA_SIZE;
+  private static int UNIQUE_DATA_SIZE;
   private static PhysicalSchema DATA_SCHEMA;
 
   @Mock
@@ -87,6 +88,7 @@ public class StandaloneExecutorFunctionalTest {
     TEST_HARNESS.produceRows(AVRO_TOPIC, provider, AVRO);
     TEST_HARNESS.produceRows(JSON_TOPIC, provider, JSON);
     DATA_SIZE = provider.data().size();
+    UNIQUE_DATA_SIZE = provider.finalData().size();
     DATA_SCHEMA = provider.schema();
   }
 
@@ -164,7 +166,7 @@ public class StandaloneExecutorFunctionalTest {
     // CSAS and INSERT INTO both input into S1:
     TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, JSON, dataSchema);
     // CTAS only into T1:
-    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, JSON, dataSchema);
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, UNIQUE_DATA_SIZE, JSON, dataSchema);
     // S2 should be empty as 'auto.offset.reset' unset:
     TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, JSON, dataSchema);
   }
@@ -206,7 +208,7 @@ public class StandaloneExecutorFunctionalTest {
     // CSAS and INSERT INTO both input into S1:
     TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, AVRO, dataSchema);
     // CTAS only into T1:
-    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, AVRO, dataSchema);
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, UNIQUE_DATA_SIZE, AVRO, dataSchema);
     // S2 should be empty as 'auto.offset.reset' unset:
     TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, AVRO, dataSchema);
   }
@@ -298,7 +300,7 @@ public class StandaloneExecutorFunctionalTest {
   private static void givenIncompatibleSchemaExists(final String topicName) {
     final LogicalSchema logical = LogicalSchema.builder()
         .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumn(ColumnName.of("ORDERID"), SqlTypes.struct()
+        .valueColumn(ColumnName.of("ITEMID"), SqlTypes.struct()
             .field("fred", SqlTypes.INTEGER)
             .build())
         .valueColumn(ColumnName.of("Other"), SqlTypes.BIGINT)

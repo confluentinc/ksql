@@ -28,8 +28,8 @@
     {
       "name": "invalid where predicate - type mismatch join",
       "statements": [
-        "CREATE STREAM INPUT_1 (K INT KEY, foo INT, bar INT) WITH (kafka_topic='t1', value_format='JSON', KEY='FOO');",
-        "CREATE STREAM INPUT_2 (K INT KEY, foo INT, bar STRING) WITH (kafka_topic='t2', value_format='JSON', KEY='FOO');",
+        "CREATE STREAM INPUT_1 (K INT KEY, foo INT, bar INT) WITH (kafka_topic='t1', value_format='JSON');",
+        "CREATE STREAM INPUT_2 (K INT KEY, foo INT, bar STRING) WITH (kafka_topic='t2', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT I1.FOO, I1.BAR, I2.BAR FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 1 MINUTE ON I1.FOO = I2.FOO WHERE I1.BAR > I2.BAR;"
       ],
       "expectedException": {
@@ -73,7 +73,7 @@
     {
       "name": "invalid having predicate - type mismatch",
       "statements": [
-        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE T1 as select id, sum(value) as sum from test WINDOW TUMBLING (SIZE 30 SECONDS) group by id HAVING sum(value) > '100';"
       ],
       "expectedException": {
@@ -84,7 +84,7 @@
     {
       "name": "invalid having predicate - type mismatch complex expression",
       "statements": [
-        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE T1 as select id, sum(value) as sum from test WINDOW TUMBLING (SIZE 30 SECONDS) group by id HAVING count(*) > 1 AND sum(value) > '100';"
       ],
       "expectedException": {
@@ -95,8 +95,8 @@
     {
       "name": "invalid having predicate - type mismatch join",
       "statements": [
-        "CREATE STREAM INPUT_1 (K INT KEY, foo INT, bar INT) WITH (kafka_topic='t1', value_format='JSON', KEY='FOO');",
-        "CREATE STREAM INPUT_2 (K INT KEY, foo INT, bar INT) WITH (kafka_topic='t2', value_format='JSON', KEY='FOO');",
+        "CREATE STREAM INPUT_1 (K INT KEY, foo INT, bar INT) WITH (kafka_topic='t1', value_format='JSON');",
+        "CREATE STREAM INPUT_2 (K INT KEY, foo INT, bar INT) WITH (kafka_topic='t2', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT I1.FOO, SUM(I1.BAR), SUM(I2.BAR) FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 1 MINUTE ON I1.FOO = I2.FOO group by I1.FOO HAVING SUM(I1.BAR) > '100' and SUM(I2.BAR) > 20;"
       ],
       "expectedException": {

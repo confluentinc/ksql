@@ -20,7 +20,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -43,7 +42,6 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
-import java.util.Optional;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -120,7 +118,6 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
-    assertThat(projectNode.getKeyField().ref(), is(Optional.empty()));
     assertThat(projectNode.getSchema().value().size(), equalTo(5));
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
@@ -156,24 +153,22 @@ public class LogicalPlannerTest {
     final JoinNode joinNode = (JoinNode) logicalPlan.getSources().get(0).getSources().get(0);
     final ProjectNode left = (ProjectNode) joinNode.getSources().get(0);
     assertThat(left.getSelectExpressions(), contains(
-        selectCol("COL0", "T1_COL0"),
         selectCol("COL1", "T1_COL1"),
         selectCol("COL2", "T1_COL2"),
         selectCol("COL3", "T1_COL3"),
         selectCol("COL4", "T1_COL4"),
         selectCol("COL5", "T1_COL5"),
         selectCol("ROWTIME", "T1_ROWTIME"),
-        selectCol("ROWKEY", "T1_ROWKEY")
+        selectCol("COL0", "T1_COL0")
     ));
     final ProjectNode right = (ProjectNode) joinNode.getSources().get(1);
     assertThat(right.getSelectExpressions(), contains(
-        selectCol("COL0", "T2_COL0"),
         selectCol("COL1", "T2_COL1"),
         selectCol("COL2", "T2_COL2"),
         selectCol("COL3", "T2_COL3"),
         selectCol("COL4", "T2_COL4"),
         selectCol("ROWTIME", "T2_ROWTIME"),
-        selectCol("ROWKEY", "T2_ROWKEY")
+        selectCol("COL0", "T2_COL0")
     ));
   }
 

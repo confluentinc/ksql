@@ -84,17 +84,17 @@
     {
       "name": "joins using fields that require quotes",
       "statements": [
-        "CREATE STREAM L (K STRING KEY, `SELECT` VARCHAR, `field!` VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');",
-        "CREATE TABLE R (K STRING PRIMARY KEY, `with.dot` VARCHAR) WITH (kafka_topic='right_topic', value_format='JSON', key='`with.dot`');",
-        "CREATE STREAM JOINED as SELECT L.`SELECT`, L.`field!` FROM L LEFT JOIN R ON L.`SELECT` = R.`with.dot`;"
+        "CREATE STREAM L (`the key` STRING KEY, `SELECT` VARCHAR, `field!` VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE R (`with.dot` STRING PRIMARY KEY, `field 0` VARCHAR) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM JOINED as SELECT * FROM L LEFT JOIN R ON L.`SELECT` = R.`with.dot`;"
       ],
       "inputs": [
-        {"topic": "left_topic", "value": {"SELECT":  "1", "field!": "A"}},
-        {"topic": "right_topic", "value": {"with.dot": "1"}},
-        {"topic": "right_topic", "value": {"with.dot": "2"}}
+        {"topic": "right_topic", "key": "1", "value": {"field 0": "3"}},
+        {"topic": "right_topic", "key": "2", "value": {"field 0": "4"}},
+        {"topic": "left_topic", "key": "diff", "value": {"SELECT": "1", "field!": "A"}}
       ],
       "outputs": [
-        {"topic": "JOINED", "key": "1", "value": { "field!": "A"}}
+        {"topic": "JOINED", "key": "1", "value": {"L_the key": "diff", "L_field!": "A", "R_with.dot": "1", "R_field 0": "3"}}
       ]
     },
     {

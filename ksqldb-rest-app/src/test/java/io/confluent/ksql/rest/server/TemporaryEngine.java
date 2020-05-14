@@ -31,7 +31,6 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
@@ -135,7 +134,6 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(ColumnName.of("val")),
                 Optional.empty(),
                 false,
                 topic
@@ -148,7 +146,6 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(ColumnName.of("val")),
                 Optional.empty(),
                 false,
                 topic

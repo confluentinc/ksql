@@ -21,6 +21,7 @@ import static io.confluent.ksql.test.util.MapMatchers.mapHasSize;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.Multimap;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -43,10 +44,12 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.TestDataProvider;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -163,7 +166,7 @@ public final class IntegrationTestHarness extends ExternalResource {
   public void produceRecord(final String topicName, final String key, final String data) {
     kafkaCluster.produceRows(
         topicName,
-        Collections.singletonMap(key, data),
+        Collections.singletonMap(key, data).entrySet(),
         new StringSerializer(),
         new StringSerializer(),
         DEFAULT_TS_SUPPLIER
@@ -178,7 +181,7 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param valueFormat the format values should be produced as.
    * @return the map of produced rows
    */
-  public <K> Map<K, RecordMetadata> produceRows(
+  public <K> Multimap<K, RecordMetadata> produceRows(
       final String topic,
       final TestDataProvider<K> dataProvider,
       final Format valueFormat
@@ -200,7 +203,7 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param timestampSupplier supplier of timestamps.
    * @return the map of produced rows
    */
-  public <K> Map<K, RecordMetadata> produceRows(
+  public <K> Multimap<K, RecordMetadata> produceRows(
       final String topic,
       final TestDataProvider<K> dataProvider,
       final Format valueFormat,
@@ -208,7 +211,7 @@ public final class IntegrationTestHarness extends ExternalResource {
   ) {
     return produceRows(
         topic,
-        dataProvider.data(),
+        dataProvider.data().entries(),
         getKeySerializer(dataProvider.schema()),
         getValueSerializer(valueFormat, dataProvider.schema()),
         timestampSupplier
@@ -224,9 +227,9 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param valueFormat the format values should be produced as.
    * @return the map of produced rows
    */
-  public <K> Map<K, RecordMetadata> produceRows(
+  public <K> Multimap<K, RecordMetadata> produceRows(
       final String topic,
-      final Map<K, GenericRow> rowsToPublish,
+      final Collection<Entry<K, GenericRow>> rowsToPublish,
       final PhysicalSchema schema,
       final Format valueFormat
   ) {
@@ -249,9 +252,9 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param timestampSupplier supplier of timestamps.
    * @return the map of produced rows, with an iteration order that matches produce order.
    */
-  public <K> Map<K, RecordMetadata> produceRows(
+  public <K> Multimap<K, RecordMetadata> produceRows(
       final String topic,
-      final Map<K, GenericRow> recordsToPublish,
+      final Collection<Entry<K, GenericRow>> recordsToPublish,
       final Serializer<K> keySerializer,
       final Serializer<GenericRow> valueSerializer,
       final Supplier<Long> timestampSupplier
@@ -404,7 +407,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final Format valueFormat,
       final PhysicalSchema schema
   ) {
-    return verifyAvailableUniqueRows(topic, is(expectedCount), valueFormat, schema);
+    return verifyAvailableNumUniqueRows(topic, is(expectedCount), valueFormat, schema);
   }
 
   /**
@@ -416,7 +419,7 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param schema the schema of the value.
    * @return the list of consumed records.
    */
-  public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
+  public <K> Map<K, GenericRow> verifyAvailableNumUniqueRows(
       final String topic,
       final Matcher<Integer> expectedCount,
       final Format valueFormat,
@@ -427,7 +430,7 @@ public final class IntegrationTestHarness extends ExternalResource {
 
     return verifyAvailableUniqueRows(
         topic,
-        expectedCount,
+        mapHasSize(expectedCount),
         keyDeserializer,
         valueDeserializer
     );
@@ -437,14 +440,40 @@ public final class IntegrationTestHarness extends ExternalResource {
    * Verify there are {@code expectedCount} unique rows available on the supplied {@code topic}.
    *
    * @param topic the name of the topic to check.
-   * @param expectedCount the expected number of records.
+   * @param expected the expected records.
+   * @param valueFormat the format of the value.
+   * @param schema the schema of the value.
+   * @return the list of consumed records.
+   */
+  public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
+      final String topic,
+      final Matcher<Map<? extends K, ? extends GenericRow>> expected,
+      final Format valueFormat,
+      final PhysicalSchema schema
+  ) {
+    final Deserializer<K> keyDeserializer = getKeyDeserializer(schema);
+    final Deserializer<GenericRow> valueDeserializer = getValueDeserializer(valueFormat, schema);
+
+    return verifyAvailableUniqueRows(
+        topic,
+        expected,
+        keyDeserializer,
+        valueDeserializer
+    );
+  }
+
+  /**
+   * Verify there are {@code expected} unique rows available on the supplied {@code topic}.
+   *
+   * @param topic the name of the topic to check.
+   * @param expected the expected records.
    * @param keyDeserializer the keyDeserilizer to use.
    * @param valueDeserializer the valueDeserializer of use.
    * @return the list of consumed records.
    */
   public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
       final String topic,
-      final Matcher<Integer> expectedCount,
+      final Matcher<Map<? extends K, ? extends GenericRow>> expected,
       final Deserializer<K> keyDeserializer,
       final Deserializer<GenericRow> valueDeserializer
   ) {
@@ -456,7 +485,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       consumer.subscribe(Collections.singleton(topic));
 
       final List<ConsumerRecord<K, GenericRow>> consumerRecords = ConsumerTestUtil
-          .verifyAvailableRecords(consumer, hasUniqueRecords(mapHasSize(expectedCount)));
+          .verifyAvailableRecords(consumer, hasUniqueRecords(expected));
 
       return toUniqueRecords(consumerRecords);
     }

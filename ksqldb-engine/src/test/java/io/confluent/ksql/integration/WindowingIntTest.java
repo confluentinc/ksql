@@ -210,7 +210,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(resultStream0, expected, mapHasItems(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 3, resultStream0);
+    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 2, resultStream0);
   }
 
   private void givenTable(final String sql) {
@@ -288,8 +288,8 @@ public class WindowingIntTest {
 
   private void createOrdersStream() {
     ksqlContext.sql("CREATE STREAM " + ORDERS_STREAM + " ("
+        + "ORDERID varchar KEY, "
         + "ORDERTIME bigint, "
-        + "ORDERID varchar, "
         + "ITEMID varchar, "
         + "ORDERUNITS double, "
         + "PRICEARRAY array<double>, "

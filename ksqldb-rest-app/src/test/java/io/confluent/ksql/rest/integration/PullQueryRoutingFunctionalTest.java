@@ -207,7 +207,6 @@ public class PullQueryRoutingFunctionalTest {
             + " (" + USER_PROVIDER.ksqlSchemaString(false) + ")"
             + " WITH ("
             + "   kafka_topic='" + USER_TOPIC + "', "
-            + "   key='" + USER_PROVIDER.key() + "', "
             + "   value_format='JSON');"
     );
     //Create table

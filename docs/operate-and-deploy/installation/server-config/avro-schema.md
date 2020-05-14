@@ -26,9 +26,13 @@ create new nested STRUCT data as the result of a query. For more info, see
 The following functionality is not supported:
 
 -   Message *keys* in Avro, Protobuf, or JSON formats are not supported. Message
-    keys in ksqlDB are always interpreted as STRING format, which means ksqlDB
-    ignores schemas that have been registered for message keys, and the key is
-    read by using `StringDeserializer`.
+    keys in ksqlDB are always interpreted as KAFKA format, which means ksqlDB
+    ignores schemas that have been registered for message keys.
+
+While ksqlDB does not support loading the message key's schema from the {{ site.sr }},
+you can provide the key column definition within the `CREATE TABLE` or `CREATE STREAM`
+statement. Where a `CREATE TABLE` or `CREATE STREAM` statement does not provide an
+explicit key columns an implicit `ROWKEY STRING` column will be added.
 
 Configure ksqlDB for Avro, Protobuf, and JSON
 =============================================
@@ -91,13 +95,18 @@ substitute `PROTOBUF` or `JSON_SR` for `AVRO` in each statement.
 ### Create a new stream by reading Avro-formatted data
 
 The following statement shows how to create a new `pageviews` stream by
-reading from a {{ site.ak }} topic that has Avro-formatted messages.
+reading from a {{ site.ak }} topic that has Avro-formatted message values and
+a Kafka-formatted INT message key.
 
 ```sql
 CREATE STREAM pageviews
+  (pageId INT KEY)
   WITH (KAFKA_TOPIC='pageviews-avro-topic',
         VALUE_FORMAT='AVRO');
 ```
+
+If the key schema is not provided, the key of the data will be assumed to be
+a single KAFKA serialized `STRING` named `ROWKEY`.
 
 ### Create a new table by reading Avro-formatted data
 
@@ -107,8 +116,7 @@ reading from a {{ site.ak }} topic that has Avro-formatted message values.
 ```sql
 CREATE TABLE users
   WITH (KAFKA_TOPIC='users-avro-topic',
-        VALUE_FORMAT='AVRO',
-        KEY='userid');
+        VALUE_FORMAT='AVRO');
 ```
 
 In this example, you don't need to define any columns or data types in
@@ -128,10 +136,9 @@ statement creates the `users` table with a 64-bit integer key and infers the
 value columns from the Avro schema.
 
 ```sql
-CREATE TABLE users (ROWKEY BIGINT PRIMARY KEY)
+CREATE TABLE users (userId BIGINT PRIMARY KEY)
   WITH (KAFKA_TOPIC='users-avro-topic',
-        VALUE_FORMAT='AVRO',
-        KEY='userid');
+        VALUE_FORMAT='AVRO');
 ```
 
 ### Create a new stream with selected fields of Avro-formatted data
@@ -146,7 +153,7 @@ the available fields in the Avro data. In this example, only the
 `viewtime` and `pageid` columns are picked.
 
 ```sql
-CREATE STREAM pageviews_reduced (viewtime BIGINT, pageid VARCHAR)
+CREATE STREAM pageviews_reduced (pageid VARCHAR KEY, viewtime BIGINT)
   WITH (KAFKA_TOPIC='pageviews-avro-topic',
         VALUE_FORMAT='AVRO');
 ```
@@ -165,7 +172,7 @@ schema for the new `pageviews_avro` stream, and it registers the schema
 with {{ site.sr }}.
 
 ```sql
-CREATE STREAM pageviews_json (viewtime BIGINT, userid VARCHAR, pageid VARCHAR)
+CREATE STREAM pageviews_json (pageid VARCHAR KEY, viewtime BIGINT, userid VARCHAR)
   WITH (KAFKA_TOPIC='pageviews_kafka_topic_json', VALUE_FORMAT='JSON');
 
 CREATE STREAM pageviews_avro

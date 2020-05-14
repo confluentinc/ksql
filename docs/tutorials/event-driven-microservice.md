@@ -138,14 +138,13 @@ We want to model a stream of credit card transactions from which we'll look for 
 
 ```sql
 CREATE STREAM transactions (
+    tx_id VARCHAR KEY,
     email_address VARCHAR,
     card_number VARCHAR,
-    tx_id VARCHAR,
     timestamp VARCHAR,
     amount DECIMAL(12, 2)
 ) WITH (
     kafka_topic = 'transactions',
-    key = 'tx_id',
     partitions = 8,
     value_format = 'avro',
     timestamp = 'timestamp',

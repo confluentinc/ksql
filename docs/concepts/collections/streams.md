@@ -26,10 +26,9 @@ in the `publications` stream are distributed over 3 partitions, are keyed on
 the `author` column, and are serialized in the Avro format.
 
 ```sql
-CREATE STREAM publications (author VARCHAR, title VARCHAR)
+CREATE STREAM publications (author VARCHAR KEY, title VARCHAR)
     WITH (kafka_topic = 'publication_events',
           partitions = 3,
-          key = 'author',
           value_format = 'avro');
 ```
 

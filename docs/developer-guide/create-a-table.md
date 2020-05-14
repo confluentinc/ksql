@@ -52,13 +52,12 @@ In the ksqlDB CLI, paste the following CREATE TABLE statement:
 
 ```sql
 CREATE TABLE users
-  (registertime BIGINT,
-   userid VARCHAR,
+  (userid VARCHAR PRIMARY KEY,
+   registertime BIGINT,
    gender VARCHAR,
    regionid VARCHAR)
   WITH (KAFKA_TOPIC = 'users',
-        VALUE_FORMAT='JSON',
-        KEY = 'userid');
+        VALUE_FORMAT='JSON');
 ```
 
 Your output should resemble:
@@ -97,9 +96,8 @@ Your output should resemble:
 Name                 : USERS
  Field        | Type
 ------------------------------------------
- ROWKEY       | VARCHAR(STRING)  (key)
+ USERID       | VARCHAR(STRING)  (key)
  REGISTERTIME | BIGINT
- USERID       | VARCHAR(STRING)
  GENDER       | VARCHAR(STRING)
  REGIONID     | VARCHAR(STRING)
 ------------------------------------------
@@ -116,13 +114,13 @@ SELECT * FROM users EMIT CHANGES;
 Assuming the table has content, your output should resemble:
 
 ```
-+--------+---------------+--------+--------+----------+
-| ROWKEY | REGISTERTIME  | USERID | GENDER | REGIONID |
-+--------+---------------+--------+--------+----------+
-| User_2 | 1498028899054 | User_2 | MALE   | Region_1 |
-| User_6 | 1505677113995 | User_6 | FEMALE | Region_7 |
-| User_5 | 1491338621627 | User_5 | OTHER  | Region_2 |
-| User_9 | 1492621173463 | User_9 | FEMALE | Region_3 |
++--------+---------------+--------+----------+
+| USERID | REGISTERTIME  | GENDER | REGIONID |
++--------+---------------+--------+----------+
+| User_2 | 1498028899054 | MALE   | Region_1 |
+| User_6 | 1505677113995 | FEMALE | Region_7 |
+| User_5 | 1491338621627 | OTHER  | Region_2 |
+| User_9 | 1492621173463 | FEMALE | Region_3 |
 ^CQuery terminated
 ```
 
@@ -144,15 +142,14 @@ the following CREATE TABLE statement into the CLI:
 
 ```sql
 CREATE TABLE users
-  (registertime BIGINT,
-   userid VARCHAR,
+  (userid VARCHAR PRIMARY KEY,
+   registertime BIGINT,
    gender VARCHAR,
    regionid VARCHAR)
   WITH (KAFKA_TOPIC = 'users',
         VALUE_FORMAT='JSON',
         PARTITIONS=4,
-        REPLICAS=3
-        KEY = 'userid');
+        REPLICAS=3);
 ```
 
 This will create the users topics for you with the supplied partition and replica count.
@@ -216,9 +213,9 @@ Your output should resemble:
 ```
 Key format: KAFKA_STRING
 Value format: JSON
-rowTime: 12/21/18 23:58:42 PM PSD, key: User_5, value: {"USERID":"User_5","GENDER":"FEMALE","REGIONID":"Region_4"}
-rowTime: 12/21/18 23:58:42 PM PSD, key: User_2, value: {"USERID":"User_2","GENDER":"FEMALE","REGIONID":"Region_7"}
-rowTime: 12/21/18 23:58:42 PM PSD, key: User_9, value: {"USERID":"User_9","GENDER":"FEMALE","REGIONID":"Region_4"}
+rowTime: 12/21/18 23:58:42 PM PSD, key: User_5, value: {"GENDER":"FEMALE","REGIONID":"Region_4"}
+rowTime: 12/21/18 23:58:42 PM PSD, key: User_2, value: {"GENDER":"FEMALE","REGIONID":"Region_7"}
+rowTime: 12/21/18 23:58:42 PM PSD, key: User_9, value: {"GENDER":"FEMALE","REGIONID":"Region_4"}
 ^CTopic printing ceased
 ```
 
@@ -282,17 +279,17 @@ SELECT ROWTIME, * FROM pageviews_table EMIT CHANGES;
 Your output should resemble:
 
 ```
-+---------------+---------------+---------------+------------------+--------+---------+------+
-| ROWTIME       | WINDOWSTART   | WINDOWEND     | ROWKEY           | USERID | PAGEID  | TOTAL|
-+---------------+---------------+---------------+------------------+--------+---------+------+
-| 1557183919786 | 1557183900000 | 1557183960000 | User_5|+|Page_12 | User_5 | Page_12 | 1    |
-| 1557183929488 | 1557183900000 | 1557183960000 | User_9|+|Page_39 | User_9 | Page_39 | 1    |
-| 1557183930211 | 1557183900000 | 1557183960000 | User_1|+|Page_79 | User_1 | Page_79 | 1    |
-| 1557183930687 | 1557183900000 | 1557183960000 | User_9|+|Page_34 | User_9 | Page_34 | 1    |
-| 1557183929786 | 1557183900000 | 1557183960000 | User_5|+|Page_12 | User_5 | Page_12 | 2    |
-| 1557183931095 | 1557183900000 | 1557183960000 | User_3|+|Page_43 | User_3 | Page_43 | 1    |
-| 1557183930184 | 1557183900000 | 1557183960000 | User_1|+|Page_29 | User_1 | Page_29 | 1    |
-| 1557183930727 | 1557183900000 | 1557183960000 | User_6|+|Page_93 | User_6 | Page_93 | 3    |
++---------------+---------------+---------------+------------------+------+
+| ROWTIME       | WINDOWSTART   | WINDOWEND     | KSQL_COL_0       | TOTAL|
++---------------+---------------+---------------+------------------+------+
+| 1557183919786 | 1557183900000 | 1557183960000 | User_5|+|Page_12 | 1    |
+| 1557183929488 | 1557183900000 | 1557183960000 | User_9|+|Page_39 | 1    |
+| 1557183930211 | 1557183900000 | 1557183960000 | User_1|+|Page_79 | 1    |
+| 1557183930687 | 1557183900000 | 1557183960000 | User_9|+|Page_34 | 1    |
+| 1557183929786 | 1557183900000 | 1557183960000 | User_5|+|Page_12 | 2    |
+| 1557183931095 | 1557183900000 | 1557183960000 | User_3|+|Page_43 | 1    |
+| 1557183930184 | 1557183900000 | 1557183960000 | User_1|+|Page_29 | 1    |
+| 1557183930727 | 1557183900000 | 1557183960000 | User_6|+|Page_93 | 3    |
 ^CQuery terminated
 ```
 
@@ -304,16 +301,16 @@ Look up the value for a specific key within the table by using a SELECT
 statement.
 
 ```sql
-SELECT * FROM pageviews_table WHERE ROWKEY='User_9|+|Page_39';
+SELECT * FROM pageviews_table WHERE KSQL_COL_0='User_9|+|Page_39';
 ```
 
 Your output should resemble:
 
 ```
-+------------------+---------------+---------------+--------+---------+-------+
-| ROWKEY           | WINDOWSTART   | WINDOWEND     | USERID | PAGEID  | TOTAL |
-+------------------+---------------+---------------+--------+---------+-------+
-| User_9|+|Page_39 | 1557183900000 | 1557183960000 | User_9 | Page_39 | 1     |
++------------------+---------------+---------------+--------+
+| KSQL_COL_0       | WINDOWSTART   | WINDOWEND     |  TOTAL |
++------------------+---------------+---------------+--------+
+| User_9|+|Page_39 | 1557183900000 | 1557183960000 |  1     |
 Query terminated
 ```
 

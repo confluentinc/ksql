@@ -110,7 +110,7 @@ The previous SQL statement does not define a column to represent the data in the
 Kafka message key in the underlying Kafka topic. The system therefore added a
 `ROWKEY` column with type `STRING`.
 
-Where the Kafka message key is serialized in a key format ksqlDB supports, (currently only `KAFKA`),
+If the {{ site.ak }} message key is serialized in a key format that ksqlDB supports (currently `KAFKA`),
 you can specify the key in the column list of the CREATE STREAM statement.
 
 For example, the {{ site.ak }}  message key of the `pageviews` topic is a `BIGINT` containing the `viewtime`,

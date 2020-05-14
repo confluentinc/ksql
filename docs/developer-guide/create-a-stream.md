@@ -114,7 +114,7 @@ Where the Kafka message key is serialized in a key format ksqlDB supports, (curr
 you can specify the key in the column list of the CREATE STREAM statement.
 
 For example, the Kafka message key of the pageviews topic is a `BIGINT` containing the `viewtime`.
-So, you can write the CREATE STREAM statement like this:
+so you can write the CREATE STREAM statement like this:
 
 ```sql
 CREATE STREAM pageviews_withkey
@@ -359,4 +359,3 @@ Next Steps
 ----------
 
 -   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
-

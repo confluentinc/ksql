@@ -64,6 +64,8 @@ public interface Client {
 
   Publisher<InsertAck> streamInserts(String streamName, Publisher<List<Object>> insertsPublisher);
 
+  CompletableFuture<Void> terminatePushQuery(String queryId);
+
   void close();
 
   static Client create(ClientOptions clientOptions) {

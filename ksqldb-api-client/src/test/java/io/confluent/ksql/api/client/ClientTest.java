@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client;
 
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -43,6 +44,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -441,6 +443,48 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("invalid query blah"));
+  }
+
+  @Test
+  public void shouldTerminatePushQueryIssuedViaStreamQuery() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    final String queryId = streamedQueryResult.queryID();
+    assertThat(queryId, is(notNullValue()));
+
+    // Query is running on server, and StreamedQueryResult is not complete
+    assertThat(server.getQueryIDs(), hasSize(1));
+    assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(true));
+    assertThat(streamedQueryResult.isComplete(), is(false));
+
+    // When
+    javaClient.terminatePushQuery(queryId).get();
+
+    // Then: query is no longer running on server, and StreamedQueryResult is complete
+    assertThat(server.getQueryIDs(), hasSize(0));
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldTerminatePushQueryIssuedViaExecuteQuery() {
+    // Will implement once https://github.com/confluentinc/ksql/pull/5236#issuecomment-628997138
+    // is resolved
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromTerminatePushQuery() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.terminatePushQuery("nonexistent query ID").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("No query with id"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: " + ERROR_CODE_UNKNOWN_QUERY_ID));
   }
 
   protected Client createJavaClient() {

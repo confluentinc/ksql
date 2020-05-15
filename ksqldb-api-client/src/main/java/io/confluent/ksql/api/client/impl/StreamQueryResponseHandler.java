@@ -75,14 +75,10 @@ public class StreamQueryResponseHandler extends QueryResponseHandler<StreamedQue
       }
     } else if (json instanceof JsonObject) {
       final JsonObject error = (JsonObject) json;
-      if ("error".equals(error.getString("status"))) {
-        queryResult.handleError(new KsqlApiException(
-            error.getString("message"),
-            error.getInteger("errorCode"))
-        );
-      } else {
-        throw new RuntimeException("Unexpected response from server: " + error);
-      }
+      queryResult.handleError(new KsqlApiException(
+          error.getString("message"),
+          error.getInteger("error_code"))
+      );
     } else {
       throw new RuntimeException("Could not decode JSON: " + json);
     }

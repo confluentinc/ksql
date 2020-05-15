@@ -32,7 +32,7 @@ Begin by telling ksqlDB to start all queries from earliest point in each topic.
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-Create a stream `s1` that has a timestamp column`, `ts`. Notice that the `timestamp` property hasn't been set yet. This will make it easier to see how the functionality behaves later in this guide.
+Create a stream `s1` that has a timestamp column, `ts`. Notice that the `timestamp` property hasn't been set yet. This will make it easier to see how the functionality behaves later in this guide.
 
 ```sql
 CREATE STREAM s1 (
@@ -48,7 +48,7 @@ CREATE STREAM s1 (
 );
 ```
 
-Insert some events into `s1`, setting the `ts` column to dates older than now.
+Insert some events into `s1`, setting the `ts` column to dates that are not "now".
 
 ```sql
 INSERT INTO s1 (
@@ -64,7 +64,7 @@ INSERT INTO s1 (
 );
 ```
 
-Query the stream for its columns, including `ROWTIME`. `ROWTIME` is a system-column that ksqlDB reserves for the timestamp of the event.
+Query the stream for its columns, including `ROWTIME`. `ROWTIME` is a system-column that ksqlDB reserves to track the timestamp of the event.
 
 ```sql
 SELECT k,
@@ -77,7 +77,7 @@ FROM s1
 EMIT CHANGES;
 ```
 
-Your results should look similiar to what is below, depending on the wall clock of when you run it. Because you didn't instruct ksqlDB to use event-time, `ROWTIME` is inherited from the underlying Kafka record. Kafka's default is to set the timestamp at which the record was produced to the topic.
+Your results should look similiar to what is below with the exception of `ROWTIME` and `ROWTIME_FORMATTED`, which will mirror your wall clock. Because you didn't yet instruct ksqlDB to use event-time, `ROWTIME` is inherited from the underlying Kafka record. Kafka's default is to set the timestamp at which the record was produced to the topic.
 
 ```
 +------------------------------------+------------------------------------+------------------------------------+------------------------------------+------------------------------------+------------------------------------+
@@ -99,7 +99,7 @@ CREATE STREAM S2 WITH (
     EMIT CHANGES;
 ```
 
-Now compare the timestamps again. This time, notice that `ROWTIME` has been set to the same value as `ts`. ksqlDB is now using event-time.
+Now compare the timestamps again. This time, notice that `ROWTIME` has been set to the same value as `ts`. `s2` is now using event-time.
 
 ```sql
 SELECT k,
@@ -108,7 +108,7 @@ SELECT k,
        ts,
        v1,
        v2
-FROM s1
+FROM s2
 EMIT CHANGES;
 ```
 
@@ -127,7 +127,7 @@ Any new streams or tables derived from `s2` will continue to have their timestam
 
 ## Timestamps on base streams/tables
 
-Not only can you tell ksqlDB to change the timestamp to use as you derive new streams and tables, you can also set it on base ones, too. Simply set the properties on the `WITH` clause.
+Not only can you change the timestamp to use as you derive new streams and tables, you can also set it on base ones, too. Simply set the `timestamp` and `timestamp_format` properties on the `WITH` clause.
 
 ```sql
 CREATE STREAM s3 (
@@ -139,14 +139,14 @@ CREATE STREAM s3 (
     partitions = 1,
     value_format = 'avro',
     key = 'k',
-    timestamp = 'ts',                        -- the column to use as a timestamp
-    timestamp_format = 'yyyy-MM-dd HH:mm:ss' -- the format to parse the timestamp
+    timestamp = 'ts',
+    timestamp_format = 'yyyy-MM-dd HH:mm:ss'
 );
 ```
 
 ## Timestamps as long values
 
-ksqlDB can use timestamps that are represented as milliseconds since the Unix epoch, too.
+You can use timestamps that are represented as milliseconds since the Unix epoch, too.
 
 Create a stream `s4` with a timestamp column of type `BIGINT`. Because the timestamp is a number, ksqlDB doesn't need to know how to parse its timestamp format — it can interpret it directly as milliseconds since the Unix epoch. This means you can omit the `timestamp_format` property.
 

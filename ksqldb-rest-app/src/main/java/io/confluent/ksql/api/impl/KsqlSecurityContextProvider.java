@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server;
+package io.confluent.ksql.api.impl;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityContext;

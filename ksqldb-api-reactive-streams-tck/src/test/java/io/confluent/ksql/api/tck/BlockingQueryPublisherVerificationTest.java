@@ -16,7 +16,7 @@
 package io.confluent.ksql.api.tck;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.rest.server.BlockingQueryPublisher;
+import io.confluent.ksql.api.impl.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.PushQueryHandle;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.TransientQueryQueue;

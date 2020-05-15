@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 
 import static io.confluent.ksql.rest.server.KsqlRestConfig.ADVERTISED_LISTENER_CONFIG;
+import static io.confluent.ksql.rest.server.KsqlRestConfig.INTERNAL_LISTENER_CONFIG;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.LISTENERS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,6 +60,9 @@ public class KsqlRestConfigTest {
 
   private static final String QUOTED_FIRST_LISTENER_CONFIG =
       "first '" + LISTENERS_CONFIG + "'";
+
+  private static final String QUOTED_INTERNAL_LISTENER_CONFIG =
+      "'" + INTERNAL_LISTENER_CONFIG + "'";
 
   @Mock
   private Function<URL, Integer> portResolver;
@@ -507,7 +511,7 @@ public class KsqlRestConfigTest {
 
     assertThat(actual, is(expected));
     verifyLogsInterNodeListener(expected, QUOTED_FIRST_LISTENER_CONFIG);
-    verifyLogsWildcardWarning(expected);
+    verifyLogsWildcardWarning(expected, QUOTED_FIRST_LISTENER_CONFIG);
     verifyNoMoreInteractions(logger);
   }
 
@@ -530,7 +534,209 @@ public class KsqlRestConfigTest {
 
     assertThat(actual, is(expected));
     verifyLogsInterNodeListener(expected, QUOTED_FIRST_LISTENER_CONFIG);
-    verifyLogsWildcardWarning(expected);
+    verifyLogsWildcardWarning(expected, QUOTED_FIRST_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+
+  @Test
+  public void shouldThrowIfOnGetInterNodeListenerIfInternalListenerSetToUnresolvableHost() {
+    // Given:
+    final URL expected = url("https://unresolvable_host:12345");
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(INTERNAL_LISTENER_CONFIG, expected.toString())
+        .build()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> config.getInterNodeListener(portResolver, logger)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value "
+        + "https://unresolvable_host:12345 for configuration "
+        + INTERNAL_LISTENER_CONFIG
+        + ": Could not resolve internal host"));
+  }
+
+  @Test
+  public void shouldResolveInterNodeListenerToInternalListenerSetToResolvableHost() {
+    // Given:
+    final URL expected = url("https://example.com:12345");
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(INTERNAL_LISTENER_CONFIG, expected.toString())
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveInterNodeListenerToInternalListenerSetToLocalHost() {
+    // Given:
+    final URL expected = url("https://localHost:52368");
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(INTERNAL_LISTENER_CONFIG, expected.toString())
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyLogsLoopBackWarning(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveInterNodeListenerToInternalListenerSetToIpv4Loopback() {
+    // Given:
+    final URL expected = url("https://127.0.0.2:12345");
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(INTERNAL_LISTENER_CONFIG, expected.toString())
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyLogsLoopBackWarning(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveInterNodeListenerToInternalListenerSetToIpv6Loopback() {
+    // Given:
+    final URL expected = url("https://[::1]:12345");
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(INTERNAL_LISTENER_CONFIG, expected.toString())
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyLogsLoopBackWarning(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveInterNodeListenerToInternalListenerWithAutoPortAssignment() {
+    // Given:
+    final URL autoPort = url("https://example.com:0");
+
+    when(portResolver.apply(any())).thenReturn(2222);
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(INTERNAL_LISTENER_CONFIG, autoPort.toString())
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    final URL expected = url("https://example.com:2222");
+
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveInterNodeListenerToInternalListenerWithAutoPortAssignmentAndTrailingSlash() {
+    // Given:
+    final URL autoPort = url("https://example.com:0/");
+
+    when(portResolver.apply(any())).thenReturn(2222);
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(INTERNAL_LISTENER_CONFIG, autoPort.toString())
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    final URL expected = url("https://example.com:2222");
+
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveInterNodeListenerToInternalListenerWithIpv4WildcardAddress() {
+    // Given:
+    final URL wildcard = url("https://0.0.0.0:12589");
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(INTERNAL_LISTENER_CONFIG, wildcard.toString())
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    final URL expected = url("https://" + getLocalHostName() + ":12589");
+
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyLogsWildcardWarning(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  public void shouldResolveInterNodeListenerToInternalListenerWithIpv6WildcardAddress() {
+    // Given:
+    final URL wildcard = url("https://[::]:12345");
+
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(INTERNAL_LISTENER_CONFIG, wildcard.toString())
+        .build()
+    );
+
+    // When:
+    final URL actual = config.getInterNodeListener(portResolver, logger);
+
+    // Then:
+    final URL expected = url("https://" + getLocalHostName() + ":12345");
+
+    assertThat(actual, is(expected));
+    verifyLogsInterNodeListener(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
+    verifyLogsWildcardWarning(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
     verifyNoMoreInteractions(logger);
   }
 
@@ -689,11 +895,11 @@ public class KsqlRestConfigTest {
     );
   }
 
-  private void verifyLogsWildcardWarning(final URL listener) {
+  private void verifyLogsWildcardWarning(final URL listener, final String sourceConfig) {
     verify(logger).warn(
         "{} config uses wildcard address: {}. Intra-node communication will only work "
             + "between nodes running on the same machine.",
-        QUOTED_FIRST_LISTENER_CONFIG,
+        sourceConfig,
         listener
     );
   }

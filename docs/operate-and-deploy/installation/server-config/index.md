@@ -310,3 +310,83 @@ Start the ksqlDB server with the configuration file specified.
 <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
+Configuring Listeners for a ksqlDB Cluster
+--------------------------------
+
+Multiple hosts are required to scale ksqlDB processing power and to do that, they must
+form a cluster.  ksqlDB requires all hosts of a cluster to use the same `ksql.service.id`.
+
+```properties
+bootstrap.servers=localhost:9092
+ksql.service.id=my_application_
+```
+
+Once formed, many operations can be run using the client APIs exposed on `listeners`.
+
+In order to utilize pull queries and their high availability functionality,
+the hosts within the cluster must be configured to speak to each other via their
+internal endpoints. The following describes how to configure listeners depending on
+the nature of your environment.
+
+### Listener Uses a Routable IP Address
+
+If you want to configure your listener with an expicit IP address that is reachable
+within the cluster, you might do the following:
+
+```properties
+listeners=http://192.168.1.101:8088
+```
+
+This listener will bind the client and internal endpoints to the given address, which
+will also be utilized by inter-node communication.
+
+### Listener Uses a Special or Unroutable Address
+
+It's common to setup a service using special hostnames such as `localhost` or special
+addresses such as `0.0.0.0`.  Both have special meanings and are not appropriate for
+inter-node commmunication.  Similarly, if your network is setup such that the IP you
+bind isn't routeable, it's also not appropriate.  If you choose to use such a listener,
+you must set `ksql.advertised.listener` specifying which address to use:
+
+```properties
+listeners=http://0.0.0.0:8088
+ksql.advertised.listener=http://host1.internal.example.com:8088
+```
+
+This listener will bind the client and internal endpoints to the given address.  Now
+inter-node communication will explicity use the other address 
+`http://host1.internal.example.com:8088`.
+
+### Listener Binds Client and Internal Listeners Separately
+
+If ksqlDB is being run in an environment where you require more security, you first
+want to enable [authentication and other security measures](security.md).  Secondly,
+you may choose to configure internal endpoints to be bound using a separate listener
+from the client endpoints. This allows for port filtering, to make internal endpoints
+unreachable beyond the internal network of the cluster, based on the port bound.
+Similarly, it allows for the use of dual network interfaces where one is public facing,
+and the other is cluster facing.  Both measures can used to add additional security to
+your configuration.  To do this, you can set a separate listener for inter-node
+communication `ksql.internal.listener`:
+
+```properties
+listeners=https://192.168.1.101:8088
+# Port 8099 is available only to the trusted internal network
+ksql.internal.listener=https://192.168.1.101:8099
+```
+
+Now, `listener` will bind the client endpoints, while `ksql.internal.listener` binds
+the internal ones.  Also, inter-node communication will now utilize the addess from 
+`ksql.internal.listener`.
+
+
+### Listener Binds Client and Internal Listeners Separately With Special Addresses
+
+This combines two of the previous configurations:
+
+```properties
+listeners=https://0.0.0.0:8088
+# Port 8099 is available only to the trusted internal network
+ksql.internal.listener=https://0.0.0.0:8099
+ksql.advertised.listener=http://host1.internal.example.com:8099
+```

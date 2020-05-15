@@ -69,6 +69,7 @@ public class Server {
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final List<URI> listeners = new ArrayList<>();
+  private URI internalListener;
   private WorkerExecutor workerExecutor;
 
   public Server(final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
@@ -95,21 +96,24 @@ public class Server {
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");
 
     final List<URI> listenUris = parseListeners(config);
+    final Optional<URI> internalListenUri = parseInternalListener(config, listenUris);
+    final List<URI> allListenUris = new ArrayList<>(listenUris);
+    internalListenUri.ifPresent(allListenUris::add);
 
     final int instances = config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
-
     final Map<URI, URI> uris = new ConcurrentHashMap<>();
-
-    for (URI listener : listenUris) {
+    for (URI listener : allListenUris) {
+      final Optional<Boolean> isInternalListener =
+          internalListenUri.map(uri -> uri.equals(listener));
 
       for (int i = 0; i < instances; i++) {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
                 listener.getScheme().equalsIgnoreCase("https")),
-            this);
+            this, isInternalListener);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {
@@ -141,6 +145,9 @@ public class Server {
     }
     for (URI uri : listenUris) {
       listeners.add(uris.get(uri));
+    }
+    if (internalListenUri.isPresent()) {
+      internalListener = uris.get(internalListenUri.get());
     }
     log.info("API server started");
   }
@@ -224,6 +231,10 @@ public class Server {
     return ImmutableList.copyOf(listeners);
   }
 
+  public synchronized Optional<URI> getInternalListener() {
+    return Optional.ofNullable(internalListener);
+  }
+
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,
       final String host, final int port, final boolean tls) {
 
@@ -265,8 +276,30 @@ public class Server {
 
   private static List<URI> parseListeners(final KsqlRestConfig config) {
     final List<String> sListeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);
+    return parseListenerStrings(config, sListeners);
+  }
+
+  private static Optional<URI> parseInternalListener(
+      final KsqlRestConfig config,
+      final List<URI> listenUris
+  ) {
+    if (config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG) == null) {
+      return Optional.empty();
+    }
+    final URI uri = parseListenerStrings(config,
+        ImmutableList.of(config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG))).get(0);
+    if (listenUris.contains(uri)) {
+      return Optional.empty();
+    } else {
+      return Optional.of(uri);
+    }
+  }
+
+  private static List<URI> parseListenerStrings(
+      final KsqlRestConfig config,
+      final List<String> stringListeners) {
     final List<URI> listeners = new ArrayList<>();
-    for (String listenerName : sListeners) {
+    for (String listenerName : stringListeners) {
       try {
         final URI uri = new URI(listenerName);
         final String scheme = uri.getScheme();

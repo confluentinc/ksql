@@ -415,6 +415,20 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_LISTENERS`.
 
+### ksql.advertised.listener
+
+This is the url used for inter-node communication.  Unlike `listeners` or `ksql.internal.listener`, this configuration doesn't create a listener.
+
+### ksql.internal.listener
+
+The `ksql.internal.listener ` setting controls the address bound for use by internal,
+intra-cluster endpoints.  These include forwarded pull queries, heartbeating, and lag reporting.
+
+If not set, the system will use `listeners` to expose internal endpoints.
+
+This setting is most often useful in a IaaS environment to separate external-facing
+trafic from internal traffic.
+
 ### ksql.metrics.tags.custom
 
 A list of tags to be included with emitted

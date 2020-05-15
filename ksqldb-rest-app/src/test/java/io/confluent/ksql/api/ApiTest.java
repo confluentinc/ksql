@@ -75,7 +75,7 @@ public class ApiTest extends BaseApiTest {
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     assertThat(queryResponse.responseObject.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
     assertThat(queryResponse.responseObject.getJsonArray("columnTypes"), is(DEFAULT_COLUMN_TYPES));
-    assertThat(queryResponse.rows, is(DEFAULT_ROWS));
+    assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));
     assertThat(server.getQueryIDs(), hasSize(0));
     String queryId = queryResponse.responseObject.getString("queryId");
     assertThat(queryId, is(nullValue()));
@@ -93,7 +93,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(testEndpoints.getLastProperties(), is(DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES));
     assertThat(queryResponse.responseObject.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
     assertThat(queryResponse.responseObject.getJsonArray("columnTypes"), is(DEFAULT_COLUMN_TYPES));
-    assertThat(queryResponse.rows, is(DEFAULT_ROWS));
+    assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));
     assertThat(server.getQueryIDs(), hasSize(1));
     String queryId = queryResponse.responseObject.getString("queryId");
     assertThat(queryId, is(notNullValue()));
@@ -235,7 +235,7 @@ public class ApiTest extends BaseApiTest {
   public void shouldHandleErrorInProcessingQuery() throws Exception {
 
     // Given
-    testEndpoints.setRowsBeforePublisherError(DEFAULT_ROWS.size() - 1);
+    testEndpoints.setRowsBeforePublisherError(DEFAULT_JSON_ROWS.size() - 1);
 
     // When
     HttpResponse<Buffer> response = sendRequest("/query-stream",
@@ -245,7 +245,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusCode(), is(200));
     assertThat(response.statusMessage(), is("OK"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    assertThat(queryResponse.rows, hasSize(DEFAULT_ROWS.size() - 1));
+    assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size() - 1));
     validateError(ERROR_CODE_INTERNAL_ERROR, "Error in processing query", queryResponse.error);
     assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
     assertThat(server.getQueryIDs().isEmpty(), is(true));
@@ -300,7 +300,7 @@ public class ApiTest extends BaseApiTest {
       } catch (Throwable t) {
         return Integer.MAX_VALUE;
       }
-    }, is(DEFAULT_ROWS.size()));
+    }, is(DEFAULT_JSON_ROWS.size()));
 
     // The response shouldn't have ended yet
     assertThat(writeStream.isEnded(), is(false));
@@ -589,7 +589,7 @@ public class ApiTest extends BaseApiTest {
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    assertThat(queryResponse.rows, hasSize(DEFAULT_ROWS.size()));
+    assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size()));
     assertThat(response.bodyAsString().contains("\n"), is(true));
     assertThat(response.statusCode(), is(200));
   }
@@ -607,7 +607,7 @@ public class ApiTest extends BaseApiTest {
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    assertThat(queryResponse.rows, hasSize(DEFAULT_ROWS.size()));
+    assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size()));
     assertThat(response.bodyAsString().contains("\n"), is(true));
     assertThat(response.statusCode(), is(200));
   }
@@ -625,12 +625,12 @@ public class ApiTest extends BaseApiTest {
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
     JsonArray jsonArray = new JsonArray(response.body());
-    assertThat(jsonArray.size(), is(DEFAULT_ROWS.size() + 1));
+    assertThat(jsonArray.size(), is(DEFAULT_JSON_ROWS.size() + 1));
     JsonObject metaData = jsonArray.getJsonObject(0);
     assertThat(metaData.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
     assertThat(metaData.getJsonArray("columnTypes"), is(DEFAULT_COLUMN_TYPES));
-    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
-      assertThat(jsonArray.getJsonArray(i + 1), is(DEFAULT_ROWS.get(i)));
+    for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
+      assertThat(jsonArray.getJsonArray(i + 1), is(DEFAULT_JSON_ROWS.get(i)));
     }
   }
 
@@ -705,7 +705,7 @@ public class ApiTest extends BaseApiTest {
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
     JsonArray jsonArray = new JsonArray(response.body());
-    assertThat(jsonArray.size(), is(DEFAULT_ROWS.size()));
+    assertThat(jsonArray.size(), is(DEFAULT_JSON_ROWS.size()));
     for (int i = 0; i < jsonArray.size(); i++) {
       final JsonObject ackLine = new JsonObject().put("status", "ok").put("seq", i);
       assertThat(jsonArray.getJsonObject(i), is(ackLine));
@@ -799,9 +799,16 @@ public class ApiTest extends BaseApiTest {
     List<JsonObject> rows = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       JsonObject row = new JsonObject()
-          .put("name", "foo" + i)
-          .put("age", i)
-          .put("male", i % 2 == 0);
+          .put("f_str", "foo" + i)
+          .put("f_int", i)
+          .put("f_bool", i % 2 == 0)
+          .put("f_long", i * i)
+          .put("f_double", i + 0.1111)
+          .put("f_decimal", i + 0.1) // can't put BigDecimal directly because of "java.lang.IllegalStateException: Illegal type in JsonObject: class java.math.BigDecimal
+          .put("f_array", new JsonArray().add("s" + i).add("t" + i))
+          .put("f_map", new JsonObject().put("k" + i, "v" + i))
+          .put("f_struct", new JsonObject().put("F1", "v" + i).put("F2", i))
+          .putNull("f_null");
       rows.add(row);
     }
     return rows;

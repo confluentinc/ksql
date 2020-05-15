@@ -29,6 +29,8 @@ public interface Row {
 
   KsqlArray values();
 
+  KsqlObject asObject();
+
   /**
    * Whether the value for a particular column of the Row is null.
    *

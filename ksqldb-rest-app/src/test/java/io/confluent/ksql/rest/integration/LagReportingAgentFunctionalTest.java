@@ -1,13 +1,12 @@
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.sendClusterStatusRequest;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
@@ -64,13 +63,15 @@ public class LagReportingAgentFunctionalTest {
       "_confluent-ksql-default_query_CTAS_USER_LATEST_VIEWTIME_5",
       "Aggregate-Aggregate-Materialize");
 
-  private static final KsqlHostInfoEntity HOST0 = new KsqlHostInfoEntity("localhost", 8288);
-  private static final KsqlHostInfoEntity HOST1 = new KsqlHostInfoEntity("localhost", 8289);
+  private static final KsqlHostInfoEntity HOST0 = new KsqlHostInfoEntity("localhost", 8188);
+  private static final KsqlHostInfoEntity HOST1 = new KsqlHostInfoEntity("localhost", 8189);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8288")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .withProperty(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
@@ -87,6 +88,8 @@ public class LagReportingAgentFunctionalTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8289")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .withProperty(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
@@ -179,20 +182,6 @@ public class LagReportingAgentFunctionalTest {
       return false;
     }
     return true;
-  }
-
-  private static ClusterStatusResponse sendClusterStatusRequest(final TestKsqlRestApp restApp) {
-
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
-
-      final RestResponse<ClusterStatusResponse> res = restClient.makeClusterStatusRequest();
-
-      if (res.isErroneous()) {
-        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
-      }
-
-      return res.getResponse();
-    }
   }
 
   private static boolean allLagsReported(ClusterStatusResponse response) {

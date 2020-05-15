@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client.impl;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -120,5 +121,42 @@ public class RowImplTest {
     assertThat(row.isNull("f_null"), is(true));
     assertThat(row.isNull("f_bool"), is(false));
     assertThat(row.isNull("f_struct"), is(false));
+  }
+
+  @Test
+  public void shouldThrowExceptionOnInvalidCast() {
+    assertThrows(ClassCastException.class, () -> row.getInt("f_str"));
+  }
+
+  @Test
+  public void shouldGetColumnNames() {
+    assertThat(row.columnNames(), is(COLUMN_NAMES));
+  }
+
+  @Test
+  public void shouldGetColumnTypes() {
+    assertThat(row.columnTypes(), is(COLUMN_TYPES));
+  }
+
+  @Test
+  public void shouldGetValues() {
+    assertThat(row.values(), is(new KsqlArray(VALUES.getList())));
+  }
+
+  @Test
+  public void shouldGetAsObject() {
+    // When
+    final KsqlObject obj = row.asObject();
+
+    // Then
+    assertThat(obj.getString("f_str"), is("foo"));
+    assertThat(obj.getInteger("f_int"), is(2));
+    assertThat(obj.getLong("f_long"), is(1234L));
+    assertThat(obj.getDouble("f_double"), is(34.43));
+    assertThat(obj.getBoolean("f_bool"), is(false));
+    assertThat(obj.getDecimal("f_decimal"), is(new BigDecimal("12.21")));
+    assertThat(obj.getKsqlArray("f_array"), is(new KsqlArray(ImmutableList.of("e1", "e2"))));
+    assertThat(obj.getKsqlObject("f_map"), is(new KsqlObject(ImmutableMap.of("k1", "v1", "k2", "v2"))));
+    assertThat(obj.getKsqlObject("f_struct"), is(new KsqlObject(ImmutableMap.of("f1", "baz", "f2", 12))));
   }
 }

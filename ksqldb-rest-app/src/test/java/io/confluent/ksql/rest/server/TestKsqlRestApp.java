@@ -86,6 +86,7 @@ public class TestKsqlRestApp extends ExternalResource {
   protected final Supplier<ServiceContext> serviceContext;
   protected final List<URL> listeners = new ArrayList<>();
   protected final Optional<BasicCredentials> credentials;
+  protected Optional<URL> internalListener;
   protected KsqlExecutionContext ksqlEngine;
   protected KsqlRestApplication ksqlRestApplication;
 
@@ -114,6 +115,10 @@ public class TestKsqlRestApp extends ExternalResource {
     return this.listeners;
   }
 
+  public Optional<URL> getInternalListener() {
+    return this.internalListener;
+  }
+
   @SuppressWarnings("unused") // Part of public API
   public Map<String, ?> getBaseConfig() {
     return Collections.unmodifiableMap(this.baseConfig);
@@ -132,6 +137,11 @@ public class TestKsqlRestApp extends ExternalResource {
   @SuppressWarnings("unused") // Part of public API
   public URI getHttpListener() {
     return getListener("HTTP");
+  }
+
+  @SuppressWarnings("unused") // Part of public API
+  public URI getHttpInternalListener() {
+    return getInternalListener("HTTP");
   }
 
   @SuppressWarnings("unused") // Part of public API
@@ -163,6 +173,24 @@ public class TestKsqlRestApp extends ExternalResource {
   public KsqlRestClient buildKsqlClient(final Optional<BasicCredentials> credentials) {
     return KsqlRestClient.create(
         getHttpListener().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        credentials
+    );
+  }
+
+  public KsqlRestClient buildInternalKsqlClient() {
+    return KsqlRestClient.create(
+        getHttpInternalListener().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        credentials
+    );
+  }
+
+  public KsqlRestClient buildInternalKsqlClient(final Optional<BasicCredentials> credentials) {
+    return KsqlRestClient.create(
+        getHttpInternalListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
         credentials
@@ -213,6 +241,7 @@ public class TestKsqlRestApp extends ExternalResource {
     try {
       ksqlRestApplication.startAsync();
       listeners.addAll(ksqlRestApplication.getListeners());
+      internalListener = ksqlRestApplication.getInternalListener();
     } catch (final Exception var2) {
       throw new RuntimeException("Failed to start Ksql rest server", var2);
     }
@@ -227,6 +256,7 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     listeners.clear();
+    internalListener = null;
     try {
       ksqlRestApplication.triggerShutdown();
     } catch (final Exception e) {
@@ -265,6 +295,18 @@ public class TestKsqlRestApp extends ExternalResource {
     final URL url = getListeners().stream()
         .filter(l -> l.getProtocol().equalsIgnoreCase(protocol))
         .findFirst()
+        .orElseThrow(() -> new IllegalStateException("No " + protocol + " Listener found"));
+
+    try {
+      return url.toURI();
+    } catch (final Exception e) {
+      throw new IllegalStateException("Invalid REST listener", e);
+    }
+  }
+
+  private URI getInternalListener(final String protocol) {
+    final URL url = getInternalListener()
+        .filter(l -> l.getProtocol().equalsIgnoreCase(protocol))
         .orElseThrow(() -> new IllegalStateException("No " + protocol + " Listener found"));
 
     try {

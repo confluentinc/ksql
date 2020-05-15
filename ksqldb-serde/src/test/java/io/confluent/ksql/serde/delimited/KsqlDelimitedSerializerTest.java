@@ -143,7 +143,7 @@ public class KsqlDelimitedSerializerTest {
     final byte[] bytes = serializer.serialize("", value);
 
     // Then:
-    assertThat(new String(bytes, StandardCharsets.UTF_8), is("01.12"));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1.12"));
   }
 
   @Test
@@ -160,7 +160,7 @@ public class KsqlDelimitedSerializerTest {
     final byte[] bytes = serializer.serialize("", value);
 
     // Then:
-    assertThat(new String(bytes, StandardCharsets.UTF_8), is("00.00"));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("0.00"));
   }
 
   @Test
@@ -177,7 +177,7 @@ public class KsqlDelimitedSerializerTest {
     final byte[] bytes = serializer.serialize("", value);
 
     // Then:
-    assertThat(new String(bytes, StandardCharsets.UTF_8), is("00.50"));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("0.50"));
   }
 
   @Test
@@ -194,7 +194,7 @@ public class KsqlDelimitedSerializerTest {
     final byte[] bytes = serializer.serialize("", value);
 
     // Then:
-    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-00.50\""));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-0.50\""));
   }
 
   @Test
@@ -211,7 +211,7 @@ public class KsqlDelimitedSerializerTest {
     final byte[] bytes = serializer.serialize("", value);
 
     // Then:
-    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-01.12\""));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-1.12\""));
   }
 
   @Test

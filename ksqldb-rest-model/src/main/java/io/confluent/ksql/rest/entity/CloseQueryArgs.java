@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
@@ -23,6 +24,7 @@ import java.util.Objects;
  * Represents the arguments to a close query request
  */
 @Immutable
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CloseQueryArgs {
 
   public final PushQueryId queryId;

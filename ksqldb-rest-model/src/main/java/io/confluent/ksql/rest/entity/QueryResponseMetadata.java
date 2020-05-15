@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
@@ -25,6 +26,7 @@ import java.util.Objects;
  * Represents the metadata of a query stream response
  */
 @Immutable
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryResponseMetadata {
 
   public final String queryId;

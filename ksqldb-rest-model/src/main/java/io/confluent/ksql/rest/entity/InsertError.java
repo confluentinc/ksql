@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
@@ -22,6 +23,7 @@ import java.util.Objects;
  * Represents an error on an insert stream
  */
 @Immutable
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class InsertError extends KsqlErrorMessage {
 
   public final String status;

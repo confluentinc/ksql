@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.json.JsonObject;
 import java.util.Map;
@@ -23,6 +24,7 @@ import java.util.Objects;
 /**
  * Represents the arguments to an insert stream request
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class InsertsStreamArgs {
 
   public final String target;

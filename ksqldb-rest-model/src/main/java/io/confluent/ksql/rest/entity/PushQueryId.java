@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
@@ -22,6 +23,7 @@ import java.util.Objects;
  * Surprisingly, the id of a push query
  */
 @Immutable
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PushQueryId {
 
   private final String id;

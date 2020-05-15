@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.errorprone.annotations.Immutable;
 
 /**
  * Represents a response to an insert
  */
 @Immutable
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class InsertAck {
 
   public final long seq;

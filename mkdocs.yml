@@ -69,10 +69,10 @@ nav:
       - Processing log: developer-guide/test-and-debug/processing-log.md
   - How-to guides:
       - Synopsis: how-to-guides/synposis.md
-      - Query:
-          - Query structured data: how-to-guides/query-structured-data.md
-          - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
-          - Use a custom timestamp field: how-to-guides/use-a-custom-timestamp-field.md
+      - Query structured data: how-to-guides/query-structured-data.md
+      - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
+      - Use a custom timestamp field: how-to-guides/use-a-custom-timestamp-field.md
+      - Use connector management: how-to-guides/use-connector-management.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:

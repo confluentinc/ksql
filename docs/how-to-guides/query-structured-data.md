@@ -1,6 +1,6 @@
 # How to query structured data
 
-## The problem
+## Context
 
 You have events that contain structured data types like structs, maps, and arrays. You want to write them to ksqlDB and read their inner contents with queries. Because ksqlDB represents events as a flat series of columns, you need a bit of syntax to work with these data types. This is sometimes called "destructuring".
 

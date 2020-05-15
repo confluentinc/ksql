@@ -72,6 +72,7 @@ nav:
       - Query:
           - Query structured data: how-to-guides/query-structured-data.md
           - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
+          - Use a custom timestamp field: how-to-guides/use-a-custom-timestamp-field.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:

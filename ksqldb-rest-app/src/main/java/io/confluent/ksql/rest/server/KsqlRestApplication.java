@@ -850,6 +850,7 @@ public final class KsqlRestApplication implements Executable {
   }
 
   private void displayWelcomeMessage() {
+    
     final Console console = System.console();
     if (console == null) {
       return;

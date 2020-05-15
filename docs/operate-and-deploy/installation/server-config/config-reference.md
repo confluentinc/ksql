@@ -406,6 +406,9 @@ listeners=http://[::]:8088
 
 # Bind only to localhost.
 listeners=http://localhost:8088
+
+# Bind to specific hostname or ip.
+listeners=http://server1245:8088
 ```
 
 You can configure ksqlDB Server to use HTTPS. For more information, see
@@ -415,19 +418,32 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_LISTENERS`.
 
-### ksql.advertised.listener
-
-This is the url used for inter-node communication.  Unlike `listeners` or `ksql.internal.listener`, this configuration doesn't create a listener.
-
 ### ksql.internal.listener
 
-The `ksql.internal.listener ` setting controls the address bound for use by internal,
-intra-cluster endpoints.  These include forwarded pull queries, heartbeating, and lag reporting.
+The `ksql.internal.listener` setting controls the address bound for use by internal,
+intra-cluster communication.
 
-If not set, the system will use `listeners` to expose internal endpoints.
+If not set, the internal listener default to the first listener defined by `listeners`.
 
 This setting is most often useful in a IaaS environment to separate external-facing
-trafic from internal traffic.
+traffic from internal traffic.
+
+### ksql.advertised.listener
+
+This is the url used for inter-node communication.  Unlike `listeners` or `ksql.internal.listener`,
+this configuration doesn't create a listener. Instead, it is used to set an externally routable
+url that other ksqlDB nodes will use to communicate with this node. It only needs to be set if
+the internal listener is not externally resolvable or routable.
+
+If not set, the default is to use the internal listener, as controlled by `ksql.internal.listener`.
+
+If the `ksql.internal.listener` resolves, either by being explicitly set or from the default first
+url in `listeners`, to a url using `localhost`, a wildcard ip such as `0.0.0.0`, or a hostname that
+other ksqlDB nodes can either not resolve, or can not route requests to, then
+`ksql.advertised.listeners` should be set to a url that can.
+
+See [Configuring Listeners of a ksqlDB Cluster](./index.md#configuringlisteners-of-a-ksqldb-cluster)
+for more info.
 
 ### ksql.metrics.tags.custom
 

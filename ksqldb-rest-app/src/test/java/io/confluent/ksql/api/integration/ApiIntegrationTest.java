@@ -408,8 +408,7 @@ public class ApiIntegrationTest {
 
     // Then:
     assertThat(response.rows, hasSize(0));
-    assertThat(response.responseObject.getString("status"), is("error"));
-    assertThat(response.responseObject.getInteger("errorCode"),
+    assertThat(response.responseObject.getInteger("error_code"),
         is(ERROR_CODE_BAD_STATEMENT));
     assertThat(response.responseObject.getString("message"),
         startsWith(message));
@@ -440,8 +439,7 @@ public class ApiIntegrationTest {
     InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
     assertThat(insertsResponse.acks, hasSize(0));
     assertThat(insertsResponse.error, is(notNullValue()));
-    assertThat(insertsResponse.error.getString("status"), is("error"));
-    assertThat(insertsResponse.error.getInteger("errorCode"), is(errorCode));
+    assertThat(insertsResponse.error.getInteger("error_code"), is(errorCode));
     assertThat(insertsResponse.error.getString("message"),
         startsWith(message));
   }

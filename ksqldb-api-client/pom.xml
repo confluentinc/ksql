@@ -69,6 +69,14 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-engine</artifactId>
+            <version>${project.parent.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Only required to provide LoginModule implementation in tests -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>

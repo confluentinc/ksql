@@ -45,7 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -147,6 +146,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(nullValue()));
 
     shouldReceiveRows(streamedQueryResult, true);
 
@@ -164,6 +164,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(nullValue()));
 
     for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       final Row row = streamedQueryResult.poll();

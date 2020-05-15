@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.Server;
-import io.confluent.ksql.api.server.protocol.PojoCodec;
+import io.confluent.ksql.api.server.ServerUtils;
 import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
@@ -256,7 +256,7 @@ public class BaseApiTest {
 
   private static List<JsonArray> convertToJsonRows(final List<GenericRow> rows) {
     return rows.stream()
-        .map(row -> PojoCodec.serializeObject(row).toJsonObject().getJsonArray("columns"))
+        .map(row -> ServerUtils.serializeObject(row).toJsonObject().getJsonArray("columns"))
         .collect(Collectors.toList());
   }
 

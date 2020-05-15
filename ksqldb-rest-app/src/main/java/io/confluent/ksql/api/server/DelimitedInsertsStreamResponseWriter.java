@@ -47,13 +47,13 @@ public class DelimitedInsertsStreamResponseWriter implements InsertsStreamRespon
 
   @Override
   public InsertsStreamResponseWriter writeInsertResponse(final InsertAck insertAck) {
-    response.write(PojoCodec.serializeObject(insertAck).appendString("\n"));
+    response.write(ServerUtils.serializeObject(insertAck).appendString("\n"));
     return this;
   }
 
   @Override
   public InsertsStreamResponseWriter writeError(final InsertError error) {
-    response.write(PojoCodec.serializeObject(error).appendString("\n"));
+    response.write(ServerUtils.serializeObject(error).appendString("\n"));
     return this;
   }
 

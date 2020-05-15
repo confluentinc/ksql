@@ -15,17 +15,11 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static org.apache.http.HttpHeaders.TRANSFER_ENCODING;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
-import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
@@ -36,6 +30,7 @@ import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import java.io.BufferedOutputStream;
 import java.io.OutputStream;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
@@ -47,7 +42,6 @@ public final class OldApiUtils {
 
   private static final String CONTENT_TYPE_HEADER = HttpHeaders.CONTENT_TYPE.toString();
   private static final String JSON_CONTENT_TYPE = "application/json";
-  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
   private static final String CHUNKED_ENCODING = "chunked";
 
   static <T> void handleOldApiRequest(final Server server,
@@ -55,18 +49,19 @@ public final class OldApiUtils {
       final Class<T> requestClass,
       final BiFunction<T, ApiSecurityContext, CompletableFuture<EndpointResponse>> requestor) {
     final HttpServerResponse response = routingContext.response();
+
     final T requestObject;
     if (requestClass != null) {
-      try {
-        requestObject = OBJECT_MAPPER.readValue(routingContext.getBody().getBytes(), requestClass);
-      } catch (Exception e) {
-        routingContext.fail(BAD_REQUEST.code(),
-            new KsqlApiException("Malformed JSON", ERROR_CODE_BAD_REQUEST));
+      final Optional<T> optRequestObject = ServerUtils
+          .deserialiseObject(routingContext.getBody(), routingContext, requestClass);
+      if (!optRequestObject.isPresent()) {
         return;
       }
+      requestObject = optRequestObject.get();
     } else {
       requestObject = null;
     }
+
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
     completableFuture.thenAccept(endpointResponse -> {
@@ -108,15 +103,7 @@ public final class OldApiUtils {
         if (endpointResponse.getEntity() instanceof String) {
           responseBody = Buffer.buffer((String) endpointResponse.getEntity());
         } else {
-          try {
-            final byte[] bytes = OBJECT_MAPPER
-                .writeValueAsBytes(endpointResponse.getEntity());
-            responseBody = Buffer.buffer(bytes);
-          } catch (JsonProcessingException e) {
-            // This is an internal error as it's a bug in the server
-            routingContext.fail(INTERNAL_SERVER_ERROR.code(), e);
-            return;
-          }
+          responseBody = ServerUtils.serializeObject(endpointResponse.getEntity());
         }
         response.end(responseBody);
       }

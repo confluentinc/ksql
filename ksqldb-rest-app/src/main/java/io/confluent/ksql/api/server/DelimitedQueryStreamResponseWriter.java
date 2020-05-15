@@ -48,19 +48,19 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
 
   @Override
   public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
-    response.write(PojoCodec.serializeObject(metaData).appendString("\n"));
+    response.write(ServerUtils.serializeObject(metaData).appendString("\n"));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeRow(final GenericRow row) {
-    response.write(PojoCodec.serializeObject(row.values()).appendString("\n"));
+    response.write(ServerUtils.serializeObject(row.values()).appendString("\n"));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
-    response.write(PojoCodec.serializeObject(error).appendString("\n"));
+    response.write(ServerUtils.serializeObject(error).appendString("\n"));
     return this;
   }
 

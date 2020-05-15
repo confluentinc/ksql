@@ -17,7 +17,6 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.QueryStreamHandler.DELIMITED_CONTENT_TYPE;
 import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
-import static io.confluent.ksql.api.server.ServerUtils.deserialiseObject;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
@@ -125,7 +124,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
     private void handleArgs(final Buffer buff) {
       hasReadArguments = true;
-      final Optional<InsertsStreamArgs> insertsStreamArgs = deserialiseObject(buff,
+      final Optional<InsertsStreamArgs> insertsStreamArgs = ServerUtils.deserialiseObject(buff,
           routingContext,
           InsertsStreamArgs.class);
       if (!insertsStreamArgs.isPresent()) {

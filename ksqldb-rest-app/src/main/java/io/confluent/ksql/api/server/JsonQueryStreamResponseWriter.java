@@ -51,20 +51,20 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   @Override
   public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
     final Buffer buff = Buffer.buffer().appendByte((byte) '[');
-    buff.appendBuffer(PojoCodec.serializeObject(metaData));
+    buff.appendBuffer(ServerUtils.serializeObject(metaData));
     response.write(buff);
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeRow(final GenericRow row) {
-    writeBuffer(PojoCodec.serializeObject(row.values()));
+    writeBuffer(ServerUtils.serializeObject(row.values()));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
-    writeBuffer(PojoCodec.serializeObject(error));
+    writeBuffer(ServerUtils.serializeObject(error));
     return this;
   }
 

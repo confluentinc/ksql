@@ -226,7 +226,9 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusCode(), is(400));
     assertThat(response.statusMessage(), is("Bad Request"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_BAD_REQUEST, "No sql in arguments", queryResponse.responseObject);
+    validateError(ERROR_CODE_BAD_REQUEST,
+        "Invalid JSON in request: Missing required creator property 'sql'",
+        queryResponse.responseObject);
   }
 
   @Test
@@ -341,7 +343,8 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("Bad Request"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_BAD_REQUEST, "No queryId in arguments",
+    validateError(ERROR_CODE_BAD_REQUEST,
+        "Invalid JSON in request: Missing required creator property 'queryId'",
         queryResponse.responseObject);
   }
 
@@ -469,7 +472,9 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("Bad Request"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_BAD_REQUEST, "No target in arguments", queryResponse.responseObject);
+    validateError(ERROR_CODE_BAD_REQUEST,
+        "Invalid JSON in request: Missing required creator property 'target'",
+        queryResponse.responseObject);
   }
 
   @Test
@@ -740,7 +745,8 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusCode(), is(400));
     assertThat(response.statusMessage(), is("Bad Request"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_BAD_REQUEST, "Malformed JSON in request",
+    validateError(ERROR_CODE_BAD_REQUEST,
+        "Invalid JSON in request: Unexpected end-of-input: expected close marker for Object",
         queryResponse.responseObject);
   }
 

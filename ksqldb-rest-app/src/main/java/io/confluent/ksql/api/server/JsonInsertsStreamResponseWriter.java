@@ -44,13 +44,13 @@ public class JsonInsertsStreamResponseWriter implements InsertsStreamResponseWri
 
   @Override
   public InsertsStreamResponseWriter writeInsertResponse(final InsertAck insertAck) {
-    writeBuffer(PojoCodec.serializeObject(insertAck));
+    writeBuffer(ServerUtils.serializeObject(insertAck));
     return this;
   }
 
   @Override
   public InsertsStreamResponseWriter writeError(final InsertError error) {
-    writeBuffer(PojoCodec.serializeObject(error));
+    writeBuffer(ServerUtils.serializeObject(error));
     return this;
   }
 

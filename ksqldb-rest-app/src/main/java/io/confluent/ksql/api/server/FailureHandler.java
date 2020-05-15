@@ -75,7 +75,7 @@ public class FailureHandler implements Handler<RoutingContext> {
   private static void handleError(final HttpServerResponse response, final int statusCode,
       final int errorCode, final String errMsg) {
     final KsqlErrorMessage errorResponse = new KsqlErrorMessage(errorCode, errMsg);
-    final Buffer buffer = PojoCodec.serializeObject(errorResponse);
+    final Buffer buffer = ServerUtils.serializeObject(errorResponse);
     response.setStatusCode(statusCode).end(buffer);
   }
 }

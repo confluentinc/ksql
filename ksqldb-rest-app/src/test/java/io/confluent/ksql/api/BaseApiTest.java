@@ -18,6 +18,7 @@ package io.confluent.ksql.api;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -224,7 +225,7 @@ public class BaseApiTest {
   protected static void validateErrorCommon(final int errorCode, final String message,
       final JsonObject error) {
     assertThat(error.getInteger("error_code"), is(errorCode));
-    assertThat(error.getString("message"), is(message));
+    assertThat(error.getString("message"), startsWith(message));
   }
 
   private static GenericRow rowWithIndex(final int index) {

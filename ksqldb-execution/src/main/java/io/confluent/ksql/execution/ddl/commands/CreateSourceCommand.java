@@ -89,7 +89,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
     return windowInfo;
   }
 
-  private static void validate(final LogicalSchema schema, final Optional<ColumnName> keyField) {
+  private void validate(final LogicalSchema schema, final Optional<ColumnName> keyField) {
     if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
       throw new IllegalArgumentException("Schema contains system columns in value schema");
     }
@@ -107,13 +107,17 @@ public abstract class CreateSourceCommand implements DdlCommand {
       final SqlType keyType = schema.key().get(0).type();
 
       if (!keyFieldType.equals(keyType)) {
+        final String primaryKey = this instanceof CreateTableCommand
+            ? " PRIMARY KEY"
+            : " KEY";
+
         throw new KsqlException("The KEY field ("
             + keyField.get().text()
             + ") identified in the WITH clause is of a different type to the actual key column."
             + System.lineSeparator()
             + "Use of the KEY field is deprecated. Remove the KEY field from the WITH clause and "
             + "specify the name of the key column by adding "
-            + "'" + keyField.get().text() + " " + keyFieldType + " KEY' to the schema."
+            + "'" + keyField.get().text() + " " + keyFieldType + primaryKey + "' to the schema."
             + System.lineSeparator()
             + "KEY field type: " + keyFieldType
             + System.lineSeparator()

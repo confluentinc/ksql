@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.endpoints;
+package io.confluent.ksql.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 

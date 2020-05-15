@@ -20,7 +20,6 @@ import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_TYPES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_ROW;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
-import io.confluent.ksql.api.endpoints.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.PushQueryHandle;
@@ -33,6 +32,7 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.rest.server.BlockingQueryPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;

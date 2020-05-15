@@ -15,12 +15,16 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static org.apache.http.HttpHeaders.TRANSFER_ENCODING;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
@@ -70,8 +74,7 @@ public final class OldApiUtils {
       if (t instanceof CompletionException) {
         t = t.getCause();
       }
-      final EndpointResponse errResponse = OldApiExceptionMapper.mapException(t);
-      handleOldApiResponse(server, routingContext, response, errResponse);
+      handleOldApiResponse(server, routingContext, response, mapException(t));
       return null;
     });
   }
@@ -121,6 +124,18 @@ public final class OldApiUtils {
         promise.fail(e);
       }
     }, vcf);
+  }
+
+  public static EndpointResponse mapException(final Throwable exception) {
+    if (exception instanceof KsqlRestException) {
+      final KsqlRestException restException = (KsqlRestException) exception;
+      return restException.getResponse();
+    }
+    return EndpointResponse.create()
+        .status(INTERNAL_SERVER_ERROR.code())
+        .type("application/json")
+        .entity(new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, exception))
+        .build();
   }
 
 }

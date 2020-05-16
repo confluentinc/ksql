@@ -435,7 +435,8 @@
             </dependency>
 
             <!-- We need to fix our Scala versions as otherwise our depdendencies bring in
-            different versions via different routes -->
+            different versions via different routes
+            https://github.com/confluentinc/common/pull/260 -->
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-library</artifactId>

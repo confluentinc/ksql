@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.api.client.integration;
 
+import static io.confluent.ksql.api.client.util.ClientTestUtil.getCompletableFutureResultWithRetries;
+import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows;
+import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -40,6 +42,7 @@ import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
+import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -53,10 +56,6 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.test.util.secure.ClientTrustStore;
-import io.confluent.ksql.test.util.secure.Credentials;
-import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -64,11 +63,8 @@ import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -80,8 +76,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 @Category({IntegrationTest.class})
 public class ClientIntegrationTest {
@@ -90,8 +84,10 @@ public class ClientIntegrationTest {
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
   private static final int PAGE_VIEW_NUM_ROWS = PAGE_VIEWS_PROVIDER.data().size();
-  private static final List<String> PAGE_VIEW_COLUMN_NAMES = ImmutableList.of("ROWKEY", "VIEWTIME", "USERID", "PAGEID");
-  private static final List<ColumnType> PAGE_VIEW_COLUMN_TYPES = RowUtil.columnTypesFromStrings(ImmutableList.of("BIGINT", "BIGINT", "STRING", "STRING"));
+  private static final List<String> PAGE_VIEW_COLUMN_NAMES =
+      ImmutableList.of("ROWKEY", "VIEWTIME", "USERID", "PAGEID");
+  private static final List<ColumnType> PAGE_VIEW_COLUMN_TYPES =
+      RowUtil.columnTypesFromStrings(ImmutableList.of("BIGINT", "BIGINT", "STRING", "STRING"));
   private static final List<KsqlArray> PAGE_VIEW_EXPECTED_ROWS = convertToClientRows(PAGE_VIEWS_PROVIDER.data());
 
   private static final String AGG_TABLE = "AGG_TABLE";
@@ -106,10 +102,12 @@ public class ClientIntegrationTest {
 
   private static final String PUSH_QUERY = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
-  private static final String PUSH_QUERY_WITH_LIMIT = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + PAGE_VIEW_NUM_ROWS + ";";
+  private static final String PUSH_QUERY_WITH_LIMIT =
+      "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + PAGE_VIEW_NUM_ROWS + ";";
 
   private static final List<String> PULL_QUERY_COLUMN_NAMES = ImmutableList.of("USERID", "COUNT");
-  private static final List<ColumnType> PULL_QUERY_COLUMN_TYPES = RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT"));
+  private static final List<ColumnType> PULL_QUERY_COLUMN_TYPES =
+      RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT"));
   private static final KsqlArray PULL_QUERY_EXPECTED_ROW = new KsqlArray(ImmutableList.of("USER_1", 1));
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
@@ -418,25 +416,16 @@ public class ClientIntegrationTest {
     assertThatEventually(engine::numberOfLiveQueries, is(numQueries));
   }
 
-  // TODO: de-dup from ClientTest
   private static void shouldReceivePageViewRows(
       final Publisher<Row> publisher,
       final boolean subscriberCompleted
   ) {
-    TestSubscriber<Row> subscriber = new TestSubscriber<Row>() {
-      @Override
-      public synchronized void onSubscribe(final Subscription sub) {
-        super.onSubscribe(sub);
-        sub.request(PAGE_VIEW_NUM_ROWS);
-      }
-    };
-    publisher.subscribe(subscriber);
-    assertThatEventually(subscriber::getValues, hasSize(PAGE_VIEW_NUM_ROWS));
-
-    verifyPageViewRows(subscriber.getValues());
-
-    assertThatEventually(subscriber::isCompleted, equalTo(subscriberCompleted));
-    assertThat(subscriber.getError(), is(nullValue()));
+    shouldReceiveRows(
+        publisher,
+        PAGE_VIEW_NUM_ROWS,
+        ClientIntegrationTest::verifyPageViewRows,
+        subscriberCompleted
+    );
   }
 
   private static void verifyPageViewRows(final List<Row> rows) {
@@ -502,20 +491,12 @@ public class ClientIntegrationTest {
   }
 
   private static void shouldReceivePullQueryRow(final Publisher<Row> publisher) {
-    TestSubscriber<Row> subscriber = new TestSubscriber<Row>() {
-      @Override
-      public synchronized void onSubscribe(final Subscription sub) {
-        super.onSubscribe(sub);
-        sub.request(1);
-      }
-    };
-    publisher.subscribe(subscriber);
-    assertThatEventually(subscriber::getValues, hasSize(1));
-
-    verifyPullQueryRows(subscriber.getValues());
-
-    assertThatEventually(subscriber::isCompleted, equalTo(true));
-    assertThat(subscriber.getError(), is(nullValue()));
+    shouldReceiveRows(
+        publisher,
+        1,
+        ClientIntegrationTest::verifyPullQueryRows,
+        true
+    );
   }
 
   private static void verifyPullQueryRows(final List<Row> rows) {
@@ -578,82 +559,5 @@ public class ClientIntegrationTest {
       expectedRows.add(expectedRow);
     }
     return expectedRows;
-  }
-
-  private static <T> T getCompletableFutureResultWithRetries(final CompletableFuture<T> cf) {
-    AtomicReference<T> atomicReference = new AtomicReference<>();
-    assertThatEventually(() -> {
-      final T result;
-      try {
-        result = cf.get();
-      } catch (Exception e) {
-        System.out.println("foo: " + e);
-        return false;
-      }
-      atomicReference.set(result);
-      return true;
-    }, is(true));
-    return atomicReference.get();
-  }
-
-  private static <T> TestSubscriber<T> subscribeAndWait(final Publisher<T> publisher) throws Exception {
-    CountDownLatch latch = new CountDownLatch(1);
-    TestSubscriber<T> subscriber = new TestSubscriber<T>() {
-      @Override
-      public synchronized void onSubscribe(final Subscription sub) {
-        super.onSubscribe(sub);
-        latch.countDown();
-      }
-    };
-    publisher.subscribe(subscriber);
-    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
-    return subscriber;
-  }
-
-  private static class TestSubscriber<T> implements Subscriber<T> {
-
-    private Subscription sub;
-    private boolean completed;
-    private Throwable error;
-    private final List<T> values = new ArrayList<>();
-
-    public TestSubscriber() {
-    }
-
-    @Override
-    public synchronized void onSubscribe(final Subscription sub) {
-      this.sub = sub;
-    }
-
-    @Override
-    public synchronized void onNext(final T value) {
-      values.add(value);
-    }
-
-    @Override
-    public synchronized void onError(final Throwable t) {
-      this.error = t;
-    }
-
-    @Override
-    public synchronized void onComplete() {
-      this.completed = true;
-    }
-
-    public synchronized boolean isCompleted() {
-      return completed;
-    }
-
-    public synchronized Throwable getError() {
-      return error;
-    }
-
-    public synchronized List<T> getValues() {
-      return values;
-    }
-
-    public synchronized Subscription getSub() {
-      return sub;
-    }
   }
 }

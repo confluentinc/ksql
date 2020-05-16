@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.client;
 
+import static io.confluent.ksql.api.client.util.ClientTestUtil.awaitLatch;
+import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,6 +33,8 @@ import static org.junit.Assert.assertThrows;
 import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.TestQueryPublisher;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
+import io.confluent.ksql.api.client.util.ClientTestUtil;
+import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.PushQueryId;
@@ -40,7 +44,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -51,8 +54,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -534,34 +535,12 @@ public class ClientTest extends BaseApiTest {
       final Publisher<Row> publisher,
       final boolean subscriberCompleted
   ) {
-    TestSubscriber<Row> subscriber = new TestSubscriber<Row>() {
-      @Override
-      public synchronized void onSubscribe(final Subscription sub) {
-        super.onSubscribe(sub);
-        sub.request(DEFAULT_JSON_ROWS.size());
-      }
-    };
-    publisher.subscribe(subscriber);
-    assertThatEventually(subscriber::getValues, hasSize(DEFAULT_JSON_ROWS.size()));
-
-    verifyRows(subscriber.getValues());
-
-    assertThatEventually(subscriber::isCompleted, equalTo(subscriberCompleted));
-    assertThat(subscriber.getError(), is(nullValue()));
-  }
-
-  private static <T> TestSubscriber<T> subscribeAndWait(final Publisher<T> publisher) throws Exception {
-    CountDownLatch latch = new CountDownLatch(1);
-    TestSubscriber<T> subscriber = new TestSubscriber<T>() {
-      @Override
-      public synchronized void onSubscribe(final Subscription sub) {
-        super.onSubscribe(sub);
-        latch.countDown();
-      }
-    };
-    publisher.subscribe(subscriber);
-    awaitLatch(latch);
-    return subscriber;
+    ClientTestUtil.shouldReceiveRows(
+        publisher,
+        DEFAULT_JSON_ROWS.size(),
+        ClientTest::verifyRows,
+        subscriberCompleted
+    );
   }
 
   private static void verifyRows(final List<Row> rows) {
@@ -569,10 +548,6 @@ public class ClientTest extends BaseApiTest {
     for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       verifyRowWithIndex(rows.get(i), i);
     }
-  }
-
-  private static void awaitLatch(CountDownLatch latch) throws Exception {
-    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
   }
 
   private static void verifyRowWithIndex(final Row row, final int index) {
@@ -656,52 +631,5 @@ public class ClientTest extends BaseApiTest {
     return rows.stream()
         .map(row -> new KsqlArray(row.getList()))
         .collect(Collectors.toList());
-  }
-
-  private static class TestSubscriber<T> implements Subscriber<T> {
-
-    private Subscription sub;
-    private boolean completed;
-    private Throwable error;
-    private final List<T> values = new ArrayList<>();
-
-    public TestSubscriber() {
-    }
-
-    @Override
-    public synchronized void onSubscribe(final Subscription sub) {
-      this.sub = sub;
-    }
-
-    @Override
-    public synchronized void onNext(final T value) {
-      values.add(value);
-    }
-
-    @Override
-    public synchronized void onError(final Throwable t) {
-      this.error = t;
-    }
-
-    @Override
-    public synchronized void onComplete() {
-      this.completed = true;
-    }
-
-    public synchronized boolean isCompleted() {
-      return completed;
-    }
-
-    public synchronized Throwable getError() {
-      return error;
-    }
-
-    public synchronized List<T> getValues() {
-      return values;
-    }
-
-    public synchronized Subscription getSub() {
-      return sub;
-    }
   }
 }

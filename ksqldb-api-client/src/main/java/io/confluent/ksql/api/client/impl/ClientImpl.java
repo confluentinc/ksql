@@ -146,7 +146,7 @@ public class ClientImpl implements Client {
         "/query-stream",
         requestBody,
         cf,
-        response -> handleSuccessfulQueryResponse(response, cf, responseHandlerSupplier)
+        response -> handleQueryResponse(response, cf, responseHandlerSupplier)
     );
 
     return cf;
@@ -159,7 +159,7 @@ public class ClientImpl implements Client {
         "/close-query",
         new JsonObject().put("queryId", queryId),
         cf,
-        response -> handleSuccessfulCloseQueryResponse(cf)
+        response -> handleCloseQueryResponse(response, cf)
     );
 
     return cf;
@@ -169,11 +169,11 @@ public class ClientImpl implements Client {
       final String path,
       final JsonObject requestBody,
       final CompletableFuture<T> cf,
-      final Handler<HttpClientResponse> successfulResponseHandler) {
+      final Handler<HttpClientResponse> responseHandler) {
     HttpClientRequest request = httpClient.request(HttpMethod.POST,
         serverSocketAddress, clientOptions.getPort(), clientOptions.getHost(),
         path,
-        response -> handleResponse(response, cf, successfulResponseHandler))
+        responseHandler)
         .exceptionHandler(cf::completeExceptionally);
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
@@ -185,41 +185,47 @@ public class ClientImpl implements Client {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
   }
 
-  private static <T> void handleResponse(
-      final HttpClientResponse response,
-      final CompletableFuture<T> cf,
-      final Handler<HttpClientResponse> successfulResponseHandler
-  ) {
-    if (response.statusCode() == OK.code()) {
-      successfulResponseHandler.handle(response);
-    } else {
-      response.bodyHandler(buffer -> {
-        final JsonObject errorResponse = buffer.toJsonObject();
-        cf.completeExceptionally(new KsqlRestClientException(String.format(
-            "Received %d response from server: %s. Error code: %d",
-            response.statusCode(),
-            errorResponse.getString("message"),
-            errorResponse.getInteger("errorCode")
-        )));
-      });
-    }
-  }
-
-  private static <T> void handleSuccessfulQueryResponse(
+  private static <T> void handleQueryResponse(
       final HttpClientResponse response,
       final CompletableFuture<T> cf,
       final ResponseHandlerSupplier<T> responseHandlerSupplier) {
-    final RecordParser recordParser = RecordParser.newDelimited("\n", response);
-    final QueryResponseHandler<T> responseHandler =
-        responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf);
+    if (response.statusCode() == OK.code()) {
+      final RecordParser recordParser = RecordParser.newDelimited("\n", response);
+      final QueryResponseHandler<T> responseHandler =
+          responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf);
 
-    recordParser.handler(responseHandler::handleBodyBuffer);
-    recordParser.endHandler(responseHandler::handleBodyEnd);
-    recordParser.exceptionHandler(responseHandler::handleException);
+      recordParser.handler(responseHandler::handleBodyBuffer);
+      recordParser.endHandler(responseHandler::handleBodyEnd);
+      recordParser.exceptionHandler(responseHandler::handleException);
+    } else {
+      handleErrorResponse(response, cf);
+    }
   }
 
-  private static void handleSuccessfulCloseQueryResponse(final CompletableFuture<Void> cf) {
-    cf.complete(null);
+  private static void handleCloseQueryResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<Void> cf
+  ) {
+    if (response.statusCode() == OK.code()) {
+      cf.complete(null);
+    } else {
+      handleErrorResponse(response, cf);
+    }
+  }
+
+  private static <T> void handleErrorResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<T> cf
+  ) {
+    response.bodyHandler(buffer -> {
+      final JsonObject errorResponse = buffer.toJsonObject();
+      cf.completeExceptionally(new KsqlRestClientException(String.format(
+          "Received %d response from server: %s. Error code: %d",
+          response.statusCode(),
+          errorResponse.getString("message"),
+          errorResponse.getInteger("errorCode")
+      )));
+    });
   }
 
   private static HttpClient createHttpClient(final Vertx vertx, final ClientOptions clientOptions) {

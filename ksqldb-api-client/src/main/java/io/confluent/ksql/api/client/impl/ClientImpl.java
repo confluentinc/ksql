@@ -25,6 +25,7 @@ import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.vertx.core.Context;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
@@ -116,6 +117,11 @@ public class ClientImpl implements Client {
   }
 
   @Override
+  public CompletableFuture<Void> terminatePushQuery(final String queryId) {
+    return makeCloseQueryRequest(queryId);
+  }
+
+  @Override
   public void close() {
     httpClient.close();
     if (ownedVertx) {
@@ -133,29 +139,53 @@ public class ClientImpl implements Client {
       final Map<String, Object> properties,
       final ResponseHandlerSupplier<T> responseHandlerSupplier
   ) {
-
     final JsonObject requestBody = new JsonObject().put("sql", sql).put("properties", properties);
 
     final CompletableFuture<T> cf = new CompletableFuture<>();
+    makeRequest(
+        "/query-stream",
+        requestBody,
+        cf,
+        response -> handleQueryResponse(response, cf, responseHandlerSupplier)
+    );
 
+    return cf;
+  }
+
+  private CompletableFuture<Void> makeCloseQueryRequest(final String queryId) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+
+    makeRequest(
+        "/close-query",
+        new JsonObject().put("queryId", queryId),
+        cf,
+        response -> handleCloseQueryResponse(response, cf)
+    );
+
+    return cf;
+  }
+
+  private <T> void makeRequest(
+      final String path,
+      final JsonObject requestBody,
+      final CompletableFuture<T> cf,
+      final Handler<HttpClientResponse> responseHandler) {
     HttpClientRequest request = httpClient.request(HttpMethod.POST,
         serverSocketAddress, clientOptions.getPort(), clientOptions.getHost(),
-        "/query-stream",
-        response -> handleResponse(response, cf, responseHandlerSupplier))
+        path,
+        responseHandler)
         .exceptionHandler(cf::completeExceptionally);
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
     }
     request.end(requestBody.toBuffer());
-
-    return cf;
   }
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
   }
 
-  private static <T> void handleResponse(
+  private static <T> void handleQueryResponse(
       final HttpClientResponse response,
       final CompletableFuture<T> cf,
       final ResponseHandlerSupplier<T> responseHandlerSupplier) {
@@ -168,16 +198,34 @@ public class ClientImpl implements Client {
       recordParser.endHandler(responseHandler::handleBodyEnd);
       recordParser.exceptionHandler(responseHandler::handleException);
     } else {
-      response.bodyHandler(buffer -> {
-        final JsonObject errorResponse = buffer.toJsonObject();
-        cf.completeExceptionally(new KsqlRestClientException(String.format(
-            "Received %d response from server: %s. Error code: %d",
-            response.statusCode(),
-            errorResponse.getString("message"),
-            errorResponse.getInteger("errorCode")
-        )));
-      });
+      handleErrorResponse(response, cf);
     }
+  }
+
+  private static void handleCloseQueryResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<Void> cf
+  ) {
+    if (response.statusCode() == OK.code()) {
+      cf.complete(null);
+    } else {
+      handleErrorResponse(response, cf);
+    }
+  }
+
+  private static <T> void handleErrorResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<T> cf
+  ) {
+    response.bodyHandler(buffer -> {
+      final JsonObject errorResponse = buffer.toJsonObject();
+      cf.completeExceptionally(new KsqlRestClientException(String.format(
+          "Received %d response from server: %s. Error code: %d",
+          response.statusCode(),
+          errorResponse.getString("message"),
+          errorResponse.getInteger("errorCode")
+      )));
+    });
   }
 
   private static HttpClient createHttpClient(final Vertx vertx, final ClientOptions clientOptions) {

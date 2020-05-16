@@ -30,6 +30,7 @@ import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.TestQueryPublisher;
+import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.PushQueryId;
@@ -291,19 +292,21 @@ public class ClientTest extends BaseApiTest {
       streamedQueryResult.poll();
     }
 
-    CountDownLatch latch = new CountDownLatch(1);
+    CountDownLatch pollStarted = new CountDownLatch(1);
+    CountDownLatch pollReturned = new CountDownLatch(1);
     new Thread(() -> {
       // This poll() call blocks as there are no more rows to be returned
-      final Row row = streamedQueryResult.poll();
+      final Row row = StreamedQueryResultImpl.pollWithCallback(streamedQueryResult, () -> pollStarted.countDown());
       assertThat(row, is(nullValue()));
-      latch.countDown();
+      pollReturned.countDown();
     }).start();
+    awaitLatch(pollStarted);
 
     // When
     sendQueryPublisherError();
 
     // Then: poll() call terminates because of the error
-    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
+    awaitLatch(pollReturned);
   }
 
   @Test
@@ -556,7 +559,7 @@ public class ClientTest extends BaseApiTest {
       }
     };
     publisher.subscribe(subscriber);
-    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
+    awaitLatch(latch);
     return subscriber;
   }
 
@@ -565,6 +568,10 @@ public class ClientTest extends BaseApiTest {
     for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       verifyRowWithIndex(rows.get(i), i);
     }
+  }
+
+  private static void awaitLatch(CountDownLatch latch) throws Exception {
+    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
   }
 
   private static void verifyRowWithIndex(final Row row, final int index) {

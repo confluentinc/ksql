@@ -110,17 +110,19 @@ public class StreamedQueryResultImplTest {
     // Poll for a minimal amount of time to ensure PollableSubscriber is subscribed
     queryResult.poll(1, TimeUnit.NANOSECONDS);
 
-    CountDownLatch latch = new CountDownLatch(1);
+    CountDownLatch pollStarted = new CountDownLatch(1);
+    CountDownLatch pollReturned = new CountDownLatch(1);
     new Thread(() -> {
-      queryResult.poll();
-      latch.countDown();
+      StreamedQueryResultImpl.pollWithCallback(queryResult, () -> pollStarted.countDown());
+      pollReturned.countDown();
     }).start();
+    awaitLatch(pollStarted);
 
     // When
     handleQueryResultError();
 
     // Then
-    awaitLatch(latch);
+    awaitLatch(pollReturned);
   }
 
   @Test

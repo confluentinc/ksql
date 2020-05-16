@@ -31,7 +31,7 @@ This tutorial shows how to create a streaming ETL pipeline that ingests and join
 
 ### Get the connectors
 
-To get started, download the connectors for Postgres, MongoDB, and Elasticsearch to a fresh directory. The easiest way to do that is by using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html).
+To get started, download the connectors for Postgres, MongoDB, and Elasticsearch to a fresh directory. The easiest way to do this is by using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html).
 
 Create a directory for your components:
 

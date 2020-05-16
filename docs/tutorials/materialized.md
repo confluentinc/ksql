@@ -27,7 +27,7 @@ This tutorial shows how to create and query a set of materialized views about ph
 
 ### Get the Debezium connector
 
-To get started, download the Debezium connector to a fresh directory. The easiest way to do that is by using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html).
+To get started, download the Debezium connector to a fresh directory. The easiest way to do this is by using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html).
 
 Create a directory for your components:
 

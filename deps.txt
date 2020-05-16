@@ -1,0 +1,87 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Detecting the operating system and CPU architecture
+[INFO] ------------------------------------------------------------------------
+[INFO] os.detected.name: osx
+[INFO] os.detected.arch: x86_64
+[INFO] os.detected.version: 10.15
+[INFO] os.detected.version.major: 10
+[INFO] os.detected.version.minor: 15
+[INFO] os.detected.classifier: osx-x86_64
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] ksqldb-parent                                                      [pom]
+[INFO] ksqldb-test-util                                                   [jar]
+[INFO] ksqldb-udf                                                         [jar]
+[INFO] ksqldb-common                                                      [jar]
+[INFO] ksqlDB UDF / UDAF :: Quickstart                        [maven-archetype]
+[INFO] ksqldb-serde                                                       [jar]
+[INFO] ksqldb-rest-model                                                  [jar]
+[INFO] ksqldb-execution                                                   [jar]
+[INFO] ksqldb-metastore                                                   [jar]
+[INFO] ksqldb-parser                                                      [jar]
+[INFO] ksqldb-streams                                                     [jar]
+[INFO] ksqldb-engine                                                      [jar]
+[INFO] ksqldb-tools                                                       [jar]
+[INFO] ksqldb-rest-client                                                 [jar]
+[INFO] ksqldb-version-metrics-client                                      [jar]
+[INFO] ksqldb-rest-app                                                    [jar]
+[INFO] ksqldb-cli                                                         [jar]
+[INFO] ksqldb-examples                                                    [jar]
+[INFO] ksqldb-console-scripts                                             [pom]
+[INFO] ksqldb-etc                                                         [pom]
+[INFO] ksqldb-functional-tests                                            [jar]
+[INFO] ksqldb-package                                                     [pom]
+[INFO] ksqldb-benchmark                                                   [jar]
+[INFO] ksqlDB RocksDB Config Setter                                       [jar]
+[INFO] ksqldb-docker                                                      [jar]
+[INFO] ksqldb-api-reactive-streams-tck                                    [jar]
+[INFO] ksqldb-api-client                                                  [jar]
+[INFO] 
+[INFO] ------------------< io.confluent.ksql:ksqldb-parent >-------------------
+[INFO] Building ksqldb-parent 6.0.0-SNAPSHOT                             [1/27]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for ksqldb-parent 6.0.0-SNAPSHOT:
+[INFO] 
+[INFO] ksqldb-parent ...................................... FAILURE [  0.002 s]
+[INFO] ksqldb-test-util ................................... SKIPPED
+[INFO] ksqldb-udf ......................................... SKIPPED
+[INFO] ksqldb-common ...................................... SKIPPED
+[INFO] ksqlDB UDF / UDAF :: Quickstart .................... SKIPPED
+[INFO] ksqldb-serde ....................................... SKIPPED
+[INFO] ksqldb-rest-model .................................. SKIPPED
+[INFO] ksqldb-execution ................................... SKIPPED
+[INFO] ksqldb-metastore ................................... SKIPPED
+[INFO] ksqldb-parser ...................................... SKIPPED
+[INFO] ksqldb-streams ..................................... SKIPPED
+[INFO] ksqldb-engine ...................................... SKIPPED
+[INFO] ksqldb-tools ....................................... SKIPPED
+[INFO] ksqldb-rest-client ................................. SKIPPED
+[INFO] ksqldb-version-metrics-client ...................... SKIPPED
+[INFO] ksqldb-rest-app .................................... SKIPPED
+[INFO] ksqldb-cli ......................................... SKIPPED
+[INFO] ksqldb-examples .................................... SKIPPED
+[INFO] ksqldb-console-scripts ............................. SKIPPED
+[INFO] ksqldb-etc ......................................... SKIPPED
+[INFO] ksqldb-functional-tests ............................ SKIPPED
+[INFO] ksqldb-package ..................................... SKIPPED
+[INFO] ksqldb-benchmark ................................... SKIPPED
+[INFO] ksqlDB RocksDB Config Setter ....................... SKIPPED
+[INFO] ksqldb-docker ...................................... SKIPPED
+[INFO] ksqldb-api-reactive-streams-tck .................... SKIPPED
+[INFO] ksqldb-api-client .................................. SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.701 s
+[INFO] Finished at: 2020-05-16T12:36:28+01:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Unknown lifecycle phase "dependency-tree". You must specify a valid lifecycle phase or a goal in the format <plugin-prefix>:<goal> or <plugin-group-id>:<plugin-artifact-id>[:<plugin-version>]:<goal>. Available lifecycle phases are: validate, initialize, generate-sources, process-sources, generate-resources, process-resources, compile, process-classes, generate-test-sources, process-test-sources, generate-test-resources, process-test-resources, test-compile, process-test-classes, test, prepare-package, package, pre-integration-test, integration-test, post-integration-test, verify, install, deploy, pre-clean, clean, post-clean, pre-site, site, post-site, site-deploy. -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/LifecyclePhaseNotFoundException

@@ -129,6 +129,7 @@
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.28.v20200408</jetty.version>
         <git-commit-id-plugin.version>2.2.1</git-commit-id-plugin.version>
+        <scala.version>2.13.2</scala.version>
     </properties>
 
     <dependencyManagement>
@@ -431,6 +432,20 @@
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
                 <version>${icu.version}</version>
+            </dependency>
+
+            <!-- We need to fix our Scala versions as otherwise our depdendencies bring in
+            different versions via different routes -->
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-library</artifactId>
+                <version>${scala.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-reflect</artifactId>
+                <version>${scala.version}</version>
             </dependency>
 
             <!-- Required for running tests -->

@@ -31,24 +31,30 @@ This tutorial shows how to create a streaming ETL pipeline that ingests and join
 
 ### Get the connectors
 
-To get started, download the connectors for Postgres, MongoDB, and Elasticsearch to a fresh directory. You can either get them by using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html), or by running the following one-off Docker commands that wrap it.
+To get started, download the connectors for Postgres, MongoDB, and Elasticsearch to a fresh directory. The easiest way to do this is by using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html).
+
+Create a directory for your components:
+
+```
+mkdir confluent-hub-components
+```
 
 First, acquire the Postgres Debezium connector:
 
 ```
-docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt debezium/debezium-connector-postgresql:1.1.0
+confluent-hub install --component-dir confluent-hub-components --no-prompt debezium/debezium-connector-postgresql:1.1.0
 ```
 
 Likewise for the MongoDB Debezium connector:
 
 ```
-docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt debezium/debezium-connector-mongodb:1.1.0
+confluent-hub install --component-dir confluent-hub-components --no-prompt debezium/debezium-connector-mongodb:1.1.0
 ```
 
 And finally, the Elasticsearch connector:
 
 ```
-docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt confluentinc/kafka-connect-elasticsearch:{{ site.cprelease }}
+confluent-hub install --component-dir confluent-hub-components --no-prompt confluentinc/kafka-connect-elasticsearch:{{ site.cprelease }}
 ```
 
 ### Start the stack

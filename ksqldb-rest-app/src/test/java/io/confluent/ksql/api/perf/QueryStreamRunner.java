@@ -42,6 +42,7 @@ import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -131,7 +132,8 @@ public class QueryStreamRunner extends BasePerfRunner {
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor,
         CompletableFuture<Void> connectionClosedFuture,
-        ApiSecurityContext apiSecurityContext) {
+        ApiSecurityContext apiSecurityContext,
+        Optional<Boolean> isInternalRequest) {
       return null;
     }
 

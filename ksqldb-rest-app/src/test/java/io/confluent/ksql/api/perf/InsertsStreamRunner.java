@@ -39,6 +39,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.codec.BodyCodec;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -189,7 +190,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
-        ApiSecurityContext apiSecurityContext) {
+        ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest) {
       return null;
     }
 

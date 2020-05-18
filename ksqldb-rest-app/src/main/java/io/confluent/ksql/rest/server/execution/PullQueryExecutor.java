@@ -160,7 +160,8 @@ public final class PullQueryExecutor {
   public TableRowsEntity execute(
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<Boolean> isInternalRequest
   ) {
     if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
@@ -178,7 +179,11 @@ public final class PullQueryExecutor {
     try {
       final RoutingOptions routingOptions = new ConfigRoutingOptions(
           statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
-      final boolean isAlreadyForwarded = routingOptions.skipForwardRequest();
+      // If internal listeners are in use, we require the request to come from that listener to
+      // treat it as having been forwarded.
+      final boolean isAlreadyForwarded = routingOptions.skipForwardRequest() &&
+          // Trust the forward request option if isInternalRequest isn't available.
+          isInternalRequest.orElse(true);
 
       // Only check the rate limit at the forwarding host
       if (!isAlreadyForwarded) {

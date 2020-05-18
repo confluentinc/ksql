@@ -95,7 +95,7 @@ public class QueryEndpoint {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement) {
     final TableRowsEntity tableRows = pullQueryExecutor.execute(
-        statement, serviceContext, Optional.empty());
+        statement, serviceContext, Optional.empty(), Optional.empty());
     return new PullQueryPublisher(context, tableRows, colNamesFromSchema(tableRows.getSchema()),
         colTypesFromSchema(tableRows.getSchema()));
   }

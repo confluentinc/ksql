@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.api.server.InternalEndpointHandler.CONTEXT_DATA_IS_INTERNAL;
 import static io.confluent.ksql.api.server.OldApiUtils.handleOldApiRequest;
 import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
 
@@ -230,7 +231,8 @@ public class ServerVerticle extends AbstractVerticle {
         (request, apiSecurityContext) ->
             endpoints
                 .executeQueryRequest(request, server.getWorkerExecutor(), connectionClosedFuture,
-                    DefaultApiSecurityContext.create(routingContext))
+                    DefaultApiSecurityContext.create(routingContext),
+                    isInternalRequest(routingContext))
     );
   }
 
@@ -325,5 +327,15 @@ public class ServerVerticle extends AbstractVerticle {
 
   private static void unhandledExceptionHandler(final Throwable t) {
     log.error("Unhandled exception", t);
+  }
+
+  /**
+   * If the request was received on the internal listener.
+   *
+   * @return If an internal listener is in use and this is an internal request, or
+   * {@code Optional.empty} if an internal listener is not enabled.
+   */
+  private static Optional<Boolean> isInternalRequest(final RoutingContext routingContext) {
+    return Optional.ofNullable(routingContext.get(CONTEXT_DATA_IS_INTERNAL));
   }
 }

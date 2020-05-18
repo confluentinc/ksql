@@ -54,7 +54,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   public synchronized void subscribe(final Subscriber<Collection<StreamedRow>> subscriber) {
     final PullQuerySubscription subscription = new PullQuerySubscription(
         subscriber,
-        () -> pullQueryExecutor.execute(query, serviceContext, Optional.empty())
+        () -> pullQueryExecutor.execute(query, serviceContext, Optional.empty(), Optional.empty())
     );
 
     subscriber.onSubscribe(subscription);

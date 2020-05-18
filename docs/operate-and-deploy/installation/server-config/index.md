@@ -377,7 +377,7 @@ communication, which enables port filtering rules to deny clients access the int
 the use of a different network interface for internal communication, for security or QoS reasons.
 
 This can be achieved by setting the `ksql.internal.listener` configuration to start a second
-listener that will exclusively used for inter-node communication.
+listener that is used exclusively for inter-node communication.
 
 If running dual listeners to improve security, you may also wish to enable
 [authentication and other security measures](security.md).

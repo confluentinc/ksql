@@ -68,7 +68,7 @@ nav:
       - Generate test data: developer-guide/test-and-debug/generate-custom-test-data.md
       - Processing log: developer-guide/test-and-debug/processing-log.md
   - How-to guides:
-      - Synopsis: how-to-guides/synposis.md
+      - Synopsis: how-to-guides/index.md
       - Query structured data: how-to-guides/query-structured-data.md
       - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
       - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md

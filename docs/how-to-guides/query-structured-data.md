@@ -76,7 +76,7 @@ FROM s2
 EMIT CHANGES;
 ```
 
-This query should return the following results. Notice that the column names for the last two columns and `C` and `D` respectively. By default, ksqlDB will give the column the name of the last identifier in the arrow chain. You can override this by aliasing, such as `b->c AS x`. If you drill into nested values that finish with the same identifier name, ksqlDB will force you to provide an alias to avoid ambiguity.
+Your output should resemble the following results. Notice that the column names for the last two columns and `C` and `D` respectively. By default, ksqlDB will give the column the name of the last identifier in the arrow chain. You can override this by aliasing, such as `b->c AS x`. If you drill into nested values that finish with the same identifier name, ksqlDB will force you to provide an alias to avoid ambiguity.
 
 ```
 +------------------------------+------------------------------+------------------------------+------------------------------+

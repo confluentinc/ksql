@@ -221,7 +221,7 @@ Sometimes you might need a little more power to introspect how your connectors a
 docker exec -it ksqldb-server curl http://localhost:8083/
 ```
 
-Your output should look something like:
+Your output should resemble:
 
 ```json
 {"version":"5.5.0-ccs","commit":"785a156634af5f7e","kafka_cluster_id":"bfz7rsyJRtOx5fs-2l4W4A"}

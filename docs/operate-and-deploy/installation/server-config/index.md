@@ -373,7 +373,7 @@ communication will use the same listener as client communication.
 ### Dual listeners
 
 You may choose to configure internal communication to use a different listener to client
-ommunication, which allows for port filtering rules to deny clients access the internal listener, or
+communication, which enables port filtering rules to deny clients access the internal listener or
 the use of a different network interface for internal communication, for security or QoS reasons.
 
 This can be achieved by setting the `ksql.internal.listener` configuration to start a second

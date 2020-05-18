@@ -355,7 +355,7 @@ such as `0.0.0.0` or `[::]`. These have special meanings and are not appropriate
 inter-node communication, as they are not routable from other machines. Similarly, if your
 network is setup such that the IP or hostname you bind isn't resolvable or routable.
 
-If you choose to use a non-routable listener, you must set `ksql.advertised.listener`, specifying a
+If you choose to use a non-routable listener, you must set `ksql.advertised.listener` and specify a
 url that is externally accessible and which will resolve to an endpoint defined in `listeners`.
 
 ```properties

@@ -25,8 +25,6 @@ public interface ClientOptions {
 
   ClientOptions setUseTls(boolean useTls);
 
-  ClientOptions setUseClientAuth(boolean useClientAuth);
-
   ClientOptions setVerifyHost(boolean verifyHost);
 
   ClientOptions setTrustStore(String trustStorePath);
@@ -46,8 +44,6 @@ public interface ClientOptions {
   int getPort();
 
   boolean isUseTls();
-
-  boolean isUseClientAuth();
 
   boolean isVerifyHost();
 

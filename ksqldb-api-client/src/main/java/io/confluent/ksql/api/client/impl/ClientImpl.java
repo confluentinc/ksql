@@ -246,7 +246,7 @@ public class ClientImpl implements Client {
               .setPassword(clientOptions.getTrustStorePassword())
       );
     }
-    if (clientOptions.isUseClientAuth()) {
+    if (!clientOptions.getKeyStore().isEmpty()) {
       options = options.setKeyStoreOptions(
           new JksOptions()
               .setPath(clientOptions.getKeyStore())

@@ -84,12 +84,6 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
-  public ClientOptions setUseClientAuth(final boolean useClientAuth) {
-    this.useClientAuth = useClientAuth;
-    return this;
-  }
-
-  @Override
   public ClientOptions setVerifyHost(final boolean verifyHost) {
     this.verifyHost = verifyHost;
     return this;
@@ -146,11 +140,6 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public boolean isUseTls() {
     return useTls;
-  }
-
-  @Override
-  public boolean isUseClientAuth() {
-    return useClientAuth;
   }
 
   @Override

@@ -74,8 +74,9 @@ public class ResponseOutputStream extends OutputStream {
       final CompletableFuture<Void> cf = new CompletableFuture<>();
       response.drainHandler(v -> cf.complete(null));
       try {
-        cf.get(10, TimeUnit.SECONDS);
+        cf.get(60, TimeUnit.SECONDS);
       } catch (Exception e) {
+        // Very slow consumers will result in a timeout, this will cause the push query to be closed
         throw new KsqlException(e);
       }
     }

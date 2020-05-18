@@ -431,5 +431,5 @@ ksql.advertised.listener=http://host1.internal.example.com:8099
     to start the listener.
 
 In this setup, the node will share the url in the `ksql.advertised.listener` config as its
-internal endpoint, which other nodes will use for inter-node communication. Inter-node
+internal endpoint, which other nodes use for inter-node communication. Inter-node
 communication will use a different listener to client communication.

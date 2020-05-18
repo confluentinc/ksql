@@ -368,7 +368,7 @@ ksql.advertised.listener=http://host1.internal.example.com:8088
 
 In this setup, the node shares the URL in the `ksql.advertised.listener` config as its
 internal endpoint, which other nodes use for inter-node communication. Inter-node
-communication will use the same listener as client communication.
+communication use the same listener as client communication.
 
 ### Dual listeners
 

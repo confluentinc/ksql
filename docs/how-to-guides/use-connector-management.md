@@ -2,7 +2,7 @@
 
 ## Context
 
-You have external data stores that you want to read from and write to with ksqlDB, but you don’t want to write custom glue code to do it. ksqlDB is capable of using the vast ecosystem of {{ site.kconnectlong }} connectors through its SQL syntax. This functionality is called *connector management*.
+You have external data stores that you want to read from and write to with ksqlDB, but you don’t want to write custom glue code to do it. ksqlDB is capable of using the [vast ecosystem](https://www.confluent.io/hub/) of [{{ site.kconnectlong }}](https://kafka.apache.org/documentation/#connect) connectors through its SQL syntax. This functionality is called *connector management*.
 
 ## In action
 
@@ -213,6 +213,14 @@ DROP CONNECTOR s;
 
 You can confirm that the connector is no longer running by looking at the output of `SHOW CONNECTORS;`.
 
+### Logging
+
+Embedded {{ site.kconnectlong }} logs messages inline with ksqlDB's server's log messages. View them by running the following command:
+
+```bash
+docker logs -f ksqldb-server
+```
+
 ### Introspecting embedded mode
 
 Sometimes you might need a little more power to introspect how your connectors are behaving by interacting directly with the embedded {{ site.kconnectlong }} server. First, notice that ksqlDB is really just wrapping a regular {{ site.kconnectlong }} server. You can curl it and interact with its [REST API](https://docs.confluent.io/current/connect/references/restapi.html) just like any other {{ site.kconnect }} server.
@@ -229,19 +237,10 @@ Your output should resemble:
 
 This can be really useful if you're having trouble getting a connector to load or need more insight into how connector tasks are behaving.
 
-### Logging
-
-By default, embedded {{ site.kconnectlong }} logs messages inline with ksqlDB's server's log messages. View them by running the following command:
-
-```bash
-docker logs -f ksqldb-server
-```
-
-... << TODO: show how to redirect the logs >> ...
-
 ## External mode
 
-In external mode, ksqlDB communicates with an external {{ site.kconnectlong }} cluster. It's able to create and destroy connectors as needed. Use external mode when you have high volumes of input and output.
+In external mode, ksqlDB communicates with an external {{ site.kconnectlong }} cluster. It's able to create and destroy connectors as needed. Use external mode when you have high volumes of input and output, or need to scale your ingest/egress capacity independently from your processing capacity.
 
-- Explanation of KConnect dedicated
-- List of connectors.
+External mode essentially works the same way as embedded mode, except connectors run outside of ksqlDB's servers. All that is needed is to configure ksqlDB server with the `ksql.connect.url` property, indicating the address of the {{ site.kconnect }} server. Beyond that, you can manage connectors exactly as you would in embedded mode. No other configuration is needed.
+
+This guide omits an example of setting up an external {{ site.kconnectlong }} cluster. Many great examples, [like Apache Kafka's](https://kafka.apache.org/documentation/#connect), have already been published.

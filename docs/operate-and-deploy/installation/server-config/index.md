@@ -409,7 +409,7 @@ communication will use a different listener to client communication.
 
 Where the internal IP or hostname used in the `ksql.internal.listener` configuration is not
 externally resolvable and routable, for example where it uses `localhost` or wildcard IPs such as
-`0.0.0.0` or `[::]`, both `ksql.internal.listener` and `ksql.advertised.listener` need to configured
+`0.0.0.0` or `[::]`, you must configure both `ksql.internal.listener` and `ksql.advertised.listener`
 to set the internal listener:
 
 ```properties

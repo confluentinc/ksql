@@ -430,10 +430,6 @@ public class ClientIntegrationTest {
     );
   }
 
-  private static void verifyPageViewRows(final List<Row> rows) {
-    verifyPageViewRows(rows, PAGE_VIEW_NUM_ROWS);
-  }
-
   private static void verifyPageViewRows(final List<Row> rows, final int numRows) {
     assertThat(rows, hasSize(numRows));
     for (int i = 0; i < numRows; i++) {

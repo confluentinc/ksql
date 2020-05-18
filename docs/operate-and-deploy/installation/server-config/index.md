@@ -362,7 +362,7 @@ url that is externally accessible and which will resolve to an endpoint defined 
 # Non-routable wildcard ip:
 listeners=http://0.0.0.0:8088
 
-# External accessible name that will resolve to the IP of the machine:
+# Externally accessible name that resolves to the IP of the machine:
 ksql.advertised.listener=http://host1.internal.example.com:8088
 ```
 

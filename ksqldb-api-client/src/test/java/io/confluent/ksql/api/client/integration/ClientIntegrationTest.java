@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.client.integration;
 
-import static io.confluent.ksql.api.client.util.ClientTestUtil.getCompletableFutureResultWithRetries;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
@@ -202,11 +201,9 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldStreamPullQueryAsync() {
+  public void shouldStreamPullQueryAsync() throws Exception {
     // When
-    // Maybe need to retry as populating agg table is async
-    final StreamedQueryResult streamedQueryResult =
-        getCompletableFutureResultWithRetries(client.streamQuery(PULL_QUERY));
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY).get();
 
     // Then
     assertThat(streamedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
@@ -219,11 +216,9 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldStreamPullQuerySync() {
+  public void shouldStreamPullQuerySync() throws Exception {
     // When
-    // Maybe need to retry as populating agg table is async
-    final StreamedQueryResult streamedQueryResult =
-        getCompletableFutureResultWithRetries(client.streamQuery(PULL_QUERY));
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY).get();
 
     // Then
     assertThat(streamedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
@@ -317,11 +312,9 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldExecutePullQuery() {
+  public void shouldExecutePullQuery() throws Exception {
     // When
-    // Maybe need to retry as populating agg table is async
-    final BatchedQueryResult batchedQueryResult =
-        getCompletableFutureResultWithRetries(client.executeQuery(PULL_QUERY));
+    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY).get();
 
     // Then
     assertThat(batchedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));

@@ -25,10 +25,8 @@ import static org.hamcrest.Matchers.nullValue;
 import io.confluent.ksql.api.client.Row;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -37,21 +35,6 @@ import org.reactivestreams.Subscription;
 public final class ClientTestUtil {
 
   private ClientTestUtil() {
-  }
-
-  public static <T> T getCompletableFutureResultWithRetries(final CompletableFuture<T> cf) {
-    AtomicReference<T> atomicReference = new AtomicReference<>();
-    assertThatEventually(() -> {
-      final T result;
-      try {
-        result = cf.get();
-      } catch (Exception e) {
-        return false;
-      }
-      atomicReference.set(result);
-      return true;
-    }, is(true));
-    return atomicReference.get();
   }
 
   public static void shouldReceiveRows(

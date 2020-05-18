@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.api.server.protocol.InsertAck;
-import io.confluent.ksql.api.server.protocol.InsertError;
+import io.confluent.ksql.rest.entity.InsertAck;
+import io.confluent.ksql.rest.entity.InsertError;
 
 /**
  * Represents something that knows how to write out an inserts response

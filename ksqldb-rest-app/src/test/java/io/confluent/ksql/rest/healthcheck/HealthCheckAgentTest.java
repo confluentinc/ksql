@@ -39,12 +39,11 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
-
-import io.confluent.ksql.util.KsqlRequestConfig;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.common.KafkaFuture;

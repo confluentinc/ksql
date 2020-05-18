@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -29,8 +28,6 @@ import java.util.concurrent.ThreadLocalRandom;
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class KsqlBareOutputNode extends OutputNode {
 
-  private final KeyField keyField;
-
   public KsqlBareOutputNode(
       final PlanNodeId id,
       final PlanNode source,
@@ -39,18 +36,11 @@ public class KsqlBareOutputNode extends OutputNode {
       final Optional<TimestampColumn> timestampColumn
   ) {
     super(id, source, schema, limit, timestampColumn);
-    this.keyField = KeyField.of(source.getKeyField().ref())
-        .validateKeyExistsIn(schema);
   }
 
   @Override
   public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
     return new QueryId(String.valueOf(Math.abs(ThreadLocalRandom.current().nextLong())));
-  }
-
-  @Override
-  public KeyField getKeyField() {
-    return keyField;
   }
 
   @Override

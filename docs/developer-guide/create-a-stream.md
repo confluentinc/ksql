@@ -98,30 +98,34 @@ Name                 : PAGEVIEWS
 For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 ```
 
+You may notice that ksqlDB has added a key column named `ROWKEY`.
+This is the default key column that ksqlDB adds if you don't provide one.
+If your data doesn't contain a {{ site.ak }} serialized
+`STRING` in the {{ site.ak }} message key, don't use `ROWKEY` in your SQL statements,
+because this may cause unexpected results.
+
 ### Create a Stream with a Specified Key
 
-The previous SQL statement makes no assumptions about the Kafka message
-key in the underlying Kafka topic. If the value of the message key in
-the topic is the same as one of the columns defined in the stream, you
-can specify the key in the WITH clause of the CREATE STREAM statement.
-If you use this column name later to perform a join or a repartition, ksqlDB
-knows that no repartition is needed. In effect, the named column becomes an
-alias for ROWKEY.
+The previous SQL statement doesn't define a column to represent the data in the
+{{ site.ak }} message key in the underlying {{ site.ak }} topic, so the system adds a
+`ROWKEY` column with type `STRING`.
 
-For example, if the Kafka message key has the same value as the `pageid`
-column, you can write the CREATE STREAM statement like this:
+If the {{ site.ak }} message key is serialized in a key format that ksqlDB supports (currently `KAFKA`),
+you can specify the key in the column list of the CREATE STREAM statement.
+
+For example, the {{ site.ak }}  message key of the `pageviews` topic is a `BIGINT` containing the `viewtime`,
+so you can write the CREATE STREAM statement like this:
 
 ```sql
 CREATE STREAM pageviews_withkey
-  (viewtime BIGINT,
+  (viewtime BIGINT KEY,
    userid VARCHAR,
    pageid VARCHAR)
  WITH (KAFKA_TOPIC='pageviews',
-       VALUE_FORMAT='DELIMITED',
-       KEY='pageid');
+       VALUE_FORMAT='DELIMITED');
 ```
 
-Confirm that the KEY field in the new stream is `pageid` by using the
+Confirm that the KEY column in the new stream is `pageid` by using the
 DESCRIBE EXTENDED statement:
 
 ```sql
@@ -133,11 +137,17 @@ Your output should resemble:
 ```
 Name                 : PAGEVIEWS_WITHKEY
 Type                 : STREAM
-Key field            : PAGEID
-Key format           : STRING
 Timestamp field      : Not set - using <ROWTIME>
+Key format           : KAFKA
 Value format         : DELIMITED
 Kafka topic          : pageviews (partitions: 1, replication: 1)
+
+ Field    | Type
+--------------------------------------
+ VIEWTIME | BIGINT           (Key)
+ USERID   | VARCHAR(STRING)
+ PAGEID   | VARCHAR(STRING)
+--------------------------------------
 [...]
 ```
 
@@ -155,12 +165,11 @@ like this:
 
 ```sql
 CREATE STREAM pageviews_timestamped
-  (viewtime BIGINT,
-   userid VARCHAR,
+  (viewtime BIGINT KEY,
+   userid VARCHAR
    pageid VARCHAR)
   WITH (KAFKA_TOPIC='pageviews',
         VALUE_FORMAT='DELIMITED',
-        KEY='pageid',
         TIMESTAMP='viewtime')
 ```
 
@@ -176,9 +185,8 @@ Your output should resemble:
 ```
 Name                 : PAGEVIEWS_TIMESTAMPED
 Type                 : STREAM
-Key field            : PAGEID
-Key format           : STRING
 Timestamp field      : VIEWTIME
+Key format           : KAFKA
 Value format         : DELIMITED
 Kafka topic          : pageviews (partitions: 1, replication: 1)
 [...]
@@ -197,7 +205,7 @@ the following CREATE STREAM statement into the CLI:
 
 ```sql
 CREATE STREAM pageviews
-  (viewtime BIGINT,
+  (viewtime BIGINT KEY,
    userid VARCHAR,
    pageid VARCHAR)
   WITH (KAFKA_TOPIC='pageviews',
@@ -242,12 +250,6 @@ them explicitly.
 To stream the result of a SELECT query into an *existing* stream and its
 underlying topic, use the INSERT INTO statement.
 
-!!! note
-      The CREATE STREAM AS SELECT statement doesn't support the KEY property.
-      To specify a KEY field, use the PARTITION BY clause. For more
-      information, see
-      [Partition Data to Enable Joins](joins/partition-data.md).
-
 The following SQL statement creates a `pageviews_intro` stream that
 contains results from a persistent query that matches "introductory"
 pages that have a `pageid` value that's less than `Page_20`:
@@ -280,12 +282,12 @@ Your output should resemble:
 ```
 Key format: KAFKA_BIGINT or KAFKA_DOUBLE
 Value format: KAFKA_STRING
-rowtime: 10/30/18 10:15:51 PM GMT, key: 294851, value: 1540937751186,User_8,Page_12
-rowtime: 10/30/18 10:15:55 PM GMT, key: 295051, value: 1540937755255,User_1,Page_15
-rowtime: 10/30/18 10:15:57 PM GMT, key: 295111, value: 1540937757265,User_8,Page_10
-rowtime: 10/30/18 10:15:59 PM GMT, key: 295221, value: 1540937759330,User_4,Page_15
-rowtime: 10/30/18 10:15:59 PM GMT, key: 295231, value: 1540937759699,User_1,Page_12
-rowtime: 10/30/18 10:15:59 PM GMT, key: 295241, value: 1540937759990,User_6,Page_15
+rowtime: 10/30/18 10:15:51 PM GMT, key: 1540937751186, value: 1540937751186,User_8,Page_12
+rowtime: 10/30/18 10:15:55 PM GMT, key: 1540937755255, value: 1540937755255,User_1,Page_15
+rowtime: 10/30/18 10:15:57 PM GMT, key: 1540937757265, value: 1540937757265,User_8,Page_10
+rowtime: 10/30/18 10:15:59 PM GMT, key: 1540937759330, value: 1540937759330,User_4,Page_15
+rowtime: 10/30/18 10:15:59 PM GMT, key: 1540937759699, value: 1540937759699,User_1,Page_12
+rowtime: 10/30/18 10:15:59 PM GMT, key: 1540937759990, value: 1540937759990,User_6,Page_15
 ^CTopic printing ceased
 ```
 
@@ -293,13 +295,6 @@ Press Ctrl+C to stop printing the stream.
 
 !!! note
 		The query continues to run after you stop printing the stream.
-
-!!! note
-    KsqlDB has determined that the key format is either `KAFKA_BIGINT` or `KAFKA_DOUBLE`.
-    KsqlDB has not narrowed it further because it is not possible to rule out
-    either format just by inspecting the key's serialized bytes. In this case we know the key is
-    a `BIGINT`. For other cases you may know the key type or you may need to speak to the author
-    of the data.
 
 Use the SHOW QUERIES statement to view the query that ksqlDB created for
 the `pageviews_intro` stream:
@@ -364,4 +359,3 @@ Next Steps
 ----------
 
 -   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
-

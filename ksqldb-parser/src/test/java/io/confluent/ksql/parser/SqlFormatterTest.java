@@ -32,7 +32,6 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
@@ -57,7 +56,6 @@ import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
@@ -134,7 +132,6 @@ public class SqlFormatterTest {
 
   private static final CreateSourceProperties SOME_WITH_PROPS = CreateSourceProperties.from(
       ImmutableMap.of(
-          CreateConfigs.KEY_NAME_PROPERTY, new StringLiteral("ORDERID"),
           CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"))
   );
@@ -184,7 +181,6 @@ public class SqlFormatterTest {
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("ORDERTIME")),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -202,7 +198,6 @@ public class SqlFormatterTest {
         SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("ITEMID")),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -215,7 +210,6 @@ public class SqlFormatterTest {
         SourceName.of("TABLE"),
         TABLE_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("TABLE")),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -238,7 +232,7 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE STREAM TEST (`k3` STRING KEY, `Foo` STRING) "
-        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
   }
 
   @Test
@@ -255,7 +249,7 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE STREAM TEST (`Foo` STRING, `Bar` STRING) "
-        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
   }
 
   @Test
@@ -279,7 +273,7 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE TABLE TEST (`k3` STRING PRIMARY KEY, `Foo` STRING) "
-        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', "
+        + "WITH (KAFKA_TOPIC='topic_test', "
         + "TIMESTAMP='Foo', TIMESTAMP_FORMAT='%s', VALUE_FORMAT='JSON');"));
   }
 
@@ -297,7 +291,7 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE TABLE TEST (`k3` STRING PRIMARY KEY, `Foo` STRING) "
-        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
   }
 
   @Test
@@ -314,7 +308,7 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE TABLE TEST (`Foo` STRING, `Bar` STRING) "
-        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
   }
 
   @Test

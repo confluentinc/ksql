@@ -274,7 +274,7 @@ public class JoinIntTest {
 
   private void createStreams() {
     ksqlContext.sql(String.format(
-        "CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
+        "CREATE STREAM %s (ORDERID varchar KEY, ORDERTIME bigint, "
             + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, "
             + "KEYVALUEMAP map<varchar, double>) "
             + "WITH (kafka_topic='%s', value_format='JSON');",
@@ -282,13 +282,13 @@ public class JoinIntTest {
         orderStreamTopicJson));
 
     ksqlContext.sql(String.format(
-        "CREATE TABLE %s (ID varchar, DESCRIPTION varchar) "
-            + "WITH (kafka_topic='%s', value_format='JSON', key='ID');",
+        "CREATE TABLE %s (ID varchar PRIMARY KEY, DESCRIPTION varchar) "
+            + "WITH (kafka_topic='%s', value_format='JSON');",
         ITEM_TABLE_NAME_JSON,
         itemTableTopicJson));
 
     ksqlContext.sql(String.format(
-        "CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, "
+        "CREATE STREAM %s (ORDERID varchar KEY, ORDERTIME bigint, ITEMID varchar, "
             + "ORDERUNITS double, PRICEARRAY array<double>, "
             + "KEYVALUEMAP map<varchar, double>) "
         + "WITH (kafka_topic='%s', value_format='AVRO', timestamp='ORDERTIME');",
@@ -296,8 +296,8 @@ public class JoinIntTest {
         orderStreamTopicAvro));
 
     ksqlContext.sql(String.format(
-        "CREATE TABLE %s (ID varchar, DESCRIPTION varchar)"
-            + " WITH (kafka_topic='%s', value_format='AVRO', key='ID');",
+        "CREATE TABLE %s (ID varchar PRIMARY KEY, DESCRIPTION varchar)"
+            + " WITH (kafka_topic='%s', value_format='AVRO');",
         ITEM_TABLE_NAME_AVRO,
         itemTableTopicAvro));
   }

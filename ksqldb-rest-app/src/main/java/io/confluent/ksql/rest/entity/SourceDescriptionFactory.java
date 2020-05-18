@@ -43,7 +43,6 @@ public final class SourceDescriptionFactory {
         writeQueries,
         EntityUtil.buildSourceSchemaEntity(dataSource.getSchema()),
         dataSource.getDataSourceType().getKsqlType(),
-        dataSource.getKeyField().ref().map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
         dataSource.getTimestampColumn()
             .map(TimestampColumn::getColumn)
             .map(c -> c.toString(FormatOptions.noEscape())).orElse(""),

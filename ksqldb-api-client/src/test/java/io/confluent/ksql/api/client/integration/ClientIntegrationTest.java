@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.client.BatchedQueryResult;
@@ -84,9 +85,9 @@ public class ClientIntegrationTest {
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
   private static final int PAGE_VIEW_NUM_ROWS = PAGE_VIEWS_PROVIDER.data().size();
   private static final List<String> PAGE_VIEW_COLUMN_NAMES =
-      ImmutableList.of("ROWKEY", "VIEWTIME", "USERID", "PAGEID");
+      ImmutableList.of("PAGEID", "USERID", "VIEWTIME");
   private static final List<ColumnType> PAGE_VIEW_COLUMN_TYPES =
-      RowUtil.columnTypesFromStrings(ImmutableList.of("BIGINT", "BIGINT", "STRING", "STRING"));
+      RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "STRING", "BIGINT"));
   private static final List<KsqlArray> PAGE_VIEW_EXPECTED_ROWS = convertToClientRows(PAGE_VIEWS_PROVIDER.data());
 
   private static final String AGG_TABLE = "AGG_TABLE";
@@ -437,20 +438,18 @@ public class ClientIntegrationTest {
     assertThat(row.columnTypes(), equalTo(PAGE_VIEW_COLUMN_TYPES));
 
     // verify type-based getters
-    assertThat(row.getLong("ROWKEY"), is(expectedRow.getLong(0)));
-    assertThat(row.getLong("VIEWTIME"), is(expectedRow.getLong(1)));
-    assertThat(row.getString("USERID"), is(expectedRow.getString(2)));
-    assertThat(row.getString("PAGEID"), is(expectedRow.getString(3)));
+    assertThat(row.getString("PAGEID"), is(expectedRow.getString(0)));
+    assertThat(row.getString("USERID"), is(expectedRow.getString(1)));
+    assertThat(row.getLong("VIEWTIME"), is(expectedRow.getLong(2)));
 
     // verify index-based getters are 1-indexed
-    assertThat(row.getLong(1), is(row.getLong("ROWKEY")));
-    assertThat(row.getLong(2), is(row.getLong("VIEWTIME")));
-    assertThat(row.getString(3), is(row.getString("USERID")));
-    assertThat(row.getString(4), is(row.getString("PAGEID")));
+    assertThat(row.getString(1), is(row.getString("PAGEID")));
+    assertThat(row.getString(2), is(row.getString("USERID")));
+    assertThat(row.getLong(3), is(row.getLong("VIEWTIME")));
 
     // verify isNull() evaluation
-    assertThat(row.isNull("ROWKEY"), is(false));
     assertThat(row.isNull("PAGEID"), is(false));
+    assertThat(row.isNull("VIEWTIME"), is(false));
 
     // verify exception on invalid cast
     assertThrows(ClassCastException.class, () -> row.getInt("PAGEID"));
@@ -459,10 +458,9 @@ public class ClientIntegrationTest {
     final KsqlArray values = row.values();
     assertThat(values.size(), is(PAGE_VIEW_COLUMN_NAMES.size()));
     assertThat(values.isEmpty(), is(false));
-    assertThat(values.getLong(0), is(row.getLong("ROWKEY")));
-    assertThat(values.getLong(1), is(row.getLong("VIEWTIME")));
-    assertThat(values.getString(2), is(row.getString("USERID")));
-    assertThat(values.getString(3), is(row.getString("PAGEID")));
+    assertThat(values.getString(0), is(row.getString("PAGEID")));
+    assertThat(values.getString(1), is(row.getString("USERID")));
+    assertThat(values.getLong(2), is(row.getLong("VIEWTIME")));
     assertThat(values.contains(row.getString("USERID")), is(true));
     assertThat(values.contains("bad"), is(false));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
@@ -473,10 +471,9 @@ public class ClientIntegrationTest {
     assertThat(obj.size(), is(PAGE_VIEW_COLUMN_NAMES.size()));
     assertThat(obj.isEmpty(), is(false));
     assertThat(obj.fieldNames(), contains(PAGE_VIEW_COLUMN_NAMES.toArray()));
-    assertThat(obj.getLong("ROWKEY"), is(row.getLong("ROWKEY")));
-    assertThat(obj.getLong("VIEWTIME"), is(row.getLong("VIEWTIME")));
-    assertThat(obj.getString("USERID"), is(row.getString("USERID")));
     assertThat(obj.getString("PAGEID"), is(row.getString("PAGEID")));
+    assertThat(obj.getString("USERID"), is(row.getString("USERID")));
+    assertThat(obj.getLong("VIEWTIME"), is(row.getLong("VIEWTIME")));
     assertThat(obj.containsKey("VIEWTIME"), is(true));
     assertThat(obj.containsKey("notafield"), is(false));
     assertThat(obj.toJsonString(), is((new JsonObject(obj.getMap())).toString()));
@@ -542,13 +539,12 @@ public class ClientIntegrationTest {
     assertThat(obj.toString(), is(obj.toJsonString()));
   }
 
-  // Assumes the keys are 1,2,...,n, as is the case for PageViewDataProvider
-  private static List<KsqlArray> convertToClientRows(final Map<Long, GenericRow> data) {
+  private static List<KsqlArray> convertToClientRows(final Multimap<String, GenericRow> data) {
     final List<KsqlArray> expectedRows = new ArrayList<>();
-    for (long k = 1; k <= data.size(); k++) {
+    for (final Map.Entry<String, GenericRow> entry : data.entries()) {
       final KsqlArray expectedRow = new KsqlArray()
-          .add(k)
-          .addAll(new KsqlArray(data.get(k).values()));
+          .add(entry.getKey())
+          .addAll(new KsqlArray(entry.getValue().values()));
       expectedRows.add(expectedRow);
     }
     return expectedRows;

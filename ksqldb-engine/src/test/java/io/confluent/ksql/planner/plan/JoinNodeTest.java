@@ -46,7 +46,6 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -137,8 +136,6 @@ public class JoinNodeTest {
 
   private static final ColumnName LEFT_JOIN_FIELD_REF = ColumnName.of("C0");
 
-  private static final KeyField leftJoinField = KeyField.of(LEFT_JOIN_FIELD_REF);
-
   private static final Optional<WithinExpression> WITHIN_EXPRESSION =
       Optional.of(new WithinExpression(10, TimeUnit.SECONDS));
 
@@ -205,8 +202,6 @@ public class JoinNodeTest {
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
 
-    when(left.getKeyField()).thenReturn(KeyField.of(LEFT_JOIN_FIELD_REF));
-
     when(left.getAlias()).thenReturn(LEFT_ALIAS);
     when(right.getAlias()).thenReturn(RIGHT_ALIAS);
 
@@ -219,15 +214,6 @@ public class JoinNodeTest {
 
     setUpSource(left, VALUE_FORMAT, leftSource, "Foobar1");
     setUpSource(right, OTHER_FORMAT, rightSource, "Foobar2");
-  }
-
-  @Test
-  public void shouldReturnLeftJoinKeyAsKeyField() {
-    // When:
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right,            empty());
-
-    // Then:
-    assertThat(joinNode.getKeyField().ref(), is(Optional.of(LEFT_JOIN_FIELD_REF)));
   }
 
   @Test
@@ -290,7 +276,6 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).leftJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        leftJoinField,
         WITHIN_EXPRESSION.get().joinWindow(),
         VALUE_FORMAT,
         OTHER_FORMAT,
@@ -314,7 +299,6 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).join(
         rightSchemaKStream,
         SYNTH_KEY,
-        leftJoinField,
         WITHIN_EXPRESSION.get().joinWindow(),
         VALUE_FORMAT,
         OTHER_FORMAT,
@@ -338,7 +322,6 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).outerJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        KeyField.none(),
         WITHIN_EXPRESSION.get().joinWindow(),
         VALUE_FORMAT,
         OTHER_FORMAT,
@@ -403,7 +386,6 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).leftJoin(
         rightSchemaKTable,
         SYNTH_KEY,
-        leftJoinField,
         VALUE_FORMAT,
         CONTEXT_STACKER
     );
@@ -424,7 +406,6 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).leftJoin(
         rightSchemaKTable,
         SYNTH_KEY,
-        leftJoinField,
         VALUE_FORMAT,
         CONTEXT_STACKER
     );
@@ -445,7 +426,6 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).join(
         rightSchemaKTable,
         SYNTH_KEY,
-        leftJoinField,
         VALUE_FORMAT,
         CONTEXT_STACKER
     );
@@ -507,7 +487,6 @@ public class JoinNodeTest {
     verify(leftSchemaKTable).join(
         rightSchemaKTable,
         SYNTH_KEY,
-        leftJoinField,
         CONTEXT_STACKER
     );
   }
@@ -527,7 +506,6 @@ public class JoinNodeTest {
     verify(leftSchemaKTable).leftJoin(
         rightSchemaKTable,
         SYNTH_KEY,
-        leftJoinField,
         CONTEXT_STACKER
     );
   }
@@ -547,7 +525,6 @@ public class JoinNodeTest {
     verify(leftSchemaKTable).outerJoin(
         rightSchemaKTable,
         SYNTH_KEY,
-        KeyField.none(),
         CONTEXT_STACKER
     );
   }

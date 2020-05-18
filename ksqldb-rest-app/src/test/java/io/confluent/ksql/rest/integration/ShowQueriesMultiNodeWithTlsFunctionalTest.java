@@ -49,15 +49,15 @@ public class ShowQueriesMultiNodeWithTlsFunctionalTest {
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG,
-          "http://localhost:8088,https://localhost:8089")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:8089")
+          "http://localhost:8088,https://localhost:8189")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:8189")
       .withProperties(ServerKeyStore.keyStoreProps())
       .build();
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG,
-          "http://localhost:8098,https://localhost:8099")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:8099")
+          "http://localhost:8098,https://localhost:8199")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:8199")
       .withProperties(ServerKeyStore.keyStoreProps())
       .build();
 

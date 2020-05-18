@@ -62,7 +62,6 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -411,24 +410,6 @@ public class CreateSourceFactoryTest {
 
     // Then:
     verify(topicClient).isTopicExists(TOPIC_NAME);
-  }
-
-  @Test
-  public void shouldThrowIfKeyFieldNotInSchemaForStream() {
-    // Given:
-    givenProperty(CreateConfigs.KEY_NAME_PROPERTY, new StringLiteral("`will-not-find-me`"));
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> createSourceFactory.createStreamCommand(statement, ksqlConfig)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "The KEY column set in the WITH clause does not exist in the schema: "
-            + "'will-not-find-me'"));
   }
 
   @Test

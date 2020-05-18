@@ -80,7 +80,6 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(MINIMUM_VALID_PROPS);
 
     // Then:
-    assertThat(properties.getKeyField(), is(Optional.empty()));
     assertThat(properties.getTimestampColumnName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
     assertThat(properties.getWindowType(), is(Optional.empty()));
@@ -89,19 +88,6 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getWrapSingleValues(), is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldSetValidKey() {
-    // When:
-    final CreateSourceProperties properties = CreateSourceProperties.from(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put(CreateConfigs.KEY_NAME_PROPERTY, new StringLiteral("key"))
-            .build());
-
-    // Then:
-    assertThat(properties.getKeyField(), is(Optional.of(ColumnName.of("KEY"))));
   }
 
   @Test

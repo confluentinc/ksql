@@ -37,7 +37,6 @@ abstract class StructuredDataSource<K> implements DataSource {
   private final SourceName dataSourceName;
   private final DataSourceType dataSourceType;
   private final LogicalSchema schema;
-  private final KeyField keyField;
   private final Optional<TimestampColumn> timestampColumn;
   private final KsqlTopic ksqlTopic;
   private final String sqlExpression;
@@ -49,7 +48,6 @@ abstract class StructuredDataSource<K> implements DataSource {
       final SourceName dataSourceName,
       final LogicalSchema schema,
       final Set<SerdeOption> serdeOptions,
-      final KeyField keyField,
       final Optional<TimestampColumn> tsExtractionPolicy,
       final DataSourceType dataSourceType,
       final boolean casTarget,
@@ -58,8 +56,6 @@ abstract class StructuredDataSource<K> implements DataSource {
     this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
     this.dataSourceName = requireNonNull(dataSourceName, "dataSourceName");
     this.schema = requireNonNull(schema, "schema");
-    this.keyField = requireNonNull(keyField, "keyField")
-        .validateKeyExistsIn(schema);
     this.timestampColumn = requireNonNull(tsExtractionPolicy, "tsExtractionPolicy");
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
@@ -97,11 +93,6 @@ abstract class StructuredDataSource<K> implements DataSource {
   @Override
   public Set<SerdeOption> getSerdeOptions() {
     return serdeOptions;
-  }
-
-  @Override
-  public KeyField getKeyField() {
-    return keyField;
   }
 
   @Override

@@ -37,7 +37,6 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.GroupBy;
@@ -73,7 +72,6 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
   private static final String PROJECT_OP_NAME = "Project";
 
   private final PlanNode source;
-  private final KeyField keyField;
   private final GroupBy groupBy;
   private final Optional<WindowExpression> windowExpression;
   private final ImmutableList<Expression> aggregateFunctionArguments;
@@ -88,7 +86,6 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Optional<ColumnName> keyFieldName,
       final GroupBy groupBy,
       final FunctionRegistry functionRegistry,
       final ImmutableAnalysis analysis,
@@ -126,17 +123,10 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
 
     this.havingExpressions = rewrittenAggregateAnalysis.getHavingExpression()
         .map(exp -> ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, exp));
-    this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
-        .validateKeyExistsIn(schema);
     this.valueFormat = getTheSourceNode()
         .getDataSource()
         .getKsqlTopic()
         .getValueFormat();
-  }
-
-  @Override
-  public KeyField getKeyField() {
-    return keyField;
   }
 
   @Override

@@ -19,7 +19,7 @@ import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
-import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
+import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -75,14 +75,10 @@ public class StreamQueryResponseHandler extends QueryResponseHandler<StreamedQue
       }
     } else if (json instanceof JsonObject) {
       final JsonObject error = (JsonObject) json;
-      if ("error".equals(error.getString("status"))) {
-        queryResult.handleError(new KsqlApiException(
-            error.getString("message"),
-            error.getInteger("errorCode"))
-        );
-      } else {
-        throw new RuntimeException("Unexpected response from server: " + error);
-      }
+      queryResult.handleError(new KsqlApiException(
+          error.getString("message"),
+          error.getInteger("error_code"))
+      );
     } else {
       throw new RuntimeException("Could not decode JSON: " + json);
     }

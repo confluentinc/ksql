@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -132,7 +131,6 @@ public class SchemaKGroupedTableTest {
         mock(ExecutionStep.class),
         IN_SCHEMA,
         keyFormat,
-        KeyField.of(IN_SCHEMA.value().get(0).name()),
         ksqlConfig,
         functionRegistry
     );

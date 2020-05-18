@@ -63,14 +63,14 @@ Deriving a new table from an existing stream
 Given the following table and stream:
 
 ```sql
-CREATE TABLE products (product_name VARCHAR, cost DOUBLE)
-    WITH (kafka_topic='products', partitions=1, value_format='json', key='product_name');
+CREATE TABLE products (product_name VARCHAR PRIMARY KEY, cost DOUBLE)
+    WITH (kafka_topic='products', partitions=1, value_format='json');
 
-CREATE STREAM orders (product_name VARCHAR)
-    WITH (kafka_topic='orders', partitions=1, value_format='json', key='product_name');
+CREATE STREAM orders (product_name VARCHAR KEY)
+    WITH (kafka_topic='orders', partitions=1, value_format='json');
 ```
 
-You can create an table that aggregates rows from the `orders` stream, while
+You can create a table that aggregates rows from the `orders` stream, while
 also joining the stream on the `products` table to enrich the `orders` data:
 
 ```sql
@@ -109,11 +109,11 @@ Deriving a new stream from multiple streams
 Given the following two streams:
 
 ```sql
-CREATE STREAM impressions (user VARCHAR, impression_id BIGINT, url VARCHAR)
-    WITH (kafka_topic='impressions', partitions=1, value_format='json', key='user');
+CREATE STREAM impressions (user VARCHAR KEY, impression_id BIGINT, url VARCHAR)
+    WITH (kafka_topic='impressions', partitions=1, value_format='json');
 
-CREATE STREAM clicks (user VARCHAR)
-    WITH (kafka_topic='clicks', partitions=1, value_format='json', key='user');
+CREATE STREAM clicks (user VARCHAR KEY, url VARCHAR)
+    WITH (kafka_topic='clicks', partitions=1, value_format='json');
 ```
 
 You can create a derived stream that joins the `impressions` and `clicks`
@@ -122,7 +122,9 @@ within one minute of the initial ad impression:
 
 ```sql
 CREATE STREAM clicked_impressions AS
-    SELECT * FROM impressions i JOIN clicks c WITHIN 1 minute ON i.user = c.user EMIT CHANGES;
+    SELECT * FROM impressions i JOIN clicks c WITHIN 1 minute ON i.user = c.user
+    WHERE i.url = c.url
+    EMIT CHANGES;
 ```
 
 Any time an `impressions` row is received, followed within one minute by a

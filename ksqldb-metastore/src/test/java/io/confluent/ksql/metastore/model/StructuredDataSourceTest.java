@@ -16,7 +16,6 @@
 package io.confluent.ksql.metastore.model;
 
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.ColumnName;
@@ -27,32 +26,13 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Optional;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
 public class StructuredDataSourceTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .build();
-
-  @Mock
-  public KeyField keyField;
-
-  @Test
-  public void shouldValidateKeyFieldIsInSchema() {
-    // When:
-    new TestStructuredDataSource(
-        SOME_SCHEMA,
-        keyField
-    );
-
-    // Then (no exception):
-    verify(keyField).validateKeyExistsIn(SOME_SCHEMA);
-  }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfSchemaContainsRowTime() {
@@ -64,10 +44,7 @@ public class StructuredDataSourceTest {
         .build();
 
     // When:
-    new TestStructuredDataSource(
-        schema,
-        keyField
-    );
+    new TestStructuredDataSource(schema);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -80,10 +57,7 @@ public class StructuredDataSourceTest {
         .build();
 
     // When:
-    new TestStructuredDataSource(
-        schema,
-        keyField
-    );
+    new TestStructuredDataSource(schema);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -96,10 +70,7 @@ public class StructuredDataSourceTest {
         .build();
 
     // When:
-    new TestStructuredDataSource(
-        schema,
-        keyField
-    );
+    new TestStructuredDataSource(schema);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -112,10 +83,7 @@ public class StructuredDataSourceTest {
         .build();
 
     // When:
-    new TestStructuredDataSource(
-        schema,
-        keyField
-    );
+    new TestStructuredDataSource(schema);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -128,10 +96,7 @@ public class StructuredDataSourceTest {
         .build();
 
     // When:
-    new TestStructuredDataSource(
-        schema,
-        keyField
-    );
+    new TestStructuredDataSource(schema);
   }
 
   /**
@@ -140,14 +105,13 @@ public class StructuredDataSourceTest {
   private static final class TestStructuredDataSource extends StructuredDataSource<String> {
 
     private TestStructuredDataSource(
-        final LogicalSchema schema,
-        final KeyField keyField
+        final LogicalSchema schema
     ) {
       super(
           "some SQL",
           SourceName.of("some name"),
           schema,
-          SerdeOption.none(), keyField,
+          SerdeOption.none(),
           Optional.empty(),
           DataSourceType.KSTREAM,
           false,

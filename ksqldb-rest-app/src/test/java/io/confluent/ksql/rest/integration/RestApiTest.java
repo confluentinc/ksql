@@ -286,7 +286,7 @@ public class RestApiTest {
   public void shouldExecutePushQueryOverRest() {
     // When:
     final String response = rawRestQueryRequest(
-        "SELECT USERID, PAGEID, VIEWTIME, ROWKEY from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT "
+        "SELECT USERID, PAGEID, VIEWTIME from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT "
             + LIMIT + ";"
     );
 
@@ -297,9 +297,9 @@ public class RestApiTest {
         .collect(Collectors.toList());
     assertThat(messages, hasSize(HEADER + LIMIT + FOOTER));
     assertThat(messages.get(0),
-        is("[{\"header\":{\"queryId\":\"none\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT, `ROWKEY` BIGINT\"}},"));
-    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1,1]}},"));
-    assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2,2]}},"));
+        is("[{\"header\":{\"queryId\":\"none\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT\"}},"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1]}},"));
+    assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2]}},"));
     assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
   }
 

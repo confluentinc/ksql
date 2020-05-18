@@ -26,7 +26,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -37,12 +36,9 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -64,7 +60,6 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,8 +79,6 @@ public class SchemaKStreamTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture
       .getNewMetaStore(new InternalFunctionRegistry());
-  private final KeyField validJoinKeyField = KeyField
-      .of(Optional.of(ColumnName.of("COL0")));
   private final KeyFormat keyFormat = KeyFormat
       .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
@@ -117,7 +110,6 @@ public class SchemaKStreamTest {
         tableSourceStep,
         ksqlTable.getSchema(),
         keyFormat,
-        ksqlTable.getKeyField(),
         ksqlConfig,
         functionRegistry);
   }
@@ -214,7 +206,7 @@ public class SchemaKStreamTest {
   public void shouldNotRepartitionIfRowkey() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 PARTITION BY ROWKEY EMIT CHANGES;");
+        "SELECT col0, col2, col3 FROM test1 PARTITION BY col0 EMIT CHANGES;");
     final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
@@ -223,52 +215,6 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result, is(initialSchemaKStream));
-  }
-
-  @Test
-  public void shouldUpdateKeyOnPartitionByColumn() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 PARTITION BY col2 EMIT CHANGES;");
-    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
-
-    // When:
-    final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
-
-    // Then:
-    assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnName.of("COL2"))));
-  }
-
-  @Test
-  public void shouldUpdateKeyToNoneOnPartitionByMetaColumn() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 PARTITION BY ROWTIME EMIT CHANGES;");
-    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
-
-    // When:
-    final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
-
-    // Then:
-    assertThat(result.getKeyField(), is(KeyField.none()));
-  }
-
-  @Test
-  public void shouldUpdateKeyToNoneOnPartitionByExpression() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 PARTITION BY col2 + 'foo' EMIT CHANGES;");
-    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
-
-    // When:
-    final SchemaKStream result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
-
-    // Then:
-    assertThat(result.getKeyField(), is(KeyField.none()));
   }
 
   @Test(expected = KsqlException.class)
@@ -282,118 +228,6 @@ public class SchemaKStreamTest {
     initialSchemaKStream.selectKey(repartitionNode.getPartitionBy(),
         childContextStacker
     );
-  }
-
-  @Test
-  public void shouldUpdateKeyIfRenamed() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0 as NEWKEY, col2, col3 FROM test1 EMIT CHANGES;");
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
-
-    // When:
-    final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
-
-    // Then:
-    assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnName.of("NEWKEY"))));
-  }
-
-  @Test
-  public void shouldUpdateKeyIfRenamedViaFullyQualifiedName() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT test1.col0 as NEWKEY, col2, col3 FROM test1 EMIT CHANGES;");
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
-
-    // When:
-    final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
-
-    // Then:
-    assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnName.of("NEWKEY"))));
-  }
-
-  @Test
-  public void shouldUpdateKeyIfRenamedAndSourceIsAliased() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT t.col0 as NEWKEY, col2, col3 FROM test1 t EMIT CHANGES;");
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
-
-    // When:
-    final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
-
-    // Then:
-    assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnName.of("NEWKEY"))));
-  }
-
-  @Test
-  public void shouldPreserveKeyOnSelectStar() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT * FROM test1 EMIT CHANGES;");
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
-
-    // When:
-    final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
-
-    // Then:
-    assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
-  }
-
-  @Test
-  public void shouldUpdateKeyIfMovedToDifferentIndex() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT col2, col0, col3 FROM test1 EMIT CHANGES;");
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
-
-    // When:
-    final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
-
-    // Then:
-    assertThat(result.getKeyField(),
-        equalTo(KeyField.of(ColumnName.of("COL0"))));
-  }
-
-  @Test
-  public void shouldDropKeyIfNotSelected() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT col2, col3 FROM test1 EMIT CHANGES;");
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
-
-    // When:
-    final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
-
-    // Then:
-    assertThat(result.getKeyField(), is(KeyField.none()));
-  }
-
-  @Test
-  public void shouldHandleSourceWithoutKey() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT * FROM test4 EMIT CHANGES;");
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
-
-    // When:
-    final SchemaKStream<?> result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
-
-    // Then:
-    assertThat(result.getKeyField(), is(KeyField.none()));
   }
 
   @Test(expected = UnsupportedOperationException.class)
@@ -485,23 +319,6 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  public void shouldSelectKey() {
-    // Given:
-    givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
-
-    final KeyField expected = KeyField
-        .of(ColumnName.of("COL1"));
-
-    // When:
-    final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        childContextStacker);
-
-    // Then:
-    assertThat(rekeyedSchemaKStream.getKeyField(), is(expected));
-  }
-
-  @Test
   public void shouldBuildStepForSelectKey() {
     // Given:
     givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
@@ -540,26 +357,6 @@ public class SchemaKStreamTest {
         is(schemaResolver.resolve(
             rekeyedSchemaKStream.getSourceStep(), initialSchemaKStream.getSchema()))
     );
-  }
-
-  @Test
-  public void testGroupByKey() {
-    // Given:
-    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
-
-    final List<Expression> groupBy = Collections.singletonList(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
-    );
-
-    // When:
-    final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
-        valueFormat,
-        groupBy,
-        childContextStacker
-    );
-
-    // Then:
-    assertThat(groupedSchemaKStream.getKeyField().ref(), is(Optional.of(ColumnName.of("COL0"))));
   }
 
   @Test
@@ -667,50 +464,10 @@ public class SchemaKStreamTest {
     );
   }
 
-  @Test
-  public void testGroupByMultipleColumns() {
-    // Given:
-    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
-
-    final List<Expression> groupBy = ImmutableList.of(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
-    );
-
-    // When:
-    final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
-        valueFormat,
-        groupBy,
-        childContextStacker
-    );
-
-    // Then:
-    assertThat(groupedSchemaKStream.getKeyField().ref(), is(Optional.empty()));
-  }
-
-  @Test
-  public void testGroupByMoreComplexExpression() {
-    // Given:
-    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
-
-    final Expression groupBy = new FunctionCall(FunctionName.of("UCASE"), ImmutableList.of(COL1));
-
-    // When:
-    final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
-        valueFormat,
-        ImmutableList.of(groupBy),
-        childContextStacker
-    );
-
-    // Then:
-    assertThat(groupedSchemaKStream.getKeyField().ref(), is(Optional.empty()));
-  }
-
   @FunctionalInterface
   private interface StreamStreamJoin {
     SchemaKStream join(
         SchemaKStream otherSchemaKStream,
-        KeyField keyField,
         JoinWindows joinWindows,
         ValueFormat leftFormat,
         ValueFormat rightFormat,
@@ -723,7 +480,6 @@ public class SchemaKStreamTest {
     SchemaKStream join(
         SchemaKTable other,
         ColumnName keyNameCol,
-        KeyField keyField,
         ValueFormat leftFormat,
         QueryContext.Stacker contextStacker
     );
@@ -743,7 +499,6 @@ public class SchemaKStreamTest {
       final SchemaKStream joinedKStream = testcase.right.join(
           schemaKTable,
           KEY,
-          validJoinKeyField,
           valueFormat,
           childContextStacker
       );
@@ -780,7 +535,6 @@ public class SchemaKStreamTest {
       final SchemaKStream joinedKStream = testcase.right.join(
           schemaKTable,
           KEY,
-          validJoinKeyField,
           valueFormat,
           childContextStacker
       );
@@ -796,13 +550,12 @@ public class SchemaKStreamTest {
 
   private SchemaKStream buildSchemaKStream(
       final LogicalSchema schema,
-      final KeyField keyField,
-      final ExecutionStep sourceStep) {
+      final ExecutionStep sourceStep
+  ) {
     return new SchemaKStream(
         sourceStep,
         schema,
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -820,7 +573,6 @@ public class SchemaKStreamTest {
   private SchemaKStream buildSchemaKStreamForJoin(final KsqlStream ksqlStream) {
     return buildSchemaKStream(
         buildJoinSchema(ksqlStream),
-        KeyField.none(),
         sourceStep
     );
   }
@@ -835,7 +587,6 @@ public class SchemaKStreamTest {
         sourceStep,
         logicalPlan.getTheSourceNode().getSchema(),
         keyFormat,
-        logicalPlan.getTheSourceNode().getKeyField(),
         ksqlConfig,
         functionRegistry
     );

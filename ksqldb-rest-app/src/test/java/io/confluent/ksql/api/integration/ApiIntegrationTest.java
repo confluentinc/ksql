@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.integration;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,7 +27,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
@@ -140,9 +141,9 @@ public class ApiIntegrationTest {
     // Then:
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(
-        new JsonArray().add("ROWKEY").add("VIEWTIME").add("USERID").add("PAGEID")));
+        new JsonArray().add("PAGEID").add("USERID").add("VIEWTIME")));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(
-        new JsonArray().add("BIGINT").add("BIGINT").add("STRING").add("STRING")));
+        new JsonArray().add("STRING").add("STRING").add("BIGINT")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
 
@@ -350,12 +351,11 @@ public class ApiIntegrationTest {
     // Given:
     JsonObject row = new JsonObject()
         .put("VIEWTIME", 1000)
-        .put("USERID", "User123")
-        .put("PAGEID", "PAGE23");
+        .put("USERID", "User123");
 
     // Then:
-    shouldFailToInsert(row, ErrorCodes.ERROR_CODE_MISSING_KEY_FIELD,
-        "Key field must be specified: ROWKEY");
+    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
+        "Key field must be specified: PAGEID");
   }
 
   @Test
@@ -363,14 +363,13 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
-        .put("ROWKEY", true)
+        .put("PAGEID", true)
         .put("VIEWTIME", 1000)
-        .put("USERID", "User123")
-        .put("PAGEID", "PAGE23");
+        .put("USERID", "User123");
 
     // Then:
-    shouldFailToInsert(row, ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD,
-        "Can't coerce a field of type class java.lang.Boolean (true) into type BIGINT");
+    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
+        "Can't coerce a field of type class java.lang.Boolean (true) into type STRING");
   }
 
   @Test
@@ -384,7 +383,7 @@ public class ApiIntegrationTest {
         .put("PAGEID", "PAGE23");
 
     // Then:
-    shouldFailToInsert(row, ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD,
+    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
         "Can't coerce a field of type class java.lang.Integer (123) into type STRING");
   }
 
@@ -393,7 +392,7 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject();
-    row.put("ROWKEY", 10);
+    row.put("PAGEID", "10");
     row.put("VIEWTIME", 1000);
     row.put("USERID", "User123");
 
@@ -407,9 +406,8 @@ public class ApiIntegrationTest {
 
     // Then:
     assertThat(response.rows, hasSize(0));
-    assertThat(response.responseObject.getString("status"), is("error"));
-    assertThat(response.responseObject.getInteger("errorCode"),
-        is(ErrorCodes.ERROR_CODE_INVALID_QUERY));
+    assertThat(response.responseObject.getInteger("error_code"),
+        is(ERROR_CODE_BAD_STATEMENT));
     assertThat(response.responseObject.getString("message"),
         startsWith(message));
   }
@@ -439,8 +437,7 @@ public class ApiIntegrationTest {
     InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
     assertThat(insertsResponse.acks, hasSize(0));
     assertThat(insertsResponse.error, is(notNullValue()));
-    assertThat(insertsResponse.error.getString("status"), is("error"));
-    assertThat(insertsResponse.error.getInteger("errorCode"), is(errorCode));
+    assertThat(insertsResponse.error.getInteger("error_code"), is(errorCode));
     assertThat(insertsResponse.error.getString("message"),
         startsWith(message));
   }

@@ -397,7 +397,6 @@
             "name": "OUTPUT",
             "type": "table",
             "keyFormat": {"format": "KAFKA", "windowType": "TUMBLING", "windowSize": 30000},
-            "keyField": null,
             "schema": "`ID` BIGINT KEY, `MAX` BIGINT"
           }
         ]

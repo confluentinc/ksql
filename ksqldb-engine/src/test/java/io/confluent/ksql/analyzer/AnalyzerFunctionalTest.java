@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -29,12 +28,10 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
@@ -99,9 +96,6 @@ public class AnalyzerFunctionalTest {
         "",
         DEFAULT_SERDE_OPTIONS
     );
-
-    when(sink.getName()).thenReturn(SourceName.of("TEST0"));
-    when(sink.getProperties()).thenReturn(CreateSourceAsProperties.none());
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
 
@@ -180,7 +174,6 @@ public class AnalyzerFunctionalTest {
         SourceName.of("S0"),
         schema,
         SerdeOption.none(),
-        KeyField.none(),
         Optional.empty(),
         false,
         ksqlTopic
@@ -280,7 +273,7 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test1 t2 ON t1.rowkey = t2.rowkey;"
+            + "SELECT * FROM test1 t1 JOIN test1 t2 ON t1.col0 = t2.col0;"
     );
 
     final Query query = createStreamAsSelect.getQuery();
@@ -303,7 +296,7 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.rowkey = 'foo';"
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = 'foo';"
     );
 
     final Query query = createStreamAsSelect.getQuery();
@@ -319,7 +312,7 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Invalid comparison expression ''foo'' in join "
-            + "'(T1.ROWKEY = 'foo')'. Each side of the join comparision must contain references "
+            + "'(T1.COL0 = 'foo')'. Each side of the join comparision must contain references "
             + "from exactly one source."));
   }
 
@@ -328,7 +321,7 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.rowkey + t2.rowkey = t1.rowkey;"
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 + t2.col0 = t1.col0;"
     );
 
     final Query query = createStreamAsSelect.getQuery();
@@ -343,8 +336,8 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Invalid comparison expression '(T1.ROWKEY + T2.ROWKEY)' in "
-            + "join '((T1.ROWKEY + T2.ROWKEY) = T1.ROWKEY)'. Each side of the join comparision must "
+        "Invalid comparison expression '(T1.COL0 + T2.COL0)' in "
+            + "join '((T1.COL0 + T2.COL0) = T1.COL0)'. Each side of the join comparision must "
             + "contain references from exactly one source."));
   }
 
@@ -353,7 +346,7 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.rowkey = t1.rowkey;"
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t1.col0;"
     );
 
     final Query query = createStreamAsSelect.getQuery();
@@ -394,7 +387,6 @@ public class AnalyzerFunctionalTest {
         SourceName.of("KAFKA_SOURCE"),
         schema,
         SerdeOption.none(),
-        KeyField.none(),
         Optional.empty(),
         false,
         topic

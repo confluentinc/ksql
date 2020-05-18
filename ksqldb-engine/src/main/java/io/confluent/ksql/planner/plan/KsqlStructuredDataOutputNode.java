@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
@@ -43,7 +42,6 @@ import java.util.stream.Collectors;
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final KsqlTopic ksqlTopic;
-  private final KeyField keyField;
   private final boolean doCreateInto;
   private final ImmutableSet<SerdeOption> serdeOptions;
   private final SourceName intoSourceName;
@@ -54,7 +52,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final PlanNode source,
       final LogicalSchema schema,
       final Optional<TimestampColumn> timestampColumn,
-      final KeyField keyField,
       final KsqlTopic ksqlTopic,
       final OptionalInt limit,
       final boolean doCreateInto,
@@ -74,8 +71,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
 
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
-    this.keyField = requireNonNull(keyField, "keyField")
-        .validateKeyExistsIn(schema);
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.doCreateInto = doCreateInto;
     this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
@@ -109,11 +104,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return new QueryId("CTAS_" + getId().toString().toUpperCase() + "_" + base);
     }
     return new QueryId("CSAS_" + getId().toString().toUpperCase() + "_" + base);
-  }
-
-  @Override
-  public KeyField getKeyField() {
-    return keyField;
   }
 
   @Override

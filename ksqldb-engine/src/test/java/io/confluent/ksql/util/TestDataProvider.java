@@ -15,30 +15,31 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.KeyValue;
 
 public abstract class TestDataProvider<K> {
 
   private final String topicName;
-  private final String key;
   private final PhysicalSchema schema;
-  private final Map<K, GenericRow> data;
+  private final Multimap<K, GenericRow> data;
   private final String kstreamName;
 
   public TestDataProvider(
       final String namePrefix,
-      final String key,
       final PhysicalSchema schema,
-      final Map<K, GenericRow> data
+      final Multimap<K, GenericRow> data
   ) {
     this.topicName = Objects.requireNonNull(namePrefix, "namePrefix") + "_TOPIC";
     this.kstreamName = namePrefix + "_KSTREAM";
-    this.key = Objects.requireNonNull(key, "key");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.data = Objects.requireNonNull(data, "data");
   }
@@ -54,15 +55,24 @@ public abstract class TestDataProvider<K> {
   }
 
   public String key() {
-    return key;
+    return Iterables.getOnlyElement(schema.logicalSchema().key()).name().text();
   }
 
   public PhysicalSchema schema() {
     return schema;
   }
 
-  public Map<K, GenericRow> data() {
+  public Multimap<K, GenericRow> data() {
     return data;
+  }
+
+  public Map<K, GenericRow> finalData() {
+    return data.entries().stream()
+        .collect(Collectors.toMap(
+            Entry::getKey,
+            Entry::getValue,
+            (first, second) -> second
+        ));
   }
 
   public String kstreamName() {
@@ -77,5 +87,9 @@ public abstract class TestDataProvider<K> {
     return asTable
         ? " PRIMARY KEY"
         : " KEY";
+  }
+
+  static <K> KeyValue<K, GenericRow> kv(final K k, GenericRow v) {
+    return new KeyValue<>(k, v);
   }
 }

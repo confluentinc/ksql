@@ -260,7 +260,7 @@ Create a table, named `users_original`, from the `users` topic, specifying
 the `value_format` of `AVRO`.
 
 ```sql
-CREATE TABLE users_original WITH (kafka_topic='users', value_format='AVRO', key = 'userid');
+CREATE TABLE users_original WITH (kafka_topic='users', value_format='AVRO');
 ```
 
 Your output should resemble:
@@ -284,15 +284,6 @@ Your output should resemble:
       column and is called `ROWKEY`. It is also possible to supply just the key
       column in the statement, allowing you to specify the key column type. For example:
       `CREATE TABLE users_original (ROWKEY INT PRIMARY KEY) WITH (...);`
-
-!!! note
-      The data generated has the same value in the {{ site.ak }} record's key
-      as the `userId` field in the value. Specifying `key='userId'`
-      in the WITH clause above lets ksqlDB know this. ksqlDB uses this information
-      to allow joins against the table to use the more
-      descriptive `userId` column name, rather than `ROWKEY`. Joining
-      on either yields the same results. If your data doesn't
-      contain a copy of the key in the value, you can join on `ROWKEY`.
 
 !!! tip
     You can run `DESCRIBE users_original;` to see the schema for the
@@ -481,12 +472,12 @@ SELECT * FROM pageviews_enriched emit changes;
 Your output should resemble:
 
 ```
-+------------+------------+------------+------------+------------+
-|ROWKEY      |USERID      |PAGEID      |REGIONID    |GENDER      |
-+------------+------------+------------+------------+------------+
-|User_5      |User_5      |Page_53     |Region_3    |FEMALE      |
-|User_2      |User_2      |Page_86     |Region_5    |OTHER       |
-|User_9      |User_9      |Page_75     |Region_1    |OTHER       |
++------------+------------+------------+------------+
+|USERID      |PAGEID      |REGIONID    |GENDER      |
++------------+------------+------------+------------+
+|User_5      |Page_53     |Region_3    |FEMALE      |
+|User_2      |Page_86     |Region_5    |OTHER       |
+|User_9      |Page_75     |Region_1    |OTHER       |
 
 ^CQuery terminated
 ```
@@ -585,14 +576,14 @@ SELECT * FROM pageviews_regions EMIT CHANGES LIMIT 5;
 Your output should resemble:
 
 ```
-+-----------------+---------------+---------------+---------------+---------------+---------------+
-|ROWKEY           |WINDOWSTART    |WINDOWEND      |GENDER         |REGIONID       |NUMUSERS       |
-+-----------------+---------------+---------------+---------------+---------------+---------------+
-|OTHER|+|Region_9 |1581080490000  |1581080520000  |OTHER          |Region_9       |1              |
-|OTHER|+|Region_5 |1581080490000  |1581080520000  |OTHER          |Region_5       |2              |
-|MALE|+|Region_7  |1581080490000  |1581080520000  |MALE           |Region_7       |4              |
-|FEMALE|+|Region_1|1581080490000  |1581080520000  |FEMALE         |Region_1       |2              |
-|MALE|+|Region_2  |1581080490000  |1581080520000  |MALE           |Region_2       |3              |
++-----------------+---------------+---------------+---------------+
+|KSQL_COL_0       |WINDOWSTART    |WINDOWEND      |NUMUSERS       |
++-----------------+---------------+---------------+---------------+
+|OTHER|+|Region_9 |1581080490000  |1581080520000  |1              |
+|OTHER|+|Region_5 |1581080490000  |1581080520000  |2              |
+|MALE|+|Region_7  |1581080490000  |1581080520000  |4              |
+|FEMALE|+|Region_1|1581080490000  |1581080520000  |2              |
+|MALE|+|Region_2  |1581080490000  |1581080520000  |3              |
 Limit Reached
 Query terminated
 ```
@@ -602,6 +593,12 @@ Query terminated
    These are available because `pageviews_regions` is aggregating data
    per 30 second _window_. ksqlDB automatically adds these system columns
    for windowed results.
+
+!!! note
+   The grouping columns `gender` and `regionid` are currently stored combined
+   in a single key column. This will be rectified once multiple key columns
+   are supported. Until then, then columns are combined and the resulting column
+   if given a system generated column name.
 
 ### 8. View query results using a pull query
 
@@ -617,27 +614,29 @@ Pull queries do not have the `EMIT CHANGES` clause.
 View all of the windows and user counts that are available for a specific gender and region by using a pull query:
 
 ```sql
-SELECT * FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9';
+SELECT * FROM pageviews_regions WHERE KSQL_COL_0='OTHER|+|Region_9';
 ```
 
 Your output should resemble:
 
 ```
-+------------------+------------------+------------------+------------------+------------------+------------------+
-|ROWKEY            |WINDOWSTART       |WINDOWEND         |GENDER            |REGIONID          |NUMUSERS          |
-+------------------+------------------+------------------+------------------+------------------+------------------+
-|OTHER|+|Region_9  |1581080490000     |1581080520000     |OTHER             |Region_9          |1                 |
-|OTHER|+|Region_9  |1581080550000     |1581080580000     |OTHER             |Region_9          |4                 |
-|OTHER|+|Region_9  |1581080580000     |1581080610000     |OTHER             |Region_9          |4                 |
-|OTHER|+|Region_9  |1581080610000     |1581080640000     |OTHER             |Region_9          |3                 |
-|OTHER|+|Region_9  |1581080640000     |1581080670000     |OTHER             |Region_9          |6                 |
++------------------+------------------+------------------+------------------+
+|KSQL_COL_0        |WINDOWSTART       |WINDOWEND         |NUMUSERS          |
++------------------+------------------+------------------+------------------+
+|OTHER|+|Region_9  |1581080490000     |1581080520000     |1                 |
+|OTHER|+|Region_9  |1581080550000     |1581080580000     |4                 |
+|OTHER|+|Region_9  |1581080580000     |1581080610000     |4                 |
+|OTHER|+|Region_9  |1581080610000     |1581080640000     |3                 |
+|OTHER|+|Region_9  |1581080640000     |1581080670000     |6                 |
 ...
 ```
 
 Pull queries on windowed tables such as `pageviews_regions` also support querying a single window's result:
 
 ```sql
-SELECT NUMUSERS FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9' AND WINDOWSTART=1581080550000;
+SELECT NUMUSERS FROM pageviews_regions
+    WHERE KSQL_COL_0='OTHER|+|Region_9'
+    AND WINDOWSTART=1581080550000;
 ```
 
 !!! important
@@ -657,7 +656,9 @@ Query terminated
 Or querying a range of windows:
 
 ```sql
-SELECT WINDOWSTART, WINDOWEND, NUMUSERS FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9' AND 1581080550000 <= WINDOWSTART AND WINDOWSTART <= 1581080610000;
+SELECT WINDOWSTART, WINDOWEND, NUMUSERS FROM pageviews_regions
+    WHERE KSQL_COL_0='OTHER|+|Region_9'
+    AND 1581080550000 <= WINDOWSTART AND WINDOWSTART <= 1581080610000;
 ```
 
 !!! important
@@ -711,7 +712,6 @@ Your output should resemble:
 ```
 Name                 : PAGEVIEWS_REGIONS
 Type                 : TABLE
-Key field            : 
 Timestamp field      : Not set - using <ROWTIME>
 Key format           : KAFKA
 Value format         : AVRO
@@ -725,13 +725,11 @@ WINDOW TUMBLING ( SIZE 30 SECONDS )
 GROUP BY PAGEVIEWS_ENRICHED.GENDER, PAGEVIEWS_ENRICHED.REGIONID
 EMIT CHANGES;
 
- Field    | Type                                              
---------------------------------------------------------------
- ROWKEY   | VARCHAR(STRING)  (key) (Window type: TUMBLING)
- GENDER   | VARCHAR(STRING)                                   
- REGIONID | VARCHAR(STRING)                                   
- NUMUSERS | BIGINT                                            
---------------------------------------------------------------
+ Field      | Type
+----------------------------------------------------------------
+ KSQL_COL_0 | VARCHAR(STRING)  (key) (Window type: TUMBLING)
+ NUMUSERS   | BIGINT
+----------------------------------------------------------------
 
 Queries that write from this TABLE
 -----------------------------------
@@ -774,14 +772,13 @@ From the ksqlDB command prompt, register the a stream on the `orders` topic:
 ```sql
 CREATE STREAM ORDERS 
  (
-   ROWKEY INT KEY, 
+   ORDERID INT KEY,
    ORDERTIME BIGINT, 
-   ORDERID INT, 
-   ITEMID STRING, 
+   ITEMID STRING,
    ORDERUNITS DOUBLE, 
    ADDRESS STRUCT<CITY STRING, STATE STRING, ZIPCODE BIGINT>
  )
-   WITH (KAFKA_TOPIC='orders', VALUE_FORMAT='json', key='orderid');
+   WITH (KAFKA_TOPIC='orders', VALUE_FORMAT='json');
 ```
 
 Your output should resemble:
@@ -808,9 +805,8 @@ Your output should resemble:
 Name                 : ORDERS
  Field      | Type
 ----------------------------------------------------------------------------------
- ROWKEY     | INT              (key)
+ ORDERID    | INT              (key)
  ORDERTIME  | BIGINT
- ORDERID    | INTEGER
  ITEMID     | VARCHAR(STRING)
  ORDERUNITS | DOUBLE
  ADDRESS    | STRUCT<CITY VARCHAR(STRING), STATE VARCHAR(STRING), ZIPCODE BIGINT>
@@ -852,14 +848,13 @@ see shipment information alongside the order.
 
 ### 1. Create two streams
 
-In the ksqlDB CLI create two new streams. Both streams will store their
-order ID in ROWKEY:
+In the ksqlDB CLI create two new streams:
 
 ```sql
-CREATE STREAM NEW_ORDERS (ROWKEY INT KEY, TOTAL_AMOUNT DOUBLE, CUSTOMER_NAME VARCHAR)
+CREATE STREAM NEW_ORDERS (ORDER_ID INT KEY, TOTAL_AMOUNT DOUBLE, CUSTOMER_NAME VARCHAR)
 WITH (KAFKA_TOPIC='new_orders', VALUE_FORMAT='JSON', PARTITIONS=2);
 
-CREATE STREAM SHIPMENTS (ROWKEY INT KEY, SHIPMENT_ID INT, WAREHOUSE VARCHAR)
+CREATE STREAM SHIPMENTS (ORDER_ID INT KEY, SHIPMENT_ID INT, WAREHOUSE VARCHAR)
 WITH (KAFKA_TOPIC='shipments', VALUE_FORMAT='JSON', PARTITIONS=2);
 ```
 
@@ -883,7 +878,7 @@ Populate the streams with some sample data by using the INSERT VALUES statement:
 ```sql
 -- Insert values in NEW_ORDERS:
 -- insert supplying the list of columns to insert:
-INSERT INTO NEW_ORDERS (ROWKEY, CUSTOMER_NAME, TOTAL_AMOUNT) 
+INSERT INTO NEW_ORDERS (ORDER_ID, CUSTOMER_NAME, TOTAL_AMOUNT)
   VALUES (1, 'Bob Smith', 10.50);
   
 -- shorthand version can be used when inserting values for all columns, (except ROWTIME), in column order:
@@ -922,7 +917,7 @@ Your output should resemble:
 
 ```
 +-------------------------+-------------------------+-------------------------+-------------------------+
-|ROWTIME                  |ROWKEY                   |TOTAL_AMOUNT             |CUSTOMER_NAME            |
+|ROWTIME                  |ORDER_ID                 |TOTAL_AMOUNT             |CUSTOMER_NAME            |
 +-------------------------+-------------------------+-------------------------+-------------------------+
 |1581083057609            |1                        |10.5                     |Bob Smith                |
 |1581083178418            |2                        |3.32                     |Sarah Black              |
@@ -941,7 +936,7 @@ Your output should resemble:
 
 ```
 +-------------------------+-------------------------+-------------------------+
-|ROWKEY                   |SHIPMENT_ID              |WAREHOUSE                |
+|ORDER_ID                 |SHIPMENT_ID              |WAREHOUSE                |
 +-------------------------+-------------------------+-------------------------+
 |1                        |42                       |Nashville                |
 |3                        |43                       |Palo Alto                |
@@ -955,12 +950,12 @@ Run the following query, which will show orders with associated
 shipments, based on a join window of 1 hour.
 
 ```sql
-SELECT O.ROWKEY AS ORDER_ID, O.TOTAL_AMOUNT, O.CUSTOMER_NAME,
+SELECT O.ORDER_ID AS ORDER_ID, O.TOTAL_AMOUNT, O.CUSTOMER_NAME,
 S.SHIPMENT_ID, S.WAREHOUSE
 FROM NEW_ORDERS O
 INNER JOIN SHIPMENTS S
   WITHIN 1 HOURS
-  ON O.ROWKEY = S.ROWKEY
+  ON O.ORDER_ID = S.ORDER_ID
 EMIT CHANGES;
 ```
 
@@ -1020,23 +1015,19 @@ enriched with data about the size of the warehouse from another.
 
 ### 1. Register two tables
 
-In the KSQL CLI, register both topics as KSQL tables. Note, in this example
-the warehouse id is stored both in the key and in the WAREHOUSE_ID field
-in the value:
+In the KSQL CLI, register both topics as KSQL tables.
 
 ```sql
 CREATE TABLE WAREHOUSE_LOCATION 
-   (ROWKEY INT PRIMARY KEY, WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR)
+   (WAREHOUSE_ID INT PRIMARY KEY, CITY VARCHAR, COUNTRY VARCHAR)
    WITH (KAFKA_TOPIC='warehouse_location',
       VALUE_FORMAT='JSON',
-      KEY='WAREHOUSE_ID',
       PARTITIONS=2);
 
 CREATE TABLE WAREHOUSE_SIZE 
-   (ROWKEY INT PRIMARY KEY, WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE)
+   (WAREHOUSE_ID INT PRIMARY KEY, SQUARE_FOOTAGE DOUBLE)
    WITH (KAFKA_TOPIC='warehouse_size',
       VALUE_FORMAT='JSON',
-      KEY='WAREHOUSE_ID',
       PARTITIONS=2);
 ```
 
@@ -1054,7 +1045,6 @@ After both `CREATE TABLE` statements, your output should resemble:
 In the KSQL CLI, insert sample data into the tables:
 
 ```sql
--- note: ksqlDB will automatically populate ROWKEY with the same value as WAREHOUSE_ID:
 INSERT INTO WAREHOUSE_LOCATION (WAREHOUSE_ID, CITY, COUNTRY) VALUES (1, 'Leeds', 'UK');
 INSERT INTO WAREHOUSE_LOCATION (WAREHOUSE_ID, CITY, COUNTRY) VALUES (2, 'Sheffield', 'UK');
 INSERT INTO WAREHOUSE_LOCATION (WAREHOUSE_ID, CITY, COUNTRY) VALUES (3, 'Berlin', 'Germany');
@@ -1064,51 +1054,7 @@ INSERT INTO WAREHOUSE_SIZE (WAREHOUSE_ID, SQUARE_FOOTAGE) VALUES (2, 42000);
 INSERT INTO WAREHOUSE_SIZE (WAREHOUSE_ID, SQUARE_FOOTAGE) VALUES (3, 94000);
 ```
 
-### 3. Examine tables for keys
-
-Check both tables that the message key (`ROWKEY`) matches the declared
-key (`WAREHOUSE_ID`). The output should show that they are equal. If
-they were not, the join won't succeed or behave as expected.
-
-Inspect the WAREHOUSE_LOCATION table:
-
-```sql
-SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_LOCATION EMIT CHANGES LIMIT 3;
-```
-
-Your output should resemble:
-
-```
-+---------------------------------------+---------------------------------------+
-|ROWKEY                                 |WAREHOUSE_ID                           |
-+---------------------------------------+---------------------------------------+
-|2                                      |2                                      |
-|1                                      |1                                      |
-|3                                      |3                                      |
-Limit Reached
-Query terminated
-```
-
-Inspect the WAREHOUSE_SIZE table:
-
-```sql
-SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_SIZE EMIT CHANGES LIMIT 3;
-```
-
-Your output should resemble:
-
-```
-+---------------------------------------+---------------------------------------+
-|ROWKEY                                 |WAREHOUSE_ID                           |
-+---------------------------------------+---------------------------------------+
-|2                                      |2                                      |
-|1                                      |1                                      |
-|3                                      |3                                      |
-Limit Reached
-Query terminated
-```
-
-### 4. Join the tables
+### 3. Join the tables
 
 Now join the two tables:
 
@@ -1175,10 +1121,9 @@ In ksqlDB, register the source topic for each:
 ```sql
 CREATE STREAM ORDERS_SRC_LOCAL
  (
-   ROWKEY INT KEY, 
+   ORDERID INT KEY,
    ORDERTIME BIGINT, 
-   ORDERID INT, 
-   ITEMID STRING, 
+   ITEMID STRING,
    ORDERUNITS DOUBLE, 
    ADDRESS STRUCT<CITY STRING, STATE STRING, ZIPCODE BIGINT>
  )
@@ -1186,10 +1131,9 @@ CREATE STREAM ORDERS_SRC_LOCAL
 
 CREATE STREAM ORDERS_SRC_3RDPARTY
  (
-   ROWKEY INT KEY, 
+   ORDERID INT KEY,
    ORDERTIME BIGINT, 
-   ORDERID INT, 
-   ITEMID STRING, 
+   ITEMID STRING,
    ORDERUNITS DOUBLE, 
    ADDRESS STRUCT<CITY STRING, STATE STRING, ZIPCODE BIGINT>
  )
@@ -1239,11 +1183,10 @@ Your output should resemble:
 Name                 : ALL_ORDERS
  Field      | Type                                                                
 ----------------------------------------------------------------------------------
- ROWKEY     | INTEGER          (key)
+ ORDERID    | INTEGER          (key)
  SRC        | VARCHAR(STRING)                                                     
  ORDERTIME  | BIGINT                                                              
- ORDERID    | INTEGER                                                             
- ITEMID     | VARCHAR(STRING)                                                     
+ ITEMID     | VARCHAR(STRING)
  ORDERUNITS | DOUBLE                                                              
  ADDRESS    | STRUCT<CITY VARCHAR(STRING), STATE VARCHAR(STRING), ZIPCODE BIGINT> 
 ----------------------------------------------------------------------------------
@@ -1279,12 +1222,12 @@ SELECT * FROM ALL_ORDERS EMIT CHANGES;
 Your output should resemble:
 
 ```
-+----------+-----------+--------------+----------+-------------+----------------------+---------------------------------------------+
-|ROWKEY    |SRC        |ORDERTIME     |ORDERID   |ITEMID       |ORDERUNITS            |ADDRESS                                      |
-+----------+-----------+--------------+----------+-------------+----------------------+---------------------------------------------+
-|510       |3RD PARTY  |1503198352036 |510       |Item_643     |1.653210222047296     |{CITY=City_94, STATE=State_72, ZIPCODE=61274}|
-|546       |LOCAL      |1498476865306 |546       |Item_234     |9.284691223615178     |{CITY=City_44, STATE=State_29, ZIPCODE=84678}|
-|511       |3RD PARTY  |1489945722538 |511       |Item_264     |8.213163488516212     |{CITY=City_36, STATE=State_13, ZIPCODE=44821}|
++----------+-----------+--------------+-------------+----------------------+---------------------------------------------+
+|ORDERID   |SRC        |ORDERTIME     |ITEMID       |ORDERUNITS            |ADDRESS                                      |
++----------+-----------+--------------+-------------+----------------------+---------------------------------------------+
+|510       |3RD PARTY  |1503198352036 |Item_643     |1.653210222047296     |{CITY=City_94, STATE=State_72, ZIPCODE=61274}|
+|546       |LOCAL      |1498476865306 |Item_234     |9.284691223615178     |{CITY=City_44, STATE=State_29, ZIPCODE=84678}|
+|511       |3RD PARTY  |1489945722538 |Item_264     |8.213163488516212     |{CITY=City_36, STATE=State_13, ZIPCODE=44821}|
 …
 ```
 
@@ -1408,10 +1351,10 @@ docker-compose exec kafka kafka-console-producer \
 Your data input should resemble:
 
 ```
-key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
-key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
-key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}
-key1:{"id":"key1","col1":"v10","col2":"v11","col3":"v12"}
+key1:{"col1":"v1","col2":"v2","col3":"v3"}
+key2:{"col1":"v4","col2":"v5","col3":"v6"}
+key3:{"col1":"v7","col2":"v8","col3":"v9"}
+key1:{"col1":"v10","col2":"v11","col3":"v12"}
 ```
 
 You can also use the `kafkacat` command line tool:
@@ -1423,9 +1366,9 @@ docker run --interactive --rm --network tutorials_default \
           -t warehouse_size \
           -K: \
           -P <<EOF
-1:{"warehouse_id":1,"square_footage":16000}
-2:{"warehouse_id":2,"square_footage":42000}
-3:{"warehouse_id":3,"square_footage":94000}
+1:{"square_footage":16000}
+2:{"square_footage":42000}
+3:{"square_footage":94000}
 EOF
 ```
 

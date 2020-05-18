@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -387,7 +386,6 @@ public class KsqlAuthorizationValidatorImplTest {
         SourceName.of(streamName.toUpperCase()),
         SCHEMA,
         SerdeOption.none(),
-        KeyField.none(),
         Optional.empty(),
         false,
         sourceTopic

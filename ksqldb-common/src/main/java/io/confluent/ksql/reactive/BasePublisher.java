@@ -85,7 +85,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
       }
       failure = e;
     } catch (Exception ex) {
-      logError("Exceptions must not be thrown from onError", ex);
+      logError("Exception encountered in onError", ex);
     }
   }
 
@@ -94,7 +94,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
       sentComplete = true;
       subscriber.onComplete();
     } catch (Exception ex) {
-      logError("Exceptions must not be thrown from onComplete", ex);
+      logError("Exception encountered in onComplete", ex);
     }
   }
 
@@ -105,7 +105,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     try {
       subscriber.onNext(val);
     } catch (final Exception ex) {
-      logError("Exceptions must not be thrown from onNext", ex);
+      logError("Exception encountered in onNext", ex);
     }
     // If demand == Long.MAX_VALUE this means "infinite demand"
     if (demand != Long.MAX_VALUE) {
@@ -159,7 +159,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     try {
       subscriber.onSubscribe(new Sub());
     } catch (final Throwable t) {
-      sendError(new IllegalStateException("Exceptions must not be thrown from onSubscribe", t));
+      sendError(new IllegalStateException("Exception encountered in onSubscribe", t));
     }
     afterSubscribe();
   }

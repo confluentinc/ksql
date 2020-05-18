@@ -384,7 +384,7 @@ If you're running dual listeners to improve security, you may also wish to enabl
 
 #### Dual routable listeners
 
-Where the internal IP or hostname used in the `ksql.internal.listener` configuration is externally
+If the internal IP address or hostname used in the `ksql.internal.listener` configuration is externally
 resolvable and routable, only `ksql.internal.listener` needs to configured to set the internal
 listener, for example:
 

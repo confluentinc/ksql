@@ -233,7 +233,7 @@ This can be really useful if you're having trouble getting a connector to load o
 
 By default, embedded {{ site.kconnectlong }} logs messages inline with ksqlDB's server's log messages. View them by running the following command:
 
-```
+```bash
 docker logs -f ksqldb-server
 ```
 

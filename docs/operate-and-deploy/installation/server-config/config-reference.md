@@ -437,7 +437,8 @@ the internal listener is not externally resolvable or routable.
 
 If not set, the default behavior is to use the internal listener, which is controlled by `ksql.internal.listener`.
 
-If the `ksql.internal.listener` resolves, either by being explicitly set or from the default first
+If `ksql.internal.listener` resolves to a URL that uses `localhost`,  a wildcard IP address, like `0.0.0.0`, or a
+hostname that other ksqlDB nodes either can't resolve or can't route requests to, 
 url in `listeners`, to a url using `localhost`, a wildcard ip such as `0.0.0.0`, or a hostname that
 other ksqlDB nodes can either not resolve, or can not route requests to, then
 `ksql.advertised.listeners` should be set to a url that can.

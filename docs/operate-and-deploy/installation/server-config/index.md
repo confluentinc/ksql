@@ -344,7 +344,7 @@ listeners=https://ksqlHost56:8088
 listeners=https://192.168.1.101:8088
 ```
 
-In this setup, the node will share the first url in the `listeners` config as its internal
+In this setup, the node shares the first URL in the `listeners` config as its internal
 endpoint, which other nodes will use for inter-node communication. Inter-node communication will
 use the same listener as client communication.
 

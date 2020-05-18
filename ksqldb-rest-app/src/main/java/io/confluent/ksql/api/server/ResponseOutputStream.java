@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.util.KsqlException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.io.OutputStream;
@@ -29,6 +30,7 @@ This is only used by legacy streaming endpoints from the old API which work with
 public class ResponseOutputStream extends OutputStream {
 
   private final HttpServerResponse response;
+  private final Object blockLock = new Object();
 
   public ResponseOutputStream(final HttpServerResponse response) {
     this.response = response;
@@ -55,6 +57,7 @@ public class ResponseOutputStream extends OutputStream {
     final byte[] bytesToWrite = new byte[length];
     System.arraycopy(bytes, offset, bytesToWrite, 0, length);
     final Buffer buffer = Buffer.buffer(bytesToWrite);
+    blockUntilSpace();
     response.write(buffer);
   }
 
@@ -62,6 +65,22 @@ public class ResponseOutputStream extends OutputStream {
   public void close() {
     response.end();
   }
+
+  private synchronized void blockUntilSpace() {
+    if (response.writeQueueFull()) {
+      response.drainHandler(v -> drained());
+      try {
+        blockLock.wait();
+      } catch (InterruptedException e) {
+        throw new KsqlException(e);
+      }
+    }
+  }
+
+  private synchronized void drained() {
+    blockLock.notify();
+  }
+
 }
 
 

@@ -77,7 +77,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:5.5.0
+    image: confluentinc/cp-enterprise-kafka:{{ site.cprelease }}
     hostname: broker
     container_name: broker
     depends_on:
@@ -95,7 +95,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:5.5.0
+    image: confluentinc/cp-schema-registry:{{ site.cprelease }}
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
@@ -108,7 +108,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:0.9.0
+    image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:

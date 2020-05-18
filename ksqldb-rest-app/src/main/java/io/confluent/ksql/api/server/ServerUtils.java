@@ -15,16 +15,19 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_HTTP2_ONLY;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
-import io.confluent.ksql.api.server.protocol.PojoCodec;
-import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
-import java.util.Objects;
+import java.io.IOException;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,14 +39,36 @@ public final class ServerUtils {
 
   private static final Logger log = LoggerFactory.getLogger(ServerUtils.class);
 
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
+
   private ServerUtils() {
   }
 
   public static <T> Optional<T> deserialiseObject(final Buffer buffer,
       final RoutingContext routingContext,
       final Class<T> clazz) {
-    return PojoCodec.deserialiseObject(buffer, new HttpResponseErrorHandler(routingContext), clazz);
+    try {
+      return Optional.of(OBJECT_MAPPER.readValue(buffer.getBytes(), clazz));
+    } catch (JsonParseException | MismatchedInputException e) {
+      routingContext
+          .fail(BAD_REQUEST.code(),
+              new KsqlApiException("Invalid JSON in request: " + e.getMessage(),
+                  ERROR_CODE_BAD_REQUEST));
+      return Optional.empty();
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to deserialize buffer", e);
+    }
   }
+
+  public static <T> Buffer serializeObject(final T t) {
+    try {
+      final byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(t);
+      return Buffer.buffer(bytes);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize buffer", e);
+    }
+  }
+
 
   /*
   Converts a list of patterns that can include asterisk (E.g. "/ws/*,/foo,/bar/wibble")
@@ -71,33 +96,10 @@ public final class ServerUtils {
     if (routingContext.request().version() != HttpVersion.HTTP_2) {
       routingContext.fail(BAD_REQUEST.code(),
           new KsqlApiException("This endpoint is only available when using HTTP2",
-              ErrorCodes.ERROR_HTTP2_ONLY));
+              ERROR_CODE_HTTP2_ONLY));
       return false;
     } else {
       return true;
-    }
-  }
-
-  private static class HttpResponseErrorHandler implements PojoDeserializerErrorHandler {
-
-    private final RoutingContext routingContext;
-
-    HttpResponseErrorHandler(final RoutingContext routingContext) {
-      this.routingContext = Objects.requireNonNull(routingContext);
-    }
-
-    @Override
-    public void onMissingParam(final String paramName) {
-      routingContext
-          .fail(BAD_REQUEST.code(), new KsqlApiException("No " + paramName + " in arguments",
-              ERROR_CODE_MISSING_PARAM));
-    }
-
-    @Override
-    public void onInvalidJson() {
-      routingContext
-          .fail(BAD_REQUEST.code(), new KsqlApiException("Malformed JSON in request",
-              ERROR_CODE_MALFORMED_REQUEST));
     }
   }
 

@@ -223,7 +223,7 @@ public class ClientImpl implements Client {
           "Received %d response from server: %s. Error code: %d",
           response.statusCode(),
           errorResponse.getString("message"),
-          errorResponse.getInteger("errorCode")
+          errorResponse.getInteger("error_code")
       )));
     });
   }

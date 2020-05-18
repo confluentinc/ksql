@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.confluent.ksql.reactive.BaseSubscriber;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;
@@ -73,7 +73,7 @@ public class QuerySubscriber extends BaseSubscriber<GenericRow> {
   @Override
   public void handleError(final Throwable t) {
     log.error("Error in processing query", t);
-    final ErrorResponse errorResponse = new ErrorResponse(ERROR_CODE_INTERNAL_ERROR,
+    final KsqlErrorMessage errorResponse = new KsqlErrorMessage(ERROR_CODE_SERVER_ERROR,
         "Error in processing query");
     queryStreamResponseWriter.writeError(errorResponse).end();
   }

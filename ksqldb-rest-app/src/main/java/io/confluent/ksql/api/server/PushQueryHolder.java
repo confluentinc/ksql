@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.rest.entity.PushQueryId;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;

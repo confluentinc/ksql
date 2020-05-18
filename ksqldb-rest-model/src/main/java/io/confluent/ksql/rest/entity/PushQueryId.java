@@ -13,29 +13,44 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server.protocol;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 
 /**
- * Represents a response to an insert
+ * Surprisingly, the id of a push query
  */
 @Immutable
-public class InsertAck extends SerializableObject {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class PushQueryId {
 
-  public final long seq;
-  public final String status;
+  private final String id;
 
-  public InsertAck(final long seq) {
-    this.seq = seq;
-    this.status = "ok";
+  public PushQueryId(final String id) {
+    this.id = Objects.requireNonNull(id);
   }
 
   @Override
   public String toString() {
-    return "InsertAck{"
-        + "seq=" + seq
-        + ", status='" + status + '\''
-        + '}';
+    return id;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final PushQueryId that = (PushQueryId) o;
+    return Objects.equals(id, that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
   }
 }

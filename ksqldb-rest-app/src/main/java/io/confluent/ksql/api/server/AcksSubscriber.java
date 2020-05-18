@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 
-import io.confluent.ksql.api.server.protocol.InsertAck;
-import io.confluent.ksql.api.server.protocol.InsertError;
 import io.confluent.ksql.reactive.BaseSubscriber;
+import io.confluent.ksql.rest.entity.InsertAck;
+import io.confluent.ksql.rest.entity.InsertError;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;
@@ -105,7 +105,7 @@ public class AcksSubscriber extends BaseSubscriber<InsertResult> {
           ((KsqlApiException) exception).getErrorCode(),
           exception.getMessage());
     } else {
-      insertError = new InsertError(result.sequenceNumber(), ERROR_CODE_INTERNAL_ERROR,
+      insertError = new InsertError(result.sequenceNumber(), ERROR_CODE_SERVER_ERROR,
           "Error in processing inserts");
     }
     insertsStreamResponseWriter.writeError(insertError).end();

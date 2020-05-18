@@ -13,11 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.endpoints;
+package io.confluent.ksql.api.impl;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.server.KsqlApiException;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -44,7 +44,7 @@ public final class KeyValueExtractor {
       final Object value = values.getValue(field.name());
       if (value == null) {
         throw new KsqlApiException("Key field must be specified: " + field.name(),
-            ErrorCodes.ERROR_CODE_MISSING_KEY_FIELD);
+            Errors.ERROR_CODE_BAD_REQUEST);
       }
       final Object coercedValue = coerceObject(value,
           SchemaConverters.connectToSqlConverter().toSqlType(field.schema()),
@@ -92,7 +92,7 @@ public final class KeyValueExtractor {
         .orElseThrow(() -> new KsqlApiException(
             String.format("Can't coerce a field of type %s (%s) into type %s", value.getClass(),
                 value, sqlType),
-            ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD))
+            Errors.ERROR_CODE_BAD_REQUEST))
         .orElse(null);
   }
 

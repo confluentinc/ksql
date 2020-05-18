@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_HTTP2_ONLY;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_HTTP2_ONLY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -65,7 +65,7 @@ public class Http2OnlyStreamTest extends BaseApiTest {
     // Then
     assertThat(response.statusCode(), is(400));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_HTTP2_ONLY, "This endpoint is only available when using HTTP2",
+    validateError(ERROR_CODE_HTTP2_ONLY, "This endpoint is only available when using HTTP2",
         queryResponse.responseObject);
   }
 

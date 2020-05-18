@@ -18,12 +18,13 @@ package io.confluent.ksql.api;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.Server;
-import io.confluent.ksql.api.server.protocol.PojoCodec;
+import io.confluent.ksql.api.server.ServerUtils;
 import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
@@ -217,15 +218,14 @@ public class BaseApiTest {
 
   protected static void validateError(final int errorCode, final String message,
       final JsonObject error) {
-    assertThat(error.size(), is(3));
+    assertThat(error.size(), is(4));
     validateErrorCommon(errorCode, message, error);
   }
 
   protected static void validateErrorCommon(final int errorCode, final String message,
       final JsonObject error) {
-    assertThat(error.getString("status"), is("error"));
-    assertThat(error.getInteger("errorCode"), is(errorCode));
-    assertThat(error.getString("message"), is(message));
+    assertThat(error.getInteger("error_code"), is(errorCode));
+    assertThat(error.getString("message"), startsWith(message));
   }
 
   private static GenericRow rowWithIndex(final int index) {
@@ -256,7 +256,7 @@ public class BaseApiTest {
 
   private static List<JsonArray> convertToJsonRows(final List<GenericRow> rows) {
     return rows.stream()
-        .map(row -> PojoCodec.serializeObject(row).toJsonObject().getJsonArray("columns"))
+        .map(row -> ServerUtils.serializeObject(row).toJsonObject().getJsonArray("columns"))
         .collect(Collectors.toList());
   }
 

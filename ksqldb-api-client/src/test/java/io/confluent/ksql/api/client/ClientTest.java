@@ -36,7 +36,6 @@ import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
-import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.vertx.core.json.JsonArray;
@@ -322,7 +321,7 @@ public class ClientTest extends BaseApiTest {
 
     // Then
     assertThatEventually(subscriber::getError, is(notNullValue()));
-    assertThat(subscriber.getError(), instanceOf(KsqlApiException.class));
+    assertThat(subscriber.getError(), instanceOf(KsqlException.class));
     assertThat(subscriber.getError().getMessage(), containsString("Error in processing query"));
 
     assertThatEventually(streamedQueryResult::isFailed, is(true));

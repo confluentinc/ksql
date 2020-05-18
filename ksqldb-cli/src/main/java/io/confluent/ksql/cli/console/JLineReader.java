@@ -127,7 +127,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
     private static final String EXPANDED_CT =
         "CREATE TABLE t (field1 type1, field2 type2) "
-            + "WITH (KAFKA_TOPIC='topic-name', VALUE_FORMAT='json', KEY='field1');";
+            + "WITH (KAFKA_TOPIC='topic-name', VALUE_FORMAT='json');";
 
     private static final Map<String, String> shortcuts = ImmutableMap.of(
         "cs", EXPANDED_CS,

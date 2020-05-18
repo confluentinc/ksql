@@ -435,11 +435,11 @@ for the input data:
 
 ```sql
 CREATE STREAM pageviews_original
-    (viewtime BIGINT, userid VARCHAR, pageid VARCHAR, client_ip INT, url VARCHAR, duration BIGINT, from_url VARCHAR, analytics VARCHAR)
-    WITH (kafka_topic='pageviews', value_format=’JSON’, KEY=’userid’);
+    (userid VARCHAR KEY, viewtime BIGINT, pageid VARCHAR, client_ip INT, url VARCHAR, duration BIGINT, from_url VARCHAR, analytics VARCHAR)
+    WITH (kafka_topic='pageviews', value_format='JSON');
 
-CREATE TABLE users (registertime BIGINT, gender VARCHAR, city INT, country INT, userid VARCHAR, email VARCHAR)
-    WITH (kafka_topic='users', value_format='JSON', key = 'userid');
+CREATE TABLE users (userid VARCHAR PRIMARY KEY, registertime BIGINT, gender VARCHAR, city INT, country INT, email VARCHAR)
+    WITH (kafka_topic='users', value_format='JSON');
 ```
 
 The following assumptions are also made:
@@ -509,7 +509,7 @@ up views by city:
 ```sql
 CREATE STREAM pageviews_meaningful_with_user_info
     WITH (PARTITIONS=64) AS
-    SELECT pv.viewtime, pv.userid, pv.pageid, pv.client_ip, pv.url, pv.duration, pv.from_url, u.city, u.country, u.gender, u.email
+    SELECT pv.userid, pv.viewtime, pv.pageid, pv.client_ip, pv.url, pv.duration, pv.from_url, u.city, u.country, u.gender, u.email
     FROM pageviews_meaningful pv LEFT JOIN users u ON pv.userid = u.userid
     EMIT CHANGES;
 

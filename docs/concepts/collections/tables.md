@@ -42,9 +42,8 @@ partitions, are keyed on the `title` column, and are serialized in the Avro
 format.
 
 ```sql
-CREATE TABLE movies (title VARCHAR, release_year INT)
+CREATE TABLE movies (title VARCHAR PRIMARY KEY, release_year INT)
     WITH (kafka_topic = 'movies',
-          key = 'title'
           partitions = 5,
           value_format = 'avro');
 ```

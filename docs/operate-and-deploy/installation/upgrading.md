@@ -106,12 +106,75 @@ This will stop all processing and delete any internal topics in Kafka.
 
 ## Upgrade notes
 
+### Upgrading from ksqlDB 0.9.0 to 0.10.0
+
+!!! important
+    ksqlDB 0.10.0 is not backward compatible. Do not upgrade in-place.
+
+The following changes in SQL syntax and functionality may mean SQL statements that previously ran no longer run:
+
+### WITH(KEY) syntax removed.
+
+In previous versions all key columns where called `ROWKEY`. To enable a more user friendly name to be
+used for the key column in queries it was possible to supply an alias for the key column in the WITH
+clause, for example:
+
+```sql
+CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, ID INT, V0 STRING) WITH (key='ID', ...);
+```
+
+With the above query the `ID` column can be used as an alias for `ROWKEY`. This approach required
+the Kafka message value to contain an exact copy of the key.
+
+[KLIP-24](https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-24-key-column-semantics-in-queries.md)
+removed the restriction that key columns must be named `ROWKEY`, negating the need for the `WITH(KEY)`
+syntax, which has been removed, also removing the requirement for the Kafka message value to contain
+an exact copy of the key.
+
+Update your queries by removing the `KEY` fro the `WITH` clause and appropriately naming your
+`KEY` and `PRIMARY KEY` columns. For example, the above CREATE TABLE statement can now be rewritten
+as:
+
+```sql
+CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING) WITH (...);
+```
+
+Unless the value format is `DELIMITED`, which means the value columns are _order dependant_, so dropping
+the `ID` value column would result in a deserialization error or the wrong values being loaded. If using
+`DELIMITED`, consider rewriting as:
+
+```sql
+CREATE TABLE INPUT (ID INT PRIMARY KEY, ignoreMe INT, V0 STRING) WITH (...);
+```
+
+### Upgrading from ksqlDB 0.7.0+ to 0.9.0
+
+!!! important
+    ksqlDB 0.9.0 is not backward compatible. Do not upgrade in-place.
+
+The following changes in SQL syntax and functionality may mean SQL statements that previously ran no longer run:
+
+### Table PRIMARY KEYs
+
+Tables now use `PRIMARY KEY` to define their primary key column rather than `KEY`.
+Update your `CREATE TABLE` statements as required.
+
+```sql
+CREATE TABLE OUTPUT (ROWKEY INT KEY, V0 STRING, V1 DOUBLE) WITH (...);
+```
+
+Will need to be updated to:
+
+```sql
+CREATE TABLE OUTPUT (ROWKEY INT PRIMARY KEY, V0 STRING, V1 DOUBLE) WITH (...);
+```
+
 ### Upgrading from ksqlDB 0.6.0 to 0.7.0
 
 !!! important
     ksqlDB 0.7.0 is not backward compatible. Do not upgrade in-place.
 
-The following changes in SQL syntax and functionality may mean SQL statements that previously ran not longer run:
+The following changes in SQL syntax and functionality may mean SQL statements that previously ran no longer run:
 
 ### `PARTITION BY` and `GROUP BY` result schema changes:
 

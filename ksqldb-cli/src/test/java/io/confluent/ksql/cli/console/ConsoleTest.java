@@ -125,7 +125,6 @@ public class ConsoleTest {
       Collections.emptyList(),
       buildTestSchema(SqlTypes.INTEGER, SqlTypes.STRING),
       DataSourceType.KTABLE.getKsqlType(),
-      "key",
       "2000-01-01",
       "stats",
       "errors",
@@ -383,7 +382,6 @@ public class ConsoleTest {
                 writeQueries,
                 fields,
                 DataSourceType.KTABLE.getKsqlType(),
-                "key",
                 "2000-01-01",
                 "stats",
                 "errors",
@@ -516,7 +514,6 @@ public class ConsoleTest {
           + "      }" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
-          + "    \"key\" : \"key\"," + NEWLINE
           + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
           + "    \"statistics\" : \"stats\"," + NEWLINE
           + "    \"errorStats\" : \"errors\"," + NEWLINE
@@ -655,7 +652,6 @@ public class ConsoleTest {
           + "      }" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
-          + "    \"key\" : \"key\"," + NEWLINE
           + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
           + "    \"statistics\" : \"stats\"," + NEWLINE
           + "    \"errorStats\" : \"errors\"," + NEWLINE
@@ -1036,7 +1032,6 @@ public class ConsoleTest {
                 writeQueries,
                 buildTestSchema(SqlTypes.STRING),
                 DataSourceType.KTABLE.getKsqlType(),
-                "key",
                 "2000-01-01",
                 "stats",
                 "errors",
@@ -1104,7 +1099,6 @@ public class ConsoleTest {
           + "      }" + NEWLINE
           + "    } ]," + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
-          + "    \"key\" : \"key\"," + NEWLINE
           + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
           + "    \"statistics\" : \"stats\"," + NEWLINE
           + "    \"errorStats\" : \"errors\"," + NEWLINE
@@ -1122,7 +1116,6 @@ public class ConsoleTest {
       assertThat(output, is("" + NEWLINE
           + "Name                 : TestSource" + NEWLINE
           + "Type                 : TABLE" + NEWLINE
-          + "Key field            : key" + NEWLINE
           + "Timestamp field      : 2000-01-01" + NEWLINE
           + "Key format           : kafka" + NEWLINE
           + "Value format         : avro" + NEWLINE

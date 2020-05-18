@@ -34,7 +34,6 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
@@ -73,9 +72,6 @@ public class KsqlStructuredDataOutputNodeTest {
       .valueColumn(ColumnName.of("timestamp"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
-
-  private static final KeyField KEY_FIELD = KeyField
-      .of(ColumnName.of("key"));
 
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
@@ -239,7 +235,6 @@ public class KsqlStructuredDataOutputNodeTest {
         sourceNode,
         SCHEMA,
         Optional.empty(),
-        KEY_FIELD,
         ksqlTopic,
         OptionalInt.empty(),
         createInto,

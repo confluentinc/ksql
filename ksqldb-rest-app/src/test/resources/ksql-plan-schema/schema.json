@@ -52,9 +52,6 @@
         "schema" : {
           "type" : "string"
         },
-        "keyField" : {
-          "type" : "string"
-        },
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
         },
@@ -147,9 +144,6 @@
           "type" : "string"
         },
         "schema" : {
-          "type" : "string"
-        },
-        "keyField" : {
           "type" : "string"
         },
         "timestampColumn" : {

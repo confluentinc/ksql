@@ -34,7 +34,6 @@ import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.SessionProperties;
@@ -275,12 +274,6 @@ public class InsertValuesExecutor {
     final Map<ColumnName, Object> values = resolveValues(
         insertValues, columns, schemaWithRowTime, functionRegistry, config);
 
-    handleExplicitKeyField(
-        values,
-        dataSource.getKeyField(),
-        Iterables.getOnlyElement(schemaWithRowTime.key())
-    );
-
     if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {
       final String noValue = schemaWithRowTime.key().stream()
           .map(Column::name)
@@ -382,33 +375,6 @@ public class InsertValuesExecutor {
       values.put(column, value);
     }
     return values;
-  }
-
-  private static void handleExplicitKeyField(
-      final Map<ColumnName, Object> values,
-      final KeyField keyField,
-      final Column keyColumn
-  ) {
-    // key column: the key column in the source's schema.
-    // key field: the column identified in the WITH clause as being an alias to the key column.
-
-    keyField.ref().ifPresent(keyFieldName -> {
-      final ColumnName keyColumnName = keyColumn.name();
-      final Object keyFieldValue = values.get(keyFieldName);
-      final Object keyColumnValue = values.get(keyColumnName);
-
-      if (keyFieldValue != null ^ keyColumnValue != null) {
-        if (keyFieldValue == null) {
-          values.put(keyFieldName, keyColumnValue);
-        } else {
-          values.put(keyColumnName, keyFieldValue);
-        }
-      } else if (keyFieldValue != null && !Objects.equals(keyFieldValue, keyColumnValue)) {
-        throw new KsqlException(
-            "Expected " + keyColumnName.text() + " and " + keyFieldName.text() + " to match "
-                + "but got " + keyColumnValue + " and " + keyFieldValue + " respectively.");
-      }
-    });
   }
 
   private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {

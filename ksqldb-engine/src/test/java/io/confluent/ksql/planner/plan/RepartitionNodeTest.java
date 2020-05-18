@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
@@ -88,7 +87,7 @@ public class RepartitionNodeTest {
     when(parent.resolveSelectStar(any())).thenReturn(PARENT_COL_NAMES.stream());
 
     repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy,
-        rewrittenPartitionBy, KeyField.none(), false);
+        rewrittenPartitionBy, false);
   }
 
   @Test
@@ -172,11 +171,11 @@ public class RepartitionNodeTest {
 
   private void givenAnyKeyEnabled() {
     repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy,
-        rewrittenPartitionBy, KeyField.none(), false);
+        rewrittenPartitionBy, false);
   }
 
   private void givenInternalRepartition() {
     repartitionNode = new RepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy,
-        rewrittenPartitionBy, KeyField.none(), true);
+        rewrittenPartitionBy, true);
   }
 }

@@ -43,7 +43,6 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.model.WindowType;
@@ -106,7 +105,6 @@ public class DataSourceNodeTest {
       .valueColumn(KEY, SqlTypes.STRING)
       .build();
 
-  private static final KeyField KEY_FIELD = KeyField.of(FIELD1);
   private static final TimestampColumn TIMESTAMP_COLUMN =
       new TimestampColumn(TIMESTAMP_FIELD, Optional.empty());
 
@@ -115,7 +113,6 @@ public class DataSourceNodeTest {
       SOURCE_NAME,
       REAL_SCHEMA,
       SerdeOption.none(),
-      KEY_FIELD,
       Optional.of(
           new TimestampColumn(
               ColumnName.of("timestamp"),
@@ -179,7 +176,7 @@ public class DataSourceNodeTest {
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
 
-    when(schemaKStreamFactory.create(any(), any(), any(), any()))
+    when(schemaKStreamFactory.create(any(), any(), any()))
         .thenAnswer(inv -> inv.<DataSource>getArgument(1)
             .getDataSourceType() == DataSourceType.KSTREAM
             ? stream : table
@@ -228,22 +225,12 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  public void shouldBuildStreamWithSameKeyField() {
-    // When:
-    final SchemaKStream<?> stream = buildStream(node);
-
-    // Then:
-    assertThat(stream.getKeyField(), is(node.getKeyField()));
-  }
-
-  @Test
   public void shouldBuildSchemaKTableWhenKTableSource() {
     // Given:
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression",
         SourceName.of("datasource"),
         REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("field1")),
         Optional.of(TIMESTAMP_COLUMN),
         false,
         new KsqlTopic(
@@ -297,7 +284,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any());
   }
 
   // should this even be possible? if you are using a timestamp extractor then shouldn't the name
@@ -311,7 +298,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any());
   }
 
   @Test
@@ -328,8 +315,7 @@ public class DataSourceNodeTest {
     verify(schemaKStreamFactory).create(
         same(ksqlStreamBuilder),
         same(dataSource),
-        stackerCaptor.capture(),
-        same(node.getKeyField())
+        stackerCaptor.capture()
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
@@ -349,8 +335,7 @@ public class DataSourceNodeTest {
     verify(schemaKStreamFactory).create(
         same(ksqlStreamBuilder),
         same(dataSource),
-        stackerCaptor.capture(),
-        same(node.getKeyField())
+        stackerCaptor.capture()
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
@@ -439,7 +424,6 @@ public class DataSourceNodeTest {
 
   private void givenNodeWithMockSource() {
     when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
-    when(dataSource.getKeyField()).thenReturn(KEY_FIELD);
     node = new DataSourceNode(
         PLAN_NODE_ID,
         dataSource,

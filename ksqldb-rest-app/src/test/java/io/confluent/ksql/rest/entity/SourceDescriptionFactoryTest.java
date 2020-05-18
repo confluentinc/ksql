@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
@@ -87,7 +86,6 @@ public class SourceDescriptionFactoryTest {
         SourceName.of("stream"),
         schema,
         SerdeOption.none(),
-        KeyField.none(),
         timestampColumn,
         false,
         topic

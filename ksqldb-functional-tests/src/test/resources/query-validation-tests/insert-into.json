@@ -50,7 +50,7 @@
       "name": "table",
       "statements": [
         "CREATE STREAM SOURCE (K STRING KEY, d1 VARCHAR) WITH (kafka_topic='SOURCE', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT (K STRING PRIMARY KEY, d1 VARCHAR, COUNT BIGINT) WITH (kafka_topic='OUTPUT', value_format='DELIMITED', key='d1');",
+        "CREATE TABLE OUTPUT (d1 STRING PRIMARY KEY, COUNT BIGINT) WITH (kafka_topic='OUTPUT', value_format='DELIMITED');",
         "INSERT INTO OUTPUT SELECT d1, COUNT() AS COUNT FROM SOURCE GROUP BY d1;"
       ],
       "expectedException": {

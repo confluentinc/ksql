@@ -25,7 +25,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
@@ -42,7 +41,6 @@ public class RepartitionNode extends PlanNode {
   private final PlanNode source;
   private final Expression originalPartitionBy;
   private final Expression partitionBy;
-  private final KeyField keyField;
   private final boolean internal;
 
   public RepartitionNode(
@@ -51,20 +49,13 @@ public class RepartitionNode extends PlanNode {
       final LogicalSchema schema,
       final Expression originalPartitionBy,
       final Expression partitionBy,
-      final KeyField keyField,
       final boolean internal
   ) {
     super(id, source.getNodeOutputType(), schema, source.getSourceName());
     this.source = requireNonNull(source, "source");
     this.originalPartitionBy = requireNonNull(originalPartitionBy, "originalPartitionBy");
     this.partitionBy = requireNonNull(partitionBy, "partitionBy");
-    this.keyField = requireNonNull(keyField, "keyField");
     this.internal = internal;
-  }
-
-  @Override
-  public KeyField getKeyField() {
-    return keyField;
   }
 
   @Override

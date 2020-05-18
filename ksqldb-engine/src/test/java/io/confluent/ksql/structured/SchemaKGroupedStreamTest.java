@@ -31,7 +31,6 @@ import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
@@ -85,8 +84,6 @@ public class SchemaKGroupedStreamTest {
   );
 
   @Mock
-  private KeyField keyField;
-  @Mock
   private KsqlConfig config;
   @Mock
   private WindowExpression windowExp;
@@ -115,7 +112,6 @@ public class SchemaKGroupedStreamTest {
         sourceStep,
         IN_SCHEMA,
         keyFormat,
-        keyField,
         config,
         functionRegistry
     );

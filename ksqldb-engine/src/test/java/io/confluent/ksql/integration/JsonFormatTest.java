@@ -62,15 +62,16 @@ import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
 public class JsonFormatTest {
+
   private static final String inputTopic = "orders_topic";
   private static final String inputStream = "ORDERS";
   private static final String usersTopic = "users_topic";
-  private static final String usersTable = "USERS";
   private static final String messageLogTopic = "log_topic";
   private static final String messageLogStream = "message_log";
   private static final AtomicInteger COUNTER = new AtomicInteger();
 
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final OrderDataProvider ORDER_DATA_PROVIDER = new OrderDataProvider();
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
@@ -115,9 +116,7 @@ public class JsonFormatTest {
   }
 
   private static void produceInitData() {
-    final OrderDataProvider orderDataProvider = new OrderDataProvider();
-
-    TEST_HARNESS.produceRows(inputTopic, orderDataProvider, JSON);
+    TEST_HARNESS.produceRows(inputTopic, ORDER_DATA_PROVIDER, JSON);
 
     final LogicalSchema messageSchema = LogicalSchema.builder()
         .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
@@ -137,29 +136,21 @@ public class JsonFormatTest {
         SerdeOption.none()
     );
 
-    TEST_HARNESS.produceRows(messageLogTopic, records, schema, JSON);
+    TEST_HARNESS.produceRows(messageLogTopic, records.entrySet(), schema, JSON);
   }
 
   private void execInitCreateStreamQueries() {
-    final String ordersStreamStr = String.format("CREATE STREAM %s ("
-        + "ROWKEY BIGINT KEY, ORDERTIME bigint, ORDERID varchar, "
-        + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
-        + "map<varchar, double>) WITH (value_format = 'json', "
-        + "kafka_topic='%s' , "
-        + "key='ordertime');", inputStream, inputTopic);
-
-    final String usersTableStr = String.format("CREATE TABLE %s (userid varchar, age integer) WITH "
-                                         + "(value_format = 'json', kafka_topic='%s', "
-                                         + "KEY='userid');",
-                                         usersTable, usersTopic);
+    final String ordersStreamStr = "CREATE STREAM " + inputStream + " ("
+        + ORDER_DATA_PROVIDER.ksqlSchemaString(false)
+        + ") WITH (value_format = 'json', "
+        + "kafka_topic='" + inputTopic + "');";
 
     final String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
 
     KsqlEngineTestUtil.execute(
         serviceContext, ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
-    KsqlEngineTestUtil.execute(
-        serviceContext, ksqlEngine, usersTableStr, ksqlConfig, Collections.emptyMap());
+
     KsqlEngineTestUtil.execute(
         serviceContext, ksqlEngine, messageStreamStr, ksqlConfig, Collections.emptyMap());
   }

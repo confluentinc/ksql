@@ -33,31 +33,31 @@ serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types.
 
 ```sql
 CREATE STREAM pageviews
-  (rowkey STRING KEY,
-   viewtime BIGINT,
+  (viewtime BIGINT,
    userid VARCHAR,
    pageid VARCHAR)
   WITH (KAFKA_TOPIC='pageviews',
         VALUE_FORMAT='DELIMITED');
 ```
 
-### Associate Kafka message keys
+### Define Kafka message key
 
-The previous statement doesn't make any assumptions about the Kafka message
-key in the underlying {{ site.ak }} topic. But if the value of the message key
-in {{ site.aktm }} is the same as one of the columns defined in the stream in
-ksqlDB, you can provide this information in the WITH clause. For example, if
-the {{ site.aktm }} message key has the same value as the `pageid` column, you
-can write the CREATE STREAM statement like this:
+The previous SQL statement does not define a column to represent the data in the
+{{ site.ak }} message key in the underlying {{ site.ak }} topic. The system therefore added a
+`ROWKEY` column with type `STRING`. If your data does not contain a {{ site.ak }} serialized
+`STRING` in the {{ site.ak }} message key you should not use `ROWKEY` in your SQL statements,
+as the behaviour will be undefined.
+
+Where the {{ site.ak }} message key is serialized in a key format ksqlDB supports,
+(currently only `KAFKA`), you can specify the key in the column list of the CREATE STREAM statement.
 
 ```sql
 CREATE STREAM pageviews
-  (viewtime BIGINT,
-   userid VARCHAR,
-   pageid VARCHAR)
+  (pageid VARCHAR KEY,
+   viewtime BIGINT,
+   userid VARCHAR)
  WITH (KAFKA_TOPIC='pageviews',
-       VALUE_FORMAT='DELIMITED',
-       KEY='pageid');
+       VALUE_FORMAT='DELIMITED');
 ```
 
 ### Associate {{ site.aktm }} message timestamps
@@ -71,12 +71,11 @@ the message timestamp, you can rewrite the above statement like this:
 
 ```sql
 CREATE STREAM pageviews
-  (viewtime BIGINT,
-   userid VARCHAR,
-   pageid VARCHAR)
+  (pageid VARCHAR KEY,
+   viewtime BIGINT,
+   userid VARCHAR)
   WITH (KAFKA_TOPIC='pageviews',
         VALUE_FORMAT='DELIMITED',
-        KEY='pageid',
         TIMESTAMP='viewtime');
 ```
 
@@ -94,18 +93,17 @@ column of `map` type:
 
 ```sql
 CREATE TABLE users
-  (registertime BIGINT,
+  (userid VARCHAR PRIMARY KEY,
+   registertime BIGINT,
    gender VARCHAR,
    regionid VARCHAR,
-   userid VARCHAR,
    interests array<VARCHAR>,
    contactinfo map<VARCHAR, VARCHAR>)
   WITH (KAFKA_TOPIC='users',
-        VALUE_FORMAT='JSON',
-        KEY = 'userid');
+        VALUE_FORMAT='JSON');
 ```
 
-Note that specifying KEY is required in table declaration, see
+Note that specifying the table's PRIMARY KEY is required in table declaration, see
 [Key Requirements](../developer-guide/syntax-reference.md#key-requirements).
 
 Working with streams and tables

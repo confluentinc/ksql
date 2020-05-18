@@ -7,8 +7,6 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
@@ -71,7 +69,7 @@ public class LagReportingAgentFunctionalTest {
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8288")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
@@ -89,7 +87,7 @@ public class LagReportingAgentFunctionalTest {
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8289")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())

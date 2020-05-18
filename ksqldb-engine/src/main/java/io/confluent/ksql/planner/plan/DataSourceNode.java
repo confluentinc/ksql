@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
@@ -47,7 +46,6 @@ public class DataSourceNode extends PlanNode {
   private static final String SOURCE_OP_NAME = "Source";
 
   private final DataSource dataSource;
-  private final KeyField keyField;
   private final SchemaKStreamFactory schemaKStreamFactory;
 
   public DataSourceNode(
@@ -67,15 +65,7 @@ public class DataSourceNode extends PlanNode {
     super(id, dataSource.getDataSourceType(), buildSchema(dataSource), Optional.of(alias));
     this.dataSource = requireNonNull(dataSource, "dataSource");
 
-    this.keyField = dataSource.getKeyField()
-        .validateKeyExistsIn(getSchema());
-
     this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");
-  }
-
-  @Override
-  public KeyField getKeyField() {
-    return keyField;
   }
 
   public DataSource getDataSource() {
@@ -115,8 +105,7 @@ public class DataSourceNode extends PlanNode {
     return schemaKStreamFactory.create(
         builder,
         dataSource,
-        contextStacker.push(SOURCE_OP_NAME),
-        keyField
+        contextStacker.push(SOURCE_OP_NAME)
     );
   }
 
@@ -159,8 +148,7 @@ public class DataSourceNode extends PlanNode {
     SchemaKStream<?> create(
         KsqlQueryBuilder builder,
         DataSource dataSource,
-        QueryContext.Stacker contextStacker,
-        KeyField keyField
+        QueryContext.Stacker contextStacker
     );
   }
 }

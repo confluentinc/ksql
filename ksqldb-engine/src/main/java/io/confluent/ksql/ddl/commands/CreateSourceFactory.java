@@ -26,14 +26,12 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
@@ -85,8 +83,7 @@ public final class CreateSourceFactory {
   ) {
     final SourceName sourceName = statement.getName();
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
-    final LogicalSchema schema = buildSchema(statement.getElements(), ksqlConfig);
-    final Optional<ColumnName> keyFieldName = buildKeyFieldName(statement, schema);
+    final LogicalSchema schema = buildSchema(statement.getElements());
     final Optional<TimestampColumn> timestampColumn = buildTimestampColumn(
         ksqlConfig,
         statement.getProperties(),
@@ -105,7 +102,6 @@ public final class CreateSourceFactory {
     return new CreateStreamCommand(
         sourceName,
         schema,
-        keyFieldName,
         timestampColumn,
         topic.getKafkaTopicName(),
         io.confluent.ksql.execution.plan.Formats
@@ -120,8 +116,7 @@ public final class CreateSourceFactory {
   ) {
     final SourceName sourceName = statement.getName();
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
-    final LogicalSchema schema = buildSchema(statement.getElements(), ksqlConfig);
-    final Optional<ColumnName> keyFieldName = buildKeyFieldName(statement, schema);
+    final LogicalSchema schema = buildSchema(statement.getElements());
     final Optional<TimestampColumn> timestampColumn = buildTimestampColumn(
         ksqlConfig,
         statement.getProperties(),
@@ -139,7 +134,6 @@ public final class CreateSourceFactory {
     return new CreateTableCommand(
         sourceName,
         schema,
-        keyFieldName,
         timestampColumn,
         topic.getKafkaTopicName(),
         io.confluent.ksql.execution.plan.Formats
@@ -148,26 +142,7 @@ public final class CreateSourceFactory {
     );
   }
 
-  private static Optional<ColumnName> buildKeyFieldName(
-      final CreateSource statement,
-      final LogicalSchema schema) {
-    if (statement.getProperties().getKeyField().isPresent()) {
-      final ColumnName column = statement.getProperties().getKeyField().get();
-      schema.findValueColumn(column)
-          .orElseThrow(() -> new KsqlException(
-              "The KEY column set in the WITH clause does not exist in the schema: '"
-                  + column.toString(FormatOptions.noEscape()) + "'"
-          ));
-      return Optional.of(column);
-    } else {
-      return Optional.empty();
-    }
-  }
-
-  private static LogicalSchema buildSchema(
-      final TableElements tableElements,
-      final KsqlConfig ksqlConfig
-  ) {
+  private static LogicalSchema buildSchema(final TableElements tableElements) {
     if (Iterables.isEmpty(tableElements)) {
       throw new KsqlException("The statement does not define any columns.");
     }

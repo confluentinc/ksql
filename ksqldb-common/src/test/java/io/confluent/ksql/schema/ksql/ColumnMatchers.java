@@ -19,10 +19,8 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import java.util.Optional;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 
@@ -54,30 +52,6 @@ public final class ColumnMatchers {
   }
 
   public static Matcher<Column> valueColumn(
-      final ColumnName name,
-      final SqlType type
-  ) {
-    return allOf(
-        hasName(name),
-        hasType(type),
-        hasNamespace(Namespace.VALUE)
-    );
-  }
-
-  public static Matcher<Column> valueColumn(
-      final SourceName source,
-      final ColumnName name,
-      final SqlType type
-  ) {
-    return allOf(
-        hasName(name),
-        hasType(type),
-        hasNamespace(Namespace.VALUE)
-    );
-  }
-
-  public static Matcher<Column> valueColumn(
-      final Optional<SourceName> source,
       final ColumnName name,
       final SqlType type
   ) {

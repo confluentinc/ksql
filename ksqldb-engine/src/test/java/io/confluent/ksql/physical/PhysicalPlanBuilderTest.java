@@ -67,27 +67,27 @@ public class PhysicalPlanBuilderTest {
       + "WITH (KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_STREAM_TEST2 = "CREATE STREAM TEST2 "
-      + "(ROWKEY BIGINT KEY, ID2 BIGINT, COL0 VARCHAR, COL1 BIGINT) "
-      + " WITH (KAFKA_TOPIC = 'test2', VALUE_FORMAT = 'JSON', KEY='ID2');";
+      + "(ID2 BIGINT KEY, COL0 VARCHAR, COL1 BIGINT) "
+      + " WITH (KAFKA_TOPIC = 'test2', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_STREAM_TEST3 = "CREATE STREAM TEST3 "
-      + "(ROWKEY BIGINT KEY, ID3 BIGINT, COL0 BIGINT, COL1 DOUBLE) "
-      + " WITH (KAFKA_TOPIC = 'test3', VALUE_FORMAT = 'JSON', KEY='ID3');";
+      + "(ID3 BIGINT KEY, COL0 BIGINT, COL1 DOUBLE) "
+      + " WITH (KAFKA_TOPIC = 'test3', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_TABLE_TEST4 = "CREATE TABLE TEST4 "
-      + "(ROWKEY BIGINT PRIMARY KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
-      + " WITH (KAFKA_TOPIC = 'test4', VALUE_FORMAT = 'JSON', KEY='ID');";
+      + "(ID BIGINT PRIMARY KEY, COL0 BIGINT, COL1 DOUBLE) "
+      + " WITH (KAFKA_TOPIC = 'test4', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_TABLE_TEST5 = "CREATE TABLE TEST5 "
-      + "(ROWKEY BIGINT PRIMARY KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
-      + " WITH (KAFKA_TOPIC = 'test5', VALUE_FORMAT = 'JSON', KEY='ID');";
+      + "(ID BIGINT PRIMARY KEY, COL0 BIGINT, COL1 DOUBLE) "
+      + " WITH (KAFKA_TOPIC = 'test5', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_STREAM_TEST6 = "CREATE STREAM TEST6 "
-      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + "(ID BIGINT KEY, COL0 VARCHAR, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test6', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_STREAM_TEST7 = "CREATE STREAM TEST7 "
-      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + "(ID BIGINT KEY, COL0 VARCHAR, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test7', VALUE_FORMAT = 'JSON');";
 
   private static final String simpleSelectFilter = "SELECT rowkey, col0, col2 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
@@ -251,7 +251,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(result.getExecutionPlan(), containsString(
-        "[ REKEY ] | Schema: COL1 BIGINT KEY, ID2"
+        "[ REKEY ] | Schema: COL1 BIGINT KEY,"
     ));
   }
 
@@ -269,7 +269,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(result.getExecutionPlan(), containsString(
-        "[ REKEY ] | Schema: COL0 BIGINT KEY, ID3"
+        "[ REKEY ] | Schema: COL0 BIGINT KEY,"
     ));
   }
 
@@ -290,7 +290,7 @@ public class PhysicalPlanBuilderTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Cannot repartition a TABLE source. If this is a join, make "
-            + "sure that the criteria uses the TABLE's key column ROWKEY instead of COL0"));
+            + "sure that the criteria uses the TABLE's key column ID instead of COL0"));
   }
 
   @Test
@@ -310,7 +310,7 @@ public class PhysicalPlanBuilderTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Cannot repartition a TABLE source. If this is a join, make "
-            + "sure that the criteria uses the TABLE's key column ROWKEY instead of COL0"));
+            + "sure that the criteria uses the TABLE's key column ID instead of COL0"));
   }
 
   @Test
@@ -327,66 +327,6 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(result.getExecutionPlan(), not(containsString("[ REKEY ]")));
-  }
-
-  @Test
-  public void shouldNotRepartitionEitherStreamsIfJoiningOnRowKey() {
-    // Given:
-    givenKafkaTopicsExist("test2", "test3");
-    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
-
-    // When:
-    final QueryMetadata result = execute("CREATE STREAM s1 AS "
-        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
-        + "ON test2.rowkey = test3.rowkey;")
-        .get(0);
-
-    // Then:
-    assertThat(result.getExecutionPlan(), not(containsString("[ REKEY ]")));
-  }
-
-  @Test
-  public void shouldNotRepartitionEitherStreamsIfJoiningOnRowKeyEvenIfStreamsHaveNoKeyField() {
-    // Given:
-    givenKafkaTopicsExist("test6", "test7");
-    execute(CREATE_STREAM_TEST6 + CREATE_STREAM_TEST7);
-
-    // When:
-    final QueryMetadata result = execute("CREATE STREAM s1 AS "
-        + "SELECT * FROM test6 JOIN test7 WITHIN 1 SECOND "
-        + "ON test6.rowkey = test7.rowkey;")
-        .get(0);
-
-    // Then:
-    assertThat(result.getExecutionPlan(), not(containsString("[ REKEY ]")));
-  }
-
-  @Test
-  public void shouldHandleLeftTableJoiningOnRowKey() {
-    // Given:
-    givenKafkaTopicsExist("test4", "test5");
-    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
-
-    // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.rowkey = test5.id;");
-
-    // Then: did not throw.
-  }
-
-  @Test
-  public void shouldHandleRightTableJoiningOnRowKey() {
-    // Given:
-    givenKafkaTopicsExist("test4", "test5");
-    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
-
-    // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.id = test5.rowkey;");
-
-    // Then: did not throw.
   }
 
   @Test
@@ -412,7 +352,7 @@ public class PhysicalPlanBuilderTest {
     execute(CREATE_TABLE_TEST4);
 
     // When:
-    execute("CREATE TABLE TEST5 AS SELECT rowkey, COL0 FROM TEST4;");
+    execute("CREATE TABLE TEST5 AS SELECT ID, COL0 FROM TEST4;");
 
     // Then:
     assertThat(engineMetastore.getSource(SourceName.of("TEST5")),
@@ -426,7 +366,7 @@ public class PhysicalPlanBuilderTest {
     execute(CREATE_TABLE_TEST4);
 
     // When:
-    execute("CREATE TABLE TEST5 AS SELECT ROWKEY, COL0 FROM TEST4;");
+    execute("CREATE TABLE TEST5 AS SELECT ID, COL0 FROM TEST4;");
 
     // Then:
     assertThat(engineMetastore.getSource(SourceName.of("TEST5")),

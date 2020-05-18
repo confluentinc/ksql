@@ -22,7 +22,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
@@ -68,8 +67,6 @@ public abstract class PlanNode {
   public final LogicalSchema getSchema() {
     return schema;
   }
-
-  public abstract KeyField getKeyField();
 
   public abstract List<PlanNode> getSources();
 

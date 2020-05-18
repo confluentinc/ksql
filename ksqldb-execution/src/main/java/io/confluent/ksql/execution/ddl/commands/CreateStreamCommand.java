@@ -15,22 +15,23 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
 
+@JsonIgnoreProperties({"keyField"}) // Removed after version 0.9
 @Immutable
 public class CreateStreamCommand extends CreateSourceCommand {
+
   public CreateStreamCommand(
       @JsonProperty(value = "sourceName", required = true) final SourceName sourceName,
       @JsonProperty(value = "schema", required = true) final LogicalSchema schema,
-      @JsonProperty(value = "keyField") final Optional<ColumnName> keyField,
       @JsonProperty(value = "timestampColumn") final
       Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "topicName", required = true) final String topicName,
@@ -40,7 +41,6 @@ public class CreateStreamCommand extends CreateSourceCommand {
     super(
         sourceName,
         schema,
-        keyField,
         timestampColumn,
         topicName,
         formats,

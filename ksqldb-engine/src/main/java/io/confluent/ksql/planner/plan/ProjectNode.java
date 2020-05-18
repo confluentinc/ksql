@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.udf.AsValue;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
@@ -43,7 +42,6 @@ public class ProjectNode extends PlanNode {
 
   private final PlanNode source;
   private final ImmutableList<SelectExpression> selectExpressions;
-  private final KeyField keyField;
   private final ImmutableMap<ColumnName, ColumnName> aliases;
 
   public ProjectNode(
@@ -59,8 +57,6 @@ public class ProjectNode extends PlanNode {
 
     this.selectExpressions = ImmutableList
         .copyOf(requireNonNull(projectExpressions, "projectExpressions"));
-
-    this.keyField = KeyField.none();
 
     this.aliases = aliased
         ? buildAliasMapping(projectExpressions)
@@ -81,11 +77,6 @@ public class ProjectNode extends PlanNode {
   @Override
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
-  }
-
-  @Override
-  public KeyField getKeyField() {
-    return keyField;
   }
 
   public List<SelectExpression> getSelectExpressions() {

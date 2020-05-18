@@ -37,7 +37,6 @@ public class SourceDescription {
   private final List<RunningQuery> writeQueries;
   private final List<FieldInfo> fields;
   private final String type;
-  private final String key;
   private final String timestamp;
   private final String statistics;
   private final String errorStats;
@@ -58,7 +57,6 @@ public class SourceDescription {
       @JsonProperty("writeQueries") final List<RunningQuery> writeQueries,
       @JsonProperty("fields") final List<FieldInfo> fields,
       @JsonProperty("type") final String type,
-      @JsonProperty("key") final String key,
       @JsonProperty("timestamp") final String timestamp,
       @JsonProperty("statistics") final String statistics,
       @JsonProperty("errorStats") final String errorStats,
@@ -80,7 +78,6 @@ public class SourceDescription {
     this.fields =
         Collections.unmodifiableList(Objects.requireNonNull(fields, "fields"));
     this.type = Objects.requireNonNull(type, "type");
-    this.key = Objects.requireNonNull(key, "key");
     this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     this.statistics = Objects.requireNonNull(statistics, "statistics");
     this.errorStats = Objects.requireNonNull(errorStats, "errorStats");
@@ -137,10 +134,6 @@ public class SourceDescription {
     return topic;
   }
 
-  public String getKey() {
-    return key;
-  }
-
   public List<RunningQuery> getWriteQueries() {
     return writeQueries;
   }
@@ -181,7 +174,6 @@ public class SourceDescription {
         && Objects.equals(writeQueries, that.writeQueries)
         && Objects.equals(fields, that.fields)
         && Objects.equals(type, that.type)
-        && Objects.equals(key, that.key)
         && Objects.equals(timestamp, that.timestamp)
         && Objects.equals(statistics, that.statistics)
         && Objects.equals(errorStats, that.errorStats)
@@ -200,7 +192,6 @@ public class SourceDescription {
         writeQueries,
         fields,
         type,
-        key,
         timestamp,
         statistics,
         errorStats,

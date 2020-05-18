@@ -29,7 +29,6 @@ import org.apache.kafka.common.config.ConfigDef.Type;
  */
 public final class CreateConfigs {
 
-  public static final String KEY_NAME_PROPERTY = "KEY";
   public static final String WINDOW_TYPE_PROPERTY = "WINDOW_TYPE";
   public static final String WINDOW_SIZE_PROPERTY = "WINDOW_SIZE";
   public static final String SCHEMA_ID = "SCHEMA_ID";
@@ -37,13 +36,6 @@ public final class CreateConfigs {
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
-          KEY_NAME_PROPERTY,
-          ConfigDef.Type.STRING,
-          null,
-          Importance.MEDIUM,
-          "The name of a field within the Kafka record value that matches the key. "
-              + "This may be used by KSQL to avoid unnecessary repartitions."
-      ).define(
           WINDOW_TYPE_PROPERTY,
           ConfigDef.Type.STRING,
           null,

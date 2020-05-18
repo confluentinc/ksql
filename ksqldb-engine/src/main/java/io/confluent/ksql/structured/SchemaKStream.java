@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
@@ -43,12 +42,8 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -58,7 +53,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
@@ -72,7 +66,6 @@ public class SchemaKStream<K> {
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
 
   final KeyFormat keyFormat;
-  final KeyField keyField;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
   final LogicalSchema schema;
@@ -82,14 +75,12 @@ public class SchemaKStream<K> {
       final ExecutionStep<KStreamHolder<K>> sourceStep,
       final LogicalSchema schema,
       final KeyFormat keyFormat,
-      final KeyField keyField,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
     this.keyFormat = requireNonNull(keyFormat, "keyFormat");
     this.sourceStep = sourceStep;
     this.schema = Objects.requireNonNull(schema, "schema");
-    this.keyField = requireNonNull(keyField, "keyField").validateKeyExistsIn(schema);
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
   }
@@ -112,7 +103,6 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -132,7 +122,6 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -147,7 +136,6 @@ public class SchemaKStream<K> {
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
-    final KeyField keyField = findKeyField(selectExpressions);
     final StreamSelect<K> step = ExecutionStepFactory.streamSelect(
         contextStacker,
         sourceStep,
@@ -158,49 +146,14 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
   }
 
-  @SuppressWarnings("deprecation")
-  KeyField findKeyField(final List<SelectExpression> selectExpressions) {
-    if (!getKeyField().ref().isPresent()) {
-      return KeyField.none();
-    }
-
-    final ColumnName keyColumnName = getKeyField().ref().get();
-
-    Optional<Column> found = Optional.empty();
-
-    for (final SelectExpression selectExpression : selectExpressions) {
-      final ColumnName toName = selectExpression.getAlias();
-      final Expression toExpression = selectExpression.getExpression();
-
-      if (toExpression instanceof UnqualifiedColumnReferenceExp) {
-        final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) toExpression;
-
-        if (keyColumnName.equals(nameRef.getColumnName())) {
-          found = Optional.of(Column.legacyKeyFieldColumn(toName, SqlTypes.STRING));
-          break;
-        }
-      }
-    }
-
-    final Optional<ColumnName> filtered = found
-        // System columns can not be key fields:
-        .filter(f -> !SystemColumns.isSystemColumn(f.name()))
-        .map(Column::name);
-
-    return KeyField.of(filtered);
-  }
-
-
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
-      final KeyField keyField,
       final ValueFormat valueFormat,
       final Stacker contextStacker
   ) {
@@ -217,7 +170,6 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step, schemaKTable),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -226,7 +178,6 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> leftJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
-      final KeyField keyField,
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
       final ValueFormat rightFormat,
@@ -247,7 +198,6 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step, otherSchemaKStream),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -256,7 +206,6 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> join(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
-      final KeyField keyField,
       final ValueFormat valueFormat,
       final Stacker contextStacker
   ) {
@@ -273,7 +222,6 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step, schemaKTable),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -282,7 +230,6 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> join(
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
-      final KeyField keyField,
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
       final ValueFormat rightFormat,
@@ -303,7 +250,6 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step, otherSchemaKStream),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -312,7 +258,6 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
-      final KeyField keyField,
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
       final ValueFormat rightFormat,
@@ -333,7 +278,6 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step, otherSchemaKStream),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -360,20 +304,9 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step),
         keyFormat,
-        getNewKeyField(keyExpression),
         ksqlConfig,
         functionRegistry
     );
-  }
-
-  private KeyField getNewKeyField(final Expression expression) {
-    if (!(expression instanceof UnqualifiedColumnReferenceExp)) {
-      return KeyField.none();
-    }
-
-    final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
-    final KeyField newKeyField = isKeyColumn(columnName) ? keyField : KeyField.of(columnName);
-    return SystemColumns.isPseudoColumn(columnName) ? KeyField.none() : newKeyField;
   }
 
   boolean repartitionNotNeeded(final List<Expression> expressions) {
@@ -402,11 +335,7 @@ public class SchemaKStream<K> {
         .findValueColumn(newKeyColName)
         .orElseThrow(IllegalStateException::new);
 
-    final boolean matchesKeyField = keyField.resolve(getSchema())
-        .map(kf -> kf.name().equals(newKeyColName))
-        .orElse(false);
-
-    return matchesKeyField || isKeyColumn(newKeyColName);
+    return isKeyColumn(newKeyColName);
   }
 
   private boolean isKeyColumn(final ColumnName fieldName) {
@@ -427,12 +356,6 @@ public class SchemaKStream<K> {
       return groupByKey(rekeyedKeyFormat, valueFormat, contextStacker);
     }
 
-    final ColumnName aggregateKeyName = groupedKeyNameFor(groupByExpressions);
-
-    final Optional<ColumnName> newKeyCol = getSchema()
-        .findValueColumn(aggregateKeyName)
-        .map(Column::name);
-
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,
         sourceStep,
@@ -444,7 +367,6 @@ public class SchemaKStream<K> {
         source,
         resolveSchema(source),
         rekeyedKeyFormat,
-        KeyField.of(newKeyCol),
         ksqlConfig,
         functionRegistry
     );
@@ -469,7 +391,6 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -488,17 +409,12 @@ public class SchemaKStream<K> {
         step,
         resolveSchema(step),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry);
   }
 
   public ExecutionStep<?> getSourceStep() {
     return sourceStep;
-  }
-
-  public KeyField getKeyField() {
-    return keyField;
   }
 
   public LogicalSchema getSchema() {
@@ -511,20 +427,6 @@ public class SchemaKStream<K> {
 
   public FunctionRegistry getFunctionRegistry() {
     return functionRegistry;
-  }
-
-  static ColumnName groupedKeyNameFor(final List<Expression> groupByExpressions) {
-    if (groupByExpressions.size() == 1
-        && groupByExpressions.get(0) instanceof UnqualifiedColumnReferenceExp) {
-      return ((UnqualifiedColumnReferenceExp) groupByExpressions.get(0)).getColumnName();
-    }
-
-    // this is safe because if we group by multiple fields the original field
-    // will never be in the original schema, so we're necessarily creating a
-    // new field
-    return ColumnName.of(groupByExpressions.stream()
-        .map(Expression::toString)
-        .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR)));
   }
 
   LogicalSchema resolveSchema(final ExecutionStep<?> step) {

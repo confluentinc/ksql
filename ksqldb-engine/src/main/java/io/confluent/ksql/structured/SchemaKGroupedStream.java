@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -42,7 +41,6 @@ public class SchemaKGroupedStream {
   final ExecutionStep<KGroupedStreamHolder> sourceStep;
   final LogicalSchema schema;
   final KeyFormat keyFormat;
-  final KeyField keyField;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
 
@@ -50,20 +48,14 @@ public class SchemaKGroupedStream {
       final ExecutionStep<KGroupedStreamHolder> sourceStep,
       final LogicalSchema schema,
       final KeyFormat keyFormat,
-      final KeyField keyField,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
     this.sourceStep = sourceStep;
     this.schema = Objects.requireNonNull(schema, "schema");
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
-    this.keyField = keyField;
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = functionRegistry;
-  }
-
-  public KeyField getKeyField() {
-    return keyField;
   }
 
   public ExecutionStep<KGroupedStreamHolder> getSourceStep() {
@@ -106,7 +98,6 @@ public class SchemaKGroupedStream {
         step,
         resolveSchema(step),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );

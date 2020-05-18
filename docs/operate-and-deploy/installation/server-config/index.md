@@ -430,6 +430,6 @@ ksql.advertised.listener=http://host1.internal.example.com:8099
     as clients' can connect using whatever url you choose, and `ksql.internal.listener` is only used
     to start the listener.
 
-In this setup, the node will share the url in the `ksql.advertised.listener` config as its
+In this setup, the node shares the url in the `ksql.advertised.listener` config as its
 internal endpoint, which other nodes use for inter-node communication. Inter-node
 communication will use a different listener to client communication.

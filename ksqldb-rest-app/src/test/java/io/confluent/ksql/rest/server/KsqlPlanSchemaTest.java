@@ -32,6 +32,7 @@ public class KsqlPlanSchemaTest {
   private static final Path SCHEMA_PATH = Paths.get("ksql-plan-schema/schema.json");
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
+  @SuppressWarnings("ConstantConditions")
   @Test
   public void shouldBuildSameSchemaForKsqlPlan() throws IOException {
     // When:

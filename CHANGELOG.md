@@ -75,6 +75,10 @@ This only affects new statements. Any view previously created via a `CREATE STRE
 * The ksqlDB server no longer ships with Jetty. This means that when you start the server, you must supply Jetty-specific dependencies, like certain login modules used for basic authentication, by using the KSQL_CLASSPATH environment variable for them to be found.
 
     See [how to configure ksqlDB for basic HTTP authentication](https://github.com/confluentinc/ksql/blob/0.9.0-ksqldb/docs/operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-basic-http-authentication)
+	
+## Upgrading
+
+If you're upgrading from a ksqlDB version before 0.7, follow these [upgrade instructions](https://docs.ksqldb.io/en/latest/operate-and-deploy/installation/upgrading/#upgrade-notes).
 
 ## [0.8.1](https://github.com/confluentinc/ksql/releases/tag/v0.8.1-ksqldb) (2020-03-30)
 
@@ -691,4 +695,3 @@ This change splits "SHOW TOPICS" into two commands:
 
 Release notes for KSQL releases prior to ksqlDB v0.6.0 can be found at
 [docs/changelog.rst](https://github.com/confluentinc/ksql/blob/5.4.1-post/docs/changelog.rst).
-

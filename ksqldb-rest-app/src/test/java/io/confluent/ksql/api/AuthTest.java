@@ -15,12 +15,13 @@
 
 package io.confluent.ksql.api;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
-import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.InsertsResponse;
@@ -157,55 +158,55 @@ public class AuthTest extends ApiTest {
   @Test
   public void shouldFailQueryWithBadCredentials() throws Exception {
     shouldFailQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401,
-        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
+        "Unauthorized", ERROR_CODE_UNAUTHORIZED);
   }
 
   @Test
   public void shouldFailCloseQueryWithBadCredentials() throws Exception {
     shouldFailCloseQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401,
-        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
+        "Unauthorized", ERROR_CODE_UNAUTHORIZED);
   }
 
   @Test
   public void shouldFailInsertRequestWithBadCredentials() throws Exception {
     shouldFailInsertRequest(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401,
-        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
+        "Unauthorized", ERROR_CODE_UNAUTHORIZED);
   }
 
   @Test
   public void shouldFailQueryWithNoCredentials() throws Exception {
     shouldFailQuery(null, null, 401,
-        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
+        "Unauthorized", ERROR_CODE_UNAUTHORIZED);
   }
 
   @Test
   public void shouldFailCloseQueryWithNoCredentials() throws Exception {
     shouldFailCloseQuery(null, null, 401,
-        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
+        "Unauthorized", ERROR_CODE_UNAUTHORIZED);
   }
 
   @Test
   public void shouldFailInsertRequestWithNoCredentials() throws Exception {
     shouldFailInsertRequest(null, null, 401,
-        "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION);
+        "Unauthorized", ERROR_CODE_UNAUTHORIZED);
   }
 
   @Test
   public void shouldFailQueryWithIncorrectRole() throws Exception {
     shouldFailQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403,
-        "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION);
+        "Forbidden", ERROR_CODE_FORBIDDEN);
   }
 
   @Test
   public void shouldFailCloseQueryWithIncorrectRole() throws Exception {
     shouldFailCloseQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403,
-        "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION);
+        "Forbidden", ERROR_CODE_FORBIDDEN);
   }
 
   @Test
   public void shouldFailInsertRequestWithIncorrectRole() throws Exception {
     shouldFailInsertRequest(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403,
-        "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION);
+        "Forbidden", ERROR_CODE_FORBIDDEN);
   }
 
   @Test
@@ -248,21 +249,21 @@ public class AuthTest extends ApiTest {
   public void shouldNotAllowQueryIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
         () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403,
-            "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION));
+            "Forbidden", ERROR_CODE_FORBIDDEN));
   }
 
   @Test
   public void shouldNotAllowInsertsIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
         () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403,
-            "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION));
+            "Forbidden", ERROR_CODE_FORBIDDEN));
   }
 
   @Test
   public void shouldNotAllowCloseQueryIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
         () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403,
-            "Forbidden", ErrorCodes.ERROR_FAILED_AUTHORIZATION));
+            "Forbidden", ERROR_CODE_FORBIDDEN));
   }
 
   @Test
@@ -274,7 +275,7 @@ public class AuthTest extends ApiTest {
   public void shouldNotAllowQueryWithSecurityPlugin() throws Exception {
     setupSecurityPlugin(USER_WITHOUT_ACCESS,
         () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401,
-            "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION), false);
+            "Unauthorized", ERROR_CODE_UNAUTHORIZED), false);
   }
 
   @Test
@@ -287,7 +288,7 @@ public class AuthTest extends ApiTest {
   public void shouldNotAllowInsertsWithSecurityPlugin() throws Exception {
     setupSecurityPlugin(USER_WITHOUT_ACCESS,
         () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401,
-            "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION),
+            "Unauthorized", ERROR_CODE_UNAUTHORIZED),
         false);
   }
 
@@ -300,7 +301,7 @@ public class AuthTest extends ApiTest {
   public void shouldNotAllowCloseQueryWithSecurityPlugin() throws Exception {
     setupSecurityPlugin(USER_WITHOUT_ACCESS,
         () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 401,
-            "Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION),
+            "Unauthorized", ERROR_CODE_UNAUTHORIZED),
         false);
   }
 
@@ -486,7 +487,7 @@ public class AuthTest extends ApiTest {
           return CompletableFuture.completedFuture(new StringPrincipal(expectedUser));
         } else {
           routingContext.fail(401,
-              new KsqlApiException("Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION));
+              new KsqlApiException("Unauthorized", ERROR_CODE_UNAUTHORIZED));
           return CompletableFuture.completedFuture(null);
         }
       }

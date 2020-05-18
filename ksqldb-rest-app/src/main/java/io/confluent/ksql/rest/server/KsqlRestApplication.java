@@ -29,9 +29,8 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
-import io.confluent.ksql.api.endpoints.DefaultKsqlSecurityContextProvider;
-import io.confluent.ksql.api.endpoints.KsqlSecurityContextProvider;
-import io.confluent.ksql.api.endpoints.KsqlServerEndpoints;
+import io.confluent.ksql.api.impl.DefaultKsqlSecurityContextProvider;
+import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -531,6 +530,16 @@ public final class KsqlRestApplication implements Executable {
         throw new KsqlException(e);
       }
     }).collect(Collectors.toList());
+  }
+
+  Optional<URL> getInternalListener() {
+    return apiServer.getInternalListener().map(uri -> {
+      try {
+        return uri.toURL();
+      } catch (MalformedURLException e) {
+        throw new KsqlException(e);
+      }
+    });
   }
 
   public static KsqlRestApplication buildApplication(final KsqlRestConfig restConfig) {

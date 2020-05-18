@@ -18,22 +18,22 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Map;
 
-public class OrderDataProvider extends TestDataProvider<Long> {
+public class OrderDataProvider extends TestDataProvider<String> {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
-      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("ORDERID"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("ORDERID"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("TIMESTAMP"), SqlTypes.STRING)
@@ -50,12 +50,12 @@ public class OrderDataProvider extends TestDataProvider<Long> {
       "key3", 3.0
   );
 
-  private static final Map<Long, GenericRow> ROWS = ImmutableMap.<Long, GenericRow>builder()
+  private static final Multimap<String, GenericRow> ROWS = ImmutableListMultimap
+      .<String, GenericRow>builder()
       .put(
-          1L,
+          "ORDER_1",
           genericRow(
               1L,
-              "ORDER_1",
               "ITEM_1",
               10.0,
               "2018-01-01",
@@ -63,10 +63,9 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               MAP_FIELD
           ))
       .put(
-          2L,
+          "ORDER_2",
           genericRow(
               2L,
-              "ORDER_2",
               "ITEM_2",
               20.0,
               "2018-01-02",
@@ -74,10 +73,9 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               MAP_FIELD
           ))
       .put(
-          3L,
+          "ORDER_3",
           genericRow(
               3L,
-              "ORDER_3",
               "ITEM_3",
               30.0,
               "2018-01-03",
@@ -85,10 +83,9 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               MAP_FIELD
           ))
       .put(
-          4L,
+          "ORDER_4",
           genericRow(
               4L,
-              "ORDER_4",
               "ITEM_4",
               40.0,
               "2018-01-04",
@@ -96,10 +93,9 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               MAP_FIELD
           ))
       .put(
-          5L,
+          "ORDER_5",
           genericRow(
               5L,
-              "ORDER_5",
               "ITEM_5",
               50.0,
               "2018-01-05",
@@ -107,10 +103,9 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               MAP_FIELD
           ))
       .put(
-          6L,
+          "ORDER_6",
           genericRow(
               6L,
-              "ORDER_6",
               "ITEM_6",
               60.0,
               "2018-01-06",
@@ -118,10 +113,9 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               MAP_FIELD
           ))
       .put(
-          7L,
+          "ORDER_6",
           genericRow(
               7L,
-              "ORDER_6",
               "ITEM_7",
               70.0,
               "2018-01-07",
@@ -129,10 +123,9 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               MAP_FIELD
           ))
       .put(
-          8L,
+          "ORDER_6",
           genericRow(
               8L,
-              "ORDER_6",
               "ITEM_8",
               80.0,
               "2018-01-08",
@@ -142,6 +135,6 @@ public class OrderDataProvider extends TestDataProvider<Long> {
       .build();
 
   public OrderDataProvider() {
-    super("ORDER", "ORDERTIME", PHYSICAL_SCHEMA, ROWS);
+    super("ORDER", PHYSICAL_SCHEMA, ROWS);
   }
 }

@@ -35,6 +35,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Struct;
 
+@SuppressWarnings("UnstableApiUsage")
 public class DataGenProducer {
 
   private final SerializerFactory<Struct> keySerializerFactory;
@@ -48,6 +49,7 @@ public class DataGenProducer {
     this.valueSerializerFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
+  @SuppressWarnings("InfiniteLoopStatement")
   public void populateTopic(
       final Properties props,
       final Generator generator,
@@ -102,7 +104,7 @@ public class DataGenProducer {
     producer.close();
   }
 
-  private void produceOne(
+  private static void produceOne(
       final RowGenerator rowGenerator,
       final KafkaProducer<Struct, GenericRow> producer,
       final String kafkaTopicName,

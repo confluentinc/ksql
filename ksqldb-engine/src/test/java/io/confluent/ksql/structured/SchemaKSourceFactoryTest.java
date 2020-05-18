@@ -36,7 +36,6 @@ import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -57,8 +56,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKSourceFactoryTest {
-
-  private static final KeyField KEY_FIELD = KeyField.none();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
@@ -125,8 +122,7 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        contextStacker,
-        KEY_FIELD
+        contextStacker
     );
 
     // Then:
@@ -148,8 +144,7 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        contextStacker,
-        KEY_FIELD
+        contextStacker
     );
 
     // Then:
@@ -171,8 +166,7 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        contextStacker,
-        KEY_FIELD
+        contextStacker
     );
 
     // Then:
@@ -194,8 +188,7 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        contextStacker,
-        KEY_FIELD
+        contextStacker
     );
 
     // Then:

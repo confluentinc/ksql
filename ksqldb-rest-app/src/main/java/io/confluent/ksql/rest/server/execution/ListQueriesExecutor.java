@@ -56,7 +56,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,7 +114,7 @@ public final class ListQueriesExecutor {
                     ImmutableSet.of(persistentQuery.getResultTopic().getKafkaTopicName()),
                     q.getQueryId(),
                     QueryStatusCount.fromStreamsStateCounts(
-                        Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)),
+                        Collections.singletonMap(q.getState(), 1)),
                     q.getQueryType());
               }
 
@@ -125,7 +124,7 @@ public final class ListQueriesExecutor {
                   ImmutableSet.of(),
                   q.getQueryId(),
                   QueryStatusCount.fromStreamsStateCounts(
-                      Collections.singletonMap(KafkaStreams.State.valueOf(q.getState()), 1)),
+                      Collections.singletonMap(q.getState(), 1)),
                   q.getQueryType());
             }
         ));
@@ -198,7 +197,7 @@ public final class ListQueriesExecutor {
                 Collections.singletonMap(
                     new KsqlHostInfoEntity(sessionProperties.getKsqlHostInfo()),
                     KsqlConstants.fromStreamsState(
-                        KafkaStreams.State.valueOf(query.getState()))
+                        query.getState())
                 ))));
   }
 

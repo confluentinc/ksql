@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.streams.StreamFlatMapBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -69,11 +68,6 @@ public class FlatMapNode extends PlanNode {
     this.source = Objects.requireNonNull(source, "source");
     this.tableFunctions = ImmutableList.copyOf(analysis.getTableFunctions());
     this.columnMappings = buildColumnMappings(functionRegistry, analysis);
-  }
-
-  @Override
-  public KeyField getKeyField() {
-    return source.getKeyField();
   }
 
   @Override

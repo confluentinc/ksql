@@ -310,3 +310,126 @@ Start the ksqlDB server with the configuration file specified.
 <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
+Configuring Listeners of a ksqlDB Cluster
+------------------------------------------
+
+Multiple hosts are required to scale ksqlDB processing power and to do that, they must
+form a cluster.  ksqlDB requires all hosts of a cluster to use the same `ksql.service.id`.
+
+```properties
+bootstrap.servers=kafkaBroker1:9092,kafkaBroker2:9092
+ksql.service.id=my_application_
+```
+
+Once formed, many operations can be run using the client APIs exposed on `listeners`.
+
+In order to utilize pull queries and their high availability functionality, the nodes within the
+cluster must be able to communicate with each other. ksqlDB supports setups with either a single
+shared listener for both client and internal communication, or dual single-purpose listeners. The
+following section describes how to configure listeners depending on the nature of your environment and
+requirements.
+
+### Single listener
+
+#### Single routable listener
+
+If you want to configure your listener with an IP address or hostname that is resolvable and
+routable from within the cluster, you might do the following:
+
+```properties
+# Hostname that other nodes can resolve to an routable IP:
+listeners=https://ksqlHost56:8088
+
+# Or, routable IP address:
+listeners=https://192.168.1.101:8088
+```
+
+In this setup, the node shares the first URL in the `listeners` config as its internal
+endpoint, which other nodes use for inter-node communication. Inter-node communication
+uses the same listener as client communication.
+
+#### Single non-routable listener
+
+It's common to set up a service using special hostnames, like `localhost`, or wildcard addresses,
+like `0.0.0.0` or `[::]`. These special hostnames have special meanings and are not appropriate for
+inter-node communication, because they're not routable from other machines. This is also the case if your
+network is set up such that the IP or hostname you bind isn't resolvable or routable.
+
+If you choose to use a non-routable listener, you must set `ksql.advertised.listener` and specify a
+URL that is externally accessible and which resolves to an endpoint defined in `listeners`.
+
+```properties
+# Non-routable wildcard ip:
+listeners=http://0.0.0.0:8088
+
+# Externally accessible name that resolves to the IP of the machine:
+ksql.advertised.listener=http://host1.internal.example.com:8088
+```
+
+In this setup, the node shares the URL in the `ksql.advertised.listener` config as its
+internal endpoint, which other nodes use for inter-node communication. Inter-node
+communication use the same listener as client communication.
+
+### Dual listeners
+
+You may choose to configure internal communication to use a different listener to client
+communication, which enables port filtering rules to deny clients access the internal listener or
+the use of a different network interface for internal communication, for security or QoS reasons.
+
+This can be achieved by setting the `ksql.internal.listener` configuration to start a second
+listener that is used exclusively for inter-node communication.
+
+If you're running dual listeners to improve security, you may also wish to enable
+[authentication and other security measures](security.md).
+
+#### Dual routable listeners
+
+If the internal IP address or hostname used in the `ksql.internal.listener` configuration is externally
+resolvable and routable, you only need to configure `ksql.internal.listener` to set the internal
+listener, for example:
+
+```properties
+# Client listener:
+listeners=https://192.168.1.101:8088
+
+# Inter-node listener on different NIC:
+ksql.internal.listener=https://192.168.1.102:8088
+```
+
+!!! note
+    Only the `ksql.internal.listener` needs to be resolvable and routable from servers running other
+    nodes in the cluster. The `listener` configuration can be non-resolvable and non-routable, because
+    clients can connect using whatever URL you choose.
+
+In this setup, the node shares the URL in the `ksql.internal.listener` config as its
+internal endpoint, which other nodes use for inter-node communication. Inter-node
+communication uses a different listener to client communication.
+
+#### Dual non-routable listeners
+
+If the internal IP address or hostname used in the `ksql.internal.listener` configuration is not
+externally resolvable and routable, for example where it uses `localhost` or wildcard IPs such as
+`0.0.0.0` or `[::]`, you must configure both `ksql.internal.listener` and `ksql.advertised.listener`
+to set the internal listener:
+
+```properties
+# Client listener:
+listeners=https://0.0.0.0:8088
+
+# Inter-node listener on wildcard address and different port:
+# Note: port 8099 could be locked down using port forward or other network tools.
+ksql.internal.listener=https://0.0.0.0:8099
+
+# URL that other nodes can resolve and use to route requests to this node:
+ksql.advertised.listener=http://host1.internal.example.com:8099
+```
+
+!!! note
+    Only the `ksql.advertised.listener` needs to be resolvable and routable from servers running
+    other nodes in the cluster. The `listener` configuration can be non-resolvable and non-routable,
+    because clients can connect using whatever URL you choose, and `ksql.internal.listener` is only used
+    to start the listener.
+
+In this setup, the node shares the url in the `ksql.advertised.listener` config as its
+internal endpoint, which other nodes use for inter-node communication. Inter-node
+communication uses a different listener to client communication.

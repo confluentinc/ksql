@@ -90,10 +90,10 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
    */
   public boolean accept(final T t) {
     checkContext();
-    if (complete) {
+    if (isComplete() || hasSentComplete()) {
       throw new IllegalStateException("Cannot call accept after complete is called");
     }
-    if (!isCancelled()) {
+    if (!isCancelled() && !isFailed()) {
       if (getDemand() == 0) {
         buffer.add(t);
       } else {
@@ -125,7 +125,7 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
    */
   public void complete() {
     checkContext();
-    if (isCancelled() || complete) {
+    if (isComplete() || isFailed()) {
       return;
     }
     complete = true;
@@ -140,9 +140,10 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
     return complete;
   }
 
+  @Override
   protected void maybeSend() {
     int numSent = 0;
-    while (!isCancelled() && getDemand() > 0 && !buffer.isEmpty()) {
+    while (getDemand() > 0 && !buffer.isEmpty()) {
       if (numSent < SEND_MAX_BATCH_SIZE) {
         final T val = buffer.poll();
         doOnNext(val);
@@ -154,7 +155,7 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
       }
     }
 
-    if (buffer.isEmpty() && !isCancelled()) {
+    if (buffer.isEmpty() && !isFailed()) {
       if (shouldSendComplete) {
         sendComplete();
         shouldSendComplete = false;

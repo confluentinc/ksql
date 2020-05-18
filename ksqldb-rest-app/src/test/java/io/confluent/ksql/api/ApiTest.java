@@ -15,11 +15,9 @@
 
 package io.confluent.ksql.api;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INVALID_QUERY;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
@@ -29,12 +27,12 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.api.utils.SendStream;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -75,7 +73,7 @@ public class ApiTest extends BaseApiTest {
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     assertThat(queryResponse.responseObject.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
     assertThat(queryResponse.responseObject.getJsonArray("columnTypes"), is(DEFAULT_COLUMN_TYPES));
-    assertThat(queryResponse.rows, is(DEFAULT_ROWS));
+    assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));
     assertThat(server.getQueryIDs(), hasSize(0));
     String queryId = queryResponse.responseObject.getString("queryId");
     assertThat(queryId, is(nullValue()));
@@ -93,7 +91,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(testEndpoints.getLastProperties(), is(DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES));
     assertThat(queryResponse.responseObject.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
     assertThat(queryResponse.responseObject.getJsonArray("columnTypes"), is(DEFAULT_COLUMN_TYPES));
-    assertThat(queryResponse.rows, is(DEFAULT_ROWS));
+    assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));
     assertThat(server.getQueryIDs(), hasSize(1));
     String queryId = queryResponse.responseObject.getString("queryId");
     assertThat(queryId, is(notNullValue()));
@@ -228,14 +226,16 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusCode(), is(400));
     assertThat(response.statusMessage(), is("Bad Request"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No sql in arguments", queryResponse.responseObject);
+    validateError(ERROR_CODE_BAD_REQUEST,
+        "Invalid JSON in request: Missing required creator property 'sql'",
+        queryResponse.responseObject);
   }
 
   @Test
   public void shouldHandleErrorInProcessingQuery() throws Exception {
 
     // Given
-    testEndpoints.setRowsBeforePublisherError(DEFAULT_ROWS.size() - 1);
+    testEndpoints.setRowsBeforePublisherError(DEFAULT_JSON_ROWS.size() - 1);
 
     // When
     HttpResponse<Buffer> response = sendRequest("/query-stream",
@@ -245,8 +245,8 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusCode(), is(200));
     assertThat(response.statusMessage(), is("OK"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    assertThat(queryResponse.rows, hasSize(DEFAULT_ROWS.size() - 1));
-    validateError(ERROR_CODE_INTERNAL_ERROR, "Error in processing query", queryResponse.error);
+    assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size() - 1));
+    validateError(ERROR_CODE_SERVER_ERROR, "Error in processing query", queryResponse.error);
     assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
     assertThat(server.getQueryIDs().isEmpty(), is(true));
   }
@@ -300,7 +300,7 @@ public class ApiTest extends BaseApiTest {
       } catch (Throwable t) {
         return Integer.MAX_VALUE;
       }
-    }, is(DEFAULT_ROWS.size()));
+    }, is(DEFAULT_JSON_ROWS.size()));
 
     // The response shouldn't have ended yet
     assertThat(writeStream.isEnded(), is(false));
@@ -343,7 +343,8 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("Bad Request"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No queryId in arguments",
+    validateError(ERROR_CODE_BAD_REQUEST,
+        "Invalid JSON in request: Missing required creator property 'queryId'",
         queryResponse.responseObject);
   }
 
@@ -361,7 +362,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusCode(), is(400));
     assertThat(response.statusMessage(), is("Bad Request"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_UNKNOWN_QUERY_ID, "No query with id xyzfasgf",
+    validateError(ERROR_CODE_BAD_REQUEST, "No query with id xyzfasgf",
         queryResponse.responseObject);
   }
 
@@ -471,7 +472,9 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("Bad Request"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No target in arguments", queryResponse.responseObject);
+    validateError(ERROR_CODE_BAD_REQUEST,
+        "Invalid JSON in request: Missing required creator property 'target'",
+        queryResponse.responseObject);
   }
 
   @Test
@@ -502,7 +505,7 @@ public class ApiTest extends BaseApiTest {
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
     assertThat(insertsResponse.acks, hasSize(rows.size() - 1));
-    validateInsertStreamError(ERROR_CODE_INTERNAL_ERROR, "Error in processing inserts",
+    validateInsertStreamError(ERROR_CODE_SERVER_ERROR, "Error in processing inserts",
         insertsResponse.error,
         (long) rows.size() - 1);
     assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
@@ -541,7 +544,7 @@ public class ApiTest extends BaseApiTest {
 
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
-    validateInsertStreamError(ERROR_CODE_MALFORMED_REQUEST, "Invalid JSON in inserts stream",
+    validateInsertStreamError(ERROR_CODE_BAD_REQUEST, "Invalid JSON in inserts stream",
         insertsResponse.error, (long) rows.size() - 1);
 
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
@@ -589,7 +592,7 @@ public class ApiTest extends BaseApiTest {
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    assertThat(queryResponse.rows, hasSize(DEFAULT_ROWS.size()));
+    assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size()));
     assertThat(response.bodyAsString().contains("\n"), is(true));
     assertThat(response.statusCode(), is(200));
   }
@@ -607,7 +610,7 @@ public class ApiTest extends BaseApiTest {
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    assertThat(queryResponse.rows, hasSize(DEFAULT_ROWS.size()));
+    assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size()));
     assertThat(response.bodyAsString().contains("\n"), is(true));
     assertThat(response.statusCode(), is(200));
   }
@@ -625,12 +628,12 @@ public class ApiTest extends BaseApiTest {
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
     JsonArray jsonArray = new JsonArray(response.body());
-    assertThat(jsonArray.size(), is(DEFAULT_ROWS.size() + 1));
+    assertThat(jsonArray.size(), is(DEFAULT_JSON_ROWS.size() + 1));
     JsonObject metaData = jsonArray.getJsonObject(0);
     assertThat(metaData.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
     assertThat(metaData.getJsonArray("columnTypes"), is(DEFAULT_COLUMN_TYPES));
-    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
-      assertThat(jsonArray.getJsonArray(i + 1), is(DEFAULT_ROWS.get(i)));
+    for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
+      assertThat(jsonArray.getJsonArray(i + 1), is(DEFAULT_JSON_ROWS.get(i)));
     }
   }
 
@@ -705,7 +708,7 @@ public class ApiTest extends BaseApiTest {
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
     JsonArray jsonArray = new JsonArray(response.body());
-    assertThat(jsonArray.size(), is(DEFAULT_ROWS.size()));
+    assertThat(jsonArray.size(), is(DEFAULT_JSON_ROWS.size()));
     for (int i = 0; i < jsonArray.size(); i++) {
       final JsonObject ackLine = new JsonObject().put("status", "ok").put("seq", i);
       assertThat(jsonArray.getJsonObject(i), is(ackLine));
@@ -742,7 +745,8 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusCode(), is(400));
     assertThat(response.statusMessage(), is("Bad Request"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MALFORMED_REQUEST, "Malformed JSON in request",
+    validateError(ERROR_CODE_BAD_REQUEST,
+        "Invalid JSON in request: Unexpected end-of-input: expected close marker for Object",
         queryResponse.responseObject);
   }
 
@@ -762,7 +766,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("Bad Request"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_INVALID_QUERY, pfe.getMessage(),
+    validateError(ERROR_CODE_BAD_STATEMENT, pfe.getMessage(),
         queryResponse.responseObject);
   }
 
@@ -782,7 +786,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("Internal Server Error"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_INTERNAL_ERROR,
+    validateError(ERROR_CODE_SERVER_ERROR,
         "The server encountered an internal error when processing the query." +
             " Please consult the server logs for more information.",
         queryResponse.responseObject);
@@ -790,7 +794,7 @@ public class ApiTest extends BaseApiTest {
 
   private static void validateInsertStreamError(final int errorCode, final String message,
       final JsonObject error, final long sequence) {
-    assertThat(error.size(), is(4));
+    assertThat(error.size(), is(6));
     validateErrorCommon(errorCode, message, error);
     assertThat(error.getLong("seq"), is(sequence));
   }
@@ -799,9 +803,16 @@ public class ApiTest extends BaseApiTest {
     List<JsonObject> rows = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       JsonObject row = new JsonObject()
-          .put("name", "foo" + i)
-          .put("age", i)
-          .put("male", i % 2 == 0);
+          .put("f_str", "foo" + i)
+          .put("f_int", i)
+          .put("f_bool", i % 2 == 0)
+          .put("f_long", i * i)
+          .put("f_double", i + 0.1111)
+          .put("f_decimal", i + 0.1) // can't put BigDecimal directly because of "java.lang.IllegalStateException: Illegal type in JsonObject: class java.math.BigDecimal
+          .put("f_array", new JsonArray().add("s" + i).add("t" + i))
+          .put("f_map", new JsonObject().put("k" + i, "v" + i))
+          .put("f_struct", new JsonObject().put("F1", "v" + i).put("F2", i))
+          .putNull("f_null");
       rows.add(row);
     }
     return rows;

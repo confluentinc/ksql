@@ -1,0 +1,119 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589219239348,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<IMPRESSION_ID BIGINT, URL VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<URL VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<I_IMPRESSION_ID BIGINT, I_URL VARCHAR, I_ROWTIME BIGINT, I_USER VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<C_URL VARCHAR, C_ROWTIME BIGINT, C_USER VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<IMPRESSION_ID BIGINT, URL VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "with where",
+    "inputs" : [ {
+      "topic" : "impressions",
+      "key" : "user_0",
+      "value" : {
+        "impression_id" : 24,
+        "url" : "urlA"
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "clicks",
+      "key" : "user_0",
+      "value" : {
+        "url" : "urlX"
+      },
+      "timestamp" : 11
+    }, {
+      "topic" : "clicks",
+      "key" : "user_0",
+      "value" : {
+        "url" : "urlA"
+      },
+      "timestamp" : 12
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "user_0",
+      "value" : {
+        "IMPRESSION_ID" : 24,
+        "URL" : "urlA"
+      },
+      "timestamp" : 12
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "clicks",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "impressions",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM impressions (user VARCHAR KEY, impression_id BIGINT, url VARCHAR) WITH (kafka_topic='impressions', value_format='JSON');", "CREATE STREAM clicks (user VARCHAR KEY, url VARCHAR) WITH (kafka_topic='clicks', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT I.USER, IMPRESSION_ID, I.URL AS URL FROM impressions i JOIN clicks c WITHIN 1 minute ON i.user = c.user WHERE i.url = c.url;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "clicks",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "impressions",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

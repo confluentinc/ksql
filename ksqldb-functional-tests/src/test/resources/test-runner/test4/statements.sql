@@ -1,8 +1,7 @@
 -- This test is courtesy of Michael Drogalis (https://gist.github.com/MichaelDrogalis)
-CREATE STREAM all_publications (author VARCHAR, title VARCHAR)
+CREATE STREAM all_publications (author VARCHAR KEY, title VARCHAR)
     WITH (kafka_topic = 'publication_events',
           partitions = 1,
-          key = 'author',
           value_format = 'avro');
 
 CREATE STREAM george_martin

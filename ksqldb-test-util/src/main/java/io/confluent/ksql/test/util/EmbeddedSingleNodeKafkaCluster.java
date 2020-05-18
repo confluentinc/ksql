@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.hasSize;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
@@ -83,10 +85,12 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+@SuppressWarnings("UnstableApiUsage")
 public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
@@ -349,9 +353,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param timestampSupplier supplier of timestamps.
    * @return the map of produced rows, with an iteration order that matches produce order.
    */
-  public <K, V> Map<K, RecordMetadata> produceRows(
+  public <K, V> Multimap<K, RecordMetadata> produceRows(
       final String topic,
-      final Map<K, V> recordsToPublish,
+      final Collection<Entry<K, V>> recordsToPublish,
       final Serializer<K> keySerializer,
       final Serializer<V> valueSerializer,
       final Supplier<Long> timestampSupplier
@@ -361,22 +365,29 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
         keySerializer,
         valueSerializer
     )) {
-      final Map<K, Future<RecordMetadata>> futures = recordsToPublish.entrySet().stream()
-          .collect(Collectors.toMap(Entry::getKey, entry -> {
-            final K key = entry.getKey();
-            final V value = entry.getValue();
-            final Long timestamp = timestampSupplier.get();
-            return producer.send(new ProducerRecord<>(topic, null, timestamp, key, value));
-          }));
+      final Multimap<K, Future<RecordMetadata>> futures = LinkedListMultimap.create();
 
-      return futures.entrySet().stream()
-          .collect(Collectors.toMap(Entry::getKey, entry -> {
-            try {
-              return entry.getValue().get(PRODUCE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-            } catch (final Exception e) {
-              throw new RuntimeException("Failed to send record to " + topic, e);
-            }
-          }));
+      recordsToPublish.forEach(entry -> {
+        final K key = entry.getKey();
+        final V value = entry.getValue();
+        final Long timestamp = timestampSupplier.get();
+        final Future<RecordMetadata> f = producer
+            .send(new ProducerRecord<>(topic, null, timestamp, key, value));
+        futures.put(key, f);
+      });
+
+      final Multimap<K, RecordMetadata> result = LinkedListMultimap.create();
+
+      futures.forEach((k, v) -> {
+        try {
+          final RecordMetadata md = v.get(PRODUCE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+          result.put(k, md);
+        } catch (final Exception e) {
+          throw new RuntimeException("Failed to send record to " + topic, e);
+        }
+      });
+
+      return result;
     }
   }
 

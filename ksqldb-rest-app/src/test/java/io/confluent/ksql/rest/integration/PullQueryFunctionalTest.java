@@ -118,6 +118,8 @@ public class PullQueryFunctionalTest {
       .withProperty(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
       .withProperty(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
       .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, JAAS_CONFIG.jaasFile().toString())
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
       .build();
 
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
@@ -130,6 +132,8 @@ public class PullQueryFunctionalTest {
       .withProperty(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
       .withProperty(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
       .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, JAAS_CONFIG.jaasFile().toString())
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
       .build();
 
   @ClassRule
@@ -160,7 +164,6 @@ public class PullQueryFunctionalTest {
             + " (" + USER_PROVIDER.ksqlSchemaString(false) + ")"
             + " WITH ("
             + "   kafka_topic='" + USER_TOPIC + "', "
-            + "   key='" + USER_PROVIDER.key() + "', "
             + "   value_format='" + VALUE_FORMAT.name() + "'"
             + ");"
     );

@@ -478,7 +478,7 @@ public class ListQueriesExecutorTest {
     when(metadata.getStatementString()).thenReturn("sql");
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
-    when(metadata.getState()).thenReturn(state.toString());
+    when(metadata.getState()).thenReturn(state);
     when(metadata.getTopologyDescription()).thenReturn("topology");
     when(metadata.getExecutionPlan()).thenReturn("plan");
 

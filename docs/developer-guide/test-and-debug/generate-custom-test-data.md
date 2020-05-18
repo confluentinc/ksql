@@ -162,14 +162,13 @@ In the ksqlDB CLI or in {{ site.c3short }}, register a table on
 
 ```sql
 CREATE TABLE users_original (
+    userid VARCHAR PRIMARY KEY,
     registertime BIGINT,
     gender VARCHAR,
-    regionid VARCHAR,
-    userid VARCHAR)
+    regionid VARCHAR)
 WITH (
     kafka_topic='users_kafka_topic_json',
-    value_format='JSON',
-    key = 'userid');                   
+    value_format='JSON');
 ```
 
 Inspect the schema of the `users_original` table by using the DESCRIBE
@@ -215,16 +214,15 @@ In the ksqlDB CLI or in {{ site.c3short }}, register a table on
 
 ```sql
 CREATE TABLE users_extended (
+    userid VARCHAR PRIMARY KEY,
     registertime BIGINT,
     gender VARCHAR,
     regionid VARCHAR,
-    userid VARCHAR,
     interests ARRAY<STRING>,
     contactInfo MAP<STRING, STRING>)
 WITH (
     kafka_topic='users_extended',
-    value_format='JSON',
-    key = 'userid');
+    value_format='JSON');
 ```
 
 Inspect the schema of the `users_extended` table by using the DESCRIBE

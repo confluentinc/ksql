@@ -24,7 +24,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
@@ -40,7 +39,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -57,7 +55,6 @@ import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Configurable;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.apache.kafka.test.TestUtils;
@@ -150,11 +147,11 @@ public class EndToEndIntegrationTest {
     );
 
     ksqlContext.sql("CREATE TABLE " + USER_TABLE
-        + " (registertime bigint, gender varchar, regionid varchar, userid varchar)"
-        + " WITH (kafka_topic='" + USERS_TOPIC + "', value_format='JSON', key = 'userid');");
+        + " (userid varchar PRIMARY KEY, registertime bigint, gender varchar, regionid varchar)"
+        + " WITH (kafka_topic='" + USERS_TOPIC + "', value_format='JSON');");
 
     ksqlContext.sql("CREATE STREAM " + PAGE_VIEW_STREAM
-        + " (viewtime bigint, userid varchar, pageid varchar) "
+        + " (pageid varchar KEY, viewtime bigint, userid varchar) "
         + "WITH (kafka_topic='" + PAGE_VIEW_TOPIC + "', value_format='JSON');");
   }
 
@@ -173,133 +170,12 @@ public class EndToEndIntegrationTest {
 
     final Set<Object> actualUsers = rows.stream()
         .filter(Objects::nonNull)
-        .peek(row -> assertThat(row.values(), hasSize(5)))
+        .peek(row -> assertThat(row.values(), hasSize(4)))
         .map(row -> row.get(0))
         .collect(Collectors.toSet());
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
     assertThat(actualUsers, is(expectedUsers));
-  }
-
-  @Test
-  public void shouldSelectFromPageViewsWithSpecificColumn() throws Exception {
-    final TransientQueryMetadata queryMetadata =
-        executeStatement("SELECT pageid from %s EMIT CHANGES;", PAGE_VIEW_STREAM);
-
-    final List<String> expectedPages =
-        Arrays.asList("PAGE_1", "PAGE_2", "PAGE_3", "PAGE_4", "PAGE_5", "PAGE_5", "PAGE_5");
-
-    final List<GenericRow> rows = verifyAvailableRows(queryMetadata, expectedPages.size());
-
-    final List<Object> actualPages = rows.stream()
-        .filter(Objects::nonNull)
-        .peek(row -> assertThat(row.values(), hasSize(1)))
-        .map(row -> row.get(0))
-        .collect(Collectors.toList());
-
-    assertThat(actualPages.subList(0, expectedPages.size()), is(expectedPages));
-    assertThat(CONSUMED_COUNT.get(), greaterThan(0));
-  }
-
-  @Test
-  public void shouldSelectAllFromDerivedStream() throws Exception {
-    executeStatement(
-        "CREATE STREAM pageviews_female"
-        + " AS SELECT %s.userid, pageid, regionid, gender "
-        + " FROM %s "
-        + " LEFT JOIN %s ON %s.userid = %s.userid"
-        + " WHERE gender = 'FEMALE';",
-        PAGE_VIEW_STREAM, PAGE_VIEW_STREAM, USER_TABLE, PAGE_VIEW_STREAM, USER_TABLE);
-
-    final TransientQueryMetadata queryMetadata = executeStatement(
-        "SELECT * from pageviews_female EMIT CHANGES;");
-
-    final List<KeyValue<String, GenericRow>> results = new ArrayList<>();
-    final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
-
-    // From the mock data, we expect exactly 3 page views from female users.
-    final List<String> expectedPages = ImmutableList.of("PAGE_2", "PAGE_5", "PAGE_5");
-    final List<String> expectedUsers = ImmutableList.of("USER_2", "USER_0", "USER_2");
-
-    TestUtils.waitForCondition(() -> {
-      try {
-        log.debug("polling from pageviews_female");
-        final KeyValue<String, GenericRow> nextRow = rowQueue.poll(1, TimeUnit.SECONDS);
-        if (nextRow != null) {
-          results.add(nextRow);
-        } else {
-          // If we didn't receive any records on the output topic for 8 seconds, it probably means that the join
-          // failed because the table data wasn't populated when the stream data was consumed. We should just
-          // re populate the stream data to try the join again.
-          log.warn("repopulating {} because the join returned no results.", PAGE_VIEW_TOPIC);
-          TEST_HARNESS.produceRows(
-              PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
-        }
-      } catch (final Exception e) {
-        throw new RuntimeException("Got exception when polling from pageviews_female", e);
-      }
-      return expectedPages.size() <= results.size();
-    }, 30000, "Could not consume any records from " + PAGE_VIEW_TOPIC + " for 30 seconds");
-
-    final List<String> actualPages = new ArrayList<>();
-    final List<String> actualUsers = new ArrayList<>();
-
-    for (final KeyValue<String, GenericRow> result : results) {
-      final List<Object> columns = result.value.values();
-      log.debug("pageview join: {}", columns);
-
-      assertThat(columns, hasSize(4));
-
-      final String user = (String) columns.get(0);
-      actualUsers.add(user);
-
-      final String page = (String) columns.get(1);
-      actualPages.add(page);
-    }
-
-    assertThat(CONSUMED_COUNT.get(), greaterThan(0));
-    assertThat(PRODUCED_COUNT.get(), greaterThan(0));
-    assertThat(actualPages, is(expectedPages));
-    assertThat(actualUsers, is(expectedUsers));
-  }
-
-  @Test
-  public void shouldCreateStreamUsingLikeClause() throws Exception {
-
-    executeStatement(
-        "CREATE STREAM pageviews_like_p5"
-        + " WITH (kafka_topic='pageviews_enriched_r0', value_format='DELIMITED')"
-        + " AS SELECT * FROM %s"
-        + " WHERE pageId LIKE '%%_5';",
-        PAGE_VIEW_STREAM);
-
-    final TransientQueryMetadata queryMetadata =
-        executeStatement("SELECT userid, pageid from pageviews_like_p5 EMIT CHANGES;");
-
-    final List<Object> columns = waitForFirstRow(queryMetadata);
-
-    assertThat(columns.get(1), is("PAGE_5"));
-  }
-
-  @Test
-  public void shouldRetainSelectedColumnsInPartitionBy() throws Exception {
-
-    executeStatement(
-        "CREATE STREAM pageviews_by_viewtime "
-        + "AS SELECT viewtime, pageid, userid "
-        + "from %s "
-        + "partition by viewtime;",
-        PAGE_VIEW_STREAM);
-
-    final TransientQueryMetadata queryMetadata = executeStatement(
-        "SELECT * from pageviews_by_viewtime EMIT CHANGES;");
-
-    final List<Object> columns = waitForFirstRow(queryMetadata);
-
-    assertThat(CONSUMED_COUNT.get(), greaterThan(0));
-    assertThat(PRODUCED_COUNT.get(), greaterThan(0));
-    assertThat(columns.get(1).toString(), startsWith("PAGE_"));
-    assertThat(columns.get(2).toString(), startsWith("USER_"));
   }
 
   @Test
@@ -408,12 +284,10 @@ public class EndToEndIntegrationTest {
         30_000,
         expectedRows + " rows were not available after 30 seconds");
 
-    final List<KeyValue<String, GenericRow>> rows = new ArrayList<>();
+    final List<GenericRow> rows = new ArrayList<>();
     rowQueue.drainTo(rows);
 
-    return rows.stream()
-        .map(kv -> kv.value)
-        .collect(Collectors.toList());
+    return rows;
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {

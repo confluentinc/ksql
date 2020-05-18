@@ -83,7 +83,6 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
@@ -178,7 +177,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
@@ -659,19 +657,6 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result.getMessage().toLowerCase(),
         is("incompatible data source type is table, but statement was drop stream"));
-  }
-
-  @Test
-  public void shouldFailCreateTableWithInferenceWithUnknownKey() {
-    // When:
-    final KsqlErrorMessage response = makeFailingRequest(
-        "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
-            + "VALUE_FORMAT = 'avro', KEY = 'unknownField');",
-        BAD_REQUEST.code());
-
-    // Then:
-    assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
-    assertThat(response.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
   }
 
   @Test
@@ -2012,7 +1997,7 @@ public class KsqlResourceTest {
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
             QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(KafkaStreams.State.valueOf(md.getState()), 1)), KsqlConstants.KsqlQueryType.PERSISTENT)
+                Collections.singletonMap(md.getState(), 1)), KsqlConstants.KsqlQueryType.PERSISTENT)
     ).collect(Collectors.toList());
   }
 
@@ -2211,7 +2196,6 @@ public class KsqlResourceTest {
               SourceName.of(sourceName),
               schema,
               SerdeOption.none(),
-              KeyField.none(),
               Optional.empty(),
               false,
               ksqlTopic
@@ -2224,7 +2208,6 @@ public class KsqlResourceTest {
               SourceName.of(sourceName),
               schema,
               SerdeOption.none(),
-              KeyField.none(),
               Optional.empty(),
               false,
               ksqlTopic

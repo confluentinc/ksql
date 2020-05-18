@@ -15,12 +15,20 @@
 
 package io.confluent.ksql.function.udaf.latest;
 
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.SEQ_FIELD;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_BOOLEAN;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_DOUBLE;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_INTEGER;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_LONG;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_STRING;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.VAL_FIELD;
+import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.compareStructs;
+
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
 @UdafDescription(
@@ -34,34 +42,6 @@ public final class LatestByOffset {
 
   private LatestByOffset() {
   }
-
-  static final String SEQ_FIELD = "SEQ";
-  static final String VAL_FIELD = "VAL";
-
-  public static final Schema STRUCT_INTEGER = SchemaBuilder.struct().optional()
-      .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
-      .field(VAL_FIELD, Schema.OPTIONAL_INT32_SCHEMA)
-      .build();
-
-  public static final Schema STRUCT_LONG = SchemaBuilder.struct().optional()
-      .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
-      .field(VAL_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
-      .build();
-
-  public static final Schema STRUCT_DOUBLE = SchemaBuilder.struct().optional()
-      .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
-      .field(VAL_FIELD, Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .build();
-
-  public static final Schema STRUCT_BOOLEAN = SchemaBuilder.struct().optional()
-      .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
-      .field(VAL_FIELD, Schema.OPTIONAL_BOOLEAN_SCHEMA)
-      .build();
-
-  public static final Schema STRUCT_STRING = SchemaBuilder.struct().optional()
-      .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
-      .field(VAL_FIELD, Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
 
   static AtomicLong sequence = new AtomicLong();
 
@@ -104,20 +84,6 @@ public final class LatestByOffset {
 
   private static long generateSequence() {
     return sequence.getAndIncrement();
-  }
-
-  private static int compareStructs(final Struct struct1, final Struct struct2) {
-    // Deal with overflow - we assume if one is positive and the other negative then the sequence
-    // has overflowed - in which case the latest is the one with the smallest sequence
-    final long sequence1 = struct1.getInt64(SEQ_FIELD);
-    final long sequence2 = struct2.getInt64(SEQ_FIELD);
-    if (sequence1 < 0 && sequence2 >= 0) {
-      return 1;
-    } else if (sequence2 < 0 && sequence1 >= 0) {
-      return -1;
-    } else {
-      return Long.compare(sequence1, sequence2);
-    }
   }
 
   @UdafFactory(description = "Latest by offset")

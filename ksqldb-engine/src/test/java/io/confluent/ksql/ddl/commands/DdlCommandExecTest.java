@@ -1,6 +1,5 @@
 package io.confluent.ksql.ddl.commands;
 
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -73,7 +72,6 @@ public class DdlCommandExecTest {
 
   @Before
   public void setup() {
-    //when(metaStore.getSource(STREAM_NAME)).thenReturn(source);
     when(source.getName()).thenReturn(STREAM_NAME);
     when(source.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(source.getKafkaTopicName()).thenReturn(TOPIC_NAME);
@@ -83,21 +81,9 @@ public class DdlCommandExecTest {
   }
 
   @Test
-  public void shouldAddStreamWithKeyField() {
-    // Given:
-    givenCreateStreamWithKey(Optional.of("F1"));
-
-    // When:
-    cmdExec.execute(SQL_TEXT, createStream, false);
-
-    // Then:
-    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName("F1"));
-  }
-
-  @Test
   public void shouldAddStreamWithCorrectSql() {
     // Given:
-    givenCreateStreamWithKey(Optional.of("F1"));
+    givenCreateStream();
 
     // When:
     cmdExec.execute(SQL_TEXT, createStream, false);
@@ -109,7 +95,7 @@ public class DdlCommandExecTest {
   @Test
   public void shouldAddSinkStream() {
     // Given:
-    givenCreateStreamWithKey(Optional.empty());
+    givenCreateStream();
 
     // When:
     cmdExec.execute(SQL_TEXT, createStream, true);
@@ -119,21 +105,9 @@ public class DdlCommandExecTest {
   }
 
   @Test
-  public void shouldAddStreamWithNoKeyField() {
-    // Given:
-    givenCreateStreamWithKey(Optional.empty());
-
-    // When:
-    cmdExec.execute(SQL_TEXT, createStream, false);
-
-    // Then:
-    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
-  }
-
-  @Test
   public void shouldAddStreamWithCorrectKsqlTopic() {
     // Given:
-    givenCreateStreamWithKey(Optional.empty());
+    givenCreateStream();
 
     // When:
     cmdExec.execute(SQL_TEXT, createStream, false);
@@ -161,30 +135,6 @@ public class DdlCommandExecTest {
   }
 
   @Test
-  public void shouldAddTableWithKeyField() {
-    // Given:
-    givenCreateTableWithKey(Optional.of("F1"));
-
-    // When:
-    cmdExec.execute(SQL_TEXT, createTable, false);
-
-    // Then:
-    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName("F1"));
-  }
-
-  @Test
-  public void shouldAddTableWithNoKeyField() {
-    // Given:
-    givenCreateTableWithKey(Optional.empty());
-
-    // When:
-    cmdExec.execute(SQL_TEXT, createTable, false);
-
-    // Then:
-    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName(Optional.empty()));
-  }
-
-  @Test
   public void shouldAddTableWithCorrectWindowInfo() {
     // Given:
     givenCreateWindowedTable();
@@ -202,7 +152,7 @@ public class DdlCommandExecTest {
   @Test
   public void shouldAddTableWithCorrectSql() {
     // Given:
-    givenCreateTableWithKey(Optional.empty());
+    givenCreateTable();
 
     // When:
     cmdExec.execute(SQL_TEXT, createTable, false);
@@ -214,7 +164,7 @@ public class DdlCommandExecTest {
   @Test
   public void shouldAddTableWithCorrectTopic() {
     // Given:
-    givenCreateTableWithKey(Optional.empty());
+    givenCreateTable();
 
     // When:
     cmdExec.execute(SQL_TEXT, createTable, false);
@@ -229,7 +179,7 @@ public class DdlCommandExecTest {
   @Test
   public void shouldAddSinkTable() {
     // Given:
-    givenCreateTableWithKey(Optional.empty());
+    givenCreateTable();
 
     // When:
     cmdExec.execute(SQL_TEXT, createTable, true);
@@ -299,11 +249,10 @@ public class DdlCommandExecTest {
     dropSource = new DropSourceCommand(name);
   }
 
-  private void givenCreateStreamWithKey(final Optional<String> keyField) {
+  private void givenCreateStream() {
     createStream = new CreateStreamCommand(
         STREAM_NAME,
         SCHEMA,
-        keyField.map(ColumnName::of),
         Optional.of(timestampColumn),
         "topic",
         io.confluent.ksql.execution.plan.Formats.of(
@@ -318,7 +267,6 @@ public class DdlCommandExecTest {
     createStream = new CreateStreamCommand(
         STREAM_NAME,
         SCHEMA,
-        Optional.empty(),
         Optional.of(timestampColumn),
         "topic",
         io.confluent.ksql.execution.plan.Formats.of(
@@ -333,7 +281,6 @@ public class DdlCommandExecTest {
     createTable = new CreateTableCommand(
         TABLE_NAME,
         SCHEMA,
-        Optional.empty(),
         Optional.of(timestampColumn),
         TOPIC_NAME,
         io.confluent.ksql.execution.plan.Formats.of(
@@ -345,11 +292,10 @@ public class DdlCommandExecTest {
     );
   }
 
-  private void givenCreateTableWithKey(final Optional<String> keyField) {
+  private void givenCreateTable() {
     createTable = new CreateTableCommand(
         TABLE_NAME,
         SCHEMA,
-        keyField.map(ColumnName::of),
         Optional.of(timestampColumn),
         TOPIC_NAME,
         io.confluent.ksql.execution.plan.Formats.of(

@@ -30,7 +30,6 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,12 +86,13 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     @Override
     public Collection<StreamedRow> poll() {
-      final List<KeyValue<String, GenericRow>> rows = Lists.newLinkedList();
+      final List<GenericRow> rows = Lists.newLinkedList();
       queryMetadata.getRowQueue().drainTo(rows);
       if (rows.isEmpty()) {
         return null;
       } else {
-        return rows.stream().map(row -> StreamedRow.row(row.value))
+        return rows.stream()
+            .map(StreamedRow::row)
             .collect(Collectors.toCollection(Lists::newLinkedList));
       }
     }

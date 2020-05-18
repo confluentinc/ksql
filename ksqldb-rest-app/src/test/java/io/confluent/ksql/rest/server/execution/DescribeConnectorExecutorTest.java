@@ -33,7 +33,6 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -139,7 +138,6 @@ public class DescribeConnectorExecutorTest {
             .valueColumn(ColumnName.of("foo"), SqlPrimitiveType.of( SqlBaseType.STRING))
             .build());
     when(source.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
-    when(source.getKeyField()).thenReturn(KeyField.none());
     when(source.getName()).thenReturn(SourceName.of("source"));
     when(connectClient.status(CONNECTOR_NAME)).thenReturn(ConnectResponse.success(STATUS, HttpStatus.SC_OK));
     when(connectClient.describe("connector")).thenReturn(ConnectResponse.success(INFO, HttpStatus.SC_OK));

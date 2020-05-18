@@ -20,7 +20,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
@@ -45,11 +44,6 @@ public class FilterNode extends PlanNode {
 
   public Expression getPredicate() {
     return predicate;
-  }
-
-  @Override
-  public KeyField getKeyField() {
-    return source.getKeyField();
   }
 
   @Override

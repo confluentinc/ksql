@@ -1,24 +1,21 @@
 CREATE STREAM test (
-       id STRING,
+       id STRING KEY,
        lookup1 STRING,
        lookup2 STRING)
   WITH (VALUE_FORMAT='AVRO',
-       KAFKA_TOPIC = 'test',
-       KEY = 'id');
+       KAFKA_TOPIC = 'test');
 
 CREATE TABLE lookup1 (
-       id STRING,
+       id STRING PRIMARY KEY,
        value STRING)
   WITH (VALUE_FORMAT='AVRO',
-       KAFKA_TOPIC = 'lookup1',
-       KEY = 'id');
+       KAFKA_TOPIC = 'lookup1');
 
 CREATE TABLE lookup2 (
-       id STRING,
+       id STRING PRIMARY KEY,
        value STRING)
   WITH (VALUE_FORMAT='AVRO',
-       KAFKA_TOPIC = 'lookup2',
-       KEY = 'id');
+       KAFKA_TOPIC = 'lookup2');
 
 CREATE STREAM test_lookup1_output
     AS

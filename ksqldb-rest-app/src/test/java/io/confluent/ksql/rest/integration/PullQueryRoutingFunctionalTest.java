@@ -98,9 +98,9 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
-  private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("localhost", 8088);
-  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("localhost", 8089);
-  private static final KsqlHostInfoEntity host2 = new KsqlHostInfoEntity("localhost", 8087);
+  private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("localhost", 8188);
+  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("localhost", 8189);
+  private static final KsqlHostInfoEntity host2 = new KsqlHostInfoEntity("localhost", 8187);
   private static final String USER_TOPIC = "user_topic";
   private static final String USERS_STREAM = "users";
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
@@ -148,7 +148,8 @@ public class PullQueryRoutingFunctionalTest {
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
       .withProperties(COMMON_CONFIG)
       .build();
 
@@ -158,7 +159,8 @@ public class PullQueryRoutingFunctionalTest {
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
       .withProperties(COMMON_CONFIG)
       .build();
 
@@ -168,7 +170,8 @@ public class PullQueryRoutingFunctionalTest {
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8087")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8087")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8187")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8187")
       .withProperties(COMMON_CONFIG)
       .build();
 
@@ -207,7 +210,6 @@ public class PullQueryRoutingFunctionalTest {
             + " (" + USER_PROVIDER.ksqlSchemaString(false) + ")"
             + " WITH ("
             + "   kafka_topic='" + USER_TOPIC + "', "
-            + "   key='" + USER_PROVIDER.key() + "', "
             + "   value_format='JSON');"
     );
     //Create table

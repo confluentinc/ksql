@@ -32,7 +32,6 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
       final SourceName datasourceName,
       final LogicalSchema schema,
       final Set<SerdeOption> serdeOptions,
-      final KeyField keyField,
       final Optional<TimestampColumn> timestampExtractionPolicy,
       final boolean isKsqlSink,
       final KsqlTopic ksqlTopic
@@ -42,7 +41,6 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         datasourceName,
         schema,
         serdeOptions,
-        keyField,
         timestampExtractionPolicy,
         DataSourceType.KTABLE,
         isKsqlSink,

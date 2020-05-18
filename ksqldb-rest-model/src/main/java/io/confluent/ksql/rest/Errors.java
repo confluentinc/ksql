@@ -40,13 +40,19 @@ public final class Errors {
   public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.code()) + 1;
   private static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.code()) + 2;
 
+  public static final int ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED =
+      toErrorCode(BAD_REQUEST.code()) + 3;
+
+  public static final int ERROR_CODE_HTTP2_ONLY = toErrorCode(BAD_REQUEST.code()) + 4;
+  public static final int ERROR_CODE_INTERNAL_ONLY = toErrorCode(BAD_REQUEST.code()) + 5;
+
   public static final int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.code());
 
   public static final int ERROR_CODE_FORBIDDEN = toErrorCode(FORBIDDEN.code());
   public static final int ERROR_CODE_FORBIDDEN_KAFKA_ACCESS =
       toErrorCode(FORBIDDEN.code()) + 1;
 
-  public static final int ERROR_CODE_SCHEMA_REGISTRY_UNCOFIGURED =
+  public static final int ERROR_CODE_SCHEMA_REGISTRY_UNCONFIGURED =
       toErrorCode(PRECONDITION_REQUIRED.code()) + 1;
 
   public static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.code());
@@ -62,7 +68,7 @@ public final class Errors {
 
   public static final int ERROR_CODE_SERVER_ERROR =
       toErrorCode(INTERNAL_SERVER_ERROR.code());
-
+  
   private final ErrorMessages errorMessages;
 
   public static int toStatusCode(final int errorCode) {
@@ -81,13 +87,6 @@ public final class Errors {
         .build();
   }
 
-  public static EndpointResponse accessDenied(final String msg) {
-    return EndpointResponse.create()
-        .status(FORBIDDEN.code())
-        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN, msg))
-        .build();
-  }
-
   private EndpointResponse constructAccessDeniedFromKafkaResponse(final String errorMessage) {
     return EndpointResponse.create()
         .status(FORBIDDEN.code())
@@ -98,7 +97,7 @@ public final class Errors {
   private EndpointResponse constructSchemaRegistryNotConfiguredResponse(final String errorMessage) {
     return EndpointResponse.create()
         .status(PRECONDITION_REQUIRED.code())
-        .entity(new KsqlErrorMessage(ERROR_CODE_SCHEMA_REGISTRY_UNCOFIGURED, errorMessage))
+        .entity(new KsqlErrorMessage(ERROR_CODE_SCHEMA_REGISTRY_UNCONFIGURED, errorMessage))
         .build();
   }
 

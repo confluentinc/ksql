@@ -249,7 +249,7 @@ public class KsqlEngineTest {
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-        "create stream bar as select ROWKEY, itemid, orderid from orders;",
+        "create stream bar as select ordertime, itemid, orderid from orders;",
         KSQL_CONFIG,
         Collections.emptyMap()
     );
@@ -299,7 +299,7 @@ public class KsqlEngineTest {
     // Then:
     assertThat(e, rawMessage(containsString("Incompatible schema between results and sink.")));
     assertThat(e, rawMessage(containsString("Result schema is `ORDERID` BIGINT KEY, ")));
-    assertThat(e, rawMessage(containsString("Sink schema is `ROWKEY` BIGINT KEY, ")));
+    assertThat(e, rawMessage(containsString("Sink schema is `ORDERTIME` BIGINT KEY, ")));
 
     assertThat(e, statementText(is(
         "insert into bar select * from orders partition by orderid;")));
@@ -322,7 +322,7 @@ public class KsqlEngineTest {
         () -> execute(
             serviceContext,
             ksqlEngine,
-            "insert into bar select rowkey, itemid from orders;",
+            "insert into bar select orderTime, itemid from orders;",
             KSQL_CONFIG,
             emptyMap()
         )
@@ -333,7 +333,7 @@ public class KsqlEngineTest {
         containsString(
             "Incompatible schema between results and sink.")));
     assertThat(e, statementText(
-        is("insert into bar select rowkey, itemid from orders;")));
+        is("insert into bar select orderTime, itemid from orders;")));
   }
 
   @Test
@@ -619,7 +619,6 @@ public class KsqlEngineTest {
             "\"name\":\"KsqlDataSourceSchema\"," +
             "\"namespace\":\"io.confluent.ksql.avro_schemas\"," +
             "\"fields\":[" +
-            "{\"name\":\"COL0\",\"type\":[\"null\",\"long\"],\"default\":null}," +
             "{\"name\":\"COL1\",\"type\":[\"null\",\"string\"],\"default\":null}," +
             "{\"name\":\"COL2\",\"type\":[\"null\",\"string\"],\"default\":null}," +
             "{\"name\":\"COL3\",\"type\":[\"null\",\"double\"],\"default\":null}," +
@@ -856,8 +855,8 @@ public class KsqlEngineTest {
         + "CREATE STREAM S0 (a INT, b VARCHAR) "
         + "      WITH (kafka_topic='s0_topic', value_format='DELIMITED');\n"
         + "\n"
-        + "CREATE TABLE T1 (ROWKEY BIGINT PRIMARY KEY, f0 BIGINT, f1 DOUBLE) "
-        + "     WITH (kafka_topic='t1_topic', value_format='JSON', key = 'f0');\n"
+        + "CREATE TABLE T1 (f0 BIGINT PRIMARY KEY, f1 DOUBLE) "
+        + "     WITH (kafka_topic='t1_topic', value_format='JSON');\n"
         + "\n"
         + "CREATE STREAM S1 AS SELECT * FROM S0;\n"
         + "\n"

@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.query.BlockingRowQueue;
 import java.util.List;
-import java.util.OptionalInt;
 
 /**
  * Handle to a push query running in the engine
@@ -27,9 +27,9 @@ public interface PushQueryHandle {
 
   List<String> getColumnTypes();
 
-  OptionalInt getLimit();
-
   void start();
 
   void stop();
+
+  BlockingRowQueue getQueue();
 }

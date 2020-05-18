@@ -96,7 +96,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.codehaus.plexus.util.StringUtils;
@@ -358,19 +357,18 @@ public class StreamedQueryResourceTest {
 
     final String queryString = "SELECT * FROM test_stream;";
 
-    final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
+    final SynchronousQueue<GenericRow> rowQueue = new SynchronousQueue<>();
 
     final LinkedList<GenericRow> writtenRows = new LinkedList<>();
 
     final Thread rowQueuePopulatorThread = new Thread(() -> {
       try {
         for (int i = 0; i != NUM_ROWS; i++) {
-          final String key = Integer.toString(i);
           final GenericRow value = genericRow(i);
           synchronized (writtenRows) {
             writtenRows.add(value);
           }
-          rowQueue.put(new KeyValue<>(key, value));
+          rowQueue.put(value);
         }
       } catch (final InterruptedException exception) {
         // This should happen during the test, so it's fine
@@ -643,10 +641,10 @@ public class StreamedQueryResourceTest {
 
   private static class TestRowQueue implements BlockingRowQueue {
 
-    private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue;
+    private final SynchronousQueue<GenericRow> rowQueue;
 
     TestRowQueue(
-        final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue
+        final SynchronousQueue<GenericRow> rowQueue
     ) {
       this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
     }
@@ -657,19 +655,34 @@ public class StreamedQueryResourceTest {
     }
 
     @Override
-    public KeyValue<String, GenericRow> poll(final long timeout, final TimeUnit unit)
+    public void setQueuedCallback(final Runnable callback) {
+
+    }
+
+    @Override
+    public GenericRow poll(final long timeout, final TimeUnit unit)
         throws InterruptedException {
       return rowQueue.poll(timeout, unit);
     }
 
     @Override
-    public void drainTo(final Collection<? super KeyValue<String, GenericRow>> collection) {
+    public GenericRow poll() {
+      return rowQueue.poll();
+    }
+
+    @Override
+    public void drainTo(final Collection<? super GenericRow> collection) {
       rowQueue.drainTo(collection);
     }
 
     @Override
     public int size() {
       return rowQueue.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return rowQueue.isEmpty();
     }
 
     @Override

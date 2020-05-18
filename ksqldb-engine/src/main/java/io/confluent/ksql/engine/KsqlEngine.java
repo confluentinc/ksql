@@ -16,7 +16,6 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -52,8 +51,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -235,24 +234,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public QueryMetadata executeQuery(
-      final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> statement,
-      final Consumer<GenericRow> rowConsumer
-  ) {
-    final QueryMetadata query = EngineExecutor
-        .create(
-            primaryContext,
-            serviceContext,
-            statement.getConfig(),
-            statement.getConfigOverrides()
-        )
-        .executeQuery(statement, rowConsumer);
-    registerQuery(query);
-    return query;
-  }
-
-  @Override
   public void close() {
     allLiveQueries.forEach(QueryMetadata::stop);
     engineMetrics.close();
@@ -279,7 +260,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private void unregisterQuery(final ServiceContext serviceContext, final QueryMetadata query) {
     final String applicationId = query.getQueryApplicationId();
 
-    if (!query.getState().equalsIgnoreCase("NOT_RUNNING")) {
+    if (!query.getState().equals(State.NOT_RUNNING)) {
       log.warn(
           "Unregistering query that has not terminated. "
               + "This may happen when streams threads are hung. State: " + query.getState()

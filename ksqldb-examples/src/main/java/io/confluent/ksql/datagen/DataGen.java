@@ -42,6 +42,7 @@ import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
+@SuppressWarnings("UnstableApiUsage")
 public final class DataGen {
 
   private DataGen() {
@@ -321,14 +322,6 @@ public final class DataGen {
         public String getKeyName() {
           return keyName;
         }
-
-        public Format getKeyFormat() {
-          return FormatFactory.KAFKA;
-        }
-
-        public Format getValueFormat() {
-          return FormatFactory.JSON;
-        }
       }
 
       Arguments build() {
@@ -353,8 +346,8 @@ public final class DataGen {
 
         if (quickstart != null) {
           schemaFile = Optional.ofNullable(schemaFile).orElse(quickstart.getSchemaFile());
-          keyFormat = Optional.ofNullable(keyFormat).orElse(quickstart.getKeyFormat());
-          valueFormat = Optional.ofNullable(valueFormat).orElse(quickstart.getValueFormat());
+          keyFormat = Optional.ofNullable(keyFormat).orElse(FormatFactory.KAFKA);
+          valueFormat = Optional.ofNullable(valueFormat).orElse(FormatFactory.JSON);
           topicName = Optional.ofNullable(topicName).orElse(quickstart.getTopicName(valueFormat));
           keyName = Optional.ofNullable(keyName).orElse(quickstart.getKeyName());
         }
@@ -386,19 +379,17 @@ public final class DataGen {
         );
       }
 
-      Builder parseArgs(final String[] args) throws IOException {
+      Builder parseArgs(final String[] args) {
         for (final String arg : args) {
           parseArg(arg);
         }
         return this;
       }
 
-      // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-      private Builder parseArg(final String arg) throws IOException {
-        // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+      private void parseArg(final String arg) {
         if ("help".equals(arg) || "--help".equals(arg)) {
           help = true;
-          return this;
+          return;
         }
 
         final String[] splitOnEquals = arg.split("=");
@@ -427,7 +418,6 @@ public final class DataGen {
         }
 
         setArg(argName, argValue);
-        return this;
       }
 
       private void setArg(final String argName, final String argVal) {

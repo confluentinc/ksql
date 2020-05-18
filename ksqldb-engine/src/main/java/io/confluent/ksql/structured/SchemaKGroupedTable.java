@@ -26,7 +26,6 @@ import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -44,13 +43,13 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
 
 public class SchemaKGroupedTable extends SchemaKGroupedStream {
+
   private final ExecutionStep<KGroupedTableHolder> sourceTableStep;
 
   SchemaKGroupedTable(
       final ExecutionStep<KGroupedTableHolder> sourceTableStep,
       final LogicalSchema schema,
       final KeyFormat keyFormat,
-      final KeyField keyField,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
@@ -58,7 +57,6 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         null,
         schema,
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );
@@ -110,7 +108,6 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         step,
         resolveSchema(step),
         keyFormat,
-        keyField,
         ksqlConfig,
         functionRegistry
     );

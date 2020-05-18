@@ -180,67 +180,6 @@ public final class QueryExecutor {
     );
   }
 
-  public QueryMetadata buildTransientQuery(
-      final String statementText,
-      final QueryId queryId,
-      final Set<SourceName> sources,
-      final ExecutionStep<?> physicalPlan,
-      final String planSummary,
-      final LogicalSchema schema,
-      final Consumer<GenericRow> rowConsumer
-  ) {
-    final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
-    final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
-    final Object buildResult = physicalPlan.build(planBuilder);
-    final KStream<?, GenericRow> kstream;
-    if (buildResult instanceof KStreamHolder<?>) {
-      kstream = ((KStreamHolder<?>) buildResult).getStream();
-    } else if (buildResult instanceof KTableHolder<?>) {
-      final KTable<?, GenericRow> ktable = ((KTableHolder<?>) buildResult).getTable();
-      kstream = ktable.toStream();
-    } else {
-      throw new IllegalStateException("Unexpected type built from exection plan");
-    }
-
-    kstream.foreach((k, row) -> {
-      if (row == null) {
-        return;
-      }
-      rowConsumer.accept(row);
-    });
-
-    final String applicationId = addTimeSuffix(getQueryApplicationId(
-        getServiceId(),
-        ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG),
-        queryId
-    ));
-
-    final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
-
-    final BuildResult built =
-        kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
-
-    return new QueryMetadata(
-        statementText,
-        built.kafkaStreams,
-        schema,
-        sources,
-        planSummary,
-        applicationId,
-        built.topology,
-        streamsProperties,
-        overrides,
-        queryCloseCallback,
-        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
-        new QueryId(applicationId)
-    ) {
-      @Override
-      public void stop() {
-        close();
-      }
-    };
-  }
-
   private static Optional<MaterializationInfo> getMaterializationInfo(final Object result) {
     if (result instanceof KTableHolder) {
       return ((KTableHolder<?>) result).getMaterializationBuilder().map(Builder::build);
@@ -319,7 +258,9 @@ public final class QueryExecutor {
     } else {
       throw new IllegalStateException("Unexpected type built from exection plan");
     }
-    return new TransientQueryQueue(kstream, limit);
+    final TransientQueryQueue queue = new TransientQueryQueue(limit);
+    kstream.foreach((k, v) -> queue.acceptRow(v));
+    return queue;
   }
 
   private KsqlQueryBuilder queryBuilder(final QueryId queryId) {

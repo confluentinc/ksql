@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
@@ -31,6 +32,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -59,7 +61,8 @@ public abstract class QueryMetadata {
   private boolean everStarted = false;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  public QueryMetadata(
+  @VisibleForTesting
+  QueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,
@@ -124,8 +127,8 @@ public abstract class QueryMetadata {
     kafkaStreams.setUncaughtExceptionHandler(handler);
   }
 
-  public String getState() {
-    return kafkaStreams.state().toString();
+  public State getState() {
+    return kafkaStreams.state();
   }
 
   public String getExecutionPlan() {

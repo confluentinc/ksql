@@ -91,11 +91,6 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
   }
 
-  public Optional<ColumnName> getKeyField() {
-    return Optional.ofNullable(props.getString(CreateConfigs.KEY_NAME_PROPERTY))
-        .map(ColumnReferenceParser::parse);
-  }
-
   public Optional<WindowType> getWindowType() {
     try {
       return Optional.ofNullable(props.getString(CreateConfigs.WINDOW_TYPE_PROPERTY))

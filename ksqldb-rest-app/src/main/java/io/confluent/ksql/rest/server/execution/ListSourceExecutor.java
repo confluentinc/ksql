@@ -51,7 +51,6 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.streams.KafkaStreams;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ListSourceExecutor {
@@ -229,8 +228,7 @@ public final class ListSourceExecutor {
             ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
             q.getQueryId(),
             QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(
-                    KafkaStreams.State.valueOf(q.getState()), 1)),
+                Collections.singletonMap(q.getState(), 1)),
             KsqlConstants.KsqlQueryType.PERSISTENT)).collect(Collectors.toList());
   }
 

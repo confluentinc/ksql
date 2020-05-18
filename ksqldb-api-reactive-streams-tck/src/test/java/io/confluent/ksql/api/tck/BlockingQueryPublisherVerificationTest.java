@@ -16,8 +16,10 @@
 package io.confluent.ksql.api.tck;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.endpoints.BlockingQueryPublisher;
+import io.confluent.ksql.api.impl.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.PushQueryHandle;
+import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.TransientQueryQueue;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
@@ -45,10 +47,11 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
   public Publisher<GenericRow> createPublisher(long elements) {
     final Context context = vertx.getOrCreateContext();
     BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
-    publisher.setQueryHandle(new TestQueryHandle(elements));
+    final TestQueryHandle queryHandle = new TestQueryHandle(elements);
+    publisher.setQueryHandle(queryHandle);
     if (elements < Integer.MAX_VALUE) {
       for (long l = 0; l < elements; l++) {
-        publisher.accept(generateRow(l));
+        queryHandle.queue.acceptRow(generateRow(l));
       }
     }
     return publisher;
@@ -59,7 +62,7 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
     return null;
   }
 
-  private GenericRow generateRow(long num) {
+  private static GenericRow generateRow(long num) {
     List<Object> l = new ArrayList<>();
     l.add("foo" + num);
     l.add(num);
@@ -69,10 +72,14 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
 
   private static class TestQueryHandle implements PushQueryHandle {
 
-    private final long elements;
+    private final TransientQueryQueue queue;
 
     public TestQueryHandle(final long elements) {
-      this.elements = elements;
+      final OptionalInt limit = elements == Long.MAX_VALUE
+          ? OptionalInt.empty()
+          : OptionalInt.of((int) elements);
+
+      this.queue = new TransientQueryQueue(limit);
     }
 
     @Override
@@ -86,19 +93,16 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
     }
 
     @Override
-    public OptionalInt getLimit() {
-      return elements != Long.MAX_VALUE ? OptionalInt.of((int) elements) : OptionalInt.empty();
-    }
-
-    @Override
     public void start() {
     }
 
     @Override
     public void stop() {
+    }
 
+    @Override
+    public BlockingRowQueue getQueue() {
+      return queue;
     }
   }
-
-
 }

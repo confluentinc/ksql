@@ -28,7 +28,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -61,7 +60,6 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
@@ -150,7 +148,7 @@ public class AggregateNodeTest {
     final ValueTransformerWithKey preAggSelectMapper = valueTransformers.get(1).get();
     preAggSelectMapper.init(ctx);
     final GenericRow result = (GenericRow) preAggSelectMapper
-        .transform(null, genericRow(0L, "1", "2", 3.0D, "rowtime", "rowkey"));
+        .transform(null, genericRow("1", "2", 3.0D, null, null, "rowtime", 0L));
     assertThat("should select col0, col1, col2, col3", result.values(),
         contains(0L, "1", "2", 3.0));
   }
@@ -303,26 +301,6 @@ public class AggregateNodeTest {
         "queryid.Aggregate.GroupBy",
         "queryid.Aggregate.Aggregate.Materialize"
     ));
-  }
-
-  @Test
-  public void shouldGroupByFunction() {
-    // Given:
-    final SchemaKStream<?> stream = buildQuery("SELECT UCASE(col1), sum(col3), count(col3) FROM test1 "
-        + "GROUP BY UCASE(col1) EMIT CHANGES;");
-
-    // Then:
-    assertThat(stream.getKeyField().ref(), is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldGroupByArithmetic() {
-    // Given:
-    final SchemaKStream<?> stream = buildQuery("SELECT col0 + 10, sum(col3), count(col3) FROM test1 "
-        + "GROUP BY col0 + 10 EMIT CHANGES;");
-
-    // Then:
-    assertThat(stream.getKeyField().ref(), is(Optional.empty()));
   }
 
   private SchemaKStream buildQuery(final String queryString) {

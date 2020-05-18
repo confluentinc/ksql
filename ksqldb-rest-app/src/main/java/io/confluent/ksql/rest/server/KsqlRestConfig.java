@@ -129,13 +129,25 @@ public class KsqlRestConfig extends AbstractConfig {
 
   public static final String ADVERTISED_LISTENER_CONFIG =
       KSQL_CONFIG_PREFIX + "advertised.listener";
+  public static final String INTERNAL_LISTENER_CONFIG =
+      KSQL_CONFIG_PREFIX + "internal.listener";
   private static final String ADVERTISED_LISTENER_DOC =
-      "The listener used for communication between KSQL nodes in the cluster, if different to the '"
-          + LISTENERS_CONFIG + "' config property. "
-          + "In IaaS environments, this may need to be different from the interface to which "
-          + "the server binds. If this is not set, the first value from listeners will be used. "
-          + "Unlike listeners, it is not valid to use the 0.0.0.0 (IPv4) or [::] (IPv6) "
-          + "wildcard addresses.";
+      "The listener this node will share with other ksqlDB nodes in the cluster for internal "
+          + "communication. In IaaS environments, this may need to be different from the interface "
+          + "to which the server binds. "
+          + "If this is not set, the advertised listener will either default to "
+          +  INTERNAL_LISTENER_CONFIG + ", if set, or else the first value from "
+          +  LISTENERS_CONFIG + " will be used. "
+          + "It is not valid to use the 0.0.0.0 (IPv4) or [::] (IPv6) wildcard addresses.";
+
+  private static final String INTERNAL_LISTENER_DOC =
+      "The listener used for inter-node communication, if different to the '"
+          + LISTENERS_CONFIG + "' config. "
+          + "The " + ADVERTISED_LISTENER_CONFIG + " config can be set to provide an "
+          + "externally routable name for this listener, if required. "
+          + "This listener can be used to bind a separate port or network interface for the "
+          + "internal endpoints, separate from the external client endpoints, and provide a "
+          + "layer of security at the network level.";
 
   static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG =
       "query.stream.disconnect.check";
@@ -359,6 +371,13 @@ public class KsqlRestConfig extends AbstractConfig {
             Importance.HIGH,
             ADVERTISED_LISTENER_DOC
         ).define(
+            INTERNAL_LISTENER_CONFIG,
+            Type.STRING,
+            null,
+            ConfigValidators.nullsAllowed(ConfigValidators.validUrl()),
+            Importance.HIGH,
+            INTERNAL_LISTENER_DOC
+        ).define(
             STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG,
             Type.LONG,
             1000L,
@@ -557,9 +576,13 @@ public class KsqlRestConfig extends AbstractConfig {
       final Function<URL, Integer> portResolver,
       final Logger logger
   ) {
-    return getString(ADVERTISED_LISTENER_CONFIG) == null
-        ? getInterNodeListenerFromFirstListener(portResolver, logger)
-        : getInterNodeListenerFromExplicitConfig(logger);
+    if (getString(ADVERTISED_LISTENER_CONFIG) == null) {
+      return getString(INTERNAL_LISTENER_CONFIG) == null
+          ? getInterNodeListenerFromFirstListener(portResolver, logger)
+          : getInterNodeListenerFromInternalListener(portResolver, logger);
+    } else {
+      return getInterNodeListenerFromExplicitConfig(logger);
+    }
   }
 
   private URL getInterNodeListenerFromFirstListener(
@@ -588,6 +611,37 @@ public class KsqlRestConfig extends AbstractConfig {
         listener,
         Optional.of(address),
         "first '" + LISTENERS_CONFIG + "'"
+    );
+
+    return listener;
+  }
+
+  private URL getInterNodeListenerFromInternalListener(
+      final Function<URL, Integer> portResolver,
+      final Logger logger
+  ) {
+    final String configValue = getString(INTERNAL_LISTENER_CONFIG);
+
+    final URL internalListener = parseUrl(configValue, INTERNAL_LISTENER_CONFIG);
+
+    final InetAddress address = parseInetAddress(internalListener.getHost())
+        .orElseThrow(() -> new ConfigException(
+            INTERNAL_LISTENER_CONFIG,
+            configValue,
+            "Could not resolve internal host"
+        ));
+
+    final URL listener = sanitizeInterNodeListener(
+        internalListener,
+        portResolver,
+        address.isAnyLocalAddress()
+    );
+
+    logInterNodeListener(
+        logger,
+        listener,
+        Optional.of(address),
+        "'" + INTERNAL_LISTENER_CONFIG + "'"
     );
 
     return listener;

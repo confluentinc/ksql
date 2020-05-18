@@ -19,13 +19,11 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -53,8 +51,7 @@ public final class MetaStoreFixture {
     final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
 
     final LogicalSchema test1Schema = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
@@ -73,7 +70,6 @@ public final class MetaStoreFixture {
         SourceName.of("TEST0"),
         test1Schema,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("COL0")),
         Optional.empty(),
         false, 
         ksqlTopic0
@@ -92,8 +88,6 @@ public final class MetaStoreFixture {
         SourceName.of("TEST1"),
         test1Schema,
         SerdeOption.none(),
-        KeyField.of(
-            ColumnName.of("COL0")),
         Optional.empty(),
         false,
         ksqlTopic1
@@ -102,8 +96,7 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStream1);
 
     final LogicalSchema test2Schema = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
@@ -120,8 +113,6 @@ public final class MetaStoreFixture {
         SourceName.of("TEST2"),
         test2Schema,
         SerdeOption.none(),
-        KeyField.of(
-            ColumnName.of("COL0")),
         Optional.empty(),
         false,
         ksqlTopic2
@@ -149,8 +140,7 @@ public final class MetaStoreFixture {
         .build();
 
     final LogicalSchema ordersSchema = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("ITEMINFO"), itemInfoSchema)
@@ -171,7 +161,6 @@ public final class MetaStoreFixture {
         SourceName.of("ORDERS"),
         ordersSchema,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("ORDERTIME")),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -180,8 +169,7 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStreamOrders);
 
     final LogicalSchema testTable3 = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
@@ -198,8 +186,6 @@ public final class MetaStoreFixture {
         SourceName.of("TEST3"),
         testTable3,
         SerdeOption.none(),
-        KeyField.of(
-            ColumnName.of("COL0")),
         Optional.empty(),
         false,
         ksqlTopic3
@@ -219,7 +205,7 @@ public final class MetaStoreFixture {
         .build();
 
     final LogicalSchema nestedArrayStructMapSchema = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("K"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(itemInfoSchema))
         .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(itemInfoSchema))
         .valueColumn(ColumnName.of("NESTED_ORDER_COL"), nestedOrdersSchema)
@@ -237,7 +223,6 @@ public final class MetaStoreFixture {
         SourceName.of("NESTED_STREAM"),
         nestedArrayStructMapSchema,
         SerdeOption.none(),
-        KeyField.none(),
         Optional.empty(),
         false,
         nestedArrayStructMapTopic
@@ -256,7 +241,6 @@ public final class MetaStoreFixture {
         SourceName.of("TEST4"),
         test1Schema,
         SerdeOption.none(),
-        KeyField.none(),
         Optional.empty(),
         false,
         ksqlTopic4
@@ -265,8 +249,7 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStream4);
 
     final LogicalSchema sensorReadingsSchema = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("ID"), SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("ID"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("SENSOR_NAME"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("ARR1"), SqlTypes.array(SqlTypes.BIGINT))
         .valueColumn(ColumnName.of("ARR2"), SqlTypes.array(SqlTypes.STRING))
@@ -283,7 +266,6 @@ public final class MetaStoreFixture {
         SourceName.of("SENSOR_READINGS"),
         sensorReadingsSchema,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("ID")),
         Optional.empty(),
         false,
         ksqlTopicSensorReadings

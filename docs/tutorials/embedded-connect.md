@@ -137,12 +137,12 @@ services:
 -------------------------
 
 The easiest way to download connectors for use in ksqlDB with embedded {{ site.kconnect }}
-is via the [Confluent Hub Client](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html)
-included in the `ksqlDB-server` Docker image.
+is via [Confluent Hub Client](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html).
 
-To download the JDBC connector, use the following command:
+To download the JDBC connector, use the following command, ensuring that the `confluent-hub-components` directory exists first:
+
 ```bash
-docker run -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:{{ site.cprelease }}
+confluent-hub install --component-dir confluent-hub-components --no-prompt confluentinc/kafka-connect-jdbc:{{ site.cprelease }}
 ```
 This command downloads the JDBC connector into the directory `./confluent-hub-components`.
 
@@ -249,15 +249,14 @@ columns.
 
 ```sql
 CREATE TABLE driverProfiles (
-  rowkey INTEGER KEY,
-  driver_id INTEGER,
+  driver_id INTEGER KEY,
   make STRING,
   model STRING,
   year INTEGER,
   license_plate STRING,
   rating DOUBLE
 )
-WITH (kafka_topic='jdbc_driver_profiles', value_format='json', key='driver_id');
+WITH (kafka_topic='jdbc_driver_profiles', value_format='json');
 ```
 
 Tables in ksqlDB support update semantics, where each message in the
@@ -283,21 +282,19 @@ continuous stream of location updates.
 
 ```sql
 CREATE STREAM driverLocations (
-  rowkey INTEGER KEY,
-  driver_id INTEGER,
+  driver_id INTEGER KEY,
   latitude DOUBLE,
   longitude DOUBLE,
   speed DOUBLE
 )
-WITH (kafka_topic='driver_locations', value_format='json', partitions=1, key='driver_id');
+WITH (kafka_topic='driver_locations', value_format='json', partitions=1);
 
 CREATE STREAM riderLocations (
-  rowkey INTEGER KEY,
-  driver_id INTEGER,
+  driver_id INTEGER KEY,
   latitude DOUBLE,
   longitude DOUBLE
 )
-WITH (kafka_topic='rider_locations', value_format='json', partitions=1, key='driver_id');
+WITH (kafka_topic='rider_locations', value_format='json', partitions=1);
 ```
 
 11. Enrich driverLocations stream by joining with PostgreSQL data
@@ -347,6 +344,7 @@ location.
 ```sql
 CREATE STREAM rendezvous AS
   SELECT
+    e.driver_id     AS driver_id,
     e.license_plate AS license_plate,
     e.make          AS make,
     e.model         AS model,

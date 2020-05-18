@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -120,11 +119,6 @@ public class PlanNodeTest {
         final Optional<SourceName> sourceName
     ) {
       super(id, nodeOutputType, schema, sourceName);
-    }
-
-    @Override
-    public KeyField getKeyField() {
-      return null;
     }
 
     @Override

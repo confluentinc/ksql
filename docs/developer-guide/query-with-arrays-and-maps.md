@@ -32,15 +32,14 @@ array and map fields are defined in the `interests ARRAY<STRING>` and
 
 ```sql
 CREATE TABLE users
-  (registertime BIGINT,
-   userid VARCHAR,
+  (userid VARCHAR PRIMARY KEY,
+   registertime BIGINT,
    gender VARCHAR,
    regionid VARCHAR,
    interests ARRAY<STRING>,
    contactinfo MAP<STRING,STRING>)
   WITH (KAFKA_TOPIC = 'users',
-        VALUE_FORMAT='JSON',
-        KEY = 'userid');
+        VALUE_FORMAT='JSON');
 ```
 
 Your output should resemble:

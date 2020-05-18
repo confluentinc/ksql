@@ -1349,7 +1349,6 @@
         {"topic": "OUTPUT", "key": 0, "value": {"NAME1": "a", "NAME2": "b"}, "timestamp": 10},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME1": null, "NAME2": "b"}, "timestamp": 20},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME1": null, "NAME2": null}, "timestamp": 30},
-        {"topic": "OUTPUT", "key": 0, "value": {"NAME1": null, "NAME2": null}, "timestamp": 40},
         {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 50}
       ]
     },
@@ -1888,6 +1887,22 @@
           }
         ]
       }
+    },
+    {
+      "name": "with where",
+      "statements": [
+        "CREATE STREAM impressions (user VARCHAR KEY, impression_id BIGINT, url VARCHAR) WITH (kafka_topic='impressions', value_format='JSON');",
+        "CREATE STREAM clicks (user VARCHAR KEY, url VARCHAR) WITH (kafka_topic='clicks', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT I.USER, IMPRESSION_ID, I.URL AS URL FROM impressions i JOIN clicks c WITHIN 1 minute ON i.user = c.user WHERE i.url = c.url;"
+      ],
+      "inputs": [
+        {"topic": "impressions", "key": "user_0", "value": {"impression_id": 24, "url": "urlA"}, "timestamp": 10},
+        {"topic": "clicks", "key": "user_0", "value": {"url": "urlX"}, "timestamp": 11},
+        {"topic": "clicks", "key": "user_0", "value": {"url": "urlA"}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "user_0", "value": {"IMPRESSION_ID": 24, "URL": "urlA"}, "timestamp":  12}
+      ]
     }
   ]
 }

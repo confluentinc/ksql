@@ -32,7 +32,6 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 /**
  * The context in which statements can be executed.
@@ -108,19 +107,11 @@ public interface KsqlExecutionContext {
 
   /**
    * Executes a query using the supplied service context.
+   * @return the query metadata
    */
   TransientQueryMetadata executeQuery(
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement
-  );
-
-  /**
-   * Executes a query using the supplied service context.
-   */
-  QueryMetadata executeQuery(
-      ServiceContext serviceContext,
-      ConfiguredStatement<Query> statement,
-      Consumer<GenericRow> rowConsumer
   );
 
   /**
@@ -147,7 +138,6 @@ public interface KsqlExecutionContext {
    * @return The execution result.
    */
   ExecuteResult execute(ServiceContext serviceContext, ConfiguredStatement<?> statement);
-
 
   /**
    * Holds the union of possible results from an {@link #execute} call.

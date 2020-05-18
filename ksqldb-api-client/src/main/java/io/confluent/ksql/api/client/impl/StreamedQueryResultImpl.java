@@ -15,16 +15,21 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.reactivestreams.Subscriber;
 
-class StreamedQueryResultImpl extends BufferedPublisher<Row> implements StreamedQueryResult {
+public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements StreamedQueryResult {
+
+  private static final Logger log = LoggerFactory.getLogger(StreamedQueryResultImpl.class);
 
   private final String queryId;
   private final List<String> columnNames;
@@ -43,7 +48,7 @@ class StreamedQueryResultImpl extends BufferedPublisher<Row> implements Streamed
     this.queryId = queryId;
     this.columnNames = columnNames;
     this.columnTypes = columnTypes;
-    this.pollableSubscriber = new PollableSubscriber(ctx, this::sendError);
+    this.pollableSubscriber = new PollableSubscriber(ctx, this::handleErrorWhilePolling);
   }
 
   @Override
@@ -78,9 +83,24 @@ class StreamedQueryResultImpl extends BufferedPublisher<Row> implements Streamed
   }
 
   @Override
-  public synchronized Row poll(final long timeout, final TimeUnit timeUnit) {
+  public Row poll(final long timeout, final TimeUnit timeUnit) {
+    return poll(timeout, timeUnit, null);
+  }
+
+  private synchronized Row poll(
+      final long timeout,
+      final TimeUnit timeUnit,
+      final Runnable callback
+  ) {
     if (subscribing) {
       throw new IllegalStateException("Cannot poll if subscriber has been set");
+    }
+    if (isFailed()) {
+      throw new IllegalStateException(
+          "Cannot poll on StreamedQueryResult that has failed. Check logs for failure reason.");
+    }
+    if (callback != null) {
+      callback.run();
     }
     if (!polling) {
       subscribe(pollableSubscriber);
@@ -95,6 +115,11 @@ class StreamedQueryResultImpl extends BufferedPublisher<Row> implements Streamed
     return super.isComplete();
   }
 
+  @Override
+  public boolean isFailed() {
+    return super.isFailed();
+  }
+
   public void handleError(final Exception e) {
     sendError(e);
   }
@@ -104,4 +129,19 @@ class StreamedQueryResultImpl extends BufferedPublisher<Row> implements Streamed
     pollableSubscriber.close();
   }
 
+  private void handleErrorWhilePolling(final Throwable t) {
+    log.error("Unexpected error while polling: " + t);
+  }
+
+  @VisibleForTesting
+  public static Row pollWithCallback(
+      final StreamedQueryResult queryResult,
+      final Runnable callback
+  ) {
+    if (!(queryResult instanceof StreamedQueryResultImpl)) {
+      throw new IllegalArgumentException("Can only poll with callback on StreamedQueryResultImpl");
+    }
+    final StreamedQueryResultImpl streamedQueryResult = (StreamedQueryResultImpl) queryResult;
+    return streamedQueryResult.poll(0, TimeUnit.MILLISECONDS, callback);
+  }
 }

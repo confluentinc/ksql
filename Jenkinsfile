@@ -1,8 +1,8 @@
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
-    ksql_db_version = "0.10.0"  // next version to be released
-    cp_version = "6.0.0-beta200415181825"  // must be a beta version from the packaging build
+    ksql_db_version = "0.9.0"  // next version to be released
+    cp_version = "6.0.0-beta200514175011"  // must be a beta version from the packaging build
     packaging_build_number = "1"
     default_git_revision = 'refs/heads/master'
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
@@ -95,8 +95,7 @@ def job = {
 
     if (params.PROMOTE_TO_PRODUCTION) {
         stage("Pulling Docker Images") {
-            withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
-                ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"]]) {
+            withCredentials([usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME')]) {
                 withDockerServer([uri: dockerHost()]) {
                     writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
                     sh '''
@@ -117,14 +116,14 @@ def job = {
         }
 
         stage("Tag and Push Images") {
-            withVaultEnv([["docker_hub/jenkins", "user", "DOCKER_USERNAME"],
-                ["docker_hub/jenkins", "password", "DOCKER_PASSWORD"]]) {
+            dockerHubCreds = usernamePassword(
+                credentialsId: 'Jenkins Docker Hub Account',
+                passwordVariable: 'DOCKER_PASSWORD',
+                usernameVariable: 'DOCKER_USERNAME')
+            withCredentials([dockerHubCreds]) {
                 withDockerServer([uri: dockerHost()]) {
                     config.dockerRepos.each { dockerRepo ->
-                        sh '''
-                            set +x
-                            echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
-                        '''
+                        sh "docker login --username $DOCKER_USERNAME --password \'$DOCKER_PASSWORD\'"
                         sh "docker tag ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:${params.KSQLDB_VERSION}"
                         sh "docker push ${dockerRepo}:${params.KSQLDB_VERSION}"
 
@@ -164,11 +163,9 @@ def job = {
     stage('Build KSQL-DB') {
         dir('ksql-db') {
             archiveArtifacts artifacts: 'pom.xml'
-            withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
-                ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"],
-                ["github/confluent_jenkins", "user", "GIT_USER"],
-                ["github/confluent_jenkins", "access_token", "GIT_TOKEN"]]) {
-                withEnv(["GIT_CREDENTIAL=${env.GIT_USER}:${env.GIT_TOKEN}"]) {
+            withCredentials([
+                usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME'),
+                usernameColonPassword(credentialsId: 'Jenkins GitHub Account', variable: 'GIT_CREDENTIAL')]) {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
@@ -185,9 +182,9 @@ def job = {
                                 LOGIN_CMD=$(aws ecr get-login --no-include-email --region us-west-2)
                                 $LOGIN_CMD
 
+                                set -x
                                 echo $ARTIFACTORY_PASSWORD | docker login confluent-docker.jfrog.io -u $ARTIFACTORY_USERNAME --password-stdin
 
-                                set -x
                                 bash create-pip-conf-with-jfrog.sh
                                 bash create-pypirc-with-jfrog.sh
                                 bash setup-credential-store.sh
@@ -231,7 +228,6 @@ def job = {
                         }
                     }
                 }
-            }
         }
     }
 
@@ -239,8 +235,7 @@ def job = {
         stage('Publish Maven Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
-                withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
-                    ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"]]) {
+                withCredentials([usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME')]) {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')

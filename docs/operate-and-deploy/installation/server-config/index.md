@@ -379,7 +379,7 @@ the use of a different network interface for internal communication, for securit
 This can be achieved by setting the `ksql.internal.listener` configuration to start a second
 listener that is used exclusively for inter-node communication.
 
-If running dual listeners to improve security, you may also wish to enable
+If you're running dual listeners to improve security, you may also wish to enable
 [authentication and other security measures](security.md).
 
 #### Dual routable listeners

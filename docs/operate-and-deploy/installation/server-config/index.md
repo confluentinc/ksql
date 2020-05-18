@@ -427,7 +427,7 @@ ksql.advertised.listener=http://host1.internal.example.com:8099
 !!! note
     Only the `ksql.advertised.listener` needs to be resolvable and routable from servers running
     other nodes in the cluster. The `listener` configuration can be non-resolvable and non-routable,
-    as clients' can connect using whatever url you choose, and `ksql.internal.listener` is only used
+    because clients can connect using whatever URL you choose, and `ksql.internal.listener` is only used
     to start the listener.
 
 In this setup, the node shares the url in the `ksql.advertised.listener` config as its

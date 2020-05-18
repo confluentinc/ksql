@@ -324,7 +324,7 @@ ksql.service.id=my_application_
 Once formed, many operations can be run using the client APIs exposed on `listeners`.
 
 In order to utilize pull queries and their high availability functionality, the nodes within the
-cluster must be able to communication with each other. KsqlDB supports setups with either a single
+cluster must be able to communicate with each other. ksqlDB supports setups with either a single
 shared listener for both client and internal communication, or dual single-purpose listeners. The
 following describes how to configure listeners depending on the nature of your environment and
 requirements.

@@ -306,7 +306,7 @@ INSERT INTO s4 (
 );
 ```
 
-To nested values, use the destructuring syntax from each data type. Notice how you can chain them together:
+To access nested values, use the destructuring syntax from each data type. Notice how you can chain them together:
 
 ```sql
 SELECT a,

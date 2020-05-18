@@ -2,7 +2,7 @@
 
 ## Context
 
-You have events that have a timestamp attribute. You want to do time-related processing over them and want ksqlDB to use those timestamps for processing. Because ksqlDB defaults to using wall clock time, you need to tell ksqlDB where to find the timestamps within the events. This is known as "processing-time" (using the wall clock) and "event-time" (using timestamps within events).
+You have events that have a timestamp attribute. You want to do time-related processing over them and want ksqlDB to use those timestamps for processing. Because ksqlDB defaults to using wall clock time, you need to tell ksqlDB where to find the timestamps within the events. This is known as *processing-time* (using the wall clock) and *event-time* (using timestamps within events).
 
 ## In action
 

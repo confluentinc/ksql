@@ -568,7 +568,7 @@ public class ClientTest extends BaseApiTest {
 
     // verify type-based getters
     assertThat(row.getString("f_str"), is("foo" + index));
-    assertThat(row.getInt("f_int"), is(index));
+    assertThat(row.getInteger("f_int"), is(index));
     assertThat(row.getBoolean("f_bool"), is(index % 2 == 0));
     assertThat(row.getLong("f_long"), is(Long.valueOf(index) * index));
     assertThat(row.getDouble("f_double"), is(index + 0.1111));
@@ -594,14 +594,14 @@ public class ClientTest extends BaseApiTest {
     assertThat(row.isNull("f_bool"), is(false));
 
     // verify exception on invalid cast
-    assertThrows(ClassCastException.class, () -> row.getInt("f_str"));
+    assertThrows(ClassCastException.class, () -> row.getInteger("f_str"));
 
     // verify KsqlArray methods
     final KsqlArray values = row.values();
     assertThat(values.size(), is(DEFAULT_COLUMN_NAMES.size()));
     assertThat(values.isEmpty(), is(false));
     assertThat(values.getString(0), is(row.getString("f_str")));
-    assertThat(values.getInteger(1), is(row.getInt("f_int")));
+    assertThat(values.getInteger(1), is(row.getInteger("f_int")));
     assertThat(values.getBoolean(2), is(row.getBoolean("f_bool")));
     assertThat(values.getLong(3), is(row.getLong("f_long")));
     assertThat(values.getDouble(4), is(row.getDouble("f_double")));
@@ -619,7 +619,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(obj.isEmpty(), is(false));
     assertThat(obj.fieldNames(), contains(DEFAULT_COLUMN_NAMES.toArray()));
     assertThat(obj.getString("f_str"), is(row.getString("f_str")));
-    assertThat(obj.getInteger("f_int"), is(row.getInt("f_int")));
+    assertThat(obj.getInteger("f_int"), is(row.getInteger("f_int")));
     assertThat(obj.getBoolean("f_bool"), is(row.getBoolean("f_bool")));
     assertThat(obj.getLong("f_long"), is(row.getLong("f_long")));
     assertThat(obj.getDouble("f_double"), is(row.getDouble("f_double")));

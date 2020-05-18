@@ -95,13 +95,13 @@ public class RowImpl implements Row {
   }
 
   @Override
-  public Integer getInt(final int columnIndex) {
+  public Integer getInteger(final int columnIndex) {
     return values.getInteger(columnIndex - 1);
   }
 
   @Override
-  public Integer getInt(final String columnName) {
-    return getInt(indexFromName(columnName));
+  public Integer getInteger(final String columnName) {
+    return getInteger(indexFromName(columnName));
   }
 
   @Override

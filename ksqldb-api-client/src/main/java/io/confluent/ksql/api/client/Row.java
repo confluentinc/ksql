@@ -85,7 +85,7 @@ public interface Row {
    * @param columnIndex index of column (1-indexed).
    * @return column value.
    */
-  Integer getInt(int columnIndex);
+  Integer getInteger(int columnIndex);
 
   /**
    * Get the value for a particular column of the Row as an integer.
@@ -93,7 +93,7 @@ public interface Row {
    * @param columnName name of column.
    * @return column value.
    */
-  Integer getInt(String columnName);
+  Integer getInteger(String columnName);
 
   /**
    * Get the value for a particular column of the Row as a long.

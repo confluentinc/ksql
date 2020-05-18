@@ -473,7 +473,7 @@ public class ClientIntegrationTest {
     assertThat(row.isNull("VIEWTIME"), is(false));
 
     // verify exception on invalid cast
-    assertThrows(ClassCastException.class, () -> row.getInt("PAGEID"));
+    assertThrows(ClassCastException.class, () -> row.getInteger("PAGEID"));
 
     // verify KsqlArray methods
     final KsqlArray values = row.values();
@@ -532,7 +532,7 @@ public class ClientIntegrationTest {
     assertThat(row.isNull("COUNT"), is(false));
 
     // verify exception on invalid cast
-    assertThrows(ClassCastException.class, () -> row.getInt("USERID"));
+    assertThrows(ClassCastException.class, () -> row.getInteger("USERID"));
 
     // verify KsqlArray methods
     final KsqlArray values = row.values();

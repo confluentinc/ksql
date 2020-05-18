@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
+import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
@@ -64,8 +65,8 @@ public class TransientQueryMetadata extends QueryMetadata {
         overriddenProperties,
         closeCallback,
         closeTimeout,
-        new QueryId(queryApplicationId)
-    );
+        new QueryId(queryApplicationId),
+        QueryErrorClassifier.DEFAULT_CLASSIFIER);
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
 
     if (!logicalSchema.key().isEmpty()) {

@@ -45,6 +45,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -69,6 +70,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.KStream;
 import org.junit.Before;
 import org.junit.Test;
@@ -134,6 +136,8 @@ public class QueryExecutorTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
+  private KafkaTopicClient topicClient;
+  @Mock
   private Consumer<QueryMetadata> closeCallback;
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
@@ -145,6 +149,8 @@ public class QueryExecutorTest {
   private KafkaStreams kafkaStreams;
   @Mock
   private Topology topology;
+  @Mock
+  private TopologyDescription topoDesc;
   @Mock
   private KsMaterializationFactory ksMaterializationFactory;
   @Mock
@@ -189,6 +195,9 @@ public class QueryExecutorTest {
         .thenReturn(PERSISTENT_PREFIX);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
     when(physicalPlan.build(any())).thenReturn(tableHolder);
+    when(topology.describe()).thenReturn(topoDesc);
+    when(topoDesc.subtopologies()).thenReturn(ImmutableSet.of());
+    when(serviceContext.getTopicClient()).thenReturn(topicClient);
     queryBuilder = new QueryExecutor(
         ksqlConfig,
         OVERRIDES,

@@ -2,7 +2,7 @@
 
 ## Context
 
-You have external data stores that you want to read from and write to with ksqlDB, but you don’t want to write custom glue code to do it. ksqlDB is capable of using the vast ecosystem of Kafka Connect connectors and interacting with it through SQL syntax. This functionality is called "connector management".
+You have external data stores that you want to read from and write to with ksqlDB, but you don’t want to write custom glue code to do it. ksqlDB is capable of using the vast ecosystem of Kafka Connect connectors through its SQL syntax. This functionality is called "connector management".
 
 ## In action
 
@@ -16,12 +16,11 @@ CREATE SOURCE CONNECTOR s WITH (
 
   'global.throttle.ms' = '500'
 );
-
 ```
 
 ## Modes
 
-Before you can use connector management, you need to decide what mode you want to run it in. ksqlDB can run connectors in two different modes: **embedded** or **external**. This controls how and where the connectors are executed. The way in which you configure ksqlDB's server determines which mode it will use. All nodes in a single ksqlDB cluster must use the same mode.
+Before you can use connector management, you need to decide what mode you want to run connectors in. ksqlDB can run connectors in two different modes: **embedded** or **external**. This controls how and where the connectors are executed. The way in which you configure ksqlDB's server determines which mode it will use. All nodes in a single ksqlDB cluster must use the same mode.
 
 Regardless of which mode you use, the syntax to create and use connectors is the same.
 
@@ -33,23 +32,31 @@ In embedded mode, ksqlDB runs connectors directly on its servers. This is conven
 
 Before you can use a connector, you need to download it prior to starting ksqlDB. A downloaded connector package is essentially a set of jars that contain the code for interacting with the target data store.
 
-The easiest way to download a connector is to use `confluent-hub`, a utility program distributed Confluent. As a convenience, `confluent-hub` is available in ksqlDB's Docker image, which you may want to alias. For example, to obtain the Voluble connector, run the following.
+The easiest way to download a connector is to use [`confluent-hub`](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html), a utility program distributed Confluent.
+
+Create a directory for your connectors:
 
 ```
-docker run --rm -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt mdrogalis/voluble:0.3.0
+mkdir confluent-hub-components
 ```
 
-After running this command, you should have a directory named `confluent-hub-components` which contains the Voluble jars. If you are running in clustered mode, you must install the connector on every server.
+And run the following to obtain the [Voluble](https://github.com/MichaelDrogalis/voluble) data generator connector:
 
-When you have all the connectors that you would like to use, configure ksqlDB to find them in the next step. ksqlDB cannot add new connectors without restarting its servers.
+```
+confluent-hub install --component-dir confluent-hub-components --no-prompt mdrogalis/voluble:0.3.0
+```
+
+After running this command, `confluent-hub-components` should contain the Voluble jars. If you are running in clustered mode, you must install the connector on every server.
+
+When you have all the connectors that you would like to use, you can configure ksqlDB to find them, as seen in the next step. ksqlDB cannot add new connectors without restarting its servers.
 
 ### Configuring ksqlDB
 
-You control whether or not ksqlDB uses embedded mode by the environment variables that you supply to ksqlDB. If any Connect related environment variables are present (variables prefixed with `KSQL_CONNECT_`), ksqlDB will use those and apply them to the embedded Connect server. Although embedded mode eases the operational burden of running a full Kafka Connector cluster, it doesn't dilute Connect's power. Any property that can be configured for a regular Kafka Connect cluster can also be configured for embedded mode.
+You control whether or not ksqlDB uses embedded mode by the server configuration properties that you supply to ksqlDB. If any Connect related properties are present (properties prefixed with `ksql.connect.`), ksqlDB will use those and apply them to the embedded Connect server. Although embedded mode eases the operational burden of running a full Kafka Connector cluster, it doesn't dilute Connect's power. Any property that can be configured for a regular Kafka Connect cluster can also be configured for embedded mode.
 
-There are a number of environment variables that you must set to have a valid Connect setup. Refer to Kafka Connect's documentation to learn what the right properties to set are. One critical property is `KSQL_CONNECT_PLUGIN_PATH`, which specifies the path to find the connector jars. Use a volume to mount your connector jars from your host into the container.
+There are a number of properties that you must set to have a valid Connect setup. Refer to Kafka Connect's documentation to learn what the right properties to set are. One critical property is `ksql.connect.plugin.path`, which specifies the path to find the connector jars. If you're using Docker, use a volume to mount your connector jars from your host into the container.
 
-To get started, here is a Docker Compose example a server configured for embedded mode. Any connectors installed on your host at `confluent-hub-components` will be loaded. Place this in a file named `docker-compose.yml`:
+To get started, here is a Docker Compose example a server configured for embedded mode. All `KSQL_` environment variables are automatically converted to server configuration properties. Any connectors installed on your host at `confluent-hub-components` will be loaded. Place this in a file named `docker-compose.yml`:
 
 ```yaml
 ---
@@ -154,16 +161,84 @@ Now that ksqlDB has a connector and is configured to run it in embedded mode, yo
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
+Starting a connector is as simple as giving it a name and properties. In this example, you will launch the Voluble connector to source random events into a Kafka topic. Run the following:
 
+```sql
+CREATE SOURCE CONNECTOR s WITH (
+  'connector.class' = 'io.mdrogalis.voluble.VolubleSourceConnector',
 
+  'genkp.people.with' = '#{Internet.uuid}',
+  'genv.people.name.with' = '#{Name.full_name}',
+  'genv.people.creditCardNumber.with' = '#{Finance.credit_card}',
 
+  'global.throttle.ms' = '500'
+);
+```
 
-- Launching a connector
-- Stopping it
-- Logging
+Here is what this ksqlDB statement does:
+
+- ksqlDB interacts with Kafka Connect to create a new source connector named `s`.
+- Kafka Connect infers that `s` is a Voluble connector because of the value of `connector.class`. Kafka Connect searches its plugin path to find a connector that matches the given class.
+- ksqlDB passes the remaining properties directly to the Voluble connector so that it can configure itself.
+- Voluble creates publishes a new event to topic `people` every `500` milliseconds with a UUID key and a map value of two keys, `name` and `creditCardNumber`.
+
+The properties are the same that you would pass to a connector if it was running in a dedicated Connect cluster. You can pass it any properties that the connector (or Kafka Connect) respects, such as `max.tasks` to scale the number of instances of the connector.
+
+Check that the connector working is by printing the contents of the `people` topic, which connector `s` created.
+
+```sql
+PRINT 'people' FROM BEGINNING;
+```
+
+Because the data is random, your output should look roughly like the following:
+
+```
+Key format: HOPPING(KAFKA_STRING) or TUMBLING(KAFKA_STRING) or KAFKA_STRING
+Value format: AVRO or KAFKA_STRING
+rowtime: 2020/05/18 17:03:38.020 Z, key: [8a9f5f18-f389-480e-9022-4fa0@7162241151841559604/-], value: {"name": "Robert Macejkovic", "creditCardNumber": "4753792478828"}
+rowtime: 2020/05/18 17:03:38.023 Z, key: [96e3c6ff-60e2-4985-b962-4278@7365413101558183730/-], value: {"name": "Evelyne Schroeder", "creditCardNumber": "3689-911575-9931"}
+rowtime: 2020/05/18 17:03:38.524 Z, key: [c865dd33-f854-4ad6-a95f-a9ee@7147828756964729958/-], value: {"name": "Barbar Roberts", "creditCardNumber": "6565-5340-0407-5224"}
+rowtime: 2020/05/18 17:03:39.023 Z, key: [d29bb1e9-a8b0-4bdd-a76b-6fc1@7004895543925224502/-], value: {"name": "Rosetta Swift", "creditCardNumber": "5019-5129-1138-1079"}
+rowtime: 2020/05/18 17:03:39.524 Z, key: [c7d74a03-ff21-4dd3-a60c-566d@7089291673502049328/-], value: {"name": "Amado Leuschke", "creditCardNumber": "6771-8942-4365-4019"}
+```
+
+When you're done, you can drop the connector by running:
+
+```sql
+DROP CONNECTOR s;
+```
+
+You can confirm that the connector is no longer running by looking at the output of `SHOW CONNECTORS;`.
+
+### Introspecting embedded mode
+
+Sometimes you might need a little more power to introspect how your connectors are behaving by interacting directly with the embedded Kafka Connect server. First, notice that ksqlDB is really just wrapping a regular Kafka Connect server. You can curl it and interact with its [REST API](https://docs.confluent.io/current/connect/references/restapi.html) just like any other Connect server.
+
+```
+docker exec -it ksqldb-server curl http://localhost:8083/
+```
+
+Your output should look something like:
+
+```json
+{"version":"5.5.0-ccs","commit":"785a156634af5f7e","kafka_cluster_id":"bfz7rsyJRtOx5fs-2l4W4A"}
+```
+
+This can be really useful if you're having trouble getting a connector to load or need more insight into how connector tasks are behaving.
+
+### Logging
+
+By default, embedded Kafka Connect will log messages inline with ksqlDB's server's log messages. You can view them by running:
+
+```
+docker logs -f ksqldb-server
+```
+
+... << TODO: show how to redirect the logs >> ...
 
 ## External mode
 
 In external mode, ksqlDB communicates with an external Kafka Connect cluster. It's able to create and destroy connectors as needed. Use external mode when you have high volumes of input and output.
 
-- List of connectors. Explanation of KConnect
+- Explanation of KConnect dedicated
+- List of connectors.

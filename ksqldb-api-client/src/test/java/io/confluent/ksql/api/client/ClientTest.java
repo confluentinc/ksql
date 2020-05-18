@@ -42,13 +42,13 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
@@ -253,7 +253,7 @@ public class ClientTest extends BaseApiTest {
     // Given
     final StreamedQueryResult streamedQueryResult =
         javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
-    streamedQueryResult.poll(1, TimeUnit.NANOSECONDS);
+    streamedQueryResult.poll(Duration.ofNanos(1));
 
     // When
     final Exception e = assertThrows(

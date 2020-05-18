@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.api.client;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.reactivestreams.Publisher;
 
 /**
@@ -44,11 +44,11 @@ public interface StreamedQueryResult extends Publisher<Row> {
   /**
    * Block until a row becomes available or the timeout has elapsed.
    *
-   * @param timeout amount of to wait for a row. Non-positive values are interpreted as no timeout.
-   * @param timeUnit unit for timeout param.
+   * @param timeout amount of time to wait for a row. Non-positive values are interpreted as no
+   *        timeout.
    * @return the row, if available; else, null.
    */
-  Row poll(long timeout, TimeUnit timeUnit);
+  Row poll(Duration timeout);
 
   /**
    * A {@code StreamedQueryResult} is complete if the HTTP connection associated with this query has

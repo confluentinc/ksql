@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client.impl;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.vertx.core.Context;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -65,11 +66,11 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
     complete = true;
   }
 
-  public synchronized Row poll(final long timeout, final TimeUnit timeUnit) {
+  public synchronized Row poll(final Duration timeout) {
     if (closed || failed) {
       return null;
     }
-    final long timeoutNs = timeUnit.toNanos(timeout);
+    final long timeoutNs = timeout.toNanos();
     final long end;
     long remainingTime;
     if (timeoutNs > 0) {

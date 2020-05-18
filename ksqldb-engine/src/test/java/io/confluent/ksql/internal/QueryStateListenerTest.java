@@ -131,7 +131,7 @@ public class QueryStateListenerTest {
     listener.onError(new QueryError(new Throwable("foo"), Type.USER));
 
     // Then:
-    assertThat(currentGaugeValue(METRIC_NAME_2), is("OPERATOR"));
+    assertThat(currentGaugeValue(METRIC_NAME_2), is("USER"));
   }
 
   @Test

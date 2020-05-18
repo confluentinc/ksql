@@ -181,9 +181,9 @@ public final class PullQueryExecutor {
           statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
       // If internal listeners are in use, we require the request to come from that listener to
       // treat it as having been forwarded.
-      final boolean isAlreadyForwarded = routingOptions.skipForwardRequest() &&
+      final boolean isAlreadyForwarded = routingOptions.skipForwardRequest()
           // Trust the forward request option if isInternalRequest isn't available.
-          isInternalRequest.orElse(true);
+          && isInternalRequest.orElse(true);
 
       // Only check the rate limit at the forwarding host
       if (!isAlreadyForwarded) {

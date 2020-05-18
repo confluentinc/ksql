@@ -356,7 +356,7 @@ inter-node communication, because they're not routable from other machines. This
 network is set up such that the IP or hostname you bind isn't resolvable or routable.
 
 If you choose to use a non-routable listener, you must set `ksql.advertised.listener` and specify a
-url that is externally accessible and which will resolve to an endpoint defined in `listeners`.
+URL that is externally accessible and which resolves to an endpoint defined in `listeners`.
 
 ```properties
 # Non-routable wildcard ip:

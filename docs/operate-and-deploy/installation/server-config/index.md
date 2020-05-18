@@ -420,7 +420,7 @@ listeners=https://0.0.0.0:8088
 # Note: port 8099 could be locked down using port forward or other network tools.
 ksql.internal.listener=https://0.0.0.0:8099
 
-# Url that other nodes can resolve and use to route requests to this node:
+# URL that other nodes can resolve and use to route requests to this node:
 ksql.advertised.listener=http://host1.internal.example.com:8099
 ```
 

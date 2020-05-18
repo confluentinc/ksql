@@ -430,7 +430,7 @@ traffic from internal traffic.
 
 ### ksql.advertised.listener
 
-This is the url used for inter-node communication.  Unlike `listeners` or `ksql.internal.listener`,
+This is the URL used for inter-node communication.  Unlike `listeners` or `ksql.internal.listener`,
 this configuration doesn't create a listener. Instead, it is used to set an externally routable
 url that other ksqlDB nodes will use to communicate with this node. It only needs to be set if
 the internal listener is not externally resolvable or routable.

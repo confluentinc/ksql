@@ -16,10 +16,13 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.io.OutputStream;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
 
 /*
@@ -30,7 +33,6 @@ This is only used by legacy streaming endpoints from the old API which work with
 public class ResponseOutputStream extends OutputStream {
 
   private final HttpServerResponse response;
-  private final Object blockLock = new Object();
 
   public ResponseOutputStream(final HttpServerResponse response) {
     this.response = response;
@@ -43,7 +45,7 @@ public class ResponseOutputStream extends OutputStream {
   }
 
   @Override
-  public void write(final @NotNull byte[] bytes, final int offset, final int length) {
+  public synchronized void write(final @NotNull byte[] bytes, final int offset, final int length) {
     Objects.requireNonNull(bytes);
     if ((offset < 0) || (offset > bytes.length)) {
       throw new IndexOutOfBoundsException();
@@ -57,7 +59,7 @@ public class ResponseOutputStream extends OutputStream {
     final byte[] bytesToWrite = new byte[length];
     System.arraycopy(bytes, offset, bytesToWrite, 0, length);
     final Buffer buffer = Buffer.buffer(bytesToWrite);
-    blockUntilSpace();
+    blockIfWriteQueueFull();
     response.write(buffer);
   }
 
@@ -66,19 +68,17 @@ public class ResponseOutputStream extends OutputStream {
     response.end();
   }
 
-  private synchronized void blockUntilSpace() {
+  private void blockIfWriteQueueFull() {
+    VertxUtils.checkIsWorker();
     if (response.writeQueueFull()) {
-      response.drainHandler(v -> drained());
+      final CompletableFuture<Void> cf = new CompletableFuture<>();
+      response.drainHandler(v -> cf.complete(null));
       try {
-        blockLock.wait();
-      } catch (InterruptedException e) {
+        cf.get(10, TimeUnit.SECONDS);
+      } catch (Exception e) {
         throw new KsqlException(e);
       }
     }
-  }
-
-  private synchronized void drained() {
-    blockLock.notify();
   }
 
 }

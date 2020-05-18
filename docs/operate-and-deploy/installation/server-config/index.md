@@ -351,7 +351,7 @@ use the same listener as client communication.
 #### Single non-routable listener
 
 It's common to set up a service using special hostnames, like `localhost`, or wildcard addresses,
-such as `0.0.0.0` or `[::]`. These have special meanings and are not appropriate for
+like `0.0.0.0` or `[::]`. These special hostnames have special meanings and are not appropriate for
 inter-node communication, as they are not routable from other machines. Similarly, if your
 network is setup such that the IP or hostname you bind isn't resolvable or routable.
 

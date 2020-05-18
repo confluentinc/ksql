@@ -346,7 +346,7 @@ listeners=https://192.168.1.101:8088
 
 In this setup, the node shares the first URL in the `listeners` config as its internal
 endpoint, which other nodes use for inter-node communication. Inter-node communication
-use the same listener as client communication.
+uses the same listener as client communication.
 
 #### Single non-routable listener
 

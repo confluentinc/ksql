@@ -435,7 +435,7 @@ this configuration doesn't create a listener. Instead, it is used to set an exte
 URL that other ksqlDB nodes will use to communicate with this node. It only needs to be set if
 the internal listener is not externally resolvable or routable.
 
-If not set, the default is to use the internal listener, as controlled by `ksql.internal.listener`.
+If not set, the default behavior is to use the internal listener, which is controlled by `ksql.internal.listener`.
 
 If the `ksql.internal.listener` resolves, either by being explicitly set or from the default first
 url in `listeners`, to a url using `localhost`, a wildcard ip such as `0.0.0.0`, or a hostname that

@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -85,7 +86,7 @@ public class QueryMetadataTest {
         Collections.emptyMap(),
         closeCallback,
         closeTimeout,
-        QUERY_ID) {
+        QUERY_ID, QueryErrorClassifier.DEFAULT_CLASSIFIER) {
       @Override
       public void stop() {
         doClose(cleanUp);

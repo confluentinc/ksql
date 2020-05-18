@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.query;
 
-import io.confluent.ksql.util.KafkaStreamsUncaughtExceptionHandler;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -41,7 +40,6 @@ public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
     props.putAll(conf);
     final Topology topology = builder.build(props);
     final KafkaStreams kafkaStreams = new KafkaStreams(topology, props, clientSupplier);
-    kafkaStreams.setUncaughtExceptionHandler(new KafkaStreamsUncaughtExceptionHandler());
     return new BuildResult(topology, kafkaStreams);
   }
 }

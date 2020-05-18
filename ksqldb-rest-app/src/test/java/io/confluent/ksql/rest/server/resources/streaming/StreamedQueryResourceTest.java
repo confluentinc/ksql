@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -469,7 +470,8 @@ public class StreamedQueryResourceTest {
 
     // Definitely want to make sure that the Kafka Streams instance has been closed and cleaned up
     verify(mockKafkaStreams).start();
-    verify(mockKafkaStreams).setUncaughtExceptionHandler(any());
+    // called on init and when setting uncaught exception handler manually
+    verify(mockKafkaStreams, times(2)).setUncaughtExceptionHandler(any());
     verify(mockKafkaStreams).cleanUp();
     verify(mockKafkaStreams).close(Duration.ofMillis(closeTimeout));
 

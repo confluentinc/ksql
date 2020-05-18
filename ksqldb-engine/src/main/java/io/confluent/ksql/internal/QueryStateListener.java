@@ -15,18 +15,24 @@
 
 package io.confluent.ksql.internal;
 
+import io.confluent.ksql.query.ErrorStateListener;
+import io.confluent.ksql.query.QueryError;
 import java.util.Collections;
 import java.util.Objects;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams.State;
-import org.apache.kafka.streams.KafkaStreams.StateListener;
 
-public class QueryStateListener implements StateListener {
+public class QueryStateListener implements ErrorStateListener {
+  private static final String NO_ERROR = "NO_ERROR";
+
   private final Metrics metrics;
-  private final MetricName metricName;
+  private final MetricName stateMetricName;
+  private final MetricName errorMetricName;
+
   private volatile String state = "-";
+  private volatile String error = NO_ERROR;
 
   QueryStateListener(
       final Metrics metrics,
@@ -36,21 +42,40 @@ public class QueryStateListener implements StateListener {
     Objects.requireNonNull(groupPrefix, "groupPrefix");
     Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null.");
-    this.metricName = metrics.metricName(
+
+    this.stateMetricName = metrics.metricName(
         "query-status",
         groupPrefix + "ksql-queries",
         "The current status of the given query.",
         Collections.singletonMap("status", queryApplicationId));
 
-    this.metrics.addMetric(metricName, (Gauge<String>)(config, now) -> state);
+    errorMetricName = metrics.metricName(
+        "error-status",
+        groupPrefix + "ksql-queries",
+        "The current error status of the given query, if the state is in ERROR state",
+        Collections.singletonMap("status", queryApplicationId)
+    );
+
+    this.metrics.addMetric(stateMetricName, (Gauge<String>)(config, now) -> state);
+    this.metrics.addMetric(errorMetricName, (Gauge<String>)(config, now) -> error);
+
   }
 
   @Override
   public void onChange(final State newState, final State oldState) {
     state = newState.toString();
+    if (newState != State.ERROR) {
+      this.error = NO_ERROR;
+    }
+  }
+
+  @Override
+  public void onError(final QueryError error) {
+    this.error = error.getType().name();
   }
 
   public void close() {
-    metrics.removeMetric(metricName);
+    metrics.removeMetric(stateMetricName);
+    metrics.removeMetric(errorMetricName);
   }
 }

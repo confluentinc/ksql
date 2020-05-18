@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Map;
@@ -63,7 +64,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
-      final long closeTimeout) {
+      final long closeTimeout,
+      final QueryErrorClassifier errorClassifier
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
@@ -77,7 +80,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
         overriddenProperties,
         closeCallback,
         closeTimeout,
-        id);
+        id,
+        errorClassifier
+    );
 
     this.resultTopic = requireNonNull(resultTopic, "resultTopic");
     this.sinkName = Objects.requireNonNull(sinkName, "sinkName");

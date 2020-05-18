@@ -31,7 +31,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class StreamQueryResponseHandler extends QueryResponseHandler<StreamedQueryResult> {
+public class StreamQueryResponseHandler
+    extends QueryResponseHandler<CompletableFuture<StreamedQueryResult>> {
 
   private static final Logger log = LoggerFactory.getLogger(StreamQueryResponseHandler.class);
 

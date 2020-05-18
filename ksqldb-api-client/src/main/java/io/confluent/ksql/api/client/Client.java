@@ -48,7 +48,7 @@ public interface Client {
    * @param sql statement of query to execute.
    * @return query result.
    */
-  CompletableFuture<BatchedQueryResult> executeQuery(String sql);
+  BatchedQueryResult executeQuery(String sql);
 
   /**
    * Execute a query (push or pull) and receive all result rows together, once the query has
@@ -58,7 +58,7 @@ public interface Client {
    * @param properties query properties.
    * @return query result.
    */
-  CompletableFuture<BatchedQueryResult> executeQuery(String sql, Map<String, Object> properties);
+  BatchedQueryResult executeQuery(String sql, Map<String, Object> properties);
 
   CompletableFuture<Void> insertInto(String streamName, Map<String, Object> row);
 

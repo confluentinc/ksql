@@ -404,14 +404,12 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldExecutePullQuery() throws Exception {
     // When
-    final BatchedQueryResult batchedQueryResult = javaClient.executeQuery(DEFAULT_PULL_QUERY).get();
+    final BatchedQueryResult batchedQueryResult = javaClient.executeQuery(DEFAULT_PULL_QUERY);
 
     // Then
-    assertThat(batchedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
-    assertThat(batchedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
-    assertThat(batchedQueryResult.queryID(), is(nullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
 
-    verifyRows(batchedQueryResult.rows());
+    verifyRows(batchedQueryResult.get());
 
     verifyPullQueryServerState();
   }
@@ -420,14 +418,12 @@ public class ClientTest extends BaseApiTest {
   public void shouldExecutePushWithLimitQuery() throws Exception {
     // When
     final BatchedQueryResult batchedQueryResult =
-        javaClient.executeQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+        javaClient.executeQuery(DEFAULT_PUSH_QUERY_WITH_LIMIT, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES);
 
     // Then
-    assertThat(batchedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
-    assertThat(batchedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
-    assertThat(batchedQueryResult.queryID(), is(notNullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
 
-    verifyRows(batchedQueryResult.rows());
+    verifyRows(batchedQueryResult.get());
 
     verifyPushQueryServerState(DEFAULT_PUSH_QUERY_WITH_LIMIT);
   }
@@ -472,9 +468,25 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldTerminatePushQueryIssuedViaExecuteQuery() {
-    // Will implement once https://github.com/confluentinc/ksql/pull/5236#issuecomment-628997138
-    // is resolved
+  public void shouldTerminatePushQueryIssuedViaExecuteQuery() throws Exception {
+    // Given
+    // Issue non-terminating push query via executeQuery(). This is NOT an expected use case
+    final BatchedQueryResult batchedQueryResult = javaClient.executeQuery(DEFAULT_PUSH_QUERY);
+    final String queryId = batchedQueryResult.queryID().get();
+    assertThat(queryId, is(notNullValue()));
+
+    // Query is running on server, and BatchedQueryResult is not complete
+    assertThat(server.getQueryIDs(), hasSize(1));
+    assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(true));
+    assertThat(batchedQueryResult.isDone(), is(false));
+
+    // When
+    javaClient.terminatePushQuery(queryId).get();
+
+    // Then: query is no longer running on server, and BatchedQueryResult is complete
+    assertThat(server.getQueryIDs(), hasSize(0));
+    assertThatEventually(batchedQueryResult::isDone, is(true));
+    assertThat(batchedQueryResult.isCompletedExceptionally(), is(false));
   }
 
   @Test

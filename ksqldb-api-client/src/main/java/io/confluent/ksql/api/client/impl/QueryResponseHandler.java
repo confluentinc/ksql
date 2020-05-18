@@ -23,15 +23,14 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.concurrent.CompletableFuture;
 
-abstract class QueryResponseHandler<T> {
+abstract class QueryResponseHandler<T extends CompletableFuture<?>> {
 
   protected final Context context;
   protected final RecordParser recordParser;
-  protected final CompletableFuture<T> cf;
+  protected final T cf;
   protected boolean hasReadArguments;
 
-  QueryResponseHandler(final Context context, final RecordParser recordParser,
-      final CompletableFuture<T> cf) {
+  QueryResponseHandler(final Context context, final RecordParser recordParser, final T cf) {
     this.context = context;
     this.recordParser = recordParser;
     this.cf = cf;

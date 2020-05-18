@@ -16,48 +16,19 @@
 package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.BatchedQueryResult;
-import io.confluent.ksql.api.client.ColumnType;
-import io.confluent.ksql.api.client.Row;
-import java.util.List;
-import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
-public class BatchedQueryResultImpl implements BatchedQueryResult {
+public class BatchedQueryResultImpl extends BatchedQueryResult {
 
-  private final String queryId;
-  private final List<String> columnNames;
-  private final List<ColumnType> columnTypes;
-  private final List<Row> rows;
+  private final CompletableFuture<String> queryId;
 
-  BatchedQueryResultImpl(
-      final String queryId,
-      final List<String> columnNames,
-      final List<ColumnType> columnTypes,
-      final List<Row> rows
-  ) {
-    this.queryId = queryId;
-    this.columnNames = Objects.requireNonNull(columnNames);
-    this.columnTypes = Objects.requireNonNull(columnTypes);
-    this.rows = Objects.requireNonNull(rows);
+  BatchedQueryResultImpl() {
+    this.queryId = new CompletableFuture<>();
   }
 
   @Override
-  public List<String> columnNames() {
-    return columnNames;
-  }
-
-  @Override
-  public List<ColumnType> columnTypes() {
-    return columnTypes;
-  }
-
-  @Override
-  public String queryID() {
+  public CompletableFuture<String> queryID() {
     return queryId;
-  }
-
-  @Override
-  public List<Row> rows() {
-    return rows;
   }
 
 }

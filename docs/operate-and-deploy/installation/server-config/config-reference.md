@@ -423,7 +423,7 @@ is `KSQL_LISTENERS`.
 The `ksql.internal.listener` setting controls the address bound for use by internal,
 intra-cluster communication.
 
-If not set, the internal listener default to the first listener defined by `listeners`.
+If not set, the internal listener defaults to the first listener defined by `listeners`.
 
 This setting is most often useful in a IaaS environment to separate external-facing
 traffic from internal traffic.

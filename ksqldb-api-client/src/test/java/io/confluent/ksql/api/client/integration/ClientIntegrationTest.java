@@ -102,8 +102,9 @@ public class ClientIntegrationTest {
 
   private static final String PUSH_QUERY = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
+  private static final int PUSH_QUERY_LIMIT_NUM_ROWS = 2;
   private static final String PUSH_QUERY_WITH_LIMIT =
-      "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + PAGE_VIEW_NUM_ROWS + ";";
+      "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";";
 
   private static final List<String> PULL_QUERY_COLUMN_NAMES = ImmutableList.of("USERID", "COUNT");
   private static final List<ColumnType> PULL_QUERY_COLUMN_TYPES =
@@ -243,7 +244,7 @@ public class ClientIntegrationTest {
     assertThat(streamedQueryResult.columnTypes(), is(PAGE_VIEW_COLUMN_TYPES));
     assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
-    shouldReceivePageViewRows(streamedQueryResult, true);
+    shouldReceivePageViewRows(streamedQueryResult, true, PUSH_QUERY_LIMIT_NUM_ROWS);
 
     assertThat(streamedQueryResult.isComplete(), is(true));
   }
@@ -258,7 +259,7 @@ public class ClientIntegrationTest {
     assertThat(streamedQueryResult.columnTypes(), is(PAGE_VIEW_COLUMN_TYPES));
     assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
-    for (int i = 0; i < PAGE_VIEW_NUM_ROWS; i++) {
+    for (int i = 0; i < PUSH_QUERY_LIMIT_NUM_ROWS; i++) {
       final Row row = streamedQueryResult.poll();
       verifyPageViewRowWithIndex(row, i);
     }
@@ -288,7 +289,7 @@ public class ClientIntegrationTest {
     assertThatEventually(streamedQueryResult::isComplete, is(true));
 
     // When / Then
-    for (int i = 0; i < PAGE_VIEW_NUM_ROWS; i++) {
+    for (int i = 0; i < PUSH_QUERY_LIMIT_NUM_ROWS; i++) {
       final Row row = streamedQueryResult.poll();
       verifyPageViewRowWithIndex(row, i);
     }
@@ -304,11 +305,11 @@ public class ClientIntegrationTest {
     // When
     TestSubscriber<Row> subscriber = subscribeAndWait(streamedQueryResult);
     assertThat(subscriber.getValues(), hasSize(0));
-    subscriber.getSub().request(PAGE_VIEW_NUM_ROWS);
+    subscriber.getSub().request(PUSH_QUERY_LIMIT_NUM_ROWS);
 
     // Then
-    assertThatEventually(subscriber::getValues, hasSize(PAGE_VIEW_NUM_ROWS));
-    verifyPageViewRows(subscriber.getValues());
+    assertThatEventually(subscriber::getValues, hasSize(PUSH_QUERY_LIMIT_NUM_ROWS));
+    verifyPageViewRows(subscriber.getValues(), PUSH_QUERY_LIMIT_NUM_ROWS);
     assertThat(subscriber.getError(), is(nullValue()));
   }
 
@@ -335,7 +336,7 @@ public class ClientIntegrationTest {
     assertThat(batchedQueryResult.columnTypes(), is(PAGE_VIEW_COLUMN_TYPES));
     assertThat(batchedQueryResult.queryID(), is(notNullValue()));
 
-    verifyPageViewRows(batchedQueryResult.rows());
+    verifyPageViewRows(batchedQueryResult.rows(), PUSH_QUERY_LIMIT_NUM_ROWS);
   }
 
   @Test
@@ -396,8 +397,7 @@ public class ClientIntegrationTest {
   private Client createClient() {
     final ClientOptions clientOptions = ClientOptions.create()
         .setHost("localhost")
-        .setPort(REST_APP.getListeners().get(0).getPort())
-        .setUseTls(false);
+        .setPort(REST_APP.getListeners().get(0).getPort());
     return Client.create(clientOptions, vertx);
   }
 
@@ -414,17 +414,29 @@ public class ClientIntegrationTest {
       final Publisher<Row> publisher,
       final boolean subscriberCompleted
   ) {
+    shouldReceivePageViewRows(publisher, subscriberCompleted, PAGE_VIEW_NUM_ROWS);
+  }
+
+  private static void shouldReceivePageViewRows(
+      final Publisher<Row> publisher,
+      final boolean subscriberCompleted,
+      final int numRows
+  ) {
     shouldReceiveRows(
         publisher,
-        PAGE_VIEW_NUM_ROWS,
-        ClientIntegrationTest::verifyPageViewRows,
+        numRows,
+        rows -> verifyPageViewRows(rows, numRows),
         subscriberCompleted
     );
   }
 
   private static void verifyPageViewRows(final List<Row> rows) {
-    assertThat(rows, hasSize(PAGE_VIEW_NUM_ROWS));
-    for (int i = 0; i < PAGE_VIEW_NUM_ROWS; i++) {
+    verifyPageViewRows(rows, PAGE_VIEW_NUM_ROWS);
+  }
+
+  private static void verifyPageViewRows(final List<Row> rows, final int numRows) {
+    assertThat(rows, hasSize(numRows));
+    for (int i = 0; i < numRows; i++) {
       verifyPageViewRowWithIndex(rows.get(i), i);
     }
   }

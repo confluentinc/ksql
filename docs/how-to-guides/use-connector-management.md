@@ -217,7 +217,7 @@ You can confirm that the connector is no longer running by looking at the output
 
 Sometimes you might need a little more power to introspect how your connectors are behaving by interacting directly with the embedded {{ site.kconnectlong }} server. First, notice that ksqlDB is really just wrapping a regular {{ site.kconnectlong }} server. You can curl it and interact with its [REST API](https://docs.confluent.io/current/connect/references/restapi.html) just like any other {{ site.kconnect }} server.
 
-```
+```bash
 docker exec -it ksqldb-server curl http://localhost:8083/
 ```
 

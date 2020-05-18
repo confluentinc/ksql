@@ -352,7 +352,7 @@ use the same listener as client communication.
 
 It's common to set up a service using special hostnames, like `localhost`, or wildcard addresses,
 like `0.0.0.0` or `[::]`. These special hostnames have special meanings and are not appropriate for
-inter-node communication, as they are not routable from other machines. Similarly, if your
+inter-node communication, because they're not routable from other machines. This is also the case if your
 network is setup such that the IP or hostname you bind isn't resolvable or routable.
 
 If you choose to use a non-routable listener, you must set `ksql.advertised.listener` and specify a

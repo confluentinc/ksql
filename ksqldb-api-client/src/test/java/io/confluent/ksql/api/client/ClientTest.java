@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -29,11 +30,12 @@ import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.TestQueryPublisher;
+import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
-import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.PushQueryId;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -289,19 +291,21 @@ public class ClientTest extends BaseApiTest {
       streamedQueryResult.poll();
     }
 
-    CountDownLatch latch = new CountDownLatch(1);
+    CountDownLatch pollStarted = new CountDownLatch(1);
+    CountDownLatch pollReturned = new CountDownLatch(1);
     new Thread(() -> {
       // This poll() call blocks as there are no more rows to be returned
-      final Row row = streamedQueryResult.poll();
+      final Row row = StreamedQueryResultImpl.pollWithCallback(streamedQueryResult, () -> pollStarted.countDown());
       assertThat(row, is(nullValue()));
-      latch.countDown();
+      pollReturned.countDown();
     }).start();
+    awaitLatch(pollStarted);
 
     // When
     sendQueryPublisherError();
 
     // Then: poll() call terminates because of the error
-    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
+    awaitLatch(pollReturned);
   }
 
   @Test
@@ -443,6 +447,48 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause().getMessage(), containsString("invalid query blah"));
   }
 
+  @Test
+  public void shouldTerminatePushQueryIssuedViaStreamQuery() throws Exception {
+    // Given
+    final StreamedQueryResult streamedQueryResult =
+        javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    final String queryId = streamedQueryResult.queryID();
+    assertThat(queryId, is(notNullValue()));
+
+    // Query is running on server, and StreamedQueryResult is not complete
+    assertThat(server.getQueryIDs(), hasSize(1));
+    assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(true));
+    assertThat(streamedQueryResult.isComplete(), is(false));
+
+    // When
+    javaClient.terminatePushQuery(queryId).get();
+
+    // Then: query is no longer running on server, and StreamedQueryResult is complete
+    assertThat(server.getQueryIDs(), hasSize(0));
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldTerminatePushQueryIssuedViaExecuteQuery() {
+    // Will implement once https://github.com/confluentinc/ksql/pull/5236#issuecomment-628997138
+    // is resolved
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromTerminatePushQuery() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.terminatePushQuery("nonexistent query ID").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("No query with id"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: " + ERROR_CODE_BAD_REQUEST));
+  }
+
   protected Client createJavaClient() {
     return Client.create(createJavaClientOptions(), vertx);
   }
@@ -512,7 +558,7 @@ public class ClientTest extends BaseApiTest {
       }
     };
     publisher.subscribe(subscriber);
-    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
+    awaitLatch(latch);
     return subscriber;
   }
 
@@ -521,6 +567,10 @@ public class ClientTest extends BaseApiTest {
     for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       verifyRowWithIndex(rows.get(i), i);
     }
+  }
+
+  private static void awaitLatch(CountDownLatch latch) throws Exception {
+    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
   }
 
   private static void verifyRowWithIndex(final Row row, final int index) {

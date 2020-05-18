@@ -137,12 +137,12 @@ services:
 -------------------------
 
 The easiest way to download connectors for use in ksqlDB with embedded {{ site.kconnect }}
-is via the [Confluent Hub Client](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html)
-included in the `ksqlDB-server` Docker image.
+is via [Confluent Hub Client](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html).
 
-To download the JDBC connector, use the following command:
+To download the JDBC connector, use the following command, ensuring that the `confluent-hub-components` directory exists first:
+
 ```bash
-docker run -v $PWD/confluent-hub-components:/share/confluent-hub-components confluentinc/ksqldb-server:{{ site.release }} confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:{{ site.cprelease }}
+confluent-hub install --component-dir confluent-hub-components --no-prompt confluentinc/kafka-connect-jdbc:{{ site.cprelease }}
 ```
 This command downloads the JDBC connector into the directory `./confluent-hub-components`.
 

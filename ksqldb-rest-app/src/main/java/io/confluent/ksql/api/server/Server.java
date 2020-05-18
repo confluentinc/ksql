@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED;
+
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityExtension;
@@ -178,11 +181,11 @@ public class Server {
     return workerExecutor;
   }
 
-  synchronized void registerQuery(final PushQueryHolder query) {
+  synchronized void registerQuery(final PushQueryHolder query) throws KsqlApiException {
     Objects.requireNonNull(query);
     if (queries.size() == maxPushQueryCount) {
       throw new KsqlApiException("Maximum number of push queries exceeded",
-          ErrorCodes.ERROR_MAX_PUSH_QUERIES_EXCEEDED);
+          ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED);
     }
     if (queries.putIfAbsent(query.getId(), query) != null) {
       // It should never happen

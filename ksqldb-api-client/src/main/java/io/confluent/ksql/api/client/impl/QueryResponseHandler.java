@@ -16,7 +16,7 @@
 package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.util.JsonMapper;
-import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
+import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;

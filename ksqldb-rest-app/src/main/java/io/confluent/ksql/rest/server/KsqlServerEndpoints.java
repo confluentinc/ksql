@@ -13,11 +13,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.endpoints;
+package io.confluent.ksql.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
+import io.confluent.ksql.api.impl.InsertsStreamEndpoint;
+import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
+import io.confluent.ksql.api.impl.QueryEndpoint;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.spi.Endpoints;

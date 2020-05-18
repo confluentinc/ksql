@@ -13,42 +13,31 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 /**
- * Surprisingly, the id of a push query
+ * Represents the arguments to a close query request
  */
 @Immutable
-public class PushQueryId {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class CloseQueryArgs {
 
-  private final String id;
+  public final PushQueryId queryId;
 
-  public PushQueryId(final String id) {
-    this.id = Objects.requireNonNull(id);
+  public CloseQueryArgs(
+      final @JsonProperty(value = "queryId", required = true) PushQueryId queryId) {
+    this.queryId = Objects.requireNonNull(queryId);
   }
 
   @Override
   public String toString() {
-    return id;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final PushQueryId that = (PushQueryId) o;
-    return Objects.equals(id, that.id);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(id);
+    return "CloseQueryArgs{"
+        + "queryID='" + queryId + '\''
+        + '}';
   }
 }

@@ -13,8 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server.protocol;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
@@ -22,27 +23,34 @@ import java.util.Objects;
  * Represents an error on an insert stream
  */
 @Immutable
-public class InsertError extends SerializableObject {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class InsertError extends KsqlErrorMessage {
 
-  public final long seq;
   public final String status;
-  public final int errorCode;
-  public final String message;
+  public final long seq;
 
   public InsertError(final long seq, final int errorCode, final String message) {
+    super(errorCode, message);
     this.seq = seq;
     this.status = "error";
-    this.errorCode = errorCode;
-    this.message = Objects.requireNonNull(message);
   }
 
   @Override
-  public String toString() {
-    return "ErrorResponse{"
-        + "seq=" + seq
-        + "status='" + status + '\''
-        + ", errorCode=" + errorCode
-        + ", message='" + message + '\''
-        + '}';
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final KsqlErrorMessage that = (KsqlErrorMessage) o;
+    return getErrorCode() == that.getErrorCode()
+        && Objects.equals(that.getMessage(), that.getMessage())
+        && Objects.equals(getStackTrace(), that.getStackTrace());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), status, seq);
   }
 }

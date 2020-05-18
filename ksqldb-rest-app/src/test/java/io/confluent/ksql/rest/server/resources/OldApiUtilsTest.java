@@ -21,25 +21,25 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.api.server.OldApiExceptionMapper;
+import io.confluent.ksql.api.server.OldApiUtils;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import org.junit.Test;
 
-public class OldApiExceptionMapperTest {
+public class OldApiUtilsTest {
 
   @Test
   public void shouldReturnEmbeddedResponseForKsqlRestException() {
     final EndpointResponse response = EndpointResponse.failed(400);
     assertThat(
-        OldApiExceptionMapper.mapException(new KsqlRestException(response)),
+        OldApiUtils.mapException(new KsqlRestException(response)),
         sameInstance(response));
   }
 
   @Test
   public void shouldReturnCorrectResponseForUnspecificException() {
-    final EndpointResponse response = OldApiExceptionMapper
+    final EndpointResponse response = OldApiUtils
         .mapException(new Exception("error msg"));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage) response.getEntity();

@@ -13,33 +13,31 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server.protocol;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.errorprone.annotations.Immutable;
-import java.util.Objects;
 
 /**
- * Represents an error response
+ * Represents a response to an insert
  */
 @Immutable
-public class ErrorResponse extends SerializableObject {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class InsertAck {
 
+  public final long seq;
   public final String status;
-  public final int errorCode;
-  public final String message;
 
-  public ErrorResponse(final int errorCode, final String message) {
-    this.status = "error";
-    this.errorCode = errorCode;
-    this.message = Objects.requireNonNull(message);
+  public InsertAck(final long seq) {
+    this.seq = seq;
+    this.status = "ok";
   }
 
   @Override
   public String toString() {
-    return "ErrorResponse{"
-        + "status='" + status + '\''
-        + ", errorCode=" + errorCode
-        + ", message='" + message + '\''
+    return "InsertAck{"
+        + "seq=" + seq
+        + ", status='" + status + '\''
         + '}';
   }
 }

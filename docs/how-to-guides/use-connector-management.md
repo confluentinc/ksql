@@ -50,8 +50,8 @@ After running this command, `confluent-hub-components` should contain the Volubl
 
 When you have all the connectors that you need, configure ksqlDB to find them.
 
-!!!important
-   You must restart all of the ksqlDB servers to finish installing the new connectors.
+!!! important
+    You must restart all of the ksqlDB servers to finish installing the new connectors.
 
 ### Configuring ksqlDB
 

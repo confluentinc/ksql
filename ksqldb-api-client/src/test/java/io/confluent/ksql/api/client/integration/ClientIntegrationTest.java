@@ -482,8 +482,6 @@ public class ClientIntegrationTest {
     assertThat(values.getString(0), is(row.getString("PAGEID")));
     assertThat(values.getString(1), is(row.getString("USERID")));
     assertThat(values.getLong(2), is(row.getLong("VIEWTIME")));
-    assertThat(values.contains(row.getString("USERID")), is(true));
-    assertThat(values.contains("bad"), is(false));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 
@@ -542,8 +540,6 @@ public class ClientIntegrationTest {
     assertThat(values.isEmpty(), is(false));
     assertThat(values.getString(0), is(row.getString("USERID")));
     assertThat(values.getLong(1), is(row.getLong("COUNT")));
-    assertThat(values.contains(row.getString("USERID")), is(true));
-    assertThat(values.contains("bad"), is(false));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 

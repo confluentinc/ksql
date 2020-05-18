@@ -37,10 +37,6 @@ public class KsqlArray {
     delegate = Objects.requireNonNull(jsonArray);
   }
 
-  public boolean contains(final Object value) {
-    return delegate.contains(value);
-  }
-
   public int size() {
     return delegate.size();
   }

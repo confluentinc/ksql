@@ -399,7 +399,7 @@ ksql.internal.listener=https://192.168.1.102:8088
 !!! note
     Only the `ksql.internal.listener` needs to be resolvable and routable from servers running other
     nodes in the cluster. The `listener` configuration can be non-resolvable and non-routable, because
-    clients' can connect using whatever url you choose.
+    clients can connect using whatever URL you choose.
 
 In this setup, the node shares the URL in the `ksql.internal.listener` config as its
 internal endpoint, which other nodes use for inter-node communication. Inter-node

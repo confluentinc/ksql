@@ -402,7 +402,7 @@ ksql.internal.listener=https://192.168.1.102:8088
     clients' can connect using whatever url you choose.
 
 In this setup, the node shares the URL in the `ksql.internal.listener` config as its
-internal endpoint, which other nodes will use for inter-node communication. Inter-node
+internal endpoint, which other nodes use for inter-node communication. Inter-node
 communication uses a different listener to client communication.
 
 #### Dual non-routable listeners

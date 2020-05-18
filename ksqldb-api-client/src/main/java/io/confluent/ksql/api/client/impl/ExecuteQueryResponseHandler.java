@@ -17,9 +17,9 @@ package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.ColumnType;
+import io.confluent.ksql.api.client.KsqlClientException;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.util.RowUtil;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
@@ -65,7 +65,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
     if (rows.size() < maxRows) {
       rows.add(new RowImpl(columnNames, columnTypes, values, columnNameToIndex));
     } else {
-      throw new KsqlRestClientException(
+      throw new KsqlClientException(
           "Reached max number of rows that may be returned by executeQuery(). "
               + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
               + "Current limit: " + maxRows);

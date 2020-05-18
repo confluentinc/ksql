@@ -22,8 +22,8 @@ import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.InsertAck;
+import io.confluent.ksql.api.client.KsqlClientException;
 import io.confluent.ksql.api.client.StreamedQueryResult;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -222,7 +222,7 @@ public class ClientImpl implements Client {
   ) {
     response.bodyHandler(buffer -> {
       final JsonObject errorResponse = buffer.toJsonObject();
-      cf.completeExceptionally(new KsqlRestClientException(String.format(
+      cf.completeExceptionally(new KsqlClientException(String.format(
           "Received %d response from server: %s. Error code: %d",
           response.statusCode(),
           errorResponse.getString("message"),

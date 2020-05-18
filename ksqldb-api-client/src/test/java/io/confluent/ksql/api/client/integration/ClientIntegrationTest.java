@@ -39,6 +39,7 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.KsqlArray;
+import io.confluent.ksql.api.client.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
@@ -48,7 +49,6 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -277,7 +277,7 @@ public class ClientIntegrationTest {
     );
 
     // Then
-    assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("NONEXISTENT does not exist"));
   }
@@ -344,7 +344,7 @@ public class ClientIntegrationTest {
     );
 
     // Then
-    assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("Missing WHERE clause"));
   }
@@ -402,7 +402,7 @@ public class ClientIntegrationTest {
     );
 
     // Then
-    assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("No query with id NONEXISTENT"));
   }

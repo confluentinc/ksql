@@ -1,4 +1,4 @@
-# How to use a custom timestamp field
+# How to use a custom timestamp column
 
 ## Context
 
@@ -48,7 +48,7 @@ CREATE STREAM s1 (
 );
 ```
 
-Insert some events into `s1`, setting the `ts` column to dates that are not "now".
+Insert some rows into `s1`, setting the `ts` column to dates that are not "now".
 
 ```sql
 INSERT INTO s1 (
@@ -165,7 +165,7 @@ CREATE STREAM s4 (
 );
 ```
 
-Insert some events with millisecond timestamps.
+Insert some rows with millisecond timestamps.
 
 ```sql
 INSERT INTO s4 (

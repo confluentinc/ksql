@@ -2,7 +2,7 @@
 
 ## Context
 
-You have events that contain structured data types like structs, maps, and arrays. You want to write them to ksqlDB and read their inner contents with queries. Because ksqlDB represents events as a flat series of columns, you need a bit of syntax to work with these data types. This is sometimes called "destructuring".
+You have events that contain structured data types like structs, maps, and arrays. You want to write them to ksqlDB and read their inner contents with queries. Because ksqlDB represents each event as a row with a flat series of columns, you need a bit of syntax to work with these data types. This is sometimes called "destructuring".
 
 ## In action
 
@@ -43,7 +43,7 @@ CREATE STREAM s2 (
 );
 ```
 
-Insert some events into `s2`. You can represent a struct literal by using the `STRUCT` constructor, which takes a variable number of key/value arguments.
+Insert some rows into `s2`. You can represent a struct literal by using the `STRUCT` constructor, which takes a variable number of key/value arguments.
 
 ```sql
 INSERT INTO s2 (
@@ -112,7 +112,7 @@ CREATE STREAM s3 (
 );
 ```
 
-Insert some events into `s3`. You can represent a MAP literal by using the `MAP` constructor, which takes a variable number of key/value arguments. `c` and `d` are used consistently in this example, but the key names can be heterogeneous in practice.
+Insert some rows into `s3`. You can represent a MAP literal by using the `MAP` constructor, which takes a variable number of key/value arguments. `c` and `d` are used consistently in this example, but the key names can be heterogeneous in practice.
 
 ```sql
 INSERT INTO s3 (
@@ -180,7 +180,7 @@ CREATE STREAM s4 (
 );
 ```
 
-Insert some events into `s4`. You can represent an array literal by using the `ARRAY` constructor, which takes a variable number of elements.
+Insert some rows into `s4`. You can represent an array literal by using the `ARRAY` constructor, which takes a variable number of elements.
 
 ```sql
 INSERT INTO s4 (
@@ -263,7 +263,7 @@ CREATE STREAM s4 (
 );
 ```
 
-Insert some events into `s4`. Notice how the constructors for each data type readily compose.
+Insert some rows into `s4`. Notice how the constructors for each data type readily compose.
 
 ```sql
 INSERT INTO s4 (

@@ -71,7 +71,7 @@ nav:
       - Synopsis: how-to-guides/synposis.md
       - Query structured data: how-to-guides/query-structured-data.md
       - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
-      - Use a custom timestamp field: how-to-guides/use-a-custom-timestamp-field.md
+      - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
       - Use connector management: how-to-guides/use-connector-management.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md

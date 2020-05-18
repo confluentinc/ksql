@@ -43,7 +43,7 @@ CREATE STREAM s1 (
 );
 ```
 
-Insert some events into `s1`, repeating entries for some of the keys.
+Insert some rows into `s1`, repeating entries for some of the keys.
 
 ```sql
 INSERT INTO s1 (

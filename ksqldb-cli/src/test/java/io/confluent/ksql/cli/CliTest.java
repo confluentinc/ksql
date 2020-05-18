@@ -40,6 +40,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
@@ -112,6 +113,7 @@ import org.mockito.junit.MockitoJUnitRunner;
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
 @SuppressWarnings("SameParameterValue")
+@SuppressFBWarnings({"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"})
 @RunWith(MockitoJUnitRunner.class)
 @Category(IntegrationTest.class)
 public class CliTest {

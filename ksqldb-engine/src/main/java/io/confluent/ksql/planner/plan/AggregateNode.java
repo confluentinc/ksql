@@ -41,6 +41,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -196,13 +197,18 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
     return source.getPartitions(kafkaTopicClient);
   }
 
-  private static SchemaKStream<?> selectRequiredInputColumns(
+  private SchemaKStream<?> selectRequiredInputColumns(
       final SchemaKStream<?> sourceSchemaKStream,
       final InternalSchema internalSchema,
       final Stacker contextStacker,
       final KsqlQueryBuilder builder
   ) {
+    final List<ColumnName> keyColumnNames = getSource().getSchema().key().stream()
+        .map(Column::name)
+        .collect(Collectors.toList());
+
     return sourceSchemaKStream.select(
+        keyColumnNames,
         internalSchema.getAggArgExpansionList(),
         contextStacker.push(PREPARE_OP_NAME),
         builder
@@ -246,8 +252,16 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
       final Stacker contextStacker,
       final KsqlQueryBuilder builder
   ) {
-    return aggregated
-        .select(finalSelectExpressions, contextStacker.push(PROJECT_OP_NAME), builder);
+    final List<ColumnName> keyColumnNames = getSchema().key().stream()
+        .map(Column::name)
+        .collect(Collectors.toList());
+
+    return aggregated.select(
+        keyColumnNames,
+        finalSelectExpressions,
+        contextStacker.push(PROJECT_OP_NAME),
+        builder
+    );
   }
 
   private SchemaKGroupedStream groupBy(

@@ -70,6 +70,7 @@ public class PhysicalPlanBuilder {
     );
 
     final SchemaKStream<?> resultStream = outputNode.buildStream(ksqlQueryBuilder);
+
     return new PhysicalPlan(
         queryId,
         resultStream.getSourceStep()

@@ -44,6 +44,7 @@ public final class TableSelectBuilder {
 
     final Selection<K> selection = Selection.of(
         sourceSchema,
+        step.getKeyColumnNames(),
         step.getSelectExpressions(),
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry()

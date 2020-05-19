@@ -208,7 +208,7 @@ public final class StepSchemaResolver {
       final LogicalSchema schema,
       final StreamSelect<?> step
   ) {
-    return buildSelectSchema(schema, step.getSelectExpressions());
+    return buildSelectSchema(schema, step.getKeyColumnNames(), step.getSelectExpressions());
   }
 
   private LogicalSchema handleSelectKeyV1(
@@ -290,7 +290,7 @@ public final class StepSchemaResolver {
       final LogicalSchema schema,
       final TableSelect<?> step
   ) {
-    return buildSelectSchema(schema, step.getSelectExpressions());
+    return buildSelectSchema(schema, step.getKeyColumnNames(), step.getSelectExpressions());
   }
 
   private LogicalSchema sameSchema(final LogicalSchema schema, final ExecutionStep<?> step) {
@@ -307,10 +307,12 @@ public final class StepSchemaResolver {
 
   private LogicalSchema buildSelectSchema(
       final LogicalSchema schema,
+      final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions
   ) {
     return Selection.of(
         schema,
+        keyColumnNames,
         selectExpressions,
         ksqlConfig,
         functionRegistry

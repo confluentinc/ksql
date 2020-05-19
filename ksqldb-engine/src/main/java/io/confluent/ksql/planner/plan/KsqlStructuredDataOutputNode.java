@@ -31,7 +31,6 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -146,9 +145,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         .collect(Collectors.joining(", "));
 
     if (!duplicates.isEmpty()) {
-      throw new KsqlException("Value column name(s) " + duplicates + " clashes with key column "
-          + "name(s). Key column(s) are always copied to the output schema, unless there is a "
-          + "GROUP BY or PARTITION BY clause. Please remove or alias the duplicate column(s).");
+      throw new IllegalArgumentException("Value columns clash with key columns: " + duplicates);
     }
   }
 }

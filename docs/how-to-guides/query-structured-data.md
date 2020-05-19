@@ -20,7 +20,7 @@ EMIT CHANGES;
 
 Structs are an associative data type that map `VARCHAR` keys to values of any type. Destructure structs by using arrow syntax (`->`).
 
-Begin by telling ksqlDB to start all queries from earliest point in each topic.
+Begin by telling ksqlDB to start all queries from the earliest point in each topic.
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';

@@ -30,7 +30,7 @@ In embedded mode, ksqlDB runs connectors directly on its servers. This is conven
 
 ### Dowloading connectors
 
-Before you can use a connector, you need to download it prior to starting ksqlDB. A downloaded connector package is essentially a set of jars that contain the code for interacting with the target data store.
+Before you can use an embedded connector, you need to download it prior to starting ksqlDB. A downloaded connector package is essentially a set of jars that contain the code for interacting with the target data store.
 
 The easiest way to download a connector is to use [`confluent-hub`](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html), a utility program distributed by Confluent.
 

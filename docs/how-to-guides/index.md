@@ -1,7 +1,5 @@
 The how-to guides are compact lessons that help you work with common ksqlDB functionality.
 
-Learn how to:
-
 - [Query structured data](query-structured-data.md)
 - [Convert a changelog to a table](convert-changelog-to-table.md)
 - [Use a custom timestamp column](use-a-custom-timestamp-column.md)

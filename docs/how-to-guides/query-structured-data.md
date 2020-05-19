@@ -160,7 +160,7 @@ This query should return the following results. The last two column names have b
 
 Arrays are a collection data type that contain a sequence of values of a single type. Destructure arrays using bracket syntax (`[]`).
 
-Begin by telling ksqlDB to start all queries from earliest point in each topic.
+Begin by telling ksqlDB to start all queries from the earliest point in each topic.
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';

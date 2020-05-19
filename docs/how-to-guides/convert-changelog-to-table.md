@@ -21,7 +21,7 @@ CREATE TABLE t1 AS
 
 In ksqlDB, you derive new tables by aggregating other streams and tables. To create a table that reflects the latest values for each key, use the `LATEST_BY_OFFSET` aggregation.
 
-Begin by telling ksqlDB to start all queries from earliest point in each topic.
+Begin by telling ksqlDB to start all queries from the earliest point in each topic.
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';

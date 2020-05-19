@@ -83,25 +83,30 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    return makeQueryRequest(sql, properties, StreamQueryResponseHandler::new);
+    final CompletableFuture<StreamedQueryResult> cf = new CompletableFuture<>();
+    makeQueryRequest(sql, properties, cf, StreamQueryResponseHandler::new);
+    return cf;
   }
 
   @Override
-  public CompletableFuture<BatchedQueryResult> executeQuery(final String sql) {
+  public BatchedQueryResult executeQuery(final String sql) {
     return executeQuery(sql, Collections.emptyMap());
   }
 
   @Override
-  public CompletableFuture<BatchedQueryResult> executeQuery(
+  public BatchedQueryResult executeQuery(
       final String sql,
       final Map<String, Object> properties
   ) {
-    return makeQueryRequest(
+    final BatchedQueryResult result = new BatchedQueryResultImpl();
+    makeQueryRequest(
         sql,
         properties,
+        result,
         (context, recordParser, cf) -> new ExecuteQueryResponseHandler(
             context, recordParser, cf, clientOptions.getExecuteQueryMaxResultRows())
     );
+    return result;
   }
 
   @Override
@@ -130,26 +135,24 @@ public class ClientImpl implements Client {
   }
 
   @FunctionalInterface
-  private interface ResponseHandlerSupplier<T> {
-    QueryResponseHandler<T> get(Context ctx, RecordParser recordParser, CompletableFuture<T> cf);
+  private interface ResponseHandlerSupplier<T extends CompletableFuture<?>> {
+    QueryResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf);
   }
 
-  private <T> CompletableFuture<T> makeQueryRequest(
+  private <T extends CompletableFuture<?>> void makeQueryRequest(
       final String sql,
       final Map<String, Object> properties,
+      final T cf,
       final ResponseHandlerSupplier<T> responseHandlerSupplier
   ) {
     final JsonObject requestBody = new JsonObject().put("sql", sql).put("properties", properties);
 
-    final CompletableFuture<T> cf = new CompletableFuture<>();
     makeRequest(
         "/query-stream",
         requestBody,
         cf,
         response -> handleQueryResponse(response, cf, responseHandlerSupplier)
     );
-
-    return cf;
   }
 
   private CompletableFuture<Void> makeCloseQueryRequest(final String queryId) {
@@ -165,10 +168,10 @@ public class ClientImpl implements Client {
     return cf;
   }
 
-  private <T> void makeRequest(
+  private <T extends CompletableFuture<?>> void makeRequest(
       final String path,
       final JsonObject requestBody,
-      final CompletableFuture<T> cf,
+      final T cf,
       final Handler<HttpClientResponse> responseHandler) {
     HttpClientRequest request = httpClient.request(HttpMethod.POST,
         serverSocketAddress, clientOptions.getPort(), clientOptions.getHost(),
@@ -185,9 +188,9 @@ public class ClientImpl implements Client {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
   }
 
-  private static <T> void handleQueryResponse(
+  private static <T extends CompletableFuture<?>> void handleQueryResponse(
       final HttpClientResponse response,
-      final CompletableFuture<T> cf,
+      final T cf,
       final ResponseHandlerSupplier<T> responseHandlerSupplier) {
     if (response.statusCode() == OK.code()) {
       final RecordParser recordParser = RecordParser.newDelimited("\n", response);
@@ -213,9 +216,9 @@ public class ClientImpl implements Client {
     }
   }
 
-  private static <T> void handleErrorResponse(
+  private static <T extends CompletableFuture<?>> void handleErrorResponse(
       final HttpClientResponse response,
-      final CompletableFuture<T> cf
+      final T cf
   ) {
     response.bodyHandler(buffer -> {
       final JsonObject errorResponse = buffer.toJsonObject();

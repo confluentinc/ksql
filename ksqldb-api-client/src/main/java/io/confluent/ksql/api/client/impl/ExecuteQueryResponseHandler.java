@@ -28,7 +28,6 @@ import io.vertx.core.parsetools.RecordParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +37,6 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
 
   private final List<Row> rows;
   private final int maxRows;
-  private String queryId;
   private List<String> columnNames;
   private List<ColumnType> columnTypes;
   private Map<String, Integer> columnNameToIndex;
@@ -46,7 +44,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
   ExecuteQueryResponseHandler(
       final Context context,
       final RecordParser recordParser,
-      final CompletableFuture<BatchedQueryResult> cf,
+      final BatchedQueryResult cf,
       final int maxRows) {
     super(context, recordParser, cf);
     this.maxRows = maxRows;
@@ -55,7 +53,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
 
   @Override
   protected void handleMetadata(final QueryResponseMetadata queryResponseMetadata) {
-    queryId = queryResponseMetadata.queryId;
+    cf.queryID().complete(queryResponseMetadata.queryId);
     columnNames = queryResponseMetadata.columnNames;
     columnTypes = RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes);
     columnNameToIndex = RowUtil.valueToIndexMap(columnNames);
@@ -80,7 +78,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
       throw new IllegalStateException("Body ended before metadata received");
     }
 
-    cf.complete(new BatchedQueryResultImpl(queryId, columnNames, columnTypes, rows));
+    cf.complete(rows);
   }
 
   @Override

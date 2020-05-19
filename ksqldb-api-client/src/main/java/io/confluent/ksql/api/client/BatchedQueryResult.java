@@ -16,18 +16,14 @@
 package io.confluent.ksql.api.client;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The result of a query (push or pull), returned as a single batch once the query has finished
  * executing. For non-terminating push queries, {@code StreamedQueryResult} should be used instead.
  */
-public interface BatchedQueryResult {
+public abstract class BatchedQueryResult extends CompletableFuture<List<Row>> {
 
-  List<String> columnNames();
+  public abstract CompletableFuture<String> queryID();
 
-  List<ColumnType> columnTypes();
-
-  String queryID();
-
-  List<Row> rows();
 }

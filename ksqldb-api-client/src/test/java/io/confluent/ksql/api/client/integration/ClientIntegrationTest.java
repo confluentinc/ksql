@@ -316,27 +316,23 @@ public class ClientIntegrationTest {
   @Test
   public void shouldExecutePullQuery() throws Exception {
     // When
-    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY).get();
+    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY);
 
     // Then
-    assertThat(batchedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
-    assertThat(batchedQueryResult.columnTypes(), is(PULL_QUERY_COLUMN_TYPES));
-    assertThat(batchedQueryResult.queryID(), is(nullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
 
-    verifyPullQueryRows(batchedQueryResult.rows());
+    verifyPullQueryRows(batchedQueryResult.get());
   }
 
   @Test
   public void shouldExecutePushWithLimitQuery() throws Exception {
     // When
-    final BatchedQueryResult batchedQueryResult = client.executeQuery(PUSH_QUERY_WITH_LIMIT).get();
+    final BatchedQueryResult batchedQueryResult = client.executeQuery(PUSH_QUERY_WITH_LIMIT);
 
     // Then
-    assertThat(batchedQueryResult.columnNames(), is(PAGE_VIEW_COLUMN_NAMES));
-    assertThat(batchedQueryResult.columnTypes(), is(PAGE_VIEW_COLUMN_TYPES));
-    assertThat(batchedQueryResult.queryID(), is(notNullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
 
-    verifyPageViewRows(batchedQueryResult.rows(), PUSH_QUERY_LIMIT_NUM_ROWS);
+    verifyPageViewRows(batchedQueryResult.get(), PUSH_QUERY_LIMIT_NUM_ROWS);
   }
 
   @Test
@@ -375,9 +371,26 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldTerminatePushQueryIssuedViaExecuteQuery() {
-    // Will implement once https://github.com/confluentinc/ksql/pull/5236#issuecomment-628997138
-    // is resolved
+  public void shouldTerminatePushQueryIssuedViaExecuteQuery() throws Exception {
+    // Given: one persistent query for the agg table
+    verifyNumActiveQueries(1);
+
+    // Issue non-terminating push query via executeQuery(). This is NOT an expected use case
+    final BatchedQueryResult batchedQueryResult = client.executeQuery(PUSH_QUERY);
+    final String queryId = batchedQueryResult.queryID().get();
+    assertThat(queryId, is(notNullValue()));
+
+    // Query is running on server, and StreamedQueryResult is not complete
+    verifyNumActiveQueries(2);
+    assertThat(batchedQueryResult.isDone(), is(false));
+
+    // When
+    client.terminatePushQuery(queryId).get();
+
+    // Then: query is no longer running on server, and BatchedQueryResult is complete
+    verifyNumActiveQueries(1);
+    assertThatEventually(batchedQueryResult::isDone, is(true));
+    assertThat(batchedQueryResult.isCompletedExceptionally(), is(false));
   }
 
   @Test

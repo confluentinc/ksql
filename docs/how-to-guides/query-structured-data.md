@@ -26,7 +26,7 @@ Begin by telling ksqlDB to start all queries from earliest point in each topic.
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-Make a stream `s2` with two columns: `a` and `b`. `b` is a struct with `VARCHAR` keys `c` and `d`, who's value data types are `VARCHAR` and `INT` respectively.
+Make a stream `s2` with two columns: `a` and `b`. `b` is a struct with `VARCHAR` keys `c` and `d`, whose value data types are `VARCHAR` and `INT` respectively.
 
 ```sql
 CREATE STREAM s2 (

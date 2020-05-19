@@ -15,10 +15,14 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.io.OutputStream;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
 
 /*
@@ -41,7 +45,7 @@ public class ResponseOutputStream extends OutputStream {
   }
 
   @Override
-  public void write(final @NotNull byte[] bytes, final int offset, final int length) {
+  public synchronized void write(final @NotNull byte[] bytes, final int offset, final int length) {
     Objects.requireNonNull(bytes);
     if ((offset < 0) || (offset > bytes.length)) {
       throw new IndexOutOfBoundsException();
@@ -55,6 +59,7 @@ public class ResponseOutputStream extends OutputStream {
     final byte[] bytesToWrite = new byte[length];
     System.arraycopy(bytes, offset, bytesToWrite, 0, length);
     final Buffer buffer = Buffer.buffer(bytesToWrite);
+    blockIfWriteQueueFull();
     response.write(buffer);
   }
 
@@ -62,6 +67,21 @@ public class ResponseOutputStream extends OutputStream {
   public void close() {
     response.end();
   }
+
+  private void blockIfWriteQueueFull() {
+    VertxUtils.checkIsWorker();
+    if (response.writeQueueFull()) {
+      final CompletableFuture<Void> cf = new CompletableFuture<>();
+      response.drainHandler(v -> cf.complete(null));
+      try {
+        cf.get(60, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        // Very slow consumers will result in a timeout, this will cause the push query to be closed
+        throw new KsqlException(e);
+      }
+    }
+  }
+
 }
 
 

@@ -26,6 +26,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -140,7 +141,8 @@ public class QueryDescriptionFactoryTest {
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,
-        closeTimeout);
+        closeTimeout,
+        QueryErrorClassifier.DEFAULT_CLASSIFIER);
 
     persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATUS_MAP);
   }

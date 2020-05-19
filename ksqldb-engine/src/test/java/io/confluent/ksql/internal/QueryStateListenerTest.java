@@ -28,6 +28,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
+import io.confluent.ksql.query.QueryError;
+import io.confluent.ksql.query.QueryError.Type;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
@@ -43,8 +45,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryStateListenerTest {
 
-  private static final MetricName METRIC_NAME =
+  private static final MetricName METRIC_NAME_1 =
       new MetricName("bob", "g1", "d1", ImmutableMap.of());
+  private static final MetricName METRIC_NAME_2 =
+      new MetricName("dylan", "g1", "d1", ImmutableMap.of());
 
   @Mock
   private Metrics metrics;
@@ -54,7 +58,9 @@ public class QueryStateListenerTest {
 
   @Before
   public void setUp() {
-    when(metrics.metricName(any(), any(), any(), anyMap())).thenReturn(METRIC_NAME);
+    when(metrics.metricName(any(), any(), any(), anyMap()))
+        .thenReturn(METRIC_NAME_1)
+        .thenReturn(METRIC_NAME_2);
 
     listener = new QueryStateListener(metrics, "", "app-id");
   }
@@ -73,8 +79,12 @@ public class QueryStateListenerTest {
     verify(metrics).metricName("query-status", "ksql-queries",
         "The current status of the given query.",
         ImmutableMap.of("status", "app-id"));
+    verify(metrics).metricName("error-status", "ksql-queries",
+        "The current error status of the given query, if the state is in ERROR state",
+        ImmutableMap.of("status", "app-id"));
 
-    verify(metrics).addMetric(eq(METRIC_NAME), isA(Gauge.class));
+    verify(metrics).addMetric(eq(METRIC_NAME_1), isA(Gauge.class));
+    verify(metrics).addMetric(eq(METRIC_NAME_2), isA(Gauge.class));
   }
 
   @Test
@@ -91,6 +101,9 @@ public class QueryStateListenerTest {
     verify(metrics).metricName("query-status", groupPrefix + "ksql-queries",
         "The current status of the given query.",
         ImmutableMap.of("status", "app-id"));
+    verify(metrics).metricName("error-status", groupPrefix + "ksql-queries",
+        "The current error status of the given query, if the state is in ERROR state",
+        ImmutableMap.of("status", "app-id"));
   }
 
   @Test
@@ -99,7 +112,8 @@ public class QueryStateListenerTest {
     // Listener created in setup
 
     // Then:
-    assertThat(currentGaugeValue(), is("-"));
+    assertThat(currentGaugeValue(METRIC_NAME_1), is("-"));
+    assertThat(currentGaugeValue(METRIC_NAME_2), is("NO_ERROR"));
   }
 
   @Test
@@ -108,7 +122,16 @@ public class QueryStateListenerTest {
     listener.onChange(State.REBALANCING, State.RUNNING);
 
     // Then:
-    assertThat(currentGaugeValue(), is("REBALANCING"));
+    assertThat(currentGaugeValue(METRIC_NAME_1), is("REBALANCING"));
+  }
+
+  @Test
+  public void shouldUpdateOnError() {
+    // When:
+    listener.onError(new QueryError(new Throwable("foo"), Type.USER));
+
+    // Then:
+    assertThat(currentGaugeValue(METRIC_NAME_2), is("USER"));
   }
 
   @Test
@@ -117,11 +140,12 @@ public class QueryStateListenerTest {
     listener.close();
 
     // Then:
-    verify(metrics).removeMetric(METRIC_NAME);
+    verify(metrics).removeMetric(METRIC_NAME_1);
+    verify(metrics).removeMetric(METRIC_NAME_2);
   }
 
-  private String currentGaugeValue() {
-    verify(metrics).addMetric(any(), gaugeCaptor.capture());
+  private String currentGaugeValue(final MetricName name) {
+    verify(metrics).addMetric(eq(name), gaugeCaptor.capture());
     return gaugeCaptor.getValue().value(null, 0L);
   }
 }

@@ -509,8 +509,7 @@ public class ClientTest extends BaseApiTest {
   protected ClientOptions createJavaClientOptions() {
     return ClientOptions.create()
         .setHost("localhost")
-        .setPort(server.getListeners().get(0).getPort())
-        .setUseTls(false);
+        .setPort(server.getListeners().get(0).getPort());
   }
 
   private void verifyPushQueryServerState(final String sql) {

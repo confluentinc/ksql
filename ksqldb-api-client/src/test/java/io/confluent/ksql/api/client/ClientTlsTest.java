@@ -81,7 +81,8 @@ public class ClientTlsTest extends ClientTest {
         .setHost("localhost")
         .setPort(server.getListeners().get(0).getPort())
         .setUseTls(true)
-        .setVerifyHost(false);
+        .setVerifyHost(false)
+        .setUseAlpn(true);
   }
 
   protected static Map<String, Object> serverConfigWithTls() {

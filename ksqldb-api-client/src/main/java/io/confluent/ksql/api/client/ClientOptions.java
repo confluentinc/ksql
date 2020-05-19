@@ -59,6 +59,14 @@ public interface ClientOptions {
   ClientOptions setVerifyHost(boolean verifyHost);
 
   /**
+   * Sets whether ALPN should be used. Defaults to false.
+   *
+   * @param useAlpn whether ALPN should be used
+   * @return a reference to this
+   */
+  ClientOptions setUseAlpn(boolean useAlpn);
+
+  /**
    * Sets the trust store path.
    *
    * @param trustStorePath trust store path
@@ -137,6 +145,13 @@ public interface ClientOptions {
    * @return whether hostname verification is enabled
    */
   boolean isVerifyHost();
+
+  /**
+   * Returns whether ALPN should be used.
+   *
+   * @return whether ALPN should be used
+   */
+  boolean isUseAlpn();
 
   /**
    * Returns whether HTTP basic authentication will be used when connecting to the ksqlDB server.

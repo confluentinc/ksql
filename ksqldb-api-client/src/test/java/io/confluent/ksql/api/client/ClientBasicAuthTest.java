@@ -60,7 +60,6 @@ public class ClientBasicAuthTest extends ClientTest {
     return ClientOptions.create()
         .setHost("localhost")
         .setPort(server.getListeners().get(0).getPort())
-        .setUseTls(false)
         .setBasicAuthCredentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
   }
 

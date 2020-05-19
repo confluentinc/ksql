@@ -242,7 +242,7 @@ public class ClientImpl implements Client {
   private static HttpClient createHttpClient(final Vertx vertx, final ClientOptions clientOptions) {
     HttpClientOptions options = new HttpClientOptions()
         .setSsl(clientOptions.isUseTls())
-        .setUseAlpn(true)
+        .setUseAlpn(clientOptions.isUseAlpn())
         .setProtocolVersion(HttpVersion.HTTP_2)
         .setVerifyHost(clientOptions.isVerifyHost())
         .setDefaultHost(clientOptions.getHost())

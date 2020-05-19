@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.api.client.util.JsonMapper;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.util.VertxUtils;
@@ -24,6 +25,8 @@ import io.vertx.core.parsetools.RecordParser;
 import java.util.concurrent.CompletableFuture;
 
 abstract class QueryResponseHandler<T extends CompletableFuture<?>> {
+
+  private static ObjectMapper JSON_MAPPER = JsonMapper.get();
 
   protected final Context context;
   protected final RecordParser recordParser;
@@ -76,8 +79,7 @@ abstract class QueryResponseHandler<T extends CompletableFuture<?>> {
 
     final QueryResponseMetadata queryResponseMetadata;
     try {
-      queryResponseMetadata = JsonMapper.get()
-          .readValue(buff.getBytes(), QueryResponseMetadata.class);
+      queryResponseMetadata = JSON_MAPPER.readValue(buff.getBytes(), QueryResponseMetadata.class);
     } catch (Exception e) {
       cf.completeExceptionally(e);
       return;

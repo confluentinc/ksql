@@ -36,9 +36,7 @@ import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
-import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -231,7 +229,7 @@ public class ClientTest extends BaseApiTest {
     );
 
     // Then
-    assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("invalid query blah"));
   }
@@ -323,7 +321,7 @@ public class ClientTest extends BaseApiTest {
 
     // Then
     assertThatEventually(subscriber::getError, is(notNullValue()));
-    assertThat(subscriber.getError(), instanceOf(KsqlApiException.class));
+    assertThat(subscriber.getError(), instanceOf(KsqlException.class));
     assertThat(subscriber.getError().getMessage(), containsString("Error in processing query"));
 
     assertThatEventually(streamedQueryResult::isFailed, is(true));
@@ -441,7 +439,7 @@ public class ClientTest extends BaseApiTest {
     );
 
     // Then
-    assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("invalid query blah"));
   }
@@ -498,7 +496,7 @@ public class ClientTest extends BaseApiTest {
     );
 
     // Then
-    assertThat(e.getCause(), instanceOf(KsqlRestClientException.class));
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("No query with id"));
     assertThat(e.getCause().getMessage(), containsString("Error code: " + ERROR_CODE_BAD_REQUEST));

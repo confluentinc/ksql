@@ -55,7 +55,10 @@ When you have all the connectors that you need, configure ksqlDB to find them.
 
 ### Configuring ksqlDB
 
-You control whether ksqlDB uses embedded mode by supplying server configuration properties to ksqlDB. If any {{ site.kconnect }}-related properties are present, which are properties prefixed with `ksql.connect.*`, ksqlDB uses these and applies them to the embedded {{ site.kconnect }} server. Although embedded mode eases the operational burden of running a full {{ site.kconnectlong }} cluster, it doesn't dilute {{ site.kconnect }}'s power. Any property that you can configure for a regular {{ site.kconnectlong }} cluster can also be configured for embedded mode.
+You control whether ksqlDB uses embedded mode by supplying the server configuration property `ksql.connect.worker.config` with the path to a {{ site.kconnectlong }} configuration file. Although embedded mode eases the operational burden of running a full {{ site.kconnectlong }} cluster, it doesn't dilute {{ site.kconnectlong }}'s power. Any property that you can configure a regular {{ site.kconnectlong }} cluster with can also be applied to embedded mode.
+
+!!! note
+    If you're deploying with Docker, you can skip setting `ksql.connect.worker.config`. ksqlDB will look for environment variables prefixed with `KSQL_CONNECT_`. If it finds any, it will remove the `KSQL_` prefix and place them into a {{ site.kconnect }} configuration file. Embedded mode will use that configuration file. This is a convenience to avoid creating and mounting a separate configuration file.
 
 There are a number of properties that you must set to have a valid {{ site.kconnect }} setup. Refer to the [Kafka Connect documentation](https://docs.confluent.io/current/connect/index.html) to learn about the right properties to set. One critical property is `ksql.connect.plugin.path`, which specifies the path to find the connector jars. If you're using Docker, use a volume to mount your connector jars from your host into the container.
 

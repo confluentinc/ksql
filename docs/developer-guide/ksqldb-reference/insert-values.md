@@ -23,7 +23,7 @@ Description
 Produce a row into an existing stream or table and its underlying topic
 based on explicitly specified values.
 
-If column names are specified, then the order of the values must match the
+If column names are specified, the order of the values must match the
 order of the names. Any column not explicitly given a value is set to `null`.
 Pseudo columns, for example `ROWTIME`, may be provided.
 

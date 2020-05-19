@@ -48,34 +48,34 @@ given any name in the schema definition.
 When you create a table by using a CREATE TABLE AS SELECT statement, the key of
 the resulting table is determined as follows:
 
-- If the statement contains neither a JOIN or GROUP BY clause, the key type of the resulting
+- If the statement contains neither a JOIN nor GROUP BY clause, the key type of the resulting
   table matches the key type of the source table, and the name matches the source unless the
   projection defines an alias for the column.
 - If the statement contains a JOIN and no GROUP BY clause, the key type of the resulting table
-  will match the type of the join columns and then key name will:
-    - FULL OUTER joins and joins on expressions other than column references will have a system
-    generated name in the form `KSQL_COL_n`, where `n` is a positive integer, unless the projection
-    defines an alias for the column.
-    - For other joins that contain at least one column reference in their join criteria, the name
-    will match the left most column reference in the join criteria.
+  matches the type of the join columns. The key name is defined by these conditions:
+    - FULL OUTER joins and joins on expressions other than column references have a
+      system-generated name in the form `KSQL_COL_n`, where `n` is a positive integer,
+      unless the projection defines an alias for the column.
+    - For other joins that contain at least one column reference in their join criteria,
+      the name matches the leftmost column reference in the join criteria.
 - If the statement contains a GROUP BY clause, the grouping columns determine the key
   of the resulting table.
-    - When grouping by a single column or STRUCT field: the name of the key column in the
+    - When grouping by a single column or STRUCT field, the name of the key column in the
       resulting table matches the name of the column or field, unless the projection includes
-      an alias for the column or field, and the type of the key column matches the column or field.
-    - When grouping by a single expression that is not a column or STRUCT field: the resulting table
-      will have a system generated key column name in the form `KSQL_COL_n`, where `n` is a positive
-      integer, unless the projection contains an alias for the expression, and the type of the
-      column will match the result of the expression.
-    - When grouping by multiple expressions: the resulting table will have a system generated key
-      name in the form `KSQL_COL_n`, where `n` is a positive integer, and the type of the column will
-      be a [SQL `STRING`](../../concepts/schemas), containing the grouping expressions concatenated
+      an alias for the column or field. The type of the key column matches the column or field.
+    - When grouping by a single expression that is not a column or STRUCT field, the resulting table
+      has a system-generated key column name in the form `KSQL_COL_n`, where `n` is a positive
+      integer, unless the projection contains an alias for the expression. The type of the
+      column matches the result of the expression.
+    - When grouping by multiple expressions, the resulting table has a system-generated key
+      name in the form `KSQL_COL_n`, where `n` is a positive integer. The type of the column is
+      a [SQL `STRING`](../../concepts/schemas), containing the grouping expressions concatenated
       together.
 
 The following example shows a `users` table joined with a `clicks` stream
 on the `userId` column. The `users` table has the correct primary key
 `userId` that coincides with the joining column. But the `clicks` stream
-doesn't have a defined key, so ksqlDB must repartition it on the joining
+doesn't have a defined key, so ksqlDB repartitions it on the joining
 column (`userId`) to assign the key before performing the join.
 
 ```sql
@@ -137,8 +137,8 @@ the `INT` side to a `LONG`:
 
 Tables created on top of existing Kafka topics, for example those created with
 a `CREATE TABLE` statement, are keyed on the data held in the key of the records
-in the Kafka topic. ksqlDB presents this data in the `PRIMARY KEY` column and expects
-the data to be in the `KAFKA` format.
+in the {{ site.ak }} topic. ksqlDB presents this data in the `PRIMARY KEY` column
+and requires the data to be in the `KAFKA` format.
 
 Tables created inside ksqlDB from other sources, for example those created with
 a `CREATE TABLE AS SELECT` statement, will copy the key from their source(s)

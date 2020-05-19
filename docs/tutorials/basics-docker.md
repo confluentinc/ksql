@@ -597,8 +597,8 @@ Query terminated
 !!! note
    The grouping columns `gender` and `regionid` are currently stored combined
    in a single key column. This will be rectified once multiple key columns
-   are supported. Until then, then columns are combined and the resulting column
-   if given a system generated column name.
+   are supported. Until then, these columns are combined and the resulting column
+   is given a system-generated column name.
 
 ### 8. View query results using a pull query
 

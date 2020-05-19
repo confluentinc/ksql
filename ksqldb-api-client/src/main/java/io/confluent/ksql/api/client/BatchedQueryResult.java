@@ -20,10 +20,19 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * The result of a query (push or pull), returned as a single batch once the query has finished
- * executing. For non-terminating push queries, {@code StreamedQueryResult} should be used instead.
+ * executing, or the query has been terminated. For non-terminating push queries,
+ * {@link StreamedQueryResult} should be used instead.
+ *
+ * <p>If a non-200 response is received from the server, this future will complete exceptionally.
  */
 public abstract class BatchedQueryResult extends CompletableFuture<List<Row>> {
 
+  /**
+   * Returns a {@code CompletableFuture} containing the ID of the underlying query if the query is
+   * a push query, else null. The future is completed once a response is received from the server.
+   *
+   * @return a future containing the query ID (or null in the case of pull queries)
+   */
   public abstract CompletableFuture<String> queryID();
 
 }

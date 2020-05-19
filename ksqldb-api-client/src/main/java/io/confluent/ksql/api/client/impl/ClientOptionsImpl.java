@@ -20,8 +20,8 @@ import java.util.Objects;
 
 public class ClientOptionsImpl implements ClientOptions {
 
-  private String host = "localhost";
-  private int port = 8088;
+  private String host = ClientOptions.DEFAULT_HOST;
+  private int port = ClientOptions.DEFAULT_HOST_PORT;
   private boolean useTls = false;
   private boolean useClientAuth = false;
   private boolean verifyHost = true;
@@ -33,8 +33,12 @@ public class ClientOptionsImpl implements ClientOptions {
   private String keyStorePassword;
   private String basicAuthUsername;
   private String basicAuthPassword;
-  private int executeQueryMaxResultRows = 10000;
+  private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
 
+  /**
+   * {@code ClientOptions} should be instantiated via {@link ClientOptions#create}, NOT via this
+   * constructor.
+   */
   public ClientOptionsImpl() {
   }
 

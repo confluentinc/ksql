@@ -15,10 +15,18 @@
 
 package io.confluent.ksql.api.client;
 
+/**
+ * The type of a column returned as part of a query result.
+ */
 public interface ColumnType {
 
   enum Type { STRING, INTEGER, BIGINT, DOUBLE, BOOLEAN, DECIMAL, ARRAY, MAP, STRUCT }
 
+  /**
+   * Returns the type.
+   *
+   * @return the type
+   */
   Type getType();
 
 }

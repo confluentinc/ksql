@@ -54,10 +54,18 @@ public class ClientImpl implements Client {
   private final String basicAuthHeader;
   private final boolean ownedVertx;
 
+  /**
+   * {@code Client} instances should be created via {@link Client#create(ClientOptions)}, NOT via
+   * this constructor.
+   */
   public ClientImpl(final ClientOptions clientOptions) {
     this(clientOptions, Vertx.vertx(), true);
   }
 
+  /**
+   * {@code Client} instances should be created via {@link Client#create(ClientOptions, Vertx)},
+   * NOT via this constructor.
+   */
   public ClientImpl(final ClientOptions clientOptions, final Vertx vertx) {
     this(clientOptions, vertx, false);
   }

@@ -105,7 +105,7 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(pullQueryExecutor).execute(statement, serviceContext, Optional.empty(),
-        Optional.empty());
+        Optional.of(false));
   }
 
   @Test
@@ -119,7 +119,7 @@ public class PullQueryPublisherTest {
     // Then:
     verify(subscriber).onNext(any());
     verify(pullQueryExecutor).execute(statement, serviceContext, Optional.empty(),
-        Optional.empty());
+        Optional.of(false));
   }
 
   @Test

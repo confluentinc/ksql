@@ -209,7 +209,8 @@ SELECT a,
        b,
        b[1] AS b_1,
        b[2] AS b_2,
-       b[3] AS b_3, b[-1] AS b_minus_1
+       b[3] AS b_3,
+       b[-1] AS b_minus_1
 FROM s4
 EMIT CHANGES;
 ```

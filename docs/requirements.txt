@@ -1,7 +1,8 @@
-mkdocs>=1.1
-mdx_gh_links>=0.2
-mkdocs-macros-plugin>=0.4.6
+mkdocs==1.1
+mdx_gh_links==0.2
+mkdocs-macros-plugin==0.4.6
 mkdocs-git-revision-date-plugin==0.3
-pymdown-extensions
+pymdown-extensions==7.1
 Pygments==2.4.2
 mkdocs-material==5.1.3
+python-dateutil==2.8.1

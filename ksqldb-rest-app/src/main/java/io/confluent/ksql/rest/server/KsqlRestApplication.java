@@ -257,6 +257,7 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         this.restConfig,
         this.ksqlConfigNoPort);
+    MetricCollectors.addConfigurableReporter(ksqlConfig);
     log.debug("ksqlDB API server instance created");
   }
 
@@ -571,8 +572,6 @@ public final class KsqlRestApplication implements Executable {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
-
-    MetricCollectors.addConfigurableReporter(ksqlConfig);
 
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(restConfig.getOriginals());

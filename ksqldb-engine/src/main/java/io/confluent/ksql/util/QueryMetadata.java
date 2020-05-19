@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryError;
+import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
@@ -56,6 +58,8 @@ public abstract class QueryMetadata {
   private final LogicalSchema logicalSchema;
   private final Long closeTimeout;
   private final QueryId queryId;
+  private final QueryError[] queryErrorRef = new QueryError[]{null};
+  private final QueryErrorClassifier errorClassifier;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
@@ -74,7 +78,8 @@ public abstract class QueryMetadata {
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout,
-      final QueryId queryId
+      final QueryId queryId,
+      final QueryErrorClassifier errorClassifier
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -93,6 +98,14 @@ public abstract class QueryMetadata {
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
     this.closeTimeout = closeTimeout;
     this.queryId = Objects.requireNonNull(queryId, "queryId");
+    this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
+
+    kafkaStreams.setUncaughtExceptionHandler(
+        new KafkaStreamsUncaughtExceptionHandler(
+            errorClassifier,
+            queryStateListener
+        )
+    );
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
@@ -108,11 +121,19 @@ public abstract class QueryMetadata {
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
     this.closeTimeout = other.closeTimeout;
     this.queryId = other.queryId;
+    this.errorClassifier = other.errorClassifier;
   }
 
   public void registerQueryStateListener(final QueryStateListener queryStateListener) {
     this.queryStateListener = Optional.of(queryStateListener);
     queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
+
+    kafkaStreams.setUncaughtExceptionHandler(
+        new KafkaStreamsUncaughtExceptionHandler(
+            errorClassifier,
+            this.queryStateListener
+        )
+    );
   }
 
   public Map<String, Object> getOverriddenProperties() {

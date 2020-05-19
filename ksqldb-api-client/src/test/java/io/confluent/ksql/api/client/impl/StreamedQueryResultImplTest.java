@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.api.client.Row;
@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.reactivestreams.Subscriber;
@@ -42,7 +41,6 @@ import org.reactivestreams.Subscription;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamedQueryResultImplTest {
-
 
   @Mock
   private Subscriber<Row> subscriber;
@@ -55,6 +53,10 @@ public class StreamedQueryResultImplTest {
 
   private StreamedQueryResultImpl queryResult;
 
+  private volatile boolean subscriberReceivedRow;
+  private volatile boolean subscriberCompleted;
+  private volatile boolean subscriberFailed;
+
   @Before
   public void setUp() {
     vertx = Vertx.vertx();
@@ -65,6 +67,24 @@ public class StreamedQueryResultImplTest {
       subscription = (Subscription) args[0];
       return null;
     }).when(subscriber).onSubscribe(any());
+
+    subscriberReceivedRow = false;
+    doAnswer(invocation -> {
+      subscriberReceivedRow = true;
+      return null;
+    }).when(subscriber).onNext(row);
+
+    subscriberCompleted = false;
+    doAnswer(invocation -> {
+      subscriberCompleted = true;
+      return null;
+    }).when(subscriber).onComplete();
+
+    subscriberFailed = false;
+    doAnswer(invocation -> {
+      subscriberFailed = true;
+      return null;
+    }).when(subscriber).onError(any());
 
     queryResult = new StreamedQueryResultImpl(context, "queryId", Collections.emptyList(), Collections.emptyList());
   }
@@ -162,8 +182,8 @@ public class StreamedQueryResultImplTest {
     subscription.request(1);
 
     // Then
-    verify(subscriber).onNext(row);
-    verify(subscriber).onError(any());
+    assertThatEventually(() -> subscriberReceivedRow, is(true));
+    assertThatEventually(() -> subscriberFailed, is(true));
   }
 
   @Test
@@ -192,9 +212,8 @@ public class StreamedQueryResultImplTest {
     subscription.request(1);
 
     // Then
-    final InOrder inOrder = inOrder(subscriber);
-    inOrder.verify(subscriber).onNext(row);
-    inOrder.verify(subscriber).onComplete();
+    assertThatEventually(() -> subscriberReceivedRow, is(true));
+    assertThatEventually(() -> subscriberCompleted, is(true));
   }
 
   private void subscribe() throws Exception {

@@ -281,7 +281,7 @@ public class KsqlEngineMetricsTest {
 
   private double getMetricValue(final String metricName) {
     final Metrics metrics = engineMetrics.getMetrics();
-    return Double.valueOf(
+    return Double.parseDouble(
         metrics.metric(
             metrics.metricName(
                 metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS)
@@ -301,7 +301,7 @@ public class KsqlEngineMetricsTest {
 
   private double getMetricValueLegacy(final String metricName) {
     final Metrics metrics = engineMetrics.getMetrics();
-    return Double.valueOf(
+    return Double.parseDouble(
         metrics.metric(
             metrics.metricName(
                 metricNamePrefix + metricName, METRIC_GROUP + "-query-stats")

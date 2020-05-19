@@ -92,7 +92,7 @@ Your output should resemble the following results. Notice that the column names 
 
 Maps are an associative data type that map keys of any type to values of any type. The types across all keys must be the same. The same rule holds for values. Destructure maps using bracket syntax (`[]`).
 
-Begin by telling ksqlDB to start all queries from earliest point in each topic.
+Begin by telling ksqlDB to start all queries from the earliest point in each topic.
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';

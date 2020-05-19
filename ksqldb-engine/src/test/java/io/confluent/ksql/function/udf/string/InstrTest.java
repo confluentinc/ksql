@@ -44,6 +44,11 @@ public class InstrTest {
     assertThat(udf.instr("CORPORATE FLOOR", "OR"), is(2));
     assertThat(udf.instr("CORPORATE FLOOR", "OR", 3), is(5));
     assertThat(udf.instr("CORPORATE FLOOR", "OR", 3, 2), is(14));
+    assertThat(udf.instr("CORPORATE FLOOR", "OR", 3, 5), is(0));
+
+    assertThat(udf.instr("CORPORATE FLOOR", "ATE"), is(7));
+    assertThat(udf.instr("CORPORATE FLOOR", "ATE", 2), is(7));
+    assertThat(udf.instr("CORPORATE FLOOR", "ATE", 3, 2), is(0));
   }
 
   @Test
@@ -51,6 +56,11 @@ public class InstrTest {
     assertThat(udf.instr("CORPORATE FLOOR", "OR", -1), is(14));
     assertThat(udf.instr("CORPORATE FLOOR", "OR", -3), is(5));
     assertThat(udf.instr("CORPORATE FLOOR", "OR", -3, 2), is(2));
+    assertThat(udf.instr("CORPORATE FLOOR", "OR", -3, 5), is(0));
+
+    assertThat(udf.instr("CORPORATE FLOOR", "ATE", -1), is(7));
+    assertThat(udf.instr("CORPORATE FLOOR", "ATE", -3), is(7));
+    assertThat(udf.instr("CORPORATE FLOOR", "ATE", -3, 2), is(0));
   }
 
   @Test

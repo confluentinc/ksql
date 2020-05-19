@@ -33,6 +33,7 @@ keywords: ksqlDB, function, scalar
   - [CONCAT](#concat)
   - [EXTRACTJSONFIELD](#extractjsonfield)
   - [INITCAP](#initcap)
+  - [INSTR](#instr)
   - [LCASE](#lcase)
   - [LEN](#len)
   - [MASK](#mask)
@@ -315,6 +316,30 @@ INITCAP
 
 Capitalize the first letter in each word and convert all other letters
 to lowercase. Words are delimited by whitespace.
+
+INSTR
+-----
+
+`INSTR(string, substring, [position], [occurrence])`
+
+Returns a position of `substring` in `string` (first character is at position 1).
+If `position` is given search starts from that position. 
+If `occurrence` is given position of n-th occurrence is returned.
+
+Negative `position` causes the search to work from end to start of `string`.
+
+If `substring` is not found the return value is 0.
+
+Examples:
+```
+INSTR('CORPORATE FLOOR', 'OR') -> 2
+INSTR('CORPORATE FLOOR', 'OR', 3) -> 5
+INSTR('CORPORATE FLOOR', 'OR', 3, 2) -> 14
+INSTR('CORPORATE FLOOR', 'OR', -3) -> 5
+INSTR('CORPORATE FLOOR', 'OR', -3, 2) -> 2
+INSTR('CORPORATE FLOOR', 'MISSING') -> 0
+```
+
 
 LCASE
 -----

@@ -58,6 +58,9 @@ public class Instr {
   private int find(final String str, final String substring, final int position,
       final int occurence, final boolean reversed) {
     final int i = ordinalIndexOf(substring(str, position - 1), substring, occurence);
-    return reversed ? str.length() - position - i : i + position;
+    if (i == -1) {
+      return 0;
+    }
+    return reversed ? str.length() - position - i - substring.length() + 2 : i + position;
   }
 }

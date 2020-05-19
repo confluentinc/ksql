@@ -26,7 +26,7 @@ CREATE STREAM s1 (
 
 Using event-time allows ksqlDB to handle out-of-order events during time-related processing. Set the `timestamp` property when creating a stream or table to denote which column to use as the timestamp. If the timestamp column is a string, also set the `timestamp_format` property to tell ksqlDB how to parse it.
 
-Begin by telling ksqlDB to start all queries from earliest point in each topic.
+Begin by telling ksqlDB to start all queries from the earliest point in each topic.
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';

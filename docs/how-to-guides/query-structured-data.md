@@ -229,7 +229,7 @@ This query should return the following results. Notice that index `1` represents
 
 You may have structured data types that are nested within one another. Each data type's destructuring syntax composes irrespective of how it is nested.
 
-Begin by telling ksqlDB to start all queries from earliest point in each topic.
+Begin by telling ksqlDB to start all queries from the earliest point in each topic.
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';

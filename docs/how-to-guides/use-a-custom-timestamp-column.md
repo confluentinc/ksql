@@ -144,6 +144,8 @@ CREATE STREAM s3 (
 );
 ```
 
+Note that the underlying timestamp metadata for the Kafka records in topic `s3` are **not** modified. ksqlDB has merely marked that any derived streams or tables from `s3` should use the value of `ts` for `ROWTIME`.
+
 ## Timestamps as long values
 
 You can use timestamps that are represented as milliseconds since the Unix epoch, too.

@@ -1,0 +1,64 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910895036,
+  "path" : "query-validation-tests/udf-implicit-cast.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID INT, FOO VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "choose the exact match first",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 1
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ID" : 1,
+        "FOO" : "doStuffIntString"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID int) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS select K, ID, test_udf(ID, 'foo') as foo from test;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

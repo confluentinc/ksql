@@ -1,0 +1,107 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910855665,
+  "path" : "query-validation-tests/cube.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR, COL2 VARCHAR, COL3 VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<VAL ARRAY<VARCHAR>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "cube three columns",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "col1" : "one",
+        "col2" : "two",
+        "col3" : "three"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ null, null, null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ null, null, "three" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ null, "two", null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ null, "two", "three" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ "one", null, null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ "one", null, "three" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ "one", "two", null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ "one", "two", "three" ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, cube_explode(array[col1, col2, col3]) VAL FROM TEST;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

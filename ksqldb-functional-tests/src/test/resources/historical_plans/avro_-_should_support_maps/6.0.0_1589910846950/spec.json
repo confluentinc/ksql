@@ -1,0 +1,84 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910846950,
+  "path" : "query-validation-tests/avro.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 MAP<VARCHAR, BIGINT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 MAP<VARCHAR, BIGINT>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "should support maps",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "c1" : {
+          "f1" : 1
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "C1" : {
+          "f1" : 1
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : {
+        "type" : "record",
+        "name" : "blah",
+        "fields" : [ {
+          "name" : "c1",
+          "type" : {
+            "type" : "map",
+            "values" : "long"
+          }
+        } ]
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, C1 MAP<STRING, BIGINT>"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 1
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910848892,
+  "path" : "query-validation-tests/case-expression.json",
+  "schemas" : {
+    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ORDERUNITS DOUBLE> NOT NULL",
+    "CSAS_S1_0.S1" : "STRUCT<CASE_RESULT VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "searched case returning null in first branch",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ORDERUNITS" : 4.2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ORDERUNITS" : 3.99
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ORDERUNITS" : 1.1
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : "",
+      "value" : {
+        "CASE_RESULT" : "large"
+      }
+    }, {
+      "topic" : "S1",
+      "key" : "",
+      "value" : {
+        "CASE_RESULT" : "medium"
+      }
+    }, {
+      "topic" : "S1",
+      "key" : "",
+      "value" : {
+        "CASE_RESULT" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM orders (ID STRING KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits < 2.0 THEN null WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

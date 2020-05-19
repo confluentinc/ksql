@@ -1,0 +1,69 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910858639,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 MAP<VARCHAR, INT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 MAP<VARCHAR, INT>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "validate map element OK - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "V0" : {
+          "k1" : 1
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "V0" : {
+          "k1" : 1
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated ConnectDefault2Entry V0 = 1;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    int32 value = 2;\n  }\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (V0 MAP<STRING, INT>) WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

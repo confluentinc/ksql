@@ -1,0 +1,104 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910891433,
+  "path" : "query-validation-tests/string.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<TEXT VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR, KSQL_COL_1 VARCHAR, KSQL_COL_2 VARCHAR, KSQL_COL_3 VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "LCASE, UCASE, TRIM SUBSTRING",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "lower"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "UPPER"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "MiXeD"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : " \t with white space \t"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "s"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "long enough"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "lower,LOWER,lower,ower"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "upper,UPPER,UPPER,PPER"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "mixed,MIXED,MiXeD,iXeD"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "\" \t with white space \t\",\" \t WITH WHITE SPACE \t\",with white space,\"\t wit\""
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "s,S,s,"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "long enough,LONG ENOUGH,long enough,ong e"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM OUTPUT AS select K, LCASE(text), UCASE(text), TRIM(text), SUBSTRING(text, 2, 5) from INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "K STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING, KSQL_COL_2 STRING, KSQL_COL_3 STRING"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

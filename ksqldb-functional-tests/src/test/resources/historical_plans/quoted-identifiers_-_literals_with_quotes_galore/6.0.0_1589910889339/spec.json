@@ -1,0 +1,64 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910889339,
+  "path" : "query-validation-tests/quoted-identifiers.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR, KSQL_COL_1 VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "literals with quotes galore",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "id" : "1"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "KSQL_COL_0" : "foo",
+        "KSQL_COL_1" : "'foo'"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM input (K STRING KEY, id VARCHAR) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM output AS SELECT K, 'foo', '''foo''' FROM input;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

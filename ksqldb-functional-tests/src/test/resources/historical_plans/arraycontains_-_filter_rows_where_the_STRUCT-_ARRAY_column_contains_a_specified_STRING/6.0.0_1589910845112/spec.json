@@ -1,0 +1,117 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910845112,
+  "path" : "query-validation-tests/arraycontains.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 STRUCT<COLORS ARRAY<VARCHAR>>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<COLORS ARRAY<VARCHAR>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "filter rows where the STRUCT->ARRAY column contains a specified STRING",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "c1" : {
+          "colors" : [ "Red", "Green" ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "c1" : {
+          "colors" : [ "Black" ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "c1" : {
+          "colors" : [ "Pink", "Yellow", "Pink" ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "c1" : {
+          "colors" : [ "White", "Pink" ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "c1" : {
+          "colors" : [ "Pink", null ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "c1" : {
+          "colors" : null
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "COLORS" : [ "Pink", "Yellow", "Pink" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "COLORS" : [ "White", "Pink" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "COLORS" : [ "Pink", null ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (ID STRING KEY, c1 STRUCT<colors ARRAY<STRING>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, c1->colors AS colors FROM test WHERE ARRAY_CONTAINS(c1->colors, 'Pink');" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

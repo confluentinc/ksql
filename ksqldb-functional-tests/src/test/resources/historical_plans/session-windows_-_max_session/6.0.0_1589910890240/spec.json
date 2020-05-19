@@ -1,0 +1,170 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910890240,
+  "path" : "query-validation-tests/session-windows.json",
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<KSQL_COL_0 BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "max session",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "0,zero,0",
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "0,100,5",
+      "timestamp" : 10000
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "1,100,100",
+      "timestamp" : 10000
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "1,100,200",
+      "timestamp" : 40000
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "0",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "5",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 0,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "100",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 10000,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : null,
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 10000,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "200",
+      "timestamp" : 40000,
+      "window" : {
+        "start" : 10000,
+        "end" : 40000,
+        "type" : "SESSION"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE S2 as SELECT ID, max(value) FROM test WINDOW SESSION (30 SECONDS) group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "table",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

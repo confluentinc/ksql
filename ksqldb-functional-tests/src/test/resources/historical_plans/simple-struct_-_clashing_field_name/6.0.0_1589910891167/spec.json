@@ -1,0 +1,76 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910891167,
+  "path" : "query-validation-tests/simple-struct.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<B INT, A STRUCT<B INT>, C STRUCT<B INT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<B INT, B_1 INT, B_2 INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "clashing field name",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "B" : 0,
+        "A" : {
+          "B" : 1
+        },
+        "C" : {
+          "B" : 2
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "B" : 0,
+        "B_1" : 1,
+        "B_2" : 2
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ROWKEY STRING KEY, B INT, A STRUCT<B INT>, C STRUCT<B INT>) WITH (kafka_topic='test_topic', value_format='json');", "CREATE STREAM OUTPUT as SELECT ROWKEY, B, A->B, C->B FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, B INT, B_1 INT, B_2 INT"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

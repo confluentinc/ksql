@@ -1,0 +1,89 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910893436,
+  "path" : "query-validation-tests/timestamp-extractor.json",
+  "schemas" : {
+    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, TS BIGINT> NOT NULL",
+    "CSAS_TS_0.TS" : "STRUCT<ID BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "KSQL override timestamp extractor",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 1,
+        "TS" : 1526075913000
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 2,
+        "TS" : -1
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 3,
+        "TS" : 1589234313000
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TS",
+      "key" : "",
+      "value" : {
+        "ID" : 1
+      },
+      "timestamp" : 1526075913000
+    }, {
+      "topic" : "TS",
+      "key" : "",
+      "value" : {
+        "ID" : 3
+      },
+      "timestamp" : 1589234313000
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TS",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, TS bigint) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='ts');", "CREATE STREAM TS AS SELECT K, id FROM test;" ],
+    "properties" : {
+      "ksql.streams.default.timestamp.extractor" : "org.apache.kafka.streams.processor.LogAndSkipOnInvalidTimestamp"
+    },
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "TS",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

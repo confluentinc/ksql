@@ -24,6 +24,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class TableSinkTest {
   @Mock
@@ -50,6 +51,7 @@ public class TableSinkTest {
         .addEqualityGroup(new TableSink<>(properties1, source1, formats2, "topic1", Optional.empty()))
         .addEqualityGroup(new TableSink<>(properties1, source1, formats1, "topic2", Optional.empty()))
         .addEqualityGroup(new TableSink<>(properties1, source1, formats1, "topic1",
-            Optional.of(new TimestampColumn(ColumnName.of("c1"), Optional.of("BIGINT")))));;
+            Optional.of(new TimestampColumn(ColumnName.of("c1"), Optional.of("BIGINT")))))
+        .testEquals();
   }
 }

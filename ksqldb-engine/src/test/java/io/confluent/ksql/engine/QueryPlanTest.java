@@ -29,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class QueryPlanTest {
   @Mock
@@ -62,6 +63,7 @@ public class QueryPlanTest {
         .addEqualityGroup(new QueryPlan(sources2, sink1, plan1, id1))
         .addEqualityGroup(new QueryPlan(sources1, sink2, plan1, id1))
         .addEqualityGroup(new QueryPlan(sources1, sink1, plan2, id1))
-        .addEqualityGroup(new QueryPlan(sources1, sink1, plan1, id2));
+        .addEqualityGroup(new QueryPlan(sources1, sink1, plan1, id2))
+        .testEquals();
   }
 }

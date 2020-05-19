@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class StreamAggregateTest {
   @Mock
@@ -70,6 +71,6 @@ public class StreamAggregateTest {
             new StreamAggregate(properties1, source1, formats1, columnRefs2, functionCalls1)
         ).addEqualityGroup(
             new StreamAggregate(properties1, source1, formats1, columnRefs1, functionCalls2)
-        );
+        ).testEquals();
   }
 }

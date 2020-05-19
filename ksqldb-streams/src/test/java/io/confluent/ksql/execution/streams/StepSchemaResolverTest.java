@@ -43,7 +43,6 @@ import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
-import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
@@ -172,11 +171,39 @@ public class StepSchemaResolverTest {
   }
 
   @Test
+  public void shouldResolveSchemaForStreamSelectWithoutColumnNames() {
+    // Given:
+    final StreamSelect<?> step = new StreamSelect<>(
+        PROPERTIES,
+        streamSource,
+        ImmutableList.of(ColumnName.of("NEW_KEY")),
+        ImmutableList.of(
+            add("JUICE", "ORANGE", "APPLE"),
+            ref("PLANTAIN", "BANANA"),
+            ref("CITRUS", "ORANGE"))
+    );
+
+    // When:
+    final LogicalSchema result = resolver.resolve(step, SCHEMA);
+
+    // Then:
+    assertThat(result, is(
+        LogicalSchema.builder()
+            .keyColumn(ColumnName.of("NEW_KEY"), SqlTypes.INTEGER)
+            .valueColumn(ColumnName.of("JUICE"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("PLANTAIN"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("CITRUS"), SqlTypes.INTEGER)
+            .build())
+    );
+  }
+
+  @Test
   public void shouldResolveSchemaForStreamSelect() {
     // Given:
     final StreamSelect<?> step = new StreamSelect<>(
         PROPERTIES,
         streamSource,
+        ImmutableList.of(),
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
@@ -272,29 +299,6 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(SCHEMA));
-  }
-
-  @Test
-  public void shouldResolveSchemaForStreamSelectKeyV1() {
-    // Given:
-    final Expression keyExpression =
-        new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
-
-    final StreamSelectKeyV1 step = new StreamSelectKeyV1(
-        PROPERTIES,
-        streamSource,
-        keyExpression
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.INTEGER)
-        .valueColumns(SCHEMA.value())
-        .build()
-    ));
   }
 
   @Test
@@ -421,11 +425,39 @@ public class StepSchemaResolverTest {
   }
 
   @Test
+  public void shouldResolveSchemaForTableSelectWithColumnNames() {
+    // Given:
+    final TableSelect<?> step = new TableSelect<>(
+        PROPERTIES,
+        tableSource,
+        ImmutableList.of(ColumnName.of("NEW_KEY")),
+        ImmutableList.of(
+            add("JUICE", "ORANGE", "APPLE"),
+            ref("PLANTAIN", "BANANA"),
+            ref("CITRUS", "ORANGE"))
+    );
+
+    // When:
+    final LogicalSchema result = resolver.resolve(step, SCHEMA);
+
+    // Then:
+    assertThat(result, is(
+        LogicalSchema.builder()
+            .keyColumn(ColumnName.of("NEW_KEY"), SqlTypes.INTEGER)
+            .valueColumn(ColumnName.of("JUICE"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("PLANTAIN"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("CITRUS"), SqlTypes.INTEGER)
+            .build())
+    );
+  }
+
+  @Test
   public void shouldResolveSchemaForTableSelect() {
     // Given:
     final TableSelect<?> step = new TableSelect<>(
         PROPERTIES,
         tableSource,
+        ImmutableList.of(),
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),

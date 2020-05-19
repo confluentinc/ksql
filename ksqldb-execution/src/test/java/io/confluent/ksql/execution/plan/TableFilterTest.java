@@ -22,6 +22,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class TableFilterTest {
   @Mock
@@ -45,6 +46,7 @@ public class TableFilterTest {
             new TableFilter<>(properties1, source1, filterExpression1))
         .addEqualityGroup(new TableFilter<>(properties2, source1, filterExpression1))
         .addEqualityGroup(new TableFilter<>(properties1, source2, filterExpression1))
-        .addEqualityGroup(new TableFilter<>(properties1, source1, filterExpression2));
+        .addEqualityGroup(new TableFilter<>(properties1, source1, filterExpression2))
+        .testEquals();
   }
 }

@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class StreamWindowedAggregateTest {
   @Mock
@@ -85,6 +86,6 @@ public class StreamWindowedAggregateTest {
     ).addEqualityGroup(
         new StreamWindowedAggregate(
             properties1, source1, formats1, columnRefs1, functionCalls2, window2)
-    );
+    ).testEquals();
   }
 }

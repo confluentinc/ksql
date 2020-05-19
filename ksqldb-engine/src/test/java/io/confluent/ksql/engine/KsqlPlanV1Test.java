@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlPlanV1Test {
   @Mock
@@ -42,7 +43,7 @@ public class KsqlPlanV1Test {
             new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan1)))
         .addEqualityGroup(new KsqlPlanV1("bar", Optional.of(ddlCommand1), Optional.of(queryPlan1)))
         .addEqualityGroup(new KsqlPlanV1("foo", Optional.of(ddlCommand2), Optional.of(queryPlan1)))
-        .addEqualityGroup(new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan2)));
-
+        .addEqualityGroup(new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan2)))
+        .testEquals();
   }
 }

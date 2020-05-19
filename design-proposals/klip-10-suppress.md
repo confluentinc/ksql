@@ -49,11 +49,10 @@ value), and would send three emails when none should be sent.
 **In Scope**: 
 - Outline the features of suppress that need to be represented in KSQL
 - Syntax for suppress functionality
-- Outline of potential implementation
+- Grace periods for windows
 
 **Out of Scope**:
-- Grace periods for windows
-- Custom suppressions
+- Outline of potential implementation
 
 ## Value/Return
 
@@ -75,33 +74,53 @@ SELECT select_expression
 
 A `refinement_expression` has the following syntax:
 ```sql
-CHANGES | FINAL [EAGERLY] [WHEN suppression]
+CHANGES | FINAL (AFTER time_expression)?
 ```
 
 And behaves in the following ways:
 - If `CHANGES` is specified, then all intermediate changes will be materialized
-- If `FINAL` is specified, then output will be suppressed depending on the `suppression`:
-    - if `EAGERLY` is specified, the suppression is a best effort attempt to reduce duplicate output
-      data, but no guarantees are made if a constraint is met (e.g. buffer fills up)
-    - if `EAGERLY` is omitted, then the query will fail if the buffer fills up before the refinement
-      condition is met
+- If `FINAL` is specified, then output will be emitted only when the aggregation window has closed
+    - the `AFTER` clause allows the user to specify the grace period as part of the syntax
+    
+Since the default grace period in Kafka Streams is 24 hours, the default `EMIT FINAL` behavior will
+only omit data 24 hours after the query is started. Since this is unlikely to be good user experience,
+this KLIP proposes to set a default grace period of 0.
 
-A `suppression` will implement `Suppressed`. KSQL will provide two builtin suppression mechanisms,
-with `WINDOW_CLOSED()` being the default if no suppression is supplied:
-- `WINDOW_CLOSED()` will create a suppression policy that emits events when the window is closed
-- `TIME_LIMIT(time_expression)` will create a suppression policy that emits events when a certain
-  time period has passed since seeing a given key for the first time
+## Discussion
 
-We will model the suppression as method calls in order to allow flexibility in the syntax if
-different types of suppressions are added in the future. We could also extend this to allow user
-implemented suppressions in the same way that we support UDFs.
+Consider the following query hierarchy: there are _persistent_ and _transient_ queries. Within the
+class of _transient_ queries, there are _push_ and _pull_ queries.
 
-## Design
+KLIP-8 proposed using `EMIT CHANGES` to specify a push query. This KLIP diverges slightly to propose:
 
-We will add a `SuppressNode` to the Logical Plan of persistent queries that specify anything
-other than `EMIT CHANGES`. The implementation will translate to adding the `.suppress` on to the
-underlying `KTable` when building the Physical plan.
+- The presence of a `CREATE` clause in a statement indicates a persistent query. Since all persistent queries
+    are continuous, they must specify a refinement expression. For a streamlined user experience, 
+    `EMIT CHANGES` is added if the user omits one. This can change later when we add the distinction 
+    between `MATERIALIZED VIEW` and normal sources.
+- If a statement lacks a `CREATE` clause, the presence of any refinement expression (`EMIT`) indicates
+    a push query.
+- If the statement has neither a `CREATE` clause nor a refinement expression, then it is a pull query.
 
+This proposal leverages the dichotomy between `CHANGES` and `FINAL` to draw a distinction between an 
+open and closed window aggregation. What does this mean when applied to a source that is not windowed,
+such as an un-windowed table or a stream? A table without a window is never final, therefore `EMIT FINAL` 
+on such a source will never return any data.
+
+Streams are a little more complicated. Since streams do not support pull queries today we could handle
+this in one of three ways:
+
+1. Require all queries on streams to meet one of the criteria above that force a continuous query
+    (either a `CREATE` or a refinement expression). The problem here is that a refinement expression
+    doesn't really make sense on a stream as there is no dichotomy between changes and final.
+2. Implicitly create continuous queries for all queries on streams. The problem here is that this closes
+    the door to support pull queries on streams (i.e. queries which return a table without performing any
+    aggregation).
+3. Introduce new syntax to specify a pull query on a stream.
+
+This KLIP proposes to punt this discussion and choose the first option as it is backwards compatible
+with what exists today.
+
+   
 ## Test plan
 
 - Add corresponding QTTs will cover this functionality 

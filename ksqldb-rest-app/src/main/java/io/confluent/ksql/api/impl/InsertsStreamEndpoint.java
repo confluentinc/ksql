@@ -68,7 +68,7 @@ public class InsertsStreamEndpoint {
   ) {
     final DataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
-      throw new KsqlApiException( // TODO: should this be NOT_FOUND instead?
+      throw new KsqlApiException(
           "Cannot insert values into an unknown stream: " + sourceName, ERROR_CODE_BAD_STATEMENT);
     }
 

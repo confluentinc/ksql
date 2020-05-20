@@ -729,7 +729,6 @@ public class ClientTest extends BaseApiTest {
         .collect(Collectors.toList());
   }
 
-  // TODO: de-dup from ApiTest?
   private static List<JsonObject> convertToJsonRows(final List<KsqlObject> rows) {
     return rows.stream()
         .map(row -> new JsonObject(row.getMap()))
@@ -745,7 +744,7 @@ public class ClientTest extends BaseApiTest {
           .put("f_bool", i % 2 == 0)
           .put("f_long", i * i)
           .put("f_double", i + 0.1111)
-          .put("f_decimal", new BigDecimal(i + 0.1)) // TODO: loss of precision?
+          .put("f_decimal", new BigDecimal(i + 0.1))
           .put("f_array", new KsqlArray().add("s" + i).add("t" + i))
           .put("f_map", new KsqlObject().put("k" + i, "v" + i))
           .put("f_struct", new KsqlObject().put("F1", "v" + i).put("F2", i))

@@ -129,13 +129,17 @@ public class ClientImpl implements Client {
 
   @Override
   public CompletableFuture<Void> insertInto(final String streamName, final List<KsqlObject> rows) {
+    if (rows.size() == 0) {
+      return CompletableFuture.completedFuture(null);
+    }
+
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
     final Buffer requestBody = Buffer.buffer();
     final JsonObject params = new JsonObject().put("target", streamName);
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
     for (final KsqlObject row : rows) {
-      requestBody.appendString(row.toJsonString()).appendString("\n"); // TODO: this doesn't seem very efficient. JsonMapper.get().writeValueAsBytes(row) didn't work. could expose toBuffer() but that seems weird
+      requestBody.appendString(row.toJsonString()).appendString("\n");
     }
 
     makeRequest(

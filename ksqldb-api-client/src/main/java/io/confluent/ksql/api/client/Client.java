@@ -71,9 +71,30 @@ public interface Client {
    */
   BatchedQueryResult executeQuery(String sql, Map<String, Object> properties);
 
+  /**
+   * Inserts a row into a ksqlDB stream.
+   *
+   * <p>The {@code CompletableFuture} will be failed if a non-200 response is received from the
+   * server, or if the server encounters an error while processing the insertion.
+   *
+   * @param streamName name of the target stream
+   * @param row the row to insert. Keys are column names and values are column values.
+   * @return a future that completes once the server response is received
+   */
   CompletableFuture<Void> insertInto(String streamName, KsqlObject row);
 
-  CompletableFuture<Void> insertInto(String streamName, List<KsqlObject> row);
+  /**
+   * Inserts the specified row(s) into a ksqlDB stream.
+   *
+   * <p>The {@code CompletableFuture} will be failed if a non-200 response is received from the
+   * server, or if the server encounters an error while processing the insertion(s).
+   *
+   * @param streamName name of the target stream
+   * @param rows the rows to insert. For each row, the keys are column names and values are
+   *        column values.
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> insertInto(String streamName, List<KsqlObject> rows);
 
   Publisher<InsertAck> streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
 

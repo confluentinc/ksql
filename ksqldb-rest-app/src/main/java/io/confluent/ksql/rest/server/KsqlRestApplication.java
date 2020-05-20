@@ -966,7 +966,7 @@ public final class KsqlRestApplication implements Executable {
             new IllegalStateException("Failed resolve port for listener: " + listener));
   }
 
-  private DropwizardMetricsOptions setUpHttpMetrics(final KsqlConfig ksqlConfig) {
+  private static DropwizardMetricsOptions setUpHttpMetrics(final KsqlConfig ksqlConfig) {
     final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
         .setJmxEnabled(true).setBaseName("_confluent-ksql-" + serviceId)

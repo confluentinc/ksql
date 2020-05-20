@@ -154,12 +154,14 @@ public class KsqlServerEndpoints implements Endpoints {
   public CompletableFuture<EndpointResponse> executeQueryRequest(final KsqlRequest request,
       final WorkerExecutor workerExecutor,
       final CompletableFuture<Void> connectionClosedFuture,
-      final ApiSecurityContext apiSecurityContext) {
+      final ApiSecurityContext apiSecurityContext,
+      final Optional<Boolean> isInternalRequest) {
     return executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> streamedQueryResource.streamQuery(
             ksqlSecurityContext,
             request,
-            connectionClosedFuture), workerExecutor);
+            connectionClosedFuture,
+            isInternalRequest), workerExecutor);
   }
 
   @Override

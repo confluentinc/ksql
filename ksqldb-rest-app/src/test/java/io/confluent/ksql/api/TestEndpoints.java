@@ -36,6 +36,7 @@ import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -122,7 +123,7 @@ public class TestEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
       WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
-      ApiSecurityContext apiSecurityContext) {
+      ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest) {
     return null;
   }
 

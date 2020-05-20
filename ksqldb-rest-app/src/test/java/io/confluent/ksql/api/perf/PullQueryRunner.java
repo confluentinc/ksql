@@ -42,6 +42,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
@@ -146,7 +147,7 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
-        ApiSecurityContext apiSecurityContext) {
+        ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest) {
       return null;
     }
 

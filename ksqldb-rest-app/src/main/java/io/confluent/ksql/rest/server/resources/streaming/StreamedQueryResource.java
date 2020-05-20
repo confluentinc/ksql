@@ -152,7 +152,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
   public EndpointResponse streamQuery(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request,
-      final CompletableFuture<Void> connectionClosedFuture
+      final CompletableFuture<Void> connectionClosedFuture,
+      final Optional<Boolean> isInternalRequest
   ) {
     final long startTime = time.nanoseconds();
     throwIfNotConfigured();
@@ -164,7 +165,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
         commandQueue, request, commandQueueCatchupTimeout);
 
-    return handleStatement(securityContext, request, statement, startTime, connectionClosedFuture);
+    return handleStatement(securityContext, request, statement, startTime, connectionClosedFuture,
+        isInternalRequest);
   }
 
   public void closeMetrics() {
@@ -198,7 +200,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final KsqlRequest request,
       final PreparedStatement<?> statement,
       final long startTime,
-      final CompletableFuture<Void> connectionClosedFuture
+      final CompletableFuture<Void> connectionClosedFuture,
+      final Optional<Boolean> isInternalRequest
   ) {
     try {
       authorizationValidator.ifPresent(validator ->
@@ -216,7 +219,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
               securityContext.getServiceContext(),
               queryStmt,
               request.getConfigOverrides(),
-              request.getRequestProperties()
+              request.getRequestProperties(),
+              isInternalRequest
           );
           if (pullQueryMetrics.isPresent()) {
             //Record latency at microsecond scale
@@ -259,13 +263,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ServiceContext serviceContext,
       final PreparedStatement<Query> statement,
       final Map<String, Object> configOverrides,
-      final Map<String, Object> requestProperties
+      final Map<String, Object> requestProperties,
+      final Optional<Boolean> isInternalRequest
   ) {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, configOverrides, requestProperties, ksqlConfig);
 
     final TableRowsEntity entity = pullQueryExecutor
-        .execute(configured, serviceContext, pullQueryMetrics);
+        .execute(configured, serviceContext, pullQueryMetrics, isInternalRequest);
 
     final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
 

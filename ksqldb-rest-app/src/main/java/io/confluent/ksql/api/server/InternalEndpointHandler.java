@@ -24,6 +24,8 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.Set;
 
 public class InternalEndpointHandler implements Handler<RoutingContext> {
+  public static final String CONTEXT_DATA_IS_INTERNAL = "isInternal";
+
   private static final Set<String> INTERNAL_PATHS = ImmutableSet.of(
       "/heartbeat", "/lag");
 
@@ -42,6 +44,7 @@ public class InternalEndpointHandler implements Handler<RoutingContext> {
           new KsqlApiException("Can't call internal endpoint on public listener",
               ERROR_CODE_SERVER_ERROR));
     } else {
+      routingContext.put(CONTEXT_DATA_IS_INTERNAL, isFromInternalListener);
       routingContext.next();
     }
   }

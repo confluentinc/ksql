@@ -39,7 +39,8 @@ reacting to new information in real-time. They’re a good fit for asynchronous
 application flows. For request/response flows, see [Pull Queries](select-pull-query.md).
 
 Push queries can use all available SQL features, which can be useful when prototyping a
-persistent query or when running ad-hoc queries from the CLI. However, unlike persistent queries,
+persistent query or when running ad-hoc queries from the CLI. But unlike persistent queries,
+
 push queries are not shared. If multiple clients submit the same push query ksqlDB will compute
 independent results for each client.
 
@@ -276,4 +277,3 @@ SELECT event
   WHERE event_id BETWEEN 10 AND 20
   EMIT CHANGES;
 ```
-

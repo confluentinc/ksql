@@ -46,8 +46,8 @@ push queries are not shared. If multiple clients submit the same push query, ksq
 independent results for each client.
 
 !!! tip
-  If using push queries from an application, move all the heavy lifting into a persistent query
-  and keep your push query as simple as possible.
+    If you're using push queries from an application, move all the heavy lifting into a persistent
+    query and keep your push query as simple as possible.
 
 In the previous statements, `from_item` is one of the following:
 

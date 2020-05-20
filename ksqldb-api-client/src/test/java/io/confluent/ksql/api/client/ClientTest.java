@@ -433,15 +433,25 @@ public class ClientTest extends BaseApiTest {
     testEndpoints.setCreateQueryPublisherException(pfe);
 
     // When
+    final BatchedQueryResult batchedQueryResult = javaClient.executeQuery("bad query");
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> javaClient.executeQuery("bad query").get()
+        batchedQueryResult::get
     );
 
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("invalid query blah"));
+
+    // queryID future should also be completed exceptionally
+    final Exception queryIdException = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> batchedQueryResult.queryID().get()
+    );
+    assertThat(queryIdException.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(queryIdException.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(queryIdException.getCause().getMessage(), containsString("invalid query blah"));
   }
 
   @Test

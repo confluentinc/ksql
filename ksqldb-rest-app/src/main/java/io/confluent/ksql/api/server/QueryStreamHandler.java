@@ -119,9 +119,9 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
   private Void handleQueryPublisherException(final Throwable t,
       final RoutingContext routingContext) {
-    log.error("Failed to execute query", t);
     if (t instanceof CompletionException) {
       final Throwable actual = t.getCause();
+      log.error("Failed to execute query", actual);
       if (actual instanceof KsqlStatementException) {
         routingContext.fail(BAD_REQUEST.code(),
             new KsqlApiException(actual.getMessage(), ERROR_CODE_BAD_STATEMENT));
@@ -130,6 +130,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         routingContext.fail(BAD_REQUEST.code(), actual);
         return null;
       }
+    } else {
+      log.error("Failed to execute query", t);
     }
     // We don't expose internal error message via public API
     routingContext.fail(INTERNAL_SERVER_ERROR.code(), new KsqlApiException(

@@ -23,10 +23,12 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.KsqlClientException;
+import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
@@ -40,7 +42,6 @@ import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Publisher;
@@ -118,20 +119,42 @@ public class ClientImpl implements Client {
   }
 
   @Override
-  public CompletableFuture<Void> insertInto(
-      final String streamName, final Map<String, Object> row) {
-    return null; // not yet implemented
+  public CompletableFuture<Void> insertInto(final String streamName, final KsqlObject row) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+
+    final Buffer requestBody = Buffer.buffer();
+    final JsonObject params = new JsonObject().put("target", streamName);
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    requestBody.appendString(row.toJsonString()).appendString("\n"); // TODO: this doesn't seem very efficient. JsonMapper.get().writeValueAsBytes(row) didn't work. could expose toBuffer() but that seems weird
+
+    makeRequest(
+        "/inserts-stream",
+        requestBody,
+        cf,
+        response -> handleInsertIntoResponse(response, cf)
+    );
+
+    return cf;
   }
 
   @Override
   public Publisher<InsertAck> streamInserts(
-      final String streamName, final Publisher<List<Object>> insertsPublisher) {
+      final String streamName, final Publisher<KsqlObject> insertsPublisher) {
     return null; // not yet implemented
   }
 
   @Override
   public CompletableFuture<Void> terminatePushQuery(final String queryId) {
-    return makeCloseQueryRequest(queryId);
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+
+    makeRequest(
+        "/close-query",
+        new JsonObject().put("queryId", queryId),
+        cf,
+        response -> handleCloseQueryResponse(response, cf)
+    );
+
+    return cf;
   }
 
   @Override
@@ -163,22 +186,17 @@ public class ClientImpl implements Client {
     );
   }
 
-  private CompletableFuture<Void> makeCloseQueryRequest(final String queryId) {
-    final CompletableFuture<Void> cf = new CompletableFuture<>();
-
-    makeRequest(
-        "/close-query",
-        new JsonObject().put("queryId", queryId),
-        cf,
-        response -> handleCloseQueryResponse(response, cf)
-    );
-
-    return cf;
+  private <T extends CompletableFuture<?>> void makeRequest(
+      final String path,
+      final JsonObject requestBody,
+      final T cf,
+      final Handler<HttpClientResponse> responseHandler) {
+    makeRequest(path, requestBody.toBuffer(), cf, responseHandler);
   }
 
   private <T extends CompletableFuture<?>> void makeRequest(
       final String path,
-      final JsonObject requestBody,
+      final Buffer requestBody,
       final T cf,
       final Handler<HttpClientResponse> responseHandler) {
     HttpClientRequest request = httpClient.request(HttpMethod.POST,
@@ -189,7 +207,7 @@ public class ClientImpl implements Client {
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
     }
-    request.end(requestBody.toBuffer());
+    request.end(requestBody);
   }
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
@@ -208,6 +226,45 @@ public class ClientImpl implements Client {
       recordParser.handler(responseHandler::handleBodyBuffer);
       recordParser.endHandler(responseHandler::handleBodyEnd);
       recordParser.exceptionHandler(responseHandler::handleException);
+    } else {
+      handleErrorResponse(response, cf);
+    }
+  }
+
+  private static void handleInsertIntoResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<Void> cf
+  ) {
+    if (response.statusCode() == OK.code()) {
+      response.bodyHandler(buffer -> {
+        final String[] parts = buffer.toString().split("\n");
+        int numAcks = 0;
+        for (int i = 0; i < parts.length; i++) {
+          final JsonObject jsonObject = new JsonObject(parts[i]);
+          final String status = jsonObject.getString("status");
+          if ("ok".equals(status)) {
+            numAcks++;
+          } else if ("error".equals(status)) {
+            cf.completeExceptionally(new KsqlClientException(String.format(
+                "Received error from /inserts-stream. Insert sequence number: %d. Error code: %d. "
+                    + "Message: %s",
+                jsonObject.getLong("seq"), // TODO: don't need this since only inserting one row
+                jsonObject.getInteger("error_code"),
+                jsonObject.getString("message")
+            )));
+            return;
+          } else {
+            throw new IllegalStateException(
+                "Unrecognized status response from /inserts-stream: " + status);
+          }
+        }
+        if (numAcks != 1) {
+          throw new IllegalStateException(
+              "Received unexpected number of acks from /inserts-stream. "
+                  + "Expected: 1. Got: " + numAcks);
+        }
+        cf.complete(null);
+      });
     } else {
       handleErrorResponse(response, cf);
     }

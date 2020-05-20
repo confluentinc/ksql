@@ -282,7 +282,7 @@ public class KsqlArray {
    * @return a reference to this
    */
   public KsqlArray add(final BigDecimal value) {
-    delegate.add(value);
+    delegate.add(value.doubleValue());
     return this;
   }
 
@@ -293,7 +293,7 @@ public class KsqlArray {
    * @return a reference to this
    */
   public KsqlArray add(final KsqlArray value) {
-    delegate.add(value);
+    delegate.add(KsqlArray.toJsonArray(value));
     return this;
   }
 
@@ -304,7 +304,7 @@ public class KsqlArray {
    * @return a reference to this
    */
   public KsqlArray add(final KsqlObject value) {
-    delegate.add(value);
+    delegate.add(KsqlObject.toJsonObject(value));
     return this;
   }
 
@@ -385,7 +385,7 @@ public class KsqlArray {
     return delegate.hashCode();
   }
 
-  private static JsonArray toJsonArray(final KsqlArray ksqlArray) {
+  static JsonArray toJsonArray(final KsqlArray ksqlArray) {
     return new JsonArray(ksqlArray.getList());
   }
 }

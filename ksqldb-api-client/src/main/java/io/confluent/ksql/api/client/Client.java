@@ -71,9 +71,9 @@ public interface Client {
    */
   BatchedQueryResult executeQuery(String sql, Map<String, Object> properties);
 
-  CompletableFuture<Void> insertInto(String streamName, Map<String, Object> row);
+  CompletableFuture<Void> insertInto(String streamName, KsqlObject row);
 
-  Publisher<InsertAck> streamInserts(String streamName, Publisher<List<Object>> insertsPublisher);
+  Publisher<InsertAck> streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
 
   /**
    * Terminates a push query with the specified query ID.

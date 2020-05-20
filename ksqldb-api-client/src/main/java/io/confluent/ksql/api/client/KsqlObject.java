@@ -300,7 +300,7 @@ public class KsqlObject {
    * @return a reference to this
    */
   public KsqlObject put(final String key, final BigDecimal value) {
-    delegate.put(key, value);
+    delegate.put(key, value.doubleValue());
     return this;
   }
 
@@ -312,7 +312,7 @@ public class KsqlObject {
    * @return a reference to this
    */
   public KsqlObject put(final String key, final KsqlArray value) {
-    delegate.put(key, value);
+    delegate.put(key, KsqlArray.toJsonArray(value));
     return this;
   }
 
@@ -324,7 +324,7 @@ public class KsqlObject {
    * @return a reference to this
    */
   public KsqlObject put(final String key, final KsqlObject value) {
-    delegate.put(key, value);
+    delegate.put(key, KsqlObject.toJsonObject(value));
     return this;
   }
 
@@ -422,7 +422,7 @@ public class KsqlObject {
     return ret;
   }
 
-  private static JsonObject toJsonObject(final KsqlObject ksqlObject) {
+  static JsonObject toJsonObject(final KsqlObject ksqlObject) {
     return new JsonObject(ksqlObject.getMap());
   }
 }

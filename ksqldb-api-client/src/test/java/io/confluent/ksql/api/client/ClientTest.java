@@ -36,13 +36,16 @@ import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +71,9 @@ public class ClientTest extends BaseApiTest {
       BaseApiTest.DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES.getMap();
   protected static final String DEFAULT_PUSH_QUERY_WITH_LIMIT = "select * from foo emit changes limit 10;";
   protected static final List<KsqlArray> EXPECTED_ROWS = convertToClientRows(DEFAULT_JSON_ROWS);
+
+  protected static final List<KsqlObject> INSERT_ROWS = generateInsertRows();
+  protected static final List<JsonObject> EXPECTED_INSERT_ROWS = convertToJsonRows(INSERT_ROWS);
 
   protected Client javaClient;
 
@@ -502,6 +508,56 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause().getMessage(), containsString("Error code: " + ERROR_CODE_BAD_REQUEST));
   }
 
+  @Test
+  public void shouldInsertInto() throws Exception {
+    // When
+    javaClient.insertInto("test-stream", INSERT_ROWS.get(0)).get();
+
+    // Then
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), hasSize(1));
+    assertThat(testEndpoints.getInsertsSubscriber().getRowsInserted().get(0), is(EXPECTED_INSERT_ROWS.get(0)));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isClosed(), is(true));
+    assertThat(testEndpoints.getLastTarget(), is("test-stream"));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromInsertInto() {
+    // Given
+    KsqlApiException exception = new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_REQUEST);
+    testEndpoints.setCreateInsertsSubscriberException(exception);
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.insertInto("a-table", INSERT_ROWS.get(0)).get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+  }
+
+  @Test
+  public void shouldHandleErrorFromInsertInto() {
+    // Given
+    testEndpoints.setAcksBeforePublisherError(0);
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.insertInto("test-stream", INSERT_ROWS.get(0)).get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received error from /inserts-stream"));
+    assertThat(e.getCause().getMessage(), containsString("Insert sequence number: 0"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 50000"));
+    assertThat(e.getCause().getMessage(), containsString("Message: Error in processing inserts"));
+  }
+
   protected Client createJavaClient() {
     return Client.create(createJavaClientOptions(), vertx);
   }
@@ -637,5 +693,31 @@ public class ClientTest extends BaseApiTest {
     return rows.stream()
         .map(row -> new KsqlArray(row.getList()))
         .collect(Collectors.toList());
+  }
+
+  // TODO: de-dup from ApiTest?
+  private static List<JsonObject> convertToJsonRows(final List<KsqlObject> rows) {
+    return rows.stream()
+        .map(row -> new JsonObject(row.getMap()))
+        .collect(Collectors.toList());
+  }
+
+  private static List<KsqlObject> generateInsertRows() {
+    List<KsqlObject> rows = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      KsqlObject row = new KsqlObject()
+          .put("f_str", "foo" + i)
+          .put("f_int", i)
+          .put("f_bool", i % 2 == 0)
+          .put("f_long", i * i)
+          .put("f_double", i + 0.1111)
+          .put("f_decimal", new BigDecimal(i + 0.1)) // TODO: loss of precision?
+          .put("f_array", new KsqlArray().add("s" + i).add("t" + i))
+          .put("f_map", new KsqlObject().put("k" + i, "v" + i))
+          .put("f_struct", new KsqlObject().put("F1", "v" + i).put("F2", i))
+          .putNull("f_null");
+      rows.add(row);
+    }
+    return rows;
   }
 }

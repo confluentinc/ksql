@@ -18,7 +18,9 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.api.server.QueryStreamHandler.DELIMITED_CONTENT_TYPE;
 import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
@@ -26,6 +28,7 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.entity.InsertError;
 import io.confluent.ksql.rest.entity.InsertsStreamArgs;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.WorkerExecutor;
@@ -159,11 +162,17 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
     private Void handleInsertSubscriberException(final Throwable t,
         final RoutingContext routingContext) {
-      Throwable toLog = t;
       if (t instanceof CompletionException) {
-        toLog = t.getCause();
+        final Throwable actual = t.getCause();
+        log.error("Failed to execute inserts", actual);
+        if (actual instanceof KsqlApiException) {
+          routingContext.fail(BAD_REQUEST.code(), actual);
+          return null;
+        }
+      } else {
+        log.error("Failed to execute inserts", t);
       }
-      log.error("Failed to execute inserts", toLog);
+
       // We don't expose internal error message via public API
       routingContext.fail(INTERNAL_SERVER_ERROR.code(),
           new KsqlApiException("The server encountered an internal error when processing inserts."

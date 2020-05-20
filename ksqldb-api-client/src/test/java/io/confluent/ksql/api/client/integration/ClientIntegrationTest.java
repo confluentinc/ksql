@@ -407,6 +407,47 @@ public class ClientIntegrationTest {
     assertThat(e.getCause().getMessage(), containsString("No query with id NONEXISTENT"));
   }
 
+  @Test
+  public void shouldInsertInto() throws Exception {
+    // Given
+    final KsqlObject insertRow = new KsqlObject()
+        .put("VIEWTIME", 1000L)
+        .put("USERID", "User_1")
+        .put("PAGEID", "Page_28");
+
+    // When
+    client.insertInto(PAGE_VIEW_STREAM, insertRow).get();
+
+    // Then: should receive new row
+    final String query = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + (PAGE_VIEW_NUM_ROWS + 1) + ";";
+    final List<Row> rows = client.executeQuery(query).get();
+
+    // Verify last row is as expected
+    final Row row = rows.get(rows.size() - 1);
+    assertThat(row.getLong("VIEWTIME"), is(1000L));
+    assertThat(row.getString("USERID"), is("User_1"));
+    assertThat(row.getString("PAGEID"), is("Page_28"));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromInsertInto() {
+    // Given
+    final KsqlObject insertRow = new KsqlObject()
+        .put("USERID", "User_11")
+        .put("COUNT", 11L);
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.insertInto(AGG_TABLE, insertRow).get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+  }
+
   private Client createClient() {
     final ClientOptions clientOptions = ClientOptions.create()
         .setHost("localhost")

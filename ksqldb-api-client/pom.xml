@@ -29,8 +29,8 @@
 
     <!--
     A note on dependencies.
-    The Java client module has a different approach top dependencies than the server module.
-    The client is used in a user's application so it's really important that:
+    The Java client module has a different approach to dependencies than server modules.
+    The client is embedded in a user's application so it's really important that:
     * It's small. We don't want to drag in a load of dependencies and make our user's apps big and
     bloated. Also, the user's app might be a lightweight microservice running on a cloud or similar
     where binary size can really matter.

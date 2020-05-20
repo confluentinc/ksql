@@ -12,9 +12,9 @@ Aggregate Functions
 For more information, see
 [Aggregate Streaming Data With ksqlDB](../aggregate-streaming-data.md).
 
-  - [AVG](#average)
-  - [COLLECT_LIST](#collectlist)
-  - [COLLECT_SET](#collectset)
+  - [AVG](#avg)
+  - [COLLECT_LIST](#collect_list)
+  - [COLLECT_SET](#collect_set)
   - [COUNT](#count)
   - [HISTOGRAM](#histogram)
   - [MAX](#max)

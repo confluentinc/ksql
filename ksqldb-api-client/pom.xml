@@ -19,7 +19,6 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
@@ -28,6 +27,19 @@
 
     <artifactId>ksqldb-api-client</artifactId>
 
+    <!--
+    A note on dependencies.
+    The Java client module has a different approach to dependencies than server modules.
+    The client is embedded in a user's application so it's really important that:
+    * It's small. We don't want to drag in a load of dependencies and make our user's apps big and
+    bloated. Also, the user's app might be a lightweight microservice running on a cloud or similar
+    where binary size can really matter.
+    * We minimise the probability of version conflicts. The more libraries that we depend on the
+    greater the risk of a version conflict with a different version of the same library already
+    used in the user's app. Version conflicts are a real pain for user's to resolve. It gets worse
+    if we're pulling in commonly used libraries such as Apache commons, Guava, Google stuff, etc.
+    as the probability of a conflict gets even higher. These ones in particular should really be avoided.
+    -->
     <dependencies>
         <dependency>
             <groupId>io.confluent.ksql</groupId>
@@ -52,19 +64,8 @@
         </dependency>
 
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jdk8</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-guava</artifactId>
             <version>${jackson.version}</version>
         </dependency>
 
@@ -78,6 +79,12 @@
             <groupId>io.vertx</groupId>
             <artifactId>vertx-codegen</artifactId>
             <version>${vertx.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -87,6 +94,12 @@
         </dependency>
 
         <!-- Required for running tests -->
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>common-utils</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>

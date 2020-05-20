@@ -17,29 +17,27 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.Immutable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Represents the metadata of a query stream response
  */
-@Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryResponseMetadata {
 
   public final String queryId;
-  public final ImmutableList<String> columnNames;
-  public final ImmutableList<String> columnTypes;
+  public final List<String> columnNames;
+  public final List<String> columnTypes;
 
   public QueryResponseMetadata(
       final @JsonProperty(value = "queryId") String queryId,
       final @JsonProperty(value = "columnNames") List<String> columnNames,
       final @JsonProperty(value = "columnTypes") List<String> columnTypes) {
     this.queryId = queryId;
-    this.columnNames = ImmutableList.copyOf(Objects.requireNonNull(columnNames));
-    this.columnTypes = ImmutableList.copyOf(Objects.requireNonNull(columnTypes));
+    this.columnNames = Collections.unmodifiableList(Objects.requireNonNull(columnNames));
+    this.columnTypes = Collections.unmodifiableList(Objects.requireNonNull(columnTypes));
   }
 
   public QueryResponseMetadata(final List<String> columnNames, final List<String> columnTypes) {

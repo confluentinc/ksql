@@ -22,41 +22,52 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Publisher;
 
+/**
+ * A client that connects to a specific ksqlDB server.
+ */
 public interface Client {
 
   /**
-   * Execute a query (push or pull) and receive the results one row at a time.
+   * Executes a query (push or pull) and returns the results one row at a time.
    *
-   * @param sql statement of query to execute.
-   * @return query result.
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param sql statement of query to execute
+   * @return a future that completes once the server response is received, and contains the query
+   *         result if successful
    */
   CompletableFuture<StreamedQueryResult> streamQuery(String sql);
 
   /**
-   * Execute a query (push or pull) and receive the results one row at a time.
+   * Executes a query (push or pull) and returns the results one row at a time.
    *
-   * @param sql statement of query to execute.
-   * @param properties query properties.
-   * @return query result.
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param sql statement of query to execute
+   * @param properties query properties
+   * @return a future that completes once the server response is received, and contains the query
+   *         result if successful
    */
   CompletableFuture<StreamedQueryResult> streamQuery(String sql, Map<String, Object> properties);
 
   /**
-   * Execute a query (push or pull) and receive all result rows together, once the query has
-   * completed.
+   * Executes a query (push or pull) and returns all result rows in a single batch, once the query
+   * has completed.
    *
-   * @param sql statement of query to execute.
-   * @return query result.
+   * @param sql statement of query to execute
+   * @return query result
    */
   BatchedQueryResult executeQuery(String sql);
 
   /**
-   * Execute a query (push or pull) and receive all result rows together, once the query has
-   * completed.
+   * Executes a query (push or pull) and returns all result rows in a single batch, once the query
+   * has completed.
    *
-   * @param sql statement of query to execute.
-   * @param properties query properties.
-   * @return query result.
+   * @param sql statement of query to execute
+   * @param properties query properties
+   * @return query result
    */
   BatchedQueryResult executeQuery(String sql, Map<String, Object> properties);
 
@@ -64,8 +75,20 @@ public interface Client {
 
   Publisher<InsertAck> streamInserts(String streamName, Publisher<List<Object>> insertsPublisher);
 
+  /**
+   * Terminates a push query with the specified query ID.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param queryId ID of the query to terminate
+   * @return a future that completes once the server response is received
+   */
   CompletableFuture<Void> terminatePushQuery(String queryId);
 
+  /**
+   * Closes the underlying HTTP client.
+   */
   void close();
 
   static Client create(ClientOptions clientOptions) {

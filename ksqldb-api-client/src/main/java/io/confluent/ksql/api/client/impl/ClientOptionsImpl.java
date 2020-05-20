@@ -20,12 +20,11 @@ import java.util.Objects;
 
 public class ClientOptionsImpl implements ClientOptions {
 
-  private String host = "localhost";
-  private int port = 8088;
+  private String host = ClientOptions.DEFAULT_HOST;
+  private int port = ClientOptions.DEFAULT_HOST_PORT;
   private boolean useTls = false;
-  private boolean useClientAuth = false;
   private boolean verifyHost = true;
-  private boolean trustAll = false;
+  private boolean useAlpn = false;
   private boolean useBasicAuth = false;
   private String trustStorePath;
   private String trustStorePassword;
@@ -33,8 +32,12 @@ public class ClientOptionsImpl implements ClientOptions {
   private String keyStorePassword;
   private String basicAuthUsername;
   private String basicAuthPassword;
-  private int executeQueryMaxResultRows = 10000;
+  private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
 
+  /**
+   * {@code ClientOptions} should be instantiated via {@link ClientOptions#create}, NOT via this
+   * constructor.
+   */
   public ClientOptionsImpl() {
   }
 
@@ -42,8 +45,7 @@ public class ClientOptionsImpl implements ClientOptions {
   private ClientOptionsImpl(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final String host, final int port,
-      final boolean useTls, final boolean useClientAuth,
-      final boolean verifyHost, final boolean trustAll,
+      final boolean useTls, final boolean verifyHost, final boolean useAlpn,
       final boolean useBasicAuth,
       final String trustStorePath, final String trustStorePassword,
       final String keyStorePath, final String keyStorePassword,
@@ -52,9 +54,8 @@ public class ClientOptionsImpl implements ClientOptions {
     this.host = Objects.requireNonNull(host);
     this.port = port;
     this.useTls = useTls;
-    this.useClientAuth = useClientAuth;
     this.verifyHost = verifyHost;
-    this.trustAll = trustAll;
+    this.useAlpn = useAlpn;
     this.useBasicAuth = useBasicAuth;
     this.trustStorePath = trustStorePath;
     this.trustStorePassword = trustStorePassword;
@@ -84,14 +85,14 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
-  public ClientOptions setUseClientAuth(final boolean useClientAuth) {
-    this.useClientAuth = useClientAuth;
+  public ClientOptions setVerifyHost(final boolean verifyHost) {
+    this.verifyHost = verifyHost;
     return this;
   }
 
   @Override
-  public ClientOptions setVerifyHost(final boolean verifyHost) {
-    this.verifyHost = verifyHost;
+  public ClientOptions setUseAlpn(final boolean useAlpn) {
+    this.useAlpn = useAlpn;
     return this;
   }
 
@@ -149,13 +150,13 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
-  public boolean isUseClientAuth() {
-    return useClientAuth;
+  public boolean isVerifyHost() {
+    return verifyHost;
   }
 
   @Override
-  public boolean isVerifyHost() {
-    return verifyHost;
+  public boolean isUseAlpn() {
+    return useAlpn;
   }
 
   @Override
@@ -202,8 +203,7 @@ public class ClientOptionsImpl implements ClientOptions {
   public ClientOptions copy() {
     return new ClientOptionsImpl(
         host, port,
-        useTls, useClientAuth,
-        verifyHost, trustAll,
+        useTls, verifyHost, useAlpn,
         useBasicAuth,
         trustStorePath, trustStorePassword,
         keyStorePath, keyStorePassword,

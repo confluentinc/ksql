@@ -23,8 +23,8 @@ import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.reactivestreams.Subscriber;
 
 public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements StreamedQueryResult {
@@ -79,19 +79,15 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
 
   @Override
   public Row poll() {
-    return poll(0, TimeUnit.MILLISECONDS);
+    return poll(Duration.ZERO);
   }
 
   @Override
-  public Row poll(final long timeout, final TimeUnit timeUnit) {
-    return poll(timeout, timeUnit, null);
+  public Row poll(final Duration timeout) {
+    return poll(timeout, null);
   }
 
-  private synchronized Row poll(
-      final long timeout,
-      final TimeUnit timeUnit,
-      final Runnable callback
-  ) {
+  private synchronized Row poll(final Duration timeout, final Runnable callback) {
     if (subscribing) {
       throw new IllegalStateException("Cannot poll if subscriber has been set");
     }
@@ -107,7 +103,7 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
       subscribing = false;
       polling = true;
     }
-    return pollableSubscriber.poll(timeout, timeUnit);
+    return pollableSubscriber.poll(timeout);
   }
 
   @Override
@@ -142,6 +138,6 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
       throw new IllegalArgumentException("Can only poll with callback on StreamedQueryResultImpl");
     }
     final StreamedQueryResultImpl streamedQueryResult = (StreamedQueryResultImpl) queryResult;
-    return streamedQueryResult.poll(0, TimeUnit.MILLISECONDS, callback);
+    return streamedQueryResult.poll(Duration.ZERO, callback);
   }
 }

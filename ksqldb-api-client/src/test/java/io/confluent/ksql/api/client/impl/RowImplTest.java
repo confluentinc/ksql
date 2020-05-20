@@ -81,7 +81,7 @@ public class RowImplTest {
 
   @Test
   public void shouldGetInt() {
-    assertThat(row.getInt("f_int"), is(2));
+    assertThat(row.getInteger("f_int"), is(2));
   }
 
   @Test
@@ -125,7 +125,7 @@ public class RowImplTest {
 
   @Test
   public void shouldThrowExceptionOnInvalidCast() {
-    assertThrows(ClassCastException.class, () -> row.getInt("f_str"));
+    assertThrows(ClassCastException.class, () -> row.getInteger("f_str"));
   }
 
   @Test

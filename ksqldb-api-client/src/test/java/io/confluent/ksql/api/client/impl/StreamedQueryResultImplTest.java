@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verify;
 import io.confluent.ksql.api.client.Row;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -91,7 +92,7 @@ public class StreamedQueryResultImplTest {
   @Test
   public void shouldNotSubscribeIfPolling() {
     // Given
-    queryResult.poll(1, TimeUnit.NANOSECONDS);
+    queryResult.poll(Duration.ofNanos(1));
 
     // When
     final Exception e = assertThrows(IllegalStateException.class, () -> queryResult.subscribe(subscriber));
@@ -128,7 +129,7 @@ public class StreamedQueryResultImplTest {
   public void shouldReturnFromPollOnError() throws Exception {
     // Given
     // Poll for a minimal amount of time to ensure PollableSubscriber is subscribed
-    queryResult.poll(1, TimeUnit.NANOSECONDS);
+    queryResult.poll(Duration.ofNanos(1));
 
     CountDownLatch pollStarted = new CountDownLatch(1);
     CountDownLatch pollReturned = new CountDownLatch(1);

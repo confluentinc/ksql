@@ -40,7 +40,6 @@ public class ClientTlsMutualAuthTest extends ClientTlsTest {
   @Override
   protected ClientOptions createJavaClientOptions() {
     return super.createJavaClientOptions()
-        .setUseClientAuth(true)
         .setKeyStore(KEY_STORE_PATH)
         .setKeyStorePassword(KEY_STORE_PASSWORD);
   }

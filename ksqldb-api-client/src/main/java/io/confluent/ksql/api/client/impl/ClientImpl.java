@@ -54,10 +54,18 @@ public class ClientImpl implements Client {
   private final String basicAuthHeader;
   private final boolean ownedVertx;
 
+  /**
+   * {@code Client} instances should be created via {@link Client#create(ClientOptions)}, NOT via
+   * this constructor.
+   */
   public ClientImpl(final ClientOptions clientOptions) {
     this(clientOptions, Vertx.vertx(), true);
   }
 
+  /**
+   * {@code Client} instances should be created via {@link Client#create(ClientOptions, Vertx)},
+   * NOT via this constructor.
+   */
   public ClientImpl(final ClientOptions clientOptions, final Vertx vertx) {
     this(clientOptions, vertx, false);
   }
@@ -234,7 +242,7 @@ public class ClientImpl implements Client {
   private static HttpClient createHttpClient(final Vertx vertx, final ClientOptions clientOptions) {
     HttpClientOptions options = new HttpClientOptions()
         .setSsl(clientOptions.isUseTls())
-        .setUseAlpn(true)
+        .setUseAlpn(clientOptions.isUseAlpn())
         .setProtocolVersion(HttpVersion.HTTP_2)
         .setVerifyHost(clientOptions.isVerifyHost())
         .setDefaultHost(clientOptions.getHost())
@@ -246,7 +254,7 @@ public class ClientImpl implements Client {
               .setPassword(clientOptions.getTrustStorePassword())
       );
     }
-    if (clientOptions.isUseClientAuth()) {
+    if (!clientOptions.getKeyStore().isEmpty()) {
       options = options.setKeyStoreOptions(
           new JksOptions()
               .setPath(clientOptions.getKeyStore())

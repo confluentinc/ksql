@@ -25,13 +25,17 @@ create new nested STRUCT data as the result of a query. For more info, see
 
 The following functionality is not supported:
 
--   Message keys in Avro or Protobuf formats are not supported. Message keys in ksqlDB
-    are always interpreted as STRING format, which means ksqlDB ignores
-     and Protobuf schemas that have been registered for message keys, and
-    the key is read by using `StringDeserializer`.
+-   Message *keys* in Avro, Protobuf, or JSON formats are not supported. Message
+    keys in ksqlDB are always interpreted as `KAFKA` format, which means ksqlDB
+    ignores schemas that have been registered for message keys.
 
-Configure ksqlDB for Avro or Protobuf
-=====================================
+Although ksqlDB doesn't support loading the message key's schema from {{ site.sr }},
+you can provide the key column definition within the `CREATE TABLE` or `CREATE STREAM`
+statement. Where a `CREATE TABLE` or `CREATE STREAM` statement doesn't provide an
+explicit key column, ksqlDB adds an implicit `ROWKEY STRING` column.
+
+Configure ksqlDB for Avro, Protobuf, and JSON
+=============================================
 
 You must configure the REST endpoint of {{ site.sr }} by setting
 `ksql.schema.registry.url` (default: `http://localhost:8081`) in the
@@ -87,7 +91,8 @@ Avro-formatted data. If you want to use Protobuf-formatted data, substitute
 ### Create a New Stream by Reading Avro-formatted Data
 
 The following statement shows how to create a new `pageviews` stream by
-reading from a {{ site.ak }} topic that has Avro-formatted messages.
+reading from a {{ site.ak }} topic that has Avro-formatted message values and
+a `KAFKA`-formatted `INT` message key.
 
 ```sql
 CREATE STREAM pageviews
@@ -95,7 +100,10 @@ CREATE STREAM pageviews
         VALUE_FORMAT='AVRO');
 ```
 
-### Create a New Table by Reading Avro-formatted Data
+If the key schema is not provided, the key of the data is assumed to be
+a single `KAFKA` serialized `STRING` named `ROWKEY`.
+
+### Create a new table by reading Avro-formatted data
 
 The following statement shows how to create a new `users` table by
 reading from a {{ site.ak }} topic that has Avro-formatted message values.

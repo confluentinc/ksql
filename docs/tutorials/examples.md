@@ -41,14 +41,7 @@ CREATE STREAM pageviews
         VALUE_FORMAT='DELIMITED');
 ```
 
-### Associate Kafka message keys
-
-The previous statement doesn't make any assumptions about the Kafka message
-key in the underlying {{ site.ak }} topic. But if the value of the message key
-in {{ site.aktm }} is the same as one of the columns defined in the stream in
-ksqlDB, you can provide this information in the WITH clause. For example, if
-the {{ site.aktm }} message key has the same value as the `pageid` column, you
-can write the CREATE STREAM statement like this:
+CREATE STREAM statement.
 
 ```sql
 CREATE STREAM pageviews
@@ -59,7 +52,6 @@ CREATE STREAM pageviews
        VALUE_FORMAT='DELIMITED',
        KEY='pageid');
 ```
-
 ### Associate {{ site.aktm }} message timestamps
 
 If you want to use the value of one of the columns as the {{ site.aktm }}

@@ -21,18 +21,14 @@ Description
 -----------
 
 Produce a row into an existing stream or table and its underlying topic
-based on explicitly specified values. The first `column_name` of every
-schema is `ROWKEY`, which defines the corresponding Kafka key. If the
-source specifies a `key` and that column is present in the column names
-for this INSERT statement then that value and the `ROWKEY` value are
-expected to match, otherwise the value from `ROWKEY` will be copied into
-the value of the key column (or conversely from the key column into the
-`ROWKEY` column).
+based on explicitly specified values.
 
-Any column not explicitly given a value is set to `null`. If no columns
-are specified, a value for every column is expected in the same order as
-the schema with `ROWKEY` as the first column. If columns are specified,
-the order does not matter.
+If column names are specified, the order of the values must match the
+order of the names. Any column not explicitly given a value is set to `null`.
+Pseudo columns, for example `ROWTIME`, may be provided.
+
+If no columns are specified, a value for every column is expected in the same
+order as the schema, with key columns first.
 
 !!! note
 	`ROWTIME` may be specified as an explicit column but isn't required

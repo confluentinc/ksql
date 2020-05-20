@@ -41,7 +41,8 @@ application flows. For request/response flows, see [Pull Queries](select-pull-qu
 Push queries can use all available SQL features, which can be useful when prototyping a
 persistent query or when running ad-hoc queries from the CLI. But unlike persistent queries,
 
-push queries are not shared. If multiple clients submit the same push query ksqlDB will compute
+push queries are not shared. If multiple clients submit the same push query, ksqlDB computes
+
 independent results for each client.
 
 !!! tip

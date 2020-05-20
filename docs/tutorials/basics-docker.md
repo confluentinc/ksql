@@ -1448,7 +1448,7 @@ data. Verify that the data generator created these topics, including
 `pageviews` and `users`.
 
 ```bash
-docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
+docker-compose exec kafka kafka-topics --bootstrap-server localhost:9092 --list
 ```
 
 Your output should resemble this.

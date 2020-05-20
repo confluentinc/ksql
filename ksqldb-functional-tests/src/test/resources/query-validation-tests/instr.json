@@ -1,0 +1,91 @@
+{
+  "comments": [
+    "Tests covering the use of the INSTR function."
+  ],
+  "tests": [
+    {
+      "name": "test instr with just substring",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, INSTR(source, 'or') AS INSTR FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "corporate floor"}},
+        {"topic": "test_topic", "value": {"source": "should I stay or should I go"}},
+        {"topic": "test_topic", "value": {"source": "short"}},
+        {"topic": "test_topic", "value": {"source": "no substring"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"INSTR":2}},
+        {"topic": "OUTPUT", "value": {"INSTR":15}},
+        {"topic": "OUTPUT", "value": {"INSTR":3}},
+        {"topic": "OUTPUT", "value": {"INSTR":0}}
+      ]
+    },
+    {
+      "name": "test instr with position",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, INSTR(source, 'or', 4) AS INSTR FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "corporate floor"}},
+        {"topic": "test_topic", "value": {"source": "short"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"INSTR":5}},
+        {"topic": "OUTPUT", "value": {"INSTR":0}}
+      ]
+    },
+    {
+      "name": "test instr with position and occurrence",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, INSTR(source, 'or', 4, 2) AS INSTR FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "corporate floor"}},
+        {"topic": "test_topic", "value": {"source": "short"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"INSTR":14}},
+        {"topic": "OUTPUT", "value": {"INSTR":0}}
+      ]
+    },
+    {
+      "name": "test instr with negative position",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, INSTR(source, 'or', -4) AS INSTR FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "corporate floor"}},
+        {"topic": "test_topic", "value": {"source": "short"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"INSTR":5}},
+        {"topic": "OUTPUT", "value": {"INSTR":0}}
+      ]
+    },
+    {
+      "name": "test instr with negative position and occurrence",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, INSTR(source, 'or', -4, 2) AS INSTR FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "corporate floor"}},
+        {"topic": "test_topic", "value": {"source": "short"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"INSTR":2}},
+        {"topic": "OUTPUT", "value": {"INSTR":0}}
+      ]
+    }
+  ]
+}

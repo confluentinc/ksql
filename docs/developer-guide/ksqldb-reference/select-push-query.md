@@ -29,17 +29,25 @@ Description
 
 Push a continuous stream of updates to the ksqlDB stream or table. The result of
 this statement isn't persisted in a Kafka topic and is printed out only in
-the console. To stop the continuous query in the CLI press Ctrl+C.
-Note that the WINDOW clause can only be used if the `from_item` is a
-stream.
+the console, or returned to the client. To stop a push query started in the CLI press Ctrl+C.
 
-Push queries enable you to query a materialized view with a subscription to
-the results. Push queries emit refinements to materialized views, which enable
+Execute a push query via the CLI or by sending an HTTP request to the ksqlDB REST API, and
+the API sends back a chunked response of indefinite length.
+
+Push queries enable you to subscribe to changes, which enable
 reacting to new information in real-time. They’re a good fit for asynchronous
 application flows. For request/response flows, see [Pull Queries](select-pull-query.md).
 
-Execute a push query by sending an HTTP request to the ksqlDB REST API, and
-the API sends back a chunked response of indefinite length.
+Push queries can use all available SQL features, which can be useful when prototyping a
+persistent query or when running ad-hoc queries from the CLI. But unlike persistent queries,
+
+push queries are not shared. If multiple clients submit the same push query, ksqlDB computes
+
+independent results for each client.
+
+!!! tip
+    If you're using push queries from an application, move all the heavy lifting into a persistent
+    query and keep your push query as simple as possible.
 
 In the previous statements, `from_item` is one of the following:
 
@@ -107,6 +115,10 @@ SET 'auto.offset.reset' = 'earliest';
 
 #### WINDOW
 
+!!! note
+  You can use the WINDOW clause only if the `from_item` is a stream.
+
+
 The WINDOW clause lets you control how to group input records *that have
 the same key* into so-called *windows* for operations like aggregations
 or joins. Windows are tracked per record key.
@@ -167,24 +179,6 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   GROUP BY item_id
   EMIT CHANGES;
 ```
-
-Every output column of an expression in the SELECT list has an output
-name. To specify the output name of a column, use `AS OUTPUT_NAME` after
-the expression definition. If it is omitted, ksqlDB will assign a system
-generated name `KSQL_COL_i` where `i` is the ordinal number of the
-expression in the SELECT list. If the expression references a column of
-a `from_item`, then the output name is the name of that column.
-
-
-ksqlDB throws an error for duplicate output names. For example:
-
-```sql
-SELECT 1, KSQL_COL_0
-  FROM orders
-  EMIT CHANGES;
-```
-
-is not allowed, as the output name for the literal `1` is `KSQL_COL_0`.
 
 #### CAST
 
@@ -285,4 +279,3 @@ SELECT event
   WHERE event_id BETWEEN 10 AND 20
   EMIT CHANGES;
 ```
-

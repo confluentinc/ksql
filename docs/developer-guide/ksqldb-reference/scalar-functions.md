@@ -510,7 +510,7 @@ complex type are not inspected.
 Date and Time
 =============
 
-UNIX_DAT
+UNIX_DATE
 --------
 
 `UNIX_DATE()`

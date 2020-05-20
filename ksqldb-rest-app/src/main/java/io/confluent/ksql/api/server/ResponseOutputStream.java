@@ -23,7 +23,6 @@ import java.io.OutputStream;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import org.jetbrains.annotations.NotNull;
 
 /*
 An OutputStream that writes to a HttpServerResponse.
@@ -45,7 +44,7 @@ public class ResponseOutputStream extends OutputStream {
   }
 
   @Override
-  public synchronized void write(final @NotNull byte[] bytes, final int offset, final int length) {
+  public synchronized void write(final byte[] bytes, final int offset, final int length) {
     Objects.requireNonNull(bytes);
     if ((offset < 0) || (offset > bytes.length)) {
       throw new IndexOutOfBoundsException();

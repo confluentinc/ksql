@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
@@ -28,6 +29,8 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -60,6 +63,7 @@ public abstract class QueryMetadata {
   private final QueryId queryId;
   private final QueryError[] queryErrorRef = new QueryError[]{null};
   private final QueryErrorClassifier errorClassifier;
+  private final Set<QueryError> queryErrors = new HashSet<>();
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
@@ -100,12 +104,7 @@ public abstract class QueryMetadata {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
 
-    kafkaStreams.setUncaughtExceptionHandler(
-        new KafkaStreamsUncaughtExceptionHandler(
-            errorClassifier,
-            queryStateListener
-        )
-    );
+    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
@@ -128,12 +127,15 @@ public abstract class QueryMetadata {
     this.queryStateListener = Optional.of(queryStateListener);
     queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
 
-    kafkaStreams.setUncaughtExceptionHandler(
-        new KafkaStreamsUncaughtExceptionHandler(
-            errorClassifier,
-            this.queryStateListener
-        )
-    );
+    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
+  }
+
+  private void uncaughtHandler(final Thread t, final Throwable e) {
+    LOG.error("Unhandled exception caught in streams thread {}.", t.getName(), e);
+    final QueryError queryError =
+        new QueryError(Throwables.getStackTraceAsString(e), errorClassifier.classify(e));
+    queryStateListener.ifPresent(lis -> lis.onError(queryError));
+    queryErrors.add(queryError);
   }
 
   public Map<String, Object> getOverriddenProperties() {
@@ -249,5 +251,9 @@ public abstract class QueryMetadata {
 
   public String getTopologyDescription() {
     return topology.describe().toString();
+  }
+
+  public List<QueryError> getQueryErrors() {
+    return ImmutableList.copyOf(queryErrors);
   }
 }

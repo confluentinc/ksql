@@ -47,13 +47,21 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
   }
 
+  /**
+   * This constructor is required while {@code keyColumnNames} are not mandatory.
+   *
+   * <p>{@code keyColumnNames} was introduced in 0.10.0 and can be mandatory once 0.9.0 query plans
+   * are no longer supported.
+   *
+   * @see <a href="https://github.com/confluentinc/ksql/issues/5420">Tracking issue</a>
+   * @deprecated use the public constructor.
+   */
   @SuppressWarnings("unused") // Invoked via reflection by Jackson
   @JsonCreator
+  @Deprecated
   private TableSelect(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
-      // keyColumnNames introduced in 0.10.0.
-      // Can be mandatory once 0.9.0 query plans are unsupported.
       @JsonProperty(value = "keyColumnNames") final Optional<List<ColumnName>> keyColumnNames,
       @JsonProperty(value = "selectExpressions", required = true) final
       List<SelectExpression> selectExpressions

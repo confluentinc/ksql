@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.engine;
 
-import static org.mockito.Mockito.mock;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -50,8 +48,8 @@ public class QueryPlanTest {
 
   @Before
   public void setup() {
-    sources1 = ImmutableSet.of(mock(SourceName.class));
-    sources2 = ImmutableSet.of(mock(SourceName.class));
+    sources1 = ImmutableSet.of(SourceName.of("1"));
+    sources2 = ImmutableSet.of(SourceName.of("2"));
   }
 
   @Test

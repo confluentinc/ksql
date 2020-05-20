@@ -22,6 +22,7 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
@@ -29,6 +30,7 @@ import java.util.Objects;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public class PhysicalPlanBuilder {
+
   private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
   private final ServiceContext serviceContext;
@@ -70,6 +72,17 @@ public class PhysicalPlanBuilder {
     );
 
     final SchemaKStream<?> resultStream = outputNode.buildStream(ksqlQueryBuilder);
+
+    final LogicalSchema logicalSchema = outputNode.getSchema();
+    final LogicalSchema physicalSchema = resultStream.getSchema();
+    if (!logicalSchema.equals(physicalSchema)) {
+      throw new IllegalStateException("Logical and Physical schemas do not match!"
+          + System.lineSeparator()
+          + "Logical : " + logicalSchema
+          + System.lineSeparator()
+          + "Physical: " + physicalSchema
+      );
+    }
 
     return new PhysicalPlan(
         queryId,

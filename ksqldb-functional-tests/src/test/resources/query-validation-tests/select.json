@@ -74,6 +74,17 @@
           {"name": "OUTPUT", "type": "stream", "schema": "ID_COPY INT KEY, ROWTIME_COPY BIGINT, NAME_COPY STRING"}
         ]
       }
+    },
+    {
+      "name": "key missing from projection",
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT NAME FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the key column ID in its projection."
+      }
     }
   ]
 }

@@ -249,7 +249,7 @@ public class LogicalPlanner {
 
     final boolean persistent = analysis.getInto().isPresent();
     if (persistent) {
-      // Persistent queries have key columns asa key columns - so final projection can exclude them:
+      // Persistent queries have key columns as key columns - so final projection can exclude them:
       final Set<SelectExpression> keySelects = parentNode.getSchema().key().stream()
           .map(Column::name)
           .map(name -> resolveProjectionAlias(name, projection))

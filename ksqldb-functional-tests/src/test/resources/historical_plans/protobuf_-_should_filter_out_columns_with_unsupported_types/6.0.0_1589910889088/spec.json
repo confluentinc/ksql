@@ -1,0 +1,71 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910889088,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<EXPECTED INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<EXPECTED INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "should filter out columns with unsupported types",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "expected" : 1,
+        "c4" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "EXPECTED" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  int32 expected = 1;\n  bytes c2 = 2;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, EXPECTED INT"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 1
+        } ]
+      }
+    }
+  }
+}

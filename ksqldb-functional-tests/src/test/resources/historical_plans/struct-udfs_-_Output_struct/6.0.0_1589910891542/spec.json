@@ -1,0 +1,67 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910891542,
+  "path" : "query-validation-tests/struct-udfs.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VAL VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<VALUE STRUCT<A VARCHAR>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "Output struct",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "val" : "foo"
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "VALUE" : {
+          "A" : "foo"
+        }
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (K STRING KEY, val VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, TEST_UDF() AS VALUE FROM test;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

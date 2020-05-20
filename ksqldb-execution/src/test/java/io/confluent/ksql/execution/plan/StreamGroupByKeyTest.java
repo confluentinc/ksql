@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class StreamGroupByKeyTest {
   @Mock
@@ -44,6 +45,7 @@ public class StreamGroupByKeyTest {
             new StreamGroupByKey(properties1, source1, formats1))
         .addEqualityGroup(new StreamGroupByKey(properties2, source1, formats1))
         .addEqualityGroup(new StreamGroupByKey(properties1, source2, formats1))
-        .addEqualityGroup(new StreamGroupByKey(properties1, source1, formats2));
+        .addEqualityGroup(new StreamGroupByKey(properties1, source1, formats2))
+        .testEquals();
   }
 }

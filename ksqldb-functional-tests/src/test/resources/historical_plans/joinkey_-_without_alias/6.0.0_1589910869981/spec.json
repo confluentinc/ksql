@@ -1,0 +1,108 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910869981,
+  "path" : "query-validation-tests/joinkey.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<V0 INT, V1 INT> NOT NULL",
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<V0 INT, V1 INT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<L_ID INT, R_ID INT, L_V0 INT, R_V1 INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "without alias",
+    "inputs" : [ {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "V0" : 2,
+        "V1" : 3
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "right_topic",
+      "key" : 1,
+      "value" : {
+        "V0" : 4,
+        "V1" : 5
+      },
+      "timestamp" : 100
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "L_ID" : 1,
+        "R_ID" : null,
+        "L_V0" : 2,
+        "R_V1" : null
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "L_ID" : 1,
+        "R_ID" : 1,
+        "L_V0" : 2,
+        "R_V1" : 5
+      },
+      "timestamp" : 100
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE L (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT JOINKEY(L.ID, R.ID), L.ID, R.ID, L.V0, R.V1 FROM L FULL OUTER JOIN R on L.id = R.id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "table",
+        "schema" : "KSQL_COL_0 INT KEY, L_ID INT, R_ID INT, L_V0 INT, R_V1 INT"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -46,7 +44,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Before;
@@ -131,14 +128,12 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // When:
     final Exception e = assertThrows(
-        KsqlException.class,
-        () -> buildNode()
+        IllegalArgumentException.class,
+        this::buildNode
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Value column name(s) `k0` "
-            + "clashes with key column name(s)."));
+    assertThat(e.getMessage(), containsString("Value columns clash with key columns: `k0`"));
   }
 
   @Test
@@ -245,11 +240,5 @@ public class KsqlStructuredDataOutputNodeTest {
   private void givenSourceSchema(final LogicalSchema schema) {
     when(sourceNode.getSchema())
         .thenReturn(schema);
-  }
-
-  private static SelectExpression selectExpression(final String alias) {
-    final SelectExpression mock = mock(SelectExpression.class);
-    when(mock.getAlias()).thenReturn(ColumnName.of(alias));
-    return mock;
   }
 }

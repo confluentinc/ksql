@@ -1,0 +1,85 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910890053,
+  "path" : "query-validation-tests/serdes.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO ARRAY<BIGINT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO ARRAY<BIGINT>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "serialize nested array - value - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : [ 12, 34, 999 ]
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "FOO" : [ 12, 34, 999 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "FOO" : [ ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated int64 FOO = 1;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

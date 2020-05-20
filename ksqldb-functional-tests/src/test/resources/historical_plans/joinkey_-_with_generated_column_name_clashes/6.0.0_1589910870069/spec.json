@@ -1,0 +1,108 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910870069,
+  "path" : "query-validation-tests/joinkey.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<KSQL_COL_1 INT, KSQL_COL_2 INT> NOT NULL",
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<KSQL_COL_4 INT, KSQL_COL_5 INT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 INT, KSQL_COL_3 INT, KSQL_COL_1 INT, KSQL_COL_5 INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "with generated column name clashes",
+    "inputs" : [ {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "KSQL_COL_1" : 2,
+        "KSQL_COL_2" : 3
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "right_topic",
+      "key" : 1,
+      "value" : {
+        "KSQL_COL_4" : 4,
+        "KSQL_COL_5" : 5
+      },
+      "timestamp" : 100
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "KSQL_COL_0" : 1,
+        "KSQL_COL_3" : null,
+        "KSQL_COL_1" : 2,
+        "KSQL_COL_5" : null
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "KSQL_COL_0" : 1,
+        "KSQL_COL_3" : 1,
+        "KSQL_COL_1" : 2,
+        "KSQL_COL_5" : 5
+      },
+      "timestamp" : 100
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE L (KSQL_COL_0 INT PRIMARY KEY, KSQL_COL_1 INT, KSQL_COL_2 INT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (KSQL_COL_3 INT PRIMARY KEY, KSQL_COL_4 INT, KSQL_COL_5 INT) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT JOINKEY(L.KSQL_COL_0, R.KSQL_COL_3), L.KSQL_COL_0, R.KSQL_COL_3, L.KSQL_COL_1, R.KSQL_COL_5 FROM L FULL OUTER JOIN R on L.KSQL_COL_0 = R.KSQL_COL_3;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "table",
+        "schema" : "KSQL_COL_6 INT KEY, KSQL_COL_0 INT, KSQL_COL_3 INT, KSQL_COL_1 INT, KSQL_COL_5 INT"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

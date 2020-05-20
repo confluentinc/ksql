@@ -61,6 +61,7 @@ public class TableGroupByTest {
         .addEqualityGroup(new TableGroupBy<>(properties2, source1, formats1, expression1))
         .addEqualityGroup(new TableGroupBy<>(properties1, source2, formats1, expression1))
         .addEqualityGroup(new TableGroupBy<>(properties1, source1, formats2, expression1))
-        .addEqualityGroup(new TableGroupBy<>(properties1, source1, formats1, expression2));
+        .addEqualityGroup(new TableGroupBy<>(properties1, source1, formats1, expression2))
+        .testEquals();
   }
 }

@@ -1,0 +1,117 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910855990,
+  "path" : "query-validation-tests/decimal.json",
+  "schemas" : {
+    "CSAS_TEST2_0.KsqlTopic.Source" : "STRUCT<A DECIMAL(4, 2), B INT> NOT NULL",
+    "CSAS_TEST2_0.TEST2" : "STRUCT<RESULT DECIMAL(13, 2)> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "addition with int",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "A" : "10.01",
+        "B" : 5
+      }
+    }, {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "A" : "10.01",
+        "B" : -5
+      }
+    }, {
+      "topic" : "test",
+      "key" : "",
+      "value" : {
+        "A" : "10.01",
+        "B" : 0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TEST2",
+      "key" : "",
+      "value" : {
+        "RESULT" : "15.01"
+      }
+    }, {
+      "topic" : "TEST2",
+      "key" : "",
+      "value" : {
+        "RESULT" : "5.01"
+      }
+    }, {
+      "topic" : "TEST2",
+      "key" : "",
+      "value" : {
+        "RESULT" : "10.01"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "TEST2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "A",
+          "type" : [ "null", {
+            "type" : "bytes",
+            "scale" : 2,
+            "precision" : 4,
+            "connect.version" : 1,
+            "connect.parameters" : {
+              "scale" : "2",
+              "connect.decimal.precision" : "4"
+            },
+            "connect.name" : "org.apache.kafka.connect.data.Decimal",
+            "logicalType" : "decimal"
+          } ],
+          "default" : null
+        }, {
+          "name" : "B",
+          "type" : [ "null", "int" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, a DECIMAL(4,2), b INT) WITH (kafka_topic='test', value_format='AVRO');", "CREATE STREAM TEST2 AS SELECT ID, (a + b) AS RESULT FROM TEST;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "TEST2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

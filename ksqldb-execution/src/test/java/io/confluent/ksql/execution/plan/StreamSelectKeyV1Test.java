@@ -47,6 +47,7 @@ public class StreamSelectKeyV1Test {
             new StreamSelectKeyV1(properties1, source1, expression1))
         .addEqualityGroup(new StreamSelectKeyV1(properties2, source1, expression1))
         .addEqualityGroup(new StreamSelectKeyV1(properties1, source2, expression1))
-        .addEqualityGroup(new StreamSelectKeyV1(properties1, source1, expression2));
+        .addEqualityGroup(new StreamSelectKeyV1(properties1, source1, expression2))
+        .testEquals();
   }
 }

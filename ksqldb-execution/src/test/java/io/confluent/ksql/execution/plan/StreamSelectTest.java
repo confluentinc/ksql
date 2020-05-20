@@ -18,6 +18,7 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.name.ColumnName;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -26,8 +27,10 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class StreamSelectTest {
+
   @Mock
   private ExecutionStepPropertiesV1 properties1;
   @Mock
@@ -37,11 +40,15 @@ public class StreamSelectTest {
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> source2;
 
+  private List<ColumnName> keys1;
+  private List<ColumnName> keys2;
   private List<SelectExpression> selects1;
   private List<SelectExpression> selects2;
 
   @Before
   public void setup() {
+    keys1 = ImmutableList.of(mock(ColumnName.class));
+    keys2 = ImmutableList.of(mock(ColumnName.class));
     selects1 = ImmutableList.of(mock(SelectExpression.class));
     selects2 = ImmutableList.of(mock(SelectExpression.class));
   }
@@ -50,10 +57,13 @@ public class StreamSelectTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new StreamSelect<>(properties1, source1, selects1),
-            new StreamSelect<>(properties1, source1, selects1))
-        .addEqualityGroup(new StreamSelect<>(properties2, source1, selects1))
-        .addEqualityGroup(new StreamSelect<>(properties1, source2, selects1))
-        .addEqualityGroup(new StreamSelect<>(properties1, source1, selects2));
+            new StreamSelect<>(properties1, source1, keys1, selects1),
+            new StreamSelect<>(properties1, source1, keys1, selects1)
+        )
+        .addEqualityGroup(new StreamSelect<>(properties2, source1, keys1, selects1))
+        .addEqualityGroup(new StreamSelect<>(properties1, source2, keys1, selects1))
+        .addEqualityGroup(new StreamSelect<>(properties1, source1, keys2, selects1))
+        .addEqualityGroup(new StreamSelect<>(properties1, source1, keys1, selects2))
+        .testEquals();
   }
 }

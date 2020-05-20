@@ -78,11 +78,12 @@ public class StreamSelectKeyV1 implements ExecutionStep<KStreamHolder<Struct>> {
     }
     final StreamSelectKeyV1 that = (StreamSelectKeyV1) o;
     return Objects.equals(properties, that.properties)
-        && Objects.equals(source, that.source);
+        && Objects.equals(source, that.source)
+        && Objects.equals(keyExpression, that.keyExpression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, source);
+    return Objects.hash(properties, source, keyExpression);
   }
 }

@@ -39,7 +39,6 @@ import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -82,8 +81,6 @@ public class StreamSelectBuilderTest {
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> sourceStep;
   @Mock
-  private ExecutionStepPropertiesV1 sourceProperties;
-  @Mock
   private ExecutionStepPropertiesV1 properties;
   @Mock
   private KStream<Struct, GenericRow> sourceKStream;
@@ -111,14 +108,12 @@ public class StreamSelectBuilderTest {
 
   @Before
   public void setup() {
-    when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(properties.getQueryContext()).thenReturn(context);
-    when(queryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(queryBuilder.getFunctionRegistry()).thenReturn(mock(FunctionRegistry.class));
     when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(
-        sourceKStream.transformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
+    when(sourceKStream
+        .transformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
         .thenReturn(resultKStream);
     final KStreamHolder<Struct> sourceStream
         = new KStreamHolder<>(sourceKStream, SCHEMA, keySerdeFactory);
@@ -126,6 +121,7 @@ public class StreamSelectBuilderTest {
     step = new StreamSelect<>(
         properties,
         sourceStep,
+        ImmutableList.of(),
         SELECT_EXPRESSIONS
     );
     planBuilder = new KSPlanBuilder(
@@ -170,6 +166,30 @@ public class StreamSelectBuilderTest {
         result.getSchema(),
         is(LogicalSchema.builder()
             .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+            .valueColumn(ColumnName.of("expr1"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("expr2"), SqlTypes.INTEGER)
+            .build())
+    );
+  }
+
+  @Test
+  public void shouldReturnCorrectSchemaWithKeyAliases() {
+    // Given:
+    step = new StreamSelect<>(
+        properties,
+        sourceStep,
+        ImmutableList.of(ColumnName.of("NEW_KEY")),
+        SELECT_EXPRESSIONS
+    );
+
+    // When:
+    final KStreamHolder<Struct> result = step.build(planBuilder);
+
+    // Then:
+    assertThat(
+        result.getSchema(),
+        is(LogicalSchema.builder()
+            .keyColumn(ColumnName.of("NEW_KEY"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("expr1"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("expr2"), SqlTypes.INTEGER)
             .build())

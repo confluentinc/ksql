@@ -36,9 +36,18 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStep<KTableHolder<K>> leftSource;
   private final ExecutionStep<KTableHolder<K>> rightSource;
 
-  @SuppressWarnings("unused") // Invoked by reflection
+  /**
+   * This constructor is required while {@code keyColName} is not mandatory.
+   *
+   * <p>{@code keyColName} was introduced in 0.10.0 and can be mandatory once 0.9.0 query plans
+   * are no longer supported.
+   *
+   * @see <a href="https://github.com/confluentinc/ksql/issues/5421">Tracking issue</a>
+   * @deprecated use the public constructor.
+   */
+  @SuppressWarnings("unused") // Invoked via reflection by Jackson
   @JsonCreator
-  @Deprecated() // Can be removed at next incompatible version
+  @Deprecated
   private TableTableJoin(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "joinType", required = true) final JoinType joinType,

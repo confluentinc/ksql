@@ -1,0 +1,80 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910849586,
+  "path" : "query-validation-tests/cast.json",
+  "schemas" : {
+    "CSAS_OUT_0.KsqlTopic.Source" : "STRUCT<COL0 INT, COL1 INT> NOT NULL",
+    "CSAS_OUT_0.OUT" : "STRUCT<VAL VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "integer to string",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "col0" : 1,
+        "col1" : 2
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUT",
+      "key" : "",
+      "value" : {
+        "VAL" : "-1"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "COL0",
+          "type" : [ "null", "int" ],
+          "default" : null
+        }, {
+          "name" : "COL1",
+          "type" : [ "null", "int" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col0 INT, col1 INT) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUT AS SELECT ID, cast((col0 - col1) AS STRING) as VAL FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

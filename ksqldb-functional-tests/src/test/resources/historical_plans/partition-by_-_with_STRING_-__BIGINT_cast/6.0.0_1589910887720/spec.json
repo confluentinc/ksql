@@ -1,0 +1,64 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910887720,
+  "path" : "query-validation-tests/partition-by.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 VARCHAR, K VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "with STRING -> BIGINT cast",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "a",
+      "value" : {
+        "V0" : "10"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : {
+        "V0" : "10",
+        "K" : "a"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, V0 STRING) with (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS select * from INPUT partition by CAST(V0 AS BIGINT);" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

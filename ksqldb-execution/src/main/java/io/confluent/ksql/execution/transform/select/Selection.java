@@ -20,10 +20,12 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class Selection<K> {
 
@@ -32,6 +34,7 @@ public final class Selection<K> {
 
   public static <K> Selection<K> of(
       final LogicalSchema sourceSchema,
+      final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
@@ -43,25 +46,47 @@ public final class Selection<K> {
         functionRegistry
     );
 
-    final LogicalSchema schema = buildSchema(sourceSchema, mapper);
+    final LogicalSchema schema = buildSchema(sourceSchema, mapper, keyColumnNames);
     return new Selection<>(mapper, schema);
   }
 
   private static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
-      final SelectValueMapper<?> mapper
+      final SelectValueMapper<?> mapper,
+      final List<ColumnName> keyColumnNames
   ) {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
+    final List<ColumnName> keyNames = keyColumnNames.isEmpty()
+        ? getKeyColumnNames(sourceSchema)
+        : keyColumnNames;
 
     final List<Column> keyCols = sourceSchema.key();
 
-    schemaBuilder.keyColumns(keyCols);
+    if (keyNames.size() != keyCols.size()) {
+      throw new IllegalArgumentException("key name count mismatch. "
+          + "names: " + keyNames + ", "
+          + "keys: " + keyCols);
+    }
+
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
+
+    for (int i = 0; i != keyCols.size(); ++i) {
+      schemaBuilder.keyColumn(
+          keyNames.get(i),
+          keyCols.get(i).type()
+      );
+    }
 
     for (final SelectInfo select : mapper.getSelects()) {
       schemaBuilder.valueColumn(select.getFieldName(), select.getEvaluator().getExpressionType());
     }
 
     return schemaBuilder.build();
+  }
+
+  private static List<ColumnName> getKeyColumnNames(final LogicalSchema sourceSchema) {
+    return sourceSchema.key().stream()
+        .map(Column::name)
+        .collect(Collectors.toList());
   }
 
   private Selection(final SelectValueMapper<K> mapper, final LogicalSchema schema) {

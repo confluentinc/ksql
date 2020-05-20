@@ -1,0 +1,72 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910857568,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "validate with elements OK - AVRO",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "v0" : 4
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "V0" : 4
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : {
+        "type" : "record",
+        "name" : "blah",
+        "fields" : [ {
+          "name" : "v0",
+          "type" : "int"
+        } ]
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, V0 INT) WITH (kafka_topic='input', value_format='AVRO');", "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 1
+        } ]
+      }
+    }
+  }
+}

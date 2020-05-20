@@ -391,6 +391,12 @@
         "source" : {
           "$ref" : "#/definitions/ExecutionStep"
         },
+        "keyColumnNames" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
         "selectExpressions" : {
           "type" : "array",
           "items" : {
@@ -799,6 +805,12 @@
         },
         "source" : {
           "$ref" : "#/definitions/ExecutionStep"
+        },
+        "keyColumnNames" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
         },
         "selectExpressions" : {
           "type" : "array",

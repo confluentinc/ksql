@@ -73,6 +73,6 @@ public class StreamTableJoinTest {
         )
         .addEqualityGroup(
             new StreamTableJoin<>(props1, INNER, KEY, leftFormats1, left1, right2)
-        );
+        ).testEquals();
   }
 }

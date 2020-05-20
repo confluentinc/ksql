@@ -61,6 +61,7 @@ public class StreamGroupByTest {
         .addEqualityGroup(new StreamGroupBy<>(properties2, source1, formats1, expression1))
         .addEqualityGroup(new StreamGroupBy<>(properties1, source2, formats1, expression1))
         .addEqualityGroup(new StreamGroupBy<>(properties1, source1, formats2, expression1))
-        .addEqualityGroup(new StreamGroupBy<>(properties1, source1, formats1, expression2));
+        .addEqualityGroup(new StreamGroupBy<>(properties1, source1, formats1, expression2))
+        .testEquals();
   }
 }

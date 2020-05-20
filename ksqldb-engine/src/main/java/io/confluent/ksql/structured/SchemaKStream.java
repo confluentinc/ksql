@@ -132,13 +132,15 @@ public class SchemaKStream<K> {
   }
 
   public SchemaKStream<K> select(
+      final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
-      final QueryContext.Stacker contextStacker,
+      final Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
     final StreamSelect<K> step = ExecutionStepFactory.streamSelect(
         contextStacker,
         sourceStep,
+        keyColumnNames,
         selectExpressions
     );
 

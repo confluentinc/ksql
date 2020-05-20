@@ -16,30 +16,57 @@ package io.confluent.ksql.execution.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
 public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
 
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
+  private final ImmutableList<ColumnName> keyColumnNames;
   private final ImmutableList<SelectExpression> selectExpressions;
 
   public TableSelect(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
-      @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
-      @JsonProperty(value = "selectExpressions", required = true) final
-      List<SelectExpression> selectExpressions
+      final ExecutionStepPropertiesV1 props,
+      final ExecutionStep<KTableHolder<K>> source,
+      final List<ColumnName> keyColumnNames,
+      final List<SelectExpression> selectExpressions
   ) {
     this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
+    this.keyColumnNames = ImmutableList.copyOf(keyColumnNames);
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
+  }
+
+  /**
+   * This constructor is required while {@code keyColumnNames} are not mandatory.
+   *
+   * <p>{@code keyColumnNames} was introduced in 0.10.0 and can be mandatory once 0.9.0 query plans
+   * are no longer supported.
+   *
+   * @see <a href="https://github.com/confluentinc/ksql/issues/5420">Tracking issue</a>
+   * @deprecated use the public constructor.
+   */
+  @SuppressWarnings("unused") // Invoked via reflection by Jackson
+  @JsonCreator
+  @Deprecated
+  private TableSelect(
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
+      @JsonProperty(value = "keyColumnNames") final Optional<List<ColumnName>> keyColumnNames,
+      @JsonProperty(value = "selectExpressions", required = true) final
+      List<SelectExpression> selectExpressions
+  ) {
+    this(props, source, keyColumnNames.orElseGet(ImmutableList::of), selectExpressions);
   }
 
   @Override
@@ -51,6 +78,10 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
   @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
+  }
+
+  public List<ColumnName> getKeyColumnNames() {
+    return keyColumnNames;
   }
 
   public List<SelectExpression> getSelectExpressions() {
@@ -77,11 +108,12 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
     final TableSelect<?> that = (TableSelect<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
+        && Objects.equals(keyColumnNames, that.keyColumnNames)
         && Objects.equals(selectExpressions, that.selectExpressions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, source, selectExpressions);
+    return Objects.hash(properties, source, keyColumnNames, selectExpressions);
   }
 }

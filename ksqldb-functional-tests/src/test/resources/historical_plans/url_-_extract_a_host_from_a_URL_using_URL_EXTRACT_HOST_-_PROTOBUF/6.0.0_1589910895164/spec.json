@@ -1,0 +1,79 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910895164,
+  "path" : "query-validation-tests/url.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<HOST VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "extract a host from a URL using URL_EXTRACT_HOST - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "url" : "http://www.test.com/?query#fragment"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "url" : "http://test@confluent.io:8080"
+      },
+      "timestamp" : 1
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "HOST" : "www.test.com"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "HOST" : "confluent.io"
+      },
+      "timestamp" : 1
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_HOST(url) as HOST FROM TEST;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

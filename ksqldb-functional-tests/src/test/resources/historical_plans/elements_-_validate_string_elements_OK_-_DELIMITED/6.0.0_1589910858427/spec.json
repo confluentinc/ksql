@@ -1,0 +1,59 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910858427,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "validate string elements OK - DELIMITED",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : "Hello"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "Hello"
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, V0 STRING) WITH (kafka_topic='input', value_format='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

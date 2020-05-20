@@ -35,6 +35,7 @@ import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Immutable
@@ -90,12 +91,18 @@ public class ProjectNode extends PlanNode {
 
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    return getSource().buildStream(builder)
-        .select(
-            selectExpressions,
-            builder.buildNodeContext(getId().toString()),
-            builder
-        );
+    final SchemaKStream<?> stream = getSource().buildStream(builder);
+
+    final List<ColumnName> keyColumnNames = getSchema().key().stream()
+        .map(Column::name)
+        .collect(Collectors.toList());
+
+    return stream.select(
+        keyColumnNames,
+        selectExpressions,
+        builder.buildNodeContext(getId().toString()),
+        builder
+    );
   }
 
   @Override

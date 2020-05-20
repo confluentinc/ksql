@@ -1,0 +1,101 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910882582,
+  "path" : "query-validation-tests/like.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID INT, VAL VARCHAR, PATTERN VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "exp",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "id" : 1,
+        "val" : "foo",
+        "pattern" : "foo"
+      }
+    }, {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "id" : -1,
+        "val" : "bar",
+        "pattern" : "foo"
+      }
+    }, {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "id" : 2,
+        "val" : "foo",
+        "pattern" : "f_o"
+      }
+    }, {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "id" : 3,
+        "val" : "foobar",
+        "pattern" : "%oba%"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ID" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ID" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ID" : 3
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, id INT, val VARCHAR, pattern VARCHAR) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, id FROM INPUT WHERE val LIKE pattern;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

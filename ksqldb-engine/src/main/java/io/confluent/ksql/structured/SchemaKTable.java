@@ -113,13 +113,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   @Override
   public SchemaKTable<K> select(
+      final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
-      final QueryContext.Stacker contextStacker,
+      final Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
     final TableSelect<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,
         sourceTableStep,
+        keyColumnNames,
         selectExpressions
     );
 

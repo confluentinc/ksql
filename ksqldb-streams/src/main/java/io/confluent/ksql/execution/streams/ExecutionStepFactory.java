@@ -34,7 +34,6 @@ import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
-import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
@@ -183,6 +182,7 @@ public final class ExecutionStepFactory {
   public static <K> StreamSelect<K> streamSelect(
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
+      final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions
   ) {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
@@ -191,6 +191,7 @@ public final class ExecutionStepFactory {
     return new StreamSelect<>(
         properties,
         source,
+        keyColumnNames,
         selectExpressions
     );
   }
@@ -238,17 +239,6 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static StreamSelectKeyV1 streamSelectKeyV1(
-      final QueryContext.Stacker stacker,
-      final ExecutionStep<? extends KStreamHolder<?>> source,
-      final Expression fieldName
-  ) {
-    final ExecutionStepPropertiesV1 props =
-        new ExecutionStepPropertiesV1(stacker.getQueryContext());
-
-    return new StreamSelectKeyV1(props, source, fieldName);
-  }
-
   public static StreamSelectKey streamSelectKey(
       final QueryContext.Stacker stacker,
       final ExecutionStep<? extends KStreamHolder<?>> source,
@@ -293,6 +283,7 @@ public final class ExecutionStepFactory {
   public static <K> TableSelect<K> tableMapValues(
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
+      final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions
   ) {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
@@ -301,6 +292,7 @@ public final class ExecutionStepFactory {
     return new TableSelect<>(
         properties,
         source,
+        keyColumnNames,
         selectExpressions
     );
   }

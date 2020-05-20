@@ -1,0 +1,200 @@
+{
+  "plan" : [ {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM INPUT_1 (K STRING KEY, F0 INTEGER) WITH (KAFKA_TOPIC='input_1', VALUE_FORMAT='JSON');",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "INPUT_1",
+      "schema" : "`K` STRING KEY, `F0` INTEGER",
+      "topicName" : "input_1",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }
+    }
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM INPUT_2 (K STRING KEY, F0 INTEGER) WITH (KAFKA_TOPIC='input_2', VALUE_FORMAT='JSON');",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "INPUT_2",
+      "schema" : "`K` STRING KEY, `F0` INTEGER",
+      "topicName" : "input_2",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }
+    }
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT_1 I1\nINNER JOIN INPUT_2 I2 WITHIN 10 SECONDS ON ((I1.K = I2.K))\nEMIT CHANGES",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "OUTPUT",
+      "schema" : "`I1_K` STRING KEY, `I1_F0` INTEGER, `I2_K` STRING, `I2_F0` INTEGER",
+      "topicName" : "OUTPUT",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }
+    },
+    "queryPlan" : {
+      "sources" : [ "INPUT_1", "INPUT_2" ],
+      "sink" : "OUTPUT",
+      "physicalPlan" : {
+        "@type" : "streamSinkV1",
+        "properties" : {
+          "queryContext" : "OUTPUT"
+        },
+        "source" : {
+          "@type" : "streamSelectV1",
+          "properties" : {
+            "queryContext" : "Project"
+          },
+          "source" : {
+            "@type" : "streamStreamJoinV1",
+            "properties" : {
+              "queryContext" : "Join"
+            },
+            "joinType" : "INNER",
+            "leftInternalFormats" : {
+              "keyFormat" : {
+                "format" : "KAFKA"
+              },
+              "valueFormat" : {
+                "format" : "JSON"
+              }
+            },
+            "rightInternalFormats" : {
+              "keyFormat" : {
+                "format" : "KAFKA"
+              },
+              "valueFormat" : {
+                "format" : "JSON"
+              }
+            },
+            "leftSource" : {
+              "@type" : "streamSelectV1",
+              "properties" : {
+                "queryContext" : "PrependAliasLeft"
+              },
+              "source" : {
+                "@type" : "streamSourceV1",
+                "properties" : {
+                  "queryContext" : "KafkaTopic_Left/Source"
+                },
+                "topicName" : "input_1",
+                "formats" : {
+                  "keyFormat" : {
+                    "format" : "KAFKA"
+                  },
+                  "valueFormat" : {
+                    "format" : "JSON"
+                  }
+                },
+                "sourceSchema" : "`K` STRING KEY, `F0` INTEGER"
+              },
+              "keyColumnNames" : [ "I1_K" ],
+              "selectExpressions" : [ "F0 AS I1_F0", "ROWTIME AS I1_ROWTIME", "K AS I1_K" ]
+            },
+            "rightSource" : {
+              "@type" : "streamSelectV1",
+              "properties" : {
+                "queryContext" : "PrependAliasRight"
+              },
+              "source" : {
+                "@type" : "streamSourceV1",
+                "properties" : {
+                  "queryContext" : "KafkaTopic_Right/Source"
+                },
+                "topicName" : "input_2",
+                "formats" : {
+                  "keyFormat" : {
+                    "format" : "KAFKA"
+                  },
+                  "valueFormat" : {
+                    "format" : "JSON"
+                  }
+                },
+                "sourceSchema" : "`K` STRING KEY, `F0` INTEGER"
+              },
+              "keyColumnNames" : [ "I2_K" ],
+              "selectExpressions" : [ "F0 AS I2_F0", "ROWTIME AS I2_ROWTIME", "K AS I2_K" ]
+            },
+            "beforeMillis" : 10.000000000,
+            "afterMillis" : 10.000000000,
+            "keyColName" : "I1_K"
+          },
+          "keyColumnNames" : [ "I1_K" ],
+          "selectExpressions" : [ "I1_F0 AS I1_F0", "I2_K AS I2_K", "I2_F0 AS I2_F0" ]
+        },
+        "formats" : {
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        },
+        "topicName" : "OUTPUT"
+      },
+      "queryId" : "CSAS_OUTPUT_0"
+    }
+  } ],
+  "configs" : {
+    "ksql.extension.dir" : "ext",
+    "ksql.streams.cache.max.bytes.buffering" : "0",
+    "ksql.security.extension.class" : null,
+    "ksql.transient.prefix" : "transient_",
+    "ksql.persistence.wrap.single.values" : "true",
+    "ksql.authorization.cache.expiry.time.secs" : "30",
+    "ksql.schema.registry.url" : "",
+    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+    "ksql.output.topic.name.prefix" : "",
+    "ksql.streams.auto.offset.reset" : "earliest",
+    "ksql.query.pull.enable.standby.reads" : "false",
+    "ksql.connect.url" : "http://localhost:8083",
+    "ksql.service.id" : "some.ksql.service.id",
+    "ksql.internal.topic.min.insync.replicas" : "1",
+    "ksql.streams.shutdown.timeout.ms" : "300000",
+    "ksql.internal.topic.replicas" : "1",
+    "ksql.insert.into.values.enabled" : "true",
+    "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",
+    "ksql.query.pull.max.qps" : "2147483647",
+    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
+    "ksql.access.validator.enable" : "auto",
+    "ksql.streams.bootstrap.servers" : "localhost:0",
+    "ksql.streams.commit.interval.ms" : "2000",
+    "ksql.metric.reporters" : "",
+    "ksql.query.pull.metrics.enabled" : "false",
+    "ksql.streams.auto.commit.interval.ms" : "0",
+    "ksql.metrics.extension" : null,
+    "ksql.streams.topology.optimization" : "all",
+    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.streams.num.stream.threads" : "4",
+    "ksql.timestamp.throw.on.invalid" : "false",
+    "ksql.authorization.cache.max.entries" : "10000",
+    "ksql.metrics.tags.custom" : "",
+    "ksql.pull.queries.enable" : "true",
+    "ksql.udfs.enabled" : "true",
+    "ksql.udf.enable.security.manager" : "true",
+    "ksql.connect.worker.config" : "",
+    "ksql.sink.window.change.log.additional.retention" : "1000000",
+    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.udf.collect.metrics" : "false",
+    "ksql.persistent.prefix" : "query_",
+    "ksql.query.persistent.active.limit" : "2147483647"
+  }
+}

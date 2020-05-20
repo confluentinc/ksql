@@ -1,0 +1,66 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910889654,
+  "path" : "query-validation-tests/serdes.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "ARRAY<VARCHAR>",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO ARRAY<VARCHAR>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "deserialize anonymous array - value - with coercion - JSON",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : [ 1, 2, 3 ]
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "FOO" : [ "1", "2", "3" ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "schema" : {
+        "type" : "array",
+        "items" : [ "null", "string" ]
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 1
+        } ]
+      }
+    }
+  }
+}

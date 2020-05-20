@@ -66,6 +66,6 @@ public class TableTableJoinTest {
         )
         .addEqualityGroup(
             new TableTableJoin<>(props1, INNER, KEY, left1, right2)
-        );
+        ).testEquals();
   }
 }

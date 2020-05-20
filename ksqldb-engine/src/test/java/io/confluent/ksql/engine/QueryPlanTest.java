@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.engine;
 
-import static org.mockito.Mockito.mock;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -29,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class QueryPlanTest {
   @Mock
@@ -49,8 +48,8 @@ public class QueryPlanTest {
 
   @Before
   public void setup() {
-    sources1 = ImmutableSet.of(mock(SourceName.class));
-    sources2 = ImmutableSet.of(mock(SourceName.class));
+    sources1 = ImmutableSet.of(SourceName.of("1"));
+    sources2 = ImmutableSet.of(SourceName.of("2"));
   }
 
   @Test
@@ -62,6 +61,7 @@ public class QueryPlanTest {
         .addEqualityGroup(new QueryPlan(sources2, sink1, plan1, id1))
         .addEqualityGroup(new QueryPlan(sources1, sink2, plan1, id1))
         .addEqualityGroup(new QueryPlan(sources1, sink1, plan2, id1))
-        .addEqualityGroup(new QueryPlan(sources1, sink1, plan1, id2));
+        .addEqualityGroup(new QueryPlan(sources1, sink1, plan1, id2))
+        .testEquals();
   }
 }

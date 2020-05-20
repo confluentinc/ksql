@@ -1,0 +1,97 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910846731,
+  "path" : "query-validation-tests/avro.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "should support primitives",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "c1" : true,
+        "c2" : 1,
+        "c3" : 400000000000,
+        "c4" : 1.284765648,
+        "c5" : "hello"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "C1" : true,
+        "C2" : 1,
+        "C3" : 400000000000,
+        "C4" : 1.284765648,
+        "C5" : "hello"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : {
+        "type" : "record",
+        "name" : "blah",
+        "fields" : [ {
+          "name" : "c1",
+          "type" : "boolean"
+        }, {
+          "name" : "c2",
+          "type" : "int"
+        }, {
+          "name" : "c3",
+          "type" : "long"
+        }, {
+          "name" : "c4",
+          "type" : "double"
+        }, {
+          "name" : "c5",
+          "type" : "string"
+        } ]
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 1
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910893583,
+  "path" : "query-validation-tests/timestampformat.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, EVENT_TS BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<EVENT_TS BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "timestamp column of source should not influence sink",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 1,
+        "EVENT_TS" : 1526075913000
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "ID" : 2,
+        "EVENT_TS" : 1589234313000
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "EVENT_TS" : 1
+      },
+      "timestamp" : 1526075913000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "EVENT_TS" : 2
+      },
+      "timestamp" : 1589234313000
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, ID bigint, EVENT_TS bigint) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='EVENT_TS');", "CREATE STREAM OUTPUT AS SELECT K, id as EVENT_TS FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

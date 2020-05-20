@@ -86,6 +86,6 @@ public class StreamStreamJoinTest {
         )
         .addEqualityGroup(
             new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right, TEN_SEC, TEN_SEC)
-        );
+        ).testEquals();
   }
 }

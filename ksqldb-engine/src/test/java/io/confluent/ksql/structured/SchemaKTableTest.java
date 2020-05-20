@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.structured;
 
-import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
-import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -27,7 +25,6 @@ import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -262,66 +259,16 @@ public class SchemaKTableTest {
   }
 
   @Test
-  public void testSelectSchemaKStream() {
-    // Given:
-    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
-    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
-
-    // When:
-    final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
-        projectNode.getSelectExpressions(),
-        childContextStacker,
-        queryBuilder
-    );
-
-    // Then:
-    assertThat(projectedSchemaKStream.getSchema().value(), contains(
-        valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        valueColumn(ColumnName.of("COL2"), SqlTypes.STRING),
-        valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
-    ));
-  }
-
-  @Test
-  public void shouldBuildStepForSelect() {
-    // Given:
-    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
-    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
-
-    // When:
-    final SchemaKTable<?> projectedSchemaKStream = initialSchemaKTable.select(
-        projectNode.getSelectExpressions(),
-        childContextStacker,
-        queryBuilder
-    );
-
-    // Then:
-    assertThat(
-        projectedSchemaKStream.getSourceTableStep(),
-        equalTo(
-            ExecutionStepFactory.tableMapValues(
-                childContextStacker,
-                initialSchemaKTable.getSourceTableStep(),
-                projectNode.getSelectExpressions()
-            )
-        )
-    );
-  }
-
-  @Test
   public void shouldBuildSchemaForSelect() {
     // Given:
-    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final String selectQuery = "SELECT col0 AS K, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
 
     // When:
     final SchemaKTable<?> projectedSchemaKStream = initialSchemaKTable.select(
+        ImmutableList.of(ColumnName.of("K")),
         projectNode.getSelectExpressions(),
         childContextStacker,
         queryBuilder
@@ -345,16 +292,19 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable<?> projectedSchemaKStream = initialSchemaKTable.select(
+        ImmutableList.of(),
         projectNode.getSelectExpressions(),
         childContextStacker,
         queryBuilder
     );
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().value(), contains(
-        valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER),
-        valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.DOUBLE)
+    assertThat(projectedSchemaKStream.getSchema(), is(LogicalSchema.builder()
+        .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.DOUBLE)
+        .build()
     ));
   }
 
@@ -373,14 +323,15 @@ public class SchemaKTableTest {
     );
 
     // Then:
-    assertThat(filteredSchemaKStream.getSchema().columns(), contains(
-        keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        valueColumn(ColumnName.of("COL1"), SqlTypes.STRING),
-        valueColumn(ColumnName.of("COL2"), SqlTypes.STRING),
-        valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE),
-        valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN),
-        valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
-        valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+    assertThat(filteredSchemaKStream.getSchema(), is(LogicalSchema.builder()
+        .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .build()
     ));
   }
 

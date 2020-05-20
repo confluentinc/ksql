@@ -1,0 +1,65 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910882251,
+  "path" : "query-validation-tests/key-schemas.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<KEY VARCHAR, ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KEY VARCHAR, ID BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "KEY value field name",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "1",
+      "value" : {
+        "key" : "a",
+        "id" : 1
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "ID" : 1,
+        "KEY" : "a"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, KEY STRING, ID bigint) WITH (kafka_topic='input',value_format='JSON');", "CREATE STREAM OUTPUT as SELECT * FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

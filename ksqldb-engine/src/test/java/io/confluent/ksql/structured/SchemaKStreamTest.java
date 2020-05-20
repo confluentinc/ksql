@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.structured;
 
-import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
@@ -47,7 +45,6 @@ import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -72,9 +69,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SchemaKStreamTest {
 
   private static final ColumnName KEY = ColumnName.of("Bob");
-
-  private static final Expression COL1 =
-      new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"));
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture
@@ -115,66 +109,16 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  public void testSelectSchemaKStream() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
-
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-
-    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
-
-    // When:
-    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
-        selectExpressions,
-        childContextStacker,
-        queryBuilder);
-
-    // Then:
-    assertThat(projectedSchemaKStream.getSchema().value(), contains(
-        valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        valueColumn(ColumnName.of("COL2"), SqlTypes.STRING),
-        valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
-    ));
-  }
-
-  @Test
-  public void shouldBuildStepForSelect() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
-
-    // When:
-    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
-        selectExpressions,
-        childContextStacker,
-        queryBuilder);
-
-    // Then:
-    assertThat(
-        projectedSchemaKStream.getSourceStep(),
-        equalTo(
-            ExecutionStepFactory.streamSelect(
-                childContextStacker,
-                initialSchemaKStream.getSourceStep(),
-                selectExpressions
-            )
-        )
-    );
-  }
-
-  @Test
   public void shouldBuildSchemaForSelect() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
+        "SELECT col0 AS K, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
-    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
+    final SchemaKStream<?> projectedSchemaKStream = initialSchemaKStream.select(
+        ImmutableList.of(ColumnName.of("K")),
         selectExpressions,
         childContextStacker,
         queryBuilder);
@@ -195,7 +139,7 @@ public class SchemaKStreamTest {
     final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
-    final SchemaKStream result = initialSchemaKStream
+    final SchemaKStream<?> result = initialSchemaKStream
         .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
 
     // Then:
@@ -210,7 +154,7 @@ public class SchemaKStreamTest {
     final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
-    final SchemaKStream result = initialSchemaKStream
+    final SchemaKStream<?> result = initialSchemaKStream
         .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
 
     // Then:
@@ -243,28 +187,6 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  public void testSelectWithExpression() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-
-    // When:
-    final SchemaKStream<?> projectedSchemaKStream = initialSchemaKStream.select(
-        projectNode.getSelectExpressions(),
-        childContextStacker,
-        queryBuilder);
-
-    // Then:
-    assertThat(projectedSchemaKStream.getSchema().value(), contains(
-        valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER),
-        valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.DOUBLE)
-    ));
-
-  }
-
-  @Test
   public void shouldRewriteTimeComparisonInFilter() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
@@ -273,7 +195,7 @@ public class SchemaKStreamTest {
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
-    final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
+    final SchemaKStream<?> filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
         childContextStacker
     );
@@ -300,7 +222,7 @@ public class SchemaKStreamTest {
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
-    final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
+    final SchemaKStream<?> filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
         childContextStacker
     );

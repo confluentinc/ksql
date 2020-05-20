@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class StreamFlatMapTest {
   @Mock
@@ -55,6 +56,7 @@ public class StreamFlatMapTest {
             new StreamFlatMap<>(properties1, source1, functions1))
         .addEqualityGroup(new StreamFlatMap<>(properties2, source1, functions1))
         .addEqualityGroup(new StreamFlatMap<>(properties1, source2, functions1))
-        .addEqualityGroup(new StreamFlatMap<>(properties1, source1, functions2));
+        .addEqualityGroup(new StreamFlatMap<>(properties1, source1, functions2))
+        .testEquals();
   }
 }

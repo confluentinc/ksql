@@ -1,0 +1,121 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910891361,
+  "path" : "query-validation-tests/split.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<MESSAGE VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SPLIT_MSG ARRAY<VARCHAR>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "split all characters by using the '' delimiter",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "message" : "a.b.c"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "message" : ".abc."
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "message" : "..a.."
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : {
+        "message" : "abc"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "5",
+      "value" : {
+        "message" : ""
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "SPLIT_MSG" : [ "a", ".", "b", ".", "c" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "SPLIT_MSG" : [ ".", "a", "b", "c", "." ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "SPLIT_MSG" : [ ".", ".", "a", ".", "." ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "4",
+      "value" : {
+        "SPLIT_MSG" : [ "a", "b", "c" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "5",
+      "value" : {
+        "SPLIT_MSG" : [ "" ]
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, SPLIT(message, '') as split_msg FROM TEST;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

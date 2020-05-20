@@ -17,8 +17,6 @@ package io.confluent.ksql.execution.transform.select;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
@@ -27,9 +25,6 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -52,6 +47,8 @@ public class SelectionTest {
       .valueColumn(ColumnName.of("RACCOON"), SqlTypes.BIGINT)
       .build().withPseudoAndKeyColsInValue(false);
 
+  private static final ColumnName ALIASED_KEY = ColumnName.of("KEY");
+
   private static final Expression EXPRESSION1 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("GIRAFFE"));
 
@@ -69,12 +66,6 @@ public class SelectionTest {
   private KsqlConfig ksqlConfig;
   @Mock
   private FunctionRegistry functionRegistry;
-  @Mock
-  private ProcessingLogContext processingLogContext;
-  @Mock
-  private ProcessingLoggerFactory processingLoggerFactory;
-  @Mock
-  private ProcessingLogger processingLogger;
 
   private Selection<String> selection;
 
@@ -83,10 +74,9 @@ public class SelectionTest {
 
   @Before
   public void setup() {
-    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger(anyString())).thenReturn(processingLogger);
     selection = Selection.of(
         SCHEMA,
+        ImmutableList.of(ALIASED_KEY),
         SELECT_EXPRESSIONS,
         ksqlConfig,
         functionRegistry
@@ -110,6 +100,29 @@ public class SelectionTest {
 
   @Test
   public void shouldBuildCorrectResultSchema() {
+    // When:
+    final LogicalSchema resultSchema = selection.getSchema();
+
+    // Then:
+    assertThat(resultSchema, equalTo(LogicalSchema.builder()
+        .keyColumn(ALIASED_KEY, SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("FOO"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldBuildCorrectSchemaWithNoKeyColumnNames() {
+    // Given:
+    selection = Selection.of(
+        SCHEMA,
+        ImmutableList.of(),
+        SELECT_EXPRESSIONS,
+        ksqlConfig,
+        functionRegistry
+    );
+
     // When:
     final LogicalSchema resultSchema = selection.getSchema();
 

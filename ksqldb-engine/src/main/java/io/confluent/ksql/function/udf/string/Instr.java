@@ -25,7 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 
 @UdfDescription(name = "instr",
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "PROPER DESCRIPTION")
+    description = "Returns the position of substring in the provided string")
 public class Instr {
 
   @Udf

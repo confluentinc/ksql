@@ -322,13 +322,14 @@ INSTR
 
 `INSTR(string, substring, [position], [occurrence])`
 
-Returns a position of `substring` in `string` (first character is at position 1).
-If `position` is given search starts from that position. 
-If `occurrence` is given position of n-th occurrence is returned.
+Returns the position of `substring` in `string`. The first character is at position 1.
 
+If `position` is provided, search starts from the specified position. 
 Negative `position` causes the search to work from end to start of `string`.
 
-If `substring` is not found the return value is 0.
+If `occurrence` is provided, the position of *n*-th occurrence is returned.
+
+If `substring` is not found, the return value is 0.
 
 Examples:
 ```
@@ -336,7 +337,7 @@ INSTR('CORPORATE FLOOR', 'OR') -> 2
 INSTR('CORPORATE FLOOR', 'OR', 3) -> 5
 INSTR('CORPORATE FLOOR', 'OR', 3, 2) -> 14
 INSTR('CORPORATE FLOOR', 'OR', -3) -> 5
-INSTR('CORPORATE FLOOR', 'OR', -3, 2) -> 2
+INSTR('CORPORATE FLOOR', 'OR', -3, 2) -> 2b
 INSTR('CORPORATE FLOOR', 'MISSING') -> 0
 ```
 

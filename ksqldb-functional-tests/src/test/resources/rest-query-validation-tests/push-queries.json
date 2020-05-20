@@ -508,6 +508,26 @@
           {"finalMessage":"Limit Reached"}
         ]}
       ]
+    },
+    {
+      "name": "out-of-order columns",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT ID, K FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER, `K` STRING"}},
+          {"row":{"columns":[100, "11"]}},
+          {"row":{"columns":[101, "11"]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
     }
   ]
 }

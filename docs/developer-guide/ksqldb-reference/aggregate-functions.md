@@ -6,39 +6,21 @@ description: Aggregate functions to use in  ksqlDB statements and queries
 keywords: ksqlDB, function, aggregate
 ---
 
-Aggregate Functions
-===================
+## `AVG`
 
-For more information, see
-[Aggregate Streaming Data With ksqlDB](../aggregate-streaming-data.md).
-
-  - [AVG](#avg)
-  - [COLLECT_LIST](#collect_list)
-  - [COLLECT_SET](#collect_set)
-  - [COUNT](#count)
-  - [COUNT_DISTINCT](#count_distinct)
-  - [EARLIEST_BY_OFFSET](#earliest_by_offset)
-  - [HISTOGRAM](#histogram)
-  - [LATEST_BY_OFFSET](#latest_by_offset)
-  - [MAX](#max)
-  - [MIN](#min)
-  - [SUM](#sum)
-  - [TOPK](#topk)
-  - [TOPKDISTINCT](#topkdistinct)
-
-AVG
----
-
-`AVG(col1)`
+```sql
+AVG(col1)
+```
 
 Stream, Table
 
 Return the average value for a given column.
 
-COLLECT_LIST
-------------
+## `COLLECT_LIST`
 
-`COLLECT_LIST(col1)`
+```sql
+COLLECT_LIST(col1)
+```
 
 Stream, Table
 
@@ -56,10 +38,11 @@ late-arriving record, then the records from the second window in
 the order they were originally processed.
 
 
-COLLECT_SET
------------
+## `COLLECT_SET`
 
-`COLLECT_SET(col1)`
+```sql
+COLLECT_SET(col1)
+```
 
 Stream
 
@@ -77,11 +60,15 @@ late-arriving record, then the records from the second window in
 the order they were originally processed.
 
 
-COUNT
------
+## `COUNT`
 
-`COUNT(col1)`, 
-`COUNT(*)`     
+```sql
+COUNT(col1)
+```
+
+```sql
+COUNT(*)
+```
 
 Stream, Table
 
@@ -90,10 +77,11 @@ returned will be the number of rows where `col1` is non-null.
 When `*` is specified, the count returned will be the total
 number of rows.
 
-COUNT_DISTINCT
---------------
+## `COUNT_DISTINCT`
 
-`COUNT_DISTINCT(col1)`
+```sql
+COUNT_DISTINCT(col1)
+```
 
 Stream, Table
 
@@ -101,10 +89,11 @@ Returns the _approximate_ number of unique values of `col1` in a group.
 The function implementation uses [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog)
 to estimate cardinalities of 10^9 with a typical standard error of 2%.
 
-EARLIEST_BY_OFFSET
-------------------
+## `EARLIEST_BY_OFFSET`
 
-`EARLIEST_BY_OFFSET(col1)`
+```sql
+EARLIEST_BY_OFFSET(col1)
+```
 
 Stream
 
@@ -112,10 +101,11 @@ Return the earliest value for a given column. Earliest here is defined as the va
 with the lowest offset. Rows that have `col1` set to null are ignored.
 
 
-HISTOGRAM
----------
+## `HISTOGRAM`
 
-`HISTOGRAM(col1)`
+```sql
+HISTOGRAM(col1)
+```
 
 Stream, Table
 
@@ -131,60 +121,66 @@ first considering all the records from the first window, then the
 late-arriving record, then the records from the second window in
 the order they were originally processed.
 
-LATEST_BY_OFFSET
-----------------
+## `LATEST_BY_OFFSET`
 
-`LATEST_BY_OFFSET(col1)`
+```sql
+LATEST_BY_OFFSET(col1)
+```
 
 Stream
 
 Return the latest value for a given column. Latest here is defined as the value in the partition
 with the greatest offset. Rows that have `col1` set to null are ignored.
 
-MAX
----
+## `MAX`
 
-`MAX(col1)`
+```sql
+MAX(col1)
+```
 
 Stream
 
 Return the maximum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
-MIN
----
+## `MIN`
 
-`MIN(col1)`
+```sql
+MIN(col1)
+```
 
 Stream
 
 Return the minimum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
-SUM
----
+## `SUM`
 
-`SUM(col1)`
+```sql
+SUM(col1)
+```
 
 Stream, Table
 
 Sums the column values.
 Rows that have `col1` set to null are ignored.
 
-TOPK
-----
+## `TOPK`
 
-`TOPK(col1, k)`
+```sql
+TOPK(col1, k)
+```
 
 Stream
 
 Return the Top *K* values for the given column and window
 Rows that have `col1` set to null are ignored.
 
-TOPKDISTINCT
-------------
+## `TOPKDISTINCT`
 
-`TOPKDISTINCT(col1, k)`
+```sql
+TOPKDISTINCT(col1, k)
+```
 
 Stream
 

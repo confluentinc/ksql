@@ -70,11 +70,6 @@ public abstract class OutputNode
     return source.getPartitions(kafkaTopicClient);
   }
 
-  @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitOutput(this, context);
-  }
-
   public Optional<TimestampColumn> getTimestampColumn() {
     return timestampColumn;
   }

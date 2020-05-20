@@ -18,7 +18,7 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.K K,\n  INSTR(TEST.SOURCE, 'or', -4) INSTR\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.K K,\n  INSTR(TEST.SOURCE, 'or') INSTR\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
@@ -62,7 +62,8 @@
             },
             "sourceSchema" : "`K` STRING KEY, `SOURCE` STRING"
           },
-          "selectExpressions" : [ "INSTR(SOURCE, 'or', -4) AS INSTR" ]
+          "keyColumnNames" : [ "K" ],
+          "selectExpressions" : [ "INSTR(SOURCE, 'or') AS INSTR" ]
         },
         "formats" : {
           "keyFormat" : {
@@ -119,6 +120,7 @@
     "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
     "ksql.udf.collect.metrics" : "false",
     "ksql.persistent.prefix" : "query_",
-    "ksql.query.persistent.active.limit" : "2147483647"
+    "ksql.query.persistent.active.limit" : "2147483647",
+    "ksql.error.classifier.regex" : ""
   }
 }

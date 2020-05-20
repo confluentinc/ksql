@@ -57,7 +57,8 @@ public class ClientTlsTest extends ClientTest {
         .setUseTls(true)
         .setTrustStore(TRUST_STORE_PATH)
         .setTrustStorePassword(TRUST_STORE_PASSWORD)
-        .setVerifyHost(false);
+        .setVerifyHost(false)
+        .setUseAlpn(true);
   }
 
   @Test

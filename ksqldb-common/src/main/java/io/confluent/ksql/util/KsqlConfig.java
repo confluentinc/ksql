@@ -284,6 +284,26 @@ public class KsqlConfig extends AbstractConfig {
       + " and the regex pattern will be matched against the error class name and message of any "
       + "uncaught error and subsequent error causes in the Kafka Streams applications.";
 
+  public static final String KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG =
+      "ksql.internal." + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG;
+  private static final String KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_DOC =
+      "The key store location to be used for intra-cluster internal SSL connections.";
+
+  public static final String KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG =
+      "ksql.internal." + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG;
+  private static final String KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_DOC =
+      "The password for the intra-cluster internal key store.";
+
+  public static final String KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG =
+      "ksql.internal." + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG;
+  private static final String KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_DOC =
+      "The trust store location to be used for intra-cluster internal SSL connections.";
+
+  public static final String KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG =
+      "ksql.internal." + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG;
+  private static final String KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_DOC =
+      "The password for the intra-cluster internal trust store.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -652,6 +672,33 @@ public class KsqlConfig extends AbstractConfig {
             "",
             Importance.LOW,
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX_DOC
+        ).define(
+            KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_DOC
+        )
+        .define(
+            KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_DOC
+        )
+        .define(
+            KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_DOC
+        )
+        .define(
+            KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_DOC
         )
         .withClientSslSupport();
 

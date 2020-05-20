@@ -299,6 +299,14 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String KSQL_AUTHENTICATION_PLUGIN_DOC = "An extension class that allows "
       + " custom authentication to be plugged in.";
 
+  public static final String KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG =
+      KSQL_CONFIG_PREFIX + "internal." + SSL_CLIENT_AUTHENTICATION_CONFIG;
+
+  protected static final String KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_DOC =
+      "SSL mutual auth for internal requests. Set to NONE to disable SSL client authentication, "
+          + "set to REQUESTED to request but not require SSL client authentication, and set to "
+          + "REQUIRED to require SSL for internal client authentication.";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -415,6 +423,13 @@ public class KsqlRestConfig extends AbstractConfig {
             false,
             Importance.MEDIUM,
             ""
+        ).define(
+            KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
+            Type.STRING,
+            SSL_CLIENT_AUTHENTICATION_REQUIRED,
+            SSL_CLIENT_AUTHENTICATION_VALIDATOR,
+            Importance.MEDIUM,
+            KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_DOC
         ).define(
             ADVERTISED_LISTENER_CONFIG,
             Type.STRING,
@@ -782,7 +797,10 @@ public class KsqlRestConfig extends AbstractConfig {
             : SSL_CLIENT_AUTHENTICATION_NONE;
       }
     }
+    return getClientAuth(clientAuth);
+  }
 
+  private ClientAuth getClientAuth(String clientAuth) {
     switch (clientAuth) {
       case SSL_CLIENT_AUTHENTICATION_NONE:
         return ClientAuth.NONE;
@@ -793,6 +811,10 @@ public class KsqlRestConfig extends AbstractConfig {
       default:
         throw new ConfigException("Unknown client auth: " + clientAuth);
     }
+  }
+
+  public ClientAuth getClientAuthInternal() {
+    return getClientAuth(getString(KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG));
   }
 
   /**

@@ -144,7 +144,7 @@ public class PullQueryRoutingFunctionalTest {
 
   @Rule
   public final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
-      .builder(TEST_HARNESS::kafkaBootstrapServers)
+      .builder(TEST_HARNESS::kafkaBootstrapServers) 
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")

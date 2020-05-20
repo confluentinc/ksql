@@ -18,11 +18,15 @@ package io.confluent.ksql.rest.client;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.util.KsqlConfig;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
+import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.KeyCertOptions;
+import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +61,18 @@ public final class KsqlClient implements AutoCloseable {
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
     this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false);
     this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true);
+  }
+
+  public KsqlClient(
+      final Map<String, String> clientProps,
+      final LocalProperties localProperties,
+      final HttpClientOptions httpClientOptions
+  ) {
+    this.vertx = Vertx.vertx();
+    this.basicAuthHeader = Optional.empty();
+    this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
+    this.httpNonTlsClient = createInternalHttpClient(vertx, clientProps, httpClientOptions, false);
+    this.httpTlsClient = createInternalHttpClient(vertx, clientProps, httpClientOptions, true);
   }
 
   public KsqlTarget target(final URI server) {
@@ -109,7 +125,37 @@ public final class KsqlClient implements AutoCloseable {
           final String suppliedKeyStorePassord = clientProps
               .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
           httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
-              .setPassword(suppliedTruststorePassword == null ? "" : suppliedKeyStorePassord));
+              .setPassword(suppliedKeyStorePassord == null ? "" : suppliedKeyStorePassord));
+        }
+      }
+    }
+    try {
+      return vertx.createHttpClient(httpClientOptions);
+    } catch (VertxException e) {
+      throw new KsqlRestClientException(e.getMessage(), e);
+    }
+  }
+
+  private static HttpClient createInternalHttpClient(final Vertx vertx,
+      final Map<String, String> clientProps,
+      final HttpClientOptions httpClientOptions,
+      final boolean tls) {
+    if (tls) {
+      httpClientOptions.setVerifyHost(true);
+      httpClientOptions.setSsl(true);
+      final String trustStoreLocation = clientProps.get(
+          KsqlConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
+      if (trustStoreLocation != null) {
+        final String suppliedTruststorePassword = clientProps
+            .get(KsqlConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
+        httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
+            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
+        final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+        if (keyStoreLocation != null) {
+          final String suppliedKeyStorePassord = clientProps
+              .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
+              .setPassword(suppliedKeyStorePassord == null ? "" : suppliedKeyStorePassord));
         }
       }
     }

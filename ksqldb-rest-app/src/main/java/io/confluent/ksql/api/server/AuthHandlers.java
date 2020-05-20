@@ -22,6 +22,7 @@ import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.AuthenticationPluginHandler;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
+import io.confluent.ksql.api.auth.SystemAuthenticationHandler;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.vertx.core.Handler;
@@ -30,6 +31,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.AuthHandler;
 import io.vertx.ext.web.handler.BasicAuthHandler;
+import java.net.URI;
 import java.util.Optional;
 
 public final class AuthHandlers {
@@ -44,6 +46,8 @@ public final class AuthHandlers {
     final Optional<Handler<RoutingContext>> pluginHandler =
         authenticationPlugin.map(plugin -> new AuthenticationPluginHandler(server, plugin));
 
+    router.route().handler(new SystemAuthenticationHandler(server.getConfig()));
+
     if (jaasAuthHandler.isPresent() || authenticationPlugin.isPresent()) {
       router.route().handler(AuthHandlers::pauseHandler);
 
@@ -57,6 +61,11 @@ public final class AuthHandlers {
 
       router.route().handler(AuthHandlers::resumeHandler);
     }
+  }
+
+  static void setupSystemInternalAuthHandlers(final Server server, final Router router,
+      final URI internalListener) {
+
   }
 
   private static void wrappedAuthHandler(final RoutingContext routingContext,

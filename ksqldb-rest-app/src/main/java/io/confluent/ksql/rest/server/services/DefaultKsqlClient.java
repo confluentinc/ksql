@@ -45,6 +45,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
+  private final KsqlClient internalClient;
 
   DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps) {
     this(
@@ -54,6 +55,11 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
             Optional.empty(),
             new LocalProperties(ImmutableMap.of()),
             createClientOptions()
+        ),
+        new KsqlClient(
+            toClientProps(clientProps),
+            new LocalProperties(ImmutableMap.of()),
+            createClientOptions()
         )
     );
   }
@@ -61,10 +67,12 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @VisibleForTesting
   DefaultKsqlClient(
       final Optional<String> authHeader,
-      final KsqlClient sharedClient
+      final KsqlClient sharedClient,
+      final KsqlClient internalClient
   ) {
     this.authHeader = requireNonNull(authHeader, "authHeader");
     this.sharedClient = requireNonNull(sharedClient, "sharedClient");
+    this.internalClient = requireNonNull(internalClient, "internalClient");
   }
 
   @Override
@@ -105,7 +113,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final URI serverEndPoint,
       final KsqlHostInfo host,
       final long timestamp) {
-    final KsqlTarget target = sharedClient
+    final KsqlTarget target = internalClient
         .target(serverEndPoint);
 
     getTarget(target, authHeader)
@@ -120,7 +128,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
   @Override
   public RestResponse<ClusterStatusResponse> makeClusterStatusRequest(final URI serverEndPoint) {
-    final KsqlTarget target = sharedClient
+    final KsqlTarget target = internalClient
         .target(serverEndPoint);
 
     return getTarget(target, authHeader).getClusterStatus();
@@ -131,7 +139,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final URI serverEndPoint,
       final LagReportingMessage lagReportingMessage
   ) {
-    final KsqlTarget target = sharedClient
+    final KsqlTarget target = internalClient
         .target(serverEndPoint);
 
     getTarget(target, authHeader).postAsyncLagReportingRequest(lagReportingMessage)
@@ -144,6 +152,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @Override
   public void close() {
     sharedClient.close();
+    internalClient.close();
   }
 
   private KsqlTarget getTarget(final KsqlTarget target, final Optional<String> authHeader) {
@@ -163,6 +172,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     }
     return clientProps;
   }
+
 
 
 }

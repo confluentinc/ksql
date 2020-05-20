@@ -116,7 +116,8 @@ SET 'auto.offset.reset' = 'earliest';
 #### WINDOW
 
 !!! note
-  WINDOW clause can only be used if the `from_item` is a stream.
+  You can use the WINDOW clause only if the `from_item` is a stream.
+
 
 The WINDOW clause lets you control how to group input records *that have
 the same key* into so-called *windows* for operations like aggregations

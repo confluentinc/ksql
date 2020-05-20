@@ -509,13 +509,28 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldInsertInto() throws Exception {
+  public void shouldInsertIntoSingleRow() throws Exception {
     // When
     javaClient.insertInto("test-stream", INSERT_ROWS.get(0)).get();
 
     // Then
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), hasSize(1));
     assertThat(testEndpoints.getInsertsSubscriber().getRowsInserted().get(0), is(EXPECTED_INSERT_ROWS.get(0)));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isClosed(), is(true));
+    assertThat(testEndpoints.getLastTarget(), is("test-stream"));
+  }
+
+  @Test
+  public void shouldInsertIntoMultipleRows() throws Exception {
+    // When
+    javaClient.insertInto("test-stream", INSERT_ROWS).get();
+
+    // Then
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), hasSize(INSERT_ROWS.size()));
+    for (int i = 0; i < INSERT_ROWS.size(); i++) {
+      assertThat(testEndpoints.getInsertsSubscriber().getRowsInserted().get(i), is(EXPECTED_INSERT_ROWS.get(i)));
+    }
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isClosed(), is(true));
     assertThat(testEndpoints.getLastTarget(), is("test-stream"));
@@ -530,7 +545,7 @@ public class ClientTest extends BaseApiTest {
     // When
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> javaClient.insertInto("a-table", INSERT_ROWS.get(0)).get()
+        () -> javaClient.insertInto("a-table", INSERT_ROWS).get()
     );
 
     // Then
@@ -540,7 +555,7 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldHandleErrorFromInsertInto() {
+  public void shouldHandleErrorFromInsertIntoSingleRow() {
     // Given
     testEndpoints.setAcksBeforePublisherError(0);
 
@@ -554,6 +569,25 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received error from /inserts-stream"));
     assertThat(e.getCause().getMessage(), containsString("Insert sequence number: 0"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 50000"));
+    assertThat(e.getCause().getMessage(), containsString("Message: Error in processing inserts"));
+  }
+
+  @Test
+  public void shouldHandleErrorFromInsertIntoMultipleRows() {
+    // Given
+    testEndpoints.setAcksBeforePublisherError(INSERT_ROWS.size() - 1);
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.insertInto("test-stream", INSERT_ROWS).get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received error from /inserts-stream"));
+    assertThat(e.getCause().getMessage(), containsString("Insert sequence number: " + (INSERT_ROWS.size() - 1)));
     assertThat(e.getCause().getMessage(), containsString("Error code: 50000"));
     assertThat(e.getCause().getMessage(), containsString("Message: Error in processing inserts"));
   }

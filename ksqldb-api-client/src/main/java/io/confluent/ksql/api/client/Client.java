@@ -73,6 +73,8 @@ public interface Client {
 
   CompletableFuture<Void> insertInto(String streamName, KsqlObject row);
 
+  CompletableFuture<Void> insertInto(String streamName, List<KsqlObject> row);
+
   Publisher<InsertAck> streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
 
   /**

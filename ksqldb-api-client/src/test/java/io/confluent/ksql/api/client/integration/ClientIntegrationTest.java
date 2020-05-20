@@ -408,7 +408,7 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldInsertInto() throws Exception {
+  public void shouldInsertIntoSingleRow() throws Exception {
     // Given
     final KsqlObject insertRow = new KsqlObject()
         .put("VIEWTIME", 1000L)
@@ -427,6 +427,35 @@ public class ClientIntegrationTest {
     assertThat(row.getLong("VIEWTIME"), is(1000L));
     assertThat(row.getString("USERID"), is("User_1"));
     assertThat(row.getString("PAGEID"), is("Page_28"));
+  }
+
+  @Test
+  public void shouldInsertIntoMultipleRows() throws Exception {
+    // Given
+    final int numRows = 10;
+    final List<KsqlObject> insertRows = new ArrayList<>();
+    for (int i = 0; i < numRows; i++) {
+      final KsqlObject insertRow = new KsqlObject()
+          .put("VIEWTIME", 1000L + i)
+          .put("USERID", "User_" + i)
+          .put("PAGEID", "Page_2" + i);
+      insertRows.add(insertRow);
+    }
+
+    // When
+    client.insertInto(PAGE_VIEW_STREAM, insertRows).get();
+
+    // Then: should receive newly inserted rows
+    final String query = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + (PAGE_VIEW_NUM_ROWS + numRows) + ";";
+    final List<Row> rows = client.executeQuery(query).get();
+
+    // Verify inserted rows are as expected
+    for (int i = 0; i < numRows; i++) {
+      final Row row = rows.get(PAGE_VIEW_NUM_ROWS + i);
+      assertThat(row.getLong("VIEWTIME"), is(1000L + i));
+      assertThat(row.getString("USERID"), is("User_" + i));
+      assertThat(row.getString("PAGEID"), is("Page_2" + i));
+    }
   }
 
   @Test

@@ -187,6 +187,9 @@ client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;")
 ### Synchronous Usage ###
 
 To consume records one-at-a-time in a synchronous fashion, use the `poll()` method on the query result object.
+If `poll()` is called with no arguments, `poll()` will block until a new row becomes available or the query is terminated.
+You can also pass a `Duration` argument to `poll()` which will cause `poll()` to return null if no new rows are received by the time the duration has elapsed.
+See [the API reference](TODO) for more.
 
 ```java
 final StreamedQueryResult streamedQueryResult;
@@ -198,6 +201,7 @@ try {
 }
 
 for (int i = 0; i < 10; i++) {
+  // Block until a new row is available
   final Row row = streamedQueryResult.poll();
   if (row != null) {
     System.out.println("Received a row!");
@@ -239,7 +243,7 @@ Query properties can be passed as an optional second argument. See the [client A
 ### Example Usage ###
 
 ```java
-final String pullQuery = "SELECT * FROM MY_MATERIALIZED_TABLE WHERE ROWKEY='some_key';";
+final String pullQuery = "SELECT * FROM MY_MATERIALIZED_TABLE WHERE KEY_FIELD='some_key';";
 final BatchedQueryResult batchedQueryResult = client.executeQuery(pullQuery);
 
 final List<Row> resultRows;
@@ -297,8 +301,10 @@ try {
 }
 
 final String queryId = streamedQueryResult.queryID();
+System.out.println("Terminating query with ID: " + queryId);
 try {
   client.terminatePushQuery(queryId).get();
+  System.out.println("Sucessfully terminated query.");
 } catch (Exception e) {
   System.out.println("Terminate request failed: " + e);
 }
@@ -379,21 +385,24 @@ public interface Client {
 ### Example Usage ###
 
 Here's an example of using the client to insert a couple rows into an existing stream `ORDERS`
-with schema `(ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR)`.
+with schema (ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR).
 
 ```java
 final List<KsqlObject> rows = new ArrayList<>();
 rows.add(new KsqlObject()
+    .put("ROWKEY", "k1")
     .put("ORDER_ID", 12345678L)
     .put("PRODUCT_ID", "UAC-222-19234")
     .put("USER_ID", "User_321"));
 rows.add(new KsqlObject()
+    .put("ROWKEY", "k2")
     .put("ORDER_ID", 12345679L)
     .put("PRODUCT_ID", "TAL-111-21455")
     .put("USER_ID", "User_108"));
 
 try {
   client.insertInto("ORDERS", rows).get();
+  System.out.println("Successfully inserted rows.");
 } catch (Exception e) {
   System.out.println("Insert request failed: " + e);
 }

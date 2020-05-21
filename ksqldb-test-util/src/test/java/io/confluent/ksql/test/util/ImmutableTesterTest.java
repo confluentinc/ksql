@@ -159,8 +159,44 @@ public class ImmutableTesterTest {
     tester.test(TestSubject.class);
   }
 
-  private static final class MutableType {
-      private int i;
+  @Test(expected = AssertionError.class)
+  public void shouldFailOnWildcardType() {
+    // Given:
+    @Immutable
+    class TestSubject {
+      final ImmutableList<?> f0 = null;
+    }
+
+    // When:
+    tester.test(TestSubject.class);
+  }
+
+  @Test(expected = AssertionError.class)
+  public void shouldFailOnWildcardTypeWithMutableUpperBound() {
+    // Given:
+    @Immutable
+    class TestSubject {
+      final ImmutableList<? extends MutableType> f0 = null;
+    }
+
+    // When:
+    tester.test(TestSubject.class);
+  }
+
+  @Test
+  public void shouldNotFailOnWildcardTypeWithImmutableUpperBound() {
+    // Given:
+    @Immutable
+    class TestSubject {
+      final ImmutableList<? extends ImplementsNonImmutableInterface> f0 = null;
+    }
+
+    // When:
+    tester.test(TestSubject.class);
+  }
+
+  private static class MutableType {
+    private int i;
   }
 
   @Immutable

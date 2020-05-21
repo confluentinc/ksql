@@ -72,26 +72,13 @@ package my.ksqldb.app;
 
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 public class ExampleApp {
 
   public static final String KSQLDB_SERVER_HOST = "localhost";
   public static final int KSQLDB_SERVER_HOST_PORT = 8088;
-
-  static {
-    PUSH_QUERY_PROPERTIES = new HashMap<>();
-    PUSH_QUERY_PROPERTIES.put("auto.offset.reset", "earliest");
-  }
   
-  public static void main(String[] args) {
+  public static void main(final String[] args) {
     final ClientOptions options = ClientOptions.create()
         .setHost(KSQLDB_SERVER_HOST)
         .setPort(KSQLDB_SERVER_HOST_PORT);
@@ -103,6 +90,8 @@ public class ExampleApp {
   }
 }
 ```
+
+For additional client options, see [the API reference](TODO).
 
 Receive query results one row at a time (streamQuery())<a name="stream-query"></a>
 ----------------------------------------------------------------------------------
@@ -144,7 +133,7 @@ import io.confluent.ksql.api.client.Row;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-private static class RowSubscriber implements Subscriber<Row> {
+public class RowSubscriber implements Subscriber<Row> {
 
   private Subscription subscription;
 
@@ -203,14 +192,13 @@ To consume records one-at-a-time in a synchronous fashion, use the `poll()` meth
 final StreamedQueryResult streamedQueryResult;
 try {
   streamedQueryResult = client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;").get();
-} catch (ExecutionException e) {
+} catch (Exception e) {
   System.out.println("Request failed: " + e);
   return;
 }
 
-Row row;
 for (int i = 0; i < 10; i++) {
-  row = streamedQueryResult.poll();
+  final Row row = streamedQueryResult.poll();
   if (row != null) {
     System.out.println("Received a row!");
     System.out.println("Row: " + row.values());
@@ -257,7 +245,7 @@ final BatchedQueryResult batchedQueryResult = client.executeQuery(pullQuery);
 final List<Row> resultRows;
 try {
   resultRows = batchedQueryResult.get();
-} catch (ExecutionException e) {
+} catch (Exception e) {
   System.out.println("Request failed: " + e);
   return;
 }
@@ -303,7 +291,7 @@ Here's an example of terminating a push query issued via `streamQuery()`:
 final StreamedQueryResult streamedQueryResult;
 try {
   streamedQueryResult = client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;").get();
-} catch (ExecutionException e) {
+} catch (Exception e) {
   System.out.println("Query request failed: " + e);
   return;
 }
@@ -311,7 +299,7 @@ try {
 final String queryId = streamedQueryResult.queryID();
 try {
   client.terminatePushQuery(queryId).get();
-} catch (ExecutionException e) {
+} catch (Exception e) {
   System.out.println("Terminate request failed: " + e);
 }
 ```
@@ -325,14 +313,14 @@ final BatchedQueryResult batchedQueryResult = client.executeQuery(pullQuery);
 final String queryId;
 try {
   queryId = batchedQueryResult.queryID().get();
-} catch (ExecutionException e) {
+} catch (Exception e) {
   System.out.println("Query request failed: " + e);
   return;
 }
 
 try {
   client.terminatePushQuery(queryId).get();
-} catch (ExecutionException e) {
+} catch (Exception e) {
   System.out.println("Terminate request failed: " + e);
 }
 ```
@@ -406,7 +394,7 @@ rows.add(new KsqlObject()
 
 try {
   client.insertInto("ORDERS", rows).get();
-} catch (ExecutionException e) {
+} catch (Exception e) {
   System.out.println("Insert request failed: " + e);
 }
 ```

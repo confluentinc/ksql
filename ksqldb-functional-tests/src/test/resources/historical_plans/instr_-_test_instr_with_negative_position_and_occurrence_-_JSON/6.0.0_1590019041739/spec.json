@@ -1,6 +1,6 @@
 {
   "version" : "6.0.0",
-  "timestamp" : 1589881226321,
+  "timestamp" : 1590019041739,
   "path" : "query-validation-tests/instr.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",

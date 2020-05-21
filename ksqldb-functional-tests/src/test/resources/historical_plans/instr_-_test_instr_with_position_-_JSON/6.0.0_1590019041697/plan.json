@@ -62,6 +62,7 @@
             },
             "sourceSchema" : "`K` STRING KEY, `SOURCE` STRING"
           },
+          "keyColumnNames" : [ "K" ],
           "selectExpressions" : [ "INSTR(SOURCE, 'or', 4) AS INSTR" ]
         },
         "formats" : {
@@ -119,6 +120,7 @@
     "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
     "ksql.udf.collect.metrics" : "false",
     "ksql.persistent.prefix" : "query_",
-    "ksql.query.persistent.active.limit" : "2147483647"
+    "ksql.query.persistent.active.limit" : "2147483647",
+    "ksql.error.classifier.regex" : ""
   }
 }

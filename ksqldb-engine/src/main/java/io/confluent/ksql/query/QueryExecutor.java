@@ -17,7 +17,9 @@ package io.confluent.ksql.query;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -230,6 +232,14 @@ public final class QueryExecutor {
             applicationId
         ));
 
+    final QueryErrorClassifier topicClassifier = new MissingTopicClassifier(
+        applicationId,
+        extractTopics(built.topology),
+        serviceContext.getTopicClient());
+    final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
+        .map(topicClassifier::and)
+        .orElse(topicClassifier);
+
     return new PersistentQueryMetadata(
         statementText,
         built.kafkaStreams,
@@ -248,10 +258,7 @@ public final class QueryExecutor {
         overrides,
         queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
-        new MissingTopicClassifier(
-            applicationId,
-            extractTopics(built.topology),
-            serviceContext.getTopicClient()));
+        classifier);
   }
 
   private TransientQueryQueue buildTransientQueryQueue(
@@ -315,6 +322,32 @@ public final class QueryExecutor {
         ProducerCollector.class.getCanonicalName()
     );
     return newStreamsProperties;
+  }
+
+  private static Optional<QueryErrorClassifier> buildConfiguredClassifiers(
+      final KsqlConfig cfg,
+      final String queryId
+  ) {
+    final Map<String, Object> regexPrefixes = cfg.originalsWithPrefix(
+        KsqlConfig.KSQL_ERROR_CLASSIFIER_REGEX_PREFIX
+    );
+
+    final ImmutableList.Builder<QueryErrorClassifier> builder = ImmutableList.builder();
+    for (final Object value : regexPrefixes.values()) {
+      final String classifier = (String) value;
+      builder.add(RegexClassifier.fromConfig(classifier, queryId));
+    }
+    final ImmutableList<QueryErrorClassifier> classifiers = builder.build();
+
+    if (classifiers.isEmpty()) {
+      return Optional.empty();
+    }
+
+    QueryErrorClassifier combined = Iterables.get(classifiers, 0);
+    for (final QueryErrorClassifier classifier : Iterables.skip(classifiers, 1)) {
+      combined = combined.and(classifier);
+    }
+    return Optional.ofNullable(combined);
   }
 
   private static Set<String> extractTopics(final Topology topology) {

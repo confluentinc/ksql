@@ -70,9 +70,6 @@ The WITH clause for the result supports the following properties:
       - Avro field names are not case sensitive in ksqlDB. This matches the ksqlDB
         column name behavior.
 
-!!! note
-		The `KEY` property is not supported. Use PARTITION BY instead.
-
 Example
 -------
 

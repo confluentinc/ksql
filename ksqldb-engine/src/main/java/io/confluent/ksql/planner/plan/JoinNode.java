@@ -102,11 +102,6 @@ public class JoinNode extends PlanNode {
     return Arrays.asList(left, right);
   }
 
-  @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitJoin(this, context);
-  }
-
   public PlanNode getLeft() {
     return left;
   }

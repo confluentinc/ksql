@@ -15,18 +15,22 @@
 
 package io.confluent.ksql.api.client.util;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.google.common.collect.ImmutableList;
-import io.vertx.core.json.jackson.DatabindCodec;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 public final class JsonMapper {
 
-  private static final ObjectMapper MAPPER = DatabindCodec.mapper();
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   static {
-    MAPPER.registerModule(new GuavaModule());
-    MAPPER.registerSubtypes(ImmutableList.class);
+    MAPPER.disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+        .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+        .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+        .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
   }
 
   private JsonMapper() {
@@ -35,4 +39,5 @@ public final class JsonMapper {
   public static ObjectMapper get() {
     return MAPPER;
   }
+
 }

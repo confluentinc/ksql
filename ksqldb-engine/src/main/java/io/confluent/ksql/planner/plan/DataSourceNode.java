@@ -95,11 +95,6 @@ public class DataSourceNode extends PlanNode {
   }
 
   @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitDataSourceNode(this, context);
-  }
-
-  @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final Stacker contextStacker = builder.buildNodeContext(getId().toString());
     return schemaKStreamFactory.create(

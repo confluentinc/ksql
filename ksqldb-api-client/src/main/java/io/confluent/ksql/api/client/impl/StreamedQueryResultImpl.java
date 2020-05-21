@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.client.impl;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
@@ -129,7 +128,6 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
     log.error("Unexpected error while polling: " + t);
   }
 
-  @VisibleForTesting
   public static Row pollWithCallback(
       final StreamedQueryResult queryResult,
       final Runnable callback

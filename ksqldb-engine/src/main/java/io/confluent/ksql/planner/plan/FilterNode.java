@@ -56,11 +56,6 @@ public class FilterNode extends PlanNode {
   }
 
   @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitFilter(this, context);
-  }
-
-  @Override
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }

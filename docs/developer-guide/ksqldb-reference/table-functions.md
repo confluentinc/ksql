@@ -6,15 +6,7 @@ description: Learn how to use table function in a SELECT clause
 keywords: ksqldb, table, function, select
 ---
 
-Table Functions
-===============
-
-- [CUBE](#cube) 
-- [EXPLODE](#explode)
-- More to come
-
-ksqlDB Table Functions
-======================
+## Synopsis
 
 A table function is a function that returns a set of zero or more rows.
 Contrast this to a scalar function, which returns a single value.
@@ -98,10 +90,13 @@ Would give:
   {country: 'USA', name: null, age: 56}
 ```
 
-CUBE
-----
+## Functions
 
-`cube_explode(array[col1, ..., colN])`
+### `CUBE`
+
+```sql
+cube_explode(array[col1, ..., colN])
+```
 
 Array
 
@@ -109,10 +104,11 @@ Takes as argument an array of columns and outputs all possible combinations of t
 It produces `2^d` new rows where `d` is the number of columns given as parameter.
 Duplicate entries for columns with null value are skipped.
 
-EXPLODE
--------
+### `EXPLODE`
 
-`EXPLODE(col1)`
+```sql
+EXPLODE(col1)
+```
 
 Array
 

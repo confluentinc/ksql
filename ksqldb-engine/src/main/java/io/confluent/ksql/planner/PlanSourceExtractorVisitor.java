@@ -16,78 +16,27 @@
 package io.confluent.ksql.planner;
 
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
-import io.confluent.ksql.planner.plan.FilterNode;
-import io.confluent.ksql.planner.plan.FlatMapNode;
-import io.confluent.ksql.planner.plan.JoinNode;
-import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PlanVisitor;
-import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.RepartitionNode;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
-
-  private final Set<SourceName> sourceNames;
+public class PlanSourceExtractorVisitor {
 
   public PlanSourceExtractorVisitor() {
-    sourceNames = new HashSet<>();
   }
 
-  public R process(final PlanNode node, final C context) {
-    return node.accept(this, context);
+  public Set<SourceName> extract(final PlanNode node) {
+    return doExtract(node).collect(Collectors.toSet());
   }
 
-  protected R visitPlan(final PlanNode node, final C context) {
-    return null;
-  }
+  private Stream<SourceName> doExtract(final PlanNode node) {
+    if (node instanceof DataSourceNode) {
+      return Stream.of(((DataSourceNode) node).getDataSource().getName());
+    }
 
-  protected R visitFilter(final FilterNode node, final C context) {
-    process(node.getSources().get(0), context);
-    return null;
-  }
-
-  protected R visitProject(final ProjectNode node, final C context) {
-    return process(node.getSource(), context);
-  }
-
-  protected R visitDataSourceNode(final DataSourceNode node, final C context) {
-    sourceNames.add(node.getDataSource().getName());
-    return null;
-  }
-
-  protected R visitJoin(final JoinNode node, final C context) {
-    process(node.getLeft(), context);
-    process(node.getRight(), context);
-    return null;
-  }
-
-  protected R visitAggregate(final AggregateNode node, final C context) {
-    process(node.getSources().get(0), context);
-    return null;
-  }
-
-  protected R visitOutput(final OutputNode node, final C context) {
-    process(node.getSources().get(0), context);
-    return null;
-  }
-
-  @Override
-  protected R visitFlatMap(final FlatMapNode node, final C context) {
-    process(node.getSources().get(0), context);
-    return null;
-  }
-
-  @Override
-  protected R visitRepartition(final RepartitionNode node, final C context) {
-    process(node.getSources().get(0), context);
-    return null;
-  }
-
-  public Set<SourceName> getSourceNames() {
-    return sourceNames;
+    return node.getSources().stream()
+        .flatMap(this::doExtract);
   }
 }

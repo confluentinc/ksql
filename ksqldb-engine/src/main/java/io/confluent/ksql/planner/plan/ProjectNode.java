@@ -85,11 +85,6 @@ public class ProjectNode extends PlanNode {
   }
 
   @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitProject(this, context);
-  }
-
-  @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final SchemaKStream<?> stream = getSource().buildStream(builder);
 

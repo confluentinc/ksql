@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -34,6 +35,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class ProjectionTest {
 
@@ -50,6 +52,19 @@ public class ProjectionTest {
   private Expression expression;
   @Mock
   private Expression expression2;
+
+  @Test
+  public void shouldImplementEqualsAndHashCoe() {
+    new EqualsTester()
+        .addEqualityGroup(
+            Projection.of(ImmutableList.of(ALL_COLUMNS)),
+            Projection.of(ImmutableList.of(ALL_COLUMNS))
+        )
+        .addEqualityGroup(
+            Projection.of(ImmutableList.of(ALL_A_COLUMNS))
+        )
+        .testEquals();
+  }
 
   @Test(expected = UnsupportedOperationException.class)
   public void shouldThrowOnUnsupportedColumnType() {

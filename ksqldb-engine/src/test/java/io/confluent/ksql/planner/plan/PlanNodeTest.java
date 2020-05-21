@@ -65,7 +65,7 @@ public class PlanNodeTest {
 
   @Before
   public void setUp() {
-    planNode = new TestPlanNode(NODE_ID, DataSourceType.KSTREAM, SCHEMA, Optional.empty());
+    planNode = new TestPlanNode(NODE_ID, DataSourceType.KSTREAM, Optional.empty());
 
     when(source1.getSourceName()).thenReturn(Optional.of(SOURCE_1_NAME));
     when(source2.getSourceName()).thenReturn(Optional.of(SOURCE_2_NAME));
@@ -115,10 +115,14 @@ public class PlanNodeTest {
     protected TestPlanNode(
         final PlanNodeId id,
         final DataSourceType nodeOutputType,
-        final LogicalSchema schema,
         final Optional<SourceName> sourceName
     ) {
-      super(id, nodeOutputType, schema, sourceName);
+      super(id, nodeOutputType, sourceName);
+    }
+
+    @Override
+    public LogicalSchema getSchema() {
+      return SCHEMA;
     }
 
     @Override

@@ -9,7 +9,7 @@
       "statements": [
         "CREATE STREAM L (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE STREAM R (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT JOINKEY(ABS(L.ID), ABS(R.ID)) AS ID, L.ID, R.ID, L.V0, R.V1 FROM L INNER JOIN R WITHIN 1 SECOND ON ABS(L.id) = ABS(R.id);"
+        "CREATE STREAM OUTPUT as SELECT KSQL_COL_0 AS ID, L.ID, R.ID, L.V0, R.V1 FROM L INNER JOIN R WITHIN 1 SECOND ON ABS(L.id) = ABS(R.id);"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"V0": 2, "V1": 3}, "timestamp": 0},

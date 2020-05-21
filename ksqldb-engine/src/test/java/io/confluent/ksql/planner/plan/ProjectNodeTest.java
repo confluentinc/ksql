@@ -16,7 +16,6 @@
 package io.confluent.ksql.planner.plan;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
@@ -33,15 +32,11 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -98,32 +93,32 @@ public class ProjectNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
     when(stream.select(any(), any(), any(), any())).thenReturn((SchemaKStream) stream);
 
-    projectNode = new ProjectNode(
+    projectNode = new TestProjectNode(
         NODE_ID,
         source,
         SELECTS,
-        SCHEMA,
-        false
+        SCHEMA
     );
   }
 
   @Test
-  public void shouldThrowIfSchemaHasNoValueColumns() {
+  public void shouldThrowOnValidateIfSchemaHasNoValueColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
 
+    projectNode = new TestProjectNode(
+        NODE_ID,
+        source,
+        ImmutableList.of(),
+        schema
+    );
+
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new ProjectNode(
-            NODE_ID,
-            source,
-            ImmutableList.of(),
-            schema,
-            false
-        )
+        projectNode::validate
     );
 
     // Then:
@@ -132,18 +127,17 @@ public class ProjectNodeTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfSchemaSizeDoesntMatchProjection() {
-    new ProjectNode(
+    new TestProjectNode(
         NODE_ID,
         source,
         ImmutableList.of(SELECT_0), // <-- not enough expressions
-        SCHEMA,
-        false
-    );
+        SCHEMA
+    ).validate();
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnSchemaSelectNameMismatch() {
-    projectNode = new ProjectNode(
+  public void shouldThrowOnValidateIfSchemaSelectNameMismatch() {
+    new TestProjectNode(
         NODE_ID,
         source,
         ImmutableList.of(
@@ -151,9 +145,37 @@ public class ProjectNodeTest {
             SELECT_1,
             SELECT_2
         ),
-        SCHEMA,
-        false
+        SCHEMA
+    ).validate();
+  }
+
+  @Test
+  public void shouldThrowOnValidateIfMultipleKeyColumns() {
+    // Given:
+    final LogicalSchema badSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("K"), SqlTypes.STRING)
+        .keyColumn(ColumnName.of("SecondKey"), SqlTypes.STRING)
+        .valueColumn(COL_0, SqlTypes.STRING)
+        .valueColumn(COL_1, SqlTypes.STRING)
+        .valueColumn(ALIASED_COL_2, SqlTypes.STRING)
+        .build();
+
+    projectNode = new TestProjectNode(
+        NODE_ID,
+        source,
+        SELECTS,
+        badSchema
     );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        projectNode::validate
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The projection contains the key column "
+        + "more than once: `K` and `SecondKey`."));
   }
 
   @Test
@@ -179,79 +201,30 @@ public class ProjectNodeTest {
     );
   }
 
-  @Test
-  public void shouldResolveStarSelectByCallingParent() {
-    // Given:
-    final Optional<SourceName> source = Optional.of(SourceName.of("Bob"));
+  private static final class TestProjectNode extends ProjectNode {
 
-    // When:
-    projectNode.resolveSelectStar(source);
+    private final List<SelectExpression> projection;
+    private final LogicalSchema schema;
 
-    // Then:
-    verify(this.source).resolveSelectStar(source);
-  }
+    public TestProjectNode(
+        final PlanNodeId id,
+        final PlanNode source,
+        final List<SelectExpression> projection,
+        final LogicalSchema schema
+    ) {
+      super(id, source);
+      this.projection = projection;
+      this.schema = schema;
+    }
 
-  @Test
-  public void shouldResolveStarSelectWhenUnaliased() {
-    // Given:
-    when(source.resolveSelectStar(any()))
-        .thenReturn(ImmutableList.of(COL_1, COL_0, COL_2).stream());
+    @Override
+    public List<SelectExpression> getSelectExpressions() {
+      return projection;
+    }
 
-    // When:
-    final Stream<ColumnName> result = projectNode.resolveSelectStar(Optional.empty());
-
-    // Then:
-    final List<ColumnName> columns = result.collect(Collectors.toList());
-    assertThat(columns, contains(COL_1, COL_0, COL_2));
-  }
-
-  @Test
-  public void shouldResolveStarSelectWhenAliased() {
-    // Given:
-    projectNode = new ProjectNode(
-        NODE_ID,
-        source,
-        SELECTS,
-        SCHEMA,
-        true
-    );
-
-    when(source.resolveSelectStar(any()))
-        .thenReturn(ImmutableList.of(COL_1, COL_0, COL_2).stream());
-
-    // When:
-    final Stream<ColumnName> result = projectNode.resolveSelectStar(Optional.empty());
-
-    // Then:
-    final List<ColumnName> columns = result.collect(Collectors.toList());
-    assertThat(columns, contains(COL_1, COL_0, ALIASED_COL_2));
-  }
-
-  @Test
-  public void shouldThrowOnMultipleKeyColumns() {
-    // Given:
-    final LogicalSchema badSchema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("K"), SqlTypes.STRING)
-        .keyColumn(ColumnName.of("SecondKey"), SqlTypes.STRING)
-        .valueColumn(COL_0, SqlTypes.STRING)
-        .valueColumn(COL_1, SqlTypes.STRING)
-        .valueColumn(ALIASED_COL_2, SqlTypes.STRING)
-        .build();
-
-    // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
-        () -> new ProjectNode(
-            NODE_ID,
-            source,
-            SELECTS,
-            badSchema,
-            true
-        )
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("The projection contains the key column "
-        + "more than once: `K` and `SecondKey`."));
+    @Override
+    public LogicalSchema getSchema() {
+      return schema;
+    }
   }
 }

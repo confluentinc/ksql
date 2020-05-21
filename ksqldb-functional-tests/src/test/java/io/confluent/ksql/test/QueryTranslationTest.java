@@ -39,26 +39,35 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 /**
- *  Runs the json functional tests defined under
- *  `ksql-functional-tests/src/test/resources/query-validation-tests`.
+ * Runs the json functional tests defined under
+ * `ksql-functional-tests/src/test/resources/query-validation-tests`.
  *
- *  See `ksql-functional-tests/README.md` for more info.
+ * See `ksql-functional-tests/README.md` for more info.
  */
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
+
+  // Define this in the JVM to only test against the latest version, i.e. no historical plans
+  private static final String LATEST_ONLY_SWITCH = "topology.versions.latest-only";
 
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
 
   @SuppressWarnings("UnstableApiUsage")
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    return
-        Streams.concat(
+    final boolean latestOnly = System.getProperties().containsKey(LATEST_ONLY_SWITCH);
+
+    final Stream<TestCase> testCases = latestOnly
+        ? testFileLoader().load()
+        : Streams.concat(
             testFileLoader().load(),
             PlannedTestLoader.load()
-        )
-        .map(testCase -> new Object[]{testCase.getName(), testCase})
-        .collect(Collectors.toCollection(ArrayList::new));
+        );
+
+    return
+        testCases
+            .map(testCase -> new Object[]{testCase.getName(), testCase})
+            .collect(Collectors.toCollection(ArrayList::new));
   }
 
   public static Stream<TestCase> findTestCases() {

@@ -27,7 +27,9 @@ import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.model.SemanticVersion;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.testing.EffectivelyImmutable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -261,6 +263,16 @@ public class KsqlConfig extends AbstractConfig {
       + "contains an invalid timestamp, ksqlDB will log a warning and continue. To disable this "
       + "behavior, and instead throw an exception to ensure that no data is missed, set "
       + "ksql.timestamp.skip.invalid to true.";
+
+  public static final String KSQL_ERROR_CLASSIFIER_REGEX_PREFIX = "ksql.error.classifier.regex";
+  public static final String KSQL_ERROR_CLASSIFIER_REGEX_PREFIX_DOC = "Any configuration with the "
+      + "regex prefix will create a new classifier that will be configured to classify anything "
+      + "that matches the content as the specified type. The value must match "
+      + "<TYPE><whitespace><REGEX> (for example " + KSQL_ERROR_CLASSIFIER_REGEX_PREFIX + ".invalid"
+      + "=\"USER .*InvalidTopicException.*\"). The type can be one of "
+      + GrammaticalJoiner.or().join(Arrays.stream(QueryError.Type.values()))
+      + " and the regex pattern will be matched against the error class name and message of any "
+      + "uncaught error and subsequent error causes in the Kafka Streams applications.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -623,6 +635,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_QPS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_MAX_QPS_DOC
+        )
+        .define(
+            KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
+            Type.STRING,
+            "",
+            Importance.LOW,
+            KSQL_ERROR_CLASSIFIER_REGEX_PREFIX_DOC
         )
         .withClientSslSupport();
 

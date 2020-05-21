@@ -31,6 +31,7 @@ import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.impl.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
+import io.confluent.ksql.api.impl.MonitoredEndpoints;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -100,6 +101,8 @@ import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
+import io.vertx.ext.dropwizard.Match;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -234,8 +237,10 @@ public final class KsqlRestApplication implements Executable {
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
     this.vertx = Vertx.vertx(
-        new VertxOptions().setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
-            .setMaxWorkerExecuteTime(Long.MAX_VALUE));
+        new VertxOptions()
+            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
+            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
+            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
     this.vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
@@ -845,6 +850,7 @@ public final class KsqlRestApplication implements Executable {
   }
 
   private void displayWelcomeMessage() {
+    
     final Console console = System.console();
     if (console == null) {
       return;
@@ -958,6 +964,18 @@ public final class KsqlRestApplication implements Executable {
         .findFirst()
         .orElseThrow(() ->
             new IllegalStateException("Failed resolve port for listener: " + listener));
+  }
+
+  private static DropwizardMetricsOptions setUpHttpMetrics(final KsqlConfig ksqlConfig) {
+    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
+        .setJmxEnabled(true).setBaseName("_confluent-ksql-" + serviceId)
+        .setJmxDomain("io.confluent.ksql.metrics");
+    final List<Match> matches = MonitoredEndpoints.getMonitoredEndpoints();
+    for (Match match : matches) {
+      metricsOptions.addMonitoredHttpServerUri(match);
+    }
+    return metricsOptions;
   }
 
   private static KsqlRestConfig injectPathsWithoutAuthentication(final KsqlRestConfig restConfig) {

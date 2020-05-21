@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.planner;
 
-import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -25,7 +25,10 @@ import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +38,7 @@ import java.util.stream.Collectors;
 public final class Projection {
 
   private final boolean includesAll;
+  private final ImmutableList<? extends SelectItem> selectItems;
   private final ImmutableSet<SourceName> includeAllSources;
   private final ImmutableSet<Expression> singles;
 
@@ -42,8 +46,8 @@ public final class Projection {
     return new Projection(selectItems);
   }
 
-  @VisibleForTesting
-  Projection(final Collection<? extends SelectItem> selects) {
+  private Projection(final Collection<? extends SelectItem> selects) {
+    this.selectItems = ImmutableList.copyOf(selects);
     this.includesAll = selects.stream()
         .filter(Projection::isAllColumn)
         .map(AllColumns.class::cast)
@@ -64,6 +68,14 @@ public final class Projection {
         .collect(Collectors.toSet()));
   }
 
+  public List<? extends SelectItem> selectItems() {
+    return selectItems;
+  }
+
+  public Set<Expression> singleExpressions() {
+    return singles;
+  }
+
   /**
    * Tests is the supplied {@code expression} is contained by the projection.
    *
@@ -75,8 +87,8 @@ public final class Projection {
    *      considered to be contained within the projection.
    *    </li>
    *    <li>
-   *      If any of the projection items are a qualified {@code *}, then any column reference with
-   *      the same source name will be considered contained.
+   *      If any of the projection items are a qualified {@code Something.*}, then any column
+   *      reference with the same source name will be considered contained.
    *    </li>
    *    <li>
    *      If any single column within the projection matches the supplied expression, then it is
@@ -104,6 +116,24 @@ public final class Projection {
     }
 
     return singles.contains(expression);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    final Projection that = (Projection) o;
+    return Objects.equals(selectItems, that.selectItems);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(selectItems);
   }
 
   private static boolean isAllColumn(final SelectItem si) {

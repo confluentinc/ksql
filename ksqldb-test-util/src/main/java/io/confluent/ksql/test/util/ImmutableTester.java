@@ -185,7 +185,7 @@ public final class ImmutableTester {
     }
 
     if (type instanceof WildcardType) {
-      checkWildcardType((WildcardType)type, knownImmutable);
+      checkWildcardType((WildcardType) type, knownImmutable);
       return;
     }
 

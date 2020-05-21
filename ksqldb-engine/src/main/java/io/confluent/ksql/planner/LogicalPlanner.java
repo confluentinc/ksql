@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
@@ -44,11 +43,8 @@ import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
-import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.JoinTree.Join;
 import io.confluent.ksql.planner.JoinTree.Leaf;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -63,8 +59,11 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
+import io.confluent.ksql.planner.plan.PreJoinProjectNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
+import io.confluent.ksql.planner.plan.SelectionUtil;
+import io.confluent.ksql.planner.plan.VerifiableNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnNames;
@@ -85,8 +84,6 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class LogicalPlanner {
@@ -215,7 +212,7 @@ public class LogicalPlanner {
     final GroupBy groupBy = analysis.getGroupBy()
         .orElseThrow(IllegalStateException::new);
 
-    final List<SelectExpression> projectionExpressions = buildSelectExpressions(
+    final List<SelectExpression> projectionExpressions = SelectionUtil.buildSelectExpressions(
         sourcePlanNode,
         analysis.getSelectItems()
     );
@@ -237,7 +234,7 @@ public class LogicalPlanner {
       validator.validateFilterExpression(analysis.getHavingExpression().get());
     }
 
-    return new AggregateNode(
+    final AggregateNode aggregate = new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
         schema,
@@ -247,60 +244,37 @@ public class LogicalPlanner {
         aggregateAnalysis,
         projectionExpressions
     );
+
+    validate(aggregate);
+
+    return aggregate;
   }
 
   private ProjectNode buildUserProjectNode(final PlanNode parentNode) {
-    final List<SelectExpression> projection =
-        buildSelectExpressions(parentNode, analysis.getSelectItems());
-
-    final LogicalSchema schema = buildProjectionSchema(parentNode.getSchema(), projection);
-
-    final boolean persistent = analysis.getInto().isPresent();
-    if (persistent) {
-      // Persistent queries have key columns as key columns - so final projection can exclude them:
-      final Set<SelectExpression> keySelects = parentNode.getSchema().key().stream()
-          .map(Column::name)
-          .map(name -> resolveProjectionAlias(name, projection))
-          .collect(Collectors.toSet());
-
-      projection.removeIf(keySelects::contains);
-    }
-
-    final LogicalSchema nodeSchema;
-    if (persistent) {
-      nodeSchema = schema;
-    } else {
-      // Transient queries return key columns in the value, so the projection includes them, and
-      // the schema needs to include them too:
-      final Builder builder = LogicalSchema.builder();
-
-      schema.columns()
-          .forEach(builder::valueColumn);
-
-      nodeSchema = builder.build();
-    }
-
-    return new FinalProjectNode(
+    final FinalProjectNode project = new FinalProjectNode(
         new PlanNodeId("Project"),
         parentNode,
-        projection,
-        nodeSchema,
-        analysis.getSelectItems()
+        analysis.getSelectItems(),
+        analysis.getInto().isPresent()
     );
+
+    validate(project);
+
+    return project;
   }
 
-  private static SelectExpression resolveProjectionAlias(
-      final ColumnName name,
-      final List<SelectExpression> projection
-  ) {
-    final ColumnName alias = projection.stream()
-        .filter(se -> se.getExpression() instanceof ColumnReferenceExp)
-        .filter(se -> ((ColumnReferenceExp) se.getExpression()).getColumnName().equals(name))
-        .map(SelectExpression::getAlias)
-        .findFirst()
-        .orElse(name);
+  private void validate(final VerifiableNode node) {
+    final Set<? extends ColumnReferenceExp> unknown = node.validateColumns(functionRegistry);
+    if (unknown.isEmpty()) {
+      return;
+    }
 
-    return SelectExpression.of(alias, new UnqualifiedColumnReferenceExp(name));
+    final String errors = unknown.stream()
+        .map(columnRef -> NodeLocation.asPrefix(columnRef.getLocation())
+            + "Column '" + columnRef + "' cannot be resolved."
+        ).collect(Collectors.joining(System.lineSeparator()));
+
+    throw new KsqlException(errors);
   }
 
   private static ProjectNode buildInternalProjectNode(
@@ -315,56 +289,12 @@ public class LogicalPlanner {
 
     final LogicalSchema schema = buildJoinSourceSchema(sourceAlias, parent.getSchema());
 
-    return new ProjectNode(
+    return new PreJoinProjectNode(
         new PlanNodeId(id),
         parent,
         projection,
-        schema,
-        true
+        schema
     );
-  }
-
-  private static List<SelectExpression> buildSelectExpressions(
-      final PlanNode parentNode,
-      final List<SelectItem> selectItems
-  ) {
-    return IntStream.range(0, selectItems.size())
-        .boxed()
-        .flatMap(idx -> resolveSelectItem(idx, selectItems, parentNode))
-        .collect(Collectors.toList());
-  }
-
-  private static Stream<SelectExpression> resolveSelectItem(
-      final int idx,
-      final List<SelectItem> selectItems,
-      final PlanNode parentNode
-  ) {
-    final SelectItem selectItem = selectItems.get(idx);
-
-    if (selectItem instanceof SingleColumn) {
-      final SingleColumn column = (SingleColumn) selectItem;
-      final Expression expression = parentNode.resolveSelect(idx, column.getExpression());
-      final ColumnName alias = column.getAlias()
-          .orElseThrow(() -> new IllegalStateException("Alias should be present by this point"));
-
-      return Stream.of(SelectExpression.of(alias, expression));
-    }
-
-    if (selectItem instanceof AllColumns) {
-      final AllColumns allColumns = (AllColumns) selectItem;
-
-      final Stream<ColumnName> columns = parentNode
-          .resolveSelectStar(allColumns.getSource());
-
-      return columns
-          .map(name -> SelectExpression.of(name, new UnqualifiedColumnReferenceExp(
-              allColumns.getLocation(),
-              name
-          )));
-    }
-
-    throw new IllegalArgumentException(
-        "Unsupported SelectItem type: " + selectItem.getClass().getName());
   }
 
   private FilterNode buildFilterNode(
@@ -602,39 +532,6 @@ public class LogicalPlanner {
     );
   }
 
-  private LogicalSchema buildProjectionSchema(
-      final LogicalSchema parentSchema,
-      final List<SelectExpression> projection
-  ) {
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        parentSchema,
-        functionRegistry
-    );
-
-    final Builder builder = LogicalSchema.builder();
-
-    final ImmutableMap.Builder<ColumnName, SqlType> keys = ImmutableMap.builder();
-
-    for (final SelectExpression select : projection) {
-      final Expression expression = select.getExpression();
-
-      final SqlType expressionType = expressionTypeManager
-          .getExpressionSqlType(expression);
-
-      final boolean keyColumn = expression instanceof ColumnReferenceExp
-          && parentSchema.isKeyColumn(((ColumnReferenceExp) expression).getColumnName());
-
-      if (keyColumn) {
-        builder.keyColumn(select.getAlias(), expressionType);
-        keys.put(select.getAlias(), expressionType);
-      } else {
-        builder.valueColumn(select.getAlias(), expressionType);
-      }
-    }
-
-    return builder.build();
-  }
-
   private LogicalSchema buildAggregateSchema(
       final PlanNode sourcePlanNode,
       final GroupBy groupBy,
@@ -642,10 +539,11 @@ public class LogicalPlanner {
   ) {
     final LogicalSchema sourceSchema = sourcePlanNode.getSchema();
 
-    final LogicalSchema projectionSchema = buildProjectionSchema(
+    final LogicalSchema projectionSchema = SelectionUtil.buildProjectionSchema(
         sourceSchema
             .withPseudoAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
-        projectionExpressions
+        projectionExpressions,
+        functionRegistry
     );
 
     final List<Expression> groupByExps = groupBy.getGroupingExpressions();
@@ -761,10 +659,14 @@ public class LogicalPlanner {
     ) {
       if (isJoin) {
         return Optional.of(new UnqualifiedColumnReferenceExp(
+            node.getLocation(),
             ColumnNames.generatedJoinColumnAlias(node.getQualifier(), node.getColumnName())
         ));
       } else {
-        return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
+        return Optional.of(new UnqualifiedColumnReferenceExp(
+            node.getLocation(),
+            node.getColumnName()
+        ));
       }
     }
   }

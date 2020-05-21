@@ -21,7 +21,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -35,12 +34,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-@Immutable
 public class RepartitionNode extends PlanNode {
 
   private final PlanNode source;
   private final Expression originalPartitionBy;
   private final Expression partitionBy;
+  private final LogicalSchema schema;
   private final boolean internal;
 
   public RepartitionNode(
@@ -51,11 +50,17 @@ public class RepartitionNode extends PlanNode {
       final Expression partitionBy,
       final boolean internal
   ) {
-    super(id, source.getNodeOutputType(), schema, source.getSourceName());
+    super(id, source.getNodeOutputType(), source.getSourceName());
+    this.schema = requireNonNull(schema, "schema");
     this.source = requireNonNull(source, "source");
     this.originalPartitionBy = requireNonNull(originalPartitionBy, "originalPartitionBy");
     this.partitionBy = requireNonNull(partitionBy, "partitionBy");
     this.internal = internal;
+  }
+
+  @Override
+  public LogicalSchema getSchema() {
+    return schema;
   }
 
   @Override

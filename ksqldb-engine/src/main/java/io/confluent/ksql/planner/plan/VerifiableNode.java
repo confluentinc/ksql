@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.planner.plan;
 
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.SourceName;
+import java.util.Set;
 
 public interface VerifiableNode {
 
@@ -25,4 +28,12 @@ public interface VerifiableNode {
    * @param sinkName the name of the source being built.
    */
   void validateKeyPresent(SourceName sinkName);
+
+  /**
+   * Called to validate that columns referenced in the query are valid, i.e. they are known.
+   *
+   * @param functionRegistry the function registry.
+   * @return any unknown columns.
+   */
+  Set<ColumnReferenceExp> validateColumns(FunctionRegistry functionRegistry);
 }

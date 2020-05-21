@@ -45,7 +45,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final ImmutableSet<SerdeOption> serdeOptions;
   private final SourceName intoSourceName;
 
-  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public KsqlStructuredDataOutputNode(
       final PlanNodeId id,
       final PlanNode source,
@@ -55,19 +54,9 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final OptionalInt limit,
       final boolean doCreateInto,
       final Set<SerdeOption> serdeOptions,
-      final SourceName intoSourceName) {
-    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    super(
-        id,
-        source,
-        // KSQL internally copies the implicit and key fields into the value schema.
-        // This is done by DataSourceNode
-        // Hence, they must be removed again here if they are still in the sink schema.
-        // This leads to strange behaviour, but changing it is a breaking change.
-        schema.withoutPseudoAndKeyColsInValue(),
-        limit,
-        timestampColumn
-    );
+      final SourceName intoSourceName
+  ) {
+    super(id, source, schema, limit, timestampColumn);
 
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");

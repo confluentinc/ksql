@@ -22,9 +22,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +49,7 @@ public class QueryDescription {
   private final Map<String, Object> overriddenProperties;
   private final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus;
   private final KsqlQueryType queryType;
+  private final List<QueryError> queryErrors;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
@@ -63,7 +66,8 @@ public class QueryDescription {
       @JsonProperty("overriddenProperties") final Map<String, Object> overriddenProperties,
       @JsonProperty("ksqlHostQueryStatus") final Map<KsqlHostInfoEntity, KsqlQueryStatus>
           ksqlHostQueryStatus,
-      @JsonProperty("queryType") final KsqlQueryType queryType
+      @JsonProperty("queryType") final KsqlQueryType queryType,
+      @JsonProperty("queryErrors") final List<QueryError> queryErrors
   ) {
     this.id = Objects.requireNonNull(id, "id");
     this.statementText = Objects.requireNonNull(statementText, "statementText");
@@ -78,6 +82,7 @@ public class QueryDescription {
     this.ksqlHostQueryStatus =
         new HashMap<>(Objects.requireNonNull(ksqlHostQueryStatus, "ksqlHostQueryStatus"));
     this.queryType = Objects.requireNonNull(queryType, "queryType");
+    this.queryErrors = new ArrayList<>(Objects.requireNonNull(queryErrors, "queryErrors"));
   }
 
   public QueryId getId() {
@@ -142,6 +147,10 @@ public class QueryDescription {
     return queryType;
   }
 
+  public List<QueryError> getQueryErrors() {
+    return queryErrors;
+  }
+
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public boolean equals(final Object o) {
@@ -163,7 +172,8 @@ public class QueryDescription {
         && Objects.equals(sinks, that.sinks)
         && Objects.equals(overriddenProperties, that.overriddenProperties)
         && Objects.equals(ksqlHostQueryStatus, that.ksqlHostQueryStatus)
-        && Objects.equals(queryType, that.queryType);
+        && Objects.equals(queryType, that.queryType)
+        && Objects.equals(queryErrors, that.queryErrors);
   }
 
   @Override
@@ -179,7 +189,8 @@ public class QueryDescription {
         sinks,
         overriddenProperties,
         ksqlHostQueryStatus,
-        queryType
+        queryType,
+        queryErrors
     );
   }
 }

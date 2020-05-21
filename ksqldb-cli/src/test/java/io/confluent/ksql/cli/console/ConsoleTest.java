@@ -37,6 +37,8 @@ import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.query.QueryError;
+import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
@@ -54,10 +56,13 @@ import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryDescription;
+import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
@@ -79,6 +84,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -346,6 +352,108 @@ public class ConsoleTest {
           + " 0        | PUSH       | " + STATUS_COUNT_STRING + " | Test      | Test topic       | select * from t1 emit changes " + NEWLINE
           + "----------------------------------------------------------------------------------------------------" + NEWLINE
           + "For detailed information on a Query run: EXPLAIN <Query ID>;" + NEWLINE));
+    }
+  }
+
+  @Test
+  public void shouldPrintExplainQueryWithError() {
+    // Given:
+    final QueryDescriptionEntity queryEntity = new QueryDescriptionEntity(
+        "statement",
+        new QueryDescription(
+            new QueryId("id"),
+            "statement",
+            Optional.empty(),
+            ImmutableList.of(
+                new FieldInfo(
+                    "name",
+                    new SchemaInfo(SqlBaseType.STRING, ImmutableList.of(), null),
+                    Optional.empty())),
+            ImmutableSet.of("source"),
+            ImmutableSet.of("sink"),
+            "topology",
+            "executionPlan",
+            ImmutableMap.of(),
+            ImmutableMap.of(new KsqlHostInfoEntity("foo", 123), KsqlQueryStatus.ERROR),
+            KsqlQueryType.PERSISTENT,
+            ImmutableList.of(new QueryError("error", Type.SYSTEM))
+        )
+    );
+
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(queryEntity));
+
+    // When:
+    console.printKsqlEntityList(entityList);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, is("[ {\n" +
+          "  \"@type\" : \"queryDescription\",\n" +
+          "  \"statementText\" : \"statement\",\n" +
+          "  \"queryDescription\" : {\n" +
+          "    \"id\" : \"id\",\n" +
+          "    \"statementText\" : \"statement\",\n" +
+          "    \"windowType\" : null,\n" +
+          "    \"fields\" : [ {\n" +
+          "      \"name\" : \"name\",\n" +
+          "      \"schema\" : {\n" +
+          "        \"type\" : \"STRING\",\n" +
+          "        \"fields\" : [ ],\n" +
+          "        \"memberSchema\" : null\n" +
+          "      }\n" +
+          "    } ],\n" +
+          "    \"sources\" : [ \"source\" ],\n" +
+          "    \"sinks\" : [ \"sink\" ],\n" +
+          "    \"topology\" : \"topology\",\n" +
+          "    \"executionPlan\" : \"executionPlan\",\n" +
+          "    \"overriddenProperties\" : { },\n" +
+          "    \"ksqlHostQueryStatus\" : {\n" +
+          "      \"foo:123\" : \"ERROR\"\n" +
+          "    },\n" +
+          "    \"queryType\" : \"PERSISTENT\",\n" +
+          "    \"queryErrors\" : [ {\n" +
+          "      \"errorMessage\" : \"error\",\n" +
+          "      \"type\" : \"SYSTEM\"\n" +
+          "    } ],\n" +
+          "    \"state\" : \"ERROR\"\n" +
+          "  },\n" +
+          "  \"warnings\" : [ ]\n" +
+          "} ]\n"));
+    } else {
+      assertThat(output, is("\n" +
+          "ID                   : id\n" +
+          "Query Type           : PERSISTENT\n" +
+          "SQL                  : statement\n" +
+          "Host Query Status    : {foo:123=ERROR}\n" +
+          "\n" +
+          " Field | Type            \n" +
+          "-------------------------\n" +
+          " name  | VARCHAR(STRING) \n" +
+          "-------------------------\n" +
+          "\n" +
+          "Sources that this query reads from: \n" +
+          "-----------------------------------\n" +
+          "source\n" +
+          "\n" +
+          "For source description please run: DESCRIBE [EXTENDED] <SourceId>\n" +
+          "\n" +
+          "Sinks that this query writes to: \n" +
+          "-----------------------------------\n" +
+          "sink\n" +
+          "\n" +
+          "For sink description please run: DESCRIBE [EXTENDED] <SinkId>\n" +
+          "\n" +
+          "Execution plan      \n" +
+          "--------------      \n" +
+          "executionPlan\n" +
+          "\n" +
+          "Processing topology \n" +
+          "------------------- \n" +
+          "topology\n" +
+          "\n" +
+          "Error Details        : error\n" +
+          "Error Type           : SYSTEM\n"));
     }
   }
 

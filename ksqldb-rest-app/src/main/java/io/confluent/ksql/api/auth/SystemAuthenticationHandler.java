@@ -1,10 +1,7 @@
 package io.confluent.ksql.api.auth;
 
-import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
-
-import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.server.InternalEndpointHandler;
-import io.confluent.ksql.api.server.KsqlApiException;
+import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -16,43 +13,48 @@ import io.vertx.ext.web.RoutingContext;
 import java.net.URI;
 import java.security.Principal;
 import java.util.Objects;
+import java.util.Optional;
 
 public class SystemAuthenticationHandler implements Handler<RoutingContext> {
 
-  private final KsqlRestConfig ksqlRestConfig;
-
-  public SystemAuthenticationHandler(
-      final KsqlRestConfig ksqlRestConfig,
-      boolean fromInternalListener,
-      final URI internalListener
-  ) {
-    this.ksqlRestConfig = ksqlRestConfig;
-  }
+  public SystemAuthenticationHandler() { }
 
   @Override
   public void handle(RoutingContext routingContext) {
-    // The requirements for being considered a system call on behalf of the SystemUser are that
-    // SSL mutual auth is in effect for the connection (meaning that the request is verified to be
-    // coming from a known set of servers in the cluster), and that it came on the internal
-    // listener interface, meaning that it's being done with the authorization of the system
-    // rather than directly on behalf of the user. Mutual auth is only enforced when SSL is used.
-//    boolean isFromInternalListener = routingContext.get(InternalEndpointHandler.)
-//    if ((ksqlRestConfig.getClientAuthInternal() != ClientAuth.REQUIRED &&
-//        internalListener.getScheme().equals("https")) ||
-//        !fromInternalListener) {
-//      routingContext
-//          .fail(UNAUTHORIZED.code(),
-//              new KsqlApiException("Unauthorized", ErrorCodes.ERROR_FAILED_AUTHENTICATION));
-//      return;
-//    }
-
-    routingContext.setUser(new SystemUser(new SystemPrincipal()));
+    if (InternalEndpointHandler.INTERNAL_PATHS.contains(routingContext.normalisedPath())) {
+      routingContext.setUser(new SystemUser(new SystemPrincipal()));
+    }
     routingContext.next();
   }
 
   public static boolean isAuthenticatedAsSystemUser(RoutingContext routingContext) {
     User user = routingContext.user();
     return user instanceof SystemUser;
+  }
+
+  public static boolean hasAuthorization(RoutingContext routingContext) {
+    return isAuthenticatedAsSystemUser(routingContext);
+  }
+
+  public static Optional<SystemAuthenticationHandler> getSystemAuthenticationHandler(
+      final Server server, final Optional<Boolean> isInternalListener) {
+    // The requirements for being considered a system call on behalf of the SystemUser are that
+    // SSL mutual auth is in effect for the connection (meaning that the request is verified to be
+    // coming from a known set of servers in the cluster), and that it came on the internal
+    // listener interface, meaning that it's being done with the authorization of the system
+    // rather than directly on behalf of the user. Mutual auth is only enforced when SSL is used.
+    String internalListener = server.getConfig().getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG);
+    if (internalListener == null) {
+      return Optional.empty();
+    }
+    final String scheme = URI.create(internalListener).getScheme();
+    final boolean isInternal = isInternalListener.isPresent() && isInternalListener.get();
+    if (server.getConfig().getClientAuthInternal() == ClientAuth.REQUIRED
+        && "https".equalsIgnoreCase(scheme) && isInternal) {
+      return Optional.of(new SystemAuthenticationHandler());
+    }
+    // Fall back on other authentication methods.
+    return Optional.empty();
   }
 
   private static class SystemPrincipal implements Principal {

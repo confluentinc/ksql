@@ -34,6 +34,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
@@ -64,15 +65,19 @@ public final class KsqlClient implements AutoCloseable {
   }
 
   public KsqlClient(
-      final Map<String, String> clientProps,
+      final Consumer<HttpClientOptions> sslHttpClientOptionsConsumer,
+      final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
       final HttpClientOptions httpClientOptions
   ) {
     this.vertx = Vertx.vertx();
-    this.basicAuthHeader = Optional.empty();
+    this.basicAuthHeader = createBasicAuthHeader(
+        Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
-    this.httpNonTlsClient = createInternalHttpClient(vertx, clientProps, httpClientOptions, false);
-    this.httpTlsClient = createInternalHttpClient(vertx, clientProps, httpClientOptions, true);
+    this.httpNonTlsClient = createHttpClient(vertx, sslHttpClientOptionsConsumer, httpClientOptions,
+        false);
+    this.httpTlsClient = createHttpClient(vertx, sslHttpClientOptionsConsumer, httpClientOptions,
+        true);
   }
 
   public KsqlTarget target(final URI server) {
@@ -136,28 +141,12 @@ public final class KsqlClient implements AutoCloseable {
     }
   }
 
-  private static HttpClient createInternalHttpClient(final Vertx vertx,
-      final Map<String, String> clientProps,
+  private static HttpClient createHttpClient(final Vertx vertx,
+      final Consumer<HttpClientOptions> sslHttpClientOptionsConsumer,
       final HttpClientOptions httpClientOptions,
       final boolean tls) {
     if (tls) {
-      httpClientOptions.setVerifyHost(true);
-      httpClientOptions.setSsl(true);
-      final String trustStoreLocation = clientProps.get(
-          KsqlConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
-      if (trustStoreLocation != null) {
-        final String suppliedTruststorePassword = clientProps
-            .get(KsqlConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
-        httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
-            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
-        final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-        if (keyStoreLocation != null) {
-          final String suppliedKeyStorePassord = clientProps
-              .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
-              .setPassword(suppliedKeyStorePassord == null ? "" : suppliedKeyStorePassord));
-        }
-      }
+      sslHttpClientOptionsConsumer.accept(httpClientOptions);
     }
     try {
       return vertx.createHttpClient(httpClientOptions);

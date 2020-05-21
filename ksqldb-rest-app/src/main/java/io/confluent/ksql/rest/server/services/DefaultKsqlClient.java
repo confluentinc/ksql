@@ -28,14 +28,17 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.net.JksOptions;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,11 +59,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
             new LocalProperties(ImmutableMap.of()),
             createClientOptions()
         ),
-        new KsqlClient(
-            toClientProps(clientProps),
-            new LocalProperties(ImmutableMap.of()),
-            createClientOptions()
-        )
+        getInternalClient(clientProps)
     );
   }
 
@@ -128,7 +127,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
   @Override
   public RestResponse<ClusterStatusResponse> makeClusterStatusRequest(final URI serverEndPoint) {
-    final KsqlTarget target = internalClient
+    final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
     return getTarget(target, authHeader).getClusterStatus();
@@ -173,6 +172,39 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     return clientProps;
   }
 
+  private static KsqlClient getInternalClient(final Map<String, Object> clientProps) {
+    boolean verifyHost =
+        !KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE.equals(clientProps.get(
+        KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG));
+    return new KsqlClient(
+        prepareHttpOptionsForMutualAuthClient(toClientProps(clientProps), verifyHost),
+        Optional.empty(),
+        new LocalProperties(ImmutableMap.of()),
+        createClientOptions()
+    );
+  }
 
-
+  private static Consumer<HttpClientOptions> prepareHttpOptionsForMutualAuthClient(
+      final Map<String, String> clientProps, final boolean verifyHost) {
+    return (httpClientOptions) -> {
+      httpClientOptions.setVerifyHost(verifyHost);
+      httpClientOptions.setSsl(true);
+      final String trustStoreLocation = clientProps.get(
+          KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
+      if (trustStoreLocation != null) {
+        final String suppliedTruststorePassword = clientProps
+            .get(KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
+        httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
+            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
+        final String keyStoreLocation =
+            clientProps.get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG);
+        if (keyStoreLocation != null) {
+          final String suppliedKeyStorePassword = clientProps
+              .get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG);
+          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
+              .setPassword(suppliedKeyStorePassword == null ? "" : suppliedKeyStorePassword));
+        }
+      }
+    };
+  }
 }

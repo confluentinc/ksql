@@ -307,6 +307,26 @@ public class KsqlRestConfig extends AbstractConfig {
           + "set to REQUESTED to request but not require SSL client authentication, and set to "
           + "REQUIRED to require SSL for internal client authentication.";
 
+  public static final String KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG =
+      "ksql.internal." + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG;
+  private static final String KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_DOC =
+      "The key store location to be used for intra-cluster internal SSL connections.";
+
+  public static final String KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG =
+      "ksql.internal." + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG;
+  private static final String KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_DOC =
+      "The password for the intra-cluster internal key store.";
+
+  public static final String KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG =
+      "ksql.internal." + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG;
+  private static final String KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_DOC =
+      "The trust store location to be used for intra-cluster internal SSL connections.";
+
+  public static final String KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG =
+      "ksql.internal." + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG;
+  private static final String KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_DOC =
+      "The password for the intra-cluster internal trust store.";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -426,10 +446,37 @@ public class KsqlRestConfig extends AbstractConfig {
         ).define(
             KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             Type.STRING,
-            SSL_CLIENT_AUTHENTICATION_REQUIRED,
+            SSL_CLIENT_AUTHENTICATION_NONE,
             SSL_CLIENT_AUTHENTICATION_VALIDATOR,
             Importance.MEDIUM,
             KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_DOC
+        ).define(
+            KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_DOC
+        )
+        .define(
+            KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG,
+            Type.PASSWORD,
+            "",
+            Importance.MEDIUM,
+            KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_DOC
+        )
+        .define(
+            KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_DOC
+        )
+        .define(
+            KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG,
+            Type.PASSWORD,
+            "",
+            Importance.MEDIUM,
+            KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_DOC
         ).define(
             ADVERTISED_LISTENER_CONFIG,
             Type.STRING,

@@ -24,7 +24,6 @@ import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityExtension;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
@@ -327,18 +326,18 @@ public class Server {
     options.setUseAlpn(true).setSsl(true);
 
     final String keyStorePath = ksqlRestConfig
-        .getString(KsqlConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG);
+        .getString(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG);
     final Password keyStorePassword = ksqlRestConfig
-        .getPassword(KsqlConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG);
+        .getPassword(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG);
     if (keyStorePath != null && !keyStorePath.isEmpty()) {
       options.setKeyStoreOptions(
           new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
     }
 
     final String trustStorePath = ksqlRestConfig
-        .getString(KsqlConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
+        .getString(KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
     final Password trustStorePassword = ksqlRestConfig
-        .getPassword(KsqlConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
+        .getPassword(KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
     if (trustStorePath != null && !trustStorePath.isEmpty()) {
       options.setTrustStoreOptions(
           new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
@@ -349,7 +348,7 @@ public class Server {
 
   private static List<URI> parseListeners(final KsqlRestConfig config) {
     final List<String> sListeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);
-    return parseListenerStrings(config, sListeners);
+    return parseListenerStrings(config, sListeners, false);
   }
 
   private static Optional<URI> parseInternalListener(
@@ -360,7 +359,7 @@ public class Server {
       return Optional.empty();
     }
     final URI uri = parseListenerStrings(config,
-        ImmutableList.of(config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG))).get(0);
+        ImmutableList.of(config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG)), true).get(0);
     if (listenUris.contains(uri)) {
       return Optional.empty();
     } else {
@@ -370,7 +369,8 @@ public class Server {
 
   private static List<URI> parseListenerStrings(
       final KsqlRestConfig config,
-      final List<String> stringListeners) {
+      final List<String> stringListeners,
+      final boolean internalListener) {
     final List<URI> listeners = new ArrayList<>();
     for (String listenerName : stringListeners) {
       try {
@@ -380,8 +380,10 @@ public class Server {
           throw new ConfigException("Invalid URI scheme should be http or https: " + listenerName);
         }
         if ("https".equalsIgnoreCase(scheme)) {
-          final String keyStoreLocation = config
-              .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+          final String keyStoreLocation =
+              internalListener
+                  ? config.getString(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG)
+                  : config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
           if (keyStoreLocation == null || keyStoreLocation.isEmpty()) {
             throw new ConfigException("https listener specified but no keystore provided");
           }

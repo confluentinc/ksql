@@ -55,6 +55,11 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
       return;
     }
 
+    if (SystemAuthenticationHandler.hasAuthorization(routingContext)) {
+      routingContext.next();
+      return;
+    }
+
     workerExecutor.<Void>executeBlocking(
         promise -> authorize(promise, routingContext),
         ar -> handleAuthorizeResult(ar, routingContext));

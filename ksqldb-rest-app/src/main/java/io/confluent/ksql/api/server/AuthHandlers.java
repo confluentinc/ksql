@@ -31,7 +31,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.AuthHandler;
 import io.vertx.ext.web.handler.BasicAuthHandler;
-import java.net.URI;
 import java.util.Optional;
 
 public final class AuthHandlers {
@@ -39,14 +38,17 @@ public final class AuthHandlers {
   private AuthHandlers() {
   }
 
-  static void setupAuthHandlers(final Server server, final Router router) {
+  static void setupAuthHandlers(final Server server, final Router router,
+      final Optional<Boolean> isInternalListener) {
     final Optional<AuthHandler> jaasAuthHandler = getJaasAuthHandler(server);
     final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
     final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
     final Optional<Handler<RoutingContext>> pluginHandler =
         authenticationPlugin.map(plugin -> new AuthenticationPluginHandler(server, plugin));
+    final Optional<SystemAuthenticationHandler> systemAuthenticationHandler
+        = SystemAuthenticationHandler.getSystemAuthenticationHandler(server, isInternalListener);
 
-    router.route().handler(new SystemAuthenticationHandler(server.getConfig()));
+    systemAuthenticationHandler.ifPresent(handler -> router.route().handler(handler));
 
     if (jaasAuthHandler.isPresent() || authenticationPlugin.isPresent()) {
       router.route().handler(AuthHandlers::pauseHandler);
@@ -63,14 +65,14 @@ public final class AuthHandlers {
     }
   }
 
-  static void setupSystemInternalAuthHandlers(final Server server, final Router router,
-      final URI internalListener) {
-
-  }
-
   private static void wrappedAuthHandler(final RoutingContext routingContext,
       final Optional<AuthHandler> jaasAuthHandler,
       final Optional<Handler<RoutingContext>> pluginHandler) {
+    if (SystemAuthenticationHandler.isAuthenticatedAsSystemUser(routingContext)) {
+      routingContext.next();
+      return;
+    }
+    // Fall through to authing with Jaas
     if (jaasAuthHandler.isPresent()) {
       // If we have a Jaas handler configured and we have Basic credentials then we should auth
       // with that

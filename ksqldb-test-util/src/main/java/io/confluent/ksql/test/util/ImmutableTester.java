@@ -31,6 +31,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.lang.reflect.WildcardType;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URL;
@@ -183,6 +184,11 @@ public final class ImmutableTester {
       return;
     }
 
+    if (type instanceof WildcardType) {
+      checkWildcardType((WildcardType)type, knownImmutable);
+      return;
+    }
+
     if (type instanceof Class) {
       final Class<?> clazz = (Class<?>) type;
       if (isEffectivelyImmutable(clazz) || knownImmutable.test(clazz)) {
@@ -232,6 +238,23 @@ public final class ImmutableTester {
     } else {
       checkImmutableType(rawType, knownImmutable);
     }
+  }
+
+  private static void checkWildcardType(
+      final WildcardType type,
+      final Predicate<Class<?>> knownImmutable
+  ) {
+    // Type is immutable if extends an immutable type.
+    for (final Type upperBound : type.getUpperBounds()) {
+      try {
+        checkImmutableType(upperBound, knownImmutable);
+        return;
+      } catch (final AssertionError e) {
+        // Not immutable
+      }
+    }
+
+    throw new AssertionError("Wildcard type does not extend immutable type: " + type);
   }
 
   private static void checkTypeParameters(

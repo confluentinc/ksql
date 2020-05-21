@@ -43,6 +43,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
@@ -131,6 +132,13 @@ public class LogicalPlanner {
     if (analysis.getGroupBy().isPresent()) {
       currentNode = buildAggregateNode(currentNode);
     } else {
+      if (analysis.getWindowExpression().isPresent()) {
+        final String loc = analysis.getWindowExpression().get()
+            .getLocation()
+            .map(NodeLocation::asPrefix)
+            .orElse("");
+        throw new KsqlException(loc + "WINDOW clause requires a GROUP BY clause.");
+      }
       currentNode = buildUserProjectNode(currentNode);
     }
 

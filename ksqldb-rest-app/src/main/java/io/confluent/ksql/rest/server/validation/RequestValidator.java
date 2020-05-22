@@ -109,10 +109,10 @@ public class RequestValidator {
 
       numPersistentQueries +=
           validate(serviceContext, configured, sessionProperties, ctx, injector);
-    }
 
-    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig, numPersistentQueries)) {
-      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(ctx, ksqlConfig, sql);
+      if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig)) {
+        QueryCapacityUtil.throwTooManyActivePersistentQueriesException(ctx, ksqlConfig, sql);
+      }
     }
 
     return numPersistentQueries;

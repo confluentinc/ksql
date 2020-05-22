@@ -587,6 +587,27 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldExecuteMaxNumberPersistentQueries() {
+    // Given:
+    final String sql = "CREATE STREAM S AS SELECT * FROM test_stream;";
+    givenKsqlConfigWith(ImmutableMap.of(
+        KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, "1"
+    ));
+    setUpKsqlResource();
+
+
+    // When:
+    makeSingleRequest(sql, CommandStatusEntity.class);
+
+    // Then:
+    verify(commandStore).enqueueCommand(
+        any(),
+        argThat(is(commandWithStatement(sql))),
+        any(Producer.class)
+    );
+  }
+
+  @Test
   public void shouldFailForIncorrectCSASStatementResultType() {
     // When:
     final KsqlRestException e = assertThrows(
@@ -1491,7 +1512,8 @@ public class KsqlResourceTest {
 
     givenMockEngine();
 
-    givenPersistentQueryCount(3);
+    // mock 3 queries already running + 1 new query to execute
+    givenPersistentQueryCount(4);
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -1508,12 +1530,13 @@ public class KsqlResourceTest {
   public void shouldFailAllCommandsIfWouldReachActivePersistentQueriesLimit() {
     // Given:
     givenKsqlConfigWith(
-        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 1));
 
     final String ksqlString = "CREATE STREAM new_stream AS SELECT * FROM test_stream;"
         + "CREATE STREAM another_stream AS SELECT * FROM test_stream;";
     givenMockEngine();
 
+    // mock 2 new query to execute
     givenPersistentQueryCount(2);
 
     // When:

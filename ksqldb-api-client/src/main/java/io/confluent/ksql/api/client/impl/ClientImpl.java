@@ -21,7 +21,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
-import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.StreamedQueryResult;
@@ -44,7 +43,6 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import org.reactivestreams.Publisher;
 
 public class ClientImpl implements Client {
 
@@ -138,12 +136,6 @@ public class ClientImpl implements Client {
   }
 
   @Override
-  public Publisher<InsertAck> streamInserts(
-      final String streamName, final Publisher<KsqlObject> insertsPublisher) {
-    return null; // not yet implemented
-  }
-
-  @Override
   public CompletableFuture<Void> terminatePushQuery(final String queryId) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
@@ -226,6 +218,48 @@ public class ClientImpl implements Client {
       recordParser.handler(responseHandler::handleBodyBuffer);
       recordParser.endHandler(responseHandler::handleBodyEnd);
       recordParser.exceptionHandler(responseHandler::handleException);
+    } else {
+      handleErrorResponse(response, cf);
+    }
+  }
+
+  private static void handleInsertIntoResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<Void> cf,
+      final int numRows
+  ) {
+    if (response.statusCode() == OK.code()) {
+      response.bodyHandler(buffer -> {
+        final String[] parts = buffer.toString().split("\n");
+        int numAcks = 0;
+        for (int i = 0; i < parts.length; i++) {
+          final JsonObject jsonObject = new JsonObject(parts[i]);
+          final String status = jsonObject.getString("status");
+          if ("ok".equals(status)) {
+            numAcks++;
+          } else if ("error".equals(status)) {
+            cf.completeExceptionally(new KsqlClientException(String.format(
+                "Received error from /inserts-stream. Insert sequence number: %d. Error code: %d. "
+                    + "Message: %s",
+                jsonObject.getLong("seq"),
+                jsonObject.getInteger("error_code"),
+                jsonObject.getString("message")
+            )));
+            return;
+          } else {
+            throw new IllegalStateException(
+                "Unrecognized status response from /inserts-stream: " + status);
+          }
+        }
+        if (numAcks != numRows) {
+          throw new IllegalStateException(String.format(
+              "Received unexpected number of acks from /inserts-stream. Expected: %d. Got: %d.",
+              numRows,
+              numAcks
+          ));
+        }
+        cf.complete(null);
+      });
     } else {
       handleErrorResponse(response, cf);
     }

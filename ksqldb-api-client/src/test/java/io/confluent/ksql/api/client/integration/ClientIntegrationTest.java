@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
@@ -57,14 +58,18 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -100,6 +105,11 @@ public class ClientIntegrationTest {
       SerdeOption.none()
   );
 
+  private static final TestDataProvider<String> EMPTY_PAGE_VIEWS_PROVIDER = new TestDataProvider<>(
+      "EMPTY_PAGEVIEW", PAGE_VIEWS_PROVIDER.schema(), ImmutableListMultimap.of());
+  private static final String EMPTY_PAGE_VIEWS_TOPIC = EMPTY_PAGE_VIEWS_PROVIDER.topicName();
+  private static final String EMPTY_PAGE_VIEWS_STREAM = EMPTY_PAGE_VIEWS_PROVIDER.kstreamName();
+
   private static final String PUSH_QUERY = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
   private static final int PUSH_QUERY_LIMIT_NUM_ROWS = 2;
@@ -133,6 +143,9 @@ public class ClientIntegrationTest {
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT USERID, COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
     );
+
+    TEST_HARNESS.ensureTopics(EMPTY_PAGE_VIEWS_TOPIC);
+    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_PAGE_VIEWS_PROVIDER);
 
     TEST_HARNESS.verifyAvailableUniqueRows(
         AGG_TABLE,
@@ -414,17 +427,17 @@ public class ClientIntegrationTest {
         .put("PAGEID", "Page_28");
 
     // When
-    client.insertInto(PAGE_VIEW_STREAM, insertRow).get();
+    client.insertInto(EMPTY_PAGE_VIEWS_STREAM, insertRow).get();
 
     // Then: should receive new row
-    final String query = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + (PAGE_VIEW_NUM_ROWS + 1) + ";";
+    final String query = "SELECT * FROM " + EMPTY_PAGE_VIEWS_STREAM + " EMIT CHANGES LIMIT 1;";
     final List<Row> rows = client.executeQuery(query).get();
 
-    // Verify last row is as expected
-    final Row row = rows.get(rows.size() - 1);
-    assertThat(row.getLong("VIEWTIME"), is(1000L));
-    assertThat(row.getString("USERID"), is("User_1"));
-    assertThat(row.getString("PAGEID"), is("Page_28"));
+    // Verify inserted row is as expected
+    assertThat(rows, hasSize(1));
+    assertThat(rows.get(0).getLong("VIEWTIME"), is(1000L));
+    assertThat(rows.get(0).getString("USERID"), is("User_1"));
+    assertThat(rows.get(0).getString("PAGEID"), is("Page_28"));
   }
 
   @Test
@@ -444,6 +457,83 @@ public class ClientIntegrationTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+  }
+
+  @Test
+  public void shouldStreamQueryWithProperties() throws Exception {
+    // Given
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put("auto.offset.reset", "latest");
+    final String sql = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT 1;";
+
+    final KsqlObject insertRow = new KsqlObject()
+        .put("VIEWTIME", 2000L)
+        .put("USERID", "User_shouldStreamQueryWithProperties")
+        .put("PAGEID", "Page_shouldStreamQueryWithProperties");
+
+    // When
+    final StreamedQueryResult queryResult = client.streamQuery(sql, properties).get();
+
+    // Then: a newly inserted row arrives
+    final Row row = assertThatEventually(() -> {
+      // Potentially try inserting multiple times, in case the query wasn't started by the first time
+      try {
+        client.insertInto(PAGE_VIEW_STREAM, insertRow).get();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+      return queryResult.poll(Duration.ofMillis(10));
+    }, is(notNullValue()));
+
+    assertThat(row.getLong("VIEWTIME"), is(2000L));
+    assertThat(row.getString("USERID"), is("User_shouldStreamQueryWithProperties"));
+    assertThat(row.getString("PAGEID"), is("Page_shouldStreamQueryWithProperties"));
+  }
+
+  @Test
+  public void shouldExecuteQueryWithProperties() {
+    // Given
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put("auto.offset.reset", "latest");
+    final String sql = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT 1;";
+
+    final KsqlObject insertRow = new KsqlObject()
+        .put("VIEWTIME", 2000L)
+        .put("USERID", "User_shouldExecuteQueryWithProperties")
+        .put("PAGEID", "Page_shouldExecuteQueryWithProperties");
+
+    // When
+    final BatchedQueryResult queryResult = client.executeQuery(sql, properties);
+
+    // Then: a newly inserted row arrives
+
+    // Wait for row to arrive
+    final AtomicReference<Row> rowRef = new AtomicReference<>();
+    new Thread(() -> {
+      try {
+        final List<Row> rows = queryResult.get();
+        assertThat(rows, hasSize(1));
+        rowRef.set(rows.get(0));
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }).start();
+
+    // Insert a new row
+    final Row row = assertThatEventually(() -> {
+      // Potentially try inserting multiple times, in case the query wasn't started by the first time
+      try {
+        client.insertInto(PAGE_VIEW_STREAM, insertRow).get();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+      return rowRef.get();
+    }, is(notNullValue()));
+
+    // Verify received row
+    assertThat(row.getLong("VIEWTIME"), is(2000L));
+    assertThat(row.getString("USERID"), is("User_shouldExecuteQueryWithProperties"));
+    assertThat(row.getString("PAGEID"), is("Page_shouldExecuteQueryWithProperties"));
   }
 
   private Client createClient() {

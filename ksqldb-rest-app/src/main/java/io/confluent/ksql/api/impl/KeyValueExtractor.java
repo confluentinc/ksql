@@ -22,8 +22,10 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -87,11 +89,19 @@ public final class KeyValueExtractor {
         return new BigDecimal((Long) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
       }
     }
-    return sqlValueCoercer.coerce(value, sqlType)
+    final Object rawValue;
+    if (value instanceof JsonArray) {
+      rawValue = ((JsonArray) value).getList();
+    } else if (value instanceof JsonObject) {
+      rawValue = ((JsonObject) value).getMap();
+    } else {
+      rawValue = value;
+    }
+    return sqlValueCoercer.coerce(rawValue, sqlType)
 
         .orElseThrow(() -> new KsqlApiException(
-            String.format("Can't coerce a field of type %s (%s) into type %s", value.getClass(),
-                value, sqlType),
+            String.format("Can't coerce a field of type %s (%s) into type %s", rawValue.getClass(),
+                rawValue, sqlType),
             Errors.ERROR_CODE_BAD_REQUEST))
         .orElse(null);
   }

@@ -16,27 +16,23 @@
 package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.KsqlClientException;
-import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import java.util.Objects;
+import io.vertx.core.parsetools.RecordParser;
 import java.util.concurrent.CompletableFuture;
 
-public class InsertsResponseHandler {
+public class InsertsResponseHandler extends ResponseHandler<CompletableFuture<Void>> {
 
-  private final Context context;
-  private final CompletableFuture<Void> cf;
   private int numAcks;
 
-  InsertsResponseHandler(final Context context, final CompletableFuture<Void> cf) {
-    this.context = Objects.requireNonNull(context);
-    this.cf = Objects.requireNonNull(cf);
+  InsertsResponseHandler(
+      final Context context, final RecordParser recordParser, final CompletableFuture<Void> cf) {
+    super(context, recordParser, cf);
   }
 
-  public void handleBodyBuffer(final Buffer buff) {
-    checkContext();
-
+  @Override
+  protected void doHandleBodyBuffer(final Buffer buff) {
     final JsonObject jsonObject = new JsonObject(buff);
     final String status = jsonObject.getString("status");
     if ("ok".equals(status)) {
@@ -53,17 +49,15 @@ public class InsertsResponseHandler {
     }
   }
 
-  public void handleException(final Throwable t) {
-    checkContext();
-
+  @Override
+  protected void doHandleException(final Throwable t) {
     if (!cf.isDone()) {
       cf.completeExceptionally(t);
     }
   }
 
-  public void handleBodyEnd(final Void v) {
-    checkContext();
-
+  @Override
+  protected void doHandleBodyEnd() {
     if (numAcks != 1) {
       throw new IllegalStateException(
           "Received unexpected number of acks from /inserts-stream. "
@@ -73,9 +67,5 @@ public class InsertsResponseHandler {
     if (!cf.isDone()) {
       cf.complete(null);
     }
-  }
-
-  private void checkContext() {
-    VertxUtils.checkContext(context);
   }
 }

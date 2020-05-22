@@ -86,7 +86,7 @@ public class StreamQueryResponseHandler
   }
 
   @Override
-  protected void handleBodyEnd() {
+  protected void doHandleBodyEnd() {
     queryResult.complete();
   }
 

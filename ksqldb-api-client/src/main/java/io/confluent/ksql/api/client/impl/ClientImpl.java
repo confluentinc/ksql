@@ -131,7 +131,7 @@ public class ClientImpl implements Client {
         "/inserts-stream",
         requestBody,
         cf,
-        response -> handleInsertIntoResponse(response, cf)
+        response -> handleResponse(response, cf, InsertsResponseHandler::new)
     );
 
     return cf;
@@ -167,7 +167,7 @@ public class ClientImpl implements Client {
 
   @FunctionalInterface
   private interface ResponseHandlerSupplier<T extends CompletableFuture<?>> {
-    QueryResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf);
+    ResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf);
   }
 
   private <T extends CompletableFuture<?>> void makeQueryRequest(
@@ -182,7 +182,7 @@ public class ClientImpl implements Client {
         "/query-stream",
         requestBody,
         cf,
-        response -> handleQueryResponse(response, cf, responseHandlerSupplier)
+        response -> handleResponse(response, cf, responseHandlerSupplier)
     );
   }
 
@@ -214,31 +214,14 @@ public class ClientImpl implements Client {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
   }
 
-  private static <T extends CompletableFuture<?>> void handleQueryResponse(
+  private static <T extends CompletableFuture<?>> void handleResponse(
       final HttpClientResponse response,
       final T cf,
       final ResponseHandlerSupplier<T> responseHandlerSupplier) {
     if (response.statusCode() == OK.code()) {
       final RecordParser recordParser = RecordParser.newDelimited("\n", response);
-      final QueryResponseHandler<T> responseHandler =
+      final ResponseHandler<T> responseHandler =
           responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf);
-
-      recordParser.handler(responseHandler::handleBodyBuffer);
-      recordParser.endHandler(responseHandler::handleBodyEnd);
-      recordParser.exceptionHandler(responseHandler::handleException);
-    } else {
-      handleErrorResponse(response, cf);
-    }
-  }
-
-  private static void handleInsertIntoResponse(
-      final HttpClientResponse response,
-      final CompletableFuture<Void> cf
-  ) {
-    if (response.statusCode() == OK.code()) {
-      final RecordParser recordParser = RecordParser.newDelimited("\n", response);
-      final InsertsResponseHandler responseHandler =
-          new InsertsResponseHandler(Vertx.currentContext(), cf);
 
       recordParser.handler(responseHandler::handleBodyBuffer);
       recordParser.endHandler(responseHandler::handleBodyEnd);

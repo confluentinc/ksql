@@ -31,7 +31,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -40,6 +39,7 @@ import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
@@ -80,22 +80,6 @@ public final class AstSanitizer {
           dataSourceExtractor.getAllSources().stream()
               .map(AliasedDataSource::getDataSource)
               .map(DataSource::getSchema)
-      );
-    }
-
-    @Override
-    protected Optional<AstNode> visitCreateStreamAsSelect(
-        final CreateStreamAsSelect node,
-        final StatementRewriter.Context<Void> ctx
-    ) {
-      return Optional.of(
-          new CreateStreamAsSelect(
-              node.getLocation(),
-              node.getName(),
-              (Query) ctx.process(node.getQuery()),
-              node.isNotExists(),
-              node.getProperties()
-          )
       );
     }
 
@@ -163,7 +147,7 @@ public final class AstSanitizer {
     ) {
       final DataSource source = metaStore.getSource(name);
       if (source == null) {
-        throw new InvalidColumnReferenceException(location, name.text() + " does not exist.");
+        throw new InvalidColumnReferenceException(location, "Source " + name + " does not exist.");
       }
 
       return source;
@@ -177,7 +161,8 @@ public final class AstSanitizer {
 
     ExpressionRewriterPlugin(
         final MetaStore metaStore,
-        final DataSourceExtractor dataSourceExtractor) {
+        final DataSourceExtractor dataSourceExtractor
+    ) {
       super(Optional.empty());
       this.metaStore = requireNonNull(metaStore, "metaStore");
       this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
@@ -186,30 +171,39 @@ public final class AstSanitizer {
     @Override
     public Optional<Expression> visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp expression,
-        final Context<Void> ctx) {
-      try {
-        final ColumnName columnName = expression.getColumnName();
-        final SourceName sourceName = dataSourceExtractor.getAliasFor(columnName);
-        return Optional.of(
-            new QualifiedColumnReferenceExp(
-                expression.getLocation(),
-                sourceName,
-                columnName
-            )
-        );
-      } catch (final KsqlException e) {
-        throw new InvalidColumnReferenceException(expression.getLocation(), e.getMessage());
+        final Context<Void> ctx
+    ) {
+      final ColumnName columnName = expression.getColumnName();
+
+      final List<SourceName> sourceNames = dataSourceExtractor.getSourcesFor(columnName);
+
+      if (sourceNames.size() > 1) {
+        throw new InvalidColumnReferenceException(
+            expression.getLocation(), "Column " + columnName + " is ambiguous.");
       }
+
+      if (sourceNames.isEmpty()) {
+        // Maybe a synthetic column - unknown columns are handled later.
+        return Optional.empty();
+      }
+
+      return Optional.of(
+          new QualifiedColumnReferenceExp(
+              expression.getLocation(),
+              sourceNames.get(0),
+              columnName
+          )
+      );
     }
   }
 
-  private static final class InvalidColumnReferenceException extends KsqlException {
+  public static final class InvalidColumnReferenceException extends KsqlException {
 
-    private InvalidColumnReferenceException(
+    public InvalidColumnReferenceException(
         final Optional<NodeLocation> location,
         final String message
     ) {
-      super(location.map(loc -> loc + ": ").orElse("") + message);
+      super(NodeLocation.asPrefix(location) + message);
     }
   }
 }

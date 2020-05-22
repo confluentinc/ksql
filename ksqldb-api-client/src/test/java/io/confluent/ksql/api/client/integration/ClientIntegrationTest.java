@@ -105,15 +105,10 @@ public class ClientIntegrationTest {
       SerdeOption.none()
   );
 
-  private static final TestDataProvider<String> EMPTY_PAGE_VIEWS_PROVIDER_1 = new TestDataProvider<>(
-      "EMPTY_PAGEVIEW_1", PAGE_VIEWS_PROVIDER.schema(), ImmutableListMultimap.of());
-  private static final String EMPTY_PAGE_VIEWS_TOPIC_1 = EMPTY_PAGE_VIEWS_PROVIDER_1.topicName();
-  private static final String EMPTY_PAGE_VIEWS_STREAM_1 = EMPTY_PAGE_VIEWS_PROVIDER_1.kstreamName();
-
-  private static final TestDataProvider<String> EMPTY_PAGE_VIEWS_PROVIDER_2 = new TestDataProvider<>(
-      "EMPTY_PAGEVIEW_2", PAGE_VIEWS_PROVIDER.schema(), ImmutableListMultimap.of());
-  private static final String EMPTY_PAGE_VIEWS_TOPIC_2 = EMPTY_PAGE_VIEWS_PROVIDER_2.topicName();
-  private static final String EMPTY_PAGE_VIEWS_STREAM_2 = EMPTY_PAGE_VIEWS_PROVIDER_2.kstreamName();
+  private static final TestDataProvider<String> EMPTY_PAGE_VIEWS_PROVIDER = new TestDataProvider<>(
+      "EMPTY_PAGEVIEW", PAGE_VIEWS_PROVIDER.schema(), ImmutableListMultimap.of());
+  private static final String EMPTY_PAGE_VIEWS_TOPIC = EMPTY_PAGE_VIEWS_PROVIDER.topicName();
+  private static final String EMPTY_PAGE_VIEWS_STREAM = EMPTY_PAGE_VIEWS_PROVIDER.kstreamName();
 
   private static final String PUSH_QUERY = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
@@ -149,11 +144,8 @@ public class ClientIntegrationTest {
         + "SELECT USERID, COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
     );
 
-    TEST_HARNESS.ensureTopics(EMPTY_PAGE_VIEWS_TOPIC_1);
-    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_PAGE_VIEWS_PROVIDER_1);
-
-    TEST_HARNESS.ensureTopics(EMPTY_PAGE_VIEWS_TOPIC_2);
-    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_PAGE_VIEWS_PROVIDER_2);
+    TEST_HARNESS.ensureTopics(EMPTY_PAGE_VIEWS_TOPIC);
+    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_PAGE_VIEWS_PROVIDER);
 
     TEST_HARNESS.verifyAvailableUniqueRows(
         AGG_TABLE,
@@ -427,7 +419,7 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldInsertIntoSingleRow() throws Exception {
+  public void shouldInsertInto() throws Exception {
     // Given
     final KsqlObject insertRow = new KsqlObject()
         .put("VIEWTIME", 1000L)
@@ -435,10 +427,10 @@ public class ClientIntegrationTest {
         .put("PAGEID", "Page_28");
 
     // When
-    client.insertInto(EMPTY_PAGE_VIEWS_STREAM_1, insertRow).get();
+    client.insertInto(EMPTY_PAGE_VIEWS_STREAM, insertRow).get();
 
     // Then: should receive new row
-    final String query = "SELECT * FROM " + EMPTY_PAGE_VIEWS_STREAM_1 + " EMIT CHANGES LIMIT 1;";
+    final String query = "SELECT * FROM " + EMPTY_PAGE_VIEWS_STREAM + " EMIT CHANGES LIMIT 1;";
     final List<Row> rows = client.executeQuery(query).get();
 
     // Verify inserted row is as expected
@@ -446,36 +438,6 @@ public class ClientIntegrationTest {
     assertThat(rows.get(0).getLong("VIEWTIME"), is(1000L));
     assertThat(rows.get(0).getString("USERID"), is("User_1"));
     assertThat(rows.get(0).getString("PAGEID"), is("Page_28"));
-  }
-
-  @Test
-  public void shouldInsertIntoMultipleRows() throws Exception {
-    // Given
-    final int numRows = 10;
-    final List<KsqlObject> insertRows = new ArrayList<>();
-    for (int i = 0; i < numRows; i++) {
-      final KsqlObject insertRow = new KsqlObject()
-          .put("VIEWTIME", 1000L + i)
-          .put("USERID", "User_" + i)
-          .put("PAGEID", "Page_2" + i);
-      insertRows.add(insertRow);
-    }
-
-    // When
-    client.insertInto(EMPTY_PAGE_VIEWS_STREAM_2, insertRows).get();
-
-    // Then: should receive newly inserted rows
-    final String query = "SELECT * FROM " + EMPTY_PAGE_VIEWS_STREAM_2 + " EMIT CHANGES LIMIT " + numRows + ";";
-    final List<Row> rows = client.executeQuery(query).get();
-
-    // Verify inserted rows are as expected
-    assertThat(rows, hasSize(numRows));
-    for (int i = 0; i < numRows; i++) {
-      final Row row = rows.get(i);
-      assertThat(row.getLong("VIEWTIME"), is(1000L + i));
-      assertThat(row.getString("USERID"), is("User_" + i));
-      assertThat(row.getString("PAGEID"), is("Page_2" + i));
-    }
   }
 
   @Test

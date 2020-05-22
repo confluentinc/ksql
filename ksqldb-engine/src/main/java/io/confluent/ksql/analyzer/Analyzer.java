@@ -24,12 +24,11 @@ import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -65,7 +64,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -274,11 +273,7 @@ class Analyzer {
       analysis.getHavingExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "HAVING"));
 
-      analysis.getSelectItems().stream()
-          .filter(si -> si instanceof SingleColumn)
-          .map(SingleColumn.class::cast)
-          .map(SingleColumn::getExpression)
-          .forEach(expression -> columnValidator.analyzeExpression(expression, "SELECT"));
+      // Note: Analysis of select items has moved into the Logical Plan.
     }
 
     @Override
@@ -600,27 +595,9 @@ class Analyzer {
     }
 
     private void captureReferencedSourceColumns(final Expression exp) {
-      final Set<ColumnName> columnNames = new HashSet<>();
-
-      new TraversalExpressionVisitor<Void>() {
-        @Override
-        public Void visitUnqualifiedColumnReference(
-            final UnqualifiedColumnReferenceExp node,
-            final Void context
-        ) {
-          columnNames.add(node.getColumnName());
-          return null;
-        }
-
-        @Override
-        public Void visitQualifiedColumnReference(
-            final QualifiedColumnReferenceExp node,
-            final Void context
-        ) {
-          columnNames.add(node.getColumnName());
-          return null;
-        }
-      }.process(exp, null);
+      final List<ColumnName> columnNames = ColumnExtractor.extractColumns(exp).stream()
+          .map(ColumnReferenceExp::getColumnName)
+          .collect(Collectors.toList());
 
       analysis.addSelectColumnRefs(columnNames);
     }

@@ -39,10 +39,8 @@ import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -120,31 +118,18 @@ public class ClientImpl implements Client {
 
   @Override
   public CompletableFuture<Void> insertInto(final String streamName, final KsqlObject row) {
-    final List<KsqlObject> rows = new ArrayList<>();
-    rows.add(row);
-    return insertInto(streamName, rows);
-  }
-
-  @Override
-  public CompletableFuture<Void> insertInto(final String streamName, final List<KsqlObject> rows) {
-    if (rows.size() == 0) {
-      return CompletableFuture.completedFuture(null);
-    }
-
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
     final Buffer requestBody = Buffer.buffer();
     final JsonObject params = new JsonObject().put("target", streamName);
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
-    for (final KsqlObject row : rows) {
-      requestBody.appendString(row.toJsonString()).appendString("\n");
-    }
+    requestBody.appendString(row.toJsonString()).appendString("\n");
 
     makeRequest(
         "/inserts-stream",
         requestBody,
         cf,
-        response -> handleInsertIntoResponse(response, cf, rows.size())
+        response -> handleResponse(response, cf, InsertsResponseHandler::new)
     );
 
     return cf;
@@ -174,7 +159,7 @@ public class ClientImpl implements Client {
 
   @FunctionalInterface
   private interface ResponseHandlerSupplier<T extends CompletableFuture<?>> {
-    QueryResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf);
+    ResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf);
   }
 
   private <T extends CompletableFuture<?>> void makeQueryRequest(
@@ -189,7 +174,7 @@ public class ClientImpl implements Client {
         "/query-stream",
         requestBody,
         cf,
-        response -> handleQueryResponse(response, cf, responseHandlerSupplier)
+        response -> handleResponse(response, cf, responseHandlerSupplier)
     );
   }
 
@@ -221,13 +206,13 @@ public class ClientImpl implements Client {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
   }
 
-  private static <T extends CompletableFuture<?>> void handleQueryResponse(
+  private static <T extends CompletableFuture<?>> void handleResponse(
       final HttpClientResponse response,
       final T cf,
       final ResponseHandlerSupplier<T> responseHandlerSupplier) {
     if (response.statusCode() == OK.code()) {
       final RecordParser recordParser = RecordParser.newDelimited("\n", response);
-      final QueryResponseHandler<T> responseHandler =
+      final ResponseHandler<T> responseHandler =
           responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf);
 
       recordParser.handler(responseHandler::handleBodyBuffer);

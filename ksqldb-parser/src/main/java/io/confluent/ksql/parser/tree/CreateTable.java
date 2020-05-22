@@ -94,7 +94,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
         .findFirst();
 
     wrongKey.ifPresent(col -> {
-      final String loc = col.getLocation().map(NodeLocation::asPrefix).orElse("");
+      final String loc = NodeLocation.asPrefix(col.getLocation());
       throw new ParseFailedException(
           loc + "Column " + col.getName() + " is a 'KEY' column: "
               + "please use 'PRIMARY KEY' for tables."

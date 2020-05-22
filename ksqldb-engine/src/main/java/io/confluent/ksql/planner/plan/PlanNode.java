@@ -17,14 +17,16 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
+import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -34,25 +36,22 @@ import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
-@Immutable
 public abstract class PlanNode {
 
   private final PlanNodeId id;
   private final DataSourceType nodeOutputType;
-  private final LogicalSchema schema;
   private final Optional<SourceName> sourceName;
 
   protected PlanNode(
       final PlanNodeId id,
       final DataSourceType nodeOutputType,
-      final LogicalSchema schema,
       final Optional<SourceName> sourceName
   ) {
     this.id = requireNonNull(id, "id");
     this.nodeOutputType = requireNonNull(nodeOutputType, "nodeOutputType");
-    this.schema = requireNonNull(schema, "schema");
     this.sourceName = requireNonNull(sourceName, "sourceName");
   }
 
@@ -64,9 +63,7 @@ public abstract class PlanNode {
     return nodeOutputType;
   }
 
-  public final LogicalSchema getSchema() {
-    return schema;
-  }
+  public abstract LogicalSchema getSchema();
 
   public abstract List<PlanNode> getSources();
 
@@ -110,13 +107,22 @@ public abstract class PlanNode {
    * names. Where a select is a UDAF or UDTF this method will return the appropriate synthetic
    * {@link io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp}
    *
-   *
    * @param idx the index of the select within the projection.
    * @param expression the expression to resolve.
    * @return the resolved expression.
    */
   public Expression resolveSelect(final int idx, final Expression expression) {
     return expression;
+  }
+
+  /**
+   * Called to validate that columns referenced in the query are valid, i.e. they are known.
+   *
+   * @param requiredColumns the set of required columns.
+   * @return any unknown columns.
+   */
+  protected Set<ColumnReferenceExp> validateColumns(final RequiredColumns requiredColumns) {
+    return Iterables.getOnlyElement(getSources()).validateColumns(requiredColumns);
   }
 
   /**

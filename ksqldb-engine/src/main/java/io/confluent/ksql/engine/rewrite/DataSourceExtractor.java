@@ -16,7 +16,6 @@
 package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.metastore.MetaStore;
@@ -76,23 +75,25 @@ class DataSourceExtractor {
     return clashingColumns.contains(name);
   }
 
-  public SourceName getAliasFor(final ColumnName columnName) {
-    if (!isJoin) {
-      return Iterables.getOnlyElement(allSources).getAlias();
-    }
-
-    final List<SourceName> source = allSources.stream()
-        .filter(aliased -> aliased.getDataSource().getSchema().findColumn(columnName).isPresent())
+  public List<SourceName> getSourcesFor(final ColumnName columnName) {
+    return allSources.stream()
+        .filter(aliased -> hasColumn(columnName, aliased))
         .map(AliasedDataSource::getAlias)
         .collect(Collectors.toList());
+  }
 
-    if (source.size() > 1) {
-      throw new KsqlException("Column '" + columnName.text() + "' is ambiguous.");
-    } else if (source.isEmpty()) {
-      throw new KsqlException("Column '" + columnName.text() + "' cannot be resolved.");
-    } else {
-      return Iterables.getOnlyElement(source);
+  private static boolean hasColumn(final ColumnName columnName, final AliasedDataSource aliased) {
+    if (SystemColumns.isPseudoColumn(columnName)) {
+      return true;
     }
+
+    if (aliased.getDataSource().getKsqlTopic().getKeyFormat().isWindowed()
+        && SystemColumns.isWindowBound(columnName)
+    ) {
+      return true;
+    }
+
+    return aliased.getDataSource().getSchema().findColumn(columnName).isPresent();
   }
 
   private final class Visitor extends DefaultTraversalVisitor<Void, Void> {

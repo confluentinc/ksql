@@ -73,7 +73,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
   }
 
   @Override
-  protected void handleBodyEnd() {
+  protected void doHandleBodyEnd() {
     if (!hasReadArguments) {
       throw new IllegalStateException("Body ended before metadata received");
     }

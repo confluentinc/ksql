@@ -184,28 +184,4 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         verifyHost
     );
   }
-
-//  private static Consumer<HttpClientOptions> prepareHttpOptionsForMutualAuthClient(
-//      final Map<String, String> clientProps, final boolean verifyHost) {
-//    return (httpClientOptions) -> {
-//      httpClientOptions.setVerifyHost(verifyHost);
-//      httpClientOptions.setSsl(true);
-//      final String trustStoreLocation = clientProps.get(
-//          KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
-//      if (trustStoreLocation != null) {
-//        final String suppliedTruststorePassword = clientProps
-//            .get(KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
-//        httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
-//            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
-//        final String keyStoreLocation =
-//            clientProps.get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG);
-//        if (keyStoreLocation != null) {
-//          final String suppliedKeyStorePassword = clientProps
-//              .get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG);
-//          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
-//              .setPassword(suppliedKeyStorePassword == null ? "" : suppliedKeyStorePassword));
-//        }
-//      }
-//    };
-//  }
 }

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
@@ -573,36 +572,37 @@ public class LogicalPlanner {
       }
     };
 
-    final Optional<ColumnName> keyName;
+    final ColumnName keyName;
     final SqlType keyType;
-    final Set<ColumnName> keyColumnNames;
 
     if (groupByExps.size() != 1) {
       keyType = SqlTypes.STRING;
 
-      keyName = Optional.of(ColumnNames.nextKsqlColAlias(
+      keyName = ColumnNames.nextKsqlColAlias(
           sourceSchema,
           LogicalSchema.builder()
               .valueColumns(projectionSchema.value())
               .build()
-      ));
-
-      keyColumnNames = groupBy.getGroupingExpressions().stream()
-          .map(selectResolver)
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .collect(Collectors.toSet());
-
+      );
     } else {
       final ExpressionTypeManager typeManager =
           new ExpressionTypeManager(sourceSchema, functionRegistry);
 
       final Expression expression = groupByExps.get(0);
 
-      keyName = selectResolver.apply(expression);
       keyType = typeManager.getExpressionSqlType(expression);
-      keyColumnNames = keyName.map(ImmutableSet::of).orElse(ImmutableSet.of());
+      keyName = selectResolver.apply(expression)
+          .orElseGet(() -> expression instanceof ColumnReferenceExp
+              ? ((ColumnReferenceExp) expression).getColumnName()
+              : ColumnNames.uniqueAliasFor(expression, sourceSchema)
+          );
     }
+
+    final Set<ColumnName> keyColumnNames = groupBy.getGroupingExpressions().stream()
+        .map(selectResolver)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toSet());
 
     final List<Column> valueColumns = projectionSchema.value().stream()
         .filter(col -> !keyColumnNames.contains(col.name()))
@@ -610,8 +610,7 @@ public class LogicalPlanner {
 
     final Builder builder = LogicalSchema.builder();
 
-    keyName
-        .ifPresent(name -> builder.keyColumn(name, keyType));
+    builder.keyColumn(keyName, keyType);
 
     return builder
         .valueColumns(valueColumns)

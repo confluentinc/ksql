@@ -27,6 +27,7 @@ import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -98,10 +99,16 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
         SelectionUtil.buildProjectionSchema(parentSchema, selectExpressions, functionRegistry);
 
     if (persistent) {
+      // Persistent queries have key columns as key columns - so final projection can exclude them:
       selectExpressions.removeIf(se -> {
         if (se.getExpression() instanceof UnqualifiedColumnReferenceExp) {
           final ColumnName columnName = ((UnqualifiedColumnReferenceExp) se.getExpression())
               .getColumnName();
+
+          // Window bounds columns are currently removed if not aliased:
+          if (SystemColumns.isWindowBound(columnName) && se.getAlias().equals(columnName)) {
+            return true;
+          }
 
           return parentSchema.isKeyColumn(columnName);
         }
@@ -111,11 +118,13 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
 
     final LogicalSchema nodeSchema;
     if (persistent) {
-      nodeSchema = schema;
+      nodeSchema = schema.withoutPseudoAndKeyColsInValue();
     } else {
       // Transient queries return key columns in the value, so the projection includes them, and
       // the schema needs to include them too:
       final Builder builder = LogicalSchema.builder();
+
+      builder.keyColumns(parentSchema.key());
 
       schema.columns()
           .forEach(builder::valueColumn);

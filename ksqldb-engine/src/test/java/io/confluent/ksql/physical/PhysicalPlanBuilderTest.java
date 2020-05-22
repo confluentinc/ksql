@@ -148,6 +148,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.DOUBLE)
@@ -193,10 +194,10 @@ public class PhysicalPlanBuilderTest {
 
     final List<QueryMetadata> queryMetadataList = execute(
         CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
-    Assert.assertTrue(queryMetadataList.size() == 2);
+    assertThat(queryMetadataList, hasSize(2));
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
-    Assert.assertTrue(lines.length == 3);
+    assertThat(lines.length, is(3));
     Assert.assertEquals(lines[0],
         " > [ SINK ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE | Logger: INSERTQUERY_1.S1");
     Assert.assertEquals(lines[1],

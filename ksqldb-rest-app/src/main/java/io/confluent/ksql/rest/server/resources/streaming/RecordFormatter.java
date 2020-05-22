@@ -77,6 +77,10 @@ public final class RecordFormatter {
       .ofPattern("yyyy/MM/dd HH:mm:ss.SSS z")
       .withZone(ZoneOffset.UTC);
 
+  // Use a default window size of 1ms for time windows to avoid warnings on deserialization.
+  // The window size, or the end time computed from it, is not shown to the user.
+  private static final int DEFAULT_WINDOW_SIZE = 1;
+
   private final Deserializers keyDeserializers;
   private final Deserializers valueDeserializers;
 
@@ -319,7 +323,7 @@ public final class RecordFormatter {
         final NamedDeserializer inner
     ) {
       final TimeWindowedDeserializer<?> windowedDeser
-          = new TimeWindowedDeserializer<>(inner.deserializer);
+          = new TimeWindowedDeserializer<>(inner.deserializer, DEFAULT_WINDOW_SIZE);
 
       return (topic, data) -> {
         final Windowed<?> windowed = windowedDeser.deserialize(topic, data);

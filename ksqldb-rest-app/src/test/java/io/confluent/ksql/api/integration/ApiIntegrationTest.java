@@ -109,7 +109,7 @@ public class ApiIntegrationTest {
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
-        + "SELECT STR, COUNT(1) AS COUNT FROM " + TEST_STREAM + " GROUP BY STR;"
+        + "SELECT STR, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY STR;"
     );
   }
 
@@ -262,14 +262,14 @@ public class ApiIntegrationTest {
     QueryResponse response = atomicReference.get();
 
     // Then:
-    JsonArray expectedColumnNames = new JsonArray().add("STR").add("COUNT");
+    JsonArray expectedColumnNames = new JsonArray().add("STR").add("LONG");
     JsonArray expectedColumnTypes = new JsonArray().add("STRING").add("BIGINT");
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
     assertThat(response.responseObject.getString("queryId"), is(nullValue()));
     assertThat(response.rows.get(0).getString(0), is("FOO")); // rowkey
-    assertThat(response.rows.get(0).getLong(1), is(1L)); // count
+    assertThat(response.rows.get(0).getLong(1), is(1L)); // latest_by_offset(long)
   }
 
   @Test
@@ -307,10 +307,10 @@ public class ApiIntegrationTest {
   public void shouldFailPullQueryWithNonKeyLookup() {
 
     // Given:
-    String sql = "SELECT * from " + AGG_TABLE + " WHERE COUNT=12345;";
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE LONG=12345;";
 
     // Then:
-    shouldFailToExecuteQuery(sql, "WHERE clause on unsupported column: COUNT.");
+    shouldFailToExecuteQuery(sql, "WHERE clause on unsupported column: LONG.");
   }
 
   @Test

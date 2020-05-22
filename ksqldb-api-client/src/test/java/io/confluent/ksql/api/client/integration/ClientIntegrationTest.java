@@ -102,7 +102,7 @@ public class ClientIntegrationTest {
   private static final PhysicalSchema AGG_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
           .keyColumn(ColumnName.of("STR"), SqlTypes.STRING)
-          .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
+          .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
           .build(),
       SerdeOption.none()
   );
@@ -118,7 +118,7 @@ public class ClientIntegrationTest {
   private static final String PUSH_QUERY_WITH_LIMIT =
       "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";";
 
-  private static final List<String> PULL_QUERY_COLUMN_NAMES = ImmutableList.of("STR", "COUNT");
+  private static final List<String> PULL_QUERY_COLUMN_NAMES = ImmutableList.of("STR", "LONG");
   private static final List<ColumnType> PULL_QUERY_COLUMN_TYPES =
       RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT"));
   private static final KsqlArray PULL_QUERY_EXPECTED_ROW = new KsqlArray(ImmutableList.of("FOO", 1));
@@ -143,7 +143,7 @@ public class ClientIntegrationTest {
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
-        + "SELECT STR, COUNT(1) AS COUNT FROM " + TEST_STREAM + " GROUP BY STR;"
+        + "SELECT STR, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY STR;"
     );
 
     TEST_HARNESS.ensureTopics(EMPTY_TEST_TOPIC);
@@ -451,7 +451,7 @@ public class ClientIntegrationTest {
     // Given
     final KsqlObject insertRow = new KsqlObject()
         .put("STR", "BLAH")
-        .put("COUNT", 11L);
+        .put("LONG", 11L);
 
     // When
     final Exception e = assertThrows(
@@ -671,15 +671,15 @@ public class ClientIntegrationTest {
 
     // verify type-based getters
     assertThat(row.getString("STR"), is(PULL_QUERY_EXPECTED_ROW.getString(0)));
-    assertThat(row.getLong("COUNT"), is(PULL_QUERY_EXPECTED_ROW.getLong(1)));
+    assertThat(row.getLong("LONG"), is(PULL_QUERY_EXPECTED_ROW.getLong(1)));
 
     // verify index-based getters are 1-indexed
     assertThat(row.getString(1), is(row.getString("STR")));
-    assertThat(row.getLong(2), is(row.getLong("COUNT")));
+    assertThat(row.getLong(2), is(row.getLong("LONG")));
 
     // verify isNull() evaluation
     assertThat(row.isNull("STR"), is(false));
-    assertThat(row.isNull("COUNT"), is(false));
+    assertThat(row.isNull("LONG"), is(false));
 
     // verify exception on invalid cast
     assertThrows(ClassCastException.class, () -> row.getInteger("STR"));
@@ -689,7 +689,7 @@ public class ClientIntegrationTest {
     assertThat(values.size(), is(PULL_QUERY_COLUMN_NAMES.size()));
     assertThat(values.isEmpty(), is(false));
     assertThat(values.getString(0), is(row.getString("STR")));
-    assertThat(values.getLong(1), is(row.getLong("COUNT")));
+    assertThat(values.getLong(1), is(row.getLong("LONG")));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 
@@ -699,8 +699,8 @@ public class ClientIntegrationTest {
     assertThat(obj.isEmpty(), is(false));
     assertThat(obj.fieldNames(), contains(PULL_QUERY_COLUMN_NAMES.toArray()));
     assertThat(obj.getString("STR"), is(row.getString("STR")));
-    assertThat(obj.getLong("COUNT"), is(row.getLong("COUNT")));
-    assertThat(obj.containsKey("COUNT"), is(true));
+    assertThat(obj.getLong("LONG"), is(row.getLong("LONG")));
+    assertThat(obj.containsKey("LONG"), is(true));
     assertThat(obj.containsKey("notafield"), is(false));
     assertThat(obj.toJsonString(), is((new JsonObject(obj.getMap())).toString()));
     assertThat(obj.toString(), is(obj.toJsonString()));

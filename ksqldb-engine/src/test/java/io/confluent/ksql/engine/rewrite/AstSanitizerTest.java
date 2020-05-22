@@ -211,7 +211,7 @@ public class AstSanitizerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Column 'COL0' is ambiguous."));
+        "Column `COL0` is ambiguous."));
   }
 
   @Test

@@ -18,7 +18,6 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
@@ -29,13 +28,13 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-@Immutable
 public abstract class OutputNode
     extends PlanNode {
 
   private final PlanNode source;
   private final OptionalInt limit;
   private final Optional<TimestampColumn> timestampColumn;
+  private final LogicalSchema schema;
 
   protected OutputNode(
       final PlanNodeId id,
@@ -44,12 +43,18 @@ public abstract class OutputNode
       final OptionalInt limit,
       final Optional<TimestampColumn> timestampColumn
   ) {
-    super(id, source.getNodeOutputType(), schema, source.getSourceName());
+    super(id, source.getNodeOutputType(), source.getSourceName());
 
+    this.schema = requireNonNull(schema, "schema");
     this.source = requireNonNull(source, "source");
     this.limit = requireNonNull(limit, "limit");
     this.timestampColumn =
         requireNonNull(timestampColumn, "timestampColumn");
+  }
+
+  @Override
+  public LogicalSchema getSchema() {
+    return schema;
   }
 
   @Override

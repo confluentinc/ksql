@@ -15,78 +15,76 @@
 
 package io.confluent.ksql.execution.expression.tree;
 
-import javax.annotation.Nullable;
-
 public interface ExpressionVisitor<R, C> {
 
-  default R process(final Expression node, @Nullable final C context) {
+  default R process(final Expression node, final C context) {
     return node.accept(this, context);
   }
 
-  R visitArithmeticBinary(ArithmeticBinaryExpression exp, @Nullable C context);
+  R visitArithmeticBinary(ArithmeticBinaryExpression exp, C context);
 
-  R visitArithmeticUnary(ArithmeticUnaryExpression exp, @Nullable C context);
+  R visitArithmeticUnary(ArithmeticUnaryExpression exp, C context);
 
-  R visitBetweenPredicate(BetweenPredicate exp, @Nullable C context);
+  R visitBetweenPredicate(BetweenPredicate exp, C context);
 
-  R visitBooleanLiteral(BooleanLiteral exp, @Nullable C context);
+  R visitBooleanLiteral(BooleanLiteral exp, C context);
 
-  R visitCast(Cast exp, @Nullable C context);
+  R visitCast(Cast exp, C context);
 
-  R visitComparisonExpression(ComparisonExpression exp, @Nullable C context);
+  R visitComparisonExpression(ComparisonExpression exp, C context);
 
-  R visitDecimalLiteral(DecimalLiteral exp, @Nullable C context);
+  R visitDecimalLiteral(DecimalLiteral exp, C context);
 
-  R visitDereferenceExpression(DereferenceExpression exp, @Nullable C context);
+  R visitDereferenceExpression(DereferenceExpression exp, C context);
 
-  R visitDoubleLiteral(DoubleLiteral exp, @Nullable C context);
+  R visitDoubleLiteral(DoubleLiteral exp, C context);
 
-  R visitFunctionCall(FunctionCall exp, @Nullable C context);
+  R visitFunctionCall(FunctionCall exp, C context);
 
-  R visitInListExpression(InListExpression exp, @Nullable C context);
+  R visitInListExpression(InListExpression exp, C context);
 
-  R visitInPredicate(InPredicate exp, @Nullable C context);
+  R visitInPredicate(InPredicate exp, C context);
 
-  R visitIntegerLiteral(IntegerLiteral exp, @Nullable C context);
+  R visitIntegerLiteral(IntegerLiteral exp, C context);
 
-  R visitIsNotNullPredicate(IsNotNullPredicate exp, @Nullable C context);
+  R visitIsNotNullPredicate(IsNotNullPredicate exp, C context);
 
-  R visitIsNullPredicate(IsNullPredicate exp, @Nullable C context);
+  R visitIsNullPredicate(IsNullPredicate exp, C context);
 
-  R visitLikePredicate(LikePredicate exp, @Nullable C context);
+  R visitLikePredicate(LikePredicate exp, C context);
 
-  R visitLogicalBinaryExpression(LogicalBinaryExpression exp, @Nullable C context);
+  R visitLogicalBinaryExpression(LogicalBinaryExpression exp, C context);
 
-  R visitLongLiteral(LongLiteral exp, @Nullable C context);
+  R visitLongLiteral(LongLiteral exp, C context);
 
-  R visitNotExpression(NotExpression exp, @Nullable C context);
+  R visitNotExpression(NotExpression exp, C context);
 
-  R visitNullLiteral(NullLiteral exp, @Nullable C context);
+  R visitNullLiteral(NullLiteral exp, C context);
 
-  R visitUnqualifiedColumnReference(UnqualifiedColumnReferenceExp exp, @Nullable C context);
+  R visitUnqualifiedColumnReference(UnqualifiedColumnReferenceExp exp, C context);
 
-  R visitQualifiedColumnReference(QualifiedColumnReferenceExp exp, @Nullable C context);
+  R visitQualifiedColumnReference(QualifiedColumnReferenceExp exp, C context);
 
-  R visitSearchedCaseExpression(SearchedCaseExpression exp, @Nullable C context);
+  R visitSearchedCaseExpression(SearchedCaseExpression exp, C context);
 
-  R visitSimpleCaseExpression(SimpleCaseExpression exp, @Nullable C context);
+  R visitSimpleCaseExpression(SimpleCaseExpression exp, C context);
 
-  R visitStringLiteral(StringLiteral exp, @Nullable C context);
+  R visitStringLiteral(StringLiteral exp, C context);
 
-  R visitSubscriptExpression(SubscriptExpression exp, @Nullable C context);
+  R visitSubscriptExpression(SubscriptExpression exp, C context);
 
-  R visitCreateArrayExpression(CreateArrayExpression exp, @Nullable C context);
+  R visitCreateArrayExpression(CreateArrayExpression exp, C context);
 
-  R visitCreateMapExpression(CreateMapExpression exp, @Nullable C context);
+  R visitCreateMapExpression(CreateMapExpression exp, C context);
 
-  R visitStructExpression(CreateStructExpression exp, @Nullable C context);
+  R visitStructExpression(CreateStructExpression exp, C context);
 
-  R visitTimeLiteral(TimeLiteral exp, @Nullable C context);
+  R visitTimeLiteral(TimeLiteral exp, C context);
 
-  R visitTimestampLiteral(TimestampLiteral exp, @Nullable C context);
+  R visitTimestampLiteral(TimestampLiteral exp, C context);
 
-  R visitType(Type exp, @Nullable C context);
+  R visitType(Type exp, C context);
 
-  R visitWhenClause(WhenClause exp, @Nullable C context);
+  R visitWhenClause(WhenClause exp, C context);
 
 }

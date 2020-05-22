@@ -74,7 +74,7 @@
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT JOINKEY(ABS(L.A), ABS(R.A)) AS A, l.B, l.C, r.* FROM L INNER JOIN R WITHIN 10 SECONDS ON ABS(L.A) = ABS(R.A);"
+        "CREATE STREAM OUTPUT AS SELECT KSQL_COL_0 AS A, l.B, l.C, r.* FROM L INNER JOIN R WITHIN 10 SECONDS ON ABS(L.A) = ABS(R.A);"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},

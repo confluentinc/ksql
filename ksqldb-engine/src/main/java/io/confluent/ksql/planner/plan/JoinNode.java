@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
@@ -39,6 +40,8 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.Projection;
+import io.confluent.ksql.planner.RequiredColumns;
+import io.confluent.ksql.planner.RequiredColumns.Builder;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -54,6 +57,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -72,6 +76,7 @@ public class JoinNode extends PlanNode {
   private final PlanNode left;
   private final PlanNode right;
   private final Optional<WithinExpression> withinExpression;
+  private final LogicalSchema schema;
 
   public JoinNode(
       final PlanNodeId id,
@@ -85,16 +90,21 @@ public class JoinNode extends PlanNode {
     super(
         id,
         calculateSinkType(left, right),
-        buildJoinSchema(joinKey, left, right),
         Optional.empty()
     );
 
+    this.schema = buildJoinSchema(joinKey, left, right);
     this.joinType = requireNonNull(joinType, "joinType");
     this.joinKey = requireNonNull(joinKey, "joinKey");
     this.finalJoin = finalJoin;
     this.left = requireNonNull(left, "left");
     this.right = requireNonNull(right, "right");
     this.withinExpression = requireNonNull(withinExpression, "withinExpression");
+  }
+
+  @Override
+  public LogicalSchema getSchema() {
+    return schema;
   }
 
   @Override
@@ -151,14 +161,11 @@ public class JoinNode extends PlanNode {
     return joinKey.resolveSelect(expression, getSchema());
   }
 
-  @SuppressWarnings("UnstableApiUsage")
   @Override
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
 
-    final boolean atLeastOneKey = Streams.concat(
-        joinKey.getViableKeys().stream(),
-        joinKey.getOriginalViableKeys().stream()
-    ).anyMatch(projection::containsExpression);
+    final boolean atLeastOneKey = joinKey.getAllViableKeys(schema).stream()
+        .anyMatch(projection::containsExpression);
 
     if (!atLeastOneKey) {
       final List<? extends Expression> originalKeys = joinKey.getOriginalViableKeys();
@@ -176,6 +183,26 @@ public class JoinNode extends PlanNode {
 
       throwKeysNotIncludedError(sinkName, "join expression", originalKeys, or(), additional);
     }
+  }
+
+  @Override
+  protected Set<ColumnReferenceExp> validateColumns(
+      final RequiredColumns requiredColumns
+  ) {
+    final Builder builder = requiredColumns.asBuilder();
+
+    if (finalJoin && joinKey.isSynthetic()) {
+      builder.remove(
+          new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(schema.key()).name())
+      );
+    }
+
+    final RequiredColumns updated = builder.build();
+
+    final Set<ColumnReferenceExp> leftUnknown = left.validateColumns(updated);
+    final Set<ColumnReferenceExp> rightUnknown = right.validateColumns(updated);
+
+    return Sets.intersection(leftUnknown, rightUnknown);
   }
 
   private ColumnName getKeyColumnName() {
@@ -469,9 +496,9 @@ public class JoinNode extends PlanNode {
     boolean isSynthetic();
 
     /**
-     * @return the list of viable key expressions that can be used in the projection.
+     * @return the list of all viable key expressions.
      */
-    List<? extends Expression> getViableKeys();
+    List<? extends Expression> getAllViableKeys(LogicalSchema schema);
 
     /**
      * @return the list of viable key expressions, without any rewriting applied.
@@ -533,8 +560,11 @@ public class JoinNode extends PlanNode {
     }
 
     @Override
-    public List<? extends Expression> getViableKeys() {
-      return viableKeyColumns;
+    public List<? extends Expression> getAllViableKeys(final LogicalSchema schema) {
+      return ImmutableList.<Expression>builder()
+          .addAll(viableKeyColumns)
+          .addAll(originalViableKeyColumns)
+          .build();
     }
 
     @Override
@@ -589,8 +619,12 @@ public class JoinNode extends PlanNode {
     }
 
     @Override
-    public List<? extends Expression> getViableKeys() {
-      return ImmutableList.of(joinKeyUdf);
+    public List<? extends Expression> getAllViableKeys(final LogicalSchema schema) {
+      return ImmutableList.<Expression>builder()
+          .add(joinKeyUdf)
+          .add(originalJoinKeyUdf)
+          .add(new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(schema.key()).name()))
+          .build();
     }
 
     @Override

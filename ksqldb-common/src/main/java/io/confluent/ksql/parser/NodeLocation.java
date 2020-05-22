@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser;
 
 import com.google.errorprone.annotations.Immutable;
+import java.util.Optional;
 
 @Immutable
 public final class NodeLocation {
@@ -38,6 +39,12 @@ public final class NodeLocation {
 
   public String asPrefix() {
     return toString() + ": ";
+  }
+
+  public static String asPrefix(final Optional<NodeLocation> location) {
+    return location
+        .map(NodeLocation::asPrefix)
+        .orElse("");
   }
 
   @Override

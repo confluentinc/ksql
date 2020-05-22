@@ -31,7 +31,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
@@ -58,7 +57,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -102,12 +100,6 @@ public class ClientIntegrationTest {
       SerdeOption.none()
   );
 
-  private static final TestDataProvider<String> EMPTY_PAGE_VIEWS_PROVIDER = new TestDataProvider<>(
-      "EMPTY_PAGEVIEW", PAGE_VIEWS_PROVIDER.schema(), ImmutableListMultimap.of()
-  );
-  private static final String EMPTY_PAGE_VIEW_TOPIC = EMPTY_PAGE_VIEWS_PROVIDER.topicName();
-  private static final String EMPTY_PAGE_VIEW_STREAM = EMPTY_PAGE_VIEWS_PROVIDER.kstreamName();
-
   private static final String PUSH_QUERY = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
   private static final int PUSH_QUERY_LIMIT_NUM_ROWS = 2;
@@ -141,9 +133,6 @@ public class ClientIntegrationTest {
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT USERID, COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
     );
-
-    TEST_HARNESS.ensureTopics(EMPTY_PAGE_VIEW_TOPIC);
-    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_PAGE_VIEWS_PROVIDER);
 
     TEST_HARNESS.verifyAvailableUniqueRows(
         AGG_TABLE,
@@ -417,7 +406,7 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldInsertIntoSingleRow() throws Exception {
+  public void shouldInsertInto() throws Exception {
     // Given
     final KsqlObject insertRow = new KsqlObject()
         .put("VIEWTIME", 1000L)
@@ -436,35 +425,6 @@ public class ClientIntegrationTest {
     assertThat(row.getLong("VIEWTIME"), is(1000L));
     assertThat(row.getString("USERID"), is("User_1"));
     assertThat(row.getString("PAGEID"), is("Page_28"));
-  }
-
-  @Test
-  public void shouldInsertIntoMultipleRows() throws Exception {
-    // Given
-    final int numRows = 10;
-    final List<KsqlObject> insertRows = new ArrayList<>();
-    for (int i = 0; i < numRows; i++) {
-      final KsqlObject insertRow = new KsqlObject()
-          .put("VIEWTIME", 1000L + i)
-          .put("USERID", "User_" + i)
-          .put("PAGEID", "Page_2" + i);
-      insertRows.add(insertRow);
-    }
-
-    // When
-    client.insertInto(EMPTY_PAGE_VIEW_STREAM, insertRows).get();
-
-    // Then: should receive newly inserted rows
-    final String query = "SELECT * FROM " + EMPTY_PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + numRows + ";";
-    final List<Row> rows = client.executeQuery(query).get();
-
-    // Verify inserted rows are as expected
-    for (int i = 0; i < numRows; i++) {
-      final Row row = rows.get(i);
-      assertThat(row.getLong("VIEWTIME"), is(1000L + i));
-      assertThat(row.getString("USERID"), is("User_" + i));
-      assertThat(row.getString("PAGEID"), is("Page_2" + i));
-    }
   }
 
   @Test

@@ -40,10 +40,8 @@ import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Publisher;
@@ -122,31 +120,18 @@ public class ClientImpl implements Client {
 
   @Override
   public CompletableFuture<Void> insertInto(final String streamName, final KsqlObject row) {
-    final List<KsqlObject> rows = new ArrayList<>();
-    rows.add(row);
-    return insertInto(streamName, rows);
-  }
-
-  @Override
-  public CompletableFuture<Void> insertInto(final String streamName, final List<KsqlObject> rows) {
-    if (rows.size() == 0) {
-      return CompletableFuture.completedFuture(null);
-    }
-
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
     final Buffer requestBody = Buffer.buffer();
     final JsonObject params = new JsonObject().put("target", streamName);
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
-    for (final KsqlObject row : rows) {
-      requestBody.appendString(row.toJsonString()).appendString("\n");
-    }
+    requestBody.appendString(row.toJsonString()).appendString("\n");
 
     makeRequest(
         "/inserts-stream",
         requestBody,
         cf,
-        response -> handleInsertIntoResponse(response, cf, rows.size())
+        response -> handleInsertIntoResponse(response, cf)
     );
 
     return cf;
@@ -248,8 +233,7 @@ public class ClientImpl implements Client {
 
   private static void handleInsertIntoResponse(
       final HttpClientResponse response,
-      final CompletableFuture<Void> cf,
-      final int numRows
+      final CompletableFuture<Void> cf
   ) {
     if (response.statusCode() == OK.code()) {
       response.bodyHandler(buffer -> {
@@ -262,9 +246,7 @@ public class ClientImpl implements Client {
             numAcks++;
           } else if ("error".equals(status)) {
             cf.completeExceptionally(new KsqlClientException(String.format(
-                "Received error from /inserts-stream. Insert sequence number: %d. Error code: %d. "
-                    + "Message: %s",
-                jsonObject.getLong("seq"),
+                "Received error from /inserts-stream. Error code: %d. Message: %s",
                 jsonObject.getInteger("error_code"),
                 jsonObject.getString("message")
             )));
@@ -274,12 +256,10 @@ public class ClientImpl implements Client {
                 "Unrecognized status response from /inserts-stream: " + status);
           }
         }
-        if (numAcks != numRows) {
-          throw new IllegalStateException(String.format(
-              "Received unexpected number of acks from /inserts-stream. Expected: %d. Got: %d.",
-              numRows,
-              numAcks
-          ));
+        if (numAcks != 1) {
+          throw new IllegalStateException(
+              "Received unexpected number of acks from /inserts-stream. "
+                  + "Expected: 1. Got: " + numAcks);
         }
         cf.complete(null);
       });

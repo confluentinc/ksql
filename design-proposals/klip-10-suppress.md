@@ -86,7 +86,8 @@ Since the default grace period in Kafka Streams is 24 hours, the default `EMIT F
 only omit data 24 hours after the query starts. Since this is unlikely to be good user experience,
 this KLIP proposes to set a default grace period of 0 for all queries.
 
-NOTE: prior to this KLIP, the grace period can be controlled by 
+NOTE: prior to this KLIP, the grace period can be controlled by setting `GRACE` in the window clause
+(e.g. `WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)`)
 
 ## Discussion
 

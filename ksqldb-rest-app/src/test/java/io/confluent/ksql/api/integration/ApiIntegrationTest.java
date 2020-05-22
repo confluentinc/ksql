@@ -433,30 +433,16 @@ public class ApiIntegrationTest {
 
     assertThatEventually(engine::numberOfLiveQueries, is(2));
 
-    // Insert a new row
-    JsonObject insertProperties = new JsonObject();
-    JsonObject insertRequestBody = new JsonObject()
-        .put("target", PAGE_VIEW_STREAM).put("properties", insertProperties);
-    Buffer bodyBuffer = insertRequestBody.toBuffer();
-    bodyBuffer.appendString("\n");
-
+    // New row to insert
     JsonObject row = new JsonObject()
         .put("VIEWTIME", 2000L)
         .put("USERID", "User_shouldExecutePushQueryFromLatestOffset")
         .put("PAGEID", "PAGE_shouldExecutePushQueryFromLatestOffset");
-    bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
 
-    HttpResponse<Buffer> insertsHttpResponse = sendRequest("/inserts-stream", bodyBuffer);
-
-    assertThat(insertsHttpResponse.statusCode(), is(200));
-
-    InsertsResponse insertsResponse = new InsertsResponse(insertsHttpResponse.bodyAsString());
-    assertThat(insertsResponse.acks, hasSize(1));
-    assertThat(insertsResponse.error, is(nullValue()));
-
-    // Wait for the new row to arrive
+    // Insert a new row and wait for it to arrive
     assertThatEventually(() -> {
       try {
+        shouldInsert(row); // Attempt the insert multiple times, in case the query hasn't started yet
         Buffer buff = writeStream.getBody();
         QueryResponse queryResponse = new QueryResponse(buff.toString());
         return queryResponse.rows.size();

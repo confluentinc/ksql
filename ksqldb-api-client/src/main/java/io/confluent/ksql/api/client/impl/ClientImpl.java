@@ -236,33 +236,13 @@ public class ClientImpl implements Client {
       final CompletableFuture<Void> cf
   ) {
     if (response.statusCode() == OK.code()) {
-      response.bodyHandler(buffer -> {
-        final String[] parts = buffer.toString().split("\n");
-        int numAcks = 0;
-        for (int i = 0; i < parts.length; i++) {
-          final JsonObject jsonObject = new JsonObject(parts[i]);
-          final String status = jsonObject.getString("status");
-          if ("ok".equals(status)) {
-            numAcks++;
-          } else if ("error".equals(status)) {
-            cf.completeExceptionally(new KsqlClientException(String.format(
-                "Received error from /inserts-stream. Error code: %d. Message: %s",
-                jsonObject.getInteger("error_code"),
-                jsonObject.getString("message")
-            )));
-            return;
-          } else {
-            throw new IllegalStateException(
-                "Unrecognized status response from /inserts-stream: " + status);
-          }
-        }
-        if (numAcks != 1) {
-          throw new IllegalStateException(
-              "Received unexpected number of acks from /inserts-stream. "
-                  + "Expected: 1. Got: " + numAcks);
-        }
-        cf.complete(null);
-      });
+      final RecordParser recordParser = RecordParser.newDelimited("\n", response);
+      final InsertsResponseHandler responseHandler =
+          new InsertsResponseHandler(Vertx.currentContext(), cf);
+
+      recordParser.handler(responseHandler::handleBodyBuffer);
+      recordParser.endHandler(responseHandler::handleBodyEnd);
+      recordParser.exceptionHandler(responseHandler::handleException);
     } else {
       handleErrorResponse(response, cf);
     }

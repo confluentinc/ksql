@@ -942,3 +942,7 @@ Metric collection can be enabled by setting the config
 generally not recommended for production usage, as metrics are
 collected on each invocation and introduce some overhead to
 processing time.
+
+### Suggested Reading
+
+- [KSQL UDFs and UDAFs Made Easy](https://www.confluent.io/blog/kafka-ksql-udf-udaf-with-maven-made-easy/)

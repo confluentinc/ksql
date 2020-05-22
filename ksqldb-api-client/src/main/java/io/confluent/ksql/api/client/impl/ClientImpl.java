@@ -223,48 +223,6 @@ public class ClientImpl implements Client {
     }
   }
 
-  private static void handleInsertIntoResponse(
-      final HttpClientResponse response,
-      final CompletableFuture<Void> cf,
-      final int numRows
-  ) {
-    if (response.statusCode() == OK.code()) {
-      response.bodyHandler(buffer -> {
-        final String[] parts = buffer.toString().split("\n");
-        int numAcks = 0;
-        for (int i = 0; i < parts.length; i++) {
-          final JsonObject jsonObject = new JsonObject(parts[i]);
-          final String status = jsonObject.getString("status");
-          if ("ok".equals(status)) {
-            numAcks++;
-          } else if ("error".equals(status)) {
-            cf.completeExceptionally(new KsqlClientException(String.format(
-                "Received error from /inserts-stream. Insert sequence number: %d. Error code: %d. "
-                    + "Message: %s",
-                jsonObject.getLong("seq"),
-                jsonObject.getInteger("error_code"),
-                jsonObject.getString("message")
-            )));
-            return;
-          } else {
-            throw new IllegalStateException(
-                "Unrecognized status response from /inserts-stream: " + status);
-          }
-        }
-        if (numAcks != numRows) {
-          throw new IllegalStateException(String.format(
-              "Received unexpected number of acks from /inserts-stream. Expected: %d. Got: %d.",
-              numRows,
-              numAcks
-          ));
-        }
-        cf.complete(null);
-      });
-    } else {
-      handleErrorResponse(response, cf);
-    }
-  }
-
   private static void handleCloseQueryResponse(
       final HttpClientResponse response,
       final CompletableFuture<Void> cf

@@ -124,6 +124,9 @@ For pull queries, consider [the `executeQuery()` method](./execute-query.md) ins
 
 Query properties can be passed as an optional second argument. See the [client API reference](TODO) for more.
 
+By default, push queries return results starting from the beginning of the stream or table.
+To instead start from the end and only receive newly arriving rows, set the property `auto.offset.reset` to `latest`.
+
 ### Asynchronous Usage ###
 
 To consume records in an asynchronous fashion, first create a Reactive Streams subscriber to receive query result rows:
@@ -239,6 +242,9 @@ This method is suitable for both pull queries as well as terminating push querie
 For non-temrinating push queries, use [the `streamQuery()` method](./stream-query.md) instead. 
 
 Query properties can be passed as an optional second argument. See the [client API reference](TODO) for more.
+
+By default, push queries return results starting from the beginning of the stream or table.
+To instead start from the end and only receive newly arriving rows, set the property `auto.offset.reset` to `latest`.
 
 ### Example Usage ###
 

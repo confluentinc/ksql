@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
 import static io.confluent.ksql.util.GrammaticalJoiner.or;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
@@ -41,7 +41,6 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
-import io.confluent.ksql.planner.RequiredColumns.Builder;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -152,7 +151,7 @@ public class JoinNode extends PlanNode {
       return names;
     }
 
-    final Column syntheticKey = Iterables.getOnlyElement(getSchema().key());
+    final Column syntheticKey = getOnlyElement(getSchema().key());
 
     return Streams.concat(Stream.of(syntheticKey.name()), names);
   }
@@ -185,15 +184,13 @@ public class JoinNode extends PlanNode {
   protected Set<ColumnReferenceExp> validateColumns(
       final RequiredColumns requiredColumns
   ) {
-    final Builder builder = requiredColumns.asBuilder();
+    final boolean noSyntheticKey = !finalJoin || !joinKey.isSynthetic();
 
-    if (finalJoin && joinKey.isSynthetic()) {
-      builder.remove(
-          new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(schema.key()).name())
-      );
-    }
-
-    final RequiredColumns updated = builder.build();
+    final RequiredColumns updated = noSyntheticKey
+        ? requiredColumns
+        : requiredColumns.asBuilder()
+            .remove(new UnqualifiedColumnReferenceExp(getOnlyElement(schema.key()).name()))
+            .build();
 
     final Set<ColumnReferenceExp> leftUnknown = left.validateColumns(updated);
     final Set<ColumnReferenceExp> rightUnknown = right.validateColumns(updated);
@@ -202,7 +199,7 @@ public class JoinNode extends PlanNode {
   }
 
   private ColumnName getKeyColumnName() {
-    return Iterables.getOnlyElement(getSchema().key()).name();
+    return getOnlyElement(getSchema().key()).name();
   }
 
   private void ensureMatchingPartitionCounts(final KafkaTopicClient kafkaTopicClient) {
@@ -599,7 +596,7 @@ public class JoinNode extends PlanNode {
     @Override
     public List<? extends Expression> getOriginalViableKeys(final LogicalSchema schema) {
       return ImmutableList.of(
-          new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(schema.key()).name())
+          new UnqualifiedColumnReferenceExp(getOnlyElement(schema.key()).name())
       );
     }
 
@@ -613,12 +610,11 @@ public class JoinNode extends PlanNode {
 
       final PlanSourceExtractorVisitor extractor = new PlanSourceExtractorVisitor();
 
-      final LogicalSchema[] schemas = Streams
+      final Stream<LogicalSchema> schemas = Streams
           .concat(extractor.extract(left), extractor.extract(right))
-          .map(DataSource::getSchema)
-          .toArray(LogicalSchema[]::new);
+          .map(DataSource::getSchema);
 
-      return ColumnNames.nextKsqlColAlias(schemas);
+      return ColumnNames.generateSyntheticJoinKey(schemas);
     }
 
     @Override

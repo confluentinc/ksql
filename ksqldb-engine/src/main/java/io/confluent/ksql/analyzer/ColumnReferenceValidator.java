@@ -18,20 +18,16 @@ package io.confluent.ksql.analyzer;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.schema.ksql.ColumnNames;
+import io.confluent.ksql.util.UnknownColumnException;
 import java.util.HashSet;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Searches through the AST for any column references and throws if they are unknown or ambiguous.
@@ -39,33 +35,37 @@ import java.util.stream.Collectors;
 class ColumnReferenceValidator {
 
   private final SourceSchemas sourceSchemas;
+  private final boolean possibleSyntheticColumns;
 
-  ColumnReferenceValidator(final SourceSchemas sourceSchemas) {
+  ColumnReferenceValidator(
+      final SourceSchemas sourceSchemas,
+      final boolean possibleSyntheticColumns
+  ) {
     this.sourceSchemas = requireNonNull(sourceSchemas, "sourceSchemas");
+    this.possibleSyntheticColumns = possibleSyntheticColumns;
   }
 
   /**
    * Check the supplied expression and throw if it references any unknown columns.
    *
    * @param expression the expression to validate.
-   * @param clauseType the type of clause the expression is part of, e.g. SELECT, GROUP BY, etc.
    * @return the names of the sources the expression uses.
    */
   Set<SourceName> analyzeExpression(
       final Expression expression,
       final String clauseType
   ) {
-    final SourceExtractor extractor = new SourceExtractor(clauseType);
+    final Validator extractor = new Validator(clauseType);
     extractor.process(expression, null);
     return extractor.referencedSources;
   }
 
-  private final class SourceExtractor extends TraversalExpressionVisitor<Object> {
+  private final class Validator extends TraversalExpressionVisitor<Object> {
 
     private final String clauseType;
     private final Set<SourceName> referencedSources = new HashSet<>();
 
-    SourceExtractor(final String clauseType) {
+    Validator(final String clauseType) {
       this.clauseType = requireNonNull(clauseType, "clauseType");
     }
 
@@ -74,9 +74,7 @@ class ColumnReferenceValidator {
         final UnqualifiedColumnReferenceExp node,
         final Object context
     ) {
-      final ColumnName reference = node.getColumnName();
-      getSource(node.getLocation(), Optional.empty(), reference)
-          .ifPresent(referencedSources::add);
+      validateColumn(node);
       return null;
     }
 
@@ -85,46 +83,55 @@ class ColumnReferenceValidator {
         final QualifiedColumnReferenceExp node,
         final Object context
     ) {
-      getSource(node.getLocation(), Optional.of(node.getQualifier()), node.getColumnName())
-          .ifPresent(referencedSources::add);
+      validateColumn(node);
       return null;
     }
 
-    private Optional<SourceName> getSource(
-        final Optional<NodeLocation> location,
-        final Optional<SourceName> sourceName,
-        final ColumnName name
-    ) {
-      final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(sourceName, name);
+    private void validateColumn(final ColumnReferenceExp colRef) {
+      final Set<SourceName> sourcesWithField = sourceSchemas
+          .sourcesWithField(colRef.maybeQualifier(), colRef.getColumnName());
+
       if (sourcesWithField.isEmpty()) {
-        throw new KsqlException(errorPrefix(location) + "column '"
-            + sourceName.map(n -> n.text() + KsqlConstants.DOT + name.text())
-            .orElse(name.text())
-            + "' cannot be resolved.");
+        if (couldBeSyntheticJoinColumn(colRef)) {
+          // Validating this is handled in the logical model.
+          return;
+        }
+
+        throw new UnknownColumnException(clauseType, colRef);
       }
 
-      if (sourcesWithField.size() > 1) {
-        final String possibilities = sourcesWithField.stream()
-            .map(source -> new QualifiedColumnReferenceExp(source, name))
-            .map(Objects::toString)
-            .sorted()
-            .collect(Collectors.joining(", "));
+      final SourceName source = colRef.maybeQualifier()
+          .orElseGet(() -> {
+            // AstSanitizer should catches ambiguous columns
+            return Iterables.getOnlyElement(sourcesWithField);
+          });
 
-        throw new KsqlException(errorPrefix(location) + "column '"
-            + name.text() + "' is ambiguous. "
-            + "Could be any of: " + possibilities);
-      }
-
-      return Optional.of(Iterables.getOnlyElement(sourcesWithField));
+      referencedSources.add(source);
     }
 
-    private String errorPrefix(final Optional<NodeLocation> location) {
-      final String loc = location
-          .map(Objects::toString)
-          .map(text -> text + ": ")
-          .orElse("");
+    private boolean couldBeSyntheticJoinColumn(final ColumnReferenceExp colRef) {
+      if (!possibleSyntheticColumns) {
+        // Some queries never have synthetic columns, e.g. pull or aggregations.
+        return false;
+      }
 
-      return loc + clauseType + " ";
+      if (!sourceSchemas.isJoin()) {
+        // Synthetic join columns only occur in joins... duh!
+        return false;
+      }
+
+      if (colRef instanceof QualifiedColumnReferenceExp) {
+        // Synthetic join columns can't be qualified, as they don't belong to any source
+        return false;
+      }
+
+      if (!clauseType.equals("SELECT")) {
+        // Synthetic join columns can only be used in the projection
+        return false;
+      }
+
+      // Synthetic join columns have generated names:
+      return ColumnNames.maybeSyntheticJoinKey(colRef.getColumnName());
     }
   }
 }

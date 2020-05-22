@@ -40,6 +40,7 @@ public final class ColumnNames {
   private static final String AGGREGATE_COLUMN_PREFIX = "KSQL_AGG_VARIABLE_";
   private static final String GENERATED_ALIAS_PREFIX = "KSQL_COL";
   private static final String SYNTHESISED_COLUMN_PREFIX = "KSQL_SYNTH_";
+  private static final String SYNTHETIC_JOIN_KEY_COLUMN_PRIFIX = "ROWKEY";
 
   private static final String NAME = "name";
   private static final String NUMBER = "number";
@@ -162,6 +163,35 @@ public final class ColumnNames {
     return ColumnName.of(sourceName.text() + "_" + ref.text());
   }
 
+  public static ColumnName generateSyntheticJoinKey(final Stream<LogicalSchema> schemas) {
+    final AliasGenerator generator = buildAliasGenerators(schemas)
+        .getOrDefault(
+            SYNTHETIC_JOIN_KEY_COLUMN_PRIFIX,
+            new AliasGenerator(0, SYNTHETIC_JOIN_KEY_COLUMN_PRIFIX, ImmutableSet.of())
+        );
+
+    return generator.next();
+  }
+
+  /**
+   * Determines is the supplied {@code columnName} could be a generated column name in the form
+   * {@code KSQL_COL_x}.
+   *
+   * <p>Of course, just because a column name matches this pattern doesn't mean it is a generated
+   * column name. The user could have chosen this name directly, or it could have been generated
+   * in a different statement.
+   *
+   * @param columnName the name to test
+   * @return {@code true} if it starts with {@link #SYNTHETIC_JOIN_KEY_COLUMN_PRIFIX}.
+   */
+  public static boolean maybeSyntheticJoinKey(final ColumnName columnName) {
+    return columnName.text().startsWith(SYNTHETIC_JOIN_KEY_COLUMN_PRIFIX);
+  }
+
+  /**
+   * @param name the column name to test
+   * @return {@code true} if it starts with {@link #AGGREGATE_COLUMN_PREFIX}.
+   */
   public static boolean isAggregate(final ColumnName name) {
     return name.text().startsWith(AGGREGATE_COLUMN_PREFIX);
   }

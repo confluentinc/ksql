@@ -15,14 +15,17 @@
 
 package io.confluent.ksql.planner.plan;
 
-import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 
-public interface VerifiableNode {
+public class PreJoinRepartitionNode extends RepartitionNode {
 
-  /**
-   * Throws if the key is not present in the projection.
-   *
-   * @param sinkName the name of the source being built.
-   */
-  void validateKeyPresent(SourceName sinkName);
+  public PreJoinRepartitionNode(
+      final PlanNodeId id,
+      final PlanNode source,
+      final LogicalSchema schema,
+      final Expression partitionBy
+  ) {
+    super(id, source, schema, partitionBy);
+  }
 }

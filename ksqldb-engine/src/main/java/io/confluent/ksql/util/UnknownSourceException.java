@@ -13,29 +13,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.expression.tree;
+package io.confluent.ksql.util;
 
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
-import java.util.Objects;
 import java.util.Optional;
 
-public abstract class ColumnReferenceExp extends Expression {
+public final class UnknownSourceException extends KsqlException {
 
-  final ColumnName name;
-
-  ColumnReferenceExp(
+  public UnknownSourceException(
       final Optional<NodeLocation> location,
-      final ColumnName name
+      final SourceName source
   ) {
-    super(location);
-    this.name = Objects.requireNonNull(name, "name");
+    super(NodeLocation.asPrefix(location) + "Source " + source + " does not exist.");
   }
-
-  public ColumnName getColumnName() {
-    return name;
-  }
-
-  public abstract Optional<SourceName> maybeQualifier();
 }

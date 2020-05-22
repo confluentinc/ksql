@@ -59,10 +59,11 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.PreJoinProjectNode;
+import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
-import io.confluent.ksql.planner.plan.VerifiableNode;
+import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnNames;
@@ -233,7 +234,7 @@ public class LogicalPlanner {
       validator.validateFilterExpression(analysis.getHavingExpression().get());
     }
 
-    final AggregateNode aggregate = new AggregateNode(
+    return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
         schema,
@@ -243,37 +244,16 @@ public class LogicalPlanner {
         aggregateAnalysis,
         projectionExpressions
     );
-
-    validate(aggregate);
-
-    return aggregate;
   }
 
   private ProjectNode buildUserProjectNode(final PlanNode parentNode) {
-    final FinalProjectNode project = new FinalProjectNode(
+    return new FinalProjectNode(
         new PlanNodeId("Project"),
         parentNode,
         analysis.getSelectItems(),
-        analysis.getInto().isPresent()
+        analysis.getInto().isPresent(),
+        functionRegistry
     );
-
-    validate(project);
-
-    return project;
-  }
-
-  private void validate(final VerifiableNode node) {
-    final Set<? extends ColumnReferenceExp> unknown = node.validateColumns(functionRegistry);
-    if (unknown.isEmpty()) {
-      return;
-    }
-
-    final String errors = unknown.stream()
-        .map(columnRef -> NodeLocation.asPrefix(columnRef.getLocation())
-            + "Column '" + columnRef + "' cannot be resolved."
-        ).collect(Collectors.joining(System.lineSeparator()));
-
-    throw new KsqlException(errors);
   }
 
   private static ProjectNode buildInternalProjectNode(
@@ -314,12 +294,18 @@ public class LogicalPlanner {
       final PlanNode currentNode,
       final PartitionBy partitionBy
   ) {
-    return buildRepartitionNode(
-        "PartitionBy",
+    final Expression rewrittenPartitionBy =
+        ExpressionTreeRewriter.rewriteWith(refRewriter::process, partitionBy.getExpression());
+
+    final LogicalSchema schema =
+        buildRepartitionedSchema(currentNode, rewrittenPartitionBy);
+
+    return new UserRepartitionNode(
+        new PlanNodeId("PartitionBy"),
         currentNode,
+        schema,
         partitionBy.getExpression(),
-        refRewriter::process,
-        false
+        rewrittenPartitionBy
     );
   }
 
@@ -329,35 +315,17 @@ public class LogicalPlanner {
       final Expression joinExpression,
       final BiFunction<Expression, Context<Void>, Optional<Expression>> plugin
   ) {
-    return buildRepartitionNode(
-        side + "SourceKeyed",
-        source,
-        joinExpression,
-        plugin,
-        true
-    );
-  }
-
-  private RepartitionNode buildRepartitionNode(
-      final String planId,
-      final PlanNode sourceNode,
-      final Expression partitionBy,
-      final BiFunction<Expression, Context<Void>, Optional<Expression>> plugin,
-      final boolean internal
-  ) {
     final Expression rewrittenPartitionBy =
-        ExpressionTreeRewriter.rewriteWith(plugin, partitionBy);
+        ExpressionTreeRewriter.rewriteWith(plugin, joinExpression);
 
     final LogicalSchema schema =
-        buildRepartitionedSchema(sourceNode, rewrittenPartitionBy);
+        buildRepartitionedSchema(source, rewrittenPartitionBy);
 
-    return new RepartitionNode(
-        new PlanNodeId(planId),
-        sourceNode,
+    return new PreJoinRepartitionNode(
+        new PlanNodeId(side + "SourceKeyed"),
+        source,
         schema,
-        partitionBy,
-        rewrittenPartitionBy,
-        internal
+        rewrittenPartitionBy
     );
   }
 

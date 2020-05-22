@@ -13,16 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.planner.plan;
+package io.confluent.ksql.util;
 
-import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 
-public interface VerifiableNode {
+public class UnknownColumnException extends InvalidColumnException  {
 
-  /**
-   * Throws if the key is not present in the projection.
-   *
-   * @param sinkName the name of the source being built.
-   */
-  void validateKeyPresent(SourceName sinkName);
+  public UnknownColumnException(final ColumnReferenceExp column) {
+    this("", column);
+  }
+
+  public UnknownColumnException(final String prefix, final ColumnReferenceExp column) {
+    super(prefix, column, "cannot be resolved.");
+  }
 }

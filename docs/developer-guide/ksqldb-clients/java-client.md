@@ -10,7 +10,7 @@ Use the Java client to:
 - [Receive query results one row at a time (streamQuery())](#stream-query)
 - [Receive query results in a single batch (executeQuery())](#execute-query)
 - [Terminate a push query (terminatePushQuery())](#terminate-push-query)
-- [Insert a batch of rows into a stream (insertInto())](#insert-into)
+- [Insert a new row into a stream (insertInto())](#insert-into)
 
 Getting Started
 ---------------
@@ -337,10 +337,10 @@ try {
 }
 ```
 
-Insert a batch of rows into a stream (insertInto())<a name="insert-into"></a>
------------------------------------------------------------------------------
+Insert a new row into a stream (insertInto())<a name="insert-into"></a>
+-----------------------------------------------------------------------
 
-Client apps can insert rows of data into existing ksqlDB streams via the `insertInto()` method.
+Client apps can insert new rows of data into existing ksqlDB streams via the `insertInto()` method.
 
 ```java
 public interface Client {
@@ -365,50 +365,21 @@ public interface Client {
 Rows for insertion are represented as `KsqlObject` instances. A `KsqlObject` represents a map of strings
 (in this case, column names) to values (column values).
 
-Besides inserting rows one at a time, the client also supports inserting multiple rows in a single batch.
-
-```java
-public interface Client {
-
-  /**
-   * Inserts the specified row(s) into a ksqlDB stream.
-   *
-   * <p>The {@code CompletableFuture} will be failed if a non-200 response is received from the
-   * server, or if the server encounters an error while processing the insertion(s).
-   *
-   * @param streamName name of the target stream
-   * @param rows the rows to insert. For each row, the keys are column names and values are
-   *        column values.
-   * @return a future that completes once the server response is received
-   */
-  CompletableFuture<Void> insertInto(String streamName, List<KsqlObject> rows);
-  
-  ...
- 
-}
-```
-
 ### Example Usage ###
 
-Here's an example of using the client to insert a couple rows into an existing stream `ORDERS`
+Here's an example of using the client to insert a new row into an existing stream `ORDERS`
 with schema (ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR).
 
 ```java
-final List<KsqlObject> rows = new ArrayList<>();
-rows.add(new KsqlObject()
+final Row row = new KsqlObject()
     .put("ROWKEY", "k1")
     .put("ORDER_ID", 12345678L)
     .put("PRODUCT_ID", "UAC-222-19234")
     .put("USER_ID", "User_321"));
-rows.add(new KsqlObject()
-    .put("ROWKEY", "k2")
-    .put("ORDER_ID", 12345679L)
-    .put("PRODUCT_ID", "TAL-111-21455")
-    .put("USER_ID", "User_108"));
 
 try {
-  client.insertInto("ORDERS", rows).get();
-  System.out.println("Successfully inserted rows.");
+  client.insertInto("ORDERS", row).get();
+  System.out.println("Successfully inserted a row.");
 } catch (Exception e) {
   System.out.println("Insert request failed: " + e);
 }

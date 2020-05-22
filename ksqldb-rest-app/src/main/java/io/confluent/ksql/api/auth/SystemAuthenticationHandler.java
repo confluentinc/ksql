@@ -17,7 +17,7 @@ import java.util.Optional;
 
 public class SystemAuthenticationHandler implements Handler<RoutingContext> {
 
-  public SystemAuthenticationHandler() { }
+  public SystemAuthenticationHandler() {}
 
   @Override
   public void handle(RoutingContext routingContext) {

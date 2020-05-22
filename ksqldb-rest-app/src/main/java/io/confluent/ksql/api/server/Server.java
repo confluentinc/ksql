@@ -283,18 +283,16 @@ public class Server {
         .setPerFrameWebSocketCompressionSupported(true);
 
     if (tls) {
-      if (isInternalListener.isPresent() && isInternalListener.get()) {
-        setInternalTlsOptions(ksqlRestConfig, options);
-      } else {
-        setTlsOptions(ksqlRestConfig, options);
-      }
+        setTlsOptions(ksqlRestConfig, options,
+            isInternalListener.isPresent() && isInternalListener.get());
     }
     return options;
   }
 
   private static void setTlsOptions(
       final KsqlRestConfig ksqlRestConfig,
-      final HttpServerOptions options
+      final HttpServerOptions options,
+      final boolean isInternalListener
   ) {
     options.setUseAlpn(true).setSsl(true);
 
@@ -316,34 +314,9 @@ public class Server {
           new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
     }
 
-    options.setClientAuth(ksqlRestConfig.getClientAuth());
-  }
-
-  private static void setInternalTlsOptions(
-      final KsqlRestConfig ksqlRestConfig,
-      final HttpServerOptions options
-  ) {
-    options.setUseAlpn(true).setSsl(true);
-
-    final String keyStorePath = ksqlRestConfig
-        .getString(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG);
-    final Password keyStorePassword = ksqlRestConfig
-        .getPassword(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG);
-    if (keyStorePath != null && !keyStorePath.isEmpty()) {
-      options.setKeyStoreOptions(
-          new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
-    }
-
-    final String trustStorePath = ksqlRestConfig
-        .getString(KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
-    final Password trustStorePassword = ksqlRestConfig
-        .getPassword(KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
-    if (trustStorePath != null && !trustStorePath.isEmpty()) {
-      options.setTrustStoreOptions(
-          new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
-    }
-
-    options.setClientAuth(ksqlRestConfig.getClientAuthInternal());
+    options.setClientAuth(isInternalListener
+        ? ksqlRestConfig.getClientAuthInternal()
+        : ksqlRestConfig.getClientAuth());
   }
 
   private static List<URI> parseListeners(final KsqlRestConfig config) {
@@ -380,10 +353,7 @@ public class Server {
           throw new ConfigException("Invalid URI scheme should be http or https: " + listenerName);
         }
         if ("https".equalsIgnoreCase(scheme)) {
-          final String keyStoreLocation =
-              internalListener
-                  ? config.getString(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG)
-                  : config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+          final String keyStoreLocation = config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
           if (keyStoreLocation == null || keyStoreLocation.isEmpty()) {
             throw new ConfigException("https listener specified but no keystore provided");
           }

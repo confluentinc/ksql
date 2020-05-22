@@ -59,7 +59,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
             new LocalProperties(ImmutableMap.of()),
             createClientOptions()
         ),
-        getInternalClient(clientProps)
+        getInternalClient(toClientProps(clientProps))
     );
   }
 
@@ -172,39 +172,40 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     return clientProps;
   }
 
-  private static KsqlClient getInternalClient(final Map<String, Object> clientProps) {
+  private static KsqlClient getInternalClient(final Map<String, String> clientProps) {
     boolean verifyHost =
         !KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE.equals(clientProps.get(
         KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG));
     return new KsqlClient(
-        prepareHttpOptionsForMutualAuthClient(toClientProps(clientProps), verifyHost),
+        clientProps,
         Optional.empty(),
         new LocalProperties(ImmutableMap.of()),
-        createClientOptions()
+        createClientOptions(),
+        verifyHost
     );
   }
 
-  private static Consumer<HttpClientOptions> prepareHttpOptionsForMutualAuthClient(
-      final Map<String, String> clientProps, final boolean verifyHost) {
-    return (httpClientOptions) -> {
-      httpClientOptions.setVerifyHost(verifyHost);
-      httpClientOptions.setSsl(true);
-      final String trustStoreLocation = clientProps.get(
-          KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
-      if (trustStoreLocation != null) {
-        final String suppliedTruststorePassword = clientProps
-            .get(KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
-        httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
-            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
-        final String keyStoreLocation =
-            clientProps.get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG);
-        if (keyStoreLocation != null) {
-          final String suppliedKeyStorePassword = clientProps
-              .get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG);
-          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
-              .setPassword(suppliedKeyStorePassword == null ? "" : suppliedKeyStorePassword));
-        }
-      }
-    };
-  }
+//  private static Consumer<HttpClientOptions> prepareHttpOptionsForMutualAuthClient(
+//      final Map<String, String> clientProps, final boolean verifyHost) {
+//    return (httpClientOptions) -> {
+//      httpClientOptions.setVerifyHost(verifyHost);
+//      httpClientOptions.setSsl(true);
+//      final String trustStoreLocation = clientProps.get(
+//          KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
+//      if (trustStoreLocation != null) {
+//        final String suppliedTruststorePassword = clientProps
+//            .get(KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
+//        httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
+//            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
+//        final String keyStoreLocation =
+//            clientProps.get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG);
+//        if (keyStoreLocation != null) {
+//          final String suppliedKeyStorePassword = clientProps
+//              .get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG);
+//          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
+//              .setPassword(suppliedKeyStorePassword == null ? "" : suppliedKeyStorePassword));
+//        }
+//      }
+//    };
+//  }
 }

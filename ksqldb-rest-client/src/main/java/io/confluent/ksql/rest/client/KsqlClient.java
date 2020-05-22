@@ -60,24 +60,24 @@ public final class KsqlClient implements AutoCloseable {
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
-    this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false);
-    this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true);
+    this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false, false);
+    this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true, false);
   }
 
   public KsqlClient(
-      final Consumer<HttpClientOptions> sslHttpClientOptionsConsumer,
+      final Map<String, String> clientProps,
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
-      final HttpClientOptions httpClientOptions
+      final HttpClientOptions httpClientOptions,
+      final boolean verifyHost
   ) {
     this.vertx = Vertx.vertx();
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
-    this.httpNonTlsClient = createHttpClient(vertx, sslHttpClientOptionsConsumer, httpClientOptions,
-        false);
-    this.httpTlsClient = createHttpClient(vertx, sslHttpClientOptionsConsumer, httpClientOptions,
-        true);
+    this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false, false);
+    this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true,
+        verifyHost);
   }
 
   public KsqlTarget target(final URI server) {
@@ -115,9 +115,10 @@ public final class KsqlClient implements AutoCloseable {
   private static HttpClient createHttpClient(final Vertx vertx,
       final Map<String, String> clientProps,
       final HttpClientOptions httpClientOptions,
-      final boolean tls) {
+      final boolean tls,
+      final boolean verifyHost) {
     if (tls) {
-      httpClientOptions.setVerifyHost(false);
+      httpClientOptions.setVerifyHost(verifyHost);
       httpClientOptions.setSsl(true);
       final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
       if (trustStoreLocation != null) {
@@ -140,19 +141,4 @@ public final class KsqlClient implements AutoCloseable {
       throw new KsqlRestClientException(e.getMessage(), e);
     }
   }
-
-  private static HttpClient createHttpClient(final Vertx vertx,
-      final Consumer<HttpClientOptions> sslHttpClientOptionsConsumer,
-      final HttpClientOptions httpClientOptions,
-      final boolean tls) {
-    if (tls) {
-      sslHttpClientOptionsConsumer.accept(httpClientOptions);
-    }
-    try {
-      return vertx.createHttpClient(httpClientOptions);
-    } catch (VertxException e) {
-      throw new KsqlRestClientException(e.getMessage(), e);
-    }
-  }
-
 }

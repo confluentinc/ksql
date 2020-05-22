@@ -99,13 +99,13 @@ public class SystemAuthenticationFunctionalTest {
     Map<String, String> keyStoreProps = ServerKeyStore.keyStoreProps();
     Map<String, String> trustStoreProps = ClientTrustStore.trustStoreProps();
     return ImmutableMap.of(
-        KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG,
+        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
         keyStoreProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG),
-        KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG,
+        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
         keyStoreProps.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG),
-        KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG,
+        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
         trustStoreProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG),
-        KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG,
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
         trustStoreProps.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)
     );
   }

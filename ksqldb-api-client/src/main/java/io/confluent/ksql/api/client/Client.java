@@ -20,7 +20,6 @@ import io.vertx.core.Vertx;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import org.reactivestreams.Publisher;
 
 /**
  * A client that connects to a specific ksqlDB server.
@@ -33,6 +32,11 @@ public interface Client {
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.
    *
+   * <p>By default, push queries issued via this method return results starting from the beginning
+   * of the stream or table. To override this behavior, use the method
+   * {@link #streamQuery(String, Map)} to pass in the query property {@code auto.offset.reset}
+   * with value set to {@code earliest}.
+   *
    * @param sql statement of query to execute
    * @return a future that completes once the server response is received, and contains the query
    *         result if successful
@@ -44,6 +48,10 @@ public interface Client {
    *
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.
+   *
+   * <p>By default, push queries issued via this method return results starting from the beginning
+   * of the stream or table. To override this behavior, pass in the query property
+   * {@code auto.offset.reset} with value set to {@code earliest}.
    *
    * @param sql statement of query to execute
    * @param properties query properties
@@ -95,8 +103,6 @@ public interface Client {
    * @return a future that completes once the server response is received
    */
   CompletableFuture<Void> insertInto(String streamName, List<KsqlObject> rows);
-
-  Publisher<InsertAck> streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
 
   /**
    * Terminates a push query with the specified query ID.

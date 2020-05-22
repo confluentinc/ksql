@@ -21,7 +21,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
-import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.StreamedQueryResult;
@@ -46,7 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import org.reactivestreams.Publisher;
 
 public class ClientImpl implements Client {
 
@@ -150,12 +148,6 @@ public class ClientImpl implements Client {
     );
 
     return cf;
-  }
-
-  @Override
-  public Publisher<InsertAck> streamInserts(
-      final String streamName, final Publisher<KsqlObject> insertsPublisher) {
-    return null; // not yet implemented
   }
 
   @Override

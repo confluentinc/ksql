@@ -74,7 +74,7 @@ SELECT select_expression
 
 A `refinement_expression` has the following syntax:
 ```sql
-CHANGES | FINAL (AFTER time_expression)?
+CHANGES | FINAL
 ```
 
 And behaves in the following ways:
@@ -83,8 +83,10 @@ And behaves in the following ways:
     - the `AFTER` clause allows the user to specify the grace period as part of the syntax
     
 Since the default grace period in Kafka Streams is 24 hours, the default `EMIT FINAL` behavior will
-only omit data 24 hours after the query is started. Since this is unlikely to be good user experience,
-this KLIP proposes to set a default grace period of 0.
+only omit data 24 hours after the query starts. Since this is unlikely to be good user experience,
+this KLIP proposes to set a default grace period of 0 for all queries.
+
+NOTE: prior to this KLIP, the grace period can be controlled by 
 
 ## Discussion
 

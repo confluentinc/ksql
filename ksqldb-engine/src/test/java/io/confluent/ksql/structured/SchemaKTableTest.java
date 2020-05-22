@@ -215,8 +215,8 @@ public class SchemaKTableTest {
 
   private SchemaKTable buildSchemaKTableFromPlan(final PlanNode logicalPlan) {
     return new SchemaKTable(
-        buildSourceStep(logicalPlan.getTheSourceNode().getSchema(), kTable),
-        logicalPlan.getTheSourceNode().getSchema(),
+        buildSourceStep(logicalPlan.getLeftmostSourceNode().getSchema(), kTable),
+        logicalPlan.getLeftmostSourceNode().getSchema(),
         keyFormat,
         ksqlConfig,
         functionRegistry
@@ -612,8 +612,8 @@ public class SchemaKTableTest {
     );
 
     initialSchemaKTable = new SchemaKTable<>(
-        buildSourceStep(logicalPlan.getTheSourceNode().getSchema(), kTable),
-        logicalPlan.getTheSourceNode().getSchema(),
+        buildSourceStep(logicalPlan.getLeftmostSourceNode().getSchema(), kTable),
+        logicalPlan.getLeftmostSourceNode().getSchema(),
         keyFormat,
         ksqlConfig,
         functionRegistry

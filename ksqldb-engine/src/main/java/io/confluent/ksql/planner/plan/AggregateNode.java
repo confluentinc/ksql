@@ -130,7 +130,8 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
 
     this.havingExpressions = rewrittenAggregateAnalysis.getHavingExpression()
         .map(exp -> ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, exp));
-    this.valueFormat = getTheSourceNode()
+
+    this.valueFormat = getLeftmostSourceNode()
         .getDataSource()
         .getKsqlTopic()
         .getValueFormat();

@@ -212,20 +212,24 @@ public class JoinNode extends PlanNode {
   private void ensureMatchingPartitionCounts(final KafkaTopicClient kafkaTopicClient) {
     final int leftPartitions = left.getPartitions(kafkaTopicClient);
     final int rightPartitions = right.getPartitions(kafkaTopicClient);
-
-    if (leftPartitions != rightPartitions) {
-      throw new KsqlException(
-          "Can't join " + getSourceName(left) + " with "
-              + getSourceName(right) + " since the number of partitions don't "
-              + "match. " + getSourceName(left) + " partitions = "
-              + leftPartitions + "; " + getSourceName(right) + " partitions = "
-              + rightPartitions + ". Please repartition either one so that the "
-              + "number of partitions match.");
+    if (leftPartitions == rightPartitions) {
+      return;
     }
+
+    final SourceName leftSource = getSourceName(left);
+    final SourceName rightSource = getSourceName(right);
+
+    throw new KsqlException(
+        "Can't join " + leftSource + " with "
+            + rightSource + " since the number of partitions don't "
+            + "match. " + leftSource + " partitions = "
+            + leftPartitions + "; " + rightSource + " partitions = "
+            + rightPartitions + ". Please repartition either one so that the "
+            + "number of partitions match.");
   }
 
-  private static String getSourceName(final PlanNode node) {
-    return node.getTheSourceNode().getAlias().text();
+  private static SourceName getSourceName(final PlanNode node) {
+    return node.getLeftmostSourceNode().getAlias();
   }
 
   private static class JoinerFactory {
@@ -298,7 +302,7 @@ public class JoinNode extends PlanNode {
     }
 
     static ValueFormat getFormatForSource(final PlanNode sourceNode) {
-      return sourceNode.getTheSourceNode()
+      return sourceNode.getLeftmostSourceNode()
           .getDataSource()
           .getKsqlTopic()
           .getValueFormat();

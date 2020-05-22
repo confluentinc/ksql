@@ -351,8 +351,8 @@ public class JoinNodeTest {
   @Test
   public void shouldNotPerformJoinIfInputPartitionsMisMatch() {
     // Given:
-    when(left.getTheSourceNode()).thenReturn(left);
-    when(right.getTheSourceNode()).thenReturn(right);
+    when(left.getLeftmostSourceNode()).thenReturn(left);
+    when(right.getLeftmostSourceNode()).thenReturn(right);
     when(left.getAlias()).thenReturn(LEFT_ALIAS);
     when(right.getAlias()).thenReturn(RIGHT_ALIAS);
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(3);
@@ -813,7 +813,7 @@ public class JoinNodeTest {
       final SchemaKStream stream
   ) {
     when(node.buildStream(ksqlStreamBuilder)).thenReturn(stream);
-    when(node.getTheSourceNode()).thenReturn(node);
+    when(node.getLeftmostSourceNode()).thenReturn(node);
     when(node.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
   }
 

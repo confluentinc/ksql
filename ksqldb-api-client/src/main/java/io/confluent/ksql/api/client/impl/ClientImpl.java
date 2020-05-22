@@ -23,10 +23,12 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.KsqlClientException;
+import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
@@ -40,7 +42,6 @@ import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Publisher;
@@ -118,20 +119,42 @@ public class ClientImpl implements Client {
   }
 
   @Override
-  public CompletableFuture<Void> insertInto(
-      final String streamName, final Map<String, Object> row) {
-    return null; // not yet implemented
+  public CompletableFuture<Void> insertInto(final String streamName, final KsqlObject row) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+
+    final Buffer requestBody = Buffer.buffer();
+    final JsonObject params = new JsonObject().put("target", streamName);
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    requestBody.appendString(row.toJsonString()).appendString("\n");
+
+    makeRequest(
+        "/inserts-stream",
+        requestBody,
+        cf,
+        response -> handleResponse(response, cf, InsertsResponseHandler::new)
+    );
+
+    return cf;
   }
 
   @Override
   public Publisher<InsertAck> streamInserts(
-      final String streamName, final Publisher<List<Object>> insertsPublisher) {
+      final String streamName, final Publisher<KsqlObject> insertsPublisher) {
     return null; // not yet implemented
   }
 
   @Override
   public CompletableFuture<Void> terminatePushQuery(final String queryId) {
-    return makeCloseQueryRequest(queryId);
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+
+    makeRequest(
+        "/close-query",
+        new JsonObject().put("queryId", queryId),
+        cf,
+        response -> handleCloseQueryResponse(response, cf)
+    );
+
+    return cf;
   }
 
   @Override
@@ -144,7 +167,7 @@ public class ClientImpl implements Client {
 
   @FunctionalInterface
   private interface ResponseHandlerSupplier<T extends CompletableFuture<?>> {
-    QueryResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf);
+    ResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf);
   }
 
   private <T extends CompletableFuture<?>> void makeQueryRequest(
@@ -159,26 +182,21 @@ public class ClientImpl implements Client {
         "/query-stream",
         requestBody,
         cf,
-        response -> handleQueryResponse(response, cf, responseHandlerSupplier)
+        response -> handleResponse(response, cf, responseHandlerSupplier)
     );
-  }
-
-  private CompletableFuture<Void> makeCloseQueryRequest(final String queryId) {
-    final CompletableFuture<Void> cf = new CompletableFuture<>();
-
-    makeRequest(
-        "/close-query",
-        new JsonObject().put("queryId", queryId),
-        cf,
-        response -> handleCloseQueryResponse(response, cf)
-    );
-
-    return cf;
   }
 
   private <T extends CompletableFuture<?>> void makeRequest(
       final String path,
       final JsonObject requestBody,
+      final T cf,
+      final Handler<HttpClientResponse> responseHandler) {
+    makeRequest(path, requestBody.toBuffer(), cf, responseHandler);
+  }
+
+  private <T extends CompletableFuture<?>> void makeRequest(
+      final String path,
+      final Buffer requestBody,
       final T cf,
       final Handler<HttpClientResponse> responseHandler) {
     HttpClientRequest request = httpClient.request(HttpMethod.POST,
@@ -189,20 +207,20 @@ public class ClientImpl implements Client {
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
     }
-    request.end(requestBody.toBuffer());
+    request.end(requestBody);
   }
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
   }
 
-  private static <T extends CompletableFuture<?>> void handleQueryResponse(
+  private static <T extends CompletableFuture<?>> void handleResponse(
       final HttpClientResponse response,
       final T cf,
       final ResponseHandlerSupplier<T> responseHandlerSupplier) {
     if (response.statusCode() == OK.code()) {
       final RecordParser recordParser = RecordParser.newDelimited("\n", response);
-      final QueryResponseHandler<T> responseHandler =
+      final ResponseHandler<T> responseHandler =
           responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf);
 
       recordParser.handler(responseHandler::handleBodyBuffer);

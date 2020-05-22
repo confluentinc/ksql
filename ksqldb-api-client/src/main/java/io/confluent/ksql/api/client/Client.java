@@ -17,7 +17,6 @@ package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.vertx.core.Vertx;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Publisher;
@@ -71,9 +70,19 @@ public interface Client {
    */
   BatchedQueryResult executeQuery(String sql, Map<String, Object> properties);
 
-  CompletableFuture<Void> insertInto(String streamName, Map<String, Object> row);
+  /**
+   * Inserts a row into a ksqlDB stream.
+   *
+   * <p>The {@code CompletableFuture} will be failed if a non-200 response is received from the
+   * server, or if the server encounters an error while processing the insertion.
+   *
+   * @param streamName name of the target stream
+   * @param row the row to insert. Keys are column names and values are column values.
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> insertInto(String streamName, KsqlObject row);
 
-  Publisher<InsertAck> streamInserts(String streamName, Publisher<List<Object>> insertsPublisher);
+  Publisher<InsertAck> streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
 
   /**
    * Terminates a push query with the specified query ID.

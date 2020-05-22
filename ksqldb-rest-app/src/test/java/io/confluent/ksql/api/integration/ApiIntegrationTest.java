@@ -327,7 +327,6 @@ public class ApiIntegrationTest {
 
     for (int i = 0; i < numRows; i++) {
       JsonObject row = new JsonObject()
-          .put("ROWKEY", 10 + i)
           .put("VIEWTIME", 1000 + i)
           .put("USERID", "User" + i % 3)
           .put("PAGEID", "PAGE" + (numRows - i));
@@ -386,7 +385,6 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
-        .put("ROWKEY", 10)
         .put("VIEWTIME", 1000)
         .put("USERID", 123)
         .put("PAGEID", "PAGE23");

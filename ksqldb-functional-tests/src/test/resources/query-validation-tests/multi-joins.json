@@ -93,20 +93,6 @@
       }
     },
     {
-      "name": "unsupported joinkey parameters",
-      "comment": "while the parameters are semantically correct, its not currently supported",
-      "statements": [
-        "CREATE TABLE T1 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT JOINKEY(T1.ID, T3.ID), t1.V0, t2.V0, t3.V0 FROM T1 JOIN T2 ON T1.ID = abs(T2.ID) FULL OUTER JOIN T3 ON abs(T2.ID) = T3.ID;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression JOINKEY(ABS(T2.ID), T3.ID) in its projection."
-      }
-    },
-    {
       "name": "inner-inner - missing join columns in projection",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
@@ -168,7 +154,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression JOINKEY((S1.ID + 1), (T3.ID + 1)) in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expression KSQL_COL_0 in its projection."
       }
     },
     {
@@ -233,7 +219,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression JOINKEY((S1.ID + 1), (T3.ID + 1)) in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expression KSQL_COL_0 in its projection."
       }
     },
     {
@@ -246,7 +232,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression JOINKEY(S1.ID, T3.ID) in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expression KSQL_COL_0 in its projection."
       }
     },
     {
@@ -935,7 +921,7 @@
         "CREATE TABLE T1 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
         "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE TABLE OUTPUT as SELECT JOINKEY(T1.ID, T3.ID) AS ID, T1.V0, T2.V0, T3.V0 FROM T1 JOIN T2 ON T1.ID = T2.ID FULL JOIN T3 ON T1.ID = T3.ID;"
+        "CREATE TABLE OUTPUT as SELECT KSQL_COL_0 AS ID, T1.V0, T2.V0, T3.V0 FROM T1 JOIN T2 ON T1.ID = T2.ID FULL JOIN T3 ON T1.ID = T3.ID;"
       ],
       "inputs": [
         {"topic": "left", "key": 0, "value": {"V0": 1}, "timestamp": 0},

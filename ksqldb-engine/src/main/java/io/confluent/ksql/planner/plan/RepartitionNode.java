@@ -82,11 +82,6 @@ public class RepartitionNode extends PlanNode {
     return partitionBy;
   }
 
-  @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitRepartition(this, context);
-  }
-
   public Expression resolveSelect(final int idx, final Expression expression) {
     return partitionBy.equals(expression)
         ? new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(getSchema().key()).name())

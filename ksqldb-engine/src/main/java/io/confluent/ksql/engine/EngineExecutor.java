@@ -324,9 +324,8 @@ final class EngineExecutor {
   }
 
   private static Set<SourceName> getSourceNames(final PlanNode outputNode) {
-    final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
-    visitor.process(outputNode, null);
-    return visitor.getSourceNames();
+    final PlanSourceExtractorVisitor visitor = new PlanSourceExtractorVisitor();
+    return visitor.extract(outputNode);
   }
 
   private String executeDdl(

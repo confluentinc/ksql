@@ -68,10 +68,6 @@ public class TransientQueryMetadata extends QueryMetadata {
         new QueryId(queryApplicationId),
         QueryErrorClassifier.DEFAULT_CLASSIFIER);
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
-
-    if (!logicalSchema.key().isEmpty()) {
-      throw new IllegalArgumentException("Transient queries only support value columns");
-    }
   }
 
   public boolean isRunning() {

@@ -70,10 +70,6 @@ public abstract class PlanNode {
 
   public abstract List<PlanNode> getSources();
 
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitPlan(this, context);
-  }
-
   public DataSourceNode getTheSourceNode() {
     if (this instanceof DataSourceNode) {
       return (DataSourceNode) this;

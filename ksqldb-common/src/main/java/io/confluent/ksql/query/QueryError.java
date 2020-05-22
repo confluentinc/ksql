@@ -15,24 +15,32 @@
 
 package io.confluent.ksql.query;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 
 /**
  * {@code QueryError} indicates additional information
  * about a query error that originated from Kafka Streams.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class QueryError {
 
-  private final Throwable error;
+  private final String errorMessage;
   private final Type type;
 
-  public QueryError(final Throwable error, final Type type) {
-    this.error = Objects.requireNonNull(error, "e");
+  @JsonCreator
+  public QueryError(
+      @JsonProperty("errorMessage") final String errorMessage,
+      @JsonProperty("type") final Type type
+  ) {
+    this.errorMessage = Objects.requireNonNull(errorMessage, "errorMessage");
     this.type = Objects.requireNonNull(type, "type");
   }
 
-  public Throwable getError() {
-    return error;
+  public String getErrorMessage() {
+    return errorMessage;
   }
 
   public Type getType() {
@@ -65,4 +73,23 @@ public final class QueryError {
     SYSTEM
   }
 
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    final QueryError that = (QueryError) o;
+    return Objects.equals(errorMessage, that.errorMessage)
+        && type == that.type;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(errorMessage, type);
+  }
 }

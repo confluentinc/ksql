@@ -16,7 +16,6 @@
 package io.confluent.ksql.planner;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
@@ -43,6 +42,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
@@ -69,6 +69,7 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -131,6 +132,13 @@ public class LogicalPlanner {
     if (analysis.getGroupBy().isPresent()) {
       currentNode = buildAggregateNode(currentNode);
     } else {
+      if (analysis.getWindowExpression().isPresent()) {
+        final String loc = analysis.getWindowExpression().get()
+            .getLocation()
+            .map(NodeLocation::asPrefix)
+            .orElse("");
+        throw new KsqlException(loc + "WINDOW clause requires a GROUP BY clause.");
+      }
       currentNode = buildUserProjectNode(currentNode);
     }
 
@@ -255,16 +263,23 @@ public class LogicalPlanner {
           .map(name -> resolveProjectionAlias(name, projection))
           .collect(Collectors.toSet());
 
+      // Window bounds columns are currently removed if not aliased:
+      SystemColumns.windowBoundsColumnNames().stream()
+          .map(name -> SelectExpression.of(name, new UnqualifiedColumnReferenceExp(name)))
+          .forEach(keySelects::add);
+
       projection.removeIf(keySelects::contains);
     }
 
     final LogicalSchema nodeSchema;
     if (persistent) {
-      nodeSchema = schema;
+      nodeSchema = schema.withoutPseudoAndKeyColsInValue();
     } else {
       // Transient queries return key columns in the value, so the projection includes them, and
       // the schema needs to include them too:
       final Builder builder = LogicalSchema.builder();
+
+      builder.keyColumns(parentNode.getSchema().key());
 
       schema.columns()
           .forEach(builder::valueColumn);
@@ -667,36 +682,37 @@ public class LogicalPlanner {
       }
     };
 
-    final Optional<ColumnName> keyName;
+    final ColumnName keyName;
     final SqlType keyType;
-    final Set<ColumnName> keyColumnNames;
 
     if (groupByExps.size() != 1) {
       keyType = SqlTypes.STRING;
 
-      keyName = Optional.of(ColumnNames.nextKsqlColAlias(
+      keyName = ColumnNames.nextKsqlColAlias(
           sourceSchema,
           LogicalSchema.builder()
               .valueColumns(projectionSchema.value())
               .build()
-      ));
-
-      keyColumnNames = groupBy.getGroupingExpressions().stream()
-          .map(selectResolver)
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .collect(Collectors.toSet());
-
+      );
     } else {
       final ExpressionTypeManager typeManager =
           new ExpressionTypeManager(sourceSchema, functionRegistry);
 
       final Expression expression = groupByExps.get(0);
 
-      keyName = selectResolver.apply(expression);
       keyType = typeManager.getExpressionSqlType(expression);
-      keyColumnNames = keyName.map(ImmutableSet::of).orElse(ImmutableSet.of());
+      keyName = selectResolver.apply(expression)
+          .orElseGet(() -> expression instanceof ColumnReferenceExp
+              ? ((ColumnReferenceExp) expression).getColumnName()
+              : ColumnNames.uniqueAliasFor(expression, sourceSchema)
+          );
     }
+
+    final Set<ColumnName> keyColumnNames = groupBy.getGroupingExpressions().stream()
+        .map(selectResolver)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toSet());
 
     final List<Column> valueColumns = projectionSchema.value().stream()
         .filter(col -> !keyColumnNames.contains(col.name()))
@@ -704,8 +720,7 @@ public class LogicalPlanner {
 
     final Builder builder = LogicalSchema.builder();
 
-    keyName
-        .ifPresent(name -> builder.keyColumn(name, keyType));
+    builder.keyColumn(keyName, keyType);
 
     return builder
         .valueColumns(valueColumns)

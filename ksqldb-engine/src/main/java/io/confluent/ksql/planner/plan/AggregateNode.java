@@ -156,11 +156,6 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
   }
 
   @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitAggregate(this, context);
-  }
-
-  @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
     final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(builder);

@@ -15,57 +15,62 @@
 
 package io.confluent.ksql.planner;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.testutils.AnalysisTestUtil;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetaStoreFixture;
-import java.util.Collections;
-import java.util.Set;
-import org.apache.kafka.common.utils.Utils;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class PlanSourceExtractorVisitorTest {
 
-  private MetaStore metaStore;
-  private KsqlConfig ksqlConfig;
+  private static final SourceName SOURCE_ONE = SourceName.of("ds1");
+  private static final SourceName SOURCE_TWO = SourceName.of("ds2");
+
+  @Mock
+  private DataSource ds1;
+  @Mock
+  private DataSource ds2;
+  @Mock
+  private DataSourceNode dsn1;
+  @Mock
+  private DataSourceNode dsn2;
+  @Mock
+  private PlanNode join;
+  @Mock
+  private PlanNode output;
+  private PlanSourceExtractorVisitor extractor;
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    when(ds1.getName()).thenReturn(SOURCE_ONE);
+    when(ds2.getName()).thenReturn(SOURCE_TWO);
+
+    when(dsn1.getDataSource()).thenReturn(ds1);
+    when(dsn2.getDataSource()).thenReturn(ds2);
+
+    when(join.getSources()).thenReturn(ImmutableList.of(dsn1, dsn2));
+
+    when(output.getSources()).thenReturn(ImmutableList.of(join));
+
+    extractor = new PlanSourceExtractorVisitor();
   }
 
   @Test
-  @SuppressWarnings("unchecked")
-  public void shouldExtractCorrectSourceForSimpleQuery() {
-    final PlanNode planNode = buildLogicalPlan("select col0 from TEST2 EMIT CHANGES limit 5;");
-    final PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
-    planSourceExtractorVisitor.process(planNode, null);
-    final Set<SourceName> sourceNames = planSourceExtractorVisitor.getSourceNames();
-    assertThat(sourceNames.size(), equalTo(1));
-    assertThat(sourceNames, equalTo(Utils.mkSet(SourceName.of("TEST2"))));
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  public void shouldExtractCorrectSourceForJoinQuery() {
-    final PlanNode planNode = buildLogicalPlan(
-        "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN "
-                          + "test2 t2 ON t1.col0 = t2.col0 EMIT CHANGES;");
-    final PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
-    planSourceExtractorVisitor.process(planNode, null);
-    final Set<SourceName> sourceNames = planSourceExtractorVisitor.getSourceNames();
-    assertThat(sourceNames, equalTo(Utils.mkSet(SourceName.of("TEST1"), SourceName.of("TEST2"))));
-  }
-
-  private PlanNode buildLogicalPlan(final String query) {
-    return AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
+  public void shouldExtractSourceNames() {
+    assertThat(extractor.extract(dsn1), is(ImmutableSet.of(SOURCE_ONE)));
+    assertThat(extractor.extract(dsn2), is(ImmutableSet.of(SOURCE_TWO)));
+    assertThat(extractor.extract(join), is(ImmutableSet.of(SOURCE_ONE, SOURCE_TWO)));
+    assertThat(extractor.extract(output), is(ImmutableSet.of(SOURCE_ONE, SOURCE_TWO)));
   }
 }

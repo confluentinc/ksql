@@ -55,6 +55,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Executor of {@code PreparedStatement} within a specific {@code EngineContext} and using a
@@ -325,7 +326,9 @@ final class EngineExecutor {
 
   private static Set<SourceName> getSourceNames(final PlanNode outputNode) {
     final PlanSourceExtractorVisitor visitor = new PlanSourceExtractorVisitor();
-    return visitor.extract(outputNode);
+    return visitor.extract(outputNode)
+        .map(DataSource::getName)
+        .collect(Collectors.toSet());
   }
 
   private String executeDdl(

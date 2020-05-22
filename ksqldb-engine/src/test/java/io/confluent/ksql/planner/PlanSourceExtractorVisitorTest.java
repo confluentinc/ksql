@@ -20,11 +20,11 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,9 +33,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PlanSourceExtractorVisitorTest {
-
-  private static final SourceName SOURCE_ONE = SourceName.of("ds1");
-  private static final SourceName SOURCE_TWO = SourceName.of("ds2");
 
   @Mock
   private DataSource ds1;
@@ -53,9 +50,6 @@ public class PlanSourceExtractorVisitorTest {
 
   @Before
   public void init() {
-    when(ds1.getName()).thenReturn(SOURCE_ONE);
-    when(ds2.getName()).thenReturn(SOURCE_TWO);
-
     when(dsn1.getDataSource()).thenReturn(ds1);
     when(dsn2.getDataSource()).thenReturn(ds2);
 
@@ -68,9 +62,22 @@ public class PlanSourceExtractorVisitorTest {
 
   @Test
   public void shouldExtractSourceNames() {
-    assertThat(extractor.extract(dsn1), is(ImmutableSet.of(SOURCE_ONE)));
-    assertThat(extractor.extract(dsn2), is(ImmutableSet.of(SOURCE_TWO)));
-    assertThat(extractor.extract(join), is(ImmutableSet.of(SOURCE_ONE, SOURCE_TWO)));
-    assertThat(extractor.extract(output), is(ImmutableSet.of(SOURCE_ONE, SOURCE_TWO)));
+    assertThat(extract(dsn1), is(ImmutableList.of(ds1)));
+    assertThat(extract(dsn2), is(ImmutableList.of(ds2)));
+    assertThat(extract(join), is(ImmutableList.of(ds1, ds2)));
+    assertThat(extract(output), is(ImmutableList.of(ds1, ds2)));
+  }
+
+  @Test
+  public void shouldExtractDistinct() {
+    // Given:
+    when(output.getSources()).thenReturn(ImmutableList.of(join, dsn1, dsn2));
+
+    // Then:
+    assertThat(extract(output), is(ImmutableList.of(ds1, ds2)));
+  }
+
+  private List<DataSource> extract(final PlanNode dsn1) {
+    return extractor.extract(dsn1).collect(Collectors.toList());
   }
 }

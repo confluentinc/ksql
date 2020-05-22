@@ -15,11 +15,9 @@
 
 package io.confluent.ksql.planner;
 
-import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PlanSourceExtractorVisitor {
@@ -27,16 +25,13 @@ public class PlanSourceExtractorVisitor {
   public PlanSourceExtractorVisitor() {
   }
 
-  public Set<SourceName> extract(final PlanNode node) {
-    return doExtract(node).collect(Collectors.toSet());
-  }
-
-  private Stream<SourceName> doExtract(final PlanNode node) {
+  public Stream<DataSource> extract(final PlanNode node) {
     if (node instanceof DataSourceNode) {
-      return Stream.of(((DataSourceNode) node).getDataSource().getName());
+      return Stream.of(((DataSourceNode) node).getDataSource());
     }
 
     return node.getSources().stream()
-        .flatMap(this::doExtract);
+        .flatMap(this::extract)
+        .distinct();
   }
 }

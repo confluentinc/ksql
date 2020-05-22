@@ -90,6 +90,27 @@
       }
     },
     {
+      "name": "unaliased synthetic join key",
+      "statements": [
+        "CREATE TABLE L (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE R (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT KSQL_COL_0, L.ID, R.ID, L.V0, R.V1 FROM L FULL OUTER JOIN R on L.id = R.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"V0": 2, "V1": 3}, "timestamp": 0},
+        {"topic": "right_topic", "key": 1, "value": {"V0": 4, "V1": 5}, "timestamp": 100}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1, "R_ID": null, "L_V0": 2, "R_V1": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1, "R_ID": 1, "L_V0": 2, "R_V1": 5}, "timestamp": 100}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_0 INT KEY, L_ID INT, R_ID INT, L_V0 INT, R_V1 INT"}
+        ]
+      }
+    },
+    {
       "name": "inner join - with both join column in projection",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
@@ -190,7 +211,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression JOINKEY(ABS(L.A), ABS(R.A)) in its projection.\nJOINKEY(ABS(L.A), ABS(R.A)) was added as a synthetic key column because the join criteria did not match any source column."
+        "message": "The query used to build `OUTPUT` must include the join expression KSQL_COL_0 in its projection.\nKSQL_COL_0 was added as a synthetic key column because the join criteria did not match any source column."
       }
     },
     {
@@ -254,6 +275,27 @@
       }
     },
     {
+      "name": "left join - with synthetic join column in projection",
+      "statements": [
+        "CREATE STREAM L (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM R (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT KSQL_COL_0 AS ID, L.ID, R.ID, L.V0, R.V1 FROM L LEFT JOIN R WITHIN 1 SECOND ON ABS(L.id) = ABS(R.id);"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"V0": 2, "V1": 3}, "timestamp": 0},
+        {"topic": "right_topic", "key": 1, "value": {"V0": 4, "V1": 5}, "timestamp": 100}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1, "R_ID": null, "L_V0": 2, "R_V1": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1, "R_ID": 1, "L_V0": 2, "R_V1": 5}, "timestamp": 100}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, L_ID INT, R_ID INT, L_V0 INT, R_V1 INT"}
+        ]
+      }
+    },
+    {
       "name": "left join - missing join columns in projection",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
@@ -286,7 +328,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression JOINKEY(ABS(L.A), ABS(R.A)) in its projection.\nJOINKEY(ABS(L.A), ABS(R.A)) was added as a synthetic key column because the join criteria did not match any source column."
+        "message": "The query used to build `OUTPUT` must include the join expression KSQL_COL_0 in its projection.\nKSQL_COL_0 was added as a synthetic key column because the join criteria did not match any source column."
       }
     },
     {
@@ -319,7 +361,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression JOINKEY(L.A, R.A) in its projection.\nJOINKEY(L.A, R.A) was added as a synthetic key column because the join criteria did not match any source column."
+        "message": "The query used to build `OUTPUT` must include the join expression KSQL_COL_0 in its projection.\nKSQL_COL_0 was added as a synthetic key column because the join criteria did not match any source column."
       }
     },
     {
@@ -856,7 +898,7 @@
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
         "CREATE STREAM TEST_STREAM (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
-        "CREATE STREAM OUTPUT as SELECT JOINKEY(t.id, tt.id) as ID, name, value, f1, f2 FROM test t FULL OUTER join TEST_STREAM tt WITHIN 11 seconds on t.id = tt.id;"
+        "CREATE STREAM OUTPUT as SELECT KSQL_COL_0 as ID, name, value, f1, f2 FROM test t FULL OUTER join TEST_STREAM tt WITHIN 11 seconds on t.id = tt.id;"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
@@ -984,7 +1026,7 @@
       "statements": [
         "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
         "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
-        "CREATE TABLE OUTER_JOIN as SELECT JOINKEY(T.ID, TT.ID) AS ID, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
+        "CREATE TABLE OUTER_JOIN as SELECT KSQL_COL_0 AS ID, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
@@ -1015,7 +1057,7 @@
       "statements": [
         "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
         "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
-        "CREATE TABLE OUTER_JOIN as SELECT JOINKEY(t.id, tt.id) AS ID, t.id, tt.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
+        "CREATE TABLE OUTER_JOIN as SELECT KSQL_COL_0 AS ID, t.id, tt.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
@@ -1475,6 +1517,27 @@
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition", "key": 1, "value": {"TT_KSQL_COL_3": 3, "TT_ROWTIME": 10, "TT_KSQL_COL_1": 1, "TT_KSQL_COL_0": 1}, "timestamp": 10},
         {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_2": 2}, "timestamp": 10}
       ]
+    },
+    {
+      "name": "with generated column name clashes",
+      "statements": [
+        "CREATE TABLE L (KSQL_COL_0 INT PRIMARY KEY, KSQL_COL_1 INT, KSQL_COL_2 INT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE R (KSQL_COL_3 INT PRIMARY KEY, KSQL_COL_4 INT, KSQL_COL_5 INT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT KSQL_COL_6, L.KSQL_COL_0, R.KSQL_COL_3, L.KSQL_COL_1, R.KSQL_COL_5 FROM L FULL OUTER JOIN R on L.KSQL_COL_0 = R.KSQL_COL_3;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"KSQL_COL_1": 2, "KSQL_COL_2": 3}, "timestamp": 0},
+        {"topic": "right_topic", "key": 1, "value": {"KSQL_COL_4": 4, "KSQL_COL_5": 5}, "timestamp": 100}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": 1, "KSQL_COL_3": null, "KSQL_COL_1": 2, "KSQL_COL_5": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": 1, "KSQL_COL_3": 1, "KSQL_COL_1": 2, "KSQL_COL_5": 5}, "timestamp": 100}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_6 INT KEY, KSQL_COL_0 INT, KSQL_COL_3 INT, KSQL_COL_1 INT, KSQL_COL_5 INT"}
+        ]
+      }
     },
     {
       "name": "stream stream join - contains subscript",

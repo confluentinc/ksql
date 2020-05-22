@@ -500,11 +500,9 @@ public class LogicalPlanner {
   }
 
   private JoinKey buildJoinKey(final Join join) {
-    final JoinInfo info = join.getInfo();
-
     final List<QualifiedColumnReferenceExp> viableKeyColumns = join.viableKeyColumns();
     if (viableKeyColumns.isEmpty()) {
-      return JoinKey.syntheticColumn(info.getLeftJoinExpression(), info.getRightJoinExpression());
+      return JoinKey.syntheticColumn();
     }
 
     final Projection projection = Projection.of(analysis.original().getSelectItems());

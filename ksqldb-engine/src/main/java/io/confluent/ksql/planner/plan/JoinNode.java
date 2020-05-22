@@ -30,15 +30,15 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.streams.JoinParamsFactory;
-import io.confluent.ksql.function.udf.JoinKeyUdf;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.planner.RequiredColumns.Builder;
@@ -157,10 +157,6 @@ public class JoinNode extends PlanNode {
     return Streams.concat(Stream.of(syntheticKey.name()), names);
   }
 
-  public Expression resolveSelect(final int idx, final Expression expression) {
-    return joinKey.resolveSelect(expression, getSchema());
-  }
-
   @Override
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
 
@@ -168,7 +164,7 @@ public class JoinNode extends PlanNode {
         .anyMatch(projection::containsExpression);
 
     if (!atLeastOneKey) {
-      final List<? extends Expression> originalKeys = joinKey.getOriginalViableKeys();
+      final List<? extends Expression> originalKeys = joinKey.getOriginalViableKeys(schema);
 
       final Optional<Expression> syntheticKey = joinKey.isSynthetic()
           ? Optional.of(originalKeys.get(0))
@@ -472,7 +468,7 @@ public class JoinNode extends PlanNode {
       final PlanNode left,
       final PlanNode right
   ) {
-    final ColumnName keyName = joinKey.resolveKeyName(left.getSchema(), right.getSchema());
+    final ColumnName keyName = joinKey.resolveKeyName(left, right);
     return JoinParamsFactory.createSchema(keyName, left.getSchema(), right.getSchema());
   }
 
@@ -486,8 +482,8 @@ public class JoinNode extends PlanNode {
       return SourceJoinKey.of(keyColumn, viableKeyColumns);
     }
 
-    static JoinKey syntheticColumn(final Expression leftJoinExp, final Expression rightJoinExp) {
-      return SyntheticJoinKey.of(leftJoinExp, rightJoinExp);
+    static JoinKey syntheticColumn() {
+      return SyntheticJoinKey.of();
     }
 
     /**
@@ -496,29 +492,21 @@ public class JoinNode extends PlanNode {
     boolean isSynthetic();
 
     /**
+     * @param schema the join schema.
      * @return the list of all viable key expressions.
      */
     List<? extends Expression> getAllViableKeys(LogicalSchema schema);
 
     /**
+     * @param schema the join schema.
      * @return the list of viable key expressions, without any rewriting applied.
      */
-    List<? extends Expression> getOriginalViableKeys();
+    List<? extends Expression> getOriginalViableKeys(LogicalSchema schema);
 
     /**
      * @return Given the left and right schemas, the name of the join key.
      */
-    ColumnName resolveKeyName(LogicalSchema left, LogicalSchema right);
-
-    /**
-     * Called to potentially resolve a {@link JoinKeyUdf} expression into the synthetic column
-     * name.
-     *
-     * @param expression the expression to resolve.
-     * @param schema the joined schema.
-     * @return the resolved expression.
-     */
-    Expression resolveSelect(Expression expression, LogicalSchema schema);
+    ColumnName resolveKeyName(PlanNode left, PlanNode right);
 
     /**
      * Rewrite the join key with the supplied plugin.
@@ -529,7 +517,7 @@ public class JoinNode extends PlanNode {
     JoinKey rewriteWith(BiFunction<Expression, Context<Void>, Optional<Expression>> plugin);
   }
 
-  public static final class SourceJoinKey implements JoinKey {
+  private static final class SourceJoinKey implements JoinKey {
 
     private final ColumnName keyColumn;
     private final ImmutableList<QualifiedColumnReferenceExp> originalViableKeyColumns;
@@ -568,18 +556,13 @@ public class JoinNode extends PlanNode {
     }
 
     @Override
-    public List<? extends Expression> getOriginalViableKeys() {
+    public List<? extends Expression> getOriginalViableKeys(final LogicalSchema schema) {
       return originalViableKeyColumns;
     }
 
     @Override
-    public ColumnName resolveKeyName(final LogicalSchema left, final LogicalSchema right) {
+    public ColumnName resolveKeyName(final PlanNode left, final PlanNode right) {
       return keyColumn;
-    }
-
-    @Override
-    public Expression resolveSelect(final Expression expression, final LogicalSchema schema) {
-      return expression;
     }
 
     @Override
@@ -594,23 +577,13 @@ public class JoinNode extends PlanNode {
     }
   }
 
-  public static final class SyntheticJoinKey implements JoinKey {
+  private static final class SyntheticJoinKey implements JoinKey {
 
-    private final FunctionCall originalJoinKeyUdf;
-    private final FunctionCall joinKeyUdf;
-
-    static JoinKey of(final Expression leftJoinExp, final Expression rightJoinExp) {
-      final FunctionCall udf = new FunctionCall(
-          JoinKeyUdf.NAME,
-          ImmutableList.of(leftJoinExp, rightJoinExp)
-      );
-
-      return new SyntheticJoinKey(udf, udf);
+    static JoinKey of() {
+      return new SyntheticJoinKey();
     }
 
-    private SyntheticJoinKey(final FunctionCall originalJoinKeyUdf, final FunctionCall joinKeyUdf) {
-      this.originalJoinKeyUdf = requireNonNull(originalJoinKeyUdf, "originalJoinKeyUdf");
-      this.joinKeyUdf = requireNonNull(joinKeyUdf, "joinKeyUdf");
+    private SyntheticJoinKey() {
     }
 
     @Override
@@ -620,41 +593,39 @@ public class JoinNode extends PlanNode {
 
     @Override
     public List<? extends Expression> getAllViableKeys(final LogicalSchema schema) {
-      return ImmutableList.<Expression>builder()
-          .add(joinKeyUdf)
-          .add(originalJoinKeyUdf)
-          .add(new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(schema.key()).name()))
-          .build();
+      return getOriginalViableKeys(schema);
     }
 
     @Override
-    public List<? extends Expression> getOriginalViableKeys() {
-      return ImmutableList.of(originalJoinKeyUdf);
+    public List<? extends Expression> getOriginalViableKeys(final LogicalSchema schema) {
+      return ImmutableList.of(
+          new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(schema.key()).name())
+      );
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     @Override
-    public ColumnName resolveKeyName(final LogicalSchema left, final LogicalSchema right) {
-      return ColumnNames.nextKsqlColAlias(left, right);
-    }
+    public ColumnName resolveKeyName(final PlanNode left, final PlanNode right) {
+      // Need to collect source schemas from both sides to ensure a unique synthetic key column:
+      // Only source schemas need be included as any synthetic keys introduced by internal
+      // re-partitions or earlier joins in multi-way joins are only implementation details and
+      // should not affect the naming of the synthetic key column.
 
-    @Override
-    public Expression resolveSelect(
-        final Expression expression,
-        final LogicalSchema schema
-    ) {
-      return joinKeyUdf.equals(expression)
-          ? new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(schema.key()).name())
-          : expression;
+      final PlanSourceExtractorVisitor extractor = new PlanSourceExtractorVisitor();
+
+      final LogicalSchema[] schemas = Streams
+          .concat(extractor.extract(left), extractor.extract(right))
+          .map(DataSource::getSchema)
+          .toArray(LogicalSchema[]::new);
+
+      return ColumnNames.nextKsqlColAlias(schemas);
     }
 
     @Override
     public JoinKey rewriteWith(
         final BiFunction<Expression, Context<Void>, Optional<Expression>> plugin
     ) {
-      final FunctionCall rewritten = ExpressionTreeRewriter
-          .rewriteWith(plugin, joinKeyUdf);
-
-      return new SyntheticJoinKey(originalJoinKeyUdf, rewritten);
+      return this;
     }
   }
 }

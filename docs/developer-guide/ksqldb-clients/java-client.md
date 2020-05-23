@@ -3,6 +3,7 @@ layout: page
 title: Java Client for ksqlDB
 tagline: Java client for ksqlDB
 description: Send requests to ksqlDB from your Java app
+keywords: ksqlDB, java, client
 ---
 
 Use the Java client to:
@@ -96,7 +97,7 @@ For additional client options, see [the API reference](TODO).
 Receive query results one row at a time (streamQuery())<a name="stream-query"></a>
 ----------------------------------------------------------------------------------
 
-The `streamQuery()` method allows client apps to receive query results one row at a time,
+The `streamQuery()` method enables client apps to receive query results one row at a time,
 either asynchronously via a Reactive Streams subscriber or synchronously in a polling fashion.
 
 ```java
@@ -124,17 +125,17 @@ public interface Client {
 }
 ```
 
-This method may be used to issue both push and pull queries, though the usage pattern is most suited for push queries.
+You can use this method to issue both push and pull queries, but the usage pattern is better for push queries.
 For pull queries, consider [the `executeQuery()` method](./execute-query.md) instead. 
 
-Query properties can be passed as an optional second argument. See the [client API reference](TODO) for more.
+Query properties can be passed as an optional second argument. For more information, see the [client API reference](TODO).
 
 By default, push queries return results starting from the beginning of the stream or table.
-To instead start from the end and only receive newly arriving rows, set the property `auto.offset.reset` to `latest`.
+To start from the end and receive only newly arriving rows, set the `auto.offset.reset` property to `latest`.
 
 ### Asynchronous Usage ###
 
-To consume records in an asynchronous fashion, first create a Reactive Streams subscriber to receive query result rows:
+To consume records asynchronously, create a [Reactive Streams](http://www.reactive-streams.org/) subscriber to receive query result rows:
 
 ```java
 import io.confluent.ksql.api.client.Row;
@@ -176,7 +177,7 @@ public class RowSubscriber implements Subscriber<Row> {
 }
 ```
 
-Then, use the client to send the query result to the server and stream results to the subscriber:
+Use the Java client to send the query result to the server and stream results to the subscriber:
 
 ```java
 client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;")
@@ -195,9 +196,9 @@ client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;")
 ### Synchronous Usage ###
 
 To consume records one-at-a-time in a synchronous fashion, use the `poll()` method on the query result object.
-If `poll()` is called with no arguments, `poll()` will block until a new row becomes available or the query is terminated.
-You can also pass a `Duration` argument to `poll()` which will cause `poll()` to return null if no new rows are received by the time the duration has elapsed.
-See [the API reference](TODO) for more.
+If `poll()` is called with no arguments, `poll()` blocks until a new row becomes available or the query is terminated.
+You can also pass a `Duration` argument to `poll()`, which causes `poll()` to return `null` if no new rows are received by the time the duration has elapsed.
+For more information, see the [API reference](TODO).
 
 ```java
 final StreamedQueryResult streamedQueryResult;
@@ -223,8 +224,8 @@ for (int i = 0; i < 10; i++) {
 Receive query results in a single batch (executeQuery())<a name="execute-query"></a>
 ------------------------------------------------------------------------------------
 
-The `executeQuery()` method allows client apps to receive query results as a single batch,
-returned once the query has completed.
+The `executeQuery()` method enables client apps to receive query results as a single batch
+that's returned when the query completes.
 
 ```java
 public interface Client {
@@ -248,13 +249,13 @@ public interface Client {
 }
 ```
 
-This method is suitable for both pull queries as well as terminating push queries (e.g., those with a `LIMIT` clause).
+This method is suitable for both pull queries and for terminating push queries, for example, queries that have a `LIMIT` clause).
 For non-temrinating push queries, use [the `streamQuery()` method](./stream-query.md) instead. 
 
-Query properties can be passed as an optional second argument. See the [client API reference](TODO) for more.
+Query properties can be passed as an optional second argument. For more information, see the [client API reference](TODO).
 
 By default, push queries return results starting from the beginning of the stream or table.
-To instead start from the end and only receive newly arriving rows, set the property `auto.offset.reset` to `latest`.
+To start from the end and receive only newly arriving rows, set the `auto.offset.reset` property to `latest`.
 
 ### Example Usage ###
 
@@ -279,7 +280,7 @@ for (final Row row : resultRows) {
 Terminate a push query (terminatePushQuery())<a name="terminate-push-query"></a>
 --------------------------------------------------------------------------------
 
-The `terminatePushQuery()` method allows client apps to terminate push queries.
+The `terminatePushQuery()` method enables client apps to terminate push queries.
 
 ```java
 public interface Client {
@@ -300,12 +301,12 @@ public interface Client {
 }
 ```
 
-The query ID is obtained from the query result response object when push queries are issued via the client,
-via either [`streamQuery()`](./stream-query.md) or [`executeQuery()`](./execute-query.md).
+The query ID is obtained from the query result response object when the client issues push queries,
+by using either the [`streamQuery()`](./stream-query.md) or [`executeQuery()`](./execute-query.md) methods.
 
 ### Example Usage ###
 
-Here's an example of terminating a push query issued via `streamQuery()`:
+Here's an example of terminating a push query issued using the `streamQuery()` method:
 
 ```java
 final StreamedQueryResult streamedQueryResult;
@@ -326,7 +327,7 @@ try {
 }
 ```
 
-And here's an analogous example for terminating a push query issued via `executeQuery()`:
+And here's an analogous example for terminating a push query issued using the `executeQuery()` method:
 
 ```java
 final String pullQuery = "SELECT * FROM MY_STREAM EMIT CHANGES LIMIT 10;";
@@ -350,7 +351,7 @@ try {
 Insert a new row into a stream (insertInto())<a name="insert-into"></a>
 -----------------------------------------------------------------------
 
-Client apps can insert new rows of data into existing ksqlDB streams via the `insertInto()` method.
+Client apps can insert new rows of data into existing ksqlDB streams by using the `insertInto()` method.
 
 ```java
 public interface Client {

@@ -8,3 +8,4 @@ keywords: ksqldb, join
 
 - [Join Event Streams](join-streams-and-tables.md)
 - [Partition Data to Enable Joins](partition-data.md)
+- [Synthetic key columns](synthetic-keys.md)

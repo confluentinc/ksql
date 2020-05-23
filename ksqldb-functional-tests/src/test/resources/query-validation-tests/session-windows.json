@@ -73,6 +73,36 @@
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
         "message": "'WINDOW_SIZE' should not be set for SESSION windows."
       }
+    },
+    {
+      "name": "session start stream",
+      "statements": [
+        "CREATE STREAM DATA (USER_ID INT) WITH (kafka_topic='data', value_format='JSON');",
+        "CREATE TABLE SESSIONS as SELECT USER_ID, COUNT(USER_ID) AS COUNT FROM DATA WINDOW SESSION (5 SECONDS) group by USER_ID;",
+        "CREATE STREAM SESSION_STREAM (USER_ID INT KEY, COUNT BIGINT) WITH (kafka_topic='SESSIONS', value_format='JSON', window_type='Session');",
+        "CREATE STREAM SESSION_STARTS AS SELECT * FROM SESSION_STREAM WHERE WINDOWSTART = WINDOWEND;"
+      ],
+      "inputs": [
+        {"topic": "data", "value": {"user_id": 5}, "timestamp": 0},
+        {"topic": "data", "value": {"user_id": 5}, "timestamp": 1000},
+        {"topic": "data", "value": {"user_id": 5}, "timestamp": 2000},
+        {"topic": "data", "value": {"user_id": 5}, "timestamp": 70000}
+      ],
+      "outputs": [
+        {"topic": "SESSIONS", "key": 5, "value": {"COUNT": 1}, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "SESSIONS", "key": 5, "value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "SESSIONS", "key": 5, "value": {"COUNT": 2}, "timestamp": 1000, "window": {"start": 0, "end": 1000, "type": "session"}},
+        {"topic": "SESSIONS", "key": 5, "value": null, "timestamp": 1000, "window": {"start": 0, "end": 1000, "type": "session"}},
+        {"topic": "SESSIONS", "key": 5, "value": {"COUNT": 3}, "timestamp": 2000, "window": {"start": 0, "end": 2000, "type": "session"}},
+        {"topic": "SESSIONS", "key": 5, "value": {"COUNT": 1}, "timestamp": 70000, "window": {"start": 70000, "end": 70000, "type": "session"}},
+        {"topic": "SESSION_STARTS", "key": 5, "value": {"COUNT": 1}, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "SESSION_STARTS", "key": 5, "value": {"COUNT": 1}, "timestamp": 70000, "window": {"start": 70000, "end": 70000, "type": "session"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "SESSION_STARTS", "type": "stream", "schema": "USER_ID INT KEY, COUNT BIGINT"}
+        ]
+      }
     }
   ]
 }

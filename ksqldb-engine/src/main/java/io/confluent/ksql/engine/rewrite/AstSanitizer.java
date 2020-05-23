@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -32,19 +33,29 @@ import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.util.AmbiguousColumnException;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.UnknownSourceException;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
 /**
  * Validate and clean ASTs generated from externally supplied statements
+ *
+ * <p>Ensures the follow:
+ * <ol>
+ *   <li>INSERT INTO statements are inserting into a STREAM, not a TABLE.</li>
+ *   <li>All source table and stream are known.</li>
+ *   <li>No unqualified column references are ambiguous</li>
+ *   <li>All single column select items have an alias set
+ *   that ensures they are unique across all sources</li>
+ * </ol>
  */
 public final class AstSanitizer {
   private AstSanitizer() {
@@ -54,10 +65,12 @@ public final class AstSanitizer {
     final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
     dataSourceExtractor.extractDataSources(node);
 
-    final RewriterPlugin rewriterPlugin = new RewriterPlugin(metaStore, dataSourceExtractor);
+    final RewriterPlugin rewriterPlugin =
+        new RewriterPlugin(metaStore, dataSourceExtractor);
 
     final ExpressionRewriterPlugin expressionRewriterPlugin =
-        new ExpressionRewriterPlugin(metaStore, dataSourceExtractor);
+        new ExpressionRewriterPlugin(dataSourceExtractor);
+
     final BiFunction<Expression, Void, Expression> expressionRewriter =
         (e, v) -> ExpressionTreeRewriter.rewriteWith(expressionRewriterPlugin::process, e, v);
 
@@ -67,12 +80,15 @@ public final class AstSanitizer {
 
   private static final class RewriterPlugin extends
       AstVisitor<Optional<AstNode>, StatementRewriter.Context<Void>> {
-    final MetaStore metaStore;
-    final DataSourceExtractor dataSourceExtractor;
 
+    private final MetaStore metaStore;
+    private final DataSourceExtractor dataSourceExtractor;
     private final ColumnAliasGenerator aliasGenerator;
 
-    RewriterPlugin(final MetaStore metaStore, final DataSourceExtractor dataSourceExtractor) {
+    RewriterPlugin(
+        final MetaStore metaStore,
+        final DataSourceExtractor dataSourceExtractor
+    ) {
       super(Optional.empty());
       this.metaStore = requireNonNull(metaStore, "metaStore");
       this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
@@ -88,27 +104,26 @@ public final class AstSanitizer {
         final InsertInto node,
         final StatementRewriter.Context<Void> ctx
     ) {
-      final DataSource target = getSource(
-          node.getTarget(),
-          node.getLocation().map(
-              l -> new NodeLocation(
-                  l.getLineNumber(),
-                  l.getColumnNumber() +  "INSERT INTO".length()
-              )
-          )
-      );
+      final DataSource target = metaStore.getSource(node.getTarget());
+      if (target == null) {
+        final Optional<NodeLocation> targetLocation = node.getLocation()
+            .map(
+                l -> new NodeLocation(
+                    l.getLineNumber(),
+                    l.getColumnNumber() + "INSERT INTO".length()
+                )
+            );
+
+        throw new UnknownSourceException(targetLocation, node.getTarget());
+      }
+
       if (target.getDataSourceType() != DataSourceType.KSTREAM) {
         throw new KsqlException(
             "INSERT INTO can only be used to insert into a stream. "
                 + target.getName().toString(FormatOptions.noEscape()) + " is a table.");
       }
-      return Optional.of(
-          new InsertInto(
-              node.getLocation(),
-              node.getTarget(),
-              (Query) ctx.process(node.getQuery())
-          )
-      );
+
+      return Optional.empty();
     }
 
     @Override
@@ -122,16 +137,15 @@ public final class AstSanitizer {
 
       final ColumnName alias;
       final Expression expression = ctx.process(singleColumn.getExpression());
-      if (expression instanceof QualifiedColumnReferenceExp) {
-        final SourceName source = ((QualifiedColumnReferenceExp) expression).getQualifier();
-        final ColumnName name = ((QualifiedColumnReferenceExp) expression).getColumnName();
-        if (dataSourceExtractor.isClashingColumnName(name)) {
-          alias = ColumnNames.generatedJoinColumnAlias(source, name);
+
+      if (expression instanceof ColumnReferenceExp) {
+        final Optional<SourceName> source = ((ColumnReferenceExp) expression).maybeQualifier();
+        final ColumnName name = ((ColumnReferenceExp) expression).getColumnName();
+        if (source.isPresent() && dataSourceExtractor.isClashingColumnName(name)) {
+          alias = ColumnNames.generatedJoinColumnAlias(source.get(), name);
         } else {
           alias = name;
         }
-      } else if (expression instanceof UnqualifiedColumnReferenceExp) {
-        alias = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
       } else {
         alias = aliasGenerator.uniqueAliasFor(expression);
       }
@@ -140,31 +154,15 @@ public final class AstSanitizer {
           new SingleColumn(singleColumn.getLocation(), expression, Optional.of(alias))
       );
     }
-
-    private DataSource getSource(
-        final SourceName name,
-        final Optional<NodeLocation> location
-    ) {
-      final DataSource source = metaStore.getSource(name);
-      if (source == null) {
-        throw new InvalidColumnReferenceException(location, "Source " + name + " does not exist.");
-      }
-
-      return source;
-    }
   }
 
   private static final class ExpressionRewriterPlugin extends
       VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
-    final MetaStore metaStore;
-    final DataSourceExtractor dataSourceExtractor;
 
-    ExpressionRewriterPlugin(
-        final MetaStore metaStore,
-        final DataSourceExtractor dataSourceExtractor
-    ) {
+    private final DataSourceExtractor dataSourceExtractor;
+
+    ExpressionRewriterPlugin(final DataSourceExtractor dataSourceExtractor) {
       super(Optional.empty());
-      this.metaStore = requireNonNull(metaStore, "metaStore");
       this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
     }
 
@@ -178,12 +176,11 @@ public final class AstSanitizer {
       final List<SourceName> sourceNames = dataSourceExtractor.getSourcesFor(columnName);
 
       if (sourceNames.size() > 1) {
-        throw new InvalidColumnReferenceException(
-            expression.getLocation(), "Column " + columnName + " is ambiguous.");
+        throw new AmbiguousColumnException(expression, sourceNames);
       }
 
       if (sourceNames.isEmpty()) {
-        // Maybe a synthetic column - unknown columns are handled later.
+        // Unknown column: handled later.
         return Optional.empty();
       }
 
@@ -194,16 +191,6 @@ public final class AstSanitizer {
               columnName
           )
       );
-    }
-  }
-
-  public static final class InvalidColumnReferenceException extends KsqlException {
-
-    public InvalidColumnReferenceException(
-        final Optional<NodeLocation> location,
-        final String message
-    ) {
-      super(NodeLocation.asPrefix(location) + message);
     }
   }
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.expression.tree;
 
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,4 +36,6 @@ public abstract class ColumnReferenceExp extends Expression {
   public ColumnName getColumnName() {
     return name;
   }
+
+  public abstract Optional<SourceName> maybeQualifier();
 }

@@ -15,7 +15,12 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +35,9 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -44,14 +52,10 @@ public class FinalProjectNodeTest {
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
   private static final SourceName SOURCE_NAME = SourceName.of("Bob");
   private static final ColumnName COL0 = ColumnName.of("COL0");
-  private static final ColumnName COL1 = ColumnName.of("COL1");
   private static final ColumnName ALIAS = ColumnName.of("GRACE");
 
   private static final UnqualifiedColumnReferenceExp COL0_REF =
       new UnqualifiedColumnReferenceExp(COL0);
-
-  private static final UnqualifiedColumnReferenceExp COL1_REF =
-      new UnqualifiedColumnReferenceExp(COL1);
 
   @Mock
   private PlanNode source;
@@ -64,6 +68,12 @@ public class FinalProjectNodeTest {
   @Before
   public void setUp() {
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
+    when(source.resolveSelect(anyInt(), any())).thenAnswer(inv -> inv.getArgument(1));
+    when(source.getSchema()).thenReturn(LogicalSchema.builder()
+        .keyColumn(ColumnName.of("K"), SqlTypes.STRING)
+        .valueColumn(COL0, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .build());
 
     selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
 
@@ -71,8 +81,8 @@ public class FinalProjectNodeTest {
         NODE_ID,
         source,
         selects,
-        true
-    );
+        true,
+        functionRegistry);
   }
 
   @Test
@@ -85,14 +95,51 @@ public class FinalProjectNodeTest {
   }
 
   @Test
-  public void shouldValidateColumnsByCallingSourceWithProjection() {
+  public void shouldNotThrowOnSyntheticKeyColumnInProjection() {
     // Given:
-    when(source.validateColumns(any())).thenReturn(ImmutableSet.of(COL0_REF));
+    clearInvocations(source);
+
+    final UnqualifiedColumnReferenceExp syntheticKeyRef =
+        new UnqualifiedColumnReferenceExp(ColumnName.of("ROWKEY"));
+
+    selects = ImmutableList.of(new SingleColumn(syntheticKeyRef, Optional.of(ALIAS)));
 
     // When:
-    projectNode.validateColumns(functionRegistry);
+    new FinalProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        true,
+        functionRegistry);
 
     // Then:
-    verify(source).validateColumns(RequiredColumns.builder().add(COL0_REF).build());
+    verify(source).validateColumns(RequiredColumns.builder().add(syntheticKeyRef).build());
+  }
+
+  @Test
+  public void shouldThrowOnUnknownSyntheticKeyLikeColumnInProjection() {
+    // Given:
+    clearInvocations(source);
+
+    final UnqualifiedColumnReferenceExp syntheticKeyRef =
+        new UnqualifiedColumnReferenceExp(ColumnName.of("ROWKEY"));
+
+    when(source.validateColumns(any())).thenReturn(ImmutableSet.of(syntheticKeyRef));
+
+    selects = ImmutableList.of(new SingleColumn(syntheticKeyRef, Optional.of(ALIAS)));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> new FinalProjectNode(
+            NODE_ID,
+            source,
+            selects,
+            true,
+            functionRegistry)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Column 'ROWKEY' cannot be resolved."));
   }
 }

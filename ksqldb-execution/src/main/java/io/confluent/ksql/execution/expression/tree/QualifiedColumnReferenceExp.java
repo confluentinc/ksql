@@ -41,6 +41,10 @@ public class QualifiedColumnReferenceExp extends ColumnReferenceExp {
     return qualifier;
   }
 
+  public Optional<SourceName> maybeQualifier() {
+    return Optional.of(qualifier);
+  }
+
   @Override
   public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitQualifiedColumnReference(this, context);

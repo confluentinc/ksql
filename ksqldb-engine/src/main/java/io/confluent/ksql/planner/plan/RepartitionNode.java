@@ -15,47 +15,33 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.util.GrammaticalJoiner.and;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
 
-public class RepartitionNode extends PlanNode {
+public abstract class RepartitionNode extends PlanNode {
 
   private final PlanNode source;
-  private final Expression originalPartitionBy;
   private final Expression partitionBy;
   private final LogicalSchema schema;
-  private final boolean internal;
 
   public RepartitionNode(
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Expression originalPartitionBy,
-      final Expression partitionBy,
-      final boolean internal
+      final Expression partitionBy
   ) {
     super(id, source.getNodeOutputType(), source.getSourceName());
     this.schema = requireNonNull(schema, "schema");
     this.source = requireNonNull(source, "source");
-    this.originalPartitionBy = requireNonNull(originalPartitionBy, "originalPartitionBy");
     this.partitionBy = requireNonNull(partitionBy, "partitionBy");
-    this.internal = internal;
   }
 
   @Override
@@ -85,37 +71,5 @@ public class RepartitionNode extends PlanNode {
   @VisibleForTesting
   public Expression getPartitionBy() {
     return partitionBy;
-  }
-
-  public Expression resolveSelect(final int idx, final Expression expression) {
-    return partitionBy.equals(expression)
-        ? new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(getSchema().key()).name())
-        : expression;
-  }
-
-  @Override
-  public Stream<ColumnName> resolveSelectStar(
-      final Optional<SourceName> sourceName
-  ) {
-    if (sourceName.isPresent() && !sourceName.equals(getSourceName())) {
-      throw new IllegalArgumentException("Expected sourceName of " + getSourceName()
-          + ", but was " + sourceName.get());
-    }
-
-    if (internal) {
-      // An internal repartition is an impl detail, so should not change the set of columns:
-      return source.resolveSelectStar(sourceName);
-    }
-
-    // Note: the 'value' columns include the key columns at this point:
-    return orderColumns(getSchema().value(), getSchema());
-  }
-
-  @Override
-  void validateKeyPresent(final SourceName sinkName, final Projection projection) {
-    if (!projection.containsExpression(partitionBy)) {
-      final ImmutableList<Expression> keys = ImmutableList.of(originalPartitionBy);
-      throwKeysNotIncludedError(sinkName, "partitioning expression", keys, and());
-    }
   }
 }

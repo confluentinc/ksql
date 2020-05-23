@@ -18,15 +18,12 @@ package io.confluent.ksql.planner.plan;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 public class FilterNode extends PlanNode {
 
@@ -76,16 +73,5 @@ public class FilterNode extends PlanNode {
             getPredicate(),
             contextStacker
         );
-  }
-
-  @Override
-  protected Set<ColumnReferenceExp> validateColumns(
-      final RequiredColumns requiredColumns
-  ) {
-    final RequiredColumns updated = requiredColumns.asBuilder()
-        .add(predicate)
-        .build();
-
-    return source.validateColumns(updated);
   }
 }

@@ -49,17 +49,20 @@ public final class KsqlClient implements AutoCloseable {
   private final HttpClient httpTlsClient;
   private final LocalProperties localProperties;
   private final Optional<String> basicAuthHeader;
+  private final Optional<HostAliasResolver> hostAliasResolver;
 
   public KsqlClient(
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
-      final HttpClientOptions httpClientOptions
+      final HttpClientOptions httpClientOptions,
+      final Optional<HostAliasResolver> hostAliasResolver
   ) {
     this.vertx = Vertx.vertx();
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
+    this.hostAliasResolver = Objects.requireNonNull(hostAliasResolver, "hostAliasResolver");
     this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false, false);
     this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true, false);
   }
@@ -69,12 +72,14 @@ public final class KsqlClient implements AutoCloseable {
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
       final HttpClientOptions httpClientOptions,
-      final boolean verifyHost
+      final boolean verifyHost,
+      final Optional<HostAliasResolver> hostAliasResolver
   ) {
     this.vertx = Vertx.vertx();
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
+    this.hostAliasResolver = Objects.requireNonNull(hostAliasResolver, "hostAliasResolver");
     this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false, false);
     this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true,
         verifyHost);
@@ -83,9 +88,11 @@ public final class KsqlClient implements AutoCloseable {
   public KsqlTarget target(final URI server) {
     final boolean isUriTls = server.getScheme().equalsIgnoreCase("https");
     final HttpClient client = isUriTls ? httpTlsClient : httpNonTlsClient;
+    String aliasHost = hostAliasResolver.map(resolver -> resolver.resolve(server.getHost()))
+        .orElse(server.getHost());
     return new KsqlTarget(client,
-        SocketAddress.inetSocketAddress(server.getPort(), server.getHost()), localProperties,
-        basicAuthHeader);
+        SocketAddress.inetSocketAddress(server.getPort(), aliasHost), localProperties,
+        basicAuthHeader, server.getHost());
   }
 
   public void close() {

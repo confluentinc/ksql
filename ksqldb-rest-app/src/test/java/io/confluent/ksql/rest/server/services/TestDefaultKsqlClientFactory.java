@@ -1,5 +1,6 @@
 package io.confluent.ksql.rest.server.services;
 
+import io.confluent.ksql.rest.client.HostAliasResolver;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import java.util.Map;
 import java.util.Optional;
@@ -11,8 +12,9 @@ import java.util.Optional;
 public class TestDefaultKsqlClientFactory {
 
   // Creates an instance with no auth
-  public static SimpleKsqlClient instance(Map<String, Object> clientProps) {
-    return new DefaultKsqlClient(Optional.empty(), clientProps);
+  public static SimpleKsqlClient instance(Map<String, Object> clientProps,
+      final Optional<HostAliasResolver> hostAliasResolver) {
+    return new DefaultKsqlClient(Optional.empty(), clientProps, hostAliasResolver);
   }
 
 }

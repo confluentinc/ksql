@@ -283,8 +283,7 @@ public class Server {
         .setPerFrameWebSocketCompressionSupported(true);
 
     if (tls) {
-        setTlsOptions(ksqlRestConfig, options,
-            isInternalListener.isPresent() && isInternalListener.get());
+        setTlsOptions(ksqlRestConfig, options, isInternalListener);
     }
     return options;
   }
@@ -292,9 +291,15 @@ public class Server {
   private static void setTlsOptions(
       final KsqlRestConfig ksqlRestConfig,
       final HttpServerOptions options,
-      final boolean isInternalListener
+      final Optional<Boolean> isInternalListener
   ) {
     options.setUseAlpn(true).setSsl(true);
+
+    // If we're using https and internal listeners are enabled, allow for other certificates in
+    // the keystore to be used.
+    if (isInternalListener.isPresent()) {
+      options.setSni(true);
+    }
 
     final String keyStorePath = ksqlRestConfig
         .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
@@ -314,7 +319,7 @@ public class Server {
           new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
     }
 
-    options.setClientAuth(isInternalListener
+    options.setClientAuth(isInternalListener.isPresent() && isInternalListener.get()
         ? ksqlRestConfig.getClientAuthInternal()
         : ksqlRestConfig.getClientAuth());
   }

@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.rest.client.HostAliasResolver;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlTarget;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -50,16 +51,18 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private final KsqlClient sharedClient;
   private final KsqlClient internalClient;
 
-  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps) {
+  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps,
+      final Optional<HostAliasResolver> hostAliasResolver) {
     this(
         authHeader,
         new KsqlClient(
             toClientProps(clientProps),
             Optional.empty(),
             new LocalProperties(ImmutableMap.of()),
-            createClientOptions()
+            createClientOptions(),
+            hostAliasResolver
         ),
-        getInternalClient(toClientProps(clientProps))
+        getInternalClient(toClientProps(clientProps), hostAliasResolver)
     );
   }
 
@@ -172,7 +175,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     return clientProps;
   }
 
-  private static KsqlClient getInternalClient(final Map<String, String> clientProps) {
+  private static KsqlClient getInternalClient(final Map<String, String> clientProps,
+      final Optional<HostAliasResolver> hostAliasResolver) {
     boolean verifyHost =
         !KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE.equals(clientProps.get(
         KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG));
@@ -181,7 +185,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         Optional.empty(),
         new LocalProperties(ImmutableMap.of()),
         createClientOptions(),
-        verifyHost
+        verifyHost,
+        hostAliasResolver
     );
   }
 }

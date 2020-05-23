@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.rest.client.HostAliasResolver;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -78,6 +79,25 @@ public final class RestIntegrationTestUtil {
       final Optional<BasicCredentials> userCreds
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
+
+      final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
+
+      throwOnError(res);
+
+      return awaitResults(restClient, res.getResponse());
+    }
+  }
+
+  static List<KsqlEntity> makeKsqlRequest(
+      final Map<String, String> clientProps,
+      final URI serverAddress,
+      final boolean verifyHost,
+      final String sql,
+      final Optional<BasicCredentials> userCreds,
+      final Optional<HostAliasResolver> hostAliasResolver
+  ) {
+    try (final KsqlRestClient restClient = TestKsqlRestApp.buildKsqlClient(
+        clientProps, serverAddress, verifyHost, userCreds, hostAliasResolver)) {
 
       final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
 
@@ -280,6 +300,25 @@ public final class RestIntegrationTestUtil {
             + " (" + dataProvider.ksqlSchemaString(false) + ") "
             + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');",
         userCreds
+    );
+  }
+
+  public static void createStream(
+      final Map<String, String> clientProps,
+      final URI serverAddress,
+      final boolean verifyHost,
+      final TestDataProvider<?> dataProvider,
+      final Optional<BasicCredentials> userCreds,
+      final Optional<HostAliasResolver> hostAliasResolver) {
+    makeKsqlRequest(
+        clientProps,
+        serverAddress,
+        verifyHost,
+        "CREATE STREAM " + dataProvider.kstreamName()
+            + " (" + dataProvider.ksqlSchemaString(false) + ") "
+            + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');",
+        userCreds,
+        hostAliasResolver
     );
   }
 

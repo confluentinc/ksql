@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.rest.client.HostAliasResolver;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -176,6 +177,22 @@ public class TestKsqlRestApp extends ExternalResource {
         ImmutableMap.of(),
         ImmutableMap.of(),
         credentials
+    );
+  }
+
+  public static KsqlRestClient buildKsqlClient(
+      final Map<String, String> clientProps,
+      final URI serverAddress,
+      final boolean verifyHost,
+      final Optional<BasicCredentials> credentials,
+      final Optional<HostAliasResolver> hostAliasResolver) {
+    return KsqlRestClient.create(
+        serverAddress.toString(),
+        verifyHost,
+        ImmutableMap.of(),
+        clientProps,
+        credentials,
+        hostAliasResolver
     );
   }
 
@@ -471,10 +488,15 @@ public class TestKsqlRestApp extends ExternalResource {
 
     // Rather than having ksql client calls disabled, creates a real instance suitable for
     // functional tests.
-    public Builder withEnabledKsqlClient() {
+    public Builder withEnabledKsqlClient(final Optional<HostAliasResolver> hostAliasResolver) {
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
-              () -> TestDefaultKsqlClientFactory.instance(additionalProps));
+              () -> TestDefaultKsqlClientFactory.instance(additionalProps, hostAliasResolver));
+      return this;
+    }
+
+    public Builder withEnabledKsqlClient() {
+      withEnabledKsqlClient(Optional.empty());
       return this;
     }
 

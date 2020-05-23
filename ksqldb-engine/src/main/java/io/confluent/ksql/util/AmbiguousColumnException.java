@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.util;
 
-
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.SourceName;

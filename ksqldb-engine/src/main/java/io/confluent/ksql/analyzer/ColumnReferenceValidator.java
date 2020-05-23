@@ -102,7 +102,7 @@ class ColumnReferenceValidator {
 
       final SourceName source = colRef.maybeQualifier()
           .orElseGet(() -> {
-            // AstSanitizer should catches ambiguous columns
+            // AstSanitizer catches ambiguous columns
             return Iterables.getOnlyElement(sourcesWithField);
           });
 

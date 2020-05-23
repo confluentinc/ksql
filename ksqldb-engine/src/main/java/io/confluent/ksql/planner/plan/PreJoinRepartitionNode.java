@@ -18,6 +18,12 @@ package io.confluent.ksql.planner.plan;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 
+/**
+ * Node to handle an implicit repartition required to enable a join.
+ *
+ * <p>Any join that is not on the key of the stream requires ksql to perform an
+ * implicit repartition step before joining.
+ */
 public class PreJoinRepartitionNode extends RepartitionNode {
 
   public PreJoinRepartitionNode(

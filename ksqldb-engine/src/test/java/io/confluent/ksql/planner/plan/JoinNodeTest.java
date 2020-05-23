@@ -134,8 +134,6 @@ public class JoinNodeTest {
   private StreamsBuilder builder;
   private JoinNode joinNode;
 
-  private static final ColumnName LEFT_JOIN_FIELD_REF = ColumnName.of("C0");
-
   private static final Optional<WithinExpression> WITHIN_EXPRESSION =
       Optional.of(new WithinExpression(10, TimeUnit.SECONDS));
 
@@ -202,9 +200,6 @@ public class JoinNodeTest {
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
 
-    when(left.getAlias()).thenReturn(LEFT_ALIAS);
-    when(right.getAlias()).thenReturn(RIGHT_ALIAS);
-
     when(left.getSourceName()).thenReturn(Optional.of(LEFT_ALIAS));
     when(right.getSourceName()).thenReturn(Optional.of(RIGHT_ALIAS));
 
@@ -212,8 +207,8 @@ public class JoinNodeTest {
 
     when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processLogger);
 
-    setUpSource(left, VALUE_FORMAT, leftSource, "Foobar1");
-    setUpSource(right, OTHER_FORMAT, rightSource, "Foobar2");
+    setUpSource(left, VALUE_FORMAT, leftSource);
+    setUpSource(right, OTHER_FORMAT, rightSource);
   }
 
   @Test
@@ -743,7 +738,6 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
-    when(joinKey.getOriginalViableKeys(any())).thenReturn((List) ImmutableList.of(expression1));
     when(joinKey.getAllViableKeys(any())).thenReturn((List) ImmutableList.of(expression1, expression2));
 
     // When:
@@ -759,6 +753,7 @@ public class JoinNodeTest {
     // Given:
     final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
+    when(joinKey.getAllViableKeys(any())).thenReturn((List) ImmutableList.of(expression1, expression2));
     when(projection.containsExpression(any())).thenReturn(false);
     when(joinKey.getOriginalViableKeys(any()))
         .thenReturn((List)ImmutableList.of(expression1, expression1, expression2));
@@ -849,8 +844,7 @@ public class JoinNodeTest {
   private static void setUpSource(
       final DataSourceNode node,
       final ValueFormat valueFormat,
-      final DataSource dataSource,
-      final String name
+      final DataSource dataSource
   ) {
     when(node.getDataSource()).thenReturn(dataSource);
 

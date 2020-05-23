@@ -156,7 +156,7 @@ The `Client` interface will provide the following methods for streaming the resu
    * <p>By default, push queries issued via this method return results starting from the beginning
    * of the stream or table. To override this behavior, use the method
    * {@link #streamQuery(String, Map)} to pass in the query property {@code auto.offset.reset}
-   * with value set to {@code earliest}.
+   * with value set to {@code latest}.
    *
    * @param sql statement of query to execute
    * @return a future that completes once the server response is received, and contains the query
@@ -172,7 +172,7 @@ The `Client` interface will provide the following methods for streaming the resu
    *
    * <p>By default, push queries issued via this method return results starting from the beginning
    * of the stream or table. To override this behavior, pass in the query property
-   * {@code auto.offset.reset} with value set to {@code earliest}.
+   * {@code auto.offset.reset} with value set to {@code latest}.
    *
    * @param sql statement of query to execute
    * @param properties query properties
@@ -1219,6 +1219,9 @@ public interface ColumnType {
 For now, `ColumnType` simply wraps a type represented as an enum. We can add additional methods in the future if we wish to expose more detailed type information (e.g., decimal scale and precision, or inner types for nested/complex types).
 (The server side APIs currently return type information only as strings, which means providing a fully-specified type requires either client-side parsing or a server side change. The latter is preferred but is a fair bit of additional work.)
 
+As pointed out in the javadocs, push queries issued via this method default to using `auto.offset.reset=earliestt`
+(as a consequence of using the new `/query-stream` endpoint), which is a departure from the old REST API and the ksqlDB CLI.
+
 For `getDecimal(...)` in the `Row` interface, rather than trying to parse the column type to extract the precision and scale, we will simply convert the value to a BigDecimal without explicitly specifying the precision and scale. We could also add an option for users to specify the scale and precision in the getter, if we think that would be useful.
 
 It's interesting that the method `getKsqlObject()` in the `Row` interface is used to represent both the `MAP` and `STRUCT` ksqlDB types. I'm not sure what a better alternative to avoid this confusion might be.
@@ -1232,6 +1235,11 @@ once the query has completed:
    * Executes a query (push or pull) and returns all result rows in a single batch, once the query
    * has completed.
    *
+   * <p>By default, push queries issued via this method return results starting from the beginning
+   * of the stream or table. To override this behavior, use the method
+   * {@link #executeQuery(String, Map)} to pass in the query property {@code auto.offset.reset}
+   * with value set to {@code latest}.
+   *
    * @param sql statement of query to execute
    * @return query result
    */
@@ -1240,6 +1248,10 @@ once the query has completed:
   /**
    * Executes a query (push or pull) and returns all result rows in a single batch, once the query
    * has completed.
+   *
+   * <p>By default, push queries issued via this method return results starting from the beginning
+   * of the stream or table. To override this behavior, pass in the query property
+   * {@code auto.offset.reset} with value set to {@code latest}.
    *
    * @param sql statement of query to execute
    * @param properties query properties
@@ -1277,6 +1289,9 @@ For a query to "complete" could mean:
 * The query is a pull query
 * The query is a push query with a limit clause, and the limit has been reached
 * The query is a push query that has been terminated
+
+Similar to the `streamQuery()` methods above, push queries issued via this method default to using `auto.offset.reset=earliestt`
+(as a consequence of using the new `/query-stream` endpoint), which is a departure from the old REST API and the ksqlDB CLI.
 
 ### Insert values
 

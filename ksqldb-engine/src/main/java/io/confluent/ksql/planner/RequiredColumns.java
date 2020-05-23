@@ -71,7 +71,7 @@ public final class RequiredColumns {
 
   @Override
   public String toString() {
-    return "RequiredColumns[" + requiredColumns + ']';
+    return "RequiredColumns" + requiredColumns;
   }
 
   public static final class Builder {

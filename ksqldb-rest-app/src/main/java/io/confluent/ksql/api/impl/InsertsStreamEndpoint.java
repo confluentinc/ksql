@@ -15,8 +15,11 @@
 
 package io.confluent.ksql.api.impl;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
+
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -24,7 +27,6 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
@@ -54,7 +56,7 @@ public class InsertsStreamEndpoint {
     final DataSource dataSource = getDataSource(ksqlEngine.getMetaStore(),
         SourceName.of(target));
     if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {
-      throw new KsqlException("Cannot insert into a table");
+      throw new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_STATEMENT);
     }
     return InsertsSubscriber.createInsertsSubscriber(serviceContext, properties, dataSource,
         ksqlConfig, context, acksSubscriber, workerExecutor);
@@ -66,17 +68,20 @@ public class InsertsStreamEndpoint {
   ) {
     final DataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
-      throw new KsqlException("Cannot insert values into an unknown stream: "
-          + sourceName);
+      throw new KsqlApiException(
+          "Cannot insert values into an unknown stream: " + sourceName, ERROR_CODE_BAD_STATEMENT);
     }
 
     if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
-      throw new KsqlException("Cannot insert values into windowed stream");
+      throw new KsqlApiException(
+          "Cannot insert values into windowed stream", ERROR_CODE_BAD_STATEMENT);
     }
 
     if (reservedInternalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
-      throw new KsqlException("Cannot insert values into read-only topic: "
-          + dataSource.getKafkaTopicName());
+      throw new KsqlApiException(
+          "Cannot insert values into read-only topic: " + dataSource.getKafkaTopicName(),
+          ERROR_CODE_BAD_STATEMENT
+      );
     }
 
     return dataSource;

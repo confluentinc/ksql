@@ -766,7 +766,7 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
-    when(joinKey.getOriginalViableKeys()).thenReturn((List) ImmutableList.of(expression1));
+    when(joinKey.getOriginalViableKeys(any())).thenReturn((List) ImmutableList.of(expression1));
     when(joinKey.getAllViableKeys(any())).thenReturn((List) ImmutableList.of(expression1, expression2));
 
     // When:
@@ -783,7 +783,7 @@ public class JoinNodeTest {
     final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
     when(projection.containsExpression(any())).thenReturn(false);
-    when(joinKey.getOriginalViableKeys())
+    when(joinKey.getOriginalViableKeys(any()))
         .thenReturn((List)ImmutableList.of(expression1, expression1, expression2));
 
     // When:

@@ -147,11 +147,10 @@ public class DataSourceNode extends PlanNode {
   }
 
   private boolean nonKnownColumn(final ColumnReferenceExp columnRef) {
-    if (columnRef instanceof QualifiedColumnReferenceExp) {
-      final SourceName source = ((QualifiedColumnReferenceExp) columnRef).getQualifier();
-      if (!source.equals(getAlias())) {
-        return true;
-      }
+    if (columnRef.maybeQualifier().isPresent()
+        && !columnRef.maybeQualifier().get().equals(getAlias())
+    ) {
+      return true;
     }
 
     final ColumnName columnName = columnRef.getColumnName();

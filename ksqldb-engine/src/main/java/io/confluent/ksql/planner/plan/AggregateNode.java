@@ -42,7 +42,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.Projection;
-import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -114,17 +113,17 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
         .copyOf(rewrittenAggregateAnalysis.getAggregateFunctions());
     this.requiredColumns = ImmutableList
         .copyOf(rewrittenAggregateAnalysis.getRequiredColumns());
+    this.selectExpressions = ImmutableList
+        .copyOf(requireNonNull(projectionExpressions, "projectionExpresions"));
 
-    this.selectExpressions = ImmutableList.copyOf(projectionExpressions.stream()
+    final Set<Expression> groupings = ImmutableSet.copyOf(groupBy.getGroupingExpressions());
+
+    this.finalSelectExpressions = ImmutableList.copyOf(projectionExpressions.stream()
         .map(se -> SelectExpression.of(
             se.getAlias(),
             ExpressionTreeRewriter
                 .rewriteWith(aggregateExpressionRewriter::process, se.getExpression())
         ))
-        .collect(Collectors.toList()));
-
-    final Set<Expression> groupings = ImmutableSet.copyOf(groupBy.getGroupingExpressions());
-    this.finalSelectExpressions = ImmutableList.copyOf(selectExpressions.stream()
         .filter(e -> !groupings.contains(e.getExpression()))
         .collect(Collectors.toList()));
 
@@ -198,23 +197,6 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
     if (!missing.isEmpty()) {
       throwKeysNotIncludedError(sinkName, "grouping expression", missing, and());
     }
-  }
-
-
-  @Override
-  public Set<ColumnReferenceExp> validateColumns(
-      final FunctionRegistry functionRegistry
-  ) {
-    final RequiredColumns.Builder requiredColumns = RequiredColumns.builder()
-        .addAll(projection.singleExpressions());
-
-    if (windowExpression.isPresent()) {
-      SystemColumns.windowBoundsColumnNames().stream()
-          .map(UnqualifiedColumnReferenceExp::new)
-          .forEach(requiredColumns::remove);
-    }
-
-    return source.validateColumns(requiredColumns.build());
   }
 
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {

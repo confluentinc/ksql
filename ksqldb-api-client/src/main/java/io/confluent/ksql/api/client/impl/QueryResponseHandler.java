@@ -18,29 +18,23 @@ package io.confluent.ksql.api.client.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.api.client.util.JsonMapper;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
-import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.concurrent.CompletableFuture;
 
-abstract class QueryResponseHandler<T extends CompletableFuture<?>> {
+abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends ResponseHandler<T> {
 
   private static ObjectMapper JSON_MAPPER = JsonMapper.get();
 
-  protected final Context context;
-  protected final RecordParser recordParser;
-  protected final T cf;
   protected boolean hasReadArguments;
 
   QueryResponseHandler(final Context context, final RecordParser recordParser, final T cf) {
-    this.context = context;
-    this.recordParser = recordParser;
-    this.cf = cf;
+    super(context, recordParser, cf);
   }
 
-  public void handleBodyBuffer(final Buffer buff) {
-    checkContext();
+  @Override
+  protected void doHandleBodyBuffer(final Buffer buff) {
     if (!hasReadArguments) {
       handleArgs(buff);
     } else {
@@ -48,8 +42,8 @@ abstract class QueryResponseHandler<T extends CompletableFuture<?>> {
     }
   }
 
-  public void handleException(final Throwable t) {
-    checkContext();
+  @Override
+  protected void doHandleException(final Throwable t) {
     if (!cf.isDone()) {
       cf.completeExceptionally(t);
     } else {
@@ -57,22 +51,11 @@ abstract class QueryResponseHandler<T extends CompletableFuture<?>> {
     }
   }
 
-  public void handleBodyEnd(final Void v) {
-    checkContext();
-    handleBodyEnd();
-  }
-
-  protected abstract void handleBodyEnd();
-
   protected abstract void handleMetadata(QueryResponseMetadata queryResponseMetadata);
 
   protected abstract void handleRow(Buffer buff);
 
   protected abstract void handleExceptionAfterFutureCompleted(Throwable t);
-
-  protected void checkContext() {
-    VertxUtils.checkContext(context);
-  }
 
   private void handleArgs(final Buffer buff) {
     hasReadArguments = true;

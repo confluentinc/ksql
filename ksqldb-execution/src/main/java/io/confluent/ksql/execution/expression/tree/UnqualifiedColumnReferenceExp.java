@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.expression.tree;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,6 +37,10 @@ public class UnqualifiedColumnReferenceExp extends ColumnReferenceExp {
       final ColumnName name
   ) {
     super(location, name);
+  }
+
+  public Optional<SourceName> maybeQualifier() {
+    return Optional.empty();
   }
 
   @Override

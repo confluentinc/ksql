@@ -65,7 +65,10 @@ public class QueryEndpoint {
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
-    properties.put("auto.offset.reset", "earliest");
+    if (!properties.containsKey("auto.offset.reset")
+        && !properties.containsKey("ksql.streams.auto.offset.reset")) {
+      properties.put("auto.offset.reset", "earliest");
+    }
 
     final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap());
 

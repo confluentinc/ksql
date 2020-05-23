@@ -16,19 +16,24 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_HTTP2_ONLY;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,4 +108,27 @@ public final class ServerUtils {
     }
   }
 
+  static Void handleEndpointException(
+      final Throwable t, final RoutingContext routingContext, final String logMsg) {
+    if (t instanceof CompletionException) {
+      final Throwable actual = t.getCause();
+      log.error(logMsg, actual);
+      if (actual instanceof KsqlStatementException) {
+        routingContext.fail(BAD_REQUEST.code(),
+            new KsqlApiException(actual.getMessage(), ERROR_CODE_BAD_STATEMENT));
+        return null;
+      } else if (actual instanceof KsqlApiException) {
+        routingContext.fail(BAD_REQUEST.code(), actual);
+        return null;
+      }
+    } else {
+      log.error(logMsg, t);
+    }
+    // We don't expose internal error message via public API
+    routingContext.fail(INTERNAL_SERVER_ERROR.code(), new KsqlApiException(
+        "The server encountered an internal error when processing the query."
+            + " Please consult the server logs for more information.",
+        ERROR_CODE_SERVER_ERROR));
+    return null;
+  }
 }

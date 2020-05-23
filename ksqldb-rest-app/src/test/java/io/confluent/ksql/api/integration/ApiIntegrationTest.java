@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -32,6 +33,7 @@ import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
@@ -52,7 +54,10 @@ import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -86,10 +91,14 @@ public class ApiIntegrationTest {
       .withProperty("sasl.mechanism", "PLAIN")
       .withProperty("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(NORMAL_USER))
       .withProperties(ClientTrustStore.trustStoreProps())
+      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .build();
 
   @ClassRule
-  public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
+  public static final RuleChain CHAIN = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(TEST_HARNESS)
+      .around(REST_APP);
 
   @BeforeClass
   public static void setUpClass() {
@@ -318,7 +327,6 @@ public class ApiIntegrationTest {
 
     for (int i = 0; i < numRows; i++) {
       JsonObject row = new JsonObject()
-          .put("ROWKEY", 10 + i)
           .put("VIEWTIME", 1000 + i)
           .put("USERID", "User" + i % 3)
           .put("PAGEID", "PAGE" + (numRows - i));
@@ -377,7 +385,6 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
-        .put("ROWKEY", 10)
         .put("VIEWTIME", 1000)
         .put("USERID", 123)
         .put("PAGEID", "PAGE23");
@@ -400,6 +407,59 @@ public class ApiIntegrationTest {
     shouldInsert(row);
   }
 
+  @Test
+  public void shouldExecutePushQueryFromLatestOffset() {
+
+    KsqlEngine engine = (KsqlEngine) REST_APP.getEngine();
+    // One persistent query for the agg table
+    assertThatEventually(engine::numberOfLiveQueries, is(1));
+
+    // Given:
+    String sql = "SELECT VIEWTIME, USERID, PAGEID from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT 1;";
+
+    // Create a write stream to capture the incomplete response
+    ReceiveStream writeStream = new ReceiveStream(vertx);
+
+    // Make the request to stream a query
+    JsonObject queryProperties = new JsonObject().put("auto.offset.reset", "latest");
+    JsonObject queryRequestBody = new JsonObject()
+        .put("sql", sql).put("properties", queryProperties);
+    VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
+    client.post("/query-stream")
+        .as(BodyCodec.pipe(writeStream))
+        .sendJsonObject(queryRequestBody, responseFuture);
+
+    assertThatEventually(engine::numberOfLiveQueries, is(2));
+
+    // New row to insert
+    JsonObject row = new JsonObject()
+        .put("VIEWTIME", 2000L)
+        .put("USERID", "User_shouldExecutePushQueryFromLatestOffset")
+        .put("PAGEID", "PAGE_shouldExecutePushQueryFromLatestOffset");
+
+    // Insert a new row and wait for it to arrive
+    assertThatEventually(() -> {
+      try {
+        shouldInsert(row); // Attempt the insert multiple times, in case the query hasn't started yet
+        Buffer buff = writeStream.getBody();
+        QueryResponse queryResponse = new QueryResponse(buff.toString());
+        return queryResponse.rows.size();
+      } catch (Throwable t) {
+        return Integer.MAX_VALUE;
+      }
+    }, is(1));
+
+    // Verify that the received row is the expected one
+    Buffer buff = writeStream.getBody();
+    QueryResponse queryResponse = new QueryResponse(buff.toString());
+    assertThat(queryResponse.rows.get(0).getLong(0), is(2000L));
+    assertThat(queryResponse.rows.get(0).getString(1), is("User_shouldExecutePushQueryFromLatestOffset"));
+    assertThat(queryResponse.rows.get(0).getString(2), is("PAGE_shouldExecutePushQueryFromLatestOffset"));
+
+    // Check that query is cleaned up on the server
+    assertThatEventually(engine::numberOfLiveQueries, is(1));
+  }
+
   private void shouldFailToExecuteQuery(final String sql, final String message) {
     // When:
     QueryResponse response = executeQuery(sql);
@@ -419,7 +479,6 @@ public class ApiIntegrationTest {
     HttpResponse<Buffer> response = sendRequest("/query-stream", requestBody.toBuffer());
     return new QueryResponse(response.bodyAsString());
   }
-
 
   private void shouldFailToInsert(final JsonObject row, final int errorCode, final String message) {
     JsonObject properties = new JsonObject();

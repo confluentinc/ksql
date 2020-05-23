@@ -31,7 +31,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.UnknownColumnException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
@@ -46,6 +46,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ColumnReferenceValidatorTest {
 
   private static final String CLAUSE_TYPE = "PARTITION BY";
+  private static final Expression POSSIBLE_SYNTHETIC_KEY = new UnqualifiedColumnReferenceExp(
+      ColumnName.of("ROWKEY")
+  );
 
   @Mock
   private SourceSchemas sourceSchemas;
@@ -53,7 +56,7 @@ public class ColumnReferenceValidatorTest {
 
   @Before
   public void setUp() {
-    analyzer = new ColumnReferenceValidator(sourceSchemas);
+    analyzer = new ColumnReferenceValidator(sourceSchemas, true);
   }
 
   @Test
@@ -72,27 +75,6 @@ public class ColumnReferenceValidatorTest {
 
     // Then:
     verify(sourceSchemas).sourcesWithField(Optional.of(SourceName.of("fully")), column);
-  }
-
-  @Test
-  public void shouldThrowOnMultipleSources() {
-    // Given:
-    final Expression expression = new UnqualifiedColumnReferenceExp(
-        ColumnName.of("just-name")
-    );
-
-    when(sourceSchemas.sourcesWithField(any(), any()))
-        .thenReturn(sourceNames("multiple", "sources"));
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> analyzer.analyzeExpression(expression, CLAUSE_TYPE)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        CLAUSE_TYPE + " column 'just-name' is ambiguous. Could be any of: multiple.just-name, sources.just-name"));
   }
 
   @Test
@@ -131,7 +113,7 @@ public class ColumnReferenceValidatorTest {
 
     // When:
     final Exception e = assertThrows(
-        KsqlException.class,
+        UnknownColumnException.class,
         () -> analyzer.analyzeExpression(expression, CLAUSE_TYPE)
     );
 
@@ -153,13 +135,112 @@ public class ColumnReferenceValidatorTest {
 
     // When:
     final Exception e = assertThrows(
-        KsqlException.class,
+        UnknownColumnException.class,
         () -> analyzer.analyzeExpression(expression, CLAUSE_TYPE)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
         "Line: 10, Col: 24: " + CLAUSE_TYPE));
+  }
+
+  @Test
+  public void shouldNotThrowOnPossibleSyntheticKeyColumn() {
+    // Given:
+    when(sourceSchemas.isJoin()).thenReturn(true);
+
+    // When:
+    analyzer.analyzeExpression(POSSIBLE_SYNTHETIC_KEY, "SELECT");
+
+    // Then: did not throw.
+  }
+
+  @Test
+  public void shouldThrowOnPossibleSyntheticKeyColumnIfNotPossible() {
+    // Given:
+    analyzer = new ColumnReferenceValidator(sourceSchemas, false);
+
+    // When:
+    final Exception e = assertThrows(
+        UnknownColumnException.class,
+        () -> analyzer.analyzeExpression(POSSIBLE_SYNTHETIC_KEY, "SELECT")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "SELECT column 'ROWKEY' cannot be resolved."));
+  }
+
+  @Test
+  public void shouldThrowOnPossibleSyntheticKeyColumnIfNotJoin() {
+    // Given:
+    when(sourceSchemas.isJoin()).thenReturn(false);
+
+    // When:
+    final Exception e = assertThrows(
+        UnknownColumnException.class,
+        () -> analyzer.analyzeExpression(POSSIBLE_SYNTHETIC_KEY, "SELECT")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "SELECT column 'ROWKEY' cannot be resolved."));
+  }
+
+  @Test
+  public void shouldThrowOnPossibleSyntheticKeyColumnIfQualifiedColumnReference() {
+    // Given:
+    when(sourceSchemas.isJoin()).thenReturn(true);
+
+    final Expression notSyntheticKey = new QualifiedColumnReferenceExp(
+        SourceName.of("Bob"), ColumnName.of("ROWKEY")
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        UnknownColumnException.class,
+        () -> analyzer.analyzeExpression(notSyntheticKey, "SELECT")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "SELECT column 'Bob.ROWKEY' cannot be resolved."));
+  }
+
+  @Test
+  public void shouldThrowOnPossibleSyntheticKeyColumnIfNotSelect() {
+    // Given:
+    when(sourceSchemas.isJoin()).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        UnknownColumnException.class,
+        () -> analyzer.analyzeExpression(POSSIBLE_SYNTHETIC_KEY, "NOT SELECT")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "NOT SELECT column 'ROWKEY' cannot be resolved."));
+  }
+
+  @Test
+  public void shouldThrowOnPossibleSyntheticKeyColumnIfNotValidSyntheticKeyColumnName() {
+    // Given:
+    when(sourceSchemas.isJoin()).thenReturn(true);
+
+    final Expression notSyntheticKey = new UnqualifiedColumnReferenceExp(
+        ColumnName.of("NOT_ROWKEY")
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        UnknownColumnException.class,
+        () -> analyzer.analyzeExpression(notSyntheticKey, "SELECT")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "SELECT column 'NOT_ROWKEY' cannot be resolved."));
   }
 
   private static Set<SourceName> sourceNames(final String... names) {

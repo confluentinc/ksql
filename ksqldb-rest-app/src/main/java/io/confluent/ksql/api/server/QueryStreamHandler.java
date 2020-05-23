@@ -16,22 +16,16 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
-import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
-import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
-import io.confluent.ksql.util.KsqlStatementException;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,29 +108,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.subscribe(querySubscriber);
 
         })
-        .exceptionally(t -> handleQueryPublisherException(t, routingContext));
-  }
-
-  private Void handleQueryPublisherException(final Throwable t,
-      final RoutingContext routingContext) {
-    log.error("Failed to execute query", t);
-    if (t instanceof CompletionException) {
-      final Throwable actual = t.getCause();
-      if (actual instanceof KsqlStatementException) {
-        routingContext.fail(BAD_REQUEST.code(),
-            new KsqlApiException(actual.getMessage(), ERROR_CODE_BAD_STATEMENT));
-        return null;
-      } else if (actual instanceof KsqlApiException) {
-        routingContext.fail(BAD_REQUEST.code(), actual);
-        return null;
-      }
-    }
-    // We don't expose internal error message via public API
-    routingContext.fail(INTERNAL_SERVER_ERROR.code(), new KsqlApiException(
-        "The server encountered an internal error when processing the query."
-            + " Please consult the server logs for more information.",
-        ERROR_CODE_SERVER_ERROR));
-    return null;
+        .exceptionally(t ->
+            ServerUtils.handleEndpointException(t, routingContext, "Failed to execute query"));
   }
 
 }

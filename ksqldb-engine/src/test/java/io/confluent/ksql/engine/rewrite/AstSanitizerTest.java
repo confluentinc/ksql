@@ -48,7 +48,6 @@ public class AstSanitizerTest {
       .getNewMetaStore(mock(FunctionRegistry.class));
 
   private static final SourceName TEST1_NAME = SourceName.of("TEST1");
-  private static final SourceName TEST2_NAME = SourceName.of("TEST2");
 
   @Test
   public void shouldThrowIfSourceDoesNotExist() {
@@ -211,7 +210,7 @@ public class AstSanitizerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Column `COL0` is ambiguous."));
+        "Column 'COL0' is ambiguous. Could be TEST1.COL0 or TEST2.COL0."));
   }
 
   @Test

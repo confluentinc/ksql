@@ -217,4 +217,42 @@ public class ColumnNamesTest {
     assertThat(result1, is(ColumnName.of("KSQL_COL_2")));
     assertThat(result2, is(ColumnName.of("someField_1")));
   }
+
+  @Test
+  public void shouldDefaultToRowKeySyntheticJoinColumn() {
+    // When:
+    final ColumnName columnName = ColumnNames.generateSyntheticJoinKey(Stream.of());
+
+    // Then:
+    assertThat(columnName, is(ColumnName.of("ROWKEY")));
+  }
+
+  @Test
+  public void shouldIncrementSyntheticJoinColumnOnClashes() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .keyColumn(ColumnName.of("ROWKEY_1"), SqlTypes.STRING)
+        .keyColumn(ColumnName.of("ROWKEY_2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("someField"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("ROWKEY_3"), SqlTypes.STRING)
+        .build();
+
+    // When:
+    final ColumnName columnName = ColumnNames.generateSyntheticJoinKey(Stream.of(schema));
+
+    // Then:
+    assertThat(columnName, is(ColumnName.of("ROWKEY_4")));
+  }
+
+  @Test
+  public void shouldDetectPossibleSyntheticJoinColumns() {
+    assertThat(ColumnNames.maybeSyntheticJoinKey(ColumnName.of("ROWKEY")), is(true));
+    assertThat(ColumnNames.maybeSyntheticJoinKey(ColumnName.of("ROWKEY_0")), is(true));
+    assertThat(ColumnNames.maybeSyntheticJoinKey(ColumnName.of("ROWKEY_1")), is(true));
+
+    assertThat(ColumnNames.maybeSyntheticJoinKey(ColumnName.of("Rowkey_2")), is(false));
+    assertThat(ColumnNames.maybeSyntheticJoinKey(ColumnName.of("other_2")), is(false));
+    assertThat(ColumnNames.maybeSyntheticJoinKey(ColumnName.of("NotROWKEY_2")), is(false));
+  }
 }

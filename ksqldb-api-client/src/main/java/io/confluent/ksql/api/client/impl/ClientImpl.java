@@ -21,7 +21,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
-import io.confluent.ksql.api.client.KsqlClientException;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.vertx.core.Context;

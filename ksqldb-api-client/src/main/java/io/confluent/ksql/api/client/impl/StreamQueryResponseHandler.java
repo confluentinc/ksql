@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
-import io.confluent.ksql.api.client.KsqlException;
+import io.confluent.ksql.api.client.exception.KsqlException;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.util.RowUtil;

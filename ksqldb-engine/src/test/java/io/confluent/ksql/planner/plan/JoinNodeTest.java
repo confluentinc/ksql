@@ -255,8 +255,8 @@ public class JoinNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Can't join T1 with T2 since the number of partitions don't match. T1 "
-            + "partitions = 1; T2 partitions = 2. Please repartition either one so that the "
+        "Can't join `T1` with `T2` since the number of partitions don't match. "
+            + "`T1` partitions = 1; `T2` partitions = 2. Please repartition either one so that the "
             + "number of partitions match."));
   }
 
@@ -346,29 +346,6 @@ public class JoinNodeTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Stream-Stream joins must have a WITHIN clause specified. None was provided."));
-  }
-
-  @Test
-  public void shouldNotPerformJoinIfInputPartitionsMisMatch() {
-    // Given:
-    when(left.getLeftmostSourceNode()).thenReturn(left);
-    when(right.getLeftmostSourceNode()).thenReturn(right);
-    when(left.getAlias()).thenReturn(LEFT_ALIAS);
-    when(right.getAlias()).thenReturn(RIGHT_ALIAS);
-    when(left.getPartitions(mockKafkaTopicClient)).thenReturn(3);
-
-    final JoinNode joinNode =
-        new JoinNode(nodeId, OUTER, joinKey, true, left, right, WITHIN_EXPRESSION);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> joinNode.buildStream(ksqlStreamBuilder)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Can't join left with right since the number of partitions don't match."));
   }
 
   @Test

@@ -380,6 +380,18 @@ SLICE(col1, from, to)
 Slices a list based on the supplied indices. The indices start at 1 and
 include both endpoints.
 
+### `ARRAY_JOIN`
+
+```sql
+ARRAY_JOIN(col1, delimiter)
+```
+
+Creates a flat String representation of all the elements contained in the given array.
+The elements in the resulting String are separated by the chosen `delimiter`, 
+which is an optional parameter that falls back to a comma `,`. The array may contain
+all valid ksql types and supports nested and complex data structures as well, 
+for instance, lists of lists or structs containing maps. 
+
 ## Strings
 
 ### `CHR`

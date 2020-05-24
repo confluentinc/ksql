@@ -33,6 +33,8 @@ public final class DocumentationLinks {
   public static final String SECURITY_REQUIRED_ACLS_DOC_URL = SECURITY_DOCS_URL
       + "#required-acls";
 
+  public static final String SYNTHETIC_JOIN_KEY_DOC_URL = "https://cnfl.io/2LV7ouS";
+
   /*
   Schema Registry
    */

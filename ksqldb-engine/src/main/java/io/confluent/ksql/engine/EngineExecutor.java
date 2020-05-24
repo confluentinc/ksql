@@ -35,7 +35,7 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.planner.LogicalPlanNode;
-import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -325,8 +325,8 @@ final class EngineExecutor {
   }
 
   private static Set<SourceName> getSourceNames(final PlanNode outputNode) {
-    final PlanSourceExtractorVisitor visitor = new PlanSourceExtractorVisitor();
-    return visitor.extract(outputNode)
+    return outputNode.getSourceNodes()
+        .map(DataSourceNode::getDataSource)
         .map(DataSource::getName)
         .collect(Collectors.toSet());
   }

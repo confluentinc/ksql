@@ -1016,6 +1016,19 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid comparison expression '0' in join '(S1.ID = 0)'. Each side of the join comparision must contain references from exactly one source."
       }
+    },
+    {
+      "name": "partition count mismatch",
+      "statements": [
+        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON', PARTITIONS=1);",
+        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON', PARTITIONS=1);",
+        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON', PARTITIONS=2);",
+        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN T2 ON S1.ID = T2.ID JOIN T3 ON S1.ID = T3.ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Can't join `S1` with `T3` since the number of partitions don't match. `S1` partitions = 1; `T3` partitions = 2. Please repartition either one so that the number of partitions match."
+      }
     }
   ]
 }

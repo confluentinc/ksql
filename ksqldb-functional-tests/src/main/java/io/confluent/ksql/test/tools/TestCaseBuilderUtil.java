@@ -156,7 +156,13 @@ public final class TestCaseBuilderUtil {
         valueSchema = Optional.empty();
       }
 
-      return new Topic(ksqlTopic.getKafkaTopicName(), valueSchema);
+      final int partitions = statement.getProperties().getPartitions()
+          .orElse(Topic.DEFAULT_PARTITIONS);
+
+      final short rf = statement.getProperties().getReplicas()
+          .orElse(Topic.DEFAULT_RF);
+
+      return new Topic(ksqlTopic.getKafkaTopicName(), partitions, rf, valueSchema);
     };
 
     try {

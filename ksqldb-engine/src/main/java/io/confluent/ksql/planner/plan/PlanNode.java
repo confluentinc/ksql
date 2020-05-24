@@ -38,6 +38,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Immutable
@@ -69,13 +70,17 @@ public abstract class PlanNode {
 
   public abstract List<PlanNode> getSources();
 
-  public DataSourceNode getTheSourceNode() {
+  public DataSourceNode getLeftmostSourceNode() {
+    return Iterables.getOnlyElement(getSourceNodes().limit(1).collect(Collectors.toList()));
+  }
+
+  public Stream<DataSourceNode> getSourceNodes() {
     if (this instanceof DataSourceNode) {
-      return (DataSourceNode) this;
-    } else if (!getSources().isEmpty()) {
-      return this.getSources().get(0).getTheSourceNode();
+      return Stream.of((DataSourceNode) this);
     }
-    throw new IllegalStateException("No source node in hierarchy");
+
+    return getSources().stream()
+        .flatMap(PlanNode::getSourceNodes);
   }
 
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);

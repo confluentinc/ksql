@@ -16,7 +16,6 @@
 package io.confluent.ksql.planner.plan;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
-import static io.confluent.ksql.util.GrammaticalJoiner.or;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
@@ -162,20 +161,10 @@ public class JoinNode extends PlanNode {
         .anyMatch(projection::containsExpression);
 
     if (!atLeastOneKey) {
-      final List<? extends Expression> originalKeys = joinKey.getOriginalViableKeys(schema);
+      final boolean synthetic = joinKey.isSynthetic();
+      final List<? extends Expression> viable = joinKey.getOriginalViableKeys(schema);
 
-      final Optional<Expression> syntheticKey = joinKey.isSynthetic()
-          ? Optional.of(originalKeys.get(0))
-          : Optional.empty();
-
-      final String additional = syntheticKey
-          .map(e -> System.lineSeparator()
-              + e + " was added as a synthetic key column because the join criteria did "
-              + "not match any source column. "
-              + "This expression must be included in the projection and may be aliased. ")
-          .orElse("");
-
-      throwKeysNotIncludedError(sinkName, "join expression", originalKeys, or(), additional);
+      throwKeysNotIncludedError(sinkName, "join expression", viable, false, synthetic);
     }
   }
 

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.util.GrammaticalJoiner.and;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
@@ -67,7 +66,7 @@ public class UserRepartitionNode extends RepartitionNode {
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
     if (!projection.containsExpression(getPartitionBy())) {
       final ImmutableList<Expression> keys = ImmutableList.of(originalPartitionBy);
-      throwKeysNotIncludedError(sinkName, "partitioning expression", keys, and());
+      throwKeysNotIncludedError(sinkName, "partitioning expression", keys);
     }
   }
 }

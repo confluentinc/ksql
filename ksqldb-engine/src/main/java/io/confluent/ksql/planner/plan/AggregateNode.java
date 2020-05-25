@@ -16,7 +16,6 @@
 package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import static io.confluent.ksql.util.GrammaticalJoiner.and;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
@@ -195,7 +194,7 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
         .forEach(missing::remove);
 
     if (!missing.isEmpty()) {
-      throwKeysNotIncludedError(sinkName, "grouping expression", missing, and());
+      throwKeysNotIncludedError(sinkName, "grouping expression", missing);
     }
   }
 

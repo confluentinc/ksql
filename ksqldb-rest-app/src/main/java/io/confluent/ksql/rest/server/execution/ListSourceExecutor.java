@@ -45,12 +45,20 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.ConsumerGroupDescription;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
+import org.apache.kafka.clients.admin.OffsetSpec;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.TopicPartition;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ListSourceExecutor {
@@ -192,12 +200,29 @@ public final class ListSourceExecutor {
     }
 
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription = Optional.empty();
+    Optional<ConsumerGroupDescription> consumerGroupDescription = Optional.empty();
+    Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets = new LinkedHashMap<>();
+    Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets = new LinkedHashMap<>();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
         topicDescription = Optional.of(
             serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
         );
+        String consumerGroupId = "";
+        try {
+          consumerGroupDescription = Optional.of(
+              serviceContext.getAdminClient().describeConsumerGroups(Collections.singletonList(consumerGroupId)).describedGroups().get(consumerGroupId).get()
+          );
+          topicAndConsumerOffsets = serviceContext.getAdminClient().listConsumerGroupOffsets(consumerGroupId).partitionsToOffsetAndMetadata().get();
+          Map<TopicPartition, OffsetSpec> request = new LinkedHashMap<>();
+          for (Map.Entry<TopicPartition, OffsetAndMetadata> entry: topicAndConsumerOffsets.entrySet()) {
+            request.put(entry.getKey(), OffsetSpec.earliest());
+          }
+          topicAndEndOffsets = serviceContext.getAdminClient().listOffsets(request).all().get();
+        } catch (InterruptedException | ExecutionException e) {
+          e.printStackTrace();
+        }
       } catch (final KafkaException | KafkaResponseGetFailedException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
       }
@@ -210,7 +235,10 @@ public final class ListSourceExecutor {
             extended,
             getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
             getQueries(ksqlEngine, q -> q.getSinkName().equals(dataSource.getName())),
-            topicDescription
+            topicDescription,
+            consumerGroupDescription,
+            topicAndEndOffsets,
+            topicAndConsumerOffsets
         )
     );
   }

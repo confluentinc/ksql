@@ -794,7 +794,7 @@ public class ApiTest extends BaseApiTest {
 
   private static void validateInsertStreamError(final int errorCode, final String message,
       final JsonObject error, final long sequence) {
-    assertThat(error.size(), is(6));
+    assertThat(error.size(), is(5));
     validateErrorCommon(errorCode, message, error);
     assertThat(error.getLong("seq"), is(sequence));
   }

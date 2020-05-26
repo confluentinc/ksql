@@ -6,85 +6,29 @@ description: Scalar functions to use in  ksqlDB statements and queries
 keywords: ksqlDB, function, scalar
 ---
 
-- [Numeric Functions](#numeric-functions)
-  - [ABS](#abs)
-  - [CEIL](#ceil)
-  - [ENTRIES](#entries)
-  - [EXP](#exp)
-  - [FLOOR](#floor)
-  - [GENERATE_SERIES](#generate_series)
-  - [GEO_DISTANCE](#geo_distance)
-  - [LN](#ln)
-  - [RANDOM](#random)
-  - [ROUND](#round)
-  - [SIGN](#sign)
-  - [SQRT](#sqrt)
-- [Collections](#collections)
-  - [ARRAY_LENGTH](#array_length)
-  - [ARRAY_CONTAINS](#array_contains)
-  - [JSON_ARRAY_CONTAINS](#json_array_contains)
-  - [ARRAY](#array)
-  - [MAP](#map)
-  - [AS_MAP](#as_map)
-  - [ELT](#elt)
-  - [FIELD](#field)
-  - [SLICE](#slice)
-- [Strings](#strings)
-  - [CONCAT](#concat)
-  - [EXTRACTJSONFIELD](#extractjsonfield)
-  - [IFNULL](#ifnull)
-  - [INITCAP](#initcap)
-  - [LCASE](#lcase)
-  - [LEN](#len)
-  - [MASK](#mask)
-  - [MASK_KEEP_LEFT](#mask_keep_left)
-  - [MASK_KEEP_RIGHT](#mask_keep_right)
-  - [MASK_LEFT](#mask_left)
-  - [MASK_RIGHT](#mask_right)
-  - [REPLACE](#replace)
-  - [SPLIT](#split)
-  - [SUBSTRING](#substring)
-  - [TRIM](#trim)
-  - [UCASE](#ucase)
-- [Date and Time](#date-and-time)
-  - [UNIX_DATE](#unix_date)
-  - [UNIX_TIMESTAMP](#unix_timestamp)
-  - [DATETOSTRING](#datetostring)
-  - [STRINGTODATE](#stringtodate)
-  - [STRINGTOTIMESTAMP](#stringtotimestamp)
-  - [TIMESTAMPTOSTRING](#timestamptostring)
-- [URL](#url)
-  - [URL_DECODE_PARAM](#url_decode_param)
-  - [URL_ENCODE_PARAM](#url_encode_param)
-  - [URL_EXTRACT_FRAGMENT](#url_extract_fragment)
-  - [URL_EXTRACT_HOST](#url_extract_host)
-  - [URL_EXTRACT_PARAMETER](#url_extract_parameter)
-  - [URL_EXTRACT_PATH](#url_extract_path)
-  - [URL_EXTRACT_PORT](#url_extract_port)
-  - [URL_EXTRACT_PROTOCOL](#url_extract_protocol)
-  - [URL_EXTRACT_QUERY](#url_extract_query)
+## Numeric functions
 
-Numeric Functions
-=================
+### `ABS`
 
-ABS
----
-
-`ABS(col1)`
+```sql
+ABS(col1)
+```
 
 The absolute value of a value.
 
-CEIL
-----
+### `CEIL`
 
-`CEIL(col1)`
+```sql
+CEIL(col1)
+```
 
 The ceiling of a value.
 
-ENTRIES
--------
+### `ENTRIES`
 
-`ENTRIES(map MAP, sorted BOOLEAN)`
+```sql
+ENTRIES(map MAP, sorted BOOLEAN)
+```
 
 Constructs an array of structs from the entries in a map. Each struct has
 a field named `K` containing the key, which is a string, and a field named
@@ -92,25 +36,31 @@ a field named `K` containing the key, which is a string, and a field named
 
 If `sorted` is true, the entries are sorted by key.
 
-EXP
----
+### `EXP`
 
-`EXP(col1)`
+```sql
+EXP(col1)
+```
 
 The exponential of a value.
 
-FLOOR
------
+### `FLOOR`
 
-`FLOOR(col1)`
+```sql
+FLOOR(col1)
+```
 
 The floor of a value.
 
-GENERATE_SERIES
----------------
+### `GENERATE_SERIES`
 
-`GENERATE_SERIES(start, end)`
-`GENERATE_SERIES(start, end, step)`
+```sql
+GENERATE_SERIES(start, end)
+```
+
+```sql
+GENERATE_SERIES(start, end, step)
+```
 
 Constructs an array of values between `start` and `end` (inclusive).
 
@@ -119,33 +69,41 @@ Parameters `start` and `end` can be an `INT` or `BIGINT`.
 `step`, if supplied, specifies the step size. The step can be positive or negative.
 If not supplied, `step` defaults to `1`. Parameter `step` must be an `INT`.
 
-GEO_DISTANCE
-------------
+### `GEO_DISTANCE`
 
-`GEO_DISTANCE(lat1, lon1, lat2, lon2, unit)`
+```sql
+GEO_DISTANCE(lat1, lon1, lat2, lon2, unit)
+```
 
 The great-circle distance between two lat-long points, both specified
 in decimal degrees. An optional final parameter specifies `KM`
 (the default) or `miles`.
 
-LN
---
+### `LN`
 
-`LN(col1)`
+```sql
+LN(col1)
+```
 
 The natural logarithm of a value.
 
-RANDOM
-------
+### `RANDOM`
 
-`RANDOM()`
+```sql
+RANDOM()
+```
 
 Return a random DOUBLE value between 0.0 and 1.0.
 
-ROUND
------
+### `ROUND`
 
-`ROUND(col1)` or `ROUND(col1, scale)`
+```sql
+ROUND(col1)
+```
+
+```sql
+ROUND(col1, scale)
+```
 
 Round a value to the number of decimal places
 as specified by scale to the right of the decimal
@@ -157,10 +115,11 @@ rounded up (in the positive direction).
 If the number of decimal places is not provided
 it defaults to zero.
 
-SIGN
-----
+### `SIGN`
 
-`SIGN(col1)`
+```sql
+SIGN(col1)
+```
 
 The sign of a numeric value as an INTEGER:
 
@@ -169,103 +128,114 @@ The sign of a numeric value as an INTEGER:
 * 1 if the argument is positive
 * `null` argument is null
 
-SQRT
-----
+### `SQRT`
 
-`SQRT(col1)`
+```sql
+SQRT(col1)
+```
 
 The square root of a value.
 
+## Collections
 
-Collections
-===========
+### `ARRAY_LENGTH`
 
-ARRAY_LENGTH
-------------
-
-`ARRAY_LENGTH(ARRAY[1, 2, 3])`
+```sql
+ARRAY_LENGTH(ARRAY[1, 2, 3])
+```
 
 Given an array, return the number of elements in the array.
 
 If the supplied parameter is NULL the method returns NULL.
 
-ARRAY_CONTAINS
---------------
+### ``ARRAY_CONTAINS``
 
-`ARRAY_CONTAINS([1, 2, 3], 3)`
+```sql
+ARRAY_CONTAINS([1, 2, 3], 3)
+```
 
 Given an array, checks if a search value is contained in the array.
 
 Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
 
-JSON_ARRAY_CONTAINS
--------------------
+### `JSON_ARRAY_CONTAINS`
 
-`ARRAYCONTAINS('[1, 2, 3]', 3)`
+```sql
+JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)
+```
 
-Given JSON or AVRO array checks if a search value contains in it.
-ARRAY
------
+Given a `STRING` containing a JSON array, checks if a search value is contained in the array.
 
-`ARRAY[col1, col2, ...]`
+Returns `false` if the first parameter does not contain a JSON array.
+
+### `ARRAY`
+
+```sql
+ARRAY[col1, col2, ...]
+```
 
 Construct an array from a variable number of inputs.
 
-MAP
----
+### `MAP`
 
-`MAP(key VARCHAR := value, ...)`
+```sql
+MAP(key VARCHAR := value, ...)
+```
 
 Construct a map from specific key-value tuples.
 
-AS_MAP
-------
+### `AS_MAP`
 
-`AS_MAP(keys, vals)`
+```sql
+AS_MAP(keys, vals)
+```
 
 Construct a map from a list of keys and a list of values.
 
-ELT
----
+### `ELT`
 
-`ELT(n INTEGER, args VARCHAR[])`
+```sql
+ELT(n INTEGER, args VARCHAR[])
+```
 
 Returns element `n` in the `args` list of strings, or NULL if `n` is less than
 1 or greater than the number of arguments. This function is 1-indexed. ELT is
 the complement to FIELD.
 
-FIELD
------
+### `FIELD`
 
-`FIELD(str VARCHAR, args VARCHAR[])`
+```sql
+FIELD(str VARCHAR, args VARCHAR[])
+```
 
 Returns the 1-indexed position of `str` in `args`, or 0 if not found.
 If `str` is NULL, the return value is 0, because NULL is not considered
 to be equal to any value. FIELD is the complement to ELT.
 
-SLICE
------
+### `SLICE`
 
-`SLICE(col1, from, to)`
+```sql
+SLICE(col1, from, to)
+```
 
 Slices a list based on the supplied indices. The indices start at 1 and
 include both endpoints.
 
+## Strings
 
-Strings
-=======
+### `CONCAT`
 
-CONCAT
-------
-
-`CONCAT(col1, '_hello')`
+```sql
+CONCAT(col1, '_hello')
+```
 
 Concatenate two or more strings.
 
-EXTRACTJSONFIELD
-----------------
+### `EXTRACTJSONFIELD`
 
-`EXTRACTJSONFIELD(message, '$.log.cloud')`
+```sql
+EXTRACTJSONFIELD(message, '$.log.cloud')
+```
 
 Given a STRING that contains JSON data, extract the value at the specified [JSONPath](https://jsonpath.com/).
 
@@ -282,7 +252,6 @@ For example, given a STRING containing the following JSON:
 ```
 
 `EXTRACTJSONFIELD(message, '$.log.cloud')` returns the STRING `gcp836Csd`.
-
 
 If the requested JSONPath does not exist, the function returns NULL.
 
@@ -302,41 +271,46 @@ instance number from the above JSON object as a INT.
 
     `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT, ...) WITH (VALUE_FORMAT=JSON, ...)`
 
-IFNULL
-------
+### IFNULL
 
-`IFNULL(col1, retval)`
+```sql
+IFNULL(col1, retval)
+```
 
 If the provided VARCHAR is NULL, return `retval`, otherwise, return the
 value. Only VARCHAR values are supported for the input. The return value
 must be a VARCHAR.
 
-INITCAP
--------
+### `INITCAP`
 
-`INITCAP(col1)`
+```sql
+INITCAP(col1)
+```
 
 Capitalize the first letter in each word and convert all other letters
 to lowercase. Words are delimited by whitespace.
 
-LCASE
------
+### `LCASE`
 
-`LCASE(col1)`
+```sql
+LCASE(col1)
+```
 
 Convert a string to lowercase.
 
-LEN
----
+### `LEN`
 
-`LEN(col1)`
+```sql
+LEN(col1)
+```
 
 The length of a string.
 
-MASK
-----
+### `MASK`
 
-`MASK(col1, 'X', 'x', 'n', '-')`
+```sql
+MASK(col1, 'X', 'x', 'n', '-')
+```
 
 Convert a string to a masked or obfuscated version of itself. The optional
 arguments following the input string to be masked are the characters to be
@@ -351,10 +325,11 @@ type. For example: `MASK("My Test $123")` will return `Xx-Xxxx--nnn`, applying
 all default masks. `MASK("My Test $123", '*', NULL, '1', NULL)` will yield
 `*y *est $111`.
 
-MASK_KEEP_LEFT
---------------
+### `MASK_KEEP_LEFT`
 
-`MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')`
+```sql
+MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')
+```
 
 Similar to the `MASK` function above, except
 that the first or left-most `numChars`
@@ -362,10 +337,11 @@ characters will not be masked in any way.
 For example: `MASK_KEEP_LEFT("My Test $123", 4)`
 will return `My Txxx--nnn`.
 
-MASK_KEEP_RIGHT
----------------
+### `MASK_KEEP_RIGHT`
 
-`MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')`
+```sql
+MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')
+```
 
 Similar to the `MASK` function above, except
 that the last or right-most `numChars`
@@ -373,10 +349,11 @@ characters will not be masked in any way.
 For example:`MASK_KEEP_RIGHT("My Test $123", 4)`
 will return `Xx-Xxxx-$123`.
 
-MASK_LEFT
----------
+### `MASK_LEFT`
 
-`MASK_LEFT(col1, numChars, 'X', 'x', 'n', '-')`
+```sql
+MASK_LEFT(col1, numChars, 'X', 'x', 'n', '-')
+```
 
 Similar to the `MASK` function above, except
 that only the first or left-most `numChars`
@@ -384,10 +361,11 @@ characters will have any masking applied to them.
 For example, `MASK_LEFT("My Test $123", 4)`
 will return `Xx-Xest $123`.
 
-MASK_RIGHT
-----------
+### `MASK_RIGHT`
 
-`MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')`
+```sql
+MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')
+```
 
 Similar to the `MASK` function above, except
 that only the last or right-most `numChars`
@@ -395,17 +373,24 @@ characters will have any masking applied to them.
 For example: `MASK_RIGHT("My Test $123", 4)`
 will return `My Test -nnn`.
 
-REPLACE
--------
+### `REPLACE`
+
+```sql
+REPLACE(col1, 'foo', 'bar')
+```
+
+Replace all instances of a substring in a string with a new string.
+
 
 `REPLACE(col1, 'foo', 'bar')`
 
 Replace all instances of a substring in a string with a new string.
 
-SPLIT
------
+### `SPLIT`
 
-`SPLIT(col1, delimiter)`
+```sql
+SPLIT(col1, delimiter)
+```
 
 Splits a string into an array of substrings based
 on a delimiter. If the delimiter is not found,
@@ -419,11 +404,15 @@ If the delimiter is found at the beginning or end
 of the string, or there are contiguous delimiters,
 then an empty space is added to the array.
 
-SUBSTRING
----------
+### `SUBSTRING`
 
-`SUBSTRING(col1, 2, 5)`
-`SUBSTRING(str, pos, [len]`
+```sql
+SUBSTRING(col1, 2, 5)
+```
+
+```sql
+SUBSTRING(str, pos, [len])
+```
 
 Returns a substring of `str` that starts at
 `pos` (first character is at position 1) and
@@ -433,43 +422,47 @@ the string.
 For example, `SUBSTRING("stream", 1, 4)`
 returns "stre".
 
-TRIM
-----
+### `TRIM`
 
-`TRIM(col1)`
+```sql
+TRIM(col1)
+```
 
 Trim the spaces from the beginning and end of a string.
 
-UCASE
------
+### `UCASE`
 
-`UCASE(col1)`
+```sql
+UCASE(col1)
+```
 
-Convert a string to uppercase.
+Convert a string to uppercase..
 
-Date and Time
-=============
+## Date and time
 
-UNIX_DAT
---------
+### `UNIX_DATE`
 
-`UNIX_DATE()`
+```sql
+UNIX_DATE()
+```
  
 Gets an integer representing days since epoch. The returned timestamp
 may differ depending on the local time of different ksqlDB Server instances.
 
-UNIX_TIMESTAMP
---------------
+### `UNIX_TIMESTAMP`
 
-`UNIX_TIMESTAMP()`
+```sql
+UNIX_TIMESTAMP()
+```
 
 Gets the Unix timestamp in milliseconds, represented as a BIGINT. The returned
 timestamp may differ depending on the local time of different ksqlDB Server instances.
 
-DATETOSTRING
-------------
+### `DATETOSTRING`
 
-`DATETOSTRING(START_DATE, 'yyyy-MM-dd')`
+```sql
+DATETOSTRING(START_DATE, 'yyyy-MM-dd')
+```
 
 Converts an integer representation of a date into a string representing the
 date in the given format. Single quotes in the timestamp format can be escaped
@@ -477,10 +470,11 @@ with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 The integer represents days since epoch matching the encoding used by
 {{ site.kconnect }} dates.
 
-STRINGTODATE
-------------
+### `STRINGTODATE`
 
-`STRINGTODATE(col1, 'yyyy-MM-dd')`
+```sql
+STRINGTODATE(col1, 'yyyy-MM-dd')
+```
 
 Converts a string representation of a date in the
 given format into an integer representing days
@@ -488,10 +482,11 @@ since epoch. Single quotes in the timestamp
 format can be escaped with two successive single
 quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
-STRINGTOTIMESTAMP
------------------
+### `STRINGTOTIMESTAMP`
 
-`STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])`
+```sql
+STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
 
 Converts a string value in the given
 format into the BIGINT value                      
@@ -506,10 +501,11 @@ TIMEZONE is an optional parameter and it is a
 more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).    
 
-TIMESTAMPTOSTRING
------------------
+### `TIMESTAMPTOSTRING`
 
-`TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])`
+```sql
+TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
 
 Converts a BIGINT millisecond timestamp value into
 the string representation of the timestamp in
@@ -523,13 +519,20 @@ java.util.TimeZone ID format, for example: "UTC",
 more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
-URL
-===
+## URLs
 
-URL_DECODE_PARAM
-----------------
+!!! note
+    All ksqlDB URL functions assume URI syntax defined in
+    [RFC 39386](https://tools.ietf.org/html/rfc3986). For more information on the
+    structure of a URI, including definitions of the various components, see
+    Section 3 of the RFC. For encoding/decoding, the
+    `application/x-www-form-urlencoded` convention is followed.
 
-`URL_DECODE_PARAM(col1)`
+### `URL_DECODE_PARAM`
+
+```sql
+URL_DECODE_PARAM(col1)
+```
 
 Unescapes the `URL-param-encoded`_ value in `col1`. This is the inverse of
 `URL_ENCODE_PARAM`.
@@ -537,10 +540,11 @@ Unescapes the `URL-param-encoded`_ value in `col1`. This is the inverse of
 - Input: `'url%20encoded`
 - Output: `url encoded`
 
-URL_ENCODE_PARAM
-----------------
+### `URL_ENCODE_PARAM`
 
-`URL_ENCODE_PARAM(col1)`
+```sql
+URL_ENCODE_PARAM(col1)
+```
 
 Escapes the value of `col1` such that it can
 safely be used in URL query parameters. Note that
@@ -550,10 +554,11 @@ in the path portion of a URL.
 - Input: `url encoded`                             
 - Output: `'url%20encoded`                         
 
-URL_EXTRACT_FRAGMENT
---------------------
+### `URL_EXTRACT_FRAGMENT`
 
-`URL_EXTRACT_FRAGMENT(url)`
+```sql
+URL_EXTRACT_FRAGMENT(url)
+```
 
 Extract the fragment portion of the specified
 value. Returns NULL if `url` is not a valid URL
@@ -566,10 +571,11 @@ value will be decoded.
 - Input: `http://test.com#frag%20space`,         
 - Output: `frag space`                           
 
-URL_EXTRACT_HOST
-----------------
+### `URL_EXTRACT_HOST`
 
-`URL_EXTRACT_HOST(url)`
+```sql
+URL_EXTRACT_HOST(url)
+```
 
 Extract the host-name portion of the specified
 value. Returns NULL if the `url` is not a valid  
@@ -578,10 +584,11 @@ URI according to RFC-2396.
 - Input: `http://test.com:8080/path`,              
 - Output: `test.com`                               
 
-URL_EXTRACT_PARAMETER
----------------------
+### `URL_EXTRACT_PARAMETER`
 
-`URL_EXTRACT_PARAMETER(url, parameter_name)`
+```sql
+URL_EXTRACT_PARAMETER(url, parameter_name)
+```
 
 Extract the value of the requested parameter from
 the query-string of `url`. Returns NULL
@@ -599,10 +606,11 @@ URL as a single string, see `URL_EXTRACT_QUERY.`
 - Input: `http://test.com?a=foo&b=bar`, `b`
 - Output: `bar`
 
-URL_EXTRACT_PATH
-----------------
+### `URL_EXTRACT_PATH`
 
-`URL_EXTRACT_PATH(url)`
+```sql
+URL_EXTRACT_PATH(url)
+```
 
 Extracts the path from `url`.
 Returns NULL if `url` is not a valid URI but  
@@ -611,10 +619,11 @@ returns an empty string if the path is empty.
 - Input: `http://test.com/path/to#a`            
 - Output: `path/to`                             
 
-URL_EXTRACT_PORT
-----------------
+### `URL_EXTRACT_PORT`
 
-`URL_EXTRACT_PORT(url)`
+```sql
+URL_EXTRACT_PORT(url)
+```
 
 Extract the port number from `url`.
 Returns NULL if `url` is not a valid URI or does
@@ -623,10 +632,11 @@ not contain an explicit port number.
 - Input: `http://localhost:8080/path`             
 - Output: `8080`                                  
 
-URL_EXTRACT_PROTOCOL
---------------------
+### `URL_EXTRACT_PROTOCOL`
 
-`URL_EXTRACT_PROTOCOL(url)`
+```sql
+URL_EXTRACT_PROTOCOL(url)
+```
 
 Extract the protocol from `url`. Returns NULL if
 `url` is an invalid URI or has no protocol.
@@ -634,10 +644,11 @@ Extract the protocol from `url`. Returns NULL if
 - Input: `http://test.com?a=foo&b=bar`       
 - Output: `http`                             
 
-URL_EXTRACT_QUERY
------------------
+### `URL_EXTRACT_QUERY`
 
-`URL_EXTRACT_QUERY(url)`
+```sql
+URL_EXTRACT_QUERY(url)
+```
 
 Extract the decoded query-string portion of
 `url`. Returns NULL if no query-string is  
@@ -645,11 +656,3 @@ present or `url` is not a valid URI.
                                            
 - Input: `http://test.com?a=foo%20bar&b=baz` 
 - Output: `a=foo bar&b=baz`                  
-
-
-!!! note
-    All ksqlDB URL functions assume URI syntax defined in
-    [RFC 39386](https://tools.ietf.org/html/rfc3986). For more information on the
-    structure of a URI, including definitions of the various components, see
-    Section 3 of the RFC. For encoding/decoding, the
-    `application/x-www-form-urlencoded` convention is followed.

@@ -626,23 +626,26 @@ public class Console implements Closeable {
             + source.getTopic()
     ));
     writer().println();
-    ConsumerGroupOffsets consumerGroupOffsets = source.getConsumerGroupOffsets();
-    writer().println(String.format("%-20s : %s", "Consumer Group", consumerGroupOffsets.getGroupId()));
-    writer().println(String.format("%-20s : %s", "Kafka topic", consumerGroupOffsets.getKafkaTopic()));
-    writer().println("");
-    final Table taskTable = new Table.Builder()
-        .withColumnHeaders(ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
-        .withRows(consumerGroupOffsets.getOffsets()
-          .stream()
-        .map(offset -> ImmutableList.of(
-            String.valueOf(offset.getPartition()),
-            String.valueOf(offset.getLogStartOffset()),
-            String.valueOf(offset.getLogEndOffset()),
-            String.valueOf(offset.getConsumerOffset()),
-            String.valueOf(offset.getLogEndOffset() - offset.getConsumerOffset())
-        )))
-        .build();
-    taskTable.print(this);
+    Optional<ConsumerGroupOffsets> consumerGroupOffsetsOptional = source.getConsumerGroupOffsets();
+    if (consumerGroupOffsetsOptional.isPresent()) {
+      ConsumerGroupOffsets consumerGroupOffsets = consumerGroupOffsetsOptional.get();
+      writer().println(String.format("%-20s : %s", "Consumer Group", consumerGroupOffsets.getGroupId()));
+      writer().println(String.format("%-20s : %s", "Kafka topic", consumerGroupOffsets.getKafkaTopic()));
+      writer().println("");
+      final Table taskTable = new Table.Builder()
+          .withColumnHeaders(ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
+          .withRows(consumerGroupOffsets.getOffsets()
+              .stream()
+              .map(offset -> ImmutableList.of(
+                  String.valueOf(offset.getPartition()),
+                  String.valueOf(offset.getLogStartOffset()),
+                  String.valueOf(offset.getLogEndOffset()),
+                  String.valueOf(offset.getConsumerOffset()),
+                  String.valueOf(offset.getLogEndOffset() - offset.getConsumerOffset())
+              )))
+          .build();
+      taskTable.print(this);
+    }
   }
 
   private void printSourceDescriptionList(final SourceDescriptionList sourceDescriptionList) {

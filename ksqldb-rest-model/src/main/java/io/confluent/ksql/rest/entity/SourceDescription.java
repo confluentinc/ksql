@@ -47,7 +47,7 @@ public class SourceDescription {
   private final int partitions;
   private final int replication;
   private final String statement;
-  private final ConsumerGroupOffsets consumerGroupOffsets;
+  private final Optional<ConsumerGroupOffsets> consumerGroupOffsets;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -68,7 +68,7 @@ public class SourceDescription {
       @JsonProperty("partitions") final int partitions,
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
-      @JsonProperty("consumerGroupOffsets") ConsumerGroupOffsets consumerGroupOffsets) {
+      @JsonProperty("consumerGroupOffsets") final Optional<ConsumerGroupOffsets> consumerGroupOffsets) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
     this.windowType = Objects.requireNonNull(windowType, "windowType");
@@ -156,7 +156,7 @@ public class SourceDescription {
     return errorStats;
   }
 
-  public ConsumerGroupOffsets getConsumerGroupOffsets() {
+  public Optional<ConsumerGroupOffsets> getConsumerGroupOffsets() {
     return consumerGroupOffsets;
   }
 

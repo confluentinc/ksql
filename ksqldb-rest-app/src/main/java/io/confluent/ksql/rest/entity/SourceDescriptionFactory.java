@@ -21,7 +21,6 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -71,16 +70,10 @@ public final class SourceDescriptionFactory {
         topicDescription.map(td -> td.partitions().size()).orElse(0),
         topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0),
         dataSource.getSqlExpression(),
-        topicDescription.map(td ->
-            consumerGroupDescription.map(
-                cg -> new ConsumerGroupOffsets(
-                    cg.groupId(),
-                    dataSource.getKafkaTopicName(),
-                    consumerOffsets(td, topicAndStartOffsets, topicAndEndOffsets,
-                        topicAndConsumerOffsets)))
-                .orElse(
-                    new ConsumerGroupOffsets("", "", Collections.emptyList())))
-            .orElse(new ConsumerGroupOffsets("", "", Collections.emptyList())));
+        topicDescription.flatMap(td -> consumerGroupDescription.map(cg ->
+            new ConsumerGroupOffsets(cg.groupId(), td.name(),
+                consumerOffsets(td, topicAndStartOffsets, topicAndEndOffsets,
+                    topicAndConsumerOffsets)))));
   }
 
   private static List<ConsumerOffset> consumerOffsets(

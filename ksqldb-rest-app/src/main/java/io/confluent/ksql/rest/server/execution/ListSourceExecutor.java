@@ -217,9 +217,11 @@ public final class ListSourceExecutor {
             serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
         );
         String serviceId = "default"; //FIXME not sure how to get this
-        String queryId = sourceQueries.isEmpty() ? sinkQueries.get(0).getId().toString() : sourceQueries.get(0).getId().toString();
-        String consumerGroupId = "_confluent-ksql-" + serviceId + "_" + KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT + queryId; //FIXME there should be a better way to build this
-        try {
+        if (sourceQueries.isEmpty()){
+          consumerGroupDescription = Optional.empty();
+        } else {
+          String queryId = sourceQueries.get(0).getId().toString();
+          String consumerGroupId = "_confluent-ksql-" + serviceId + "_" + KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT + queryId; //FIXME there should be a better way to build this
           consumerGroupDescription = Optional.of(
               serviceContext.getAdminClient().describeConsumerGroups(Collections.singletonList(consumerGroupId)).describedGroups().get(consumerGroupId).get()
           );
@@ -232,10 +234,8 @@ public final class ListSourceExecutor {
           }
           topicAndStartOffsets = serviceContext.getAdminClient().listOffsets(startRequest).all().get();
           topicAndEndOffsets = serviceContext.getAdminClient().listOffsets(endRequest).all().get();
-        } catch (InterruptedException | ExecutionException e) {
-          e.printStackTrace();
         }
-      } catch (final KafkaException | KafkaResponseGetFailedException e) {
+      } catch (final KafkaException | KafkaResponseGetFailedException | InterruptedException | ExecutionException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
       }
     }

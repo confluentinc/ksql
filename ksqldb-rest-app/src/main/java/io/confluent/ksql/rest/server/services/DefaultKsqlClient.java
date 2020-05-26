@@ -33,13 +33,11 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.net.JksOptions;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -177,7 +175,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
   private static KsqlClient getInternalClient(final Map<String, String> clientProps,
       final Optional<HostAliasResolver> hostAliasResolver) {
-    boolean verifyHost =
+    final boolean verifyHost =
         !KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE.equals(clientProps.get(
         KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG));
     return new KsqlClient(

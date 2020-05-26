@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.auth;
 
-import static io.confluent.ksql.api.auth.SystemAuthenticationHandler.isAuthenticatedAsSystemUser;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 
 import com.google.common.collect.ImmutableSet;

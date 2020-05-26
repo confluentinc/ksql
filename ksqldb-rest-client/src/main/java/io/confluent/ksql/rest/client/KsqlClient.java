@@ -18,15 +18,11 @@ package io.confluent.ksql.rest.client;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.ApiJsonMapper;
-import io.confluent.ksql.util.KsqlConfig;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
-import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
-import io.vertx.core.net.KeyCertOptions;
-import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -34,7 +30,6 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
 import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
@@ -88,7 +83,7 @@ public final class KsqlClient implements AutoCloseable {
   public KsqlTarget target(final URI server) {
     final boolean isUriTls = server.getScheme().equalsIgnoreCase("https");
     final HttpClient client = isUriTls ? httpTlsClient : httpNonTlsClient;
-    String aliasHost = hostAliasResolver.map(resolver -> resolver.resolve(server.getHost()))
+    final String aliasHost = hostAliasResolver.map(resolver -> resolver.resolve(server.getHost()))
         .orElse(server.getHost());
     return new KsqlTarget(client,
         SocketAddress.inetSocketAddress(server.getPort(), aliasHost), localProperties,

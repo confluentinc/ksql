@@ -292,14 +292,12 @@ public final class RestIntegrationTestUtil {
   }
 
   public static void createStream(final TestKsqlRestApp restApp,
-      final TestDataProvider<?> dataProvider,
-      final Optional<BasicCredentials> userCreds) {
+      final TestDataProvider<?> dataProvider) {
     makeKsqlRequest(
         restApp,
         "CREATE STREAM " + dataProvider.kstreamName()
             + " (" + dataProvider.ksqlSchemaString(false) + ") "
-            + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');",
-        userCreds
+            + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');"
     );
   }
 
@@ -320,11 +318,6 @@ public final class RestIntegrationTestUtil {
         userCreds,
         hostAliasResolver
     );
-  }
-
-  public static void createStream(final TestKsqlRestApp restApp,
-      final TestDataProvider<?> dataProvider) {
-    createStream(restApp, dataProvider, Optional.empty());
   }
 
   private static List<KsqlEntity> awaitResults(

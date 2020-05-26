@@ -42,13 +42,7 @@ class HighAvailabilityTestUtil {
 
   static ClusterStatusResponse sendClusterStatusRequest(
       final TestKsqlRestApp restApp) {
-    return sendClusterStatusRequest(restApp, Optional.empty());
-  }
-
-  static ClusterStatusResponse sendClusterStatusRequest(
-      final TestKsqlRestApp restApp,
-      final Optional<BasicCredentials> userCreds) {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
       final RestResponse<ClusterStatusResponse> res = restClient
           .makeClusterStatusRequest();
 
@@ -98,18 +92,8 @@ class HighAvailabilityTestUtil {
       final KsqlHostInfoEntity remoteServer,
       final BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function
   ) {
-    return waitForRemoteServerToChangeStatus(restApp, remoteServer, function, Optional.empty());
-  }
-
-  static ClusterStatusResponse  waitForRemoteServerToChangeStatus(
-      final TestKsqlRestApp restApp,
-      final KsqlHostInfoEntity remoteServer,
-      final BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function,
-      final Optional<BasicCredentials> userCreds
-  ) {
     while (true) {
-      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp,
-          userCreds);
+      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp);
       if(function.apply(remoteServer, clusterStatusResponse.getClusterStatus())) {
         return clusterStatusResponse;
       }
@@ -148,17 +132,8 @@ class HighAvailabilityTestUtil {
       final TestKsqlRestApp restApp,
       final int numServers
   ) {
-    waitForClusterToBeDiscovered(restApp, numServers, Optional.empty());
-  }
-
-  static void waitForClusterToBeDiscovered(
-      final TestKsqlRestApp restApp,
-      final int numServers,
-      final Optional<BasicCredentials> userCreds
-  ) {
     while (true) {
-      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp,
-          userCreds);
+      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp);
       if(allServersDiscovered(numServers, clusterStatusResponse.getClusterStatus())) {
         break;
       }

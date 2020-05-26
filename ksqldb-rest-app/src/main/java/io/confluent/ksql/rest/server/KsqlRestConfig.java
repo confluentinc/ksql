@@ -800,7 +800,7 @@ public class KsqlRestConfig extends AbstractConfig {
     return getClientAuth(clientAuth);
   }
 
-  private ClientAuth getClientAuth(String clientAuth) {
+  private ClientAuth getClientAuth(final String clientAuth) {
     switch (clientAuth) {
       case SSL_CLIENT_AUTHENTICATION_NONE:
         return ClientAuth.NONE;

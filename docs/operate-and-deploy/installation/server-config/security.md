@@ -219,6 +219,42 @@ credentials when starting the CLI by using the `--user` and
 <ksql-install>bin/ksql --user fred --password letmein http://localhost:8088
 ```
 
+Configure ksqlDB for Internal Authentication
+------------------------------------
+
+Since some system requests aren't done on behalf of a user (e.g. `/heartbeat`, `/lag`), 
+user-based authentication is not appropriate for them. Instead, ksqlDB supports SSL mutual authentication for system requests.
+
+In addition to some of the HTTPS configurations above, your key store must now
+contain not only the certificate/key for the endpoints exposed with `listeners`, but also
+the additional certificate/key for your internal listener set with
+`ksql.internal.listener`.  Similarly, since your internal certificate is likely
+self-signed, a trust store is required to contain certificates for nodes in your cluster.
+
+```properties
+# Contains both internal and external certificates for this node.
+# e.g. cert and key for external.example.com and node-1.internal.example.com
+ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
+ssl.keystore.password=xxxx
+ssl.key.password=yyyy
+
+# Contains internal certificates for all nodes in the cluster.
+# e.g. cert for node-2.internal.example.com and node-3.internal.example.com
+ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
+ssl.truststore.password=zzzz
+
+listeners=https://external.example.com:8088
+ksql.internal.listener=https://node-1.internal.example.com:8099
+ksql.internal.ssl.client.authentication=REQUIRED
+```
+
+Not only does this configure system authentication to be secure and authenticated at the
+connection level, but ksqlDB then also considers these requests to be authenticated.
+
+
+You can read generally about configuring `ksql.internal.listener` [here](index.md).
+
+
 Configure ksqlDB for Confluent Cloud
 ------------------------------------
 

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.api.auth;
 
 import io.confluent.ksql.api.server.InternalEndpointHandler;
@@ -20,19 +35,19 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
   public SystemAuthenticationHandler() {}
 
   @Override
-  public void handle(RoutingContext routingContext) {
+  public void handle(final RoutingContext routingContext) {
     if (InternalEndpointHandler.INTERNAL_PATHS.contains(routingContext.normalisedPath())) {
       routingContext.setUser(new SystemUser(new SystemPrincipal()));
     }
     routingContext.next();
   }
 
-  public static boolean isAuthenticatedAsSystemUser(RoutingContext routingContext) {
-    User user = routingContext.user();
+  public static boolean isAuthenticatedAsSystemUser(final RoutingContext routingContext) {
+    final User user = routingContext.user();
     return user instanceof SystemUser;
   }
 
-  public static boolean hasAuthorization(RoutingContext routingContext) {
+  public static boolean hasAuthorization(final RoutingContext routingContext) {
     return isAuthenticatedAsSystemUser(routingContext);
   }
 
@@ -43,7 +58,8 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
     // coming from a known set of servers in the cluster), and that it came on the internal
     // listener interface, meaning that it's being done with the authorization of the system
     // rather than directly on behalf of the user. Mutual auth is only enforced when SSL is used.
-    String internalListener = server.getConfig().getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG);
+    final String internalListener = server.getConfig().getString(
+        KsqlRestConfig.INTERNAL_LISTENER_CONFIG);
     if (internalListener == null) {
       return Optional.empty();
     }

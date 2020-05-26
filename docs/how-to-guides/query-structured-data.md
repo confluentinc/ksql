@@ -30,7 +30,7 @@ Make a stream `s2` with two columns: `a` and `b`. `b` is a struct with `VARCHAR`
 
 ```sql
 CREATE STREAM s2 (
-    a VARCHAR,
+    a VARCHAR KEY,
     b STRUCT<
         c VARCHAR,
         d INT
@@ -38,8 +38,7 @@ CREATE STREAM s2 (
 ) WITH (
     kafka_topic = 's2',
     partitions = 1,
-    value_format = 'avro',
-    key = 'a'
+    value_format = 'avro'
 );
 ```
 
@@ -102,13 +101,12 @@ Make a stream `s3` with two columns: `a` and `b`. `b` is a map with `VARCHAR` ke
 
 ```sql
 CREATE STREAM s3 (
-    a VARCHAR,
+    a VARCHAR KEY,
     b MAP<VARCHAR, INT>
 ) WITH (
     kafka_topic = 's3',
     partitions = 1,
-    value_format = 'avro',
-    key = 'a'
+    value_format = 'avro'
 );
 ```
 
@@ -170,13 +168,12 @@ Make a stream `s4` with two columns: `a` and `b`. `b` is an array with `INT` ele
 
 ```sql
 CREATE STREAM s4 (
-    a VARCHAR,
+    a VARCHAR KEY,
     b ARRAY<INT>
 ) WITH (
     kafka_topic = 's4',
     partitions = 1,
-    value_format = 'avro',
-    key = 'a'
+    value_format = 'avro'
 );
 ```
 
@@ -245,7 +242,7 @@ Make a stream `s4` with two columns: `a` and `b`. Here is how `b` breaks down:
 
 ```sql
 CREATE STREAM s4 (
-    a VARCHAR,
+    a VARCHAR KEY,
     b STRUCT<
         c ARRAY<INT>,
         d MAP<
@@ -259,8 +256,7 @@ CREATE STREAM s4 (
 ) WITH (
     kafka_topic = 's4',
     partitions = 1,
-    value_format = 'avro',
-    key = 'a'
+    value_format = 'avro'
 );
 ```
 

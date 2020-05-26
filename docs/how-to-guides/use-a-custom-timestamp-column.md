@@ -8,7 +8,7 @@ You have events that have a timestamp attribute. You want to do time-related pro
 
 ```sql
 CREATE STREAM s1 (
-    k VARCHAR,
+    k VARCHAR KEY,
     ts VARCHAR,
     v1 INT,
     v2 VARCHAR
@@ -16,7 +16,6 @@ CREATE STREAM s1 (
     kafka_topic = 's1',
     partitions = 1,
     value_format = 'avro',
-    key = 'k',
     timestamp = 'ts',                        -- the column to use as a timestamp
     timestamp_format = 'yyyy-MM-dd HH:mm:ss' -- the format to parse the timestamp
 );
@@ -36,15 +35,14 @@ Create a stream `s1` that has a timestamp column, `ts`. Notice that the `timesta
 
 ```sql
 CREATE STREAM s1 (
-    k VARCHAR,
+    k VARCHAR KEY,
     ts VARCHAR,
     v1 INT,
     v2 VARCHAR
 ) WITH (
     kafka_topic = 's1',
     partitions = 1,
-    value_format = 'avro',
-    key = 'k'
+    value_format = 'avro'
 );
 ```
 
@@ -131,14 +129,13 @@ Not only can you change the timestamp to use as you derive new streams and table
 
 ```sql
 CREATE STREAM s3 (
-    k VARCHAR,
+    k VARCHAR KEY,
     ts VARCHAR,
     v1 INT
 ) WITH (
     kafka_topic = 's3',
     partitions = 1,
     value_format = 'avro',
-    key = 'k',
     timestamp = 'ts',
     timestamp_format = 'yyyy-MM-dd HH:mm:ss'
 );
@@ -154,7 +151,7 @@ Create a stream `s4` with a timestamp column of type `BIGINT`. Because the times
 
 ```sql
 CREATE STREAM s4 (
-    k VARCHAR,
+    k VARCHAR KEY,
     ts BIGINT,
     v1 INT,
     v2 VARCHAR
@@ -162,7 +159,6 @@ CREATE STREAM s4 (
     kafka_topic = 's4',
     partitions = 1,
     value_format = 'avro',
-    key = 'k',
     timestamp = 'ts'
 );
 ```

@@ -20,6 +20,7 @@ import io.confluent.ksql.util.Sandbox;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
 
 /**
@@ -34,6 +35,7 @@ public final class SandboxedServiceContext implements ServiceContext {
   private final SchemaRegistryClient srClient;
   private final KafkaClientSupplier kafkaClientSupplier;
   private final ConnectClient connectClient;
+  private final Admin adminClient;
 
   public static SandboxedServiceContext create(final ServiceContext serviceContext) {
     if (serviceContext instanceof SandboxedServiceContext) {
@@ -46,29 +48,33 @@ public final class SandboxedServiceContext implements ServiceContext {
     final SchemaRegistryClient schemaRegistryClient =
         SandboxedSchemaRegistryClient.createProxy(serviceContext.getSchemaRegistryClient());
     final ConnectClient connectClient = SandboxConnectClient.createProxy();
+    final Admin adminClient = serviceContext.getAdminClient();
 
     return new SandboxedServiceContext(
         kafkaClientSupplier,
         kafkaTopicClient,
         schemaRegistryClient,
-        connectClient);
+        connectClient,
+        adminClient);
   }
 
   private SandboxedServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final KafkaTopicClient topicClient,
       final SchemaRegistryClient srClient,
-      final ConnectClient connectClient
+      final ConnectClient connectClient,
+      final Admin adminClient
   ) {
     this.kafkaClientSupplier = Objects.requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.srClient = Objects.requireNonNull(srClient, "srClient");
     this.connectClient = Objects.requireNonNull(connectClient, "connectClient");
+    this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
   }
 
   @Override
   public Admin getAdminClient() {
-    throw new UnsupportedOperationException();
+    return adminClient;
   }
 
   @Override

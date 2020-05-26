@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -199,6 +200,11 @@ public final class ListSourceExecutor {
       ), statementText);
     }
 
+    List<RunningQuery> sourceQueries = getQueries(ksqlEngine,
+        q -> q.getSourceNames().contains(dataSource.getName()));
+    List<RunningQuery> sinkQueries = getQueries(ksqlEngine,
+        q -> q.getSinkName().equals(dataSource.getName()));
+
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription = Optional.empty();
     Optional<ConsumerGroupDescription> consumerGroupDescription = Optional.empty();
     Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets = new LinkedHashMap<>();
@@ -209,7 +215,9 @@ public final class ListSourceExecutor {
         topicDescription = Optional.of(
             serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
         );
-        String consumerGroupId = "";
+        String serviceId = "default"; //FIXME not sure how to get this
+        String queryId = sourceQueries.isEmpty() ? sinkQueries.get(0).getId().toString() : sourceQueries.get(0).getId().toString();
+        String consumerGroupId = "_confluent-ksql-" + serviceId + "_" + KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT + queryId; //FIXME there should be a better way to build this
         try {
           consumerGroupDescription = Optional.of(
               serviceContext.getAdminClient().describeConsumerGroups(Collections.singletonList(consumerGroupId)).describedGroups().get(consumerGroupId).get()
@@ -233,8 +241,8 @@ public final class ListSourceExecutor {
         SourceDescriptionFactory.create(
             dataSource,
             extended,
-            getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
-            getQueries(ksqlEngine, q -> q.getSinkName().equals(dataSource.getName())),
+            sourceQueries,
+            sinkQueries,
             topicDescription,
             consumerGroupDescription,
             topicAndEndOffsets,

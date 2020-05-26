@@ -30,7 +30,7 @@ public class KsqlErrorMessageTest {
   private static final KsqlErrorMessage MESSAGE =
       new KsqlErrorMessage(40301, "foo");
   private static final String SERIALIZED_MESSAGE =
-      "{\"@type\":\"generic_error\",\"error_code\":40301,\"message\":\"foo\",\"stackTrace\":[]}";
+      "{\"@type\":\"generic_error\",\"error_code\":40301,\"message\":\"foo\"}";
 
   @Test
   public void shouldSerializeToJson() {

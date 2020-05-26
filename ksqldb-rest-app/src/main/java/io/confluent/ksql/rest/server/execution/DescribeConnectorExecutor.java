@@ -138,6 +138,7 @@ public final class DescribeConnectorExecutor {
               Optional.empty(),
               Optional.empty(),
               ImmutableMap.of(),
+              ImmutableMap.of(),
               ImmutableMap.of()))
           .collect(Collectors.toList());
     } else {

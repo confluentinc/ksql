@@ -30,6 +30,7 @@ import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 public final class SourceDescriptionFactory {
 
@@ -43,6 +44,7 @@ public final class SourceDescriptionFactory {
       final List<RunningQuery> writeQueries,
       final Optional<TopicDescription> topicDescription,
       final Optional<ConsumerGroupDescription> consumerGroupDescription,
+      final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
       final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
   ) {
@@ -69,21 +71,38 @@ public final class SourceDescriptionFactory {
         topicDescription.map(td -> td.partitions().size()).orElse(0),
         topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0),
         dataSource.getSqlExpression(),
-        consumerGroupDescription.map(
-            cg -> new SourceConsumerGroupOffsets(cg.groupId(), dataSource.getKafkaTopicName(),
-                consumerOffsets(topicAndEndOffsets, topicAndConsumerOffsets)))
-            .orElse(new SourceConsumerGroupOffsets("", dataSource.getKafkaTopicName(), Collections
-                .emptyList())));
+        topicDescription.map(td ->
+            consumerGroupDescription.map(
+                cg -> new ConsumerGroupOffsets(
+                    cg.groupId(),
+                    dataSource.getKafkaTopicName(),
+                    consumerOffsets(td, topicAndStartOffsets, topicAndEndOffsets,
+                        topicAndConsumerOffsets)))
+                .orElse(
+                    new ConsumerGroupOffsets("", "", Collections.emptyList())))
+            .orElse(new ConsumerGroupOffsets("", "", Collections.emptyList())));
   }
 
-  private static List<SourceConsumerOffset> consumerOffsets(
+  private static List<ConsumerOffset> consumerOffsets(
+      final TopicDescription topicDescription,
+      final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
       final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
   ) {
-    List<SourceConsumerOffset> consumerOffsets = new ArrayList<>();
-    for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : topicAndConsumerOffsets.entrySet()) {
-      consumerOffsets.add(new SourceConsumerOffset(entry.getKey().partition(),
-          topicAndEndOffsets.get(entry.getKey()).offset(), entry.getValue().offset()));
+    List<ConsumerOffset> consumerOffsets = new ArrayList<>();
+    for (TopicPartitionInfo topicPartitionInfo : topicDescription.partitions()) {
+      final TopicPartition tp = new TopicPartition(topicDescription.name(),
+          topicPartitionInfo.partition());
+      ListOffsetsResultInfo startOffsetResultInfo = topicAndStartOffsets.get(tp);
+      ListOffsetsResultInfo endOffsetResultInfo = topicAndEndOffsets.get(tp);
+      OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
+      consumerOffsets.add(
+          new ConsumerOffset(
+              topicPartitionInfo.partition(),
+              startOffsetResultInfo != null ? startOffsetResultInfo.offset() : 0,
+              endOffsetResultInfo != null ? endOffsetResultInfo.offset() : 0,
+              offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
+          ));
     }
     return consumerOffsets;
   }

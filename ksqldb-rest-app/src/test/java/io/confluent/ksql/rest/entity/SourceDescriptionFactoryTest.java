@@ -122,6 +122,7 @@ public class SourceDescriptionFactoryTest {
         Optional.empty(),
         Optional.empty(),
         Collections.emptyMap(),
+        Collections.emptyMap(),
         Collections.emptyMap());
 
     // Then:
@@ -148,6 +149,7 @@ public class SourceDescriptionFactoryTest {
         Optional.empty(),
         Optional.empty(),
         Collections.emptyMap(),
+        Collections.emptyMap(),
         Collections.emptyMap());
 
     // Then:
@@ -172,6 +174,7 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Optional.empty(),
         Optional.empty(),
+        Collections.emptyMap(),
         Collections.emptyMap(),
         Collections.emptyMap());
 

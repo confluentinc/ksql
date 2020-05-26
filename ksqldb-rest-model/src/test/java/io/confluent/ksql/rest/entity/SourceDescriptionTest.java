@@ -33,8 +33,8 @@ public class SourceDescriptionTest {
     private static final String SOME_STRING = "some string";
     private static final int SOME_INT = 3;
     private static final boolean SOME_BOOL = true;
-    private static final SourceConsumerGroupOffsets SOME_CG_OFFSETS =
-        new SourceConsumerGroupOffsets("group", "topic", new ArrayList<>());
+    private static final ConsumerGroupOffsets SOME_CG_OFFSETS =
+        new ConsumerGroupOffsets("group", "topic", new ArrayList<>());
 
     @Mock
     private RunningQuery query1;

@@ -208,6 +208,7 @@ public final class ListSourceExecutor {
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription = Optional.empty();
     Optional<ConsumerGroupDescription> consumerGroupDescription = Optional.empty();
     Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets = new LinkedHashMap<>();
+    Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets = new LinkedHashMap<>();
     Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets = new LinkedHashMap<>();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
@@ -223,11 +224,14 @@ public final class ListSourceExecutor {
               serviceContext.getAdminClient().describeConsumerGroups(Collections.singletonList(consumerGroupId)).describedGroups().get(consumerGroupId).get()
           );
           topicAndConsumerOffsets = serviceContext.getAdminClient().listConsumerGroupOffsets(consumerGroupId).partitionsToOffsetAndMetadata().get();
-          Map<TopicPartition, OffsetSpec> request = new LinkedHashMap<>();
+          Map<TopicPartition, OffsetSpec> startRequest = new LinkedHashMap<>();
+          Map<TopicPartition, OffsetSpec> endRequest = new LinkedHashMap<>();
           for (Map.Entry<TopicPartition, OffsetAndMetadata> entry: topicAndConsumerOffsets.entrySet()) {
-            request.put(entry.getKey(), OffsetSpec.earliest());
+            startRequest.put(entry.getKey(), OffsetSpec.earliest());
+            endRequest.put(entry.getKey(), OffsetSpec.latest());
           }
-          topicAndEndOffsets = serviceContext.getAdminClient().listOffsets(request).all().get();
+          topicAndStartOffsets = serviceContext.getAdminClient().listOffsets(startRequest).all().get();
+          topicAndEndOffsets = serviceContext.getAdminClient().listOffsets(endRequest).all().get();
         } catch (InterruptedException | ExecutionException e) {
           e.printStackTrace();
         }
@@ -245,6 +249,7 @@ public final class ListSourceExecutor {
             sinkQueries,
             topicDescription,
             consumerGroupDescription,
+            topicAndStartOffsets,
             topicAndEndOffsets,
             topicAndConsumerOffsets
         )

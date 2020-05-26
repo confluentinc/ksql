@@ -503,12 +503,14 @@ public class KsqlResourceTest {
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
             Optional.empty(),
             ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableMap.of()),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic")),
             Optional.empty(),
+            ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of()))
     );
@@ -539,12 +541,14 @@ public class KsqlResourceTest {
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
             Optional.empty(),
             ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableMap.of()),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic")),
             Optional.empty(),
+            ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of()))
     );
@@ -592,6 +596,7 @@ public class KsqlResourceTest {
         Collections.singletonList(queries.get(0)),
         Optional.empty(),
         Optional.empty(),
+        ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of()
     );

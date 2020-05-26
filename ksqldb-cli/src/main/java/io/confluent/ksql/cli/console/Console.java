@@ -49,6 +49,7 @@ import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConsumerGroupOffsets;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
@@ -624,6 +625,24 @@ public class Console implements Closeable {
         "Statistics of the local KSQL server interaction with the Kafka topic "
             + source.getTopic()
     ));
+    writer().println();
+    ConsumerGroupOffsets consumerGroupOffsets = source.getConsumerGroupOffsets();
+    writer().println(String.format("%-20s : %s", "Consumer Group", consumerGroupOffsets.getGroupId()));
+    writer().println(String.format("%-20s : %s", "Kafka topic", consumerGroupOffsets.getKafkaTopic()));
+    writer().println("");
+    final Table taskTable = new Table.Builder()
+        .withColumnHeaders(ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
+        .withRows(consumerGroupOffsets.getOffsets()
+          .stream()
+        .map(offset -> ImmutableList.of(
+            String.valueOf(offset.getPartition()),
+            String.valueOf(offset.getLogStartOffset()),
+            String.valueOf(offset.getLogEndOffset()),
+            String.valueOf(offset.getConsumerOffset()),
+            String.valueOf(offset.getLogEndOffset() - offset.getConsumerOffset())
+        )))
+        .build();
+    taskTable.print(this);
   }
 
   private void printSourceDescriptionList(final SourceDescriptionList sourceDescriptionList) {

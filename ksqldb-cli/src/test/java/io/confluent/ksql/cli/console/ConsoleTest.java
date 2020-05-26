@@ -67,7 +67,7 @@ import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
-import io.confluent.ksql.rest.entity.SourceConsumerGroupOffsets;
+import io.confluent.ksql.rest.entity.ConsumerGroupOffsets;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -145,7 +145,7 @@ public class ConsoleTest {
       2,
       1,
       "statement",
-      new SourceConsumerGroupOffsets("", "kadka-topic", Collections.emptyList()));
+      new ConsumerGroupOffsets("", "kadka-topic", Collections.emptyList()));
 
   @Mock
   private QueryStatusCount queryStatusCount;
@@ -527,7 +527,7 @@ public class ConsoleTest {
                 1,
                 1,
                 "sql statement",
-                new SourceConsumerGroupOffsets("", "kadka-topic", Collections.emptyList())),
+                new ConsumerGroupOffsets("", "kadka-topic", Collections.emptyList())),
             Collections.emptyList()
         )
     ));
@@ -1176,7 +1176,7 @@ public class ConsoleTest {
                 "kadka-topic",
                 2, 1,
                 "sql statement text",
-                new SourceConsumerGroupOffsets("", "kadka-topic", Collections.emptyList())),
+                new ConsumerGroupOffsets("", "kadka-topic", Collections.emptyList())),
             Collections.emptyList()
         ))
     );

@@ -149,6 +149,7 @@ public class ListSourceExecutorTest {
             Optional.of(topicWith1PartitionAndRfOf1),
             Optional.empty(),
             ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableMap.of()),
         SourceDescriptionFactory.create(
             stream2,
@@ -157,6 +158,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             Optional.empty(),
+            ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of())
     ));
@@ -222,6 +224,7 @@ public class ListSourceExecutorTest {
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
             Optional.empty(),
             ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableMap.of()
         ),
         SourceDescriptionFactory.create(
@@ -231,6 +234,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
             Optional.empty(),
+            ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of()
         )
@@ -281,6 +285,7 @@ public class ListSourceExecutorTest {
                 queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)),
             Optional.empty(),
             Optional.empty(),
+            ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of())));
   }
@@ -346,6 +351,7 @@ public class ListSourceExecutorTest {
                             ImmutableList.of(),
                             Optional.empty(),
                             Optional.empty(),
+                            ImmutableMap.of(),
                             ImmutableMap.of(),
                             ImmutableMap.of()
                         )
@@ -435,6 +441,7 @@ public class ListSourceExecutorTest {
                 ImmutableList.of(),
                 Optional.empty(),
                 Optional.empty(),
+                ImmutableMap.of(),
                 ImmutableMap.of(),
                 ImmutableMap.of()
             )

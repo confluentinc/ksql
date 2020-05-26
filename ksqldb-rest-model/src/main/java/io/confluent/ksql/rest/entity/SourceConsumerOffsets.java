@@ -7,16 +7,16 @@ import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ConsumerGroupOffsets {
+public class SourceConsumerOffsets {
     private final String groupId;
     private final String kafkaTopic;
-    private final List<ConsumerOffset> offsets;
+    private final List<SourceConsumerOffset> offsets;
 
     @JsonCreator
-    public ConsumerGroupOffsets(
+    public SourceConsumerOffsets(
         @JsonProperty("groupId") String groupId,
         @JsonProperty("kafkaTopic") String kafkaTopic,
-        @JsonProperty("offsets") List<ConsumerOffset> offsets
+        @JsonProperty("offsets") List<SourceConsumerOffset> offsets
     ) {
         this.groupId = groupId;
         this.kafkaTopic = kafkaTopic;
@@ -31,7 +31,7 @@ public class ConsumerGroupOffsets {
         return kafkaTopic;
     }
 
-    public List<ConsumerOffset> getOffsets() {
+    public List<SourceConsumerOffset> getOffsets() {
         return offsets;
     }
 
@@ -43,7 +43,7 @@ public class ConsumerGroupOffsets {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ConsumerGroupOffsets that = (ConsumerGroupOffsets) o;
+        SourceConsumerOffsets that = (SourceConsumerOffsets) o;
         return Objects.equals(groupId, that.groupId) &&
             Objects.equals(kafkaTopic, that.kafkaTopic) &&
             Objects.equals(offsets, that.offsets);

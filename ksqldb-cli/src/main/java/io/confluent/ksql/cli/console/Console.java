@@ -49,7 +49,7 @@ import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
-import io.confluent.ksql.rest.entity.ConsumerGroupOffsets;
+import io.confluent.ksql.rest.entity.SourceConsumerOffsets;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
@@ -625,16 +625,16 @@ public class Console implements Closeable {
         "Statistics of the local KSQL server interaction with the Kafka topic "
             + source.getTopic()
     ));
-    writer().println();
-    Optional<ConsumerGroupOffsets> consumerGroupOffsetsOptional = source.getConsumerGroupOffsets();
+    Optional<SourceConsumerOffsets> consumerGroupOffsetsOptional = source.getConsumerGroupOffsets();
     if (consumerGroupOffsetsOptional.isPresent()) {
-      ConsumerGroupOffsets consumerGroupOffsets = consumerGroupOffsetsOptional.get();
-      writer().println(String.format("%-20s : %s", "Consumer Group", consumerGroupOffsets.getGroupId()));
-      writer().println(String.format("%-20s : %s", "Kafka topic", consumerGroupOffsets.getKafkaTopic()));
+      writer().println();
+      SourceConsumerOffsets sourceConsumerOffsets = consumerGroupOffsetsOptional.get();
+      writer().println(String.format("%-20s : %s", "Consumer Group", sourceConsumerOffsets.getGroupId()));
+      writer().println(String.format("%-20s : %s", "Kafka topic", sourceConsumerOffsets.getKafkaTopic()));
       writer().println("");
       final Table taskTable = new Table.Builder()
           .withColumnHeaders(ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
-          .withRows(consumerGroupOffsets.getOffsets()
+          .withRows(sourceConsumerOffsets.getOffsets()
               .stream()
               .map(offset -> ImmutableList.of(
                   String.valueOf(offset.getPartition()),

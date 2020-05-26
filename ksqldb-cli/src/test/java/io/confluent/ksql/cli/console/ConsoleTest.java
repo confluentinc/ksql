@@ -67,6 +67,8 @@ import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
+import io.confluent.ksql.rest.entity.SourceConsumerOffset;
+import io.confluent.ksql.rest.entity.SourceConsumerOffsets;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -657,7 +659,8 @@ public class ConsoleTest {
           + "    \"topic\" : \"kadka-topic\"," + NEWLINE
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
-          + "    \"statement\" : \"sql statement\"" + NEWLINE
+          + "    \"statement\" : \"sql statement\"," + NEWLINE
+          + "    \"consumerGroupOffsets\" : null" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -795,7 +798,8 @@ public class ConsoleTest {
           + "    \"topic\" : \"kadka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
-          + "    \"statement\" : \"statement\"" + NEWLINE
+          + "    \"statement\" : \"statement\"," + NEWLINE
+          + "    \"consumerGroupOffsets\" : null" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"topics\" : [ \"a-jdbc-topic\" ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -1147,6 +1151,174 @@ public class ConsoleTest {
   }
 
   @Test
+  public void shouldPrintTopicDescribeExtendedWithConsumerOffsets() {
+    // Given:
+    final List<RunningQuery> readQueries = ImmutableList.of(
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
+    );
+    final List<RunningQuery> writeQueries = ImmutableList.of(
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
+    );
+
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+        new SourceDescriptionEntity(
+            "e",
+            new SourceDescription(
+                "TestSource",
+                Optional.empty(),
+                readQueries,
+                writeQueries,
+                buildTestSchema(SqlTypes.STRING),
+                DataSourceType.KTABLE.getKsqlType(),
+                "2000-01-01",
+                "stats",
+                "errors",
+                true,
+                "kafka",
+                "avro",
+                "kadka-topic",
+                2, 1,
+                "sql statement text",
+                Optional.of(
+                    new SourceConsumerOffsets(
+                        "consumer1",
+                        "kadka-topic",
+                        ImmutableList.of(
+                            new SourceConsumerOffset(0, 100, 900, 800),
+                            new SourceConsumerOffset(1, 50, 900, 900)
+                        ))
+                )),
+            Collections.emptyList()
+        ))
+    );
+
+    // When:
+    console.printKsqlEntityList(entityList);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, is("[ {" + NEWLINE
+          + "  \"@type\" : \"sourceDescription\"," + NEWLINE
+          + "  \"statementText\" : \"e\"," + NEWLINE
+          + "  \"sourceDescription\" : {" + NEWLINE
+          + "    \"name\" : \"TestSource\"," + NEWLINE
+          + "    \"windowType\" : null," + NEWLINE
+          + "    \"readQueries\" : [ {" + NEWLINE
+          + "      \"queryString\" : \"read query\"," + NEWLINE
+          + "      \"sinks\" : [ \"sink1\" ]," + NEWLINE
+          + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ]," + NEWLINE
+          + "      \"id\" : \"readId\"," + NEWLINE
+          + "      \"statusCount\" : {" + NEWLINE
+          + "        \"RUNNING\" : 1," + NEWLINE
+          + "        \"ERROR\" : 2" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"queryType\" : \"PERSISTENT\"," + NEWLINE
+          + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"writeQueries\" : [ {" + NEWLINE
+          + "      \"queryString\" : \"write query\"," + NEWLINE
+          + "      \"sinks\" : [ \"sink2\" ]," + NEWLINE
+          + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ]," + NEWLINE
+          + "      \"id\" : \"writeId\"," + NEWLINE
+          + "      \"statusCount\" : {" + NEWLINE
+          + "        \"RUNNING\" : 1," + NEWLINE
+          + "        \"ERROR\" : 2" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"queryType\" : \"PERSISTENT\"," + NEWLINE
+          + "      \"state\" : \"" + AGGREGATE_STATUS +"\"" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"fields\" : [ {" + NEWLINE
+          + "      \"name\" : \"ROWKEY\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"STRING\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }," + NEWLINE
+          + "      \"type\" : \"KEY\"" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"name\" : \"f_0\"," + NEWLINE
+          + "      \"schema\" : {" + NEWLINE
+          + "        \"type\" : \"STRING\"," + NEWLINE
+          + "        \"fields\" : null," + NEWLINE
+          + "        \"memberSchema\" : null" + NEWLINE
+          + "      }" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"type\" : \"TABLE\"," + NEWLINE
+          + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
+          + "    \"statistics\" : \"stats\"," + NEWLINE
+          + "    \"errorStats\" : \"errors\"," + NEWLINE
+          + "    \"extended\" : true," + NEWLINE
+          + "    \"keyFormat\" : \"kafka\"," + NEWLINE
+          + "    \"valueFormat\" : \"avro\"," + NEWLINE
+          + "    \"topic\" : \"kadka-topic\"," + NEWLINE
+          + "    \"partitions\" : 2," + NEWLINE
+          + "    \"replication\" : 1," + NEWLINE
+          + "    \"statement\" : \"sql statement text\"," + NEWLINE
+          + "    \"consumerGroupOffsets\" : {" + NEWLINE
+          + "      \"groupId\" : \"consumer1\"," + NEWLINE
+          + "      \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
+          + "      \"offsets\" : [ {" + NEWLINE
+          + "        \"partition\" : 0," + NEWLINE
+          + "        \"logStartOffset\" : 100," + NEWLINE
+          + "        \"logEndOffset\" : 900," + NEWLINE
+          + "        \"consumerOffset\" : 800" + NEWLINE
+          + "      }, {" + NEWLINE
+          + "        \"partition\" : 1," + NEWLINE
+          + "        \"logStartOffset\" : 50," + NEWLINE
+          + "        \"logEndOffset\" : 900," + NEWLINE
+          + "        \"consumerOffset\" : 900" + NEWLINE
+          + "      } ]" + NEWLINE
+          + "    }" + NEWLINE
+          + "  }," + NEWLINE
+          + "  \"warnings\" : [ ]" + NEWLINE
+          + "} ]" + NEWLINE));
+    } else {
+      assertThat(output, is("" + NEWLINE
+          + "Name                 : TestSource" + NEWLINE
+          + "Type                 : TABLE" + NEWLINE
+          + "Timestamp field      : 2000-01-01" + NEWLINE
+          + "Key format           : kafka" + NEWLINE
+          + "Value format         : avro" + NEWLINE
+          + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)" + NEWLINE
+          + "Statement            : sql statement text" + NEWLINE
+          + "" + NEWLINE
+          + " Field  | Type                           " + NEWLINE
+          + "-----------------------------------------" + NEWLINE
+          + " ROWKEY | VARCHAR(STRING)  (primary key) " + NEWLINE
+          + " f_0    | VARCHAR(STRING)                " + NEWLINE
+          + "-----------------------------------------" + NEWLINE
+          + "" + NEWLINE
+          + "Queries that read from this TABLE" + NEWLINE
+          + "-----------------------------------" + NEWLINE
+          + "readId (" + AGGREGATE_STATUS +") : read query" + NEWLINE
+          + "\n"
+          + "For query topology and execution plan please run: EXPLAIN <QueryId>" + NEWLINE
+          + "" + NEWLINE
+          + "Queries that write from this TABLE" + NEWLINE
+          + "-----------------------------------" + NEWLINE
+          + "writeId (" + AGGREGATE_STATUS + ") : write query" + NEWLINE
+          + "\n"
+          + "For query topology and execution plan please run: EXPLAIN <QueryId>" + NEWLINE
+          + "" + NEWLINE
+          + "Local runtime statistics" + NEWLINE
+          + "------------------------" + NEWLINE
+          + "stats" + NEWLINE
+          + "errors" + NEWLINE
+          + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)" + NEWLINE
+          + NEWLINE
+          + "Consumer Group       : consumer1" + NEWLINE
+          + "Kafka topic          : kadka-topic" + NEWLINE
+          + NEWLINE
+          + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+          + " 0         | 100          | 900        | 800    | 100 " + NEWLINE
+          + " 1         | 50           | 900        | 900    | 0   " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE));
+    }
+  }
+
+  @Test
   public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
@@ -1242,7 +1414,8 @@ public class ConsoleTest {
           + "    \"topic\" : \"kadka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
-          + "    \"statement\" : \"sql statement text\"" + NEWLINE
+          + "    \"statement\" : \"sql statement text\"," + NEWLINE
+          + "    \"consumerGroupOffsets\" : null" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));

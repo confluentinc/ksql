@@ -71,32 +71,32 @@ public final class SourceDescriptionFactory {
         topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0),
         dataSource.getSqlExpression(),
         topicDescription.flatMap(td -> consumerGroupDescription.map(cg ->
-            new ConsumerGroupOffsets(cg.groupId(), td.name(),
+            new SourceConsumerOffsets(cg.groupId(), td.name(),
                 consumerOffsets(td, topicAndStartOffsets, topicAndEndOffsets,
                     topicAndConsumerOffsets)))));
   }
 
-  private static List<ConsumerOffset> consumerOffsets(
+  private static List<SourceConsumerOffset> consumerOffsets(
       final TopicDescription topicDescription,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
       final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
   ) {
-    List<ConsumerOffset> consumerOffsets = new ArrayList<>();
+    List<SourceConsumerOffset> sourceConsumerOffsets = new ArrayList<>();
     for (TopicPartitionInfo topicPartitionInfo : topicDescription.partitions()) {
       final TopicPartition tp = new TopicPartition(topicDescription.name(),
           topicPartitionInfo.partition());
       ListOffsetsResultInfo startOffsetResultInfo = topicAndStartOffsets.get(tp);
       ListOffsetsResultInfo endOffsetResultInfo = topicAndEndOffsets.get(tp);
       OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
-      consumerOffsets.add(
-          new ConsumerOffset(
+      sourceConsumerOffsets.add(
+          new SourceConsumerOffset(
               topicPartitionInfo.partition(),
               startOffsetResultInfo != null ? startOffsetResultInfo.offset() : 0,
               endOffsetResultInfo != null ? endOffsetResultInfo.offset() : 0,
               offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
           ));
     }
-    return consumerOffsets;
+    return sourceConsumerOffsets;
   }
 }

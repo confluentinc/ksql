@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ConsumerOffset {
+public class SourceConsumerOffset {
 
   private final int partition;
   private final long logStartOffset;
@@ -14,7 +14,7 @@ public class ConsumerOffset {
   private final long consumerOffset;
 
   @JsonCreator
-  public ConsumerOffset(
+  public SourceConsumerOffset(
       @JsonProperty("partition") int partition,
       @JsonProperty("logStartOffset") long logStartOffset,
       @JsonProperty("logEndOffset") long logEndOffset,
@@ -50,7 +50,7 @@ public class ConsumerOffset {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ConsumerOffset that = (ConsumerOffset) o;
+    SourceConsumerOffset that = (SourceConsumerOffset) o;
     return partition == that.partition &&
         logStartOffset == that.logStartOffset &&
         logEndOffset == that.logEndOffset &&

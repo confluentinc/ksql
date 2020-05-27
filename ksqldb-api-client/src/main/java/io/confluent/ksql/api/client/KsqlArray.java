@@ -282,7 +282,9 @@ public class KsqlArray {
    * @return a reference to this
    */
   public KsqlArray add(final BigDecimal value) {
-    delegate.add(value.doubleValue());
+    // Vert.x JsonArray does not accept BigDecimal values. Instead we store the value as a string
+    // so as to not lose precision.
+    delegate.add(value.toString());
     return this;
   }
 

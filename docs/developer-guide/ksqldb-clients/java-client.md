@@ -153,12 +153,18 @@ public class RowSubscriber implements Subscriber<Row> {
   public synchronized void onSubscribe(final Subscription subscription) {
     System.out.println("Subscriber is subscribed.");
     this.subscription = subscription;
+
+    // Request the first row
+    subscription.request(1);
   }
 
   @Override
   public synchronized void onNext(final Row row) {
     System.out.println("Received a row!");
     System.out.println("Row: " + row.values());
+
+    // Request the next row
+    subscription.request(1);
   }
 
   @Override
@@ -169,10 +175,6 @@ public class RowSubscriber implements Subscriber<Row> {
   @Override
   public synchronized void onComplete() {
     System.out.println("Query has ended.");
-  }
-
-  public Subscription getSubscription() {
-    return subscription;
   }
 }
 ```
@@ -186,7 +188,6 @@ client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;")
       
       final RowSubscriber subscriber = new RowSubscriber();
       streamedQueryResult.subscribe(subscriber);
-      subscriber.getSubscription().request(10);
     }).exceptionally(e -> {
       System.out.println("Request failed: " + e);
       return null;
@@ -382,7 +383,7 @@ Here's an example of using the client to insert a new row into an existing strea
 with schema (ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR).
 
 ```java
-final Row row = new KsqlObject()
+final KsqlObject row = new KsqlObject()
     .put("ROWKEY", "k1")
     .put("ORDER_ID", 12345678L)
     .put("PRODUCT_ID", "UAC-222-19234")

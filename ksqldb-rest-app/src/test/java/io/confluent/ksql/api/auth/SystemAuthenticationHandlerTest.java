@@ -12,7 +12,6 @@ import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -23,13 +22,6 @@ public class SystemAuthenticationHandlerTest {
 
   @Mock Server server;
   @Mock RoutingContext routingContext;
-
-  private SystemAuthenticationHandler systemAuthenticationHandler;
-
-  @Before
-  public void setUp() throws Exception {
-
-  }
 
   @Test
   public void noListener() {

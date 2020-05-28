@@ -20,8 +20,13 @@ import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 
-@UdfDescription(name = UrlEncodeParamKudf.NAME, description = UrlEncodeParamKudf.DESCRIPTION)
+@UdfDescription(
+    name = UrlEncodeParamKudf.NAME,
+    description = UrlEncodeParamKudf.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class UrlEncodeParamKudf {
 
   static final String DESCRIPTION =

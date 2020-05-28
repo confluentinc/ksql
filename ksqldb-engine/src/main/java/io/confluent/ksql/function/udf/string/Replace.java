@@ -21,9 +21,11 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 
 @SuppressWarnings("unused") // Invoked via reflection.
-@UdfDescription(name = "replace",
+@UdfDescription(
+    name = "replace",
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Replaces all occurances of a substring in a string with a new substring.")
+    description = "Replaces all occurances of a substring in a string with a new substring."
+)
 public class Replace {
   @Udf(description = "Returns a new string with all occurences of oldStr in str with newStr")
   public String replace(

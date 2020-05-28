@@ -19,13 +19,18 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * This UDF constructs an array containing an array of INTs or BIGINTs in the specified range
  */
-@UdfDescription(name = "GENERATE_SERIES", description = "Construct an array of a range of values")
+@UdfDescription(
+    name = "GENERATE_SERIES",
+    description = "Construct an array of a range of values",
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class GenerateSeries {
 
   @Udf

@@ -25,7 +25,8 @@ import java.util.regex.Pattern;
 @UdfDescription(
     name = "regexp_extract",
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "extract the first subtring matched by a regex pattern")
+    description = "extract the first subtring matched by a regex pattern"
+)
 public class RegexpExtract {
   @Udf(description = "Returns first substring of the input that matches the given regex pattern")
   public String regexpExtract(

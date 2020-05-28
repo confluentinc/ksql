@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.integration;
 
 import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.rest.client.HostAliasResolver;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
@@ -25,7 +24,6 @@ import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -42,25 +40,13 @@ class HighAvailabilityTestUtil {
 
   static ClusterStatusResponse sendClusterStatusRequest(
       final TestKsqlRestApp restApp) {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
-      final RestResponse<ClusterStatusResponse> res = restClient
-          .makeClusterStatusRequest();
-
-      if (res.isErroneous()) {
-        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
-      }
-      return res.getResponse();
-    }
+    return sendClusterStatusRequest(restApp, Optional.empty());
   }
 
   static ClusterStatusResponse sendClusterStatusRequest(
-      final Map<String, String> clientProps,
-      final URI serverAddress,
-      final boolean verifyHost,
-      final Optional<BasicCredentials> credentials,
-      final Optional<HostAliasResolver> hostAliasResolver) {
-    try (final KsqlRestClient restClient = TestKsqlRestApp.buildKsqlClient(
-        clientProps, serverAddress, verifyHost, credentials, hostAliasResolver)) {
+      final TestKsqlRestApp restApp,
+      final Optional<BasicCredentials> credentials) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(credentials)) {
       final RestResponse<ClusterStatusResponse> res = restClient
           .makeClusterStatusRequest();
 
@@ -92,31 +78,18 @@ class HighAvailabilityTestUtil {
       final KsqlHostInfoEntity remoteServer,
       final BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function
   ) {
-    while (true) {
-      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp);
-      if(function.apply(remoteServer, clusterStatusResponse.getClusterStatus())) {
-        return clusterStatusResponse;
-      }
-      try {
-        Thread.sleep(200);
-      } catch (final Exception e) {
-        // Meh
-      }
-    }
+    return waitForRemoteServerToChangeStatus(restApp, remoteServer, function, Optional.empty());
   }
 
   static ClusterStatusResponse  waitForRemoteServerToChangeStatus(
+      final TestKsqlRestApp restApp,
       final KsqlHostInfoEntity remoteServer,
       final BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function,
-      final Map<String, String> clientProps,
-      final URI serverAddress,
-      final boolean verifyHost,
-      final Optional<BasicCredentials> credentials,
-      final Optional<HostAliasResolver> hostAliasResolver
+      final Optional<BasicCredentials> credentials
   ) {
     while (true) {
-      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(
-          clientProps, serverAddress, verifyHost, credentials, hostAliasResolver);
+      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp,
+          credentials);
       if (function.apply(remoteServer, clusterStatusResponse.getClusterStatus())) {
         return clusterStatusResponse;
       }
@@ -132,31 +105,17 @@ class HighAvailabilityTestUtil {
       final TestKsqlRestApp restApp,
       final int numServers
   ) {
-    while (true) {
-      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp);
-      if(allServersDiscovered(numServers, clusterStatusResponse.getClusterStatus())) {
-        break;
-      }
-      try {
-        Thread.sleep(200);
-      } catch (final Exception e) {
-        // Meh
-      }
-    }
+    waitForClusterToBeDiscovered(restApp, numServers, Optional.empty());
   }
 
   static void waitForClusterToBeDiscovered(
       final TestKsqlRestApp restApp,
       final int numServers,
-      final Map<String, String> clientProps,
-      final URI serverAddress,
-      final boolean verifyHost,
-      final Optional<BasicCredentials> credentials,
-      final Optional<HostAliasResolver> hostAliasResolver
+      final Optional<BasicCredentials> credentials
   ) {
     while (true) {
       final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(
-          clientProps, serverAddress, verifyHost, credentials, hostAliasResolver);
+          restApp, credentials);
       if(allServersDiscovered(numServers, clusterStatusResponse.getClusterStatus())) {
         break;
       }

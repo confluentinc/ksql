@@ -30,6 +30,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
@@ -58,16 +59,15 @@ public final class KsqlClient implements AutoCloseable {
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
     this.hostAliasResolver = Objects.requireNonNull(hostAliasResolver, "hostAliasResolver");
-    this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false, false);
-    this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true, false);
+    this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false);
+    this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true);
   }
 
   public KsqlClient(
-      final Map<String, String> clientProps,
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
       final HttpClientOptions httpClientOptions,
-      final boolean verifyHost,
+      final Consumer<HttpClientOptions> sslHttpClientOptionsConsumer,
       final Optional<HostAliasResolver> hostAliasResolver
   ) {
     this.vertx = Vertx.vertx();
@@ -75,9 +75,10 @@ public final class KsqlClient implements AutoCloseable {
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
     this.hostAliasResolver = Objects.requireNonNull(hostAliasResolver, "hostAliasResolver");
-    this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false, false);
-    this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true,
-        verifyHost);
+    this.httpNonTlsClient = createHttpClient(vertx, httpClientOptions, sslHttpClientOptionsConsumer,
+        false);
+    this.httpTlsClient = createHttpClient(vertx, httpClientOptions, sslHttpClientOptionsConsumer,
+        true);
   }
 
   public KsqlTarget target(final URI server) {
@@ -117,10 +118,9 @@ public final class KsqlClient implements AutoCloseable {
   private static HttpClient createHttpClient(final Vertx vertx,
       final Map<String, String> clientProps,
       final HttpClientOptions httpClientOptions,
-      final boolean tls,
-      final boolean verifyHost) {
+      final boolean tls) {
     if (tls) {
-      httpClientOptions.setVerifyHost(verifyHost);
+      httpClientOptions.setVerifyHost(false);
       httpClientOptions.setSsl(true);
       final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
       if (trustStoreLocation != null) {
@@ -136,6 +136,20 @@ public final class KsqlClient implements AutoCloseable {
               .setPassword(suppliedKeyStorePassord == null ? "" : suppliedKeyStorePassord));
         }
       }
+    }
+    try {
+      return vertx.createHttpClient(httpClientOptions);
+    } catch (VertxException e) {
+      throw new KsqlRestClientException(e.getMessage(), e);
+    }
+  }
+
+  private static HttpClient createHttpClient(final Vertx vertx,
+      final HttpClientOptions httpClientOptions,
+      final Consumer<HttpClientOptions> sslHttpClientOptionsConsumer,
+      final boolean tls) {
+    if (tls) {
+      sslHttpClientOptionsConsumer.accept(httpClientOptions);
     }
     try {
       return vertx.createHttpClient(httpClientOptions);

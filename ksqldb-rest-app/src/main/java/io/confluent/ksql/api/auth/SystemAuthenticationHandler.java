@@ -21,6 +21,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.http.ClientAuth;
+import io.vertx.core.http.HttpConnection;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
@@ -29,6 +30,8 @@ import java.net.URI;
 import java.security.Principal;
 import java.util.Objects;
 import java.util.Optional;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 
 public class SystemAuthenticationHandler implements Handler<RoutingContext> {
 
@@ -36,10 +39,21 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    if (InternalEndpointHandler.INTERNAL_PATHS.contains(routingContext.normalisedPath())) {
-      routingContext.setUser(new SystemUser(new SystemPrincipal()));
+    HttpConnection httpConnection = routingContext.request().connection();
+    if (!httpConnection.isSsl()) {
+      throw new IllegalStateException("Should only have ssl connections");
     }
+    Principal peerHost = getPeerPrincipal(httpConnection.sslSession());
+    routingContext.setUser(new SystemUser(peerHost));
     routingContext.next();
+  }
+
+  private static Principal getPeerPrincipal(SSLSession sslSession) {
+    try {
+      return sslSession.getPeerPrincipal();
+    } catch (SSLPeerUnverifiedException e) {
+      throw new IllegalStateException("Peer should always be verified", e);
+    }
   }
 
   public static boolean isAuthenticatedAsSystemUser(final RoutingContext routingContext) {
@@ -52,7 +66,7 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
   }
 
   public static Optional<SystemAuthenticationHandler> getSystemAuthenticationHandler(
-      final Server server, final Optional<Boolean> isInternalListener) {
+      final Server server, final boolean isInternalListener) {
     // The requirements for being considered a system call on behalf of the SystemUser are that
     // SSL mutual auth is in effect for the connection (meaning that the request is verified to be
     // coming from a known set of servers in the cluster), and that it came on the internal
@@ -64,24 +78,12 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
       return Optional.empty();
     }
     final String scheme = URI.create(internalListener).getScheme();
-    final boolean isInternal = isInternalListener.isPresent() && isInternalListener.get();
     if (server.getConfig().getClientAuthInternal() == ClientAuth.REQUIRED
-        && "https".equalsIgnoreCase(scheme) && isInternal) {
+        && "https".equalsIgnoreCase(scheme) && isInternalListener) {
       return Optional.of(new SystemAuthenticationHandler());
     }
     // Fall back on other authentication methods.
     return Optional.empty();
-  }
-
-  private static class SystemPrincipal implements Principal {
-    private static final String SYSTEM_NAME = "__system__";
-
-    SystemPrincipal() {}
-
-    @Override
-    public String getName() {
-      return SYSTEM_NAME;
-    }
   }
 
   private static class SystemUser implements ApiUser {

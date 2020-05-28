@@ -66,7 +66,6 @@ public final class KsqlRestClient implements Closeable {
   ) {
     return create(
         serverAddress,
-        false,
         localProps,
         clientProps,
         creds,
@@ -82,7 +81,6 @@ public final class KsqlRestClient implements Closeable {
    */
   public static KsqlRestClient create(
       final String serverAddress,
-      final boolean verifyHost,
       final Map<String, ?> localProps,
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> creds,
@@ -94,7 +92,7 @@ public final class KsqlRestClient implements Closeable {
         clientProps,
         creds,
         (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops,
-            new HttpClientOptions(), verifyHost, hostAliasResolver)
+            new HttpClientOptions(), hostAliasResolver)
     );
   }
 

@@ -39,7 +39,7 @@ public final class AuthHandlers {
   }
 
   static void setupAuthHandlers(final Server server, final Router router,
-      final Optional<Boolean> isInternalListener) {
+      final boolean isInternalListener) {
     final Optional<AuthHandler> jaasAuthHandler = getJaasAuthHandler(server);
     final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
     final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();

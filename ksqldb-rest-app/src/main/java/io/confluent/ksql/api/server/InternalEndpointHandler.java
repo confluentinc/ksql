@@ -26,7 +26,7 @@ import java.util.Set;
 public class InternalEndpointHandler implements Handler<RoutingContext> {
   public static final String CONTEXT_DATA_IS_INTERNAL = "isInternal";
 
-  public static final Set<String> INTERNAL_PATHS = ImmutableSet.of(
+  private static final Set<String> INTERNAL_PATHS = ImmutableSet.of(
       "/heartbeat", "/lag");
 
   private final boolean isFromInternalListener;

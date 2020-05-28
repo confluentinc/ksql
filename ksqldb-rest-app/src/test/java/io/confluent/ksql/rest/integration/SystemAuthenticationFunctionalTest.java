@@ -43,12 +43,12 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.test.util.secure.ClientTrustStore;
+import io.confluent.ksql.test.util.secure.MultiNodeKeyStore;
+import io.confluent.ksql.test.util.secure.MultiNodeTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.io.IOException;
-import java.net.URI;
 import java.security.Principal;
 import java.util.Map;
 import java.util.Optional;
@@ -87,12 +87,10 @@ public class SystemAuthenticationFunctionalTest {
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
-  private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("internal.example.com",
+  private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("node-1.example.com",
       8188);
-  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("internal.example.com",
+  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("node-2.example.com",
       8189);
-  private static final URI LISTENER0 = URI.create("https://external.example.com:8088");
-  private static final Map<String, String> KEYSTORE_PROPS = internalKeyStoreProps();
   private static final Optional<HostAliasResolver> HOST_ALIAS_RESOLVER =
       Optional.of(new LocalhostResolver());
 
@@ -115,20 +113,22 @@ public class SystemAuthenticationFunctionalTest {
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
-      .putAll(internalKeyStoreProps())
+      .putAll(ServerKeyStore.keyStoreProps())
       .build();
 
-  private static Map<String, String> internalKeyStoreProps() {
-    Map<String, String> keyStoreProps = ServerKeyStore.keyStoreMultipleCertsProps();
-    Map<String, String> trustStoreProps = ClientTrustStore.trustStoreMultipleCertsProps();
+  private static Map<String, String> internalKeyStoreProps(boolean node1) {
+    Map<String, String> keyStoreProps = node1
+        ? MultiNodeKeyStore.keyStoreNode1Props()
+        : MultiNodeKeyStore.keyStoreNode2Props();
+    Map<String, String> trustStoreProps = MultiNodeTrustStore.trustStoreNode1Node2Props();
     return ImmutableMap.of(
-        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
+        KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG,
         keyStoreProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG),
-        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+        KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG,
         keyStoreProps.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG),
-        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+        KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG,
         trustStoreProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG),
-        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+        KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG,
         trustStoreProps.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)
     );
   }
@@ -142,15 +142,11 @@ public class SystemAuthenticationFunctionalTest {
       final TestKsqlRestApp REST_APP_0) {
     TEST_HARNESS.ensureTopics(2, PAGE_VIEW_TOPIC);
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
-    RestIntegrationTestUtil.createStream(KEYSTORE_PROPS, LISTENER0, true,
-        PAGE_VIEWS_PROVIDER, Optional.of(USER1), HOST_ALIAS_RESOLVER);
+    RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER, Optional.of(USER1));
     RestIntegrationTestUtil.makeKsqlRequest(
-        KEYSTORE_PROPS,
-        LISTENER0,
-        true,
+        REST_APP_0,
         "CREATE STREAM S AS SELECT * FROM " + PAGE_VIEW_STREAM + ";",
-        Optional.of(USER1),
-        HOST_ALIAS_RESOLVER
+        Optional.of(USER1)
     );
   }
 
@@ -160,27 +156,29 @@ public class SystemAuthenticationFunctionalTest {
     private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withEnabledKsqlClient(HOST_ALIAS_RESOLVER)
-        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://0.0.0.0:8088")
+        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:8088")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://internal.example.com:8188")
+            "https://node-1.example.com:8188")
         .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8188")
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
         .withProperties(COMMON_CONFIG)
         .withProperties(JASS_AUTH_CONFIG)
+        .withProperties(internalKeyStoreProps(true))
         .build();
 
     private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withEnabledKsqlClient(HOST_ALIAS_RESOLVER)
-        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://0.0.0.0:8089")
+        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:8089")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://internal.example.com:8189")
+            "https://node-2.example.com:8189")
         .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8189")
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
         .withProperties(COMMON_CONFIG)
         .withProperties(JASS_AUTH_CONFIG)
+        .withProperties(internalKeyStoreProps(false))
         .build();
 
     @ClassRule
@@ -212,21 +210,17 @@ public class SystemAuthenticationFunctionalTest {
     public void shouldHeartbeatSuccessfully() throws InterruptedException {
       // Given:
       allowAccess(authorizationProvider, USER1, "GET", "/clusterStatus");
-      waitForClusterToBeDiscovered(REST_APP_0, 2, KEYSTORE_PROPS, LISTENER0, true, Optional.of(USER1),
-          HOST_ALIAS_RESOLVER);
+      waitForClusterToBeDiscovered(REST_APP_0, 2, Optional.of(USER1));
 
       // This ensures that we can't hit the initial optimistic alive status
       Thread.sleep(2000);
 
       // When:
       waitForRemoteServerToChangeStatus(
-          host0, HighAvailabilityTestUtil::remoteServerIsUp, KEYSTORE_PROPS, LISTENER0, true,
-          Optional.of(USER1), HOST_ALIAS_RESOLVER);
+          REST_APP_0, host0, HighAvailabilityTestUtil::remoteServerIsUp, Optional.of(USER1));
       waitForRemoteServerToChangeStatus(
-          host1, HighAvailabilityTestUtil::remoteServerIsUp, KEYSTORE_PROPS, LISTENER0, true,
-          Optional.of(USER1), HOST_ALIAS_RESOLVER);
-      ClusterStatusResponse response = sendClusterStatusRequest(KEYSTORE_PROPS,
-          LISTENER0, true, Optional.of(USER1), HOST_ALIAS_RESOLVER);
+          REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp, Optional.of(USER1));
+      ClusterStatusResponse response = sendClusterStatusRequest(REST_APP_0, Optional.of(USER1));
 
       // Then:
       assertThat(response.getClusterStatus().get(host0).getHostAlive(), is(true));
@@ -243,25 +237,27 @@ public class SystemAuthenticationFunctionalTest {
     private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withEnabledKsqlClient(HOST_ALIAS_RESOLVER)
-        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://0.0.0.0:8088")
+        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:8088")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://internal.example.com:8188")
+            "https://node-1.example.com:8188")
         .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8188")
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
         .withProperties(COMMON_CONFIG)
+        .withProperties(internalKeyStoreProps(true))
         .build();
 
     private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withEnabledKsqlClient(HOST_ALIAS_RESOLVER)
-        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://0.0.0.0:8089")
+        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:8089")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://internal.example.com:8189")
+            "https://node-2.example.com:8189")
         .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8189")
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
         .withProperties(COMMON_CONFIG)
+        .withProperties(internalKeyStoreProps(false))
         .build();
 
     @ClassRule
@@ -282,21 +278,17 @@ public class SystemAuthenticationFunctionalTest {
     @Test(timeout = 60000)
     public void shouldHeartbeatSuccessfully() throws InterruptedException {
       // Given:
-      waitForClusterToBeDiscovered(REST_APP_0, 2, KEYSTORE_PROPS, LISTENER0, true, Optional.of(USER1),
-          HOST_ALIAS_RESOLVER);
+      waitForClusterToBeDiscovered(REST_APP_0, 2);
 
       // This ensures that we can't hit the initial optimistic alive status
       Thread.sleep(2000);
 
       // When:
       waitForRemoteServerToChangeStatus(
-          host0, HighAvailabilityTestUtil::remoteServerIsUp, KEYSTORE_PROPS, LISTENER0, true,
-          Optional.of(USER1), HOST_ALIAS_RESOLVER);
+          REST_APP_0, host0, HighAvailabilityTestUtil::remoteServerIsUp);
       waitForRemoteServerToChangeStatus(
-          host1, HighAvailabilityTestUtil::remoteServerIsUp, KEYSTORE_PROPS, LISTENER0, true,
-          Optional.of(USER1), HOST_ALIAS_RESOLVER);
-      ClusterStatusResponse response = sendClusterStatusRequest(KEYSTORE_PROPS,
-          LISTENER0, true, Optional.of(USER1), HOST_ALIAS_RESOLVER);
+          REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp);
+      ClusterStatusResponse response = sendClusterStatusRequest(REST_APP_0);
 
       // Then:
       assertThat(response.getClusterStatus().get(host0).getHostAlive(), is(true));

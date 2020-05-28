@@ -247,10 +247,6 @@ ksql.internal.listener=https://node-1.internal.example.com:8099
 ksql.internal.ssl.client.authentication=REQUIRED
 ```
 
-Not only does this configure system authentication to be secure and authenticated at the
-connection level, but ksqlDB then also considers these requests to be authenticated.
-
-
 For more information about configuring `ksql.internal.listener`, see [Configure ksqlDB for HTTPS](index.html#configure-ksqldb-for-https).
 
 

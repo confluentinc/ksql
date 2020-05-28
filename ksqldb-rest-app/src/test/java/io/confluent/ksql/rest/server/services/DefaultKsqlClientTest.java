@@ -54,7 +54,7 @@ public class DefaultKsqlClientTest {
 
   @Before
   public void setUp() {
-    client = new DefaultKsqlClient(Optional.of(AUTH_HEADER), sharedClient, sharedClient);
+    client = new DefaultKsqlClient(Optional.of(AUTH_HEADER), sharedClient);
 
     when(sharedClient.target(any())).thenReturn(target);
     when(target.authorizationHeader(any())).thenReturn(target);
@@ -82,7 +82,7 @@ public class DefaultKsqlClientTest {
   @Test
   public void shouldHandleNoAuthHeader() {
     // Given:
-    client = new DefaultKsqlClient(Optional.empty(), sharedClient, sharedClient);
+    client = new DefaultKsqlClient(Optional.empty(), sharedClient);
 
     // When:
     final RestResponse<KsqlEntityList> result = client.makeKsqlRequest(SERVER_ENDPOINT, "Sql", ImmutableMap.of());

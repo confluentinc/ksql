@@ -88,25 +88,6 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  static List<KsqlEntity> makeKsqlRequest(
-      final Map<String, String> clientProps,
-      final URI serverAddress,
-      final boolean verifyHost,
-      final String sql,
-      final Optional<BasicCredentials> userCreds,
-      final Optional<HostAliasResolver> hostAliasResolver
-  ) {
-    try (final KsqlRestClient restClient = TestKsqlRestApp.buildKsqlClient(
-        clientProps, serverAddress, verifyHost, userCreds, hostAliasResolver)) {
-
-      final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
-
-      throwOnError(res);
-
-      return awaitResults(restClient, res.getResponse());
-    }
-  }
-
   static KsqlErrorMessage makeKsqlRequestWithError(
       final TestKsqlRestApp restApp,
       final String sql
@@ -293,30 +274,20 @@ public final class RestIntegrationTestUtil {
 
   public static void createStream(final TestKsqlRestApp restApp,
       final TestDataProvider<?> dataProvider) {
+    createStream(restApp, dataProvider, Optional.empty());
+  }
+
+  public static void createStream(
+      final TestKsqlRestApp restApp,
+      final TestDataProvider<?> dataProvider,
+      final Optional<BasicCredentials> userCreds
+  ) {
     makeKsqlRequest(
         restApp,
         "CREATE STREAM " + dataProvider.kstreamName()
             + " (" + dataProvider.ksqlSchemaString(false) + ") "
-            + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');"
-    );
-  }
-
-  public static void createStream(
-      final Map<String, String> clientProps,
-      final URI serverAddress,
-      final boolean verifyHost,
-      final TestDataProvider<?> dataProvider,
-      final Optional<BasicCredentials> userCreds,
-      final Optional<HostAliasResolver> hostAliasResolver) {
-    makeKsqlRequest(
-        clientProps,
-        serverAddress,
-        verifyHost,
-        "CREATE STREAM " + dataProvider.kstreamName()
-            + " (" + dataProvider.ksqlSchemaString(false) + ") "
             + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');",
-        userCreds,
-        hostAliasResolver
+        userCreds
     );
   }
 

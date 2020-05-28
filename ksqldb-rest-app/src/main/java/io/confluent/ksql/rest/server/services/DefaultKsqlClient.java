@@ -33,11 +33,13 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.net.JksOptions;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,19 +49,11 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
-  private final KsqlClient internalClient;
 
   DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps,
       final Optional<HostAliasResolver> hostAliasResolver) {
     this(
         authHeader,
-        new KsqlClient(
-            toClientProps(clientProps),
-            Optional.empty(),
-            new LocalProperties(ImmutableMap.of()),
-            createClientOptions(),
-            hostAliasResolver
-        ),
         getInternalClient(toClientProps(clientProps), hostAliasResolver)
     );
   }
@@ -67,12 +61,10 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @VisibleForTesting
   DefaultKsqlClient(
       final Optional<String> authHeader,
-      final KsqlClient sharedClient,
-      final KsqlClient internalClient
+      final KsqlClient sharedClient
   ) {
     this.authHeader = requireNonNull(authHeader, "authHeader");
     this.sharedClient = requireNonNull(sharedClient, "sharedClient");
-    this.internalClient = requireNonNull(internalClient, "internalClient");
   }
 
   @Override
@@ -113,7 +105,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final URI serverEndPoint,
       final KsqlHostInfo host,
       final long timestamp) {
-    final KsqlTarget target = internalClient
+    final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
     getTarget(target, authHeader)
@@ -139,7 +131,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final URI serverEndPoint,
       final LagReportingMessage lagReportingMessage
   ) {
-    final KsqlTarget target = internalClient
+    final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
     getTarget(target, authHeader).postAsyncLagReportingRequest(lagReportingMessage)
@@ -152,7 +144,6 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @Override
   public void close() {
     sharedClient.close();
-    internalClient.close();
   }
 
   private KsqlTarget getTarget(final KsqlTarget target, final Optional<String> authHeader) {
@@ -173,17 +164,41 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     return clientProps;
   }
 
+  private static Consumer<HttpClientOptions> prepareHttpOptionsForMutualAuthClient(
+      final Map<String, String> clientProps, final boolean verifyHost) {
+    return (httpClientOptions) -> {
+      httpClientOptions.setVerifyHost(verifyHost);
+      httpClientOptions.setSsl(true);
+      final String trustStoreLocation = clientProps.get(
+          KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
+      if (trustStoreLocation != null) {
+        final String suppliedTruststorePassword = clientProps
+            .get(KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
+        httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
+            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
+        final String keyStoreLocation =
+            clientProps.get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG);
+        if (keyStoreLocation != null) {
+          final String suppliedKeyStorePassword = clientProps
+              .get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG);
+          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
+              .setPassword(suppliedKeyStorePassword == null ? "" : suppliedKeyStorePassword));
+        }
+      }
+    };
+  }
+
   private static KsqlClient getInternalClient(final Map<String, String> clientProps,
       final Optional<HostAliasResolver> hostAliasResolver) {
     final boolean verifyHost =
         !KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE.equals(clientProps.get(
         KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG));
+
     return new KsqlClient(
-        clientProps,
         Optional.empty(),
         new LocalProperties(ImmutableMap.of()),
         createClientOptions(),
-        verifyHost,
+        prepareHttpOptionsForMutualAuthClient(clientProps, verifyHost),
         hostAliasResolver
     );
   }

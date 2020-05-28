@@ -30,7 +30,7 @@ public class ArrayMin {
 
   @Udf
   public <T extends Comparable<? super T>> T arrayMin(@UdfParameter(
-      description = "The array to sort") final List<T> input) {
+      description = "Array of values from which to find the minimum") final List<T> input) {
     if (input == null) {
       return null;
     }

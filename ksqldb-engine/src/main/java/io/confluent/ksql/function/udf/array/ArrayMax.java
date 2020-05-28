@@ -30,7 +30,7 @@ public class ArrayMax {
 
   @Udf
   public <T extends Comparable<? super T>> T arrayMax(@UdfParameter(
-      description = "The array to sort") final List<T> input) {
+      description = "Array of values from which to find the maximum") final List<T> input) {
     if (input == null) {
       return null;
     }

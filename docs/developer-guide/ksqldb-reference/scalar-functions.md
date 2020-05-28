@@ -169,7 +169,7 @@ If the supplied parameter is NULL the method returns NULL.
 ### ``ARRAY_MAX``
 
 ```sql
-ARRAY_MAX(["foo", "bar", "baz"])
+ARRAY_MAX(['foo', 'bar', 'baz'])
 ```
 
 Returns the maximum value from within a given array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof). 
@@ -177,14 +177,14 @@ Returns the maximum value from within a given array of primitive elements (not a
 Array entries are compared according to their natural sort order, which sorts the various data-types per the following examples:
 - ```array_max[-1, 2, NULL, 0] -> 2```
 - ```array_max[false, NULL, true] -> true```
-- ```array_max["Foo", "Bar", NULL, "baz"] -> "baz"``` (lower-case characters are "greater" than upper-case characters)
+- ```array_max['Foo', 'Bar', NULL, 'baz'] -> 'baz'``` (lower-case characters are "greater" than upper-case characters)
 
 If the array field is NULL, or contains only NULLs, then NULL is returned.
 
 ### ``ARRAY_MIN``
 
 ```sql
-ARRAY_MIN(["foo", "bar", "baz"])
+ARRAY_MIN(['foo', 'bar', 'baz'])
 ```
 
 Returns the minimum value from within a given array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof). 
@@ -192,14 +192,14 @@ Returns the minimum value from within a given array of primitive elements (not a
 Array entries are compared according to their natural sort order, which sorts the various data-types per the following examples:
 - ```array_min[-1, 2, NULL, 0] -> -1```
 - ```array_min[false, NULL, true] -> false```
-- ```array_min["Foo", "Bar", NULL, "baz"] -> "Bar"```
+- ```array_min['Foo', 'Bar', NULL, 'baz'] -> 'Bar'```
 
 If the array field is NULL, or contains only NULLs, then NULL is returned.
 
 ### ``ARRAY_SORT``
 
 ```sql
-ARRAY_SORT(["foo", "bar", "baz"])
+ARRAY_SORT(['foo', 'bar', 'baz'], 'ASC|DESC')
 ```
 
 Given an array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof), returns an array of the same elements sorted according to their natural sort order. Any NULLs contained in the array will always be moved to the end.
@@ -207,9 +207,11 @@ Given an array of primitive elements (not arrays of other arrays, or maps, or st
 For example:
 - ```array_sort[-1, 2, NULL, 0] -> [-1, 0, 2, NULL]```
 - ```array_sort[false, NULL, true] -> [false, true, NULL]```
-- ```array_sort["Foo", "Bar", NULL, "baz"] -> ["Bar", "Foo", "baz", NULL]```
+- ```array_sort['Foo', 'Bar', NULL, 'baz'] -> ['Bar', 'Foo', 'baz', NULL]```
 
-If the array field is NULL then NULL is returned. 
+If the array field is NULL then NULL is returned.
+
+An optional second parameter can be used to specify whether to sort the elements in 'ASC'ending or 'DESC'ending order. If neither is specified then the default is ascending order. 
 
 ### `AS_MAP`
 

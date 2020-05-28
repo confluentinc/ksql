@@ -198,8 +198,13 @@ def job = {
                                 sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.cp_version}-latest"
                             }
 
-                            // Set the project versions in the pom files
                             sh "set -x"
+
+                            // set the proper mavne packages url
+                            sh "mvn --batch-mode versions:set-property -Dproperty=plugin.unreleased.repository.url -DnewVersion=\"${config.maven_packages_url}\" -DgenerateBackupPoms=false"
+                            sh "cat pom.xml"
+
+                            // Set the project versions in the pom files
                             sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_artifact_version} -DgenerateBackupPoms=false"
 
                             // Set the version of the parent project to use.

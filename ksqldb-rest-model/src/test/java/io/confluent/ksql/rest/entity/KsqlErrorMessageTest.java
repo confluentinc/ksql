@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.is;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import java.io.IOException;
-import java.util.Collections;
 import org.junit.Test;
 
 public class KsqlErrorMessageTest {
@@ -29,9 +28,9 @@ public class KsqlErrorMessageTest {
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private static final KsqlErrorMessage MESSAGE =
-      new KsqlErrorMessage(40301, "foo", Collections.emptyList());
+      new KsqlErrorMessage(40301, "foo");
   private static final String SERIALIZED_MESSAGE =
-      "{\"@type\":\"generic_error\",\"error_code\":40301,\"message\":\"foo\",\"stackTrace\":[]}";
+      "{\"@type\":\"generic_error\",\"error_code\":40301,\"message\":\"foo\"}";
 
   @Test
   public void shouldSerializeToJson() {

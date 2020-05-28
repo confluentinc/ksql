@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf.earliest;
+package io.confluent.ksql.function.udaf.offset;
 
 import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.SEQ_FIELD;
 import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_BOOLEAN;
@@ -27,13 +27,15 @@ import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.compareStructs;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 @UdafDescription(
     name = "EARLIEST_BY_OFFSET",
-    description = EarliestByOffset.DESCRIPTION
+    description = EarliestByOffset.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public final class EarliestByOffset {
   static final String DESCRIPTION =

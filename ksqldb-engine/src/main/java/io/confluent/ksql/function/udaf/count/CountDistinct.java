@@ -21,11 +21,13 @@ import com.google.common.primitives.Ints;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 
 @UdafDescription(
     name = "COUNT_DISTINCT",
-    description = CountDistinct.DESCRIPTION
+    description = CountDistinct.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public final class CountDistinct {
 

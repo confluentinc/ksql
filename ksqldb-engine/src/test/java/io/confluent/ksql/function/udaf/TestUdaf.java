@@ -15,12 +15,20 @@
 
 package io.confluent.ksql.function.udaf;
 
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
-@UdafDescription(name = "test_udaf", description = "test_udaf")
-public class TestUdaf {
+@UdafDescription(
+    name = "test_udaf",
+    description = "test_udaf",
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
+public final class TestUdaf {
+
+  private TestUdaf() {
+  }
 
   @UdafFactory(description = "sums longs")
   public static TableUdaf<Long, Long, Long> createSumLong() {

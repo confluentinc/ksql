@@ -40,8 +40,9 @@ public class ArrayMin {
       if (thisVal != null) {
         if (candidate == null) {
           candidate = thisVal;
-        } else if (thisVal.compareTo(candidate) < 0)
+        } else if (thisVal.compareTo(candidate) < 0) {
           candidate = thisVal;
+        }
       }
     }
     return candidate;

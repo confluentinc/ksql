@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import io.confluent.ksql.function.KsqlFunctionException;
 import org.junit.Test;
 
 public class RegexpSplitTest {
@@ -69,5 +70,10 @@ public class RegexpSplitTest {
     assertThat(udf.regexpSplit("aababa", "ab"), contains("a", "", "a"));
     assertThat(udf.regexpSplit("aababa", "(ab)+"), contains("a", "a"));
     assertThat(udf.regexpSplit("aabcda", "(ab|cd)"), contains("a", "", "a"));
+  }
+
+  @Test(expected = KsqlFunctionException.class)
+  public void shouldThrowOnInvalidPattern() {
+    udf.regexpSplit("abcd", "(()");
   }
 }

@@ -231,19 +231,27 @@ the additional certificate/key for your internal listener set with
 `ksql.internal.listener`.  If your internal certificate is self-signed, a trust store is required to contain certificates for nodes in your cluster.
 
 ```properties
-# Contains both internal and external certificates for this node.
-# e.g. cert and key for external.example.com and node-1.internal.example.com
+# Contains the external certificates for this node.
+# e.g. cert and key for external.example.com
 ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
 ssl.keystore.password=xxxx
 ssl.key.password=yyyy
 
-# Contains internal certificates for all nodes in the cluster.
-# e.g. cert for node-2.internal.example.com and node-3.internal.example.com
+# Contains certificates for trusted external clients.
 ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
 ssl.truststore.password=zzzz
 
 listeners=https://external.example.com:8088
 ksql.internal.listener=https://node-1.internal.example.com:8099
+
+# Contains the internal certificates for this node.
+# e.g. cert and key for node-1.internal.example.com
+ksql.internal.ssl.keystore.location=/var/private/ssl/ksql.internal.node1.keystore.jks
+ksql.internal.ssl.keystore.password=xxxx
+# Contains the certificates for nodes in the cluster.
+# e.g. certs for node-1.internal.example.com, node-2.internal.example.com
+ksql.internal.ssl.truststore.location=/var/private/ssl/ksql.internal.truststore.jks
+ksql.internal.ssl.truststore.password=wwww
 ksql.internal.ssl.client.authentication=REQUIRED
 ```
 

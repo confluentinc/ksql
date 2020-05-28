@@ -25,7 +25,6 @@ import org.apache.kafka.common.config.SslConfigs;
  * Helper for creating a client trust store to enable SSL in tests.
  */
 public final class ClientTrustStore {
-
   private static final String
       BASE64_ENCODED_STORE =
       "/u3+7QAAAAIAAAABAAAAAgAGY2Fyb290AAABYgp6gD0ABVguNTA5AAADLDCCAygwggIQAgkAvZW/3jNCgKgwDQYJKoZI"
@@ -43,7 +42,6 @@ public final class ClientTrustStore {
       + "7rKeqVDlpM5lUidfckmrF3TxmS6d1aN/1WSZtDZCnNK8+h6LrrbtSQMsS6tc1Cv5YjJ/7KB+rQmTmGJCdzI5E=";
 
   private static final String TRUSTSTORE_PASSWORD = "password";
-
   private static final AtomicReference<Path> trustStorePath = new AtomicReference<>();
 
   private ClientTrustStore() {

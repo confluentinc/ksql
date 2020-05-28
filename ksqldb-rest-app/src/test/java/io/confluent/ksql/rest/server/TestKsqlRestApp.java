@@ -180,22 +180,6 @@ public class TestKsqlRestApp extends ExternalResource {
     );
   }
 
-//  public static KsqlRestClient buildKsqlClient(
-//      final Map<String, String> clientProps,
-//      final URI serverAddress,
-//      final boolean verifyHost,
-//      final Optional<BasicCredentials> credentials,
-//      final Optional<HostAliasResolver> hostAliasResolver) {
-//    return KsqlRestClient.create(
-//        serverAddress.toString(),
-//        verifyHost,
-//        ImmutableMap.of(),
-//        clientProps,
-//        credentials,
-//        hostAliasResolver
-//    );
-//  }
-
   public KsqlRestClient buildInternalKsqlClient() {
     return KsqlRestClient.create(
         getHttpInternalListener().toString(),

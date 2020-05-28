@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.test.util.secure;
 
 import com.google.common.collect.ImmutableMap;
@@ -6,7 +21,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.common.config.SslConfigs;
 
-public class MultiNodeTrustStore {
+public final class MultiNodeTrustStore {
   // Trust store containing certs for node-1.example.com and node-2.example.com
   private static final String BASE64_ENCODED_STORE_NODE1_NODE2 =
       "/u3+7QAAAAIAAAACAAAAAgASbm9kZS0yLmV4YW1wbGUuY29tAAABclh6tp0ABVguNTA5AAADnzCCA5sw"
@@ -47,6 +62,7 @@ public class MultiNodeTrustStore {
 
   private static final AtomicReference<Path> trustStorePath = new AtomicReference<>();
 
+  private MultiNodeTrustStore() {}
 
   /**
    * @return props consumers and producers will need to connect to a secure Kafka cluster over SSL.

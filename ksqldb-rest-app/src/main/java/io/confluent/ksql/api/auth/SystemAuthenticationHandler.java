@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.auth;
 
-import io.confluent.ksql.api.server.InternalEndpointHandler;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AsyncResult;
@@ -39,16 +38,16 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    HttpConnection httpConnection = routingContext.request().connection();
+    final HttpConnection httpConnection = routingContext.request().connection();
     if (!httpConnection.isSsl()) {
       throw new IllegalStateException("Should only have ssl connections");
     }
-    Principal peerHost = getPeerPrincipal(httpConnection.sslSession());
-    routingContext.setUser(new SystemUser(peerHost));
+    final Principal peerPrincipal = getPeerPrincipal(httpConnection.sslSession());
+    routingContext.setUser(new SystemUser(peerPrincipal));
     routingContext.next();
   }
 
-  private static Principal getPeerPrincipal(SSLSession sslSession) {
+  private static Principal getPeerPrincipal(final SSLSession sslSession) {
     try {
       return sslSession.getPeerPrincipal();
     } catch (SSLPeerUnverifiedException e) {

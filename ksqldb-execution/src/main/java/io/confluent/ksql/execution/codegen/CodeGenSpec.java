@@ -101,7 +101,7 @@ public final class CodeGenSpec {
     private final Map<ColumnName, String> columnRefToName = new HashMap<>();
     private final ImmutableListMultimap.Builder<FunctionName, String> functionNameBuilder =
         ImmutableListMultimap.builder();
-    private final HashMap<CreateStructExpression, String> structToSchemaName =
+    private final Map<CreateStructExpression, String> structToSchemaName =
             new HashMap<CreateStructExpression, String>();
     private int argumentCount = 0;
     private int structSchemaCount = 0;
@@ -124,9 +124,10 @@ public final class CodeGenSpec {
 
     void addStructSchema(final CreateStructExpression struct, final Schema schema) {
       final String structSchemaName = CodeGenUtil.schemaName(structSchemaCount++);
-      if (!structToSchemaName.containsKey(struct)) {
-        structToSchemaName.put(struct, structSchemaName);
+      if (structToSchemaName.containsKey(struct)) {
+        return;
       }
+      structToSchemaName.put(struct, structSchemaName);
       argumentBuilder.add(new SchemaArgumentSpec(structSchemaName, schema));
     }
 

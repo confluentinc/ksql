@@ -280,32 +280,6 @@ INITCAP(col1)
 Capitalize the first letter in each word and convert all other letters
 to lowercase. Words are delimited by whitespace.
 
-### `INSTR`
-
-```sql
-INSTR(string, substring, [position], [occurrence])
-```
-
-Returns the position of `substring` in `string`. The first character is at position 1.
-
-If `position` is provided, search starts from the specified position. 
-Negative `position` causes the search to work from end to start of `string`.
-
-If `occurrence` is provided, the position of *n*-th occurrence is returned.
-
-If `substring` is not found, the return value is 0.
-
-Examples:
-
-```sql
-INSTR('CORPORATE FLOOR', 'OR') -> 2
-INSTR('CORPORATE FLOOR', 'OR', 3) -> 5
-INSTR('CORPORATE FLOOR', 'OR', 3, 2) -> 14
-INSTR('CORPORATE FLOOR', 'OR', -3) -> 5
-INSTR('CORPORATE FLOOR', 'OR', -3, 2) -> 2b
-INSTR('CORPORATE FLOOR', 'MISSING') -> 0
-```
-
 ### `LCASE`
 
 ```sql

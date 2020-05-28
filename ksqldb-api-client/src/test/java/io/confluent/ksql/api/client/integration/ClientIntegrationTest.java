@@ -57,11 +57,12 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,41 +86,42 @@ import org.reactivestreams.Publisher;
 @Category({IntegrationTest.class})
 public class ClientIntegrationTest {
 
-  private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
-  private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
-  private static final int PAGE_VIEW_NUM_ROWS = PAGE_VIEWS_PROVIDER.data().size();
-  private static final List<String> PAGE_VIEW_COLUMN_NAMES =
-      ImmutableList.of("PAGEID", "USERID", "VIEWTIME");
-  private static final List<ColumnType> PAGE_VIEW_COLUMN_TYPES =
-      RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "STRING", "BIGINT"));
-  private static final List<KsqlArray> PAGE_VIEW_EXPECTED_ROWS = convertToClientRows(PAGE_VIEWS_PROVIDER.data());
+  private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
+  private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
+  private static final String TEST_STREAM = TEST_DATA_PROVIDER.kstreamName();
+  private static final int TEST_NUM_ROWS = TEST_DATA_PROVIDER.data().size();
+  private static final List<String> TEST_COLUMN_NAMES =
+      ImmutableList.of("STR", "LONG", "DEC", "ARRAY", "MAP");
+  private static final List<ColumnType> TEST_COLUMN_TYPES =
+      RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT", "DECIMAL", "ARRAY", "MAP"));
+  private static final List<KsqlArray> TEST_EXPECTED_ROWS = convertToClientRows(
+      TEST_DATA_PROVIDER.data());
 
   private static final String AGG_TABLE = "AGG_TABLE";
-  private static final String AN_AGG_KEY = "USER_1";
+  private static final String AN_AGG_KEY = "FOO";
   private static final PhysicalSchema AGG_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
-          .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
+          .keyColumn(ColumnName.of("STR"), SqlTypes.STRING)
+          .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
           .build(),
       SerdeOption.none()
   );
 
-  private static final TestDataProvider<String> EMPTY_PAGE_VIEWS_PROVIDER = new TestDataProvider<>(
-      "EMPTY_PAGEVIEW", PAGE_VIEWS_PROVIDER.schema(), ImmutableListMultimap.of());
-  private static final String EMPTY_PAGE_VIEWS_TOPIC = EMPTY_PAGE_VIEWS_PROVIDER.topicName();
-  private static final String EMPTY_PAGE_VIEWS_STREAM = EMPTY_PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final TestDataProvider<String> EMPTY_TEST_DATA_PROVIDER = new TestDataProvider<>(
+      "EMPTY_STRUCTURED_TYPES", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
+  private static final String EMPTY_TEST_TOPIC = EMPTY_TEST_DATA_PROVIDER.topicName();
+  private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.kstreamName();
 
-  private static final String PUSH_QUERY = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
-  private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
+  private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
+  private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
   private static final int PUSH_QUERY_LIMIT_NUM_ROWS = 2;
   private static final String PUSH_QUERY_WITH_LIMIT =
-      "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";";
+      "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";";
 
-  private static final List<String> PULL_QUERY_COLUMN_NAMES = ImmutableList.of("USERID", "COUNT");
+  private static final List<String> PULL_QUERY_COLUMN_NAMES = ImmutableList.of("STR", "LONG");
   private static final List<ColumnType> PULL_QUERY_COLUMN_TYPES =
       RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT"));
-  private static final KsqlArray PULL_QUERY_EXPECTED_ROW = new KsqlArray(ImmutableList.of("USER_1", 1));
+  private static final KsqlArray PULL_QUERY_EXPECTED_ROW = new KsqlArray(ImmutableList.of("FOO", 1));
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -136,20 +138,20 @@ public class ClientIntegrationTest {
 
   @BeforeClass
   public static void setUpClass() {
-    TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
-    RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
+    TEST_HARNESS.ensureTopics(TEST_TOPIC);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON);
+    RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
-        + "SELECT USERID, COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
+        + "SELECT STR, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY STR;"
     );
 
-    TEST_HARNESS.ensureTopics(EMPTY_PAGE_VIEWS_TOPIC);
-    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_PAGE_VIEWS_PROVIDER);
+    TEST_HARNESS.ensureTopics(EMPTY_TEST_TOPIC);
+    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
 
     TEST_HARNESS.verifyAvailableUniqueRows(
         AGG_TABLE,
-        5, // Only unique keys are counted
+        4, // Only unique keys are counted
         FormatFactory.JSON,
         AGG_SCHEMA
     );
@@ -186,11 +188,11 @@ public class ClientIntegrationTest {
     final StreamedQueryResult streamedQueryResult = client.streamQuery(PUSH_QUERY).get();
 
     // Then
-    assertThat(streamedQueryResult.columnNames(), is(PAGE_VIEW_COLUMN_NAMES));
-    assertThat(streamedQueryResult.columnTypes(), is(PAGE_VIEW_COLUMN_TYPES));
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
     assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
-    shouldReceivePageViewRows(streamedQueryResult, false);
+    shouldReceiveStreamRows(streamedQueryResult, false);
 
     assertThat(streamedQueryResult.isComplete(), is(false));
   }
@@ -201,13 +203,13 @@ public class ClientIntegrationTest {
     final StreamedQueryResult streamedQueryResult = client.streamQuery(PUSH_QUERY).get();
 
     // Then
-    assertThat(streamedQueryResult.columnNames(), is(PAGE_VIEW_COLUMN_NAMES));
-    assertThat(streamedQueryResult.columnTypes(), is(PAGE_VIEW_COLUMN_TYPES));
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
     assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
-    for (int i = 0; i < PAGE_VIEW_NUM_ROWS; i++) {
+    for (int i = 0; i < TEST_NUM_ROWS; i++) {
       final Row row = streamedQueryResult.poll();
-      verifyPageViewRowWithIndex(row, i);
+      verifyStreamRowWithIndex(row, i);
     }
 
     assertThat(streamedQueryResult.isComplete(), is(false));
@@ -251,11 +253,11 @@ public class ClientIntegrationTest {
     final StreamedQueryResult streamedQueryResult = client.streamQuery(PUSH_QUERY_WITH_LIMIT).get();
 
     // Then
-    assertThat(streamedQueryResult.columnNames(), is(PAGE_VIEW_COLUMN_NAMES));
-    assertThat(streamedQueryResult.columnTypes(), is(PAGE_VIEW_COLUMN_TYPES));
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
     assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
-    shouldReceivePageViewRows(streamedQueryResult, true, PUSH_QUERY_LIMIT_NUM_ROWS);
+    shouldReceiveStreamRows(streamedQueryResult, true, PUSH_QUERY_LIMIT_NUM_ROWS);
 
     assertThat(streamedQueryResult.isComplete(), is(true));
   }
@@ -266,13 +268,13 @@ public class ClientIntegrationTest {
     final StreamedQueryResult streamedQueryResult = client.streamQuery(PUSH_QUERY_WITH_LIMIT).get();
 
     // Then
-    assertThat(streamedQueryResult.columnNames(), is(PAGE_VIEW_COLUMN_NAMES));
-    assertThat(streamedQueryResult.columnTypes(), is(PAGE_VIEW_COLUMN_TYPES));
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
     assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
     for (int i = 0; i < PUSH_QUERY_LIMIT_NUM_ROWS; i++) {
       final Row row = streamedQueryResult.poll();
-      verifyPageViewRowWithIndex(row, i);
+      verifyStreamRowWithIndex(row, i);
     }
     assertThat(streamedQueryResult.poll(), is(nullValue()));
 
@@ -302,7 +304,7 @@ public class ClientIntegrationTest {
     // When / Then
     for (int i = 0; i < PUSH_QUERY_LIMIT_NUM_ROWS; i++) {
       final Row row = streamedQueryResult.poll();
-      verifyPageViewRowWithIndex(row, i);
+      verifyStreamRowWithIndex(row, i);
     }
     assertThat(streamedQueryResult.poll(), is(nullValue()));
   }
@@ -320,7 +322,7 @@ public class ClientIntegrationTest {
 
     // Then
     assertThatEventually(subscriber::getValues, hasSize(PUSH_QUERY_LIMIT_NUM_ROWS));
-    verifyPageViewRows(subscriber.getValues(), PUSH_QUERY_LIMIT_NUM_ROWS);
+    verifyStreamRows(subscriber.getValues(), PUSH_QUERY_LIMIT_NUM_ROWS);
     assertThat(subscriber.getError(), is(nullValue()));
   }
 
@@ -343,21 +345,31 @@ public class ClientIntegrationTest {
     // Then
     assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
 
-    verifyPageViewRows(batchedQueryResult.get(), PUSH_QUERY_LIMIT_NUM_ROWS);
+    verifyStreamRows(batchedQueryResult.get(), PUSH_QUERY_LIMIT_NUM_ROWS);
   }
 
   @Test
   public void shouldHandleErrorResponseFromExecuteQuery() {
     // When
+    final BatchedQueryResult batchedQueryResult = client.executeQuery("SELECT * from " + AGG_TABLE + ";");
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> client.executeQuery("SELECT * from " + AGG_TABLE + ";").get()
+        batchedQueryResult::get
     );
 
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("Missing WHERE clause"));
+
+    // queryID future should also be completed exceptionally
+    final Exception queryIdException = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> batchedQueryResult.queryID().get()
+    );
+    assertThat(queryIdException.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(queryIdException.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(queryIdException.getCause().getMessage(), containsString("Missing WHERE clause"));
   }
 
   @Test
@@ -422,30 +434,34 @@ public class ClientIntegrationTest {
   public void shouldInsertInto() throws Exception {
     // Given
     final KsqlObject insertRow = new KsqlObject()
-        .put("VIEWTIME", 1000L)
-        .put("USERID", "User_1")
-        .put("PAGEID", "Page_28");
+        .put("STR", "HELLO")
+        .put("LONG", 100L)
+        .put("DEC", new BigDecimal("13.31"))
+        .put("ARRAY", new KsqlArray().add("v1").add("v2"))
+        .put("MAP", new KsqlObject().put("some_key", "a_value").put("another_key", ""));
 
     // When
-    client.insertInto(EMPTY_PAGE_VIEWS_STREAM, insertRow).get();
+    client.insertInto(EMPTY_TEST_STREAM, insertRow).get();
 
     // Then: should receive new row
-    final String query = "SELECT * FROM " + EMPTY_PAGE_VIEWS_STREAM + " EMIT CHANGES LIMIT 1;";
+    final String query = "SELECT * FROM " + EMPTY_TEST_STREAM + " EMIT CHANGES LIMIT 1;";
     final List<Row> rows = client.executeQuery(query).get();
 
     // Verify inserted row is as expected
     assertThat(rows, hasSize(1));
-    assertThat(rows.get(0).getLong("VIEWTIME"), is(1000L));
-    assertThat(rows.get(0).getString("USERID"), is("User_1"));
-    assertThat(rows.get(0).getString("PAGEID"), is("Page_28"));
+    assertThat(rows.get(0).getString("STR"), is("HELLO"));
+    assertThat(rows.get(0).getLong("LONG"), is(100L));
+    assertThat(rows.get(0).getDecimal("DEC"), is(new BigDecimal("13.31")));
+    assertThat(rows.get(0).getKsqlArray("ARRAY"), is(new KsqlArray().add("v1").add("v2")));
+    assertThat(rows.get(0).getKsqlObject("MAP"), is(new KsqlObject().put("some_key", "a_value").put("another_key", "")));
   }
 
   @Test
   public void shouldHandleErrorResponseFromInsertInto() {
     // Given
     final KsqlObject insertRow = new KsqlObject()
-        .put("USERID", "User_11")
-        .put("COUNT", 11L);
+        .put("STR", "BLAH")
+        .put("LONG", 11L);
 
     // When
     final Exception e = assertThrows(
@@ -464,12 +480,14 @@ public class ClientIntegrationTest {
     // Given
     final Map<String, Object> properties = new HashMap<>();
     properties.put("auto.offset.reset", "latest");
-    final String sql = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT 1;";
+    final String sql = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT 1;";
 
     final KsqlObject insertRow = new KsqlObject()
-        .put("VIEWTIME", 2000L)
-        .put("USERID", "User_shouldStreamQueryWithProperties")
-        .put("PAGEID", "Page_shouldStreamQueryWithProperties");
+        .put("STR", "Value_shouldStreamQueryWithProperties")
+        .put("LONG", 2000L)
+        .put("DEC", new BigDecimal("12.34"))
+        .put("ARRAY", new KsqlArray().add("v1_shouldStreamQueryWithProperties").add("v2_shouldStreamQueryWithProperties"))
+        .put("MAP", new KsqlObject().put("test_name", "shouldStreamQueryWithProperties"));
 
     // When
     final StreamedQueryResult queryResult = client.streamQuery(sql, properties).get();
@@ -478,16 +496,18 @@ public class ClientIntegrationTest {
     final Row row = assertThatEventually(() -> {
       // Potentially try inserting multiple times, in case the query wasn't started by the first time
       try {
-        client.insertInto(PAGE_VIEW_STREAM, insertRow).get();
+        client.insertInto(TEST_STREAM, insertRow).get();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
       return queryResult.poll(Duration.ofMillis(10));
     }, is(notNullValue()));
 
-    assertThat(row.getLong("VIEWTIME"), is(2000L));
-    assertThat(row.getString("USERID"), is("User_shouldStreamQueryWithProperties"));
-    assertThat(row.getString("PAGEID"), is("Page_shouldStreamQueryWithProperties"));
+    assertThat(row.getString("STR"), is("Value_shouldStreamQueryWithProperties"));
+    assertThat(row.getLong("LONG"), is(2000L));
+    assertThat(row.getDecimal("DEC"), is(new BigDecimal("12.34")));
+    assertThat(row.getKsqlArray("ARRAY"), is(new KsqlArray().add("v1_shouldStreamQueryWithProperties").add("v2_shouldStreamQueryWithProperties")));
+    assertThat(row.getKsqlObject("MAP"), is(new KsqlObject().put("test_name", "shouldStreamQueryWithProperties")));
   }
 
   @Test
@@ -495,12 +515,14 @@ public class ClientIntegrationTest {
     // Given
     final Map<String, Object> properties = new HashMap<>();
     properties.put("auto.offset.reset", "latest");
-    final String sql = "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT 1;";
+    final String sql = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT 1;";
 
     final KsqlObject insertRow = new KsqlObject()
-        .put("VIEWTIME", 2000L)
-        .put("USERID", "User_shouldExecuteQueryWithProperties")
-        .put("PAGEID", "Page_shouldExecuteQueryWithProperties");
+        .put("STR", "Value_shouldExecuteQueryWithProperties")
+        .put("LONG", 2000L)
+        .put("DEC", new BigDecimal("12.34"))
+        .put("ARRAY", new KsqlArray().add("v1_shouldExecuteQueryWithProperties").add("v2_shouldExecuteQueryWithProperties"))
+        .put("MAP", new KsqlObject().put("test_name", "shouldExecuteQueryWithProperties"));
 
     // When
     final BatchedQueryResult queryResult = client.executeQuery(sql, properties);
@@ -523,7 +545,7 @@ public class ClientIntegrationTest {
     final Row row = assertThatEventually(() -> {
       // Potentially try inserting multiple times, in case the query wasn't started by the first time
       try {
-        client.insertInto(PAGE_VIEW_STREAM, insertRow).get();
+        client.insertInto(TEST_STREAM, insertRow).get();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -531,9 +553,11 @@ public class ClientIntegrationTest {
     }, is(notNullValue()));
 
     // Verify received row
-    assertThat(row.getLong("VIEWTIME"), is(2000L));
-    assertThat(row.getString("USERID"), is("User_shouldExecuteQueryWithProperties"));
-    assertThat(row.getString("PAGEID"), is("Page_shouldExecuteQueryWithProperties"));
+    assertThat(row.getString("STR"), is("Value_shouldExecuteQueryWithProperties"));
+    assertThat(row.getLong("LONG"), is(2000L));
+    assertThat(row.getDecimal("DEC"), is(new BigDecimal("12.34")));
+    assertThat(row.getKsqlArray("ARRAY"), is(new KsqlArray().add("v1_shouldExecuteQueryWithProperties").add("v2_shouldExecuteQueryWithProperties")));
+    assertThat(row.getKsqlObject("MAP"), is(new KsqlObject().put("test_name", "shouldExecuteQueryWithProperties")));
   }
 
   private Client createClient() {
@@ -552,14 +576,14 @@ public class ClientIntegrationTest {
     assertThatEventually(engine::numberOfLiveQueries, is(numQueries));
   }
 
-  private static void shouldReceivePageViewRows(
+  private static void shouldReceiveStreamRows(
       final Publisher<Row> publisher,
       final boolean subscriberCompleted
   ) {
-    shouldReceivePageViewRows(publisher, subscriberCompleted, PAGE_VIEW_NUM_ROWS);
+    shouldReceiveStreamRows(publisher, subscriberCompleted, TEST_NUM_ROWS);
   }
 
-  private static void shouldReceivePageViewRows(
+  private static void shouldReceiveStreamRows(
       final Publisher<Row> publisher,
       final boolean subscriberCompleted,
       final int numRows
@@ -567,62 +591,69 @@ public class ClientIntegrationTest {
     shouldReceiveRows(
         publisher,
         numRows,
-        rows -> verifyPageViewRows(rows, numRows),
+        rows -> verifyStreamRows(rows, numRows),
         subscriberCompleted
     );
   }
 
-  private static void verifyPageViewRows(final List<Row> rows, final int numRows) {
+  private static void verifyStreamRows(final List<Row> rows, final int numRows) {
     assertThat(rows, hasSize(numRows));
     for (int i = 0; i < numRows; i++) {
-      verifyPageViewRowWithIndex(rows.get(i), i);
+      verifyStreamRowWithIndex(rows.get(i), i);
     }
   }
 
-  private static void verifyPageViewRowWithIndex(final Row row, final int index) {
-    final KsqlArray expectedRow = PAGE_VIEW_EXPECTED_ROWS.get(index);
+  private static void verifyStreamRowWithIndex(final Row row, final int index) {
+    final KsqlArray expectedRow = TEST_EXPECTED_ROWS.get(index);
 
     // verify metadata
     assertThat(row.values(), equalTo(expectedRow));
-    assertThat(row.columnNames(), equalTo(PAGE_VIEW_COLUMN_NAMES));
-    assertThat(row.columnTypes(), equalTo(PAGE_VIEW_COLUMN_TYPES));
+    assertThat(row.columnNames(), equalTo(TEST_COLUMN_NAMES));
+    assertThat(row.columnTypes(), equalTo(TEST_COLUMN_TYPES));
 
     // verify type-based getters
-    assertThat(row.getString("PAGEID"), is(expectedRow.getString(0)));
-    assertThat(row.getString("USERID"), is(expectedRow.getString(1)));
-    assertThat(row.getLong("VIEWTIME"), is(expectedRow.getLong(2)));
+    assertThat(row.getString("STR"), is(expectedRow.getString(0)));
+    assertThat(row.getLong("LONG"), is(expectedRow.getLong(1)));
+    assertThat(row.getDecimal("DEC"), is(expectedRow.getDecimal(2)));
+    assertThat(row.getKsqlArray("ARRAY"), is(expectedRow.getKsqlArray(3)));
+    assertThat(row.getKsqlObject("MAP"), is(expectedRow.getKsqlObject(4)));
 
     // verify index-based getters are 1-indexed
-    assertThat(row.getString(1), is(row.getString("PAGEID")));
-    assertThat(row.getString(2), is(row.getString("USERID")));
-    assertThat(row.getLong(3), is(row.getLong("VIEWTIME")));
+    assertThat(row.getString(1), is(row.getString("STR")));
+    assertThat(row.getLong(2), is(row.getLong("LONG")));
+    assertThat(row.getDecimal(3), is(row.getDecimal("DEC")));
+    assertThat(row.getKsqlArray(4), is(row.getKsqlArray("ARRAY")));
+    assertThat(row.getKsqlObject(5), is(row.getKsqlObject("MAP")));
 
     // verify isNull() evaluation
-    assertThat(row.isNull("PAGEID"), is(false));
-    assertThat(row.isNull("VIEWTIME"), is(false));
+    assertThat(row.isNull("STR"), is(false));
 
     // verify exception on invalid cast
-    assertThrows(ClassCastException.class, () -> row.getInteger("PAGEID"));
+    assertThrows(ClassCastException.class, () -> row.getInteger("STR"));
 
     // verify KsqlArray methods
     final KsqlArray values = row.values();
-    assertThat(values.size(), is(PAGE_VIEW_COLUMN_NAMES.size()));
+    assertThat(values.size(), is(TEST_COLUMN_NAMES.size()));
     assertThat(values.isEmpty(), is(false));
-    assertThat(values.getString(0), is(row.getString("PAGEID")));
-    assertThat(values.getString(1), is(row.getString("USERID")));
-    assertThat(values.getLong(2), is(row.getLong("VIEWTIME")));
+    assertThat(values.getString(0), is(row.getString("STR")));
+    assertThat(values.getLong(1), is(row.getLong("LONG")));
+    assertThat(values.getDecimal(2), is(row.getDecimal("DEC")));
+    assertThat(values.getKsqlArray(3), is(row.getKsqlArray("ARRAY")));
+    assertThat(values.getKsqlObject(4), is(row.getKsqlObject("MAP")));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 
     // verify KsqlObject methods
     final KsqlObject obj = row.asObject();
-    assertThat(obj.size(), is(PAGE_VIEW_COLUMN_NAMES.size()));
+    assertThat(obj.size(), is(TEST_COLUMN_NAMES.size()));
     assertThat(obj.isEmpty(), is(false));
-    assertThat(obj.fieldNames(), contains(PAGE_VIEW_COLUMN_NAMES.toArray()));
-    assertThat(obj.getString("PAGEID"), is(row.getString("PAGEID")));
-    assertThat(obj.getString("USERID"), is(row.getString("USERID")));
-    assertThat(obj.getLong("VIEWTIME"), is(row.getLong("VIEWTIME")));
-    assertThat(obj.containsKey("VIEWTIME"), is(true));
+    assertThat(obj.fieldNames(), contains(TEST_COLUMN_NAMES.toArray()));
+    assertThat(obj.getString("STR"), is(row.getString("STR")));
+    assertThat(obj.getLong("LONG"), is(row.getLong("LONG")));
+    assertThat(obj.getDecimal("DEC"), is(row.getDecimal("DEC")));
+    assertThat(obj.getKsqlArray("ARRAY"), is(row.getKsqlArray("ARRAY")));
+    assertThat(obj.getKsqlObject("MAP"), is(row.getKsqlObject("MAP")));
+    assertThat(obj.containsKey("DEC"), is(true));
     assertThat(obj.containsKey("notafield"), is(false));
     assertThat(obj.toJsonString(), is((new JsonObject(obj.getMap())).toString()));
     assertThat(obj.toString(), is(obj.toJsonString()));
@@ -649,26 +680,26 @@ public class ClientIntegrationTest {
     assertThat(row.columnTypes(), equalTo(PULL_QUERY_COLUMN_TYPES));
 
     // verify type-based getters
-    assertThat(row.getString("USERID"), is(PULL_QUERY_EXPECTED_ROW.getString(0)));
-    assertThat(row.getLong("COUNT"), is(PULL_QUERY_EXPECTED_ROW.getLong(1)));
+    assertThat(row.getString("STR"), is(PULL_QUERY_EXPECTED_ROW.getString(0)));
+    assertThat(row.getLong("LONG"), is(PULL_QUERY_EXPECTED_ROW.getLong(1)));
 
     // verify index-based getters are 1-indexed
-    assertThat(row.getString(1), is(row.getString("USERID")));
-    assertThat(row.getLong(2), is(row.getLong("COUNT")));
+    assertThat(row.getString(1), is(row.getString("STR")));
+    assertThat(row.getLong(2), is(row.getLong("LONG")));
 
     // verify isNull() evaluation
-    assertThat(row.isNull("USERID"), is(false));
-    assertThat(row.isNull("COUNT"), is(false));
+    assertThat(row.isNull("STR"), is(false));
+    assertThat(row.isNull("LONG"), is(false));
 
     // verify exception on invalid cast
-    assertThrows(ClassCastException.class, () -> row.getInteger("USERID"));
+    assertThrows(ClassCastException.class, () -> row.getInteger("STR"));
 
     // verify KsqlArray methods
     final KsqlArray values = row.values();
     assertThat(values.size(), is(PULL_QUERY_COLUMN_NAMES.size()));
     assertThat(values.isEmpty(), is(false));
-    assertThat(values.getString(0), is(row.getString("USERID")));
-    assertThat(values.getLong(1), is(row.getLong("COUNT")));
+    assertThat(values.getString(0), is(row.getString("STR")));
+    assertThat(values.getLong(1), is(row.getLong("LONG")));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 
@@ -677,9 +708,9 @@ public class ClientIntegrationTest {
     assertThat(obj.size(), is(PULL_QUERY_COLUMN_NAMES.size()));
     assertThat(obj.isEmpty(), is(false));
     assertThat(obj.fieldNames(), contains(PULL_QUERY_COLUMN_NAMES.toArray()));
-    assertThat(obj.getString("USERID"), is(row.getString("USERID")));
-    assertThat(obj.getLong("COUNT"), is(row.getLong("COUNT")));
-    assertThat(obj.containsKey("COUNT"), is(true));
+    assertThat(obj.getString("STR"), is(row.getString("STR")));
+    assertThat(obj.getLong("LONG"), is(row.getLong("LONG")));
+    assertThat(obj.containsKey("LONG"), is(true));
     assertThat(obj.containsKey("notafield"), is(false));
     assertThat(obj.toJsonString(), is((new JsonObject(obj.getMap())).toString()));
     assertThat(obj.toString(), is(obj.toJsonString()));

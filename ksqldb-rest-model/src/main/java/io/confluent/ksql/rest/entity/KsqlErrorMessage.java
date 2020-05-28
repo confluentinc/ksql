@@ -20,11 +20,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.ErrorMessageUtil;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -39,25 +36,18 @@ public class KsqlErrorMessage {
 
   private final int errorCode;
   private final String errorMessage;
-  private final ImmutableList<String> stackTrace;
 
   @JsonCreator
   public KsqlErrorMessage(
       @JsonProperty("error_code") final int errorCode,
-      @JsonProperty("message") final String message,
-      @JsonProperty("stackTrace") final List<String> stackTrace
+      @JsonProperty("message") final String message
   ) {
     this.errorCode = errorCode;
     this.errorMessage = message == null ? "" : message;
-    this.stackTrace = stackTrace == null ? ImmutableList.of() : ImmutableList.copyOf(stackTrace);
   }
 
   public KsqlErrorMessage(final int errorCode, final Throwable exception) {
-    this(errorCode, ErrorMessageUtil.buildErrorMessage(exception), getStackTraceStrings(exception));
-  }
-
-  public KsqlErrorMessage(final int errorCode, final String message) {
-    this(errorCode, message, Collections.emptyList());
+    this(errorCode, ErrorMessageUtil.buildErrorMessage(exception));
   }
 
   static List<String> getStackTraceStrings(final Throwable exception) {
@@ -75,20 +65,9 @@ public class KsqlErrorMessage {
     return errorMessage;
   }
 
-  public List<String> getStackTrace() {
-    return new ArrayList<>(stackTrace);
-  }
-
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder();
-    sb.append(getMessage());
-    sb.append("\n");
-    for (final String line : stackTrace) {
-      sb.append(line);
-      sb.append("\n");
-    }
-    return sb.toString();
+    return errorMessage;
   }
 
   @Override
@@ -101,12 +80,11 @@ public class KsqlErrorMessage {
     }
     final KsqlErrorMessage that = (KsqlErrorMessage) o;
     return errorCode == that.errorCode
-        && Objects.equals(errorMessage, that.errorMessage)
-        && Objects.equals(stackTrace, that.stackTrace);
+        && errorMessage.equals(that.errorMessage);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(errorCode, errorMessage, stackTrace);
+    return Objects.hash(errorCode, errorMessage);
   }
 }

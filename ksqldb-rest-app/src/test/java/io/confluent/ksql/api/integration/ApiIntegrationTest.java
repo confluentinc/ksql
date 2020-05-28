@@ -41,7 +41,7 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
-import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -70,13 +70,13 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class ApiIntegrationTest {
 
-  private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
-  private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
+  private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
+  private static final String TEST_STREAM = TEST_DATA_PROVIDER.kstreamName();
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final Credentials NORMAL_USER = VALID_USER2;
-  private static final String AN_AGG_KEY = "USER_1";
+  private static final String AN_AGG_KEY = "FOO";
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
       .withKafkaCluster(
@@ -102,14 +102,14 @@ public class ApiIntegrationTest {
 
   @BeforeClass
   public static void setUpClass() {
-    TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
+    TEST_HARNESS.ensureTopics(TEST_TOPIC);
 
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON);
 
-    RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
+    RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
-        + "SELECT USERID, COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
+        + "SELECT STR, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY STR;"
     );
   }
 
@@ -142,7 +142,7 @@ public class ApiIntegrationTest {
   public void shouldExecutePushQueryWithLimit() {
 
     // Given:
-    String sql = "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + 2 + ";";
+    String sql = "SELECT * from " + TEST_STREAM + " EMIT CHANGES LIMIT " + 2 + ";";
 
     // When:
     QueryResponse response = executeQuery(sql);
@@ -150,9 +150,9 @@ public class ApiIntegrationTest {
     // Then:
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(
-        new JsonArray().add("PAGEID").add("USERID").add("VIEWTIME")));
+        new JsonArray().add("STR").add("LONG").add("DEC").add("ARRAY").add("MAP")));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(
-        new JsonArray().add("STRING").add("STRING").add("BIGINT")));
+        new JsonArray().add("STRING").add("BIGINT").add("DECIMAL(4, 2)").add("ARRAY<STRING>").add("MAP<STRING, STRING>")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
 
@@ -160,7 +160,7 @@ public class ApiIntegrationTest {
   public void shouldFailPushQueryWithInvalidSql() {
 
     // Given:
-    String sql = "SLECTT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
+    String sql = "SLECTT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Then:
     shouldFailToExecuteQuery(sql, "line 1:1: mismatched input 'SLECTT' expecting");
@@ -170,8 +170,8 @@ public class ApiIntegrationTest {
   public void shouldFailPushQueryWithMoreThanOneStatement() {
 
     // Given:
-    String sql = "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;" +
-        "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
+    String sql = "SELECT * from " + TEST_STREAM + " EMIT CHANGES;" +
+        "SELECT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Then:
     shouldFailToExecuteQuery(sql, "Expected exactly one KSQL statement; found 2 instead");
@@ -182,7 +182,7 @@ public class ApiIntegrationTest {
 
     // Given:
     String sql =
-        "CREATE STREAM SOME_STREAM AS SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
+        "CREATE STREAM SOME_STREAM AS SELECT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Then:
     shouldFailToExecuteQuery(sql, "Not a query");
@@ -196,7 +196,7 @@ public class ApiIntegrationTest {
     assertThatEventually(engine::numberOfLiveQueries, is(1));
 
     // Given:
-    String sql = "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
+    String sql = "SELECT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Create a write stream to capture the incomplete response
     ReceiveStream writeStream = new ReceiveStream(vertx);
@@ -221,7 +221,7 @@ public class ApiIntegrationTest {
       } catch (Throwable t) {
         return Integer.MAX_VALUE;
       }
-    }, is(7));
+    }, is(6));
 
     // The response shouldn't have ended yet
     assertThat(writeStream.isEnded(), is(false));
@@ -248,7 +248,7 @@ public class ApiIntegrationTest {
   public void shouldExecutePullQuery() {
 
     // Given:
-    String sql = "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
 
     // When:
     // Maybe need to retry as populating agg table is async
@@ -262,21 +262,21 @@ public class ApiIntegrationTest {
     QueryResponse response = atomicReference.get();
 
     // Then:
-    JsonArray expectedColumnNames = new JsonArray().add("USERID").add("COUNT");
+    JsonArray expectedColumnNames = new JsonArray().add("STR").add("LONG");
     JsonArray expectedColumnTypes = new JsonArray().add("STRING").add("BIGINT");
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
     assertThat(response.responseObject.getString("queryId"), is(nullValue()));
-    assertThat(response.rows.get(0).getString(0), is("USER_1"));  // rowkey
-    assertThat(response.rows.get(0).getLong(1), is(1L)); // count
+    assertThat(response.rows.get(0).getString(0), is("FOO")); // rowkey
+    assertThat(response.rows.get(0).getLong(1), is(1L)); // latest_by_offset(long)
   }
 
   @Test
   public void shouldFailPullQueryWithInvalidSql() {
 
     // Given:
-    String sql = "SLLLECET * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
+    String sql = "SLLLECET * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
 
     // Then:
     shouldFailToExecuteQuery(sql, "line 1:1: mismatched input 'SLLLECET' expecting");
@@ -286,8 +286,8 @@ public class ApiIntegrationTest {
   public void shouldFailPullQueryWithMoreThanOneStatement() {
 
     // Given:
-    String sql = "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';" +
-        "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';" +
+        "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
 
     // Then:
     shouldFailToExecuteQuery(sql, "Expected exactly one KSQL statement; found 2 instead");
@@ -307,10 +307,10 @@ public class ApiIntegrationTest {
   public void shouldFailPullQueryWithNonKeyLookup() {
 
     // Given:
-    String sql = "SELECT * from " + AGG_TABLE + " WHERE ROWTIME=12345;";
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE LONG=12345;";
 
     // Then:
-    shouldFailToExecuteQuery(sql, "WHERE clause on unsupported column: ROWTIME.");
+    shouldFailToExecuteQuery(sql, "WHERE clause on unsupported column: LONG.");
   }
 
   @Test
@@ -319,7 +319,7 @@ public class ApiIntegrationTest {
     // Given:
     JsonObject properties = new JsonObject();
     JsonObject requestBody = new JsonObject()
-        .put("target", PAGE_VIEW_STREAM).put("properties", properties);
+        .put("target", TEST_STREAM).put("properties", properties);
     Buffer bodyBuffer = requestBody.toBuffer();
     bodyBuffer.appendString("\n");
 
@@ -327,9 +327,11 @@ public class ApiIntegrationTest {
 
     for (int i = 0; i < numRows; i++) {
       JsonObject row = new JsonObject()
-          .put("VIEWTIME", 1000 + i)
-          .put("USERID", "User" + i % 3)
-          .put("PAGEID", "PAGE" + (numRows - i));
+          .put("STR", "Value_" + i)
+          .put("LONG", 1000 + i)
+          .put("DEC", i + 0.11) // JsonObject does not accept BigDecimal
+          .put("ARRAY", new JsonArray().add("a_" + i).add("b_" + i))
+          .put("MAP", new JsonObject().put("k1", "v1_" + i).put("k2", "v2_" + i));
       bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
     }
 
@@ -358,12 +360,14 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
-        .put("VIEWTIME", 1000)
-        .put("USERID", "User123");
+        .put("LONG", 1000)
+        .put("DEC", 12.21) // JsonObject does not accept BigDecimal
+        .put("ARRAY", new JsonArray().add("a").add("b"))
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
-        "Key field must be specified: PAGEID");
+        "Key field must be specified: STR");
   }
 
   @Test
@@ -371,9 +375,11 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
-        .put("PAGEID", true)
-        .put("VIEWTIME", 1000)
-        .put("USERID", "User123");
+        .put("STR", true)
+        .put("LONG", 1000)
+        .put("DEC", 12.21) // JsonObject does not accept BigDecimal
+        .put("ARRAY", new JsonArray().add("a").add("b"))
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
@@ -385,23 +391,26 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
-        .put("VIEWTIME", 1000)
-        .put("USERID", 123)
-        .put("PAGEID", "PAGE23");
+        .put("STR", "HELLO")
+        .put("LONG", "not a number")
+        .put("DEC", 12.21) // JsonObject does not accept BigDecimal
+        .put("ARRAY", new JsonArray().add("a").add("b"))
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
-        "Can't coerce a field of type class java.lang.Integer (123) into type STRING");
+        "Can't coerce a field of type class java.lang.String (not a number) into type BIGINT");
   }
 
   @Test
   public void shouldInsertWithMissingValueField() {
 
     // Given:
-    JsonObject row = new JsonObject();
-    row.put("PAGEID", "10");
-    row.put("VIEWTIME", 1000);
-    row.put("USERID", "User123");
+    JsonObject row = new JsonObject()
+        .put("STR", "HELLO")
+        .put("DEC", 12.21) // JsonObject does not accept BigDecimal
+        .put("ARRAY", new JsonArray().add("a").add("b"))
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
 
     // Then:
     shouldInsert(row);
@@ -415,7 +424,7 @@ public class ApiIntegrationTest {
     assertThatEventually(engine::numberOfLiveQueries, is(1));
 
     // Given:
-    String sql = "SELECT VIEWTIME, USERID, PAGEID from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT 1;";
+    String sql = "SELECT * from " + TEST_STREAM + " EMIT CHANGES LIMIT 1;";
 
     // Create a write stream to capture the incomplete response
     ReceiveStream writeStream = new ReceiveStream(vertx);
@@ -433,9 +442,11 @@ public class ApiIntegrationTest {
 
     // New row to insert
     JsonObject row = new JsonObject()
-        .put("VIEWTIME", 2000L)
-        .put("USERID", "User_shouldExecutePushQueryFromLatestOffset")
-        .put("PAGEID", "PAGE_shouldExecutePushQueryFromLatestOffset");
+        .put("STR", "Value_shouldExecutePushQueryFromLatestOffset")
+        .put("LONG", 2000L)
+        .put("DEC", 12.34) // JsonObject does not accept BigDecimal
+        .put("ARRAY", new JsonArray().add("a_shouldExecutePushQueryFromLatestOffset"))
+        .put("MAP", new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset"));
 
     // Insert a new row and wait for it to arrive
     assertThatEventually(() -> {
@@ -452,9 +463,11 @@ public class ApiIntegrationTest {
     // Verify that the received row is the expected one
     Buffer buff = writeStream.getBody();
     QueryResponse queryResponse = new QueryResponse(buff.toString());
-    assertThat(queryResponse.rows.get(0).getLong(0), is(2000L));
-    assertThat(queryResponse.rows.get(0).getString(1), is("User_shouldExecutePushQueryFromLatestOffset"));
-    assertThat(queryResponse.rows.get(0).getString(2), is("PAGE_shouldExecutePushQueryFromLatestOffset"));
+    assertThat(queryResponse.rows.get(0).getString(0), is("Value_shouldExecutePushQueryFromLatestOffset"));
+    assertThat(queryResponse.rows.get(0).getLong(1), is(2000L));
+    assertThat(queryResponse.rows.get(0).getDouble(2), is(12.34));
+    assertThat(queryResponse.rows.get(0).getJsonArray(3), is(new JsonArray().add("a_shouldExecutePushQueryFromLatestOffset")));
+    assertThat(queryResponse.rows.get(0).getJsonObject(4), is(new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset")));
 
     // Check that query is cleaned up on the server
     assertThatEventually(engine::numberOfLiveQueries, is(1));
@@ -483,7 +496,7 @@ public class ApiIntegrationTest {
   private void shouldFailToInsert(final JsonObject row, final int errorCode, final String message) {
     JsonObject properties = new JsonObject();
     JsonObject requestBody = new JsonObject()
-        .put("target", PAGE_VIEW_STREAM).put("properties", properties);
+        .put("target", TEST_STREAM).put("properties", properties);
     Buffer bodyBuffer = requestBody.toBuffer();
     bodyBuffer.appendString("\n");
 
@@ -504,7 +517,7 @@ public class ApiIntegrationTest {
   private void shouldInsert(final JsonObject row) {
     JsonObject properties = new JsonObject();
     JsonObject requestBody = new JsonObject()
-        .put("target", PAGE_VIEW_STREAM).put("properties", properties);
+        .put("target", TEST_STREAM).put("properties", properties);
     Buffer bodyBuffer = requestBody.toBuffer();
     bodyBuffer.appendString("\n");
 

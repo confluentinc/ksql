@@ -262,7 +262,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_TIMESTAMP_THROW_ON_INVALID_DOC = "If an incoming message "
       + "contains an invalid timestamp, ksqlDB will log a warning and continue. To disable this "
       + "behavior, and instead throw an exception to ensure that no data is missed, set "
-      + "ksql.timestamp.skip.invalid to true.";
+      + "ksql.timestamp.throw.on.invalid to true.";
 
   public static final String KSQL_ERROR_CLASSIFIER_REGEX_PREFIX = "ksql.error.classifier.regex";
   public static final String KSQL_ERROR_CLASSIFIER_REGEX_PREFIX_DOC = "Any configuration with the "

@@ -584,8 +584,7 @@ public class KsqlClientTest {
   @Test
   public void shouldHandleErrorMessageOnPostRequests() {
     // Given:
-    KsqlErrorMessage ksqlErrorMessage = new KsqlErrorMessage(40000, "ouch",
-        ImmutableList.of("s1", "s2"));
+    KsqlErrorMessage ksqlErrorMessage = new KsqlErrorMessage(40000, "ouch");
     server.setResponseObject(ksqlErrorMessage);
     server.setErrorCode(400);
 
@@ -597,13 +596,12 @@ public class KsqlClientTest {
     assertThat(response.getStatusCode(), is(400));
     assertThat(response.getErrorMessage().getErrorCode(), is(40000));
     assertThat(response.getErrorMessage().getMessage(), is("ouch"));
-    assertThat(response.getErrorMessage().getStackTrace(), is(ImmutableList.of("s1", "s2")));
   }
 
   @Test
   public void shouldHandleErrorMessageOnGetRequests() {
     // Given:
-    server.setResponseObject(new KsqlErrorMessage(40000, "ouch", ImmutableList.of("s1", "s2")));
+    server.setResponseObject(new KsqlErrorMessage(40000, "ouch"));
     server.setErrorCode(400);
 
     // When:
@@ -614,7 +612,6 @@ public class KsqlClientTest {
     assertThat(response.getStatusCode(), is(400));
     assertThat(response.getErrorMessage().getErrorCode(), is(40000));
     assertThat(response.getErrorMessage().getMessage(), is("ouch"));
-    assertThat(response.getErrorMessage().getStackTrace(), is(ImmutableList.of("s1", "s2")));
   }
 
   @Test

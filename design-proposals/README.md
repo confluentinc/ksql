@@ -68,4 +68,5 @@ Next KLIP number: **28**
 | KLIP-25: Removal of `WITH(KEY)` syntax                                             | Proposal       | N/A     |
 | [KLIP-26: Java client interfaces](klip-26-java-client-interfaces.md)               | Proposal       | N/A     |
 | KLIP-27: Enhanced UDF Configuration Options                                        | Proposal       | N/A     |
+| KLIP-28: Introduce 'CREATE OR REPLACE' for Query Upgrades                          | Proposal       | N/A     |
 

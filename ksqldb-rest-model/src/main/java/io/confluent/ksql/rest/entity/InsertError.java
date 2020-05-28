@@ -45,8 +45,7 @@ public class InsertError extends KsqlErrorMessage {
     }
     final KsqlErrorMessage that = (KsqlErrorMessage) o;
     return getErrorCode() == that.getErrorCode()
-        && Objects.equals(that.getMessage(), that.getMessage())
-        && Objects.equals(getStackTrace(), that.getStackTrace());
+        && Objects.equals(that.getMessage(), that.getMessage());
   }
 
   @Override

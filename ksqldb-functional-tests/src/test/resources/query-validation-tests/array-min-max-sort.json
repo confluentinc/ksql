@@ -1,0 +1,127 @@
+{
+  "comments": [
+    "Tests covering the use of UDFs for sorting and finding the min/max values for arrays."
+  ],
+  "tests": [
+    {
+      "name": "array_max",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, bool_array ARRAY<BOOLEAN>, int_array ARRAY<INT>, bigint_array ARRAY<BIGINT>, double_array ARRAY<DOUBLE>, string_array ARRAY<STRING>, decimal_array ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, array_max(bool_array) as bool_max, array_max(int_array) as int_max, array_max(bigint_array) as bigint_max, array_max(double_array) as double_max, array_max(string_array) as string_max, array_max(decimal_array) as decimal_max FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"bool_array": [false, true, false], "int_array": [0,0,1,0,-1], "bigint_array": [234, -123, 345], "double_array": [0.0, 0.1, -12345.678, 0.2, 0.3], "string_array": ["foo", "bar"], "decimal_array": [1.0, 1.1, 1.2, -0.2, 1.9, 9.0, -9.9, 1.5]}},
+        {"topic": "test_topic", "key": "r2", "value": {"bool_array": [null, false, true], "int_array": [0,null,1,0,-1], "bigint_array": [null, -123, 345], "double_array": [0.0, 0.1, -12345.678, null, 0.3], "string_array": ["foo", "fo", "Food", null, "F", "food"], "decimal_array": [1.0, 1.1, 1.2, -0.2, null, 9.0]}},
+        {"topic": "test_topic", "key": "r3", "value": {"bool_array": [], "int_array": [], "bigint_array": [], "double_array": [], "string_array": [], "decimal_array": []}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"BOOL_MAX": true, "INT_MAX": 1, "BIGINT_MAX": 345, "DOUBLE_MAX": 0.3, "STRING_MAX": "foo", "DECIMAL_MAX": 9.0}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"BOOL_MAX": true, "INT_MAX": 1, "BIGINT_MAX": 345, "DOUBLE_MAX": 0.3, "STRING_MAX": "food", "DECIMAL_MAX": 9.0}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"BOOL_MAX": null, "INT_MAX": null, "BIGINT_MAX": null, "DOUBLE_MAX": null, "STRING_MAX": null, "DECIMAL_MAX": null}}
+      ]
+    },
+    {
+      "name": "array_min",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, bool_array ARRAY<BOOLEAN>, int_array ARRAY<INT>, bigint_array ARRAY<BIGINT>, double_array ARRAY<DOUBLE>, string_array ARRAY<STRING>, decimal_array ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, array_min(bool_array) as bool_min, array_min(int_array) as int_min, array_min(bigint_array) as bigint_min, array_min(double_array) as double_min, array_min(string_array) as string_min, array_min(decimal_array) as decimal_min FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"bool_array": [false, true, false], "int_array": [0,0,1,0,-1], "bigint_array": [234, -123, 345], "double_array": [0.0, 0.1, -12345.678, 0.2, 0.3], "string_array": ["foo", "bar"], "decimal_array": [1.0, 1.1, 1.2, -0.2, 1.9, 9.0, -9.9, 1.5]}},
+        {"topic": "test_topic", "key": "r2", "value": {"bool_array": [null, false, true], "int_array": [0,null,1,0,-1], "bigint_array": [null, -123, 345], "double_array": [0.0, 0.1, -12345.678, null, 0.3], "string_array": ["foo", "fo", "Food", null, "F", "food"], "decimal_array": [1.0, 1.1, 1.2, -0.2, null, 9.0]}},
+        {"topic": "test_topic", "key": "r3", "value": {"bool_array": [], "int_array": [], "bigint_array": [], "double_array": [], "string_array": [], "decimal_array": []}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"BOOL_MIN": false, "INT_MIN": -1, "BIGINT_MIN": -123, "DOUBLE_MIN": -12345.678, "STRING_MIN": "bar", "DECIMAL_MIN": -9.9}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"BOOL_MIN": false, "INT_MIN": -1, "BIGINT_MIN": -123, "DOUBLE_MIN": -12345.678, "STRING_MIN": "F", "DECIMAL_MIN": -0.2}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"BOOL_MIN": null, "INT_MIN": null, "BIGINT_MIN": null, "DOUBLE_MIN": null, "STRING_MIN": null, "DECIMAL_MIN": null}}
+      ]
+    },
+    {
+      "name": "array_sort_asc",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, bool_array ARRAY<BOOLEAN>, int_array ARRAY<INT>, bigint_array ARRAY<BIGINT>, double_array ARRAY<DOUBLE>, string_array ARRAY<STRING>, decimal_array ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, array_sort(bool_array) as bools, array_sort(int_array) as ints, array_sort(bigint_array) as bigints, array_sort(double_array) as doubles, array_sort(string_array) as strings, array_sort(decimal_array) as decimals FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"bool_array": [false, true, false], "int_array": [0,0,1,0,-1], "bigint_array": [234, -123, 345], "double_array": [0.0, 0.1, -12345.678, 0.2, 0.3], "string_array": ["foo", "bar"], "decimal_array": [1.0, 1.1, -0.2, 1.9, 9.0, -9.9]}},
+        {"topic": "test_topic", "key": "r2", "value": {"bool_array": [null, false, true], "int_array": [0,null,1,0,-1], "bigint_array": [null, -123, 345], "double_array": [0.0, 0.1, -12345.678, null, 0.3], "string_array": ["foo", "fo", "Food", null, "F", "food"], "decimal_array": [1.0, 1.1, 1.2, -0.2, null, 9.0]}},
+        {"topic": "test_topic", "key": "r3", "value": {"bool_array": [], "int_array": [], "bigint_array": [], "double_array": [], "string_array": [], "decimal_array": []}},
+        {"topic": "test_topic", "key": "r4", "value": {"bool_array": null, "int_array": null, "bigint_array": null, "double_array": null, "string_array": null, "decimal_array": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {
+          "BOOLS": [false, false, true], 
+          "INTS": [-1, 0, 0, 0, 1], 
+          "BIGINTS": [-123, 234, 345], 
+          "DOUBLES": [-12345.678, 0.0, 0.1, 0.2, 0.3], 
+          "STRINGS": ["bar", "foo"], 
+          "DECIMALS": [-9.9, -0.2, 1.0, 1.1, 1.9, 9.0]}},
+        {"topic": "OUTPUT", "key": "r2", "value": {
+          "BOOLS": [false, true, null], 
+          "INTS": [-1, 0, 0, 1, null], 
+          "BIGINTS": [-123, 345, null], 
+          "DOUBLES": [-12345.678, 0.0, 0.1, 0.3, null], 
+          "STRINGS": ["F", "Food", "fo", "foo", "food", null], 
+          "DECIMALS": [-0.2, 1.0, 1.1, 1.2, 9.0, null]}},
+        {"topic": "OUTPUT", "key": "r3", "value": {
+          "BOOLS": [],
+          "INTS": [],
+          "BIGINTS": [], 
+          "DOUBLES": [], 
+          "STRINGS": [], 
+          "DECIMALS": [] }},
+        {"topic": "OUTPUT", "key": "r4", "value": {
+          "BOOLS": null,
+          "INTS": null,
+          "BIGINTS": null, 
+          "DOUBLES": null, 
+          "STRINGS": null, 
+          "DECIMALS": null}}
+      ]
+    },
+    {
+      "name": "array_sort_desc",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, bool_array ARRAY<BOOLEAN>, int_array ARRAY<INT>, bigint_array ARRAY<BIGINT>, double_array ARRAY<DOUBLE>, string_array ARRAY<STRING>, decimal_array ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, array_sort(bool_array, 'desc') as bools, array_sort(int_array, 'desc') as ints, array_sort(bigint_array, 'desc') as bigints, array_sort(double_array, 'desc') as doubles, array_sort(string_array, 'desc') as strings, array_sort(decimal_array, 'desc') as decimals FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"bool_array": [false, true, false], "int_array": [0,0,1,0,-1], "bigint_array": [234, -123, 345], "double_array": [0.0, 0.1, -12345.678, 0.2, 0.3], "string_array": ["foo", "bar"], "decimal_array": [1.0, 1.1, -0.2, 1.9, 9.0, -9.9]}},
+        {"topic": "test_topic", "key": "r2", "value": {"bool_array": [null, false, true], "int_array": [0,null,1,0,-1], "bigint_array": [null, -123, 345], "double_array": [0.0, 0.1, -12345.678, null, 0.3], "string_array": ["foo", "fo", "Food", null, "F", "food"], "decimal_array": [1.0, 1.1, 1.2, -0.2, null, 9.0]}},
+        {"topic": "test_topic", "key": "r3", "value": {"bool_array": [], "int_array": [], "bigint_array": [], "double_array": [], "string_array": [], "decimal_array": []}},
+        {"topic": "test_topic", "key": "r4", "value": {"bool_array": null, "int_array": null, "bigint_array": null, "double_array": null, "string_array": null, "decimal_array": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {
+          "BOOLS": [true, false, false], 
+          "INTS": [1, 0, 0, 0, -1], 
+          "BIGINTS": [345, 234, -123], 
+          "DOUBLES": [0.3, 0.2, 0.1, 0.0, -12345.678], 
+          "STRINGS": ["foo", "bar"], 
+          "DECIMALS": [9.0, 1.9, 1.1, 1.0, -0.2, -9.9]}},
+        {"topic": "OUTPUT", "key": "r2", "value": {
+          "BOOLS": [true, false, null], 
+          "INTS": [1, 0, 0, -1, null], 
+          "BIGINTS": [345, -123, null], 
+          "DOUBLES": [0.3, 0.1, 0.0, -12345.678, null], 
+          "STRINGS": ["food", "foo", "fo", "Food", "F", null], 
+          "DECIMALS": [9.0, 1.2, 1.1, 1.0, -0.2, null]}},
+        {"topic": "OUTPUT", "key": "r3", "value": {
+          "BOOLS": [],
+          "INTS": [],
+          "BIGINTS": [], 
+          "DOUBLES": [], 
+          "STRINGS": [], 
+          "DECIMALS": [] }},
+        {"topic": "OUTPUT", "key": "r4", "value": {
+          "BOOLS": null,
+          "INTS": null,
+          "BIGINTS": null, 
+          "DOUBLES": null, 
+          "STRINGS": null, 
+          "DECIMALS": null}}
+      ]
+    }
+  ]
+}

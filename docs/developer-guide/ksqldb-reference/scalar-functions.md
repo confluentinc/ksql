@@ -415,6 +415,24 @@ the entire substring is returned by default.
 For example, `REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2)`
 returns "there".
 
+### REGEXP_EXTRACT_ALL
+
+```sql
+REGEXP_EXTRACT_ALL('.*', col1)
+```
+
+```sql
+REGEXP_EXTRACT_ALL('(([AEIOU]).)', col1, 2)
+```
+
+Extract all subtrings matched by the regex pattern from the input.
+
+A capturing group number can also be specified in order to return that specific group. If a number isn't specified,
+the entire substring is returned by default.
+
+For example, `REGEXP_EXTRACT("(\\w+) (\\w+)", 'hello there nice day', 2)`
+returns `['there', 'day']`.
+
 ### `SPLIT`
 
 ```sql

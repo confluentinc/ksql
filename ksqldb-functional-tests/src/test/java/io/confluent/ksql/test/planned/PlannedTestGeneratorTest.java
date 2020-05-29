@@ -29,7 +29,7 @@ public class PlannedTestGeneratorTest {
    * or changed query plans.
    */
   @Test
-  //@Ignore
+  @Ignore
   public void manuallyGeneratePlans() {
     PlannedTestGenerator.generatePlans(QueryTranslationTest.findTestCases()
         .filter(PlannedTestUtils::isNotExcluded));

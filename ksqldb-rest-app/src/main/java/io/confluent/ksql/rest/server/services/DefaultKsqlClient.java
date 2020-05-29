@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.services;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.client.HostAliasResolver;
@@ -30,6 +31,7 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.util.KeystoreUtil;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.http.HttpClientOptions;
@@ -40,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import org.apache.kafka.common.config.SslConfigs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -164,25 +167,33 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     return clientProps;
   }
 
-  private static Consumer<HttpClientOptions> prepareHttpOptionsForMutualAuthClient(
+  private static Consumer<HttpClientOptions> prepareHttpOptionsForSSL(
       final Map<String, String> clientProps, final boolean verifyHost) {
     return (httpClientOptions) -> {
       httpClientOptions.setVerifyHost(verifyHost);
       httpClientOptions.setSsl(true);
-      final String trustStoreLocation = clientProps.get(
-          KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG);
+      final String internalAlias = clientProps
+          .get(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG);
+      final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
       if (trustStoreLocation != null) {
         final String suppliedTruststorePassword = clientProps
-            .get(KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG);
+            .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
         httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
             .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
-        final String keyStoreLocation =
-            clientProps.get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG);
+
+        final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
         if (keyStoreLocation != null) {
-          final String suppliedKeyStorePassword = clientProps
-              .get(KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG);
-          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
-              .setPassword(suppliedKeyStorePassword == null ? "" : suppliedKeyStorePassword));
+          final String suppliedKeyStorePassord = Strings.nullToEmpty(clientProps
+              .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG));
+          final JksOptions keyStoreOptions = new JksOptions()
+              .setPassword(suppliedKeyStorePassord);
+          if (internalAlias != null && !internalAlias.isEmpty()) {
+            keyStoreOptions.setValue(KeystoreUtil.getKeyStore(
+                keyStoreLocation, suppliedKeyStorePassord, internalAlias));
+          } else {
+            keyStoreOptions.setPath(keyStoreLocation);
+          }
+          httpClientOptions.setKeyStoreOptions(keyStoreOptions);
         }
       }
     };
@@ -198,7 +209,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         Optional.empty(),
         new LocalProperties(ImmutableMap.of()),
         createClientOptions(),
-        prepareHttpOptionsForMutualAuthClient(clientProps, verifyHost),
+        prepareHttpOptionsForSSL(clientProps, verifyHost),
         hostAliasResolver
     );
   }

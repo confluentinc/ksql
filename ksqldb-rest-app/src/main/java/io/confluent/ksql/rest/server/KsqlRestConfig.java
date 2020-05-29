@@ -307,25 +307,17 @@ public class KsqlRestConfig extends AbstractConfig {
           + "set to REQUESTED to request but not require SSL client authentication, and set to "
           + "REQUIRED to require SSL for internal client authentication.";
 
-  public static final String KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG =
-      "ksql.internal." + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG;
-  private static final String KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_DOC =
-      "The key store location to be used for intra-cluster internal SSL connections.";
+  public static final String KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG =
+      "ksql.ssl.keystore.alias.external";
+  private static final String KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_DOC =
+      "The key store certificate alias to be used for external client requests. If not set, "
+          + "the system will fall back on the Vert.x default choice";
 
-  public static final String KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG =
-      "ksql.internal." + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG;
-  private static final String KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_DOC =
-      "The password for the intra-cluster internal key store.";
-
-  public static final String KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG =
-      "ksql.internal." + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG;
-  private static final String KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_DOC =
-      "The trust store location to be used for intra-cluster internal SSL connections.";
-
-  public static final String KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG =
-      "ksql.internal." + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG;
-  private static final String KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_DOC =
-      "The password for the intra-cluster internal trust store.";
+  public static final String KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG =
+      "ksql.ssl.keystore.alias.internal";
+  private static final String KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_DOC =
+      "The key store certificate alias to be used for internal client requests. If not set, "
+          + "the system will fall back on the Vert.x default choice";
 
   private static final ConfigDef CONFIG_DEF;
 
@@ -451,33 +443,20 @@ public class KsqlRestConfig extends AbstractConfig {
             Importance.MEDIUM,
             KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_DOC
         ).define(
-            KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG,
+            KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG,
             Type.STRING,
             "",
             Importance.MEDIUM,
-            KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_DOC
+            KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_DOC
         )
         .define(
-            KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG,
-            Type.PASSWORD,
-            "",
-            Importance.MEDIUM,
-            KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_DOC
-        )
-        .define(
-            KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG,
+            KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG,
             Type.STRING,
             "",
             Importance.MEDIUM,
-            KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_DOC
+            KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_DOC
         )
         .define(
-            KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG,
-            Type.PASSWORD,
-            "",
-            Importance.MEDIUM,
-            KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_DOC
-        ).define(
             ADVERTISED_LISTENER_CONFIG,
             Type.STRING,
             null,

@@ -122,13 +122,13 @@ public class SystemAuthenticationFunctionalTest {
         : MultiNodeKeyStore.keyStoreNode2Props();
     Map<String, String> trustStoreProps = MultiNodeTrustStore.trustStoreNode1Node2Props();
     return ImmutableMap.of(
-        KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_LOCATION_CONFIG,
+        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
         keyStoreProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG),
-        KsqlRestConfig.KSQL_INTERNAL_SSL_KEYSTORE_PASSWORD_CONFIG,
+        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
         keyStoreProps.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG),
-        KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_LOCATION_CONFIG,
+        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
         trustStoreProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG),
-        KsqlRestConfig.KSQL_INTERNAL_SSL_TRUSTSTORE_PASSWORD_CONFIG,
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
         trustStoreProps.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)
     );
   }
@@ -162,6 +162,7 @@ public class SystemAuthenticationFunctionalTest {
         .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8188")
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
+        .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-1.example.com")
         .withProperties(COMMON_CONFIG)
         .withProperties(JASS_AUTH_CONFIG)
         .withProperties(internalKeyStoreProps(true))
@@ -176,6 +177,7 @@ public class SystemAuthenticationFunctionalTest {
         .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8189")
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
+        .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-2.example.com")
         .withProperties(COMMON_CONFIG)
         .withProperties(JASS_AUTH_CONFIG)
         .withProperties(internalKeyStoreProps(false))

@@ -19,11 +19,15 @@ import io.confluent.ksql.util.KsqlException;
 import io.vertx.core.buffer.Buffer;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class KeystoreUtil {
+  private static final Logger LOG = LoggerFactory.getLogger(KeystoreUtil.class);
   private static final String KEYSTORE_TYPE = "JKS";
 
   private KeystoreUtil() {}
@@ -63,12 +67,22 @@ public final class KeystoreUtil {
   }
 
   private static KeyStore loadExistingKeyStore(final String keyStorePath, final char[] pw) {
+    FileInputStream input = null;
     try {
+      input = new FileInputStream(keyStorePath);
       final KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
       keyStore.load(new FileInputStream(keyStorePath), pw);
       return keyStore;
     } catch (Exception e) {
       throw new KsqlException("Couldn't fetch keystore", e);
+    } finally {
+      if (input != null) {
+        try {
+          input.close();
+        } catch (IOException e) {
+          LOG.error("Can't close file", e);
+        }
+      }
     }
   }
 

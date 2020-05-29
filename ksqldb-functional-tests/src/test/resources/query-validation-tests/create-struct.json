@@ -1,6 +1,6 @@
 {
   "comments": [
-    "Tests covering the use of the array returning UDFs."
+    "Tests covering the creation of structs."
   ],
   "tests": [
     {
@@ -85,6 +85,19 @@
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Duplicate field names found in STRUCT"
       }
+    },
+    {
+      "name": "duplicate structs in array",
+      "statements": [
+        "CREATE STREAM INPUT (id VARCHAR) WITH (kafka_topic='test',value_format='json',partitions=1);",
+        "CREATE STREAM OUTPUT AS SELECT ROWKEY id, array[struct(a:=123),struct(a:=123)] from INPUT emit changes;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {"col1": "hello world"}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT","value": {"KSQL_COL_0": [{"A":123}, {"A":123}]}}
+      ]
     },
     {
       "name": "cast null values",

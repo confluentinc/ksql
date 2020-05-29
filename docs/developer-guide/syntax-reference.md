@@ -441,75 +441,56 @@ The `KEY` property is optional. ksqlDB uses it as an optimization hint to
 determine if repartitioning can be avoided when performing aggregations
 and joins.
 
-The type of the column named in the `KEY` property must match the type of the `ROWKEY` column.
+Joins involving tables can be joined to the table on the `PRIMARY KEY` column. Joins involving
+streams have no such limitation. Stream joins on any expression other than the stream's `KEY`
+column require an internal repartition, but joins on the stream's `KEY` column do not.
 
 !!! important
-      Don't set the KEY property, unless you have validated that your
-      stream doesn't need to be re-partitioned for future joins. If you set
-      the KEY property, you will need to re-partition explicitly if your
-      record key doesn't meet partitioning requirements. For more
-      information, see
-      [Partition Data to Enable Joins](joins/partition-data.md).
-
-In either case, when setting `KEY` you must be sure that *both* of the
-following conditions are true:
-
-1.  For every record, the contents of the Kafka message key must be the
-    same as the contents of the column set in `KEY` (which is derived
-    from a field in the Kafka message value).
-2.  `KEY` must be set to a value column with the same SQL type as the key column.
-
-If these conditions aren't met, then the results of aggregations and
-joins may be incorrect. However, if your data doesn't meet these
-requirements, you can still use ksqlDB with a few extra steps. The
-following section explains how.
-
-Table-table joins can be joined only on the `KEY` field, and one-to-many
-(1:N) joins aren't supported.
+    {{ site.ak }} guarantees the relative order of any two messages from
+    one source partition only if they are also both in the same partition
+    *after* the repartition. Otherwise, {{ site.ak }} is likely to interleave
+    messages. The use case will determine if these ordering guarantees are
+    acceptable.
 
 ### What To Do If Your Key Is Not Set or Is In A Different Format
 
 ### Streams
 
-For streams, just leave out the `KEY` property from the `WITH` clause.
-ksqlDB will take care of repartitioning the stream for you using the
-value(s) from the `GROUP BY` columns for aggregates, and the join
-predicate for joins.
+For streams, just leave out the `KEY` column from the column list.
+ksqlDB takes care of repartitioning the stream for you, using the
+value(s) from the `GROUP BY` columns for aggregates and the join
+criteria for joins.
 
 ### Tables
 
-For tables, you can still use ksqlDB if the message key is not also
-present in the Kafka message value or if it is not in the required
-format as long as *one* of the following statements is true:
+For tables, you can still use ksqlDB if the message key isn't set or if
+it isn't in the required format, as long as the key can be rebuilt from
+the value data, and *one* of the following statements is true:
 
 -   The message key is a [unary
     function](https://en.wikipedia.org/wiki/Unary_function) of the value
     in the desired key column.
--   It is ok for the messages in the topic to be re-ordered before being
-    inserted into the table.
+-   It's acceptable for the messages in the topic to be re-ordered before
+    being inserted into the table.
 
-First create a stream to have ksqlDB write the message key, and then
-declare the table on the output topic of this stream:
+First create a stream which you'll use to have ksqlDB write the message
+key, and then declare the table on the output topic of this stream.
 
 Example:
 
 -   Goal: You want to create a table from a topic, which is keyed by
     userid of type INT.
--   Problem: The required key is present as a field/column (aptly named
-    `userid`) in the message value, but the actual message key in {{ site.ak }} is
-    not set or has some other value or format.
-
 ```sql
 -- Create a stream on the original topic
 CREATE STREAM users_with_wrong_key (userid INT, username VARCHAR, email VARCHAR)
   WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON');
-  
 -- Derive a new stream with the required key changes.
 -- 1) The CAST statement converts the key to the required format.
 -- 2) The PARTITION BY clause re-partitions the stream based on the new, converted key.
--- 3) The SELECT clause selects the required value columns, (key columns are implicitly included).
--- The resulting schema will be: ROWKEY INT, USERNAME STRING, EMAIL STRING
--- the userId will be stored in ROWKEY.
+-- 3) The SELECT clause selects the required value columns, all in this case.
+-- The resulting schema is: KSQL_COL_0 INT KEY, USERNAME STRING, EMAIL STRING.
+-- Note: the system generated KSQL_COL_0 column name can be replaced via an alias in the projection,
+-- but this is not necessary in this case, because this stream is not a source for other queries.
 CREATE STREAM users_with_proper_key
   WITH(KAFKA_TOPIC='users-with-proper-key') AS
   SELECT username, email
@@ -523,7 +504,8 @@ CREATE TABLE users_table (ROWKEY INT PRIMARY KEY, username VARCHAR, email VARCHA
         VALUE_FORMAT='JSON');
 
 -- Or, if you prefer, you can keep userId in the value of the repartitioned data
--- This enables using the more descriptive `userId` rather than ROWTIME.
+-- by using the AS_VALUE function.
+-- The resulting schema is: userId INT KEY, USERNAME STRING, EMAIL STRING, VUSERID INT
 CREATE STREAM users_with_proper_key_and_user_id
   WITH(KAFKA_TOPIC='users_with_proper_key_and_user_id') AS
   SELECT *

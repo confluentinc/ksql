@@ -603,6 +603,12 @@ Query terminated
    per 30 second _window_. ksqlDB automatically adds these system columns
    for windowed results.
 
+!!! note
+   The grouping columns `gender` and `regionid` are currently stored combined
+   in a single key column. This will be rectified once multiple key columns
+   are supported. Until then, these columns are combined and the resulting column
+   is given a system-generated column name.
+
 ### 8. View query results using a pull query
 
 When a CREATE TABLE statement contains a GROUP BY clause, ksqlDB builds an internal

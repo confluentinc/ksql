@@ -11,32 +11,32 @@ keywords: ksqldb, install, upgrade
 
 ## Why does ksqlDB not currently support in-place upgrades?
 
-Past releases of KSQL were backwards compatible. However, there was a cost to this backwards compatibility:
-progress was slower and the code base incurred increased complexity.  ksqlDB is a young product and
-we're wanting to move fast, so have decided to choose speed of development over strong backwards
-compatibility guarantees for a few released.
+Past releases of KSQL were backward compatible. But there was a cost to this backward compatibility:
+progress was slower and the code base incurred increased complexity. ksqlDB is a young product and
+we want to move fast, so we have decided to choose speed of development over strong backward
+compatibility guarantees for a few releases.
 
-Until version 1.0 of ksqlDB, each minor release will potentially have breaking changes in it that
-mean you can not simply update the ksqlDB binaries and restart the server(s).
+Until version 1.0 of ksqlDB, each minor release will potentially have breaking changes in it,
+which means that you can't simply update the ksqlDB binaries and restart the server(s).
 
 The data models and binary formats used within ksqlDB are in flux. This means data local to each
-ksqlDB node and stored centrally within internal Kafka topics may not be compatible with the new
-version you are trying to deploy.
+ksqlDB node and stored centrally within internal {{ site.ak }} topics may not be compatible with
+the new version you're trying to deploy.
 
 ## Should I upgrade?
 
 It's great that you're interested in trying out the new features and fixes that new versions of
-ksqlDB bring. However, before rushing off to upgrade all your ksqlDB clusters ask yourself the
-question "do I need to upgrade _this_ cluster"?
+ksqlDB bring. But before rushing off to upgrade all your ksqlDB clusters, ask yourself,
+"Do I need to upgrade *this* cluster"?
 
-If you're running ksqlDB in production and you don't yet need the features or fixes the new version
-brings, then consider delaying any upgrade until either another release has features or fixes you
-need, or until ksqlDB reaches version 1.0 and therefore promises backwards compatibility.
+If you're running ksqlDB in production, and you don't yet need the features or fixes the new version
+brings, consider delaying any upgrade until either another release has features or fixes you
+need, or until ksqlDB reaches version 1.0 and promises backward compatibility.
 
 ## How to upgrade
 
 Upgrading a cluster involves leaving the old cluster running on the old version, bringing up a new
-cluster on the new version, porting across your database schema and finally thinking about your data.
+cluster on the new version, porting across your database schema, and finally thinking about your data.
 
 ### Port the database schema
 
@@ -106,12 +106,37 @@ This will stop all processing and delete any internal topics in Kafka.
 
 ## Upgrade notes
 
+### Upgrading from ksqlDB 0.7.0+ to 0.9.0
+
+!!! important
+    ksqlDB 0.9.0 is not backward compatible. Do not upgrade in-place.
+
+The following changes in SQL syntax and functionality may mean SQL statements
+that ran previously no longer run.
+
+### Table PRIMARY KEYs
+
+Tables now use `PRIMARY KEY` to define their primary key column rather than `KEY`.
+Update your `CREATE TABLE` statements as required. For example, statements like
+the this:
+
+```sql
+CREATE TABLE OUTPUT (ROWKEY INT KEY, V0 STRING, V1 DOUBLE) WITH (...);
+```
+
+Must be updated to:
+
+```sql
+CREATE TABLE OUTPUT (ROWKEY INT PRIMARY KEY, V0 STRING, V1 DOUBLE) WITH (...);
+```
+
 ### Upgrading from ksqlDB 0.6.0 to 0.7.0
 
 !!! important
     ksqlDB 0.7.0 is not backward compatible. Do not upgrade in-place.
 
-The following changes in SQL syntax and functionality may mean SQL statements that previously ran not longer run:
+The following changes in SQL syntax and functionality may mean SQL statements
+that ran  previously no longer run.
 
 ### `PARTITION BY` and `GROUP BY` result schema changes:
 

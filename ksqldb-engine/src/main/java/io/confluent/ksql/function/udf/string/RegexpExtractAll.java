@@ -58,7 +58,7 @@ public class RegexpExtractAll {
       return null;
     }
 
-    List<String> matches = new ArrayList<>();
+    final List<String> matches = new ArrayList<>();
     while (m.find()) {
       matches.add(m.group(group));
     }

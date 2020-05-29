@@ -25,11 +25,9 @@ public final class QueryCapacityUtil {
 
   public static boolean exceedsPersistentQueryCapacity(
       final KsqlExecutionContext executionContext,
-      final KsqlConfig ksqlConfig,
-      final long additionalQueries
+      final KsqlConfig ksqlConfig
   ) {
-    final long newTotal = executionContext.getPersistentQueries().size() + additionalQueries;
-    return newTotal > getQueryLimit(ksqlConfig);
+    return executionContext.getPersistentQueries().size() > getQueryLimit(ksqlConfig);
   }
 
   public static void throwTooManyActivePersistentQueriesException(

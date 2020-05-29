@@ -123,10 +123,10 @@ public final class CodeGenSpec {
     }
 
     void addStructSchema(final CreateStructExpression struct, final Schema schema) {
-      final String structSchemaName = CodeGenUtil.schemaName(structSchemaCount++);
       if (structToSchemaName.containsKey(struct)) {
         return;
       }
+      final String structSchemaName = CodeGenUtil.schemaName(structSchemaCount++);
       structToSchemaName.put(struct, structSchemaName);
       argumentBuilder.add(new SchemaArgumentSpec(structSchemaName, schema));
     }

@@ -84,6 +84,9 @@ final class KsLocator implements Locator {
           "KeyQueryMetadata not available for state store %s and key %s", stateStoreName, key));
     }
 
+    LOG.debug("Handling pull query for key {} in partition {} of state store {}.",
+              key, metadata.getPartition(), stateStoreName);
+    
     final HostInfo activeHost = metadata.getActiveHost();
     final Set<HostInfo> standByHosts = metadata.getStandbyHosts();
 

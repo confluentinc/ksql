@@ -499,6 +499,14 @@ If the regular expression is found at the beginning or end
 of the string, or there are contiguous matches,
 then an empty element is added to the array.
 
+### `REGEXP_REPLACE`
+
+```sql
+REGEXP_REPLACE(col1, 'a.b+', 'bar')
+```
+
+Replace all matches of a regex in a string with a new string.
+
 ### `SPLIT`
 
 ```sql

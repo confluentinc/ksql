@@ -84,6 +84,25 @@
         {"topic": "OUTPUT", "key": "3", "value": {"S1": "A", "S2": "A"}, "timestamp": 0},
         {"topic": "OUTPUT", "key": "4", "value": {"S1": "1", "S2": "3"}, "timestamp": 0}
       ]
+    },
+    {
+      "name": "regexp_split",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, REGEXP_SPLIT(input_string, '(ab|cd)') AS EXTRACTED FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"input_string": "aabcda"}},
+        {"topic": "test_topic", "value": {"input_string": "aabdcda"}},
+        {"topic": "test_topic", "value": {"input_string": "zxy"}},
+        {"topic": "test_topic", "value": {"input_string": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"EXTRACTED": ["a", "", "a"]}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED": ["a", "d", "a"]}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED": ["zxy"]}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED": null}}
+      ]
     }
   ]
 }

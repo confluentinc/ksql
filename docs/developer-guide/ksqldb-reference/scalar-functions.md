@@ -463,7 +463,7 @@ the entire substring is returned by default.
 For example, `REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2)`
 returns "there".
 
-### REGEXP_EXTRACT_ALL
+### `REGEXP_EXTRACT_ALL`
 
 ```sql
 REGEXP_EXTRACT_ALL('.*', col1)
@@ -480,6 +480,24 @@ the entire substring is returned by default.
 
 For example, `REGEXP_EXTRACT("(\\w+) (\\w+)", 'hello there nice day', 2)`
 returns `['there', 'day']`.
+
+### `REGEXP_SPLIT`
+
+```sql
+REGEXP_SPLIT(col1, 'a.b+')
+```
+
+Splits a string into an array of substrings based
+on a regular expression. If there is no match,
+then the original string is returned as the only
+element in the array. If the regular expression is empty,
+then all characters in the string are split.
+If either, string or regular expression, are NULL, then a
+NULL value is returned.
+
+If the regular expression is found at the beginning or end
+of the string, or there are contiguous delimiters,
+then an empty space is added to the array.
 
 ### `SPLIT`
 

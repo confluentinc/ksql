@@ -138,15 +138,13 @@ The square root of a value.
 
 ## Collections
 
-### `ARRAY_LENGTH`
+### `ARRAY`
 
 ```sql
-ARRAY_LENGTH(ARRAY[1, 2, 3])
+ARRAY[col1, col2, ...]
 ```
 
-Given an array, return the number of elements in the array.
-
-If the supplied parameter is NULL the method returns NULL.
+Construct an array from a variable number of inputs.
 
 ### ``ARRAY_CONTAINS``
 
@@ -158,31 +156,62 @@ Given an array, checks if a search value is contained in the array.
 
 Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
 
-### `JSON_ARRAY_CONTAINS`
+### `ARRAY_LENGTH`
 
 ```sql
-JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)
+ARRAY_LENGTH(ARRAY[1, 2, 3])
 ```
 
-Given a `STRING` containing a JSON array, checks if a search value is contained in the array.
+Given an array, return the number of elements in the array.
 
-Returns `false` if the first parameter does not contain a JSON array.
+If the supplied parameter is NULL the method returns NULL.
 
-### `ARRAY`
+### ``ARRAY_MAX``
 
 ```sql
-ARRAY[col1, col2, ...]
+ARRAY_MAX(['foo', 'bar', 'baz'])
 ```
 
-Construct an array from a variable number of inputs.
+Returns the maximum value from within a given array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof). 
 
-### `MAP`
+Array entries are compared according to their natural sort order, which sorts the various data-types per the following examples:
+- ```array_max[-1, 2, NULL, 0] -> 2```
+- ```array_max[false, NULL, true] -> true```
+- ```array_max['Foo', 'Bar', NULL, 'baz'] -> 'baz'``` (lower-case characters are "greater" than upper-case characters)
+
+If the array field is NULL, or contains only NULLs, then NULL is returned.
+
+### ``ARRAY_MIN``
 
 ```sql
-MAP(key VARCHAR := value, ...)
+ARRAY_MIN(['foo', 'bar', 'baz'])
 ```
 
-Construct a map from specific key-value tuples.
+Returns the minimum value from within a given array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof). 
+
+Array entries are compared according to their natural sort order, which sorts the various data-types per the following examples:
+- ```array_min[-1, 2, NULL, 0] -> -1```
+- ```array_min[false, NULL, true] -> false```
+- ```array_min['Foo', 'Bar', NULL, 'baz'] -> 'Bar'```
+
+If the array field is NULL, or contains only NULLs, then NULL is returned.
+
+### ``ARRAY_SORT``
+
+```sql
+ARRAY_SORT(['foo', 'bar', 'baz'], 'ASC|DESC')
+```
+
+Given an array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof), returns an array of the same elements sorted according to their natural sort order. Any NULLs contained in the array will always be moved to the end.
+
+For example:
+- ```array_sort[-1, 2, NULL, 0] -> [-1, 0, 2, NULL]```
+- ```array_sort[false, NULL, true] -> [false, true, NULL]```
+- ```array_sort['Foo', 'Bar', NULL, 'baz'] -> ['Bar', 'Foo', 'baz', NULL]```
+
+If the array field is NULL then NULL is returned.
+
+An optional second parameter can be used to specify whether to sort the elements in 'ASC'ending or 'DESC'ending order. If neither is specified then the default is ascending order. 
 
 ### `AS_MAP`
 
@@ -211,6 +240,25 @@ FIELD(str VARCHAR, args VARCHAR[])
 Returns the 1-indexed position of `str` in `args`, or 0 if not found.
 If `str` is NULL, the return value is 0, because NULL is not considered
 to be equal to any value. FIELD is the complement to ELT.
+
+### `JSON_ARRAY_CONTAINS`
+
+```sql
+JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)
+```
+
+Given a `STRING` containing a JSON array, checks if a search value is contained in the array.
+
+Returns `false` if the first parameter does not contain a JSON array.
+
+### `MAP`
+
+```sql
+MAP(key VARCHAR := value, ...)
+```
+
+Construct a map from specific key-value tuples.
+
 
 ### `SLICE`
 

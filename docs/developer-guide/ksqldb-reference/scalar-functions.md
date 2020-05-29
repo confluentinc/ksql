@@ -425,7 +425,7 @@ REGEXP_EXTRACT_ALL('.*', col1)
 REGEXP_EXTRACT_ALL('(([AEIOU]).)', col1, 2)
 ```
 
-Extract the all subtrings matched by the regex pattern from the input.
+Extract all subtrings matched by the regex pattern from the input.
 
 A capturing group number can also be specified in order to return that specific group. If a number isn't specified,
 the entire substring is returned by default.

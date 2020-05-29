@@ -231,27 +231,26 @@ the additional certificate/key for your internal listener set with
 `ksql.internal.listener`.  If your internal certificate is self-signed, a trust store is required to contain certificates for nodes in your cluster.
 
 ```properties
-# Contains the external certificates for this node.
-# e.g. cert and key for external.example.com
+# Contains the external certificate for this node under the alias 'external'.
+# (e.g. cert and key for external.example.com)
+# Also contains the internal certificate for this node under the alias 'internal'.
+# (e.g. cert and key for node-1.internal.example.com)
 ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
 ssl.keystore.password=xxxx
 ssl.key.password=yyyy
+ksql.ssl.keystore.alias.external=external
+ksql.ssl.keystore.alias.internal=internal
 
 # Contains certificates for trusted external clients.
+# Also contains the certificates for nodes in the cluster.
+# (e.g. certs for node-1.internal.example.com, node-2.internal.example.com)
 ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
 ssl.truststore.password=zzzz
 
 listeners=https://external.example.com:8088
 ksql.internal.listener=https://node-1.internal.example.com:8099
 
-# Contains the internal certificates for this node.
-# e.g. cert and key for node-1.internal.example.com
-ksql.internal.ssl.keystore.location=/var/private/ssl/ksql.internal.node1.keystore.jks
-ksql.internal.ssl.keystore.password=xxxx
-# Contains the certificates for nodes in the cluster.
-# e.g. certs for node-1.internal.example.com, node-2.internal.example.com
-ksql.internal.ssl.truststore.location=/var/private/ssl/ksql.internal.truststore.jks
-ksql.internal.ssl.truststore.password=wwww
+# This enables mutual auth checking for the internal listener
 ksql.internal.ssl.client.authentication=REQUIRED
 ```
 

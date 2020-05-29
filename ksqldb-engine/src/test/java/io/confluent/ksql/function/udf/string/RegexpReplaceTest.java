@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 
+import io.confluent.ksql.function.KsqlFunctionException;
 import org.junit.Test;
 
 public class RegexpReplaceTest {
@@ -45,5 +46,10 @@ public class RegexpReplaceTest {
     assertThat(udf.regexpReplace("barbar", "bar$", "cat"), is("barcat"));
     assertThat(udf.regexpReplace("aababa", "ab", "xy"), is("axyxya"));
     assertThat(udf.regexpReplace("aababa", "(ab)+", "xy"), is("axya"));
+  }
+
+  @Test(expected = KsqlFunctionException.class)
+  public void shouldThrowExceptionOnBadPattern() {
+    udf.regexpReplace("foobar", "(()", "bar");
   }
 }

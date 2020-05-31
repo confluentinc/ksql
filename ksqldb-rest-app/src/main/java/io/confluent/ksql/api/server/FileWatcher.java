@@ -15,29 +15,29 @@
 
 package io.confluent.ksql.api.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchService;
-import java.nio.file.WatchKey;
 import java.nio.file.WatchEvent;
-
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-// reference https://gist.github.com/danielflower/f54c2fe42d32356301c68860a4ab21ed
+// reference:
+// https://gist.github.com/danielflower/f54c2fe42d32356301c68860a4ab21ed
+// https://github.com/confluentinc/rest-utils/blob/master/core/src/main/java/io/confluent/rest/FileWatcher.java
 public class FileWatcher implements Runnable {
 
   private static final Logger log = LoggerFactory.getLogger(FileWatcher.class);
   private static final ExecutorService executor = Executors.newFixedThreadPool(1,
       new ThreadFactory() {
-        public Thread newThread(Runnable r) {
+        public Thread newThread(final Runnable r) {
           final Thread t = Executors.defaultThreadFactory().newThread(r);
           t.setDaemon(true);
           return t;

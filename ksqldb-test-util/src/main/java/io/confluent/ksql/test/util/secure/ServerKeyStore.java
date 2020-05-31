@@ -91,7 +91,7 @@ public final class ServerKeyStore {
       + "jBkD4gXusp6pUOWkzmVSJ19ySasXdPGZLp3Vo3/VZJm0NkKc0rz6Houutu1JAyxLpVbd7XBbhjLYzEPCms/xnf3AAs"
       + "XA==";
 
-  private static final String INVALID_BASE64_ENCODED_STORE =
+  private static final String EXPIRED_BASE64_ENCODED_STORE =
       "/u3+7QAAAAIAAAABAAAAAQADYmFkAAABcmJlWWEAAAUBMIIE/TAOBgorBgEEASoCEQEBBQAEggTp5B9lmw0sNM0Db50V"
       + "zcdYaSEfkbDWyaTp4syeFm9srNGcYmO1LWCToCMXLcQXeyaMaSeOaUXXPv4BhpFUO6l7Za7pKYwKvZoV6lSsvMBttI"
       + "7hY8hCIqGvqbXn6a7gFyEYnZ8lKxhQr4AcOsy6c5tE3gqvVABlB98PTFNNlNR9wDHfeyXDNf5gHLC2hHNZz+jaCu5w"
@@ -147,9 +147,9 @@ public final class ServerKeyStore {
     );
   }
 
-  public static void loadInvalidStore() {
-    KeyStoreUtil.putStore(Paths.get(keyStorePath()), INVALID_BASE64_ENCODED_STORE);
-    log.info("Loaded invalid store");
+  public static void loadExpiredStore() {
+    KeyStoreUtil.putStore(Paths.get(keyStorePath()), EXPIRED_BASE64_ENCODED_STORE);
+    log.info("Loaded expired store");
   }
 
   public static void loadValidStore() {

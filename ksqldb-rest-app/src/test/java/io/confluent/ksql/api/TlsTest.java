@@ -89,7 +89,7 @@ public class TlsTest extends ApiTest {
     assertThat(response.statusMessage(), is("OK"));
 
     // When: load expired key store
-    ServerKeyStore.loadInvalidStore();
+    ServerKeyStore.loadExpiredStore();
     assertThatEventually(
         "Should fail to execute query with expired key store",
         () -> {

@@ -481,10 +481,10 @@ the entire substring is returned by default.
 For example, `REGEXP_EXTRACT("(\\w+) (\\w+)", 'hello there nice day', 2)`
 returns `['there', 'day']`.
 
-### `REGEXP_SPLIT`
+### `REGEXP_SPLIT_TO_ARRAY`
 
 ```sql
-REGEXP_SPLIT(col1, 'a.b+')
+REGEXP_SPLIT_TO_ARRAY(col1, 'a.b+')
 ```
 
 Splits a string into an array of substrings based

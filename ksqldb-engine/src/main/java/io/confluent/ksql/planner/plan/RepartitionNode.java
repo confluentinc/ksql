@@ -18,17 +18,13 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
-import java.util.List;
 
-public abstract class RepartitionNode extends PlanNode {
+public abstract class RepartitionNode extends SingleSourcePlanNode {
 
-  private final PlanNode source;
   private final Expression partitionBy;
   private final LogicalSchema schema;
 
@@ -38,9 +34,8 @@ public abstract class RepartitionNode extends PlanNode {
       final LogicalSchema schema,
       final Expression partitionBy
   ) {
-    super(id, source.getNodeOutputType(), source.getSourceName());
+    super(id, source.getNodeOutputType(), source.getSourceName(), source);
     this.schema = requireNonNull(schema, "schema");
-    this.source = requireNonNull(source, "source");
     this.partitionBy = requireNonNull(partitionBy, "partitionBy");
   }
 
@@ -50,18 +45,8 @@ public abstract class RepartitionNode extends PlanNode {
   }
 
   @Override
-  public List<PlanNode> getSources() {
-    return ImmutableList.of(source);
-  }
-
-  @Override
-  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
-    return source.getPartitions(kafkaTopicClient);
-  }
-
-  @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    return source.buildStream(builder)
+    return getSource().buildStream(builder)
         .selectKey(
             partitionBy,
             builder.buildNodeContext(getId().toString())

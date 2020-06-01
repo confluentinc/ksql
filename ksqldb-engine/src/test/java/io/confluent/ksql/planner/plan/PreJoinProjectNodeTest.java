@@ -75,6 +75,8 @@ public class PreJoinProjectNodeTest {
       SELECT_2
   );
 
+  private static final SourceName ALIAS = SourceName.of("a");
+
   @Mock
   private PlanNode source;
   @Mock
@@ -92,8 +94,8 @@ public class PreJoinProjectNodeTest {
 
     projectNode = new PreJoinProjectNode(NODE_ID,
         source,
-        SELECTS,
-        SCHEMA);
+        ALIAS
+    );
   }
 
   @Test

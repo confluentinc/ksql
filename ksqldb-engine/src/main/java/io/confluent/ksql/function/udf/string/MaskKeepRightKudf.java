@@ -20,11 +20,14 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 
-@UdfDescription(name = MaskKeepRightKudf.NAME, author = KsqlConstants.CONFLUENT_AUTHOR,
+@UdfDescription(
+    name = MaskKeepRightKudf.NAME,
+    author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Returns a version of the input string with all but the"
         + " specified number of right-most characters masked out."
         + " Default masking rules will replace all upper-case characters with 'X', all lower-case"
-        + " characters with 'x', all digits with 'n', and any other character with '-'.")
+        + " characters with 'x', all digits with 'n', and any other character with '-'."
+)
 public class MaskKeepRightKudf {
   protected static final String NAME = "mask_keep_right";
 

@@ -21,9 +21,11 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 
 @SuppressWarnings("unused") // Invoked via reflection.
-@UdfDescription(name = "substring",
+@UdfDescription(
+    name = "substring",
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Returns a substring of the passed in value.")
+    description = "Returns a substring of the passed in value."
+)
 public class Substring {
 
   @Udf(description = "Returns a substring of str from pos to the end of str")

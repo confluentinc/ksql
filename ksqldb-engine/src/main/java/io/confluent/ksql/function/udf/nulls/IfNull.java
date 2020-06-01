@@ -18,11 +18,13 @@ package io.confluent.ksql.function.udf.nulls;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 
 @SuppressWarnings({"MethodMayBeStatic", "unused"}) // UDF methods can not be static.
 @UdfDescription(
     name = "IFNULL",
-    description = "Returns expression if NOT NULL, otherwise the alternative value"
+    description = "Returns expression if NOT NULL, otherwise the alternative value",
+    author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class IfNull {
 

@@ -23,9 +23,11 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.util.KsqlConstants;
 import org.apache.commons.lang3.StringUtils;
 
-@UdfDescription(name = "instr",
+@UdfDescription(
+    name = "instr",
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Returns the position of substring in the provided string")
+    description = "Returns the position of substring in the provided string"
+)
 public class Instr {
 
   @Udf

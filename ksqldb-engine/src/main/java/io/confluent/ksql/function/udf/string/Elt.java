@@ -18,8 +18,13 @@ package io.confluent.ksql.function.udf.string;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 
-@UdfDescription(name = "elt", description = Elt.DESCRIPTION)
+@UdfDescription(
+    name = "elt",
+    description = Elt.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class Elt {
 
   static final String DESCRIPTION = "ELT() returns the Nth element of the list of strings. Returns"

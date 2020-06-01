@@ -32,6 +32,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.Objects;
@@ -39,7 +40,8 @@ import java.util.function.Predicate;
 
 @UdfDescription(
     name = "JSON_ARRAY_CONTAINS",
-    description = JsonArrayContains.DESCRIPTION
+    description = JsonArrayContains.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class JsonArrayContains {
 

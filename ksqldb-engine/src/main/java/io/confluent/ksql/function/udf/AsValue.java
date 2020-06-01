@@ -16,9 +16,14 @@
 package io.confluent.ksql.function.udf;
 
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.util.KsqlConstants;
 
 @SuppressWarnings("MethodMayBeStatic")
-@UdfDescription(name = AsValue.NAME_TEXT, description = AsValue.DESCRIPTION)
+@UdfDescription(
+    name = AsValue.NAME_TEXT,
+    description = AsValue.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class AsValue {
 
   static final String NAME_TEXT = "AS_VALUE";

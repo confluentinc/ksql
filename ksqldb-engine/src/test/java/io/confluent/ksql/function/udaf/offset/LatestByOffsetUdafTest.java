@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -13,11 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf.earliest;
-
-import io.confluent.ksql.function.udaf.Udaf;
-import org.apache.kafka.connect.data.Struct;
-import org.junit.Test;
+package io.confluent.ksql.function.udaf.offset;
 
 import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.SEQ_FIELD;
 import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_BOOLEAN;
@@ -30,12 +26,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class EarliestByOffsetUdafTest {
+import io.confluent.ksql.function.udaf.Udaf;
+import org.apache.kafka.connect.data.Struct;
+import org.junit.Test;
+
+public class LatestByOffsetUdafTest {
+
   @Test
   public void shouldInitialize() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset
-        .earliest(STRUCT_LONG);
+    final Udaf<Integer, Struct, Integer> udaf = LatestByOffset
+        .latest(STRUCT_LONG);
 
     // When:
     Struct init = udaf.initialize();
@@ -45,44 +46,44 @@ public class EarliestByOffsetUdafTest {
   }
 
   @Test
-  public void shouldComputeEarliestInteger() {
+  public void shouldComputeLatestInteger() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliestInteger();
+    final Udaf<Integer, Struct, Integer> udaf = LatestByOffset.latestInteger();
 
     // When:
     Struct res = udaf
-        .aggregate(123, EarliestByOffset.createStruct(STRUCT_INTEGER, 321));
+        .aggregate(123, LatestByOffset.createStruct(STRUCT_INTEGER, 321));
 
     // Then:
-    assertThat(res.get(VAL_FIELD), is(321));
+    assertThat(res.get(VAL_FIELD), is(123));
   }
 
   @Test
   public void shouldMerge() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliestInteger();
+    final Udaf<Integer, Struct, Integer> udaf = LatestByOffset.latestInteger();
 
-    Struct agg1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
-    Struct agg2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
+    Struct agg1 = LatestByOffset.createStruct(STRUCT_INTEGER, 123);
+    Struct agg2 = LatestByOffset.createStruct(STRUCT_INTEGER, 321);
 
     // When:
     Struct merged1 = udaf.merge(agg1, agg2);
     Struct merged2 = udaf.merge(agg2, agg1);
 
     // Then:
-    assertThat(merged1, is(agg1));
-    assertThat(merged2, is(agg1));
+    assertThat(merged1, is(agg2));
+    assertThat(merged2, is(agg2));
   }
 
   @Test
   public void shouldMergeWithOverflow() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliestInteger();
+    final Udaf<Integer, Struct, Integer> udaf = LatestByOffset.latestInteger();
 
-    EarliestByOffset.sequence.set(Long.MAX_VALUE);
+    LatestByOffset.sequence.set(Long.MAX_VALUE);
 
-    Struct agg1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
-    Struct agg2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
+    Struct agg1 = LatestByOffset.createStruct(STRUCT_INTEGER, 123);
+    Struct agg2 = LatestByOffset.createStruct(STRUCT_INTEGER, 321);
 
     // When:
     Struct merged1 = udaf.merge(agg1, agg2);
@@ -91,60 +92,61 @@ public class EarliestByOffsetUdafTest {
     // Then:
     assertThat(agg1.getInt64(SEQ_FIELD), is(Long.MAX_VALUE));
     assertThat(agg2.getInt64(SEQ_FIELD), is(Long.MIN_VALUE));
-    assertThat(merged1, is(agg1));
-    assertThat(merged2, is(agg1));
+    assertThat(merged1, is(agg2));
+    assertThat(merged2, is(agg2));
   }
 
 
   @Test
-  public void shouldComputeEarliestLong() {
+  public void shouldComputeLatestLong() {
     // Given:
-    final Udaf<Long, Struct, Long> udaf = EarliestByOffset.earliestLong();
+    final Udaf<Long, Struct, Long> udaf = LatestByOffset.latestLong();
 
     // When:
     Struct res = udaf
-        .aggregate(123L, EarliestByOffset.createStruct(STRUCT_LONG, 321L));
+        .aggregate(123L, LatestByOffset.createStruct(STRUCT_LONG, 321L));
 
     // Then:
-    assertThat(res.getInt64(VAL_FIELD), is(321L));
+    assertThat(res.getInt64(VAL_FIELD), is(123L));
   }
 
   @Test
-  public void shouldComputeEarliestDouble() {
+  public void shouldComputeLatestDouble() {
     // Given:
-    final Udaf<Double, Struct, Double> udaf = EarliestByOffset.earliestDouble();
+    final Udaf<Double, Struct, Double> udaf = LatestByOffset.latestDouble();
 
     // When:
     Struct res = udaf
-        .aggregate(1.1d, EarliestByOffset.createStruct(STRUCT_DOUBLE, 2.2d));
+        .aggregate(1.1d, LatestByOffset.createStruct(STRUCT_DOUBLE, 2.2d));
 
     // Then:
-    assertThat(res.getFloat64(VAL_FIELD), is(2.2d));
+    assertThat(res.getFloat64(VAL_FIELD), is(1.1d));
   }
 
   @Test
-  public void shouldComputeEarliestBoolean() {
+  public void shouldComputeLatestBoolean() {
     // Given:
-    final Udaf<Boolean, Struct, Boolean> udaf = EarliestByOffset.earliestBoolean();
+    final Udaf<Boolean, Struct, Boolean> udaf = LatestByOffset.latestBoolean();
 
     // When:
     Struct res = udaf
-        .aggregate(true, EarliestByOffset.createStruct(STRUCT_BOOLEAN, false));
+        .aggregate(true, LatestByOffset.createStruct(STRUCT_BOOLEAN, false));
 
     // Then:
-    assertThat(res.getBoolean(VAL_FIELD), is(false));
+    assertThat(res.getBoolean(VAL_FIELD), is(true));
   }
 
   @Test
-  public void shouldComputeEarliestString() {
+  public void shouldComputeLatestString() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+    final Udaf<String, Struct, String> udaf = LatestByOffset.latestString();
 
     // When:
     Struct res = udaf
-        .aggregate("foo", EarliestByOffset.createStruct(STRUCT_STRING, "bar"));
+        .aggregate("foo", LatestByOffset.createStruct(STRUCT_STRING, "bar"));
 
     // Then:
-    assertThat(res.getString(VAL_FIELD), is("bar"));
+    assertThat(res.getString(VAL_FIELD), is("foo"));
   }
+
 }

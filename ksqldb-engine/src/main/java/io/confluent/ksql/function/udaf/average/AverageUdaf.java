@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udaf.average;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -25,7 +26,9 @@ import org.apache.kafka.connect.data.Struct;
 
 @UdafDescription(name = "avg",
     description = "Returns the average value of the column computed as the sum divided by the"
-        + "count. Applicable only to numeric types.")
+        + "count. Applicable only to numeric types.",
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public final class AverageUdaf {
 
   private static final String COUNT = "COUNT";

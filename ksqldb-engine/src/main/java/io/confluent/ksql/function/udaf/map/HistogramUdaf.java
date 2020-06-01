@@ -19,13 +19,16 @@ import com.google.common.collect.Maps;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.Map;
 
 @UdafDescription(name = "histogram",
     description = "Returns a map of each distinct String from the"
     + " input Stream or Table and how many times each occurs."
     + " \nThis version limits the size of the resultant Map to 1000 entries. Any entries added"
-    + " beyond this limit will be ignored.")
+    + " beyond this limit will be ignored.",
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public final class HistogramUdaf {
 
   private static final int LIMIT = 1000;

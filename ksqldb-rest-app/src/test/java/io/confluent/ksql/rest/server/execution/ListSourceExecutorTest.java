@@ -67,7 +67,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
-import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

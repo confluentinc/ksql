@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -33,9 +32,6 @@ public class Concat {
       description = "The varchar fields to concatenate") final String... inputs) {
     if (inputs == null) {
       return null;
-    }
-    if (inputs.length < 2) {
-      throw new KsqlFunctionException("Concat should have at least two input arguments.");
     }
 
     return Arrays.stream(inputs)

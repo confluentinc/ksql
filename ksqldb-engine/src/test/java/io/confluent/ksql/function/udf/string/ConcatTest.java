@@ -16,11 +16,8 @@
 package io.confluent.ksql.function.udf.string;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,11 +47,13 @@ public class ConcatTest {
   }
 
   @Test
-  public void shouldThrowOnTooFewInputs() {
-    // When:
-    final Exception e = assertThrows(KsqlFunctionException.class, () -> udf.concat("lonely"));
-
-    // Then:
-    assertThat(e.getMessage(), containsString("at least two input arguments"));
+  public void shouldReturnSingleInput() {
+    assertThat(udf.concat("singular"), is("singular"));
   }
+
+  @Test
+  public void shouldReturnEmptyStringForSingleNullInput() {
+    assertThat(udf.concat((String) null), is(""));
+  }
+
 }

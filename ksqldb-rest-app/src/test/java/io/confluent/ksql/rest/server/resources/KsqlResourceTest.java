@@ -456,7 +456,7 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(functionList.getFunctions(), hasItems(
-        new SimpleFunctionInfo("CONCAT", FunctionType.SCALAR),
+        new SimpleFunctionInfo("TRIM", FunctionType.SCALAR),
         new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
         new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE)
     ));
@@ -1911,7 +1911,7 @@ public class KsqlResourceTest {
     assertThat(e, exceptionStatusCode(is(INTERNAL_SERVER_ERROR.code())));
     assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Could not write the statement '" + statement
-            + "' into the command topic.\nCaused by: blah"))));
+            + "' into the command topic." + System.lineSeparator() + "Caused by: blah"))));
   }
 
   private Answer<?> executeAgainstEngine(final String sql) {

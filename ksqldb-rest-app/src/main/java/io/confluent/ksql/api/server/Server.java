@@ -70,7 +70,6 @@ public class Server {
   private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private final int maxPushQueryCount;
-  private final Set<ServerVerticle> serverVerticles = new HashSet<>();
   private final Set<String> deploymentIds = new HashSet<>();
   private final KsqlSecurityExtension securityExtension;
   private final Optional<AuthenticationPlugin> authenticationPlugin;
@@ -122,7 +121,6 @@ public class Server {
                 listener.getScheme().equalsIgnoreCase("https")),
             this, isInternalListener);
         vertx.deployVerticle(serverVerticle, vcf);
-        serverVerticles.add(serverVerticle);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {
           if (index == 0) {
@@ -182,6 +180,12 @@ public class Server {
     }
     deploymentIds.clear();
     log.info("API server stopped");
+  }
+
+  public synchronized void restart() {
+    log.info("Restarting server");
+    stop();
+    start();
   }
 
   public WorkerExecutor getWorkerExecutor() {
@@ -258,7 +262,7 @@ public class Server {
       try {
         FileWatcher.onFileChange(
             watchLocation,
-            () -> serverVerticles.forEach(ServerVerticle::restartServer),
+            this::restart,
             workerExecutor
         );
         log.info("Enabled SSL cert auto reload for: " + watchLocation);

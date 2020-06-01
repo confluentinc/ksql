@@ -62,7 +62,6 @@ public class ServerVerticle extends AbstractVerticle {
   private final HttpServerOptions httpServerOptions;
   private final Server server;
   private ConnectionQueryManager connectionQueryManager;
-  private Router router;
   private HttpServer httpServer;
   private final Optional<Boolean> isInternalListener;
 
@@ -80,8 +79,8 @@ public class ServerVerticle extends AbstractVerticle {
   @Override
   public void start(final Promise<Void> startPromise) {
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
-    router = setupRouter();
-    httpServer = createHttpServer();
+    httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
+        .exceptionHandler(ServerVerticle::unhandledExceptionHandler);;
     httpServer.listen(ar -> {
       if (ar.succeeded()) {
         startPromise.complete();
@@ -100,37 +99,8 @@ public class ServerVerticle extends AbstractVerticle {
     }
   }
 
-  // Creates a new server, rather than simply stopping and restarting, in order to reload TLS certs
-  public void restartServer() {
-    final String host = httpServerOptions.getHost();
-    final int port = httpServer.actualPort();
-
-    log.info("Restarting server");
-    httpServer.close(closeAR -> {
-      if (closeAR.succeeded()) {
-        log.info("Server has closed");
-      } else {
-        log.error("Error closing server during restart", closeAR.cause());
-      }
-
-      httpServer = createHttpServer();
-      httpServer.listen(port, host, startAR -> {
-        if (startAR.succeeded()) {
-          log.info("Server has restarted");
-        } else {
-          log.error("Error starting server during restart", startAR.cause());
-        }
-      });
-    });
-  }
-
   int actualPort() {
     return httpServer.actualPort();
-  }
-
-  private HttpServer createHttpServer() {
-    return vertx.createHttpServer(httpServerOptions).requestHandler(router)
-        .exceptionHandler(ServerVerticle::unhandledExceptionHandler);
   }
 
   private Router setupRouter() {

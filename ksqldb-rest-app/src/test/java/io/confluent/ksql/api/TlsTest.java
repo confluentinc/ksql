@@ -93,6 +93,9 @@ public class TlsTest extends ApiTest {
     assertThatEventually(
         "Should fail to execute query with expired key store",
         () -> {
+          // re-create client since server port changes on restart
+          this.client = createClient();
+
           try {
             // this should fail
             sendRequest("/query-stream", requestBody.toBuffer());
@@ -114,6 +117,9 @@ public class TlsTest extends ApiTest {
     assertThatEventually(
         "Should successfully execute query with valid key store",
         () -> {
+          // re-create client since server port changes on restart
+          this.client = createClient();
+
           try {
             return sendRequest("/query-stream", requestBody.toBuffer()).statusCode();
           } catch (Exception e) {

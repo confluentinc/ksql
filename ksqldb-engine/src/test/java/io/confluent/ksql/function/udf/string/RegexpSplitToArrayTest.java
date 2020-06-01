@@ -8,9 +8,9 @@ import static org.hamcrest.Matchers.nullValue;
 import io.confluent.ksql.function.KsqlFunctionException;
 import org.junit.Test;
 
-public class RegexpSplitTest {
+public class RegexpSplitToArrayTest {
 
-  private final RegexpSplit udf = new RegexpSplit();
+  private final RegexpSplitToArray udf = new RegexpSplitToArray();
 
   @Test
   public void shouldReturnNull() {

@@ -86,21 +86,23 @@
       ]
     },
     {
-      "name": "regexp_split",
+      "name": "regexp_split_to_array",
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT K, REGEXP_SPLIT(input_string, '(ab|cd)') AS EXTRACTED FROM TEST;"
+        "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR, pattern VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, REGEXP_SPLIT_TO_ARRAY(input_string, pattern) AS EXTRACTED FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"input_string": "aabcda"}},
-        {"topic": "test_topic", "value": {"input_string": "aabdcda"}},
-        {"topic": "test_topic", "value": {"input_string": "zxy"}},
-        {"topic": "test_topic", "value": {"input_string": null}}
+        {"topic": "test_topic", "value": {"input_string": "aabcda", "pattern": "(ab|cd)"}},
+        {"topic": "test_topic", "value": {"input_string": "aabdcda", "pattern": "(ab|cd)"}},
+        {"topic": "test_topic", "value": {"input_string": "zxy", "pattern": "(ab|cd)"}},
+        {"topic": "test_topic", "value": {"input_string": null, "pattern": "(ab|cd)"}},
+        {"topic": "test_topic", "value": {"input_string": "zxy", "pattern": null}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"EXTRACTED": ["a", "", "a"]}},
         {"topic": "OUTPUT", "value": {"EXTRACTED": ["a", "d", "a"]}},
         {"topic": "OUTPUT", "value": {"EXTRACTED": ["zxy"]}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED": null}},
         {"topic": "OUTPUT", "value": {"EXTRACTED": null}}
       ]
     }

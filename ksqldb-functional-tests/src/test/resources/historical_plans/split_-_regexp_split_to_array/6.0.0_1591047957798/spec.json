@@ -1,36 +1,47 @@
 {
   "version" : "6.0.0",
-  "timestamp" : 1590774208654,
+  "timestamp" : 1591047957798,
   "path" : "query-validation-tests/split.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<INPUT_STRING VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<INPUT_STRING VARCHAR, PATTERN VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<EXTRACTED ARRAY<VARCHAR>> NOT NULL"
   },
   "testCase" : {
-    "name" : "regexp_split",
+    "name" : "regexp_split_to_array",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "",
       "value" : {
-        "input_string" : "aabcda"
+        "input_string" : "aabcda",
+        "pattern" : "(ab|cd)"
       }
     }, {
       "topic" : "test_topic",
       "key" : "",
       "value" : {
-        "input_string" : "aabdcda"
+        "input_string" : "aabdcda",
+        "pattern" : "(ab|cd)"
       }
     }, {
       "topic" : "test_topic",
       "key" : "",
       "value" : {
-        "input_string" : "zxy"
+        "input_string" : "zxy",
+        "pattern" : "(ab|cd)"
       }
     }, {
       "topic" : "test_topic",
       "key" : "",
       "value" : {
-        "input_string" : null
+        "input_string" : null,
+        "pattern" : "(ab|cd)"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "input_string" : "zxy",
+        "pattern" : null
       }
     } ],
     "outputs" : [ {
@@ -57,6 +68,12 @@
       "value" : {
         "EXTRACTED" : null
       }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "EXTRACTED" : null
+      }
     } ],
     "topics" : [ {
       "name" : "OUTPUT",
@@ -67,7 +84,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, REGEXP_SPLIT(input_string, '(ab|cd)') AS EXTRACTED FROM TEST;" ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR, pattern VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, REGEXP_SPLIT_TO_ARRAY(input_string, pattern) AS EXTRACTED FROM TEST;" ],
     "post" : {
       "topics" : {
         "topics" : [ {

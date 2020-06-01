@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-@UdfDescription(name = "regexp_split",
+@UdfDescription(name = "regexp_split_to_array",
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Splits a string into an array of substrings based on a regexp. "
         + "If the regexp is found at the beginning of the string, end of the string, or there "
@@ -34,7 +34,7 @@ import java.util.regex.PatternSyntaxException;
         + "If the regexp is not found, then the original string is returned as the only "
         + "element in the array. If the regexp is empty, then all characters in the string are "
         + "split.")
-public class RegexpSplit {
+public class RegexpSplitToArray {
 
   @Udf(description = "Splits a string into an array of substrings based on a regexp.")
   public List<String> regexpSplit(

@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (K STRING KEY, INPUT_STRING STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM TEST (K STRING KEY, INPUT_STRING STRING, PATTERN STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",
-      "schema" : "`K` STRING KEY, `INPUT_STRING` STRING",
+      "schema" : "`K` STRING KEY, `INPUT_STRING` STRING, `PATTERN` STRING",
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -18,7 +18,7 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.K K,\n  REGEXP_SPLIT(TEST.INPUT_STRING, '(ab|cd)') EXTRACTED\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.K K,\n  REGEXP_SPLIT_TO_ARRAY(TEST.INPUT_STRING, TEST.PATTERN) EXTRACTED\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
@@ -60,10 +60,10 @@
                 "format" : "JSON"
               }
             },
-            "sourceSchema" : "`K` STRING KEY, `INPUT_STRING` STRING"
+            "sourceSchema" : "`K` STRING KEY, `INPUT_STRING` STRING, `PATTERN` STRING"
           },
           "keyColumnNames" : [ "K" ],
-          "selectExpressions" : [ "REGEXP_SPLIT(INPUT_STRING, '(ab|cd)') AS EXTRACTED" ]
+          "selectExpressions" : [ "REGEXP_SPLIT_TO_ARRAY(INPUT_STRING, PATTERN) AS EXTRACTED" ]
         },
         "formats" : {
           "keyFormat" : {

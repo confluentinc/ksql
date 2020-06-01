@@ -496,7 +496,7 @@ If either the string or the regular expression is `NULL`, a
 NULL value is returned.
 
 If the regular expression is found at the beginning or end
-of the string, or there are contiguous delimiters,
+of the string, or there are contiguous matches,
 then an empty element is added to the array.
 
 ### `SPLIT`

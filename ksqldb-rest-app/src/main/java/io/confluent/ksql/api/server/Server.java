@@ -140,7 +140,7 @@ public class Server {
       }
     }
 
-    configureTlsCertReload(config, serverVerticles);
+    configureTlsCertReload(config);
 
     final CompletableFuture<Void> allDeployFuture = CompletableFuture.allOf(deployFutures
         .toArray(new CompletableFuture<?>[0]));
@@ -245,6 +245,29 @@ public class Server {
     return Optional.ofNullable(internalListener);
   }
 
+  private void configureTlsCertReload(final KsqlRestConfig config) {
+    if (config.getBoolean(KsqlRestConfig.SSL_KEYSTORE_RELOAD_CONFIG)) {
+      final Path watchLocation;
+      if (!config.getString(KsqlRestConfig.SSL_KEYSTORE_WATCH_LOCATION_CONFIG).isEmpty()) {
+        watchLocation = Paths.get(
+            config.getString(KsqlRestConfig.SSL_KEYSTORE_WATCH_LOCATION_CONFIG));
+      } else {
+        watchLocation = Paths.get(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG));
+      }
+
+      try {
+        FileWatcher.onFileChange(
+            watchLocation,
+            () -> serverVerticles.forEach(ServerVerticle::restartServer),
+            workerExecutor
+        );
+        log.info("Enabled SSL cert auto reload for: " + watchLocation);
+      } catch (java.io.IOException e) {
+        log.error("Can not enabled SSL cert auto reload", e);
+      }
+    }
+  }
+
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,
       final String host, final int port, final boolean tls) {
 
@@ -343,30 +366,5 @@ public class Server {
       }
     }
     return listeners;
-  }
-
-  private static void configureTlsCertReload(
-      final KsqlRestConfig config,
-      final Set<ServerVerticle> serverVerticles
-  ) {
-    if (config.getBoolean(KsqlRestConfig.SSL_KEYSTORE_RELOAD_CONFIG)) {
-      final Path watchLocation;
-      if (!config.getString(KsqlRestConfig.SSL_KEYSTORE_WATCH_LOCATION_CONFIG).isEmpty()) {
-        watchLocation = Paths.get(
-            config.getString(KsqlRestConfig.SSL_KEYSTORE_WATCH_LOCATION_CONFIG));
-      } else {
-        watchLocation = Paths.get(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG));
-      }
-
-      try {
-        FileWatcher.onFileChange(
-            watchLocation,
-            () -> serverVerticles.forEach(ServerVerticle::restartServer)
-        );
-        log.info("Enabled SSL cert auto reload for: " + watchLocation);
-      } catch (java.io.IOException e) {
-        log.error("Can not enabled SSL cert auto reload", e);
-      }
-    }
   }
 }

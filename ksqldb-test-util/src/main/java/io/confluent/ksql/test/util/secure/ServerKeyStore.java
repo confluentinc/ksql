@@ -130,12 +130,15 @@ public final class ServerKeyStore {
   private static final String KEYSTORE_PASSWORD = "password";
   private static final String TRUSTSTORE_PASSWORD = "password";
   private static final AtomicReference<Path> keyStorePath = new AtomicReference<>();
+  private static final AtomicReference<Path> clientKeyStorePath = new AtomicReference<>();
 
   private ServerKeyStore() {
   }
 
   /**
    * @return props brokers will need to connect to support SSL connections.
+   *         The store at this path may be replaced with an expired store via the method
+   *         {@link #loadExpiredServerKeyStore}.
    */
   public static Map<String, String> keyStoreProps() {
     return ImmutableMap.of(
@@ -147,12 +150,27 @@ public final class ServerKeyStore {
     );
   }
 
-  public static void loadExpiredStore() {
+  /**
+   * @return props clients may use to connect to support SSL connections.
+   *         In contrast to {@link #keyStoreProps}, the store at this path will not replaced
+   *         with an expired store when the method {@link #loadExpiredServerKeyStore} is called.
+   */
+  public static Map<String, String> clientKeyStoreProps() {
+    return ImmutableMap.of(
+        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, clientKeyStorePath(),
+        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PASSWORD,
+        SslConfigs.SSL_KEY_PASSWORD_CONFIG, KEY_PASSWORD,
+        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, clientKeyStorePath(),
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PASSWORD
+    );
+  }
+
+  public static void loadExpiredServerKeyStore() {
     KeyStoreUtil.putStore(Paths.get(keyStorePath()), EXPIRED_BASE64_ENCODED_STORE);
     log.info("Loaded expired store");
   }
 
-  public static void loadValidStore() {
+  public static void loadValidServerKeyStore() {
     KeyStoreUtil.putStore(Paths.get(keyStorePath()), BASE64_ENCODED_STORE);
     log.info("Loaded valid store");
   }
@@ -164,6 +182,18 @@ public final class ServerKeyStore {
       }
 
       return KeyStoreUtil.createTemporaryStore("server-key-store", BASE64_ENCODED_STORE);
+    });
+
+    return path.toAbsolutePath().toString();
+  }
+
+  private static String clientKeyStorePath() {
+    final Path path = clientKeyStorePath.updateAndGet(existing -> {
+      if (existing != null) {
+        return existing;
+      }
+
+      return KeyStoreUtil.createTemporaryStore("client-key-store", BASE64_ENCODED_STORE);
     });
 
     return path.toAbsolutePath().toString();

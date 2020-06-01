@@ -42,24 +42,23 @@ public class TlsTest extends ApiTest {
 
   protected static final Logger log = LoggerFactory.getLogger(TlsTest.class);
 
-  private static final String KEY_STORE_PATH = ServerKeyStore.keyStoreProps()
-      .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-  private static final String KEY_STORE_PASSWORD = ServerKeyStore.keyStoreProps()
-      .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-  private static final String TRUST_STORE_PATH = ServerKeyStore.keyStoreProps()
-      .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-  private static final String TRUST_STORE_PASSWORD = ServerKeyStore.keyStoreProps()
-      .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-
   @Override
   protected KsqlRestConfig createServerConfig() {
+    String keyStorePath = ServerKeyStore.keyStoreProps()
+        .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+    String keyStorePassword = ServerKeyStore.keyStoreProps()
+        .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+    String trustStorePath = ServerKeyStore.keyStoreProps()
+        .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+    String trustStorePassword = ServerKeyStore.keyStoreProps()
+        .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
     Map<String, Object> config = new HashMap<>();
     config.put(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0");
-    config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KEY_STORE_PATH);
-    config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEY_STORE_PASSWORD);
-    config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, TRUST_STORE_PATH);
-    config.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUST_STORE_PASSWORD);
+    config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath);
+    config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword);
+    config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStorePath);
+    config.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword);
     config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
 
     config.put(KsqlRestConfig.SSL_KEYSTORE_RELOAD_CONFIG, true);
@@ -69,11 +68,19 @@ public class TlsTest extends ApiTest {
 
   @Override
   protected WebClientOptions createClientOptions() {
+    // for this test file, the client must use a different trust store location than the server
+    // since the client store should always be valid even when the server store is loaded with an
+    // invalid cert
+    String clientTrustStorePath = ServerKeyStore.clientKeyStoreProps()
+        .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+    String clientTrustStorePassword = ServerKeyStore.clientKeyStoreProps()
+        .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+
     return new WebClientOptions().setSsl(true).
         setUseAlpn(true).
         setProtocolVersion(HttpVersion.HTTP_2).
         setTrustStoreOptions(
-            new JksOptions().setPath(TRUST_STORE_PATH).setPassword(TRUST_STORE_PASSWORD)).
+            new JksOptions().setPath(clientTrustStorePath).setPassword(clientTrustStorePassword)).
         setVerifyHost(false).
         setDefaultHost("localhost").
         setDefaultPort(server.getListeners().get(0).getPort());
@@ -89,7 +96,7 @@ public class TlsTest extends ApiTest {
     assertThat(response.statusMessage(), is("OK"));
 
     // When: load expired key store
-    ServerKeyStore.loadExpiredStore();
+    ServerKeyStore.loadExpiredServerKeyStore();
     assertThatEventually(
         "Should fail to execute query with expired key store",
         () -> {
@@ -113,7 +120,7 @@ public class TlsTest extends ApiTest {
     );
 
     // When: load valid store
-    ServerKeyStore.loadValidStore();
+    ServerKeyStore.loadValidServerKeyStore();
     assertThatEventually(
         "Should successfully execute query with valid key store",
         () -> {

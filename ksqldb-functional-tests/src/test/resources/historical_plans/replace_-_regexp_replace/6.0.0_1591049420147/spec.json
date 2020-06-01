@@ -1,9 +1,9 @@
 {
   "version" : "6.0.0",
-  "timestamp" : 1590773775895,
+  "timestamp" : 1591049420147,
   "path" : "query-validation-tests/replace.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<INPUT_STRING VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<INPUT_STRING VARCHAR, PATTERN VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<EXTRACTED VARCHAR> NOT NULL"
   },
   "testCase" : {
@@ -12,19 +12,29 @@
       "topic" : "test_topic",
       "key" : "",
       "value" : {
-        "input_string" : "baababaa"
+        "input_string" : "baababaa",
+        "pattern" : "(ab)+"
       }
     }, {
       "topic" : "test_topic",
       "key" : "",
       "value" : {
-        "input_string" : "baabbabaa"
+        "input_string" : "baabbabaa",
+        "pattern" : "(ab)+"
       }
     }, {
       "topic" : "test_topic",
       "key" : "",
       "value" : {
-        "input_string" : null
+        "input_string" : null,
+        "pattern" : "(ab)+"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "input_string" : "baababaa",
+        "pattern" : null
       }
     } ],
     "outputs" : [ {
@@ -45,6 +55,12 @@
       "value" : {
         "EXTRACTED" : null
       }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "EXTRACTED" : null
+      }
     } ],
     "topics" : [ {
       "name" : "OUTPUT",
@@ -55,7 +71,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, REGEXP_REPLACE(input_string, '(ab)+', 'cat') AS EXTRACTED FROM TEST;" ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR, pattern VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, REGEXP_REPLACE(input_string, pattern, 'cat') AS EXTRACTED FROM TEST;" ],
     "post" : {
       "topics" : {
         "topics" : [ {

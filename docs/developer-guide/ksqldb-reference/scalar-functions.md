@@ -505,7 +505,9 @@ then an empty element is added to the array.
 REGEXP_REPLACE(col1, 'a.b+', 'bar')
 ```
 
-Replace all matches of a regex in a string with a new string.
+Replace all matches of a regex in an input string with a new string.
+If either the input string, regular expression, or new string is null,
+the result is null.
 
 ### `SPLIT`
 

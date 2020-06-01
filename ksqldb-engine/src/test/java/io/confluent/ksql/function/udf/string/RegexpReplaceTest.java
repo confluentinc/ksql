@@ -24,7 +24,7 @@ import org.junit.Test;
 
 public class RegexpReplaceTest {
 
-  private RegexpReplace udf = new RegexpReplace();;
+  private RegexpReplace udf = new RegexpReplace();
 
   @Test
   public void shouldHandleNull() {

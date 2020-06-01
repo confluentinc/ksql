@@ -25,6 +25,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
@@ -45,6 +46,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -69,6 +71,7 @@ public final class ListSourceExecutor {
 
   private static Optional<KsqlEntity> sourceDescriptionList(
       final ConfiguredStatement<?> statement,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final List<? extends DataSource> sources
@@ -76,6 +79,7 @@ public final class ListSourceExecutor {
     final List<SourceDescriptionWithWarnings> descriptions = sources.stream()
         .map(
             s -> describeSource(
+                sessionProperties,
                 executionContext,
                 serviceContext,
                 s.getName(),
@@ -104,6 +108,7 @@ public final class ListSourceExecutor {
     if (listStreams.getShowExtended()) {
       return sourceDescriptionList(
           statement,
+          sessionProperties,
           executionContext,
           serviceContext,
           ksqlStreams
@@ -129,7 +134,7 @@ public final class ListSourceExecutor {
     if (listTables.getShowExtended()) {
       return sourceDescriptionList(
           statement,
-          executionContext,
+          sessionProperties, executionContext,
           serviceContext,
           ksqlTables
       );
@@ -149,7 +154,7 @@ public final class ListSourceExecutor {
   ) {
     final ShowColumns showColumns = statement.getStatement();
     final SourceDescriptionWithWarnings descriptionWithWarnings = describeSource(
-        executionContext,
+        sessionProperties, executionContext,
         serviceContext,
         showColumns.getTable(),
         showColumns.isExtended(),
@@ -187,6 +192,7 @@ public final class ListSourceExecutor {
   }
 
   private static SourceDescriptionWithWarnings describeSource(
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlEngine,
       final ServiceContext serviceContext,
       final SourceName name,
@@ -216,16 +222,21 @@ public final class ListSourceExecutor {
         topicDescription = Optional.of(
             serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
         );
-        String serviceId = "default"; //FIXME not sure how to get this
         if (sourceQueries.isEmpty()){
           consumerGroupDescription = Optional.empty();
         } else {
-          String queryId = sourceQueries.get(0).getId().toString();
-          String consumerGroupId = "_confluent-ksql-" + serviceId + "_" + KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT + queryId; //FIXME there should be a better way to build this
-          consumerGroupDescription = Optional.of(
-              serviceContext.getAdminClient().describeConsumerGroups(Collections.singletonList(consumerGroupId)).describedGroups().get(consumerGroupId).get()
+          QueryId queryId = sourceQueries.get(0).getId();
+          final String persistenceQueryPrefix =
+              sessionProperties.getMutableScopedProperties().get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
+          final String applicationId = getQueryApplicationId(
+              getServiceId(sessionProperties.getMutableScopedProperties()),
+              persistenceQueryPrefix,
+              queryId
           );
-          topicAndConsumerOffsets = serviceContext.getAdminClient().listConsumerGroupOffsets(consumerGroupId).partitionsToOffsetAndMetadata().get();
+          consumerGroupDescription = Optional.of(
+              serviceContext.getAdminClient().describeConsumerGroups(Collections.singletonList(applicationId)).describedGroups().get(applicationId).get()
+          );
+          topicAndConsumerOffsets = serviceContext.getAdminClient().listConsumerGroupOffsets(applicationId).partitionsToOffsetAndMetadata().get();
           Map<TopicPartition, OffsetSpec> startRequest = new LinkedHashMap<>();
           Map<TopicPartition, OffsetSpec> endRequest = new LinkedHashMap<>();
           for (Map.Entry<TopicPartition, OffsetAndMetadata> entry: topicAndConsumerOffsets.entrySet()) {
@@ -254,6 +265,19 @@ public final class ListSourceExecutor {
             topicAndConsumerOffsets
         )
     );
+  }
+
+  private static String getServiceId(
+      Map<String, Object> mutableScopedProperties) {
+    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+        + mutableScopedProperties.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
+  }
+
+  private static String getQueryApplicationId(
+      final String serviceId,
+      final String queryPrefix,
+      final QueryId queryId) {
+    return serviceId + queryPrefix + queryId;
   }
 
   private static List<RunningQuery> getQueries(

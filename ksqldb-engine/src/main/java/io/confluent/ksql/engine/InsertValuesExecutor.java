@@ -249,8 +249,7 @@ public class InsertValuesExecutor {
 
     if (canBeDisabledByConfig && !isEnabled) {
       throw new KsqlException("The server has disabled INSERT INTO ... VALUES functionality. "
-          + "To enable it, restart your KSQL-server "
-          + "with 'ksql.insert.into.values.enabled'=true");
+          + "To enable it, restart your KSQL-server with 'ksql.insert.into.values.enabled'=true");
     }
   }
 
@@ -371,7 +370,7 @@ public class InsertValuesExecutor {
 
       final Object value =
           new ExpressionResolver(columnType, column, schema, functionRegistry, config)
-              .process(valueExp, null);
+          .process(valueExp, null);
 
       values.put(column, value);
     }

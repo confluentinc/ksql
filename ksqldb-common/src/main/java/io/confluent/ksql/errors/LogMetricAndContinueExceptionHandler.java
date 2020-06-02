@@ -29,6 +29,7 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
 
   @Override
   public DeserializationHandlerResponse handle(
+      @SuppressWarnings({"rawtypes"})
       final ProcessorContext context,
       final ConsumerRecord<byte[], byte[]> record,
       final Exception exception

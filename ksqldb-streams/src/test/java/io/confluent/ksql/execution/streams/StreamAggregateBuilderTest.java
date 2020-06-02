@@ -467,8 +467,8 @@ public class StreamAggregateBuilderTest {
 
     // Then:
     assertThat(result.getTable(), is(windowedWithWindowBounds));
-    verify(gracePeriodClause).toDuration();
-    verify(retentionClause).toDuration();
+    verify(gracePeriodClause);
+    verify(retentionClause);
     final InOrder inOrder = Mockito.inOrder(
         groupedStream,
         timeWindowedStream,

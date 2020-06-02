@@ -126,9 +126,10 @@ public final class SinkBuilder {
     @Override
     public Transformer<K, GenericRow, KeyValue<K, GenericRow>> get() {
       return new Transformer<K, GenericRow, KeyValue<K, GenericRow>>() {
-        private ProcessorContext processorContext;
+        private ProcessorContext<K,GenericRow> processorContext;
 
         @Override
+        @SuppressWarnings({"unchecked"})
         public void init(final ProcessorContext processorContext) {
           this.processorContext = requireNonNull(processorContext, "processorContext");
         }

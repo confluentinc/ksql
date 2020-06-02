@@ -93,7 +93,7 @@ public class SinkBuilderTest {
   @Mock
   private GenericRow row;
   @Mock
-  private ProcessorContext processorContext;
+  private ProcessorContext<Object,Object> processorContext;
   @Mock
   private ProcessingLogger processingLogger;
   @Captor

@@ -103,8 +103,8 @@ public class Encode {
       } catch (DecoderException e) {
         throw new KsqlFunctionException(e.getMessage());
       }
-      final byte[] encodedHexB64 = Base64.encodeBase64(decodedHex);
-      return new String(encodedHexB64);
+      final byte[] encodedB64 = Base64.encodeBase64(decodedHex);
+      return new String(encodedB64, StandardCharsets.UTF_8);
 
     }
   }
@@ -137,7 +137,7 @@ public class Encode {
     @Override
     public String apply(final String input) {
       final byte[] encodedB64 = Base64.encodeBase64(input.getBytes(StandardCharsets.US_ASCII));
-      return new String(encodedB64);
+      return new String(encodedB64, StandardCharsets.UTF_8);
     }
   }
 
@@ -173,7 +173,7 @@ public class Encode {
     @Override
     public String apply(final String input) {
       final byte[] encodedB64 = Base64.encodeBase64(input.getBytes(StandardCharsets.UTF_8));
-      return new String(encodedB64);
+      return new String(encodedB64, StandardCharsets.UTF_8);
     }
   }
 

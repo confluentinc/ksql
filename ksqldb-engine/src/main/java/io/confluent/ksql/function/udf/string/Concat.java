@@ -15,24 +15,28 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class ConcatKudf implements Kudf {
-  public static final String NAME = "CONCAT";
+@UdfDescription(
+    name = "concat",
+    description = "Concatenate an arbitrary number of string fields together")
+public class Concat {
 
-  @Override
-  public String evaluate(final Object... args) {
-    if (args.length < 2) {
-      throw new KsqlFunctionException(NAME + " should have at least two input argument.");
+  @Udf
+  public String concat(@UdfParameter(
+      description = "The varchar fields to concatenate") final String... inputs) {
+    if (inputs == null) {
+      return null;
     }
 
-    return Arrays.stream(args)
+    return Arrays.stream(inputs)
         .filter(Objects::nonNull)
-        .map(Object::toString)
         .collect(Collectors.joining());
   }
+
 }

@@ -26,7 +26,6 @@ import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFacto
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.RandomKudf;
-import io.confluent.ksql.function.udf.string.ConcatKudf;
 import io.confluent.ksql.function.udf.string.LCaseKudf;
 import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
@@ -272,12 +271,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           SqlTypes.STRING,
           Collections.singletonList(ParamTypes.STRING),
           FunctionName.of("UCASE"), UCaseKudf.class
-      ));
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.STRING,
-          ImmutableList.of(ParamTypes.STRING, ParamTypes.STRING),
-          FunctionName.of(ConcatKudf.NAME), ConcatKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(

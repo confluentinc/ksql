@@ -39,7 +39,8 @@ public class DescribeFunctionExecutorTest {
     // When:
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
-            engine.configure("DESCRIBE FUNCTION CONCAT;"),
+        engine.configure(
+            "DESCRIBE FUNCTION TRIM;"),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
@@ -49,7 +50,7 @@ public class DescribeFunctionExecutorTest {
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
       protected boolean matchesSafely(final FunctionDescriptionList item) {
-        return functionList.getName().equals("CONCAT")
+        return functionList.getName().equals("TRIM")
             && functionList.getType().equals(FunctionType.SCALAR);
       }
 

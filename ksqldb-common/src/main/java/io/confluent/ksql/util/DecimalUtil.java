@@ -234,6 +234,10 @@ public final class DecimalUtil {
   }
 
   public static SqlType fromValue(final BigDecimal value) {
+    final BigDecimal bigDecimalZero = new BigDecimal("0");
+    if (value.compareTo(bigDecimalZero) == 0) {
+      return SqlTypes.decimal(value.scale() + 1, value.scale());
+    }
     return SqlTypes.decimal(value.precision(), value.scale());
   }
 }

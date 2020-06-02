@@ -100,41 +100,41 @@ public class InsertValuesExecutor {
   public interface RecordProducer {
 
     void sendRecord(
-        ProducerRecord<byte[], byte[]> record,
-        ServiceContext serviceContext,
-        Map<String, Object> producerProps
+            ProducerRecord<byte[], byte[]> record,
+            ServiceContext serviceContext,
+            Map<String, Object> producerProps
     );
   }
 
   @VisibleForTesting
   InsertValuesExecutor(
-      final boolean canBeDisabledByConfig,
-      final RecordProducer producer
+          final boolean canBeDisabledByConfig,
+          final RecordProducer producer
   ) {
     this(
-        producer,
-        canBeDisabledByConfig,
-        System::currentTimeMillis,
-        new GenericKeySerDe(),
-        new GenericRowSerDe()
+            producer,
+            canBeDisabledByConfig,
+            System::currentTimeMillis,
+            new GenericKeySerDe(),
+            new GenericRowSerDe()
     );
   }
 
   @VisibleForTesting
   InsertValuesExecutor(
-      final LongSupplier clock,
-      final KeySerdeFactory keySerdeFactory,
-      final ValueSerdeFactory valueSerdeFactory
+          final LongSupplier clock,
+          final KeySerdeFactory keySerdeFactory,
+          final ValueSerdeFactory valueSerdeFactory
   ) {
     this(InsertValuesExecutor::sendRecord, true, clock, keySerdeFactory, valueSerdeFactory);
   }
 
   private InsertValuesExecutor(
-      final RecordProducer producer,
-      final boolean canBeDisabledByConfig,
-      final LongSupplier clock,
-      final KeySerdeFactory keySerdeFactory,
-      final ValueSerdeFactory valueSerdeFactory
+          final RecordProducer producer,
+          final boolean canBeDisabledByConfig,
+          final LongSupplier clock,
+          final KeySerdeFactory keySerdeFactory,
+          final ValueSerdeFactory valueSerdeFactory
   ) {
     this.canBeDisabledByConfig = canBeDisabledByConfig;
     this.producer = Objects.requireNonNull(producer, "producer");
@@ -145,20 +145,20 @@ public class InsertValuesExecutor {
 
   @SuppressWarnings("unused") // Part of required API.
   public void execute(
-      final ConfiguredStatement<InsertValues> statement,
-      final SessionProperties sessionProperties,
-      final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+          final ConfiguredStatement<InsertValues> statement,
+          final SessionProperties sessionProperties,
+          final KsqlExecutionContext executionContext,
+          final ServiceContext serviceContext
   ) {
     final InsertValues insertValues = statement.getStatement();
     final MetaStore metaStore = executionContext.getMetaStore();
     final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
+            .cloneWithPropertyOverwrite(statement.getConfigOverrides());
 
     final DataSource dataSource = getDataSource(config, metaStore, insertValues);
 
     final ProducerRecord<byte[], byte[]> record =
-        buildRecord(statement, metaStore, dataSource, serviceContext);
+            buildRecord(statement, metaStore, dataSource, serviceContext);
 
     try {
       producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
@@ -167,8 +167,8 @@ public class InsertValuesExecutor {
       // except which topics are denied. Here we just add the ACL to make the error message
       // consistent with other authorization error messages.
       final Exception rootCause = new KsqlTopicAuthorizationException(
-          AclOperation.WRITE,
-          e.unauthorizedTopics()
+              AclOperation.WRITE,
+              e.unauthorizedTopics()
       );
 
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);
@@ -178,14 +178,14 @@ public class InsertValuesExecutor {
   }
 
   private static DataSource getDataSource(
-      final KsqlConfig ksqlConfig,
-      final MetaStore metaStore,
-      final InsertValues insertValues
+          final KsqlConfig ksqlConfig,
+          final MetaStore metaStore,
+          final InsertValues insertValues
   ) {
     final DataSource dataSource = metaStore.getSource(insertValues.getTarget());
     if (dataSource == null) {
       throw new KsqlException("Cannot insert values into an unknown stream/table: "
-          + insertValues.getTarget());
+              + insertValues.getTarget());
     }
 
     if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
@@ -195,30 +195,30 @@ public class InsertValuesExecutor {
     final ReservedInternalTopics internalTopics = new ReservedInternalTopics(ksqlConfig);
     if (internalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
       throw new KsqlException("Cannot insert values into read-only topic: "
-          + dataSource.getKafkaTopicName());
+              + dataSource.getKafkaTopicName());
     }
 
     return dataSource;
   }
 
   private ProducerRecord<byte[], byte[]> buildRecord(
-      final ConfiguredStatement<InsertValues> statement,
-      final MetaStore metaStore,
-      final DataSource dataSource,
-      final ServiceContext serviceContext
+          final ConfiguredStatement<InsertValues> statement,
+          final MetaStore metaStore,
+          final DataSource dataSource,
+          final ServiceContext serviceContext
   ) {
     throwIfDisabled(statement.getConfig());
 
     final InsertValues insertValues = statement.getStatement();
     final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
+            .cloneWithPropertyOverwrite(statement.getConfigOverrides());
 
     try {
       final RowData row = extractRow(
-          insertValues,
-          dataSource,
-          metaStore,
-          config);
+              insertValues,
+              dataSource,
+              metaStore,
+              config);
 
       final byte[] key = serializeKey(row.key, dataSource, config, serviceContext);
       final byte[] value = serializeValue(row.value, dataSource, config, serviceContext);
@@ -226,17 +226,17 @@ public class InsertValuesExecutor {
       final String topicName = dataSource.getKafkaTopicName();
 
       return new ProducerRecord<>(
-          topicName,
-          null,
-          row.ts,
-          key,
-          value
+              topicName,
+              null,
+              row.ts,
+              key,
+              value
       );
     } catch (final Exception e) {
       throw new KsqlStatementException(
-          createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
-          statement.getStatementText(),
-          e);
+              createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
+              statement.getStatementText(),
+              e);
     }
   }
 
@@ -249,19 +249,20 @@ public class InsertValuesExecutor {
 
     if (canBeDisabledByConfig && !isEnabled) {
       throw new KsqlException("The server has disabled INSERT INTO ... VALUES functionality. "
-          + "To enable it, restart your KSQL-server with 'ksql.insert.into.values.enabled'=true");
+              + "To enable it, restart your KSQL-server "
+              + "with 'ksql.insert.into.values.enabled'=true");
     }
   }
 
   private RowData extractRow(
-      final InsertValues insertValues,
-      final DataSource dataSource,
-      final FunctionRegistry functionRegistry,
-      final KsqlConfig config
+          final InsertValues insertValues,
+          final DataSource dataSource,
+          final FunctionRegistry functionRegistry,
+          final KsqlConfig config
   ) {
     final List<ColumnName> columns = insertValues.getColumns().isEmpty()
-        ? implicitColumns(dataSource, insertValues.getValues())
-        : insertValues.getColumns();
+            ? implicitColumns(dataSource, insertValues.getValues())
+            : insertValues.getColumns();
 
     final LogicalSchema schemaWithRowTime = withRowTime(dataSource.getSchema());
 
@@ -272,18 +273,18 @@ public class InsertValuesExecutor {
     }
 
     final Map<ColumnName, Object> values = resolveValues(
-        insertValues, columns, schemaWithRowTime, functionRegistry, config);
+            insertValues, columns, schemaWithRowTime, functionRegistry, config);
 
     if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {
       final String noValue = schemaWithRowTime.key().stream()
-          .map(Column::name)
-          .filter(colName -> !values.containsKey(colName))
-          .map(ColumnName::text)
-          .collect(Collectors.joining(", "));
+              .map(Column::name)
+              .filter(colName -> !values.containsKey(colName))
+              .map(ColumnName::text)
+              .collect(Collectors.joining(", "));
 
       if (!noValue.isEmpty()) {
         throw new KsqlException("Value for primary key column(s) "
-            + noValue + " is required for tables");
+                + noValue + " is required for tables");
       }
     }
 
@@ -299,13 +300,13 @@ public class InsertValuesExecutor {
     // The set of columns users can supply values for includes the ROWTIME pseudocolumn,
     // so include it in the schema:
     return schema.asBuilder()
-        .valueColumn(SystemColumns.ROWTIME_NAME, SystemColumns.ROWTIME_TYPE)
-        .build();
+            .valueColumn(SystemColumns.ROWTIME_NAME, SystemColumns.ROWTIME_TYPE)
+            .build();
   }
 
   private static Struct buildKey(
-      final LogicalSchema schema,
-      final Map<ColumnName, Object> values
+          final LogicalSchema schema,
+          final Map<ColumnName, Object> values
   ) {
 
     final Struct key = new Struct(schema.keyConnectSchema());
@@ -319,48 +320,48 @@ public class InsertValuesExecutor {
   }
 
   private static GenericRow buildValue(
-      final LogicalSchema schema,
-      final Map<ColumnName, Object> values
+          final LogicalSchema schema,
+          final Map<ColumnName, Object> values
   ) {
     return new GenericRow().appendAll(
-        schema
-            .value()
-            .stream()
-            .map(Column::name)
-            .map(values::get)
-            .collect(Collectors.toList())
+            schema
+                    .value()
+                    .stream()
+                    .map(Column::name)
+                    .map(values::get)
+                    .collect(Collectors.toList())
     );
   }
 
   @SuppressWarnings("UnstableApiUsage")
   private static List<ColumnName> implicitColumns(
-      final DataSource dataSource,
-      final List<Expression> values
+          final DataSource dataSource,
+          final List<Expression> values
   ) {
     final LogicalSchema schema = dataSource.getSchema();
 
     final List<ColumnName> fieldNames = Streams.concat(
-        schema.key().stream(),
-        schema.value().stream())
-        .map(Column::name)
-        .collect(Collectors.toList());
+            schema.key().stream(),
+            schema.value().stream())
+            .map(Column::name)
+            .collect(Collectors.toList());
 
     if (fieldNames.size() != values.size()) {
       throw new KsqlException(
-          "Expected a value for each column."
-              + " Expected Columns: " + fieldNames
-              + ". Got " + values);
+              "Expected a value for each column."
+                      + " Expected Columns: " + fieldNames
+                      + ". Got " + values);
     }
 
     return fieldNames;
   }
 
   private static Map<ColumnName, Object> resolveValues(
-      final InsertValues insertValues,
-      final List<ColumnName> columns,
-      final LogicalSchema schema,
-      final FunctionRegistry functionRegistry,
-      final KsqlConfig config
+          final InsertValues insertValues,
+          final List<ColumnName> columns,
+          final LogicalSchema schema,
+          final FunctionRegistry functionRegistry,
+          final KsqlConfig config
   ) {
     final Map<ColumnName, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
@@ -369,8 +370,8 @@ public class InsertValuesExecutor {
       final Expression valueExp = insertValues.getValues().get(i);
 
       final Object value =
-          new ExpressionResolver(columnType, column, schema, functionRegistry, config)
-          .process(valueExp, null);
+              new ExpressionResolver(columnType, column, schema, functionRegistry, config)
+                      .process(valueExp, null);
 
       values.put(column, value);
     }
@@ -379,20 +380,20 @@ public class InsertValuesExecutor {
 
   private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {
     return schema
-        .findColumn(column)
-        .map(Column::type)
-        .orElseThrow(IllegalStateException::new);
+            .findColumn(column)
+            .map(Column::type)
+            .orElseThrow(IllegalStateException::new);
   }
 
   private byte[] serializeKey(
-      final Struct keyValue,
-      final DataSource dataSource,
-      final KsqlConfig config,
-      final ServiceContext serviceContext
+          final Struct keyValue,
+          final DataSource dataSource,
+          final KsqlConfig config,
+          final ServiceContext serviceContext
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
-        dataSource.getSchema(),
-        dataSource.getSerdeOptions()
+            dataSource.getSchema(),
+            dataSource.getSerdeOptions()
     );
 
     final Serde<Struct> keySerde = keySerdeFactory.create(
@@ -406,31 +407,31 @@ public class InsertValuesExecutor {
 
     try {
       return keySerde
-          .serializer()
-          .serialize(dataSource.getKafkaTopicName(), keyValue);
+              .serializer()
+              .serialize(dataSource.getKafkaTopicName(), keyValue);
     } catch (final Exception e) {
       throw new KsqlException("Could not serialize key: " + keyValue, e);
     }
   }
 
   private byte[] serializeValue(
-      final GenericRow row,
-      final DataSource dataSource,
-      final KsqlConfig config,
-      final ServiceContext serviceContext
+          final GenericRow row,
+          final DataSource dataSource,
+          final KsqlConfig config,
+          final ServiceContext serviceContext
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
-        dataSource.getSchema(),
-        dataSource.getSerdeOptions()
+            dataSource.getSchema(),
+            dataSource.getSerdeOptions()
     );
 
     final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
-        dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
-        physicalSchema.valueSchema(),
-        config,
-        serviceContext.getSchemaRegistryClientFactory(),
-        "",
-        NoopProcessingLogContext.INSTANCE
+            dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
+            physicalSchema.valueSchema(),
+            config,
+            serviceContext.getSchemaRegistryClientFactory(),
+            "",
+            NoopProcessingLogContext.INSTANCE
     );
 
     final String topicName = dataSource.getKafkaTopicName();
@@ -445,8 +446,8 @@ public class InsertValuesExecutor {
             case HttpStatus.SC_UNAUTHORIZED:
             case HttpStatus.SC_FORBIDDEN:
               throw new KsqlException(String.format(
-                  "Not authorized to write Schema Registry subject: [%s]",
-                  topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+                      "Not authorized to write Schema Registry subject: [%s]",
+                      topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
               ));
             default:
               break;
@@ -455,7 +456,7 @@ public class InsertValuesExecutor {
       }
 
       LOG.error("Could not serialize row.", e);
-      throw new KsqlException("Could not serialize row: " + row, e);
+      throw new KsqlException("Could not serialize row: " + row + ". " + e.getMessage(), e);
     }
   }
 

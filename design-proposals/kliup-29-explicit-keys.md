@@ -3,7 +3,7 @@
 **Author**: @big-andy-coates | 
 **Release Target**: 0.10.0 | 
 **Status**: In Discussion | 
-**Discussion**: _link to the design discussion PR_
+**Discussion**: [Github PR](https://github.com/confluentinc/ksql/pull/5530)
 
 **tl;dr:** Up until now ksqlDB has added an implicit `ROWKEY STRING (PRIMARY) KEY` to a `CREATE TABLE`
 or `CREATE STREAM` statement that does not itself explicitly define a key column. This KLIP proposes

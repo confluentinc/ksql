@@ -16,15 +16,19 @@
 package io.confluent.ksql.metrics;
 
 import io.confluent.common.utils.Time;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.metrics.JmxReporter;
 import org.apache.kafka.common.metrics.KafkaMetricsContext;
 import org.apache.kafka.common.metrics.MetricConfig;
@@ -39,9 +43,26 @@ import org.apache.kafka.common.utils.SystemTime;
  */
 @SuppressWarnings("ClassDataAbstractionCoupling")
 public final class MetricCollectors {
+  private static final String KSQL_JMX_PREFIX = "io.confluent.ksql.metrics";
+  public static final String METRICS_CONTEXT_RESOURCE_LABEL_PREFIX =
+      CommonClientConfigs.METRICS_CONTEXT_PREFIX + "resource.";
+  private static final String KSQL_RESOURCE_TYPE = "KSQL";
+
+  public static final String RESOURCE_LABEL_TYPE =
+      METRICS_CONTEXT_RESOURCE_LABEL_PREFIX + "type";
+  public static final String RESOURCE_LABEL_VERSION =
+      METRICS_CONTEXT_RESOURCE_LABEL_PREFIX + "version";
+  public static final String RESOURCE_LABEL_COMMIT_ID =
+      METRICS_CONTEXT_RESOURCE_LABEL_PREFIX + "commit.id";
+  public static final String RESOURCE_LABEL_CLUSTER_ID =
+      METRICS_CONTEXT_RESOURCE_LABEL_PREFIX + "cluster.id";
+  public static final String RESOURCE_LABEL_KSQL_SERVICE_ID =
+      METRICS_CONTEXT_RESOURCE_LABEL_PREFIX + KsqlConfig.KSQL_SERVICE_ID_CONFIG;
+  public static final String RESOURCE_LABEL_KAFKA_CLUSTER_ID =
+      METRICS_CONTEXT_RESOURCE_LABEL_PREFIX + "kafka.cluster.id";
+
   private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
-  private static final String JMX_PREFIX = "io.confluent.ksql.metrics";
 
   static {
     initialize();
@@ -64,7 +85,7 @@ public final class MetricCollectors {
         );
     final List<MetricsReporter> reporters = new ArrayList<>();
     reporters.add(new JmxReporter());
-    final MetricsContext metricsContext = new KafkaMetricsContext(JMX_PREFIX);
+    final MetricsContext metricsContext = new KafkaMetricsContext(KSQL_JMX_PREFIX);
     // Replace all static contents other than Time to ensure they are cleaned for tests that are
     // not aware of the need to initialize/cleanup this test, in case test processes are reused.
     // Tests aware of the class clean everything up properly to get the state into a clean state,
@@ -96,13 +117,49 @@ public final class MetricCollectors {
     return finalId;
   }
 
-  public static void addConfigurableReporter(final KsqlConfig ksqlConfig) {
+  public static void addConfigurableReporter(
+      final KsqlConfig ksqlConfig,
+      final String kafkaClusterId
+  ) {
+    final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final List<MetricsReporter> reporters = ksqlConfig.getConfiguredInstances(
         KsqlConfig.METRIC_REPORTER_CLASSES_CONFIG,
-        MetricsReporter.class);
-    for (final MetricsReporter reporter: reporters) {
-      metrics.addReporter(reporter);
+        MetricsReporter.class,
+        Collections.singletonMap(
+            KsqlConfig.KSQL_SERVICE_ID_CONFIG,
+            ksqlServiceId));
+
+    if (reporters.size() > 0) {
+      final Map<String, Object> metadata =
+          new HashMap<>(ksqlConfig.originalsWithPrefix(CommonClientConfigs.METRICS_CONTEXT_PREFIX));
+      final MetricsContext metricsContext =
+          new KafkaMetricsContext(
+              KSQL_JMX_PREFIX,
+              addConfluentMetricsContextConfigs(
+                  metadata,
+                  ksqlServiceId,
+                  kafkaClusterId));
+
+      for (final MetricsReporter reporter : reporters) {
+        reporter.contextChange(metricsContext);
+        metrics.addReporter(reporter);
+      }
     }
+  }
+
+  public static Map<String, Object> addConfluentMetricsContextConfigs(
+      final Map<String,Object> props,
+      final String ksqlServiceId,
+      final String kafkaClusterId
+  ) {
+    final Map<String, Object> updatedProps = new HashMap<>(props);
+    updatedProps.put(RESOURCE_LABEL_VERSION, AppInfo.getVersion());
+    updatedProps.put(RESOURCE_LABEL_COMMIT_ID, AppInfo.getCommitId());
+    updatedProps.put(RESOURCE_LABEL_TYPE, KSQL_RESOURCE_TYPE);
+    updatedProps.put(RESOURCE_LABEL_KSQL_SERVICE_ID, ksqlServiceId);
+    updatedProps.put(RESOURCE_LABEL_CLUSTER_ID, ksqlServiceId);
+    updatedProps.put(RESOURCE_LABEL_KAFKA_CLUSTER_ID, kafkaClusterId);
+    return updatedProps;
   }
 
   static void remove(final String id) {

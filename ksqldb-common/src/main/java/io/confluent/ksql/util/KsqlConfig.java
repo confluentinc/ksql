@@ -20,6 +20,7 @@ import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.configdef.ConfigValidators;
@@ -65,6 +66,12 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
+
+  private static final String METRIC_REPORTERS_PREFIX = "metric.reporters";
+  public static final String METRIC_CONTEXT_PREFIX = CommonClientConfigs.METRICS_CONTEXT_PREFIX;
+  private static final String TELEMETRY_PREFIX = "confluent.telemetry";
+  private static final Set<String> REPORTER_CONFIGS_PREFIXES =
+      ImmutableSet.of(METRIC_REPORTERS_PREFIX, TELEMETRY_PREFIX, METRIC_CONTEXT_PREFIX);
 
   public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
@@ -768,15 +775,25 @@ public class KsqlConfig extends AbstractConfig {
     for (final ConfigValue config : ksqlStreamConfigProps.values()) {
       props.put(config.key, config.value);
     }
+
+    props.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
     return Collections.unmodifiableMap(props);
   }
 
   public Map<String, Object> getKsqlAdminClientConfigProps() {
-    return getConfigsFor(AdminClientConfig.configNames());
+    final Map<String, Object> map = new HashMap<>();
+    map.putAll(getConfigsFor(AdminClientConfig.configNames()));
+
+    map.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
+    return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getProducerClientConfigProps() {
-    return getConfigsFor(ProducerConfig.configNames());
+    final Map<String, Object> map = new HashMap<>();
+    map.putAll(getConfigsFor(ProducerConfig.configNames()));
+
+    map.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
+    return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getProcessingLogConfigProps() {
@@ -787,6 +804,14 @@ public class KsqlConfig extends AbstractConfig {
     final Map<String, Object> props = new HashMap<>();
     ksqlStreamConfigProps.values().stream()
         .filter(configValue -> configs.contains(configValue.key))
+        .forEach(configValue -> props.put(configValue.key, configValue.value));
+    return Collections.unmodifiableMap(props);
+  }
+
+  private Map<String, Object> getConfigsForPrefix(final Set<String> configs) {
+    final Map<String, Object> props = new HashMap<>();
+    ksqlStreamConfigProps.values().stream()
+        .filter(configValue -> configs.stream().anyMatch(configValue.key::startsWith))
         .forEach(configValue -> props.put(configValue.key, configValue.value));
     return Collections.unmodifiableMap(props);
   }

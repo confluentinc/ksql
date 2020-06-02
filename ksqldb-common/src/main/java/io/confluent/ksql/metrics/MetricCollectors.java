@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.metrics.JmxReporter;
+import org.apache.kafka.common.metrics.KafkaMetricsContext;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsReporter;
@@ -35,7 +36,10 @@ import org.apache.kafka.common.utils.SystemTime;
  * Topic based collectors for producer/consumer related statistics that can be mapped on to
  * streams/tables/queries for ksql entities (Stream, Table, Query)
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class MetricCollectors {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
   private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
 
@@ -59,7 +63,10 @@ public final class MetricCollectors {
             TimeUnit.MILLISECONDS
         );
     final List<MetricsReporter> reporters = new ArrayList<>();
-    reporters.add(new JmxReporter("io.confluent.ksql.metrics"));
+
+    final JmxReporter jmxReporter = new JmxReporter();
+    jmxReporter.contextChange(new KafkaMetricsContext("io.confluent.ksql.metrics"));
+    reporters.add(jmxReporter);
     // Replace all static contents other than Time to ensure they are cleaned for tests that are
     // not aware of the need to initialize/cleanup this test, in case test processes are reused.
     // Tests aware of the class clean everything up properly to get the state into a clean state,

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.WorkerExecutor;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -24,6 +25,7 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,14 +45,19 @@ public class FileWatcher implements Runnable {
   private final Path file;
   private final Callback callback;
 
+  @SuppressFBWarnings(
+      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+      justification = "Null check on file.getParent() is present"
+  )
   public FileWatcher(final Path file, final Callback callback) throws IOException {
-    this.file = file;
+    this.file = Objects.requireNonNull(file);
+    Objects.requireNonNull(file.getParent(), "Watch location must have parent");
     this.watchService = FileSystems.getDefault().newWatchService();
     // Listen to both CREATE and MODIFY to reload, which handles delete then create.
     file.getParent().register(watchService,
         StandardWatchEventKinds.ENTRY_CREATE,
         StandardWatchEventKinds.ENTRY_MODIFY);
-    this.callback = callback;
+    this.callback = Objects.requireNonNull(callback);
   }
 
   /**
@@ -88,6 +95,10 @@ public class FileWatcher implements Runnable {
   }
 
   @SuppressWarnings("unchecked")
+  @SuppressFBWarnings(
+      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+      justification = "Null check on file.getParent() is present above"
+  )
   private void handleNextWatchNotification() throws InterruptedException {
     // wait for key to be signalled
     final WatchKey key = watchService.take();
@@ -99,10 +110,10 @@ public class FileWatcher implements Runnable {
         continue;
       }
       final WatchEvent<Path> ev = (WatchEvent<Path>)event;
-      final Path changed = this.file.getParent().resolve(ev.context());
+      final Path changed = file.getParent().resolve(ev.context());
       log.debug("Watch file change: " + ev.context() + "=>" + changed);
       // use Path.equals rather than Files.isSameFile to handle updated symlinks
-      if (Files.exists(changed) && changed.equals(this.file)) {
+      if (Files.exists(changed) && changed.equals(file)) {
         log.info("Change event for watched file: " + file);
         try {
           callback.run();

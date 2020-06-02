@@ -13,6 +13,19 @@ changing `CREATE STREAM` to create a stream without a KEY column, should not be 
 ## Motivation and background
 
 Implicitly adding columns is confusing for users. They are left wondering where did this column come from? 
+For example:
+
+```
+ksal> CREATE STREAM S (ID INT, NAME STRING) WITH (...);
+Stream S Created.
+ksal> CREATE STREAM S2 AS SELECT ID, NAME FROM S;
+Key missing from projection. See https://cnfl.io/2LV7ouS.
+The query used to build `S2` must include the key column ROWKEY in its projection.
+```
+
+Understandably, the user may be left wondering where this `ROWKEY` column came from and why they need to
+add it to the projection.
+
 Now that ksqlDB supports more than just `STRING` key columns, it no longer makes sense to add an
 implicit `STRING` key column by default.  Better to let the user define _if_ there is a key column, and if
 so, what it's name and type are.

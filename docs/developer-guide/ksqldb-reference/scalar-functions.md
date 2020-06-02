@@ -481,6 +481,16 @@ the entire substring is returned by default.
 For example, `REGEXP_EXTRACT("(\\w+) (\\w+)", 'hello there nice day', 2)`
 returns `['there', 'day']`.
 
+### `REGEXP_REPLACE`
+
+```sql
+REGEXP_REPLACE(col1, 'a.b+', 'bar')
+```
+
+Replace all matches of a regex in an input string with a new string.
+If either the input string, regular expression, or new string is null,
+the result is null.
+
 ### `REGEXP_SPLIT_TO_ARRAY`
 
 ```sql

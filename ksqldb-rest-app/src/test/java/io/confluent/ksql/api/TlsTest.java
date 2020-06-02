@@ -115,8 +115,8 @@ public class TlsTest extends ApiTest {
           }
         },
         is(true),
-        TimeUnit.SECONDS.toMillis(3),
-        TimeUnit.SECONDS.toMillis(3)
+        TimeUnit.SECONDS.toMillis(1),
+        TimeUnit.SECONDS.toMillis(1)
     );
 
     // When: load valid store
@@ -134,8 +134,8 @@ public class TlsTest extends ApiTest {
           }
         },
         is(200),
-        TimeUnit.SECONDS.toMillis(3),
-        TimeUnit.SECONDS.toMillis(3)
+        TimeUnit.SECONDS.toMillis(1),
+        TimeUnit.SECONDS.toMillis(1)
     );
   }
 }

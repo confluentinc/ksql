@@ -16,7 +16,6 @@
 package io.confluent.ksql.api.server;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.vertx.core.WorkerExecutor;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -32,6 +31,9 @@ import org.slf4j.LoggerFactory;
 // reference:
 // https://gist.github.com/danielflower/f54c2fe42d32356301c68860a4ab21ed
 // https://github.com/confluentinc/rest-utils/blob/master/core/src/main/java/io/confluent/rest/FileWatcher.java
+/**
+ * Watches a file and calls a callback when it is changed.
+ */
 public class FileWatcher implements Runnable {
 
   private static final Logger log = LoggerFactory.getLogger(FileWatcher.class);
@@ -44,6 +46,7 @@ public class FileWatcher implements Runnable {
   private final WatchService watchService;
   private final Path file;
   private final Callback callback;
+  private Thread thread;
 
   @SuppressFBWarnings(
       value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
@@ -61,23 +64,31 @@ public class FileWatcher implements Runnable {
   }
 
   /**
-   * Starts watching a file and calls the callback when it is changed.
+   * Starts the file watcher in a separate thread
    */
-  public static void onFileChange(
-      final Path file,
-      final Callback callback,
-      final WorkerExecutor workerExecutor
-  ) throws IOException {
-    log.info("Configuring file watcher to watch for changes: " + file);
-    final FileWatcher fileWatcher = new FileWatcher(file, callback);
-    workerExecutor.executeBlocking(p -> fileWatcher.run(), false, ar -> {
-      log.info("Stopped watching for TLS cert changes.");
-      if (ar.failed()) {
-        log.error("Error while stopping file watcher", ar.cause());
-      }
-    });
+  public synchronized void start() {
+    log.info("Starting file watcher to watch for changes: " + file);
+    thread = new Thread(this);
+    thread.start();
   }
 
+  /**
+   * Stops watching the file and closes the watch service
+   */
+  public synchronized void shutdown() {
+    shutdown = true;
+    log.info("Stopped watching for TLS cert changes.");
+    if (thread != null) {
+      thread.interrupt();
+    }
+    try {
+      watchService.close();
+    } catch (IOException e) {
+      log.info("Error closing watch service", e);
+    }
+  }
+
+  @Override
   public void run() {
     try {
       while (!shutdown) {
@@ -124,15 +135,6 @@ public class FileWatcher implements Runnable {
       }
     }
     key.reset();
-  }
-
-  public void shutdown() {
-    shutdown = true;
-    try {
-      watchService.close();
-    } catch (IOException e) {
-      log.info("Error closing watch service", e);
-    }
   }
 
 }

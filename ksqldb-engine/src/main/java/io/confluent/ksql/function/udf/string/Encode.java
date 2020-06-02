@@ -66,13 +66,13 @@ public class Encode {
       return null;
     }
 
-    String encoderString = inputEncoding.toLowerCase() + outputEncoding.toLowerCase();
+    final String encodedString = inputEncoding.toLowerCase() + outputEncoding.toLowerCase();
 
-    if (encoderMap.get(encoderString) == null) {
+    if (encoderMap.get(encodedString) == null) {
       throw new KsqlFunctionException("Supported input and output encodings are: "
                                   + "hex, utf8, ascii and base64");
     }
-    return encoderMap.get(encoderString).apply(str);
+    return encoderMap.get(encodedString).apply(str);
   }
 
 
@@ -85,7 +85,7 @@ public class Encode {
     @Override
     public String apply(final String input) {
       try {
-        byte[] decoded = Hex.decodeHex(input);
+        final byte[] decoded = Hex.decodeHex(input);
         return new String(decoded, StandardCharsets.US_ASCII);
       } catch (DecoderException e) {
         throw new KsqlFunctionException(e.getMessage());
@@ -97,13 +97,13 @@ public class Encode {
 
     @Override
     public String apply(final String input) throws KsqlFunctionException {
-      byte[] decodedHex;
+      final byte[] decodedHex;
       try {
         decodedHex = Hex.decodeHex(input);
       } catch (DecoderException e) {
         throw new KsqlFunctionException(e.getMessage());
       }
-      byte[] encodedHexB64 = Base64.encodeBase64(decodedHex);
+      final byte[] encodedHexB64 = Base64.encodeBase64(decodedHex);
       return new String(encodedHexB64);
 
     }
@@ -113,7 +113,7 @@ public class Encode {
 
     @Override
     public String apply(final String input) throws KsqlFunctionException {
-      byte[] decodedHex;
+      final byte[] decodedHex;
       try {
         decodedHex = Hex.decodeHex(input);
       } catch (DecoderException e) {
@@ -127,8 +127,8 @@ public class Encode {
 
     @Override
     public String apply(final String input) {
-      String hex = Hex.encodeHexString(input.getBytes(StandardCharsets.US_ASCII));
-      return hex;
+      final String encodedHex = Hex.encodeHexString(input.getBytes(StandardCharsets.US_ASCII));
+      return encodedHex;
     }
   }
 
@@ -136,7 +136,7 @@ public class Encode {
 
     @Override
     public String apply(final String input) {
-      byte[] encodedB64 = Base64.encodeBase64(input.getBytes(StandardCharsets.US_ASCII));
+      final byte[] encodedB64 = Base64.encodeBase64(input.getBytes(StandardCharsets.US_ASCII));
       return new String(encodedB64);
     }
   }
@@ -145,7 +145,7 @@ public class Encode {
 
     @Override
     public String apply(final String input) {
-      byte[] decoded = input.getBytes(StandardCharsets.US_ASCII);
+      final byte[] decoded = input.getBytes(StandardCharsets.US_ASCII);
       return new String(decoded, StandardCharsets.UTF_8);
     }
   }
@@ -154,7 +154,7 @@ public class Encode {
 
     @Override
     public String apply(final String input) {
-      byte[] decoded = input.getBytes(StandardCharsets.UTF_8);
+      final byte[] decoded = input.getBytes(StandardCharsets.UTF_8);
       return new String(decoded, StandardCharsets.US_ASCII);
     }
   }
@@ -163,7 +163,7 @@ public class Encode {
 
     @Override
     public String apply(final String input) {
-      char[] encodeHex = Hex.encodeHex(input.getBytes(StandardCharsets.UTF_8));
+      final char[] encodeHex = Hex.encodeHex(input.getBytes(StandardCharsets.UTF_8));
       return new String(encodeHex);
     }
   }
@@ -172,7 +172,7 @@ public class Encode {
 
     @Override
     public String apply(final String input) {
-      byte[] encodedB64 = Base64.encodeBase64(input.getBytes(StandardCharsets.UTF_8));
+      final byte[] encodedB64 = Base64.encodeBase64(input.getBytes(StandardCharsets.UTF_8));
       return new String(encodedB64);
     }
   }
@@ -181,8 +181,8 @@ public class Encode {
 
     @Override
     public String apply(final String input) throws KsqlFunctionException {
-      byte[] decodedB64 = Base64.decodeBase64(input);
-      char[] encodedHex = Hex.encodeHex(decodedB64);
+      final byte[] decodedB64 = Base64.decodeBase64(input);
+      final char[] encodedHex = Hex.encodeHex(decodedB64);
       return new String(encodedHex);
     }
   }
@@ -191,7 +191,7 @@ public class Encode {
 
     @Override
     public String apply(final String input) throws KsqlFunctionException {
-      byte[] decodedB64 = Base64.decodeBase64(input);
+      final byte[] decodedB64 = Base64.decodeBase64(input);
       return new String(decodedB64, StandardCharsets.UTF_8);
     }
   }
@@ -200,84 +200,8 @@ public class Encode {
 
     @Override
     public String apply(final String input) throws KsqlFunctionException {
-      byte[] decodedB64 = Base64.decodeBase64(input);
+      final byte[] decodedB64 = Base64.decodeBase64(input);
       return new String(decodedB64, StandardCharsets.US_ASCII);
     }
   }
-
-  /**
-   * Converts a hex string to ASCII.
-   * Parses each hex byte to decimal and then to ASCII character.
-   */
-  /*private String encodeHexToAscii(String hex) {
-    StringBuilder builder = new StringBuilder();
-    for (int i = 0; i < hex.length(); i += 2) {
-      String str = hex.substring(i, i + 2);
-      builder.append((char)Integer.parseInt(str, 16));
-    }
-    return builder.toString();
-  }
-
-  private String encodeHexToBase64(String hex) throws DecoderException {
-    byte[] decodedHex = Hex.decodeHex(hex);
-    byte[] encodedHexB64 = Base64.encodeBase64(decodedHex);
-    return new String(encodedHexB64);
-  }
-
-  private String encodeHexToUtf8(String hex) throws DecoderException {
-    byte[] decodedHex = Hex.decodeHex(hex);
-    return new String(decodedHex, StandardCharsets.UTF_8);
-  }*/
-
-  /*private String encodeAsciiToHex(String ascii) {
-    char[] ch = ascii.toCharArray();
-
-    StringBuilder builder = new StringBuilder();
-    for (char c : ch) {
-      String hexCode = String.format("%H", c);
-      builder.append(hexCode);
-    }
-    return builder.toString();
-  }
-
-  private String encodeAsciiToBase64(String ascii) {
-    byte[] encodedB64 = Base64.encodeBase64(ascii.getBytes());
-    return new String(encodedB64);
-  }
-
-  private String encodeAsciiToUtf8(String ascii) {
-    byte[] decoded = ascii.getBytes(StandardCharsets.UTF_8);
-    return new String(decoded);
-  }*/
-
-  /*private String encodeUtf8ToHex(String utf8) {
-    char[] encodeHex = Hex.encodeHex(utf8.getBytes(StandardCharsets.UTF_8));
-    return new String(encodeHex);
-  }
-
-  private String encodeUtf8ToBase64(String utf8) {
-    byte[] encodedB64 = Base64.encodeBase64(utf8.getBytes(StandardCharsets.UTF_8));
-    return new String(encodedB64);
-  }
-
-  private String encodeUtf8ToAscii(String utf8) {
-    byte[] decoded = utf8.getBytes(StandardCharsets.UTF_8);
-    return new String(decoded, StandardCharsets.US_ASCII);
-  }*/
-
-  /*private String encodeBase64ToHex(String base64) {
-    byte[] decodedB64 = Base64.decodeBase64(base64);
-    char[] encodedHex = Hex.encodeHex(decodedB64);
-    return new String(encodedHex);
-  }
-
-  private String encodeBase64ToUtf8(String base64) {
-    byte[] decodedB64 = Base64.decodeBase64(base64);
-    return new String(decodedB64, StandardCharsets.UTF_8);
-  }
-
-  private String encodeBase64ToAscii(String base64) {
-    byte[] decodedB64 = Base64.decodeBase64(base64);
-    return new String(decodedB64, StandardCharsets.US_ASCII);
-  }*/
 }

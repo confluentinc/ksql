@@ -81,7 +81,7 @@ public final class StreamFilterBuilder {
 
     return new ValueTransformerWithKey<K, GenericRow, Iterable<GenericRow>>() {
       @Override
-      public void init(final ProcessorContext context) {
+      public void init(final ProcessorContext<Void, Void> context) {
         delegate.init(context);
       }
 

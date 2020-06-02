@@ -1,36 +1,35 @@
 {
   "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
+    "Tests around tumbling windows."
   ],
   "tests": [
     {
-      "name": "max tumbling",
+      "name": "out of order - no grace period",
       "statements": [
-        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE S2 as SELECT ID, max(value) FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0,"value": "zero,0", "timestamp": 0},
-        {"topic": "test_topic", "key": 0,"value": "100,5", "timestamp": 10000},
-        {"topic": "test_topic", "key": 100,"value": "100,100", "timestamp": 30000},
-        {"topic": "test_topic", "key": 100,"value": "100,6", "timestamp": 45000},
-        {"topic": "test_topic", "key": 100,"value": "100,300", "timestamp": 50000},
-        {"topic": "test_topic", "key": 0,"value": "zero,100", "timestamp": 35000},
-        {"topic": "test_topic", "key": 0,"value": "100,2000", "timestamp": 40000}
+        {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0,"value": "1", "timestamp": 89999},
+        {"topic": "test_topic", "key": 0,"value": "5", "timestamp": 10009},
+        {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 90000},
+        {"topic": "test_topic", "key": 0,"value": "6", "timestamp": 10010},
+        {"topic": "test_topic", "key": 1,"value": "100", "timestamp": 10009},
+        {"topic": "test_topic", "key": 1,"value": "101", "timestamp": 30000},
+        {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 86412022},
+        {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 60000}
       ],
       "outputs": [
         {"topic": "S2", "key": 0,"value": "0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "S2", "key": 0,"value": "5", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "S2", "key": 100,"value": "100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "S2", "key": 100,"value": "100", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "S2", "key": 100,"value": "300", "timestamp": 50000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "S2", "key": 0,"value": "100", "timestamp": 35000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "S2", "key": 0,"value": "2000", "timestamp": 40000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+        {"topic": "S2", "key": 0,"value": "1", "timestamp": 89999, "window": {"start": 60000, "end": 90000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "5", "timestamp": 10009, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "0", "timestamp": 90000, "window": {"start": 90000, "end": 120000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "6", "timestamp": 10010, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "100", "timestamp": 10009, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "101", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "200", "timestamp": 86412022, "window": {"start": 86400000, "end": 86430000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "200", "timestamp": 60000, "window": {"start": 60000, "end": 90000, "type": "time"}}
       ],
       "post": {
         "sources": [
@@ -41,6 +40,32 @@
           }
         ]
       }
+    },
+    {
+      "name": "out of order - explicit grace period",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE S2 as SELECT ID, max(value) FROM test WINDOW TUMBLING (SIZE 30 SECONDS, GRACE PERIOD 1 MINUTE) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0,"value": "1", "timestamp": 89999, "comment": "not quite enough to close 0-30s window"},
+        {"topic": "test_topic", "key": 0,"value": "5", "timestamp": 10009},
+        {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 90000, "comment": "closes 0-30s window"},
+        {"topic": "test_topic", "key": 0,"value": "6", "timestamp": 10010, "comment": "ignored as window it belongs to is closed"},
+        {"topic": "test_topic", "key": 1,"value": "100", "timestamp": 10009, "comment": "ignored as window it belongs to is closed"},
+        {"topic": "test_topic", "key": 1,"value": "101", "timestamp": 30000},
+        {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 86412022},
+        {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 60000, "comment": "ignored as window it belongs to is closed"}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": "0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "1", "timestamp": 89999, "window": {"start": 60000, "end": 90000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "5", "timestamp": 10009, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "0", "timestamp": 90000, "window": {"start": 90000, "end": 120000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "101", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "200", "timestamp": 86412022, "window": {"start": 86400000, "end": 86430000, "type": "time"}}
+      ]
     },
     {
       "name": "min tumbling",

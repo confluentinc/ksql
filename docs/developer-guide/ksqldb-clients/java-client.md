@@ -76,14 +76,14 @@ import io.confluent.ksql.api.client.ClientOptions;
 
 public class ExampleApp {
 
-  public static final String KSQLDB_SERVER_HOST = "localhost";
-  public static final int KSQLDB_SERVER_HOST_PORT = 8088;
+  public static String KSQLDB_SERVER_HOST = "localhost";
+  public static int KSQLDB_SERVER_HOST_PORT = 8088;
   
-  public static void main(final String[] args) {
-    final ClientOptions options = ClientOptions.create()
+  public static void main(String[] args) {
+    ClientOptions options = ClientOptions.create()
         .setHost(KSQLDB_SERVER_HOST)
         .setPort(KSQLDB_SERVER_HOST_PORT);
-    final Client client = Client.create(options);
+    Client client = Client.create(options);
     
     // Send requests with the client by following the other examples
     
@@ -150,7 +150,7 @@ public class RowSubscriber implements Subscriber<Row> {
   }
 
   @Override
-  public synchronized void onSubscribe(final Subscription subscription) {
+  public synchronized void onSubscribe(Subscription subscription) {
     System.out.println("Subscriber is subscribed.");
     this.subscription = subscription;
 
@@ -159,7 +159,7 @@ public class RowSubscriber implements Subscriber<Row> {
   }
 
   @Override
-  public synchronized void onNext(final Row row) {
+  public synchronized void onNext(Row row) {
     System.out.println("Received a row!");
     System.out.println("Row: " + row.values());
 
@@ -168,7 +168,7 @@ public class RowSubscriber implements Subscriber<Row> {
   }
 
   @Override
-  public synchronized void onError(final Throwable t) {
+  public synchronized void onError(Throwable t) {
     System.out.println("Received an error: " + t);
   }
 
@@ -186,7 +186,7 @@ client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;")
     .thenAccept(streamedQueryResult -> {
       System.out.println("Query has started. Query ID: " + streamedQueryResult.queryID());
       
-      final RowSubscriber subscriber = new RowSubscriber();
+      RowSubscriber subscriber = new RowSubscriber();
       streamedQueryResult.subscribe(subscriber);
     }).exceptionally(e -> {
       System.out.println("Request failed: " + e);
@@ -202,7 +202,7 @@ You can also pass a `Duration` argument to `poll()`, which causes `poll()` to re
 For more information, see the [API reference](TODO).
 
 ```java
-final StreamedQueryResult streamedQueryResult;
+StreamedQueryResult streamedQueryResult;
 try {
   streamedQueryResult = client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;").get();
 } catch (Exception e) {
@@ -212,7 +212,7 @@ try {
 
 for (int i = 0; i < 10; i++) {
   // Block until a new row is available
-  final Row row = streamedQueryResult.poll();
+  Row row = streamedQueryResult.poll();
   if (row != null) {
     System.out.println("Received a row!");
     System.out.println("Row: " + row.values());
@@ -261,10 +261,10 @@ To start from the end and receive only newly arriving rows, set the `auto.offset
 ### Example Usage ###
 
 ```java
-final String pullQuery = "SELECT * FROM MY_MATERIALIZED_TABLE WHERE KEY_FIELD='some_key';";
-final BatchedQueryResult batchedQueryResult = client.executeQuery(pullQuery);
+String pullQuery = "SELECT * FROM MY_MATERIALIZED_TABLE WHERE KEY_FIELD='some_key';";
+BatchedQueryResult batchedQueryResult = client.executeQuery(pullQuery);
 
-final List<Row> resultRows;
+List<Row> resultRows;
 try {
   resultRows = batchedQueryResult.get();
 } catch (Exception e) {
@@ -273,7 +273,7 @@ try {
 }
 
 System.out.println("Received results. Num rows: " + resultRows.size());
-for (final Row row : resultRows) {
+for (Row row : resultRows) {
   System.out.println("Row: " + row.values());
 }
 ```
@@ -310,7 +310,7 @@ by using either the [`streamQuery()`](./stream-query.md) or [`executeQuery()`](.
 Here's an example of terminating a push query issued using the `streamQuery()` method:
 
 ```java
-final StreamedQueryResult streamedQueryResult;
+StreamedQueryResult streamedQueryResult;
 try {
   streamedQueryResult = client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;").get();
 } catch (Exception e) {
@@ -318,7 +318,7 @@ try {
   return;
 }
 
-final String queryId = streamedQueryResult.queryID();
+String queryId = streamedQueryResult.queryID();
 System.out.println("Terminating query with ID: " + queryId);
 try {
   client.terminatePushQuery(queryId).get();
@@ -331,10 +331,10 @@ try {
 And here's an analogous example for terminating a push query issued using the `executeQuery()` method:
 
 ```java
-final String pullQuery = "SELECT * FROM MY_STREAM EMIT CHANGES LIMIT 10;";
-final BatchedQueryResult batchedQueryResult = client.executeQuery(pullQuery);
+String pullQuery = "SELECT * FROM MY_STREAM EMIT CHANGES LIMIT 10;";
+BatchedQueryResult batchedQueryResult = client.executeQuery(pullQuery);
 
-final String queryId;
+String queryId;
 try {
   queryId = batchedQueryResult.queryID().get();
 } catch (Exception e) {
@@ -383,7 +383,7 @@ Here's an example of using the client to insert a new row into an existing strea
 with schema (ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR).
 
 ```java
-final KsqlObject row = new KsqlObject()
+KsqlObject row = new KsqlObject()
     .put("ROWKEY", "k1")
     .put("ORDER_ID", 12345678L)
     .put("PRODUCT_ID", "UAC-222-19234")

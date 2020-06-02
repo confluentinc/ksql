@@ -226,7 +226,7 @@ include both endpoints.
 ### `CONCAT`
 
 ```sql
-CONCAT(col1, col2, 'hello', ... col-n)
+CONCAT(col1, col2, 'hello', ..., col-n)
 ```
 
 Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.

@@ -49,7 +49,6 @@ import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
-import io.confluent.ksql.rest.entity.SourceConsumerOffsets;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
@@ -72,6 +71,7 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SourceConsumerOffsets;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
@@ -198,6 +198,7 @@ public class Console implements Closeable {
   private CliConfig config;
 
   public interface RowCaptor {
+
     void addRow(GenericRow row);
 
     void addRows(List<List<String>> fields);
@@ -316,7 +317,7 @@ public class Console implements Closeable {
 
   public void printErrorMessage(final KsqlErrorMessage errorMessage) {
     if (errorMessage instanceof KsqlStatementErrorMessage) {
-      printKsqlEntityList(((KsqlStatementErrorMessage)errorMessage).getEntities());
+      printKsqlEntityList(((KsqlStatementErrorMessage) errorMessage).getEntities());
     }
     printError(errorMessage.getMessage(), errorMessage.toString());
   }
@@ -437,7 +438,7 @@ public class Console implements Closeable {
           "Unexpected KsqlEntity class: '%s'", entity.getClass().getCanonicalName()
       ));
     }
-    
+
     handler.handle(this, entity);
 
     printWarnings(entity);
@@ -486,8 +487,8 @@ public class Console implements Closeable {
 
   private void printTopicInfo(final SourceDescription source) {
     final String timestamp = source.getTimestamp().isEmpty()
-                             ? "Not set - using <ROWTIME>"
-                             : source.getTimestamp();
+        ? "Not set - using <ROWTIME>"
+        : source.getTimestamp();
 
     writer().println(String.format("%-20s : %s", "Timestamp field", timestamp));
     writer().println(String.format("%-20s : %s", "Key format", source.getKeyFormat()));
@@ -625,15 +626,19 @@ public class Console implements Closeable {
         "Statistics of the local KSQL server interaction with the Kafka topic "
             + source.getTopic()
     ));
-    Optional<SourceConsumerOffsets> consumerGroupOffsetsOptional = source.getConsumerGroupOffsets();
+    final Optional<SourceConsumerOffsets> consumerGroupOffsetsOptional = source
+        .getConsumerGroupOffsets();
     if (consumerGroupOffsetsOptional.isPresent()) {
       writer().println();
-      SourceConsumerOffsets sourceConsumerOffsets = consumerGroupOffsetsOptional.get();
-      writer().println(String.format("%-20s : %s", "Consumer Group", sourceConsumerOffsets.getGroupId()));
-      writer().println(String.format("%-20s : %s", "Kafka topic", sourceConsumerOffsets.getKafkaTopic()));
+      final SourceConsumerOffsets sourceConsumerOffsets = consumerGroupOffsetsOptional.get();
+      writer().println(String.format("%-20s : %s",
+          "Consumer Group", sourceConsumerOffsets.getGroupId()));
+      writer().println(String.format("%-20s : %s",
+          "Kafka topic", sourceConsumerOffsets.getKafkaTopic()));
       writer().println("");
       final Table taskTable = new Table.Builder()
-          .withColumnHeaders(ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
+          .withColumnHeaders(
+              ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
           .withRows(sourceConsumerOffsets.getOffsets()
               .stream()
               .map(offset -> ImmutableList.of(
@@ -861,6 +866,7 @@ public class Console implements Closeable {
   }
 
   static class NoOpRowCaptor implements RowCaptor {
+
     @Override
     public void addRow(final GenericRow row) {
     }

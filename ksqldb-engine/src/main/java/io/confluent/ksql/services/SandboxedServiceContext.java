@@ -20,7 +20,6 @@ import io.confluent.ksql.util.Sandbox;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
 
 /**

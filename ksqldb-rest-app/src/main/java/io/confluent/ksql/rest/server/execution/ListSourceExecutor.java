@@ -206,9 +206,9 @@ public final class ListSourceExecutor {
       ), statementText);
     }
 
-    List<RunningQuery> sourceQueries = getQueries(ksqlEngine,
+    final List<RunningQuery> sourceQueries = getQueries(ksqlEngine,
         q -> q.getSourceNames().contains(dataSource.getName()));
-    List<RunningQuery> sinkQueries = getQueries(ksqlEngine,
+    final List<RunningQuery> sinkQueries = getQueries(ksqlEngine,
         q -> q.getSinkName().equals(dataSource.getName()));
 
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription = Optional.empty();
@@ -222,31 +222,47 @@ public final class ListSourceExecutor {
         topicDescription = Optional.of(
             serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
         );
-        if (sourceQueries.isEmpty()){
+        if (sourceQueries.isEmpty()) {
           consumerGroupDescription = Optional.empty();
         } else {
-          QueryId queryId = sourceQueries.get(0).getId();
+          final QueryId queryId = sourceQueries.get(0).getId();
           final String persistenceQueryPrefix =
-              sessionProperties.getMutableScopedProperties().get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
+              sessionProperties.getMutableScopedProperties()
+                  .get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
           final String applicationId = getQueryApplicationId(
               getServiceId(sessionProperties.getMutableScopedProperties()),
               persistenceQueryPrefix,
               queryId
           );
           consumerGroupDescription = Optional.of(
-              serviceContext.getAdminClient().describeConsumerGroups(Collections.singletonList(applicationId)).describedGroups().get(applicationId).get()
+              serviceContext.getAdminClient()
+                  .describeConsumerGroups(Collections.singletonList(applicationId))
+                  .describedGroups()
+                  .get(applicationId)
+                  .get()
           );
-          topicAndConsumerOffsets = serviceContext.getAdminClient().listConsumerGroupOffsets(applicationId).partitionsToOffsetAndMetadata().get();
-          Map<TopicPartition, OffsetSpec> startRequest = new LinkedHashMap<>();
-          Map<TopicPartition, OffsetSpec> endRequest = new LinkedHashMap<>();
-          for (Map.Entry<TopicPartition, OffsetAndMetadata> entry: topicAndConsumerOffsets.entrySet()) {
+          topicAndConsumerOffsets = serviceContext.getAdminClient()
+              .listConsumerGroupOffsets(applicationId)
+              .partitionsToOffsetAndMetadata()
+              .get();
+          final Map<TopicPartition, OffsetSpec> startRequest = new LinkedHashMap<>();
+          final Map<TopicPartition, OffsetSpec> endRequest = new LinkedHashMap<>();
+          for (Map.Entry<TopicPartition, OffsetAndMetadata> entry:
+              topicAndConsumerOffsets.entrySet()) {
             startRequest.put(entry.getKey(), OffsetSpec.earliest());
             endRequest.put(entry.getKey(), OffsetSpec.latest());
           }
-          topicAndStartOffsets = serviceContext.getAdminClient().listOffsets(startRequest).all().get();
-          topicAndEndOffsets = serviceContext.getAdminClient().listOffsets(endRequest).all().get();
+          topicAndStartOffsets = serviceContext.getAdminClient()
+              .listOffsets(startRequest)
+              .all()
+              .get();
+          topicAndEndOffsets = serviceContext.getAdminClient()
+              .listOffsets(endRequest)
+              .all()
+              .get();
         }
-      } catch (final KafkaException | KafkaResponseGetFailedException | InterruptedException | ExecutionException e) {
+      } catch (final KafkaException | KafkaResponseGetFailedException
+          | InterruptedException | ExecutionException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
       }
     }
@@ -267,8 +283,7 @@ public final class ListSourceExecutor {
     );
   }
 
-  private static String getServiceId(
-      Map<String, Object> mutableScopedProperties) {
+  private static String getServiceId(final Map<String, Object> mutableScopedProperties) {
     return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + mutableScopedProperties.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
   }

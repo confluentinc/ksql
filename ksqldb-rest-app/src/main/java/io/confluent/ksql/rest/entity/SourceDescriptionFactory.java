@@ -82,13 +82,13 @@ public final class SourceDescriptionFactory {
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
       final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
   ) {
-    List<SourceConsumerOffset> sourceConsumerOffsets = new ArrayList<>();
+    final List<SourceConsumerOffset> sourceConsumerOffsets = new ArrayList<>();
     for (TopicPartitionInfo topicPartitionInfo : topicDescription.partitions()) {
       final TopicPartition tp = new TopicPartition(topicDescription.name(),
           topicPartitionInfo.partition());
-      ListOffsetsResultInfo startOffsetResultInfo = topicAndStartOffsets.get(tp);
-      ListOffsetsResultInfo endOffsetResultInfo = topicAndEndOffsets.get(tp);
-      OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
+      final ListOffsetsResultInfo startOffsetResultInfo = topicAndStartOffsets.get(tp);
+      final ListOffsetsResultInfo endOffsetResultInfo = topicAndEndOffsets.get(tp);
+      final OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
       sourceConsumerOffsets.add(
           new SourceConsumerOffset(
               topicPartitionInfo.partition(),

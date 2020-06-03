@@ -34,7 +34,8 @@ import org.apache.commons.codec.binary.Hex;
         + "hex, utf8, ascii and base64. Throws exception if provided encodings are not supported.")
 public class Encode {
 
-  private static ImmutableMap<String, Encoder> ENCODER_MAP = new ImmutableMap.Builder<String, Encoder>()
+  private static ImmutableMap<String, Encoder> ENCODER_MAP =
+      new ImmutableMap.Builder<String, Encoder>()
       .put("hexascii", new HexToAscii())
       .put("hexutf8", new HexToUtf8())
       .put("hexbase64", new HexToBase64())

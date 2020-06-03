@@ -68,7 +68,7 @@ public class SchemaRegisterInjector implements Injector {
     // we can assume that the kafka topic is always present in the
     // statement properties
     registerSchema(
-        cs.getStatement().getElements().toLogicalSchema(false),
+        cs.getStatement().getElements().toLogicalSchema(),
         cs.getStatement().getProperties().getKafkaTopic(),
         cs.getStatement().getProperties().getFormatInfo(),
         cs.getConfig(),

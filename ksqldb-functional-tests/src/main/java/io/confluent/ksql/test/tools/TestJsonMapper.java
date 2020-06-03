@@ -39,7 +39,7 @@ public enum TestJsonMapper {
       .registerModule(new JavaTimeModule())
       .registerModule(new StructSerializationModule())
       .registerModule(new KsqlTypesSerializationModule())
-      .registerModule(new KsqlTypesDeserializationModule(true))
+      .registerModule(new KsqlTypesDeserializationModule())
       .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)

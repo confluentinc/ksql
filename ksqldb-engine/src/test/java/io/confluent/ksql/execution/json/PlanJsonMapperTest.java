@@ -37,6 +37,6 @@ public class PlanJsonMapperTest {
   public void shouldHaveTypeMapperRegistered() {
     assertThat(
         MAPPER.getRegisteredModuleIds(),
-        hasItem(new KsqlTypesDeserializationModule(false).getTypeId()));
+        hasItem(new KsqlTypesDeserializationModule().getTypeId()));
   }
 }

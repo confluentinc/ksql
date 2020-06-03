@@ -145,8 +145,10 @@ public class JsonFormatTest {
         + ") WITH (value_format = 'json', "
         + "kafka_topic='" + inputTopic + "');";
 
-    final String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
-        + "kafka_topic='%s');", messageLogStream, messageLogTopic);
+    final String messageStreamStr = String.format("CREATE STREAM %s "
+        + "(ROWKEY STRING KEY, message varchar) "
+        + "WITH (value_format = 'json', kafka_topic='%s');",
+        messageLogStream, messageLogTopic);
 
     KsqlEngineTestUtil.execute(
         serviceContext, ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());

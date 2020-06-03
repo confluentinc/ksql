@@ -21,10 +21,8 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 
 public class KsqlTypesDeserializationModule extends SimpleModule {
 
-  public KsqlTypesDeserializationModule(
-      final boolean withImplicitColumns
-  ) {
-    addDeserializer(LogicalSchema.class, new LogicalSchemaDeserializer(withImplicitColumns));
+  public KsqlTypesDeserializationModule() {
+    addDeserializer(LogicalSchema.class, new LogicalSchemaDeserializer());
     addDeserializer(SqlType.class, new SqlTypeDeserializer());
   }
 }

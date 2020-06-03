@@ -32,7 +32,6 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -213,7 +212,7 @@ public class TableElementsTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> tableElements.toLogicalSchema(true)
+        () -> tableElements.toLogicalSchema()
     );
 
     // Then:
@@ -222,25 +221,24 @@ public class TableElementsTest {
   }
 
   @Test
-  public void shouldBuildLogicalSchemaWithImplicits() {
+  public void shouldBuildLogicalSchemaWithOutKey() {
     // Given:
     final TableElements tableElements = TableElements.of(
         tableElement(VALUE, "v0", INT_TYPE)
     );
 
     // When:
-    final LogicalSchema schema = tableElements.toLogicalSchema(true);
+    final LogicalSchema schema = tableElements.toLogicalSchema();
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .build()
     ));
   }
 
   @Test
-  public void shouldBuildLogicalSchemaWithImplicitsAndExplicitKey() {
+  public void shouldBuildLogicalSchemaWithWithKey() {
     // Given:
     final TableElements tableElements = TableElements.of(
         tableElement(VALUE, "v0", INT_TYPE),
@@ -248,7 +246,7 @@ public class TableElementsTest {
     );
 
     // When:
-    final LogicalSchema schema = tableElements.toLogicalSchema(true);
+    final LogicalSchema schema = tableElements.toLogicalSchema();
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
@@ -259,7 +257,7 @@ public class TableElementsTest {
   }
 
   @Test
-  public void shouldBuildLogicalSchemaWithImplicitsAndExplicitPrimaryKey() {
+  public void shouldBuildLogicalSchemaWithWithPrimaryKey() {
     // Given:
     final TableElements tableElements = TableElements.of(
         tableElement(VALUE, "v0", INT_TYPE),
@@ -267,43 +265,7 @@ public class TableElementsTest {
     );
 
     // When:
-    final LogicalSchema schema = tableElements.toLogicalSchema(true);
-
-    // Then:
-    assertThat(schema, is(LogicalSchema.builder()
-        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
-        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .build()
-    ));
-  }
-
-  @Test
-  public void shouldBuildLogicalSchemaWithOutImplicits() {
-    // Given:
-    final TableElements tableElements = TableElements.of(
-        tableElement(VALUE, "v0", INT_TYPE)
-    );
-
-    // When:
-    final LogicalSchema schema = tableElements.toLogicalSchema(false);
-
-    // Then:
-    assertThat(schema, is(LogicalSchema.builder()
-        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
-        .build()
-    ));
-  }
-
-  @Test
-  public void shouldBuildLogicalSchemaWithOutImplicitsWithPrimaryKey() {
-    // Given:
-    final TableElements tableElements = TableElements.of(
-        tableElement(VALUE, "v0", INT_TYPE),
-        tableElement(PRIMARY_KEY, "k0", INT_TYPE)
-    );
-
-    // When:
-    final LogicalSchema schema = tableElements.toLogicalSchema(false);
+    final LogicalSchema schema = tableElements.toLogicalSchema();
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
@@ -324,7 +286,7 @@ public class TableElementsTest {
     );
 
     // When:
-    final LogicalSchema schema = tableElements.toLogicalSchema(false);
+    final LogicalSchema schema = tableElements.toLogicalSchema();
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()

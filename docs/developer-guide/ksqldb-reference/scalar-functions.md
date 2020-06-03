@@ -265,7 +265,7 @@ Construct a map from specific key-value tuples.
 MAP_KEYS(a_map)
 ```
 
-Returns an array of all the keys from the specified map.
+Returns an array that contains all of the keys from the specified map.
 
 Returns NULL if the input map is NULL.
 

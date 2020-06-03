@@ -396,7 +396,7 @@ KsqlObject row = new KsqlObject()
     .put("ROWKEY", "k1")
     .put("ORDER_ID", 12345678L)
     .put("PRODUCT_ID", "UAC-222-19234")
-    .put("USER_ID", "User_321"));
+    .put("USER_ID", "User_321");
 
 try {
   client.insertInto("ORDERS", row).get();
@@ -406,3 +406,103 @@ try {
 }
 ```
 
+Tutorial Examples
+-----------------
+
+In the [ksqlDB tutorial on creating an event-driven microservice](../../tutorials/event-driven-microservice.md),
+the ksqlDB CLI is used to [seed some transaction events](../../tutorials/event-driven-microservice.md#seed-some-transaction-events)
+into a stream of transactions. Here's the equivalent functionality using the Java client for ksqlDB:
+
+```java
+// Create the rows to insert
+List<KsqlObject> insertRows = new ArrayList<>();
+insertRows.add(new KsqlObject()
+   .put("EMAIL_ADDRESS", "michael@example.com")
+   .put("CARD_NUMBER", "358579699410099")
+   .put("TX_ID", "f88c5ebb-699c-4a7b-b544-45b30681cc39")
+   .put("TIMESTAMP", "2020-04-22T03:19:58")
+   .put("AMOUNT", new BigDecimal("50.25")));
+insertRows.add(new KsqlObject()
+   .put("EMAIL_ADDRESS", "derek@example.com")
+   .put("CARD_NUMBER", "352642227248344")
+   .put("TX_ID", "0cf100ca-993c-427f-9ea5-e892ef350363")
+   .put("TIMESTAMP", "2020-04-25T12:50:30")
+   .put("AMOUNT", new BigDecimal("18.97")));
+insertRows.add(new KsqlObject()
+   .put("EMAIL_ADDRESS", "colin@example.com")
+   .put("CARD_NUMBER", "373913272311617")
+   .put("TX_ID", "de9831c0-7cf1-4ebf-881d-0415edec0d6b")
+   .put("TIMESTAMP", "2020-04-19T09:45:15")
+   .put("AMOUNT", new BigDecimal("12.50")));
+insertRows.add(new KsqlObject()
+   .put("EMAIL_ADDRESS", "michael@example.com")
+   .put("CARD_NUMBER", "358579699410099")
+   .put("TX_ID", "044530c0-b15d-4648-8f05-940acc321eb7")
+   .put("TIMESTAMP", "2020-04-22T03:19:54")
+   .put("AMOUNT", new BigDecimal("103.43")));
+insertRows.add(new KsqlObject()
+   .put("EMAIL_ADDRESS", "derek@example.com")
+   .put("CARD_NUMBER", "352642227248344")
+   .put("TX_ID", "5d916e65-1af3-4142-9fd3-302dd55c512f")
+   .put("TIMESTAMP", "2020-04-25T12:50:25")
+   .put("AMOUNT", new BigDecimal("3200.80")));
+insertRows.add(new KsqlObject()
+   .put("EMAIL_ADDRESS", "derek@example.com")
+   .put("CARD_NUMBER", "352642227248344")
+   .put("TX_ID", "d7d47fdb-75e9-46c0-93f6-d42ff1432eea")
+   .put("TIMESTAMP", "2020-04-25T12:51:55")
+   .put("AMOUNT", new BigDecimal("154.32")));
+insertRows.add(new KsqlObject()
+   .put("EMAIL_ADDRESS", "michael@example.com")
+   .put("CARD_NUMBER", "358579699410099")
+   .put("TX_ID", "c5719d20-8d4a-47d4-8cd3-52ed784c89dc")
+   .put("TIMESTAMP", "2020-04-22T03:19:32")
+   .put("AMOUNT", new BigDecimal("78.73")));
+insertRows.add(new KsqlObject()
+   .put("EMAIL_ADDRESS", "colin@example.com")
+   .put("CARD_NUMBER", "373913272311617")
+   .put("TX_ID", "2360d53e-3fad-4e9a-b306-b166b7ca4f64")
+   .put("TIMESTAMP", "2020-04-19T09:45:35")
+   .put("AMOUNT", new BigDecimal("234.65")));
+insertRows.add(new KsqlObject()
+   .put("EMAIL_ADDRESS", "colin@example.com")
+   .put("CARD_NUMBER", "373913272311617")
+   .put("TX_ID", "de9831c0-7cf1-4ebf-881d-0415edec0d6b")
+   .put("TIMESTAMP", "2020-04-19T09:44:03")
+   .put("AMOUNT", new BigDecimal("150.00")));
+
+// Insert the rows
+List<CompletableFuture<Void>> insertFutures = new ArrayList<>();
+for (KsqlObject row : insertRows) {
+  insertFutures.add(client.insertInto("TRANSACTIONS", row));
+}
+
+// Wait for the inserts to complete
+CompletableFuture<Void> allInsertsFuture =
+    CompletableFuture.allOf(insertFutures.toArray(new CompletableFuture<?>[0]));
+allInsertsFuture.thenRun(() -> System.out.println("Seeded transaction events."));
+```
+
+As a second example, in the ksqlDB tutorial on [building a materialized view/cache](../../tutorials/materialized.md),
+the ksqlDB CLI is used to issue [pull queries against materialized views](../../tutorials/materialized.md#query-the-materialized-views)
+containing information about customer calls to a call center. Here's a similar set of queries using the Java client for ksqlDB:
+
+```java
+String sql1 = "SELECT name, total_calls, minutes_engaged FROM lifetime_view WHERE ROWKEY = 'derek';";
+String sql2 = "SELECT name, total_calls, minutes_engaged FROM lifetime_view WHERE ROWKEY = 'michael';";
+
+// Execute two pull queries and compare the results
+client.executeQuery(sql1).thenCombine(
+    client.executeQuery(sql2),
+    (queryResult1, queryResult2) -> {
+      // One row is returned from each query, as long as the queried keys exist
+      Row result1 = queryResult1.get(0);
+      Row result2 = queryResult2.get(0);
+      if (result1.getLong("TOTAL_CALLS") > result2.getLong("TOTAL_CALLS")) {
+        System.out.println(result1.getString("NAME") + " made more calls.");
+      } else {
+        System.out.println(result2.getString("NAME") + " made more calls.");
+      }
+      return null;
+    });
+```

@@ -211,13 +211,7 @@ You can also pass a `Duration` argument to `poll()`, which causes `poll()` to re
 For more information, see the [API reference](TODO).
 
 ```java
-StreamedQueryResult streamedQueryResult;
-try {
-  streamedQueryResult = client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;").get();
-} catch (Exception e) {
-  System.out.println("Request failed: " + e);
-  return;
-}
+StreamedQueryResult streamedQueryResult = client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;").get();
 
 for (int i = 0; i < 10; i++) {
   // Block until a new row is available
@@ -273,13 +267,8 @@ To start from the end and receive only newly arriving rows, set the `auto.offset
 String pullQuery = "SELECT * FROM MY_MATERIALIZED_TABLE WHERE KEY_FIELD='some_key';";
 BatchedQueryResult batchedQueryResult = client.executeQuery(pullQuery);
 
-List<Row> resultRows;
-try {
-  resultRows = batchedQueryResult.get();
-} catch (Exception e) {
-  System.out.println("Request failed: " + e);
-  return;
-}
+// Wait for query result
+List<Row> resultRows = batchedQueryResult.get();
 
 System.out.println("Received results. Num rows: " + resultRows.size());
 for (Row row : resultRows) {
@@ -319,22 +308,11 @@ by using either the [`streamQuery()`](./stream-query.md) or [`executeQuery()`](.
 Here's an example of terminating a push query issued using the `streamQuery()` method:
 
 ```java
-StreamedQueryResult streamedQueryResult;
-try {
-  streamedQueryResult = client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;").get();
-} catch (Exception e) {
-  System.out.println("Query request failed: " + e);
-  return;
-}
+String pushQuery = "SELECT * FROM MY_STREAM EMIT CHANGES;";
+StreamedQueryResult streamedQueryResult = client.streamQuery(pushQuery).get();
 
 String queryId = streamedQueryResult.queryID();
-System.out.println("Terminating query with ID: " + queryId);
-try {
-  client.terminatePushQuery(queryId).get();
-  System.out.println("Sucessfully terminated query.");
-} catch (Exception e) {
-  System.out.println("Terminate request failed: " + e);
-}
+client.terminatePushQuery(queryId).get();
 ```
 
 And here's an analogous example for terminating a push query issued using the `executeQuery()` method:
@@ -343,19 +321,8 @@ And here's an analogous example for terminating a push query issued using the `e
 String pullQuery = "SELECT * FROM MY_STREAM EMIT CHANGES LIMIT 10;";
 BatchedQueryResult batchedQueryResult = client.executeQuery(pullQuery);
 
-String queryId;
-try {
-  queryId = batchedQueryResult.queryID().get();
-} catch (Exception e) {
-  System.out.println("Query request failed: " + e);
-  return;
-}
-
-try {
-  client.terminatePushQuery(queryId).get();
-} catch (Exception e) {
-  System.out.println("Terminate request failed: " + e);
-}
+String queryId = batchedQueryResult.queryID().get();
+client.terminatePushQuery(queryId).get();
 ```
 
 Insert a new row into a stream (insertInto())<a name="insert-into"></a>
@@ -398,12 +365,7 @@ KsqlObject row = new KsqlObject()
     .put("PRODUCT_ID", "UAC-222-19234")
     .put("USER_ID", "User_321");
 
-try {
-  client.insertInto("ORDERS", row).get();
-  System.out.println("Successfully inserted a row.");
-} catch (Exception e) {
-  System.out.println("Insert request failed: " + e);
-}
+client.insertInto("ORDERS", row).get();
 ```
 
 Tutorial Examples

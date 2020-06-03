@@ -23,6 +23,21 @@ public final class QueryLoggerUtil {
   private QueryLoggerUtil() {
   }
 
+  /**
+   * Variant of the version below that doesn't track every query individually,
+   * but instead by type. This should be used for frequent query types
+   * (e.g. pull queries) since each new name stores a unique logger object.
+   */
+  public static String queryLoggerName(final QueryType queryType, final QueryContext queryContext) {
+    return String.join(
+        ".",
+        new ImmutableList.Builder<String>()
+            .add(queryType.name().toLowerCase())
+            .addAll(queryContext.getContext())
+            .build()
+    );
+  }
+
   public static String queryLoggerName(final QueryId queryId, final QueryContext queryContext) {
     return String.join(
         ".",
@@ -31,5 +46,9 @@ public final class QueryLoggerUtil {
             .addAll(queryContext.getContext())
             .build()
     );
+  }
+
+  public enum QueryType {
+    PULL_QUERY
   }
 }

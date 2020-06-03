@@ -130,7 +130,7 @@ final class SourceNode {
 
   private static LogicalSchema parseSchema(final String text) {
     return SchemaParser.parse(text, TypeRegistry.EMPTY)
-        .toLogicalSchema(true);
+        .toLogicalSchema();
   }
 
   public static class Deserializer extends JsonDeserializer<SourceNode> {

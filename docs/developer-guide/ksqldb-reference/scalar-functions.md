@@ -325,6 +325,16 @@ CONCAT(col1, col2, 'hello', ..., col-n)
 
 Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
 
+### `ENCODE`
+
+```sql
+ENCODE(col1, input_encoding, output_encoding)
+```
+
+Given a STRING that is encoded as `input_encoding`, encode it using the `output_encoding`. The accepted input and output encodings are:
+`hex`, `utf8`, `ascii`, and `base64`. Throws an exception if the provided encodings are not supported.
+
+For example, to encode a string in `hex` to `utf8`, use `ENCODE(string, 'hex', 'utf8')`.
 ### `EXTRACTJSONFIELD`
 
 ```sql
@@ -415,6 +425,25 @@ LEN(col1)
 ```
 
 The length of a string.
+
+### `LPAD`
+
+```sql
+LPAD(input, length, padding)
+```
+
+Pads the input string, beginning from the left, with the specified padding string, until the target length is reached. 
+If the input string is longer than the specified target length, it is truncated.
+
+If the padding string is empty or NULL, or the target length is negative, NULL is returned.
+
+Examples:
+```sql
+LPAD('Foo', 7, 'Bar')  =>  'BarBFoo'
+LPAD('Foo', 2, 'Bar')  =>  'Fo'
+LPAD('', 2, 'Bar')  =>  'Ba'
+LPAD('123', 5, '0')  => '00123'
+```
 
 ### `MASK`
 
@@ -555,6 +584,23 @@ If the regular expression is found at the beginning or end
 of the string, or there are contiguous matches,
 then an empty element is added to the array.
 
+### `RPAD`
+
+```sql
+RPAD(input, length, padding)
+```
+
+Pads the input string, starting from the end, with the specified padding string until the target length is reached. If the input string is longer than the specified target length it will be truncated. 
+
+If the padding string is empty or NULL, or the target length is negative, then NULL is returned.
+
+Examples:
+```sql
+RPAD('Foo', 7, 'Bar')  =>  'FooBarB'
+RPAD('Foo', 2, 'Bar')  =>  'Fo'
+RPAD('', 2, 'Bar')  =>  'Ba'
+```
+
 ### `SPLIT`
 
 ```sql
@@ -606,6 +652,16 @@ UCASE(col1)
 ```
 
 Convert a string to uppercase.
+
+### `UUID`
+
+```sql
+UUID()
+```
+Create a Universally Unique Identifier (UUID) generated according to RFC 4122. 
+A call to UUID() returns a value conforming to UUID version 4, sometimes called 
+"random UUID", as described in RFC 4122. The value is a 128-bit number represented 
+as a string of five hexadecimal numbers _aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_.
 
 ## Nulls
 

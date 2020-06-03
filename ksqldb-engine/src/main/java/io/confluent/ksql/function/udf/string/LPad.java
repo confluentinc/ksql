@@ -23,17 +23,19 @@ import io.confluent.ksql.function.udf.UdfParameter;
     description = "Pads the input string, beginning from the left, with the specified padding"
         + " string until the target length is reached. If the input string is longer than the"
         + " specified target length it will be truncated. If the padding string is empty or"
-        + " NULL then NULL is returned.")
+        + " NULL, or the target length is negative, then NULL is returned.")
 public class LPad {
 
   @Udf
-  public String lpad(@UdfParameter(description = "hi") final String input,
-      @UdfParameter(description = "dohdohohf") final int targetLen,
-      @UdfParameter(description = "fff") final String padding) {
+  public String lpad(
+      @UdfParameter(description = "String to be padded") final String input,
+      @UdfParameter(description = "Target length") final Integer targetLen,
+      @UdfParameter(description = "Padding string") final String padding) {
+
     if (input == null) {
       return null;
     }
-    if (padding == null || padding.isEmpty() || targetLen < 0) {
+    if (padding == null || padding.isEmpty() || targetLen == null || targetLen < 0) {
       return null;
     }
     final StringBuilder sb = new StringBuilder(targetLen + padding.length());

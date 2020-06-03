@@ -45,6 +45,10 @@ public class CreateTableCommand extends CreateSourceCommand {
         formats,
         windowInfo
     );
+
+    if (schema.key().isEmpty()) {
+      throw new UnsupportedOperationException("Tables require key columns");
+    }
   }
 
   @Override

@@ -25,11 +25,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.io.IOException;
 
 final class LogicalSchemaDeserializer extends JsonDeserializer<LogicalSchema> {
-  final boolean withImplicitColumns;
-
-  LogicalSchemaDeserializer(final boolean withImplicitColumns) {
-    this.withImplicitColumns = withImplicitColumns;
-  }
 
   @Override
   public LogicalSchema deserialize(
@@ -41,6 +36,6 @@ final class LogicalSchemaDeserializer extends JsonDeserializer<LogicalSchema> {
 
     final TableElements tableElements = SchemaParser.parse(text, TypeRegistry.EMPTY);
 
-    return tableElements.toLogicalSchema(withImplicitColumns);
+    return tableElements.toLogicalSchema();
   }
 }

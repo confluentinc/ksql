@@ -77,6 +77,10 @@ public class CommandFactoriesTest {
   private static final TableElement ELEMENT1 =
       tableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING));
   private static final TableElements SOME_ELEMENTS = TableElements.of(ELEMENT1);
+  private static final TableElements ELEMENTS_WITH_PK = TableElements.of(
+      tableElement(Namespace.PRIMARY_KEY, "k", new Type(SqlTypes.STRING)),
+      ELEMENT1
+  );
   private static final String TOPIC_NAME = "some topic";
   private static final Map<String, Literal> MINIMIM_PROPS = ImmutableMap.of(
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
@@ -325,7 +329,7 @@ public class CommandFactoriesTest {
     );
 
     final DdlStatement statement =
-        new CreateTable(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+        new CreateTable(SOME_NAME, ELEMENTS_WITH_PK, true, withProperties);
 
     // When:
     final DdlCommand cmd = commandFactories

@@ -20,15 +20,18 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.List;
@@ -53,12 +56,11 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
       final PlanNode source,
       final List<SelectItem> selectItems,
       final boolean persistent,
-      final FunctionRegistry functionRegistry) {
+      final FunctionRegistry functionRegistry
+  ) {
     super(id, source);
     this.projection = Projection.of(selectItems);
     this.persistent = persistent;
-
-    validateProjection(functionRegistry);
 
     final Pair<LogicalSchema, List<SelectExpression>> result = build(functionRegistry);
     this.schema = result.left;
@@ -80,36 +82,6 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
   @Override
   public void validateKeyPresent(final SourceName sinkName) {
     getSource().validateKeyPresent(sinkName, projection);
-  }
-
-  /**
-   * Called to validate that columns referenced in the projection are valid.
-   *
-   * <p>This is necessary as some joins can create synthetic key columns that do not come
-   * from any data source.  This means the normal column validation done during analysis can not
-   * fail on unknown column with generated column names.
-   *
-   * <p>Once the logical model has been built the synthetic key names are known and generated
-   * column names can be validated.
-   */
-  private void validateProjection(
-      final FunctionRegistry functionRegistry
-  ) {
-    // Validate any column in the projection that might be a synthetic
-    // Only really need to include any that might be, but we include all:
-    final RequiredColumns requiredColumns = RequiredColumns.builder()
-        .addAll(projection.singleExpressions())
-        .build();
-
-    final Set<ColumnReferenceExp> unknown = getSource().validateColumns(requiredColumns);
-    if (!unknown.isEmpty()) {
-      final String errors = unknown.stream()
-          .map(columnRef -> NodeLocation.asPrefix(columnRef.getLocation())
-              + "Column '" + columnRef + "' cannot be resolved."
-          ).collect(Collectors.joining(System.lineSeparator()));
-
-      throw new KsqlException(errors);
-    }
   }
 
   private Pair<LogicalSchema, List<SelectExpression>> build(
@@ -158,5 +130,53 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     }
 
     return Pair.of(nodeSchema, selectExpressions);
+  }
+
+  private void validate() {
+    final LogicalSchema schema = getSchema();
+
+    if (schema.key().size() > 1) {
+      final String keys = GrammaticalJoiner.and().join(schema.key().stream().map(Column::name));
+      throw new KsqlException("The projection contains the key column more than once: " + keys + "."
+          + System.lineSeparator()
+          + "Each key column must only be in the projection once. "
+          + "If you intended to copy the key into the value, then consider using the "
+          + AsValue.NAME + " function to indicate which key reference should be copied."
+      );
+    }
+
+    if (schema.value().isEmpty()) {
+      throw new KsqlException("The projection contains no value columns.");
+    }
+
+    validateProjection();
+  }
+
+  /**
+   * Called to validate that columns referenced in the projection are valid.
+   *
+   * <p>This is necessary as some joins can create synthetic key columns that do not come
+   * from any data source.  This means the normal column validation done during analysis can not
+   * fail on unknown column with generated column names.
+   *
+   * <p>Once the logical model has been built the synthetic key names are known and generated
+   * column names can be validated.
+   */
+  private void validateProjection() {
+    // Validate any column in the projection that might be a synthetic
+    // Only really need to include any that might be, but we include all:
+    final RequiredColumns requiredColumns = RequiredColumns.builder()
+        .addAll(projection.singleExpressions())
+        .build();
+
+    final Set<ColumnReferenceExp> unknown = getSource().validateColumns(requiredColumns);
+    if (!unknown.isEmpty()) {
+      final String errors = unknown.stream()
+          .map(columnRef -> NodeLocation.asPrefix(columnRef.getLocation())
+              + "Column '" + columnRef + "' cannot be resolved."
+          ).collect(Collectors.joining(System.lineSeparator()));
+
+      throw new KsqlException(errors);
+    }
   }
 }

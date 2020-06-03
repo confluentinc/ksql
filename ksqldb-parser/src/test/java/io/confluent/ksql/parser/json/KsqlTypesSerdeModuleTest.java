@@ -31,7 +31,7 @@ import org.junit.Test;
 public class KsqlTypesSerdeModuleTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper()
-      .registerModule(new KsqlTypesDeserializationModule(false))
+      .registerModule(new KsqlTypesDeserializationModule())
       .registerModule(new KsqlTypesSerializationModule());
 
   @Test

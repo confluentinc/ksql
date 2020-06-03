@@ -15,36 +15,81 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
-import static io.confluent.ksql.GenericRow.genericRow;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.GenericRow;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeParseException;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class StringTimestampExtractorTest {
 
-  private static final String format = "yyyy-MMM-dd";
+  private static final String FORAMT = "yyyy-MMM-dd";
 
-  @Test
-  public void shouldExtractTimestampFromStringWithFormat() throws ParseException {
-    final StringTimestampExtractor timestampExtractor = new StringTimestampExtractor(format, 0);
+  @Mock
+  public ColumnExtractor columnExtractor;
+  @Mock
+  private Object key;
+  @Mock
+  private GenericRow value;
+  private StringTimestampExtractor extractor;
 
-    final String stringTime = "2010-Jan-11";
-    final long expectedTime = new SimpleDateFormat(format).parse(stringTime).getTime();
-    final long actualTime = timestampExtractor.extract(genericRow(stringTime));
-    assertThat(actualTime, equalTo(expectedTime));
+  @Before
+  public void setUp() {
+    extractor = new StringTimestampExtractor(FORAMT, columnExtractor);
+    when(columnExtractor.extract(any(), any())).thenReturn("2010-Jan-11");
   }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfColumnIndexIsNegative() {
-    new StringTimestampExtractor(format, -1);
-  }
-
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullFormat() {
-    new StringTimestampExtractor(null, 0);
+    new StringTimestampExtractor(null, columnExtractor);
+  }
+
+  @Test
+  public void shouldPassRecordToColumnExtractor() {
+    // When:
+    extractor.extract(key, value);
+
+    // Then:
+    verify(columnExtractor).extract(key, value);
+  }
+
+  @Test
+  public void shouldExtractTimestampFromStringWithFormat() throws ParseException {
+    // Given:
+    when(columnExtractor.extract(any(), any())).thenReturn("2010-Jan-11");
+
+    // When:
+    final long actualTime = extractor.extract(key, value);
+
+    final long expectedTime = new SimpleDateFormat(FORAMT).parse("2010-Jan-11").getTime();
+    assertThat(actualTime, equalTo(expectedTime));
+  }
+
+  @Test
+  public void shouldThrowIfStringDoesNotMatchFormat() {
+    // Given:
+    when(columnExtractor.extract(any(), any())).thenReturn("11-Jan-2010");
+
+    // When:
+    final Exception e = assertThrows(
+        DateTimeParseException.class,
+        () -> extractor.extract(key, value)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("11-Jan-2010"));
   }
 }

@@ -266,6 +266,11 @@ public class TopicInfoCache {
     }
 
     private Function<Object, Object> keyCoercer() {
+      if (schema.key().isEmpty()) {
+        // No key column:
+        return key -> null;
+      }
+
       final SqlType keyType = schema
           .key()
           .get(0)

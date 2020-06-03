@@ -280,7 +280,7 @@ map_keys( map('apple' := 10, 'banana' := 20) )  => ['apple', 'banana']
 MAP_VALUES(a_map)
 ```
 
-Returns an array of all the values from the specified map.
+Returns an array that contains all of the values from the specified map.
 
 Returns NULL if the input map is NULL.
 

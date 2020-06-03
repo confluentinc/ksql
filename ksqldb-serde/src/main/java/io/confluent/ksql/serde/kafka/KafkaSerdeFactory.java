@@ -125,9 +125,9 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
 
     @Override
     public byte[] serialize(final String topic, final Object struct) {
-      final Object value = struct == null
+      final Object value = struct == null || !field.isPresent()
           ? null
-          : ((Struct) struct).get(field.orElseThrow(IllegalStateException::new));
+          : ((Struct) struct).get(field.get());
 
       return delegate.serialize(topic, value);
     }

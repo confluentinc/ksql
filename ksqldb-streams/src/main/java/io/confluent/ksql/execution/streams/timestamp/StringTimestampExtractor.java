@@ -15,30 +15,30 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
-import com.google.common.base.Preconditions;
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.StringToTimestampParser;
-import java.util.Objects;
 
 public class StringTimestampExtractor implements KsqlTimestampExtractor {
+
   private final StringToTimestampParser timestampParser;
-  private final int timestampColumn;
+  private final ColumnExtractor extractor;
   private final String format;
 
-  StringTimestampExtractor(final String format, final int timestampColumn) {
-    this.format = Objects.requireNonNull(format, "format can't be null");
-    Preconditions.checkArgument(timestampColumn >= 0, "timestampColumn must be >= 0");
-    this.timestampColumn = timestampColumn;
+  StringTimestampExtractor(final String format, final ColumnExtractor extractor) {
+    this.format = requireNonNull(format, "format can't be null");
+    this.extractor = requireNonNull(extractor, "extractor");
     this.timestampParser = new StringToTimestampParser(format);
   }
 
   @Override
-  public long extract(final GenericRow row) {
-    final String value = (String)row.get(timestampColumn);
+  public long extract(final Object key, final GenericRow value) {
+    final String colValue = (String) extractor.extract(key, value);
 
     try {
-      return timestampParser.parse(value);
+      return timestampParser.parse(colValue);
     } catch (final KsqlException e) {
       throw new KsqlException("Unable to parse string timestamp."
           + " timestamp=" + value

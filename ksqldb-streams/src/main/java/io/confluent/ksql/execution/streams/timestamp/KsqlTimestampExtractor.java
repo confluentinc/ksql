@@ -20,9 +20,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 public interface KsqlTimestampExtractor extends TimestampExtractor {
+
   default long extract(final ConsumerRecord<Object, Object> record, final long previousTimestamp) {
-    return extract((GenericRow) record.value());
+    return extract(record.key(), (GenericRow) record.value());
   }
 
-  long extract(GenericRow row);
+  long extract(Object key, GenericRow row);
 }

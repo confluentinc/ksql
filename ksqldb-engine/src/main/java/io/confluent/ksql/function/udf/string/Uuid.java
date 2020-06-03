@@ -23,7 +23,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
         + "A call to UUID() returns a value conforming to UUID version 4, sometimes called "
         + "\"random UUID\", as described in RFC 4122. The value is a 128-bit number represented "
         + "as a string of five hexadecimal numbers aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.")
-public class UUID {
+public class Uuid {
 
   @Udf
   public String uuid() {

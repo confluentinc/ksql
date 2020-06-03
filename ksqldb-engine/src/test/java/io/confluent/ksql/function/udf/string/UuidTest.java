@@ -25,13 +25,13 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
-public class UUIDTest {
+public class UuidTest {
 
-  private UUID udf;
+  private Uuid udf;
 
   @Before
   public void setUp() {
-    udf = new UUID();
+    udf = new Uuid();
   }
 
   @Test

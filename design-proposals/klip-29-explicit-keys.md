@@ -98,6 +98,14 @@ Streams without a key column will work just like any other stream. However, `GRO
 and `JOIN`s will _always_ result in a repartition, as the grouping, partitioning or joining expression
 can never be the key column.
 
+Internally, ksqlDB and the Kafka Streams library it leverages, heavily leverages a key-value model.
+Where a stream is created without a key column, internally ksqlDB will treat the key as a `Void` type,
+and the key will always deserialize to `null`, regardless of the binary payload in the Kafka message's
+key.
+
+Likewise, when a row from a stream without a key is persisted to Kafka, the key will be serialized as
+`null`. 
+
 ## Test plan
 
 Ensure coverage of key-less streams in QTT tests, especially for `GROUP BY`, `PARTITION BY`, and `JOIN`s.

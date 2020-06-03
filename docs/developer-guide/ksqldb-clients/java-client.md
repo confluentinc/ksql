@@ -6,6 +6,15 @@ description: Send requests to ksqlDB from your Java app
 keywords: ksqlDB, java, client
 ---
 
+ksqlDB ships with a lightweight Java client that allows you to easily send requests to a ksqlDB server
+from within your Java application, as an alternative to using the [REST API](../api.md).
+The client currently supports pull and push queries as well as inserting new rows of data into existing ksqlDB streams.
+Soon the client will also support persistent queries and admin operations such as listing streams, tables, and topics. 
+
+The client sends requests to the recently added HTTP2 server endpoints: pull and push queries are served by
+the [`/query-stream` endpoint](TODO), and inserts are served by the [`/inserts-stream` endpoint](TODO).
+Consequently, the client should only be used with ksqlDB deployments on version 0.10.0 or newer.
+
 Use the Java client to:
 
 - [Receive query results one row at a time (streamQuery())](#stream-query)

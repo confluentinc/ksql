@@ -58,8 +58,6 @@ public final class MetricCollectors {
       METRICS_CONTEXT_RESOURCE_LABEL_PREFIX + "cluster.id";
   public static final String RESOURCE_LABEL_KSQL_SERVICE_ID =
       METRICS_CONTEXT_RESOURCE_LABEL_PREFIX + KsqlConfig.KSQL_SERVICE_ID_CONFIG;
-  public static final String RESOURCE_LABEL_KAFKA_CLUSTER_ID =
-      METRICS_CONTEXT_RESOURCE_LABEL_PREFIX + "kafka.cluster.id";
 
   private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
@@ -118,8 +116,7 @@ public final class MetricCollectors {
   }
 
   public static void addConfigurableReporter(
-      final KsqlConfig ksqlConfig,
-      final String kafkaClusterId
+      final KsqlConfig ksqlConfig
   ) {
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final List<MetricsReporter> reporters = ksqlConfig.getConfiguredInstances(
@@ -137,8 +134,7 @@ public final class MetricCollectors {
               KSQL_JMX_PREFIX,
               addConfluentMetricsContextConfigs(
                   metadata,
-                  ksqlServiceId,
-                  kafkaClusterId));
+                  ksqlServiceId));
 
       for (final MetricsReporter reporter : reporters) {
         reporter.contextChange(metricsContext);
@@ -149,8 +145,7 @@ public final class MetricCollectors {
 
   public static Map<String, Object> addConfluentMetricsContextConfigs(
       final Map<String,Object> props,
-      final String ksqlServiceId,
-      final String kafkaClusterId
+      final String ksqlServiceId
   ) {
     final Map<String, Object> updatedProps = new HashMap<>(props);
     updatedProps.put(RESOURCE_LABEL_VERSION, AppInfo.getVersion());
@@ -158,7 +153,6 @@ public final class MetricCollectors {
     updatedProps.put(RESOURCE_LABEL_TYPE, KSQL_RESOURCE_TYPE);
     updatedProps.put(RESOURCE_LABEL_KSQL_SERVICE_ID, ksqlServiceId);
     updatedProps.put(RESOURCE_LABEL_CLUSTER_ID, ksqlServiceId);
-    updatedProps.put(RESOURCE_LABEL_KAFKA_CLUSTER_ID, kafkaClusterId);
     return updatedProps;
   }
 

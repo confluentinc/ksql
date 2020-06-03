@@ -78,7 +78,7 @@ public class MetricCollectorsTest {
         .thenReturn(Collections.singletonList(mockReporter));
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
 
-    MetricCollectors.addConfigurableReporter(ksqlConfig, "kafka cluster");
+    MetricCollectors.addConfigurableReporter(ksqlConfig);
     final List<MetricsReporter> reporters = MetricCollectors.getMetrics().reporters();
     assertThat(reporters, hasItem(mockReporter));
   }

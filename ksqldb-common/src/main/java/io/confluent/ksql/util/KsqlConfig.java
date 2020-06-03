@@ -27,6 +27,7 @@ import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -68,10 +69,13 @@ public class KsqlConfig extends AbstractConfig {
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
 
   private static final String METRIC_REPORTERS_PREFIX = "metric.reporters";
-  public static final String METRIC_CONTEXT_PREFIX = CommonClientConfigs.METRICS_CONTEXT_PREFIX;
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
-      ImmutableSet.of(METRIC_REPORTERS_PREFIX, TELEMETRY_PREFIX, METRIC_CONTEXT_PREFIX);
+      ImmutableSet.of(
+          METRIC_REPORTERS_PREFIX,
+          TELEMETRY_PREFIX,
+          CommonClientConfigs.METRICS_CONTEXT_PREFIX
+      );
 
   public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
@@ -771,29 +775,33 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   public Map<String, Object> getKsqlStreamConfigProps() {
-    final Map<String, Object> props = new HashMap<>();
+    final Map<String, Object> map = new HashMap<>();
     for (final ConfigValue config : ksqlStreamConfigProps.values()) {
-      props.put(config.key, config.value);
+      map.put(config.key, config.value);
     }
-
-    props.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
-    return Collections.unmodifiableMap(props);
+    map.putAll(getMetricsContextConfigs());
+    return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
-
-    map.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
+    map.putAll(getMetricsContextConfigs());
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
-
-    map.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
+    map.putAll(getMetricsContextConfigs());
     return Collections.unmodifiableMap(map);
+  }
+
+  private Map<String,Object> getMetricsContextConfigs() {
+    final Map<String, Object> map = new HashMap<>();
+    map.put(MetricCollectors.RESOURCE_LABEL_CLUSTER_ID, getString(KSQL_SERVICE_ID_CONFIG));
+    map.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
+    return map;
   }
 
   public Map<String, Object> getProcessingLogConfigProps() {

@@ -120,10 +120,7 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty(),
-        Optional.empty(),
-        Collections.emptyMap(),
-        Collections.emptyMap(),
-        Collections.emptyMap());
+        Optional.empty());
 
     // Then:
     assertThat(
@@ -147,10 +144,7 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty(),
-        Optional.empty(),
-        Collections.emptyMap(),
-        Collections.emptyMap(),
-        Collections.emptyMap());
+        Optional.empty());
 
     // Then:
     assertThat(sourceDescription.getTimestamp(), is(""));
@@ -173,10 +167,7 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty(),
-        Optional.empty(),
-        Collections.emptyMap(),
-        Collections.emptyMap(),
-        Collections.emptyMap());
+        Optional.empty());
 
     // Then:
     assertThat(sourceDescription.getTimestamp(), is("foo"));

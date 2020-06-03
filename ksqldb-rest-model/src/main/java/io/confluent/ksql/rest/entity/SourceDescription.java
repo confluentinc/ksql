@@ -156,7 +156,7 @@ public class SourceDescription {
     return errorStats;
   }
 
-  public Optional<SourceConsumerOffsets> getConsumerGroupOffsets() {
+  public Optional<SourceConsumerOffsets> getConsumerOffsets() {
     return consumerOffsets;
   }
 

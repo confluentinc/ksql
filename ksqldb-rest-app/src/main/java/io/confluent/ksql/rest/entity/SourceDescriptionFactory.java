@@ -20,16 +20,9 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.utils.FormatOptions;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.clients.admin.ConsumerGroupDescription;
-import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.TopicPartitionInfo;
 
 public final class SourceDescriptionFactory {
 
@@ -42,10 +35,7 @@ public final class SourceDescriptionFactory {
       final List<RunningQuery> readQueries,
       final List<RunningQuery> writeQueries,
       final Optional<TopicDescription> topicDescription,
-      final Optional<ConsumerGroupDescription> consumerGroupDescription,
-      final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
-      final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
-      final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
+      final Optional<SourceConsumerOffsets> sourceConsumerOffsets
   ) {
     return new SourceDescription(
         dataSource.getName().toString(FormatOptions.noEscape()),
@@ -70,33 +60,6 @@ public final class SourceDescriptionFactory {
         topicDescription.map(td -> td.partitions().size()).orElse(0),
         topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0),
         dataSource.getSqlExpression(),
-        topicDescription.flatMap(td -> consumerGroupDescription.map(cg ->
-            new SourceConsumerOffsets(cg.groupId(), td.name(),
-                consumerOffsets(td, topicAndStartOffsets, topicAndEndOffsets,
-                    topicAndConsumerOffsets)))));
-  }
-
-  private static List<SourceConsumerOffset> consumerOffsets(
-      final TopicDescription topicDescription,
-      final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
-      final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
-      final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
-  ) {
-    final List<SourceConsumerOffset> sourceConsumerOffsets = new ArrayList<>();
-    for (TopicPartitionInfo topicPartitionInfo : topicDescription.partitions()) {
-      final TopicPartition tp = new TopicPartition(topicDescription.name(),
-          topicPartitionInfo.partition());
-      final ListOffsetsResultInfo startOffsetResultInfo = topicAndStartOffsets.get(tp);
-      final ListOffsetsResultInfo endOffsetResultInfo = topicAndEndOffsets.get(tp);
-      final OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
-      sourceConsumerOffsets.add(
-          new SourceConsumerOffset(
-              topicPartitionInfo.partition(),
-              startOffsetResultInfo != null ? startOffsetResultInfo.offset() : 0,
-              endOffsetResultInfo != null ? endOffsetResultInfo.offset() : 0,
-              offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
-          ));
-    }
-    return sourceConsumerOffsets;
+        sourceConsumerOffsets);
   }
 }

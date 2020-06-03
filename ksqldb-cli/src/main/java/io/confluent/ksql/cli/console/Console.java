@@ -627,7 +627,7 @@ public class Console implements Closeable {
             + source.getTopic()
     ));
     final Optional<SourceConsumerOffsets> consumerGroupOffsetsOptional = source
-        .getConsumerGroupOffsets();
+        .getConsumerOffsets();
     if (consumerGroupOffsetsOptional.isPresent()) {
       writer().println();
       final SourceConsumerOffsets sourceConsumerOffsets = consumerGroupOffsetsOptional.get();

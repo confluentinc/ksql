@@ -313,15 +313,13 @@ public final class SourceBuilder {
         timestampColumn
     );
 
-    final int timestampIndex = timestampColumn.map(TimestampColumn::getColumn)
-        .map(c -> sourceSchema.findValueColumn(c).orElseThrow(IllegalStateException::new))
-        .map(Column::index)
-        .orElse(-1);
+    final Optional<Column> tsColumn = timestampColumn.map(TimestampColumn::getColumn)
+        .map(c -> sourceSchema.findColumn(c).orElseThrow(IllegalStateException::new));
 
     final QueryContext queryContext = streamSource.getProperties().getQueryContext();
 
     return timestampPolicy.create(
-        timestampIndex,
+        tsColumn,
         ksqlConfig.getBoolean(KsqlConfig.KSQL_TIMESTAMP_THROW_ON_INVALID),
         queryBuilder.getProcessingLogger(queryContext)
     );

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,20 +15,20 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
-import static java.util.Objects.requireNonNull;
-
 import io.confluent.ksql.GenericRow;
 
-public class LongTimestampExtractor implements KsqlTimestampExtractor {
+/**
+ * Extracts a column from the ConsumerRecord
+ */
+interface ColumnExtractor {
 
-  private final ColumnExtractor extractor;
-
-  LongTimestampExtractor(final ColumnExtractor extractor) {
-    this.extractor = requireNonNull(extractor, "extractor");
-  }
-
-  @Override
-  public long extract(final Object key, final GenericRow value) {
-    return (long) extractor.extract(key, value);
-  }
+  /**
+   * Extract a key or value column from the supplied {@code key} or {@code value}.
+   *
+   * @param key the key - either a {@link org.apache.kafka.connect.data.Struct}, or a {@link
+   * org.apache.kafka.streams.kstream.Windowed} Struct.
+   * @param value the value.
+   * @return the extracted column value.
+   */
+  Object extract(Object key, GenericRow value);
 }

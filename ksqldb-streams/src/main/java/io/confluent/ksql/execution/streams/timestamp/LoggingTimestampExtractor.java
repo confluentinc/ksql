@@ -52,17 +52,16 @@ public class LoggingTimestampExtractor implements KsqlTimestampExtractor {
     try {
       return delegate.extract(record, previousTimestamp);
     } catch (final RuntimeException e) {
-      return handleFailure(record.value(), e);
+      return handleFailure(record.key(), record.value(), e);
     }
   }
 
   @Override
-  public long extract(final GenericRow row) {
+  public long extract(final Object key, final GenericRow value) {
     try {
-      return delegate.extract(row);
+      return delegate.extract(key, value);
     } catch (final RuntimeException e) {
-      return handleFailure(row, e);
-
+      return handleFailure(key, value, e);
     }
   }
 
@@ -71,11 +70,15 @@ public class LoggingTimestampExtractor implements KsqlTimestampExtractor {
     return delegate;
   }
 
-  private long handleFailure(final Object value, final RuntimeException e) {
+  private long handleFailure(final Object key, final Object value, final RuntimeException e) {
+    final Object safeKey = ObjectUtils.defaultIfNull(key, "null");
     final Object safeValue = ObjectUtils.defaultIfNull(value, "null");
 
-    logger.error(RecordProcessingError
-        .recordProcessingError("Failed to extract timestamp from row", e, safeValue::toString));
+    logger.error(RecordProcessingError.recordProcessingError(
+        "Failed to extract timestamp from row",
+        e,
+        () -> "key:" + safeKey + ", value:" + safeValue
+    ));
 
     if (failOnError) {
       throw e;

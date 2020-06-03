@@ -15,14 +15,13 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -35,21 +34,23 @@ import org.apache.commons.codec.binary.Hex;
         + "hex, utf8, ascii and base64. Throws exception if provided encodings are not supported.")
 public class Encode {
 
-  static Map<String, Encoder> encoderMap = new HashMap<>();
+  static ImmutableMap<String, Encoder> ENCODER_MAP = new ImmutableMap.Builder<String, Encoder>()
+      .build();
+
 
   static {
-    encoderMap.put("hexascii", new HexToAscii());
-    encoderMap.put("hexutf8", new HexToUtf8());
-    encoderMap.put("hexbase64", new HexToBase64());
-    encoderMap.put("utf8ascii", new Utf8ToAscii());
-    encoderMap.put("utf8hex", new Utf8ToHex());
-    encoderMap.put("utf8base64", new Utf8ToBase64());
-    encoderMap.put("asciiutf8", new AsciiToUtf8());
-    encoderMap.put("asciihex", new AsciiToHex());
-    encoderMap.put("asciibase64", new AsciiToBase64());
-    encoderMap.put("base64ascii", new Base64ToAscii());
-    encoderMap.put("base64utf8", new Base64ToUtf8());
-    encoderMap.put("base64hex", new Base64ToHex());
+    ENCODER_MAP.put("hexascii", new HexToAscii());
+    ENCODER_MAP.put("hexutf8", new HexToUtf8());
+    ENCODER_MAP.put("hexbase64", new HexToBase64());
+    ENCODER_MAP.put("utf8ascii", new Utf8ToAscii());
+    ENCODER_MAP.put("utf8hex", new Utf8ToHex());
+    ENCODER_MAP.put("utf8base64", new Utf8ToBase64());
+    ENCODER_MAP.put("asciiutf8", new AsciiToUtf8());
+    ENCODER_MAP.put("asciihex", new AsciiToHex());
+    ENCODER_MAP.put("asciibase64", new AsciiToBase64());
+    ENCODER_MAP.put("base64ascii", new Base64ToAscii());
+    ENCODER_MAP.put("base64utf8", new Base64ToUtf8());
+    ENCODER_MAP.put("base64hex", new Base64ToHex());
   }
 
   @Udf(description = "Returns a new string encoded using the outputEncoding ")
@@ -68,11 +69,11 @@ public class Encode {
 
     final String encodedString = inputEncoding.toLowerCase() + outputEncoding.toLowerCase();
 
-    if (encoderMap.get(encodedString) == null) {
+    if (ENCODER_MAP.get(encodedString) == null) {
       throw new KsqlFunctionException("Supported input and output encodings are: "
                                   + "hex, utf8, ascii and base64");
     }
-    return encoderMap.get(encodedString).apply(str);
+    return ENCODER_MAP.get(encodedString).apply(str);
   }
 
 
@@ -127,8 +128,7 @@ public class Encode {
 
     @Override
     public String apply(final String input) {
-      final String encodedHex = Hex.encodeHexString(input.getBytes(StandardCharsets.US_ASCII));
-      return encodedHex;
+      return Hex.encodeHexString(input.getBytes(StandardCharsets.US_ASCII));
     }
   }
 

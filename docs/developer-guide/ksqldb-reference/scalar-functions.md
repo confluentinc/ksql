@@ -279,6 +279,16 @@ CONCAT(col1, col2, 'hello', ..., col-n)
 
 Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
 
+### `ENCODE`
+
+```sql
+ENCODE(col1, input_encoding, output_encoding)
+```
+
+Given a STRING that is encoded as `input_encoding`, encode it using the `output_encoding`. The accepted input and output encodings are:
+`hex`, `utf8`, `ascii`, and `base64`. Throws an exception if the provided encodings are not supported.
+
+For example, to encode a string in `hex` to `utf8`, use `ENCODE(string, 'hex', 'utf8')`.
 ### `EXTRACTJSONFIELD`
 
 ```sql

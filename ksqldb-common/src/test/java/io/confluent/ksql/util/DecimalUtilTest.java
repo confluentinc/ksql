@@ -88,10 +88,10 @@ public class DecimalUtilTest {
   @Test
   public void shouldExtractPrecisionFromZeroValue() {
     // When:
-    final SqlType precision = DecimalUtil.fromValue(BigDecimal.ZERO.setScale(2));
+    final SqlType zeroDecimal = DecimalUtil.fromValue(BigDecimal.ZERO.setScale(2));
 
     // Then:
-    assertThat(precision, is(3));
+    assertThat(zeroDecimal, is(SqlTypes.decimal(3,2)));
   }
   @Test
   public void shouldCastDecimal() {

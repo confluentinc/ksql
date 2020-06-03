@@ -32,7 +32,7 @@ public class MapUnion {
   @Udf
   public <T> Map<String, T> union(final Map<String, T> input1, final Map<String, T> input2) {
 
-    List<Map<String, T>> nonNullInputs =
+    final List<Map<String, T>> nonNullInputs =
         Stream.of(input1, input2)
         .filter(Objects::nonNull)
         .collect(Collectors.toList());
@@ -40,7 +40,7 @@ public class MapUnion {
       return null;
     }
 
-    Map<String, T> output = new HashMap<>();
+    final Map<String, T> output = new HashMap<>();
     nonNullInputs.stream()
         .forEach(output::putAll);
     return output;

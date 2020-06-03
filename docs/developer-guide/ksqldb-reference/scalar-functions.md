@@ -295,7 +295,7 @@ map_values( map('apple' := 10, 'banana' := 20) )  => [10, 20]
 MAP_UNION(map1, map2)
 ```
 
-Returns a new map containing the union of all entries from both input maps. If a key is present in both input maps then the corresponding value from _map2_ is the one which appears in the output.
+Returns a new map containing the union of all entries from both input maps. If a key is present in both input maps, the corresponding value from _map2_ is returned.
 
 Returns NULL if all of the input maps are NULL.
 

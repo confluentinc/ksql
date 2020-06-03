@@ -16,6 +16,7 @@ package io.confluent.ksql.function.udf.map;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +27,17 @@ import java.util.stream.Stream;
 @UdfDescription(
     name = "map_union",
     description = "Returns a new map containing the union of all entries from both input maps. "
-        + "Returns NULL if all of the input maps are NULL.")
+        + "If a key is present in both input maps then the value from map2 is the one which "
+        + "appears in the result. Returns NULL if all of the input maps are NULL.")
 public class MapUnion {
 
   @Udf
-  public <T> Map<String, T> union(final Map<String, T> input1, final Map<String, T> input2) {
+  public <T> Map<String, T> union(
+      @UdfParameter(description = "first map to union") final Map<String, T> map1,
+      @UdfParameter(description = "second map to union") final Map<String, T> map2) {
 
     final List<Map<String, T>> nonNullInputs =
-        Stream.of(input1, input2)
+        Stream.of(map1, map2)
         .filter(Objects::nonNull)
         .collect(Collectors.toList());
     if (nonNullInputs.size() == 0) {

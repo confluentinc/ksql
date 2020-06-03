@@ -85,11 +85,12 @@ public class PlannedTestsUpToDateTest {
     final Optional<TestCasePlan> latest = TestCasePlanLoader.latestForTestCase(testCase);
     final TestCasePlan current = TestCasePlanLoader.currentForTestCase(testCase);
     assertThat(
-        String.format(
-            "Current query plan differs from latest for: %s. Please re-generate QTT plans."
-                + " See `ksqldb-functional-tests/README.md` for more info.",
-            testCase.getName()
-        ),
+        "Current query plan differs from latest for: " + testCase.getName() + ". "
+            + System.lineSeparator()
+            + "Please re-generate QTT plans by running temporarily commenting out the @Ignore and"
+            + "then running PlannedTestGeneratorTest.manuallyGeneratePlans()."
+            + System.lineSeparator()
+            + "See `ksqldb-functional-tests/README.md` for more info.",
         current, isLatestPlan(latest)
     );
   }

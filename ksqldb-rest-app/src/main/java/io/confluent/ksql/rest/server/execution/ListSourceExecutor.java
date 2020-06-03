@@ -253,12 +253,12 @@ public final class ListSourceExecutor {
             startRequest.put(entry.getKey(), OffsetSpec.earliest());
             endRequest.put(entry.getKey(), OffsetSpec.latest());
           }
-          Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets =
+          final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets =
               serviceContext.getAdminClient()
                   .listOffsets(startRequest)
                   .all()
                   .get();
-          Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets =
+          final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets =
               serviceContext.getAdminClient()
                   .listOffsets(endRequest)
                   .all()

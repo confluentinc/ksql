@@ -279,6 +279,22 @@ CONCAT(col1, col2, 'hello', ..., col-n)
 
 Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
 
+### `CONCAT_WS`
+
+```sql
+CONCAT_WS(separator, expr1, expr2, ...)
+```
+
+Concatenates two or more string expressions, inserting a separator string between each.
+
+If the separator is NULL, this function returns NULL.
+Any expressions which evaluate to NULL are skipped.
+
+Example: 
+```sql
+CONCAT_WS(', ', 'apple', 'banana', NULL, 'date')  ->  'apple, banana, date'
+```
+
 ### `EXTRACTJSONFIELD`
 
 ```sql

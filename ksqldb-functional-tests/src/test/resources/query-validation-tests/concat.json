@@ -1,8 +1,28 @@
 {
   "comments": [
-    "Tests covering the use of the CONCAT function and the '+' operator"
+    "Tests covering the use of the CONCAT & CONCAT_WS functions and the '+' operator"
   ],
   "tests": [
+     {
+      "name": "concat_ws",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, S1 STRING, C1 STRING, C2 STRING, C3 STRING) WITH (kafka_topic='input_topic',value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT ID, CONCAT_WS(S1, C1, C2, C3, NULL, 'literal') AS COMBINED FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"S1": "SEP", "C1": "foo", "C2": "bar", "C3": "baz"}},
+        {"topic": "input_topic", "key": 2, "value": {"S1": "SEP", "C1": "foo", "C2": null, "C3": "baz"}},
+        {"topic": "input_topic", "key": 3, "value": {"S1": "SEP", "C1": null, "C2": null, "C3": null}},
+        {"topic": "input_topic", "key": 4, "value": {"S1": null, "C1": "foo", "C2": "bar", "C3": "baz"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"COMBINED": "fooSEPbarSEPbazSEPliteral"}},
+        {"topic": "OUTPUT", "key": 2, "value": {"COMBINED": "fooSEPbazSEPliteral"}},
+        {"topic": "OUTPUT", "key": 3, "value": {"COMBINED": "literal"}},
+        {"topic": "OUTPUT", "key": 4, "value": {"COMBINED": null}}
+      ]
+    },
     {
       "name": "concat fields using CONCAT",
       "statements": [

@@ -15,10 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -35,7 +31,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -99,83 +94,6 @@ public class ProjectNodeTest {
         SELECTS,
         SCHEMA
     );
-  }
-
-  @Test
-  public void shouldThrowOnValidateIfSchemaHasNoValueColumns() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("bob"), SqlTypes.STRING)
-        .build();
-
-    projectNode = new TestProjectNode(
-        NODE_ID,
-        source,
-        ImmutableList.of(),
-        schema
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        projectNode::validate
-    );
-
-    // Then:
-    assertThat(e.getMessage(), is("The projection contains no value columns."));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfSchemaSizeDoesntMatchProjection() {
-    new TestProjectNode(
-        NODE_ID,
-        source,
-        ImmutableList.of(SELECT_0), // <-- not enough expressions
-        SCHEMA
-    ).validate();
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnValidateIfSchemaSelectNameMismatch() {
-    new TestProjectNode(
-        NODE_ID,
-        source,
-        ImmutableList.of(
-            SelectExpression.of(ColumnName.of("wrongName"), new BooleanLiteral("true")),
-            SELECT_1,
-            SELECT_2
-        ),
-        SCHEMA
-    ).validate();
-  }
-
-  @Test
-  public void shouldThrowOnValidateIfMultipleKeyColumns() {
-    // Given:
-    final LogicalSchema badSchema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("K"), SqlTypes.STRING)
-        .keyColumn(ColumnName.of("SecondKey"), SqlTypes.STRING)
-        .valueColumn(COL_0, SqlTypes.STRING)
-        .valueColumn(COL_1, SqlTypes.STRING)
-        .valueColumn(ALIASED_COL_2, SqlTypes.STRING)
-        .build();
-
-    projectNode = new TestProjectNode(
-        NODE_ID,
-        source,
-        SELECTS,
-        badSchema
-    );
-
-    // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
-        projectNode::validate
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("The projection contains the key column "
-        + "more than once: `K` and `SecondKey`."));
   }
 
   @Test

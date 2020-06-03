@@ -84,7 +84,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
       throw new IllegalArgumentException("Schema contains system columns in value schema");
     }
 
-    if (schema.key().size() != 1) {
+    if (schema.key().size() > 1) {
       throw new UnsupportedOperationException("Only single key columns supported. "
           + "Got: " + schema.key() + " (" + schema.key().size() + ")");
     }

@@ -52,7 +52,7 @@ public class TableRowsEntityTest {
     MAPPER = new ObjectMapper();
     MAPPER.registerModule(new Jdk8Module());
     MAPPER.registerModule(new KsqlTypesSerializationModule());
-    MAPPER.registerModule(new KsqlTypesDeserializationModule(false));
+    MAPPER.registerModule(new KsqlTypesDeserializationModule());
   }
 
   @Test(expected = IllegalArgumentException.class)

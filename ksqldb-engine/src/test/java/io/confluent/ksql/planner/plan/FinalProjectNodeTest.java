@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -51,8 +52,13 @@ public class FinalProjectNodeTest {
 
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
   private static final SourceName SOURCE_NAME = SourceName.of("Bob");
+  private static final ColumnName K = ColumnName.of("K");
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName ALIAS = ColumnName.of("GRACE");
+  private static final ColumnName ALIAS2 = ColumnName.of("PETER");
+
+  private static final UnqualifiedColumnReferenceExp K_REF =
+      new UnqualifiedColumnReferenceExp(K);
 
   private static final UnqualifiedColumnReferenceExp COL0_REF =
       new UnqualifiedColumnReferenceExp(COL0);
@@ -70,9 +76,10 @@ public class FinalProjectNodeTest {
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(source.resolveSelect(anyInt(), any())).thenAnswer(inv -> inv.getArgument(1));
     when(source.getSchema()).thenReturn(LogicalSchema.builder()
-        .keyColumn(ColumnName.of("K"), SqlTypes.STRING)
+        .keyColumn(K, SqlTypes.STRING)
         .valueColumn(COL0, SqlTypes.STRING)
         .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(K, SqlTypes.STRING)
         .build());
 
     selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
@@ -141,5 +148,51 @@ public class FinalProjectNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Column 'ROWKEY' cannot be resolved."));
+  }
+
+  @Test
+  public void shouldThrowOnValidateIfSchemaHasNoValueColumns() {
+    // Given:
+    selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(ALIAS)));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> new FinalProjectNode(
+            NODE_ID,
+            source,
+            selects,
+            true,
+            functionRegistry
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("The projection contains no value columns."));
+  }
+
+  @Test
+  public void shouldThrowOnValidateIfMultipleKeyColumns() {
+    // Given:
+    selects = ImmutableList.of(
+        new SingleColumn(K_REF, Optional.of(ALIAS)),
+        new SingleColumn(K_REF, Optional.of(ALIAS2))
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new FinalProjectNode(
+            NODE_ID,
+            source,
+            selects,
+            true,
+            functionRegistry
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The projection contains the key column "
+        + "more than once: `GRACE` and `PETER`."));
   }
 }

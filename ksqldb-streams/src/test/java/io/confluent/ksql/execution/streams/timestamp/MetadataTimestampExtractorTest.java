@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.GenericRow;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,6 +29,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MetadataTimestampExtractorTest {
+
   @Mock
   private TimestampExtractor timestampExtractor;
   @Mock
@@ -56,6 +58,7 @@ public class MetadataTimestampExtractorTest {
   @Test(expected = UnsupportedOperationException.class)
   public void shouldThrowUnsupportedExceptionOnExtractGenericRow() {
     // when/Then
-    new MetadataTimestampExtractor(timestampExtractor).extract(mock(GenericRow.class));
+    new MetadataTimestampExtractor(timestampExtractor)
+        .extract(mock(Struct.class), mock(GenericRow.class));
   }
 }

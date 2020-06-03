@@ -17,21 +17,16 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.services.KafkaTopicClient;
-import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-public abstract class OutputNode
-    extends PlanNode {
+public abstract class OutputNode extends SingleSourcePlanNode {
 
-  private final PlanNode source;
   private final OptionalInt limit;
   private final Optional<TimestampColumn> timestampColumn;
   private final LogicalSchema schema;
@@ -43,10 +38,9 @@ public abstract class OutputNode
       final OptionalInt limit,
       final Optional<TimestampColumn> timestampColumn
   ) {
-    super(id, source.getNodeOutputType(), source.getSourceName());
+    super(id, source.getNodeOutputType(), source.getSourceName(), source);
 
     this.schema = requireNonNull(schema, "schema");
-    this.source = requireNonNull(source, "source");
     this.limit = requireNonNull(limit, "limit");
     this.timestampColumn =
         requireNonNull(timestampColumn, "timestampColumn");
@@ -57,22 +51,8 @@ public abstract class OutputNode
     return schema;
   }
 
-  @Override
-  public List<PlanNode> getSources() {
-    return ImmutableList.of(source);
-  }
-
   public OptionalInt getLimit() {
     return limit;
-  }
-
-  public PlanNode getSource() {
-    return source;
-  }
-
-  @Override
-  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
-    return source.getPartitions(kafkaTopicClient);
   }
 
   public Optional<TimestampColumn> getTimestampColumn() {

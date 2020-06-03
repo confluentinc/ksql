@@ -15,6 +15,13 @@
         "ID" : 1,
         "F0" : 2
       }
+    },{
+      "topic" : "input",
+      "key" : "foo",
+      "value" : {
+        "ID" : 2,
+        "F0" : 4
+      }
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
@@ -22,6 +29,13 @@
       "value" : {
         "ID" : 1,
         "F0" : 2
+      }
+    },{
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "ID" : 2,
+        "F0" : 4
       }
     } ],
     "topics" : [ {

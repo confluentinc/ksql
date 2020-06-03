@@ -894,10 +894,12 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input", "key": null, "value": {"ID": 1, "F0": 2}}
+        {"topic": "input", "key": null, "value": {"ID": 1, "F0": 2}},
+        {"topic": "input", "key": "foo", "value": {"ID": 2, "F0": 4}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": null, "value": {"ID": 1, "F0": 2}}
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 1, "F0": 2}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 2, "F0": 4}}
       ],
       "post": {
         "sources": [

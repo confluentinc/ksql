@@ -2,7 +2,7 @@
 
 **Author**: @big-andy-coates | 
 **Release Target**: 0.10.0 | 
-**Status**: In Discussion | 
+**Status**: Merged | 
 **Discussion**: [Github PR](https://github.com/confluentinc/ksql/pull/5530)
 
 **tl;dr:** Up until now ksqlDB has added an implicit `ROWKEY STRING (PRIMARY) KEY` to a `CREATE TABLE`

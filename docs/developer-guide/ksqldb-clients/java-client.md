@@ -318,8 +318,8 @@ client.terminatePushQuery(queryId).get();
 And here's an analogous example for terminating a push query issued by using the `executeQuery()` method:
 
 ```java
-String pullQuery = "SELECT * FROM MY_STREAM EMIT CHANGES LIMIT 10;";
-BatchedQueryResult batchedQueryResult = client.executeQuery(pullQuery);
+String pushQuery = "SELECT * FROM MY_STREAM EMIT CHANGES LIMIT 10;";
+BatchedQueryResult batchedQueryResult = client.executeQuery(pushQuery);
 
 String queryId = batchedQueryResult.queryID().get();
 client.terminatePushQuery(queryId).get();
@@ -450,8 +450,8 @@ the ksqlDB CLI is used to issue [pull queries against materialized views](../../
 containing information about customer calls to a call center. Here's a similar set of queries using the Java client for ksqlDB:
 
 ```java
-String sql1 = "SELECT name, total_calls, minutes_engaged FROM lifetime_view WHERE ROWKEY = 'derek';";
-String sql2 = "SELECT name, total_calls, minutes_engaged FROM lifetime_view WHERE ROWKEY = 'michael';";
+String sql1 = "SELECT name, total_calls, minutes_engaged FROM lifetime_view WHERE name = 'derek';";
+String sql2 = "SELECT name, total_calls, minutes_engaged FROM lifetime_view WHERE name = 'michael';";
 
 // Execute two pull queries and compare the results
 client.executeQuery(sql1).thenCombine(

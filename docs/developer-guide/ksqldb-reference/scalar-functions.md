@@ -380,6 +380,25 @@ LEN(col1)
 
 The length of a string.
 
+### `LPAD`
+
+```sql
+LPAD(input, length, padding)
+```
+
+Pads the input string, beginning from the left, with the specified padding string, until the target length is reached. 
+If the input string is longer than the specified target length, it is truncated.
+
+If the padding string is empty or NULL, or the target length is negative, NULL is returned.
+
+Examples:
+```sql
+LPAD('Foo', 7, 'Bar')  =>  'BarBFoo'
+LPAD('Foo', 2, 'Bar')  =>  'Fo'
+LPAD('', 2, 'Bar')  =>  'Ba'
+LPAD('123', 5, '0')  => '00123'
+```
+
 ### `MASK`
 
 ```sql
@@ -518,6 +537,23 @@ NULL value is returned.
 If the regular expression is found at the beginning or end
 of the string, or there are contiguous matches,
 then an empty element is added to the array.
+
+### `RPAD`
+
+```sql
+RPAD(input, length, padding)
+```
+
+Pads the input string, starting from the end, with the specified padding string until the target length is reached. If the input string is longer than the specified target length it will be truncated. 
+
+If the padding string is empty or NULL, or the target length is negative, then NULL is returned.
+
+Examples:
+```sql
+RPAD('Foo', 7, 'Bar')  =>  'FooBarB'
+RPAD('Foo', 2, 'Bar')  =>  'Fo'
+RPAD('', 2, 'Bar')  =>  'Ba'
+```
 
 ### `SPLIT`
 

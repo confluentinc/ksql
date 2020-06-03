@@ -7,7 +7,7 @@
       "name": "concat fields using CONCAT",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ID, CONCAT('prefix-', CONCAT(source, '-postfix')) AS THING FROM TEST;"
+        "CREATE STREAM OUTPUT AS SELECT ID, CONCAT('prefix-', source, '-postfix') AS THING FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "s1"}},

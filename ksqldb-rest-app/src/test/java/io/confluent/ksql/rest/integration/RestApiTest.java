@@ -204,6 +204,11 @@ public class RestApiTest {
     // Then:
     assertThat(messages, hasSize(HEADER + LIMIT));
     assertValidJsonMessages(messages);
+    assertThat(messages.get(0), is("["
+        + "{\"name\":\"PAGEID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+        + "{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+        + "{\"name\":\"VIEWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+        + "]"));
   }
 
   @Test
@@ -218,6 +223,11 @@ public class RestApiTest {
     // Then:
     assertThat(messages, hasSize(HEADER + LIMIT));
     assertValidJsonMessages(messages);
+    assertThat(messages.get(0), is("["
+        + "{\"name\":\"PAGEID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+        + "{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+        + "{\"name\":\"VIEWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+        + "]"));
   }
 
   @Test

@@ -39,7 +39,8 @@ public class LoggingTimestampExtractorTest {
 
   private static final long PREVIOUS_TS = 1001L;
 
-  private static final GenericRow ROW = GenericRow.fromList(ImmutableList.of(1, 2, 3));
+  private static final Object KEY = "key-data";
+  private static final GenericRow VALUE = GenericRow.fromList(ImmutableList.of(1, 2, 3));
 
   @Mock
   private ProcessingLogger logger;
@@ -49,7 +50,8 @@ public class LoggingTimestampExtractorTest {
 
   @Before
   public void setUp() {
-    when(record.value()).thenReturn(ROW);
+    when(record.key()).thenReturn(KEY);
+    when(record.value()).thenReturn(VALUE);
   }
 
   @Test
@@ -57,7 +59,7 @@ public class LoggingTimestampExtractorTest {
     // Given:
     final KsqlException e = new KsqlException("foo");
     final LoggingTimestampExtractor extractor = new LoggingTimestampExtractor(
-        (rec) -> {
+        (k, v) -> {
           throw e;
         },
         logger,
@@ -65,11 +67,12 @@ public class LoggingTimestampExtractorTest {
     );
 
     // When:
-    final long result = extractor.extract(ROW);
+    final long result = extractor.extract(KEY, VALUE);
 
     // Then (did not throw):
     verify(logger).error(RecordProcessingError
-        .recordProcessingError("Failed to extract timestamp from row", e, ROW::toString));
+        .recordProcessingError("Failed to extract timestamp from row", e,
+            () -> "key:" + KEY + ", value:" + VALUE));
 
     assertThat(result, is(-1L));
   }
@@ -78,7 +81,7 @@ public class LoggingTimestampExtractorTest {
   public void shouldLogExceptionsAndFailOnExtractFromRow() {
     // Given:
     final LoggingTimestampExtractor extractor = new LoggingTimestampExtractor(
-        (rec) -> {
+        (k, v) -> {
           throw new KsqlException("foo");
         },
         logger,
@@ -88,7 +91,7 @@ public class LoggingTimestampExtractorTest {
     // When/Then:
     assertThrows(
         KsqlException.class,
-        () -> extractor.extract(ROW)
+        () -> extractor.extract(KEY, VALUE)
     );
 
     verify(logger).error(any());
@@ -99,7 +102,7 @@ public class LoggingTimestampExtractorTest {
     // Given:
     final KsqlException e = new KsqlException("foo");
     final LoggingTimestampExtractor extractor = new LoggingTimestampExtractor(
-        (rec) -> {
+        (k, v) -> {
           throw e;
         },
         logger,
@@ -111,7 +114,8 @@ public class LoggingTimestampExtractorTest {
 
     // Then (did not throw):
     verify(logger).error(RecordProcessingError
-        .recordProcessingError("Failed to extract timestamp from row", e, ROW::toString));
+        .recordProcessingError("Failed to extract timestamp from row", e,
+            () -> "key:" + KEY + ", value:" + VALUE));
 
     assertThat(result, is(-1L));
   }
@@ -120,7 +124,7 @@ public class LoggingTimestampExtractorTest {
   public void shouldLogExceptionsAndFailOnExtractFromRecord() {
     // Given:
     final LoggingTimestampExtractor extractor = new LoggingTimestampExtractor(
-        (rec) -> {
+        (k, v) -> {
           throw new KsqlException("foo");
         },
         logger,
@@ -137,13 +141,14 @@ public class LoggingTimestampExtractorTest {
   }
 
   @Test
-  public void shouldLogExceptionsAndNotFailOnExtractFromRecordWithNullValue() {
+  public void shouldLogExceptionsAndNotFailOnExtractFromRecordWithNullKeyAndValue() {
     // Given:
+    when(record.key()).thenReturn(null);
     when(record.value()).thenReturn(null);
 
     final KsqlException e = new KsqlException("foo");
     final LoggingTimestampExtractor extractor = new LoggingTimestampExtractor(
-        (rec) -> {
+        (k, v) -> {
           throw e;
         },
         logger,
@@ -155,7 +160,8 @@ public class LoggingTimestampExtractorTest {
 
     // Then (did not throw):
     verify(logger).error(RecordProcessingError
-        .recordProcessingError("Failed to extract timestamp from row", e, () -> "null"));
+        .recordProcessingError("Failed to extract timestamp from row", e,
+            () -> "key:null, value:null"));
 
     assertThat(result, is(-1L));
   }

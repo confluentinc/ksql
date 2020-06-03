@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFa
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Optional;
@@ -104,9 +103,8 @@ public final class SinkBuilder {
 
     return timestampColumn
         .map(TimestampColumn::getColumn)
-        .map(c -> sourceSchema.findValueColumn(c).orElseThrow(IllegalStateException::new))
-        .map(Column::index)
-        .map(timestampPolicy::create)
+        .map(c -> sourceSchema.findColumn(c).orElseThrow(IllegalStateException::new))
+        .map(c -> timestampPolicy.create(Optional.of(c)))
         .map(te -> new TransformTimestamp<>(te, queryBuilder.getProcessingLogger(queryContext)));
   }
 
@@ -139,7 +137,7 @@ public final class SinkBuilder {
             processorContext.forward(
                 key,
                 row,
-                To.all().withTimestamp(timestampExtractor.extract(row))
+                To.all().withTimestamp(timestampExtractor.extract(key, row))
             );
           } catch (final Exception e) {
             processingLogger.error(RecordProcessingError

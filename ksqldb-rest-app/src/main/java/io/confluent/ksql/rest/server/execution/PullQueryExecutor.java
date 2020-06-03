@@ -35,6 +35,7 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.context.QueryLoggerUtil.QueryType;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -896,8 +897,8 @@ public final class PullQueryExecutor {
         .getProcessingLogContext()
         .getLoggerFactory()
         .getLogger(
-            QueryLoggerUtil
-                .queryLoggerName(queryId, contextStacker.push("PROJECT").getQueryContext())
+            QueryLoggerUtil.queryLoggerName(
+                QueryType.PULL_QUERY, contextStacker.push("PROJECT").getQueryContext())
         );
 
     final KsqlTransformer<Object, GenericRow> transformer = select

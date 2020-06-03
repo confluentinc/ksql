@@ -91,6 +91,8 @@ public class SinkBuilderTest {
   @Mock
   private QueryContext queryContext;
   @Mock
+  private Struct key;
+  @Mock
   private GenericRow row;
   @Mock
   private ProcessorContext processorContext;
@@ -186,19 +188,19 @@ public class SinkBuilderTest {
     final long timestampColumnValue = 10001;
     final KsqlTimestampExtractor timestampExtractor
         = mock(KsqlTimestampExtractor.class);
-    when(timestampExtractor.extract(any())).thenReturn(timestampColumnValue);
+    when(timestampExtractor.extract(any(), any())).thenReturn(timestampColumnValue);
 
     // When
-    final Transformer<String, GenericRow, KeyValue<String, GenericRow>> transformer =
+    final Transformer<Struct, GenericRow, KeyValue<Struct, GenericRow>> transformer =
         getTransformer(timestampExtractor, processingLogger);
     transformer.init(processorContext);
-    final KeyValue<String, GenericRow> kv = transformer.transform("key", row);
+    final KeyValue<Struct, GenericRow> kv = transformer.transform(key, row);
 
     // Then
     assertNull(kv);
-    verify(timestampExtractor).extract(row);
+    verify(timestampExtractor).extract(key, row);
     verify(processorContext, Mockito.times(1))
-        .forward(eq("key"), eq(row), toCaptor.capture());
+        .forward(eq(key), eq(row), toCaptor.capture());
     assertTrue(toCaptor.getValue().equals(To.all().withTimestamp(timestampColumnValue)));
     verifyZeroInteractions(processingLogger);
   }
@@ -209,22 +211,22 @@ public class SinkBuilderTest {
     final long timestampColumnValue = 10001;
     final KsqlTimestampExtractor timestampExtractor
         = mock(KsqlTimestampExtractor.class);
-    when(timestampExtractor.extract(any())).thenReturn(timestampColumnValue);
+    when(timestampExtractor.extract(any(), any())).thenReturn(timestampColumnValue);
     doThrow(KsqlException.class)
         .when(processorContext)
         .forward(any(), any(), any(To.class));
 
     // When
-    final Transformer<String, GenericRow, KeyValue<String, GenericRow>> transformer =
+    final Transformer<Struct, GenericRow, KeyValue<Struct, GenericRow>> transformer =
         getTransformer(timestampExtractor, processingLogger);
     transformer.init(processorContext);
-    final KeyValue<String, GenericRow> kv = transformer.transform("key", row);
+    final KeyValue<Struct, GenericRow> kv = transformer.transform(key, row);
 
     // Then
     assertNull(kv);
-    verify(timestampExtractor).extract(row);
+    verify(timestampExtractor).extract(key, row);
     verify(processorContext, Mockito.times(1))
-        .forward(eq("key"), eq(row), toCaptor.capture());
+        .forward(eq(key), eq(row), toCaptor.capture());
     verify(processingLogger, Mockito.times(1)).error(any());
   }
 
@@ -233,17 +235,17 @@ public class SinkBuilderTest {
     // Given
     final KsqlTimestampExtractor timestampExtractor
         = mock(KsqlTimestampExtractor.class);
-    doThrow(KsqlException.class).when(timestampExtractor).extract(row);
+    doThrow(KsqlException.class).when(timestampExtractor).extract(key, row);
 
     // When
-    final Transformer<String, GenericRow, KeyValue<String, GenericRow>> transformer =
+    final Transformer<Struct, GenericRow, KeyValue<Struct, GenericRow>> transformer =
         getTransformer(timestampExtractor, processingLogger);
     transformer.init(processorContext);
-    final KeyValue<String, GenericRow> kv = transformer.transform("key", row);
+    final KeyValue<Struct, GenericRow> kv = transformer.transform(key, row);
 
     // Then
     assertNull(kv);
-    verify(timestampExtractor).extract(row);
+    verify(timestampExtractor).extract(key, row);
     verify(processingLogger, Mockito.times(1)).error(any());
     verifyZeroInteractions(processorContext);
   }
@@ -287,10 +289,10 @@ public class SinkBuilderTest {
     );
   }
 
-  private Transformer<String, GenericRow, KeyValue<String, GenericRow>> getTransformer(
+  private static Transformer<Struct, GenericRow, KeyValue<Struct, GenericRow>> getTransformer(
       final KsqlTimestampExtractor timestampExtractor,
       final ProcessingLogger processingLogger
   ) {
-    return new SinkBuilder.TransformTimestamp<String>(timestampExtractor, processingLogger).get();
+    return new SinkBuilder.TransformTimestamp<Struct>(timestampExtractor, processingLogger).get();
   }
 }

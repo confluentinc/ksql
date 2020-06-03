@@ -1,0 +1,77 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1591200264332,
+  "path" : "query-validation-tests/timestamp-extractor.json",
+  "schemas" : {
+    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_TS_0.TS" : "STRUCT<ID BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "source key timestamp column",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1271678417736,
+      "value" : {
+        "ID" : 1
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1271678413736,
+      "value" : {
+        "ID" : 2
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TS",
+      "key" : 1271678417736,
+      "value" : {
+        "ID" : 1
+      },
+      "timestamp" : 1271678417736
+    }, {
+      "topic" : "TS",
+      "key" : 1271678413736,
+      "value" : {
+        "ID" : 2
+      },
+      "timestamp" : 1271678413736
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TS",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K BIGINT KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='K');", "CREATE STREAM TS AS SELECT * FROM test;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "TS",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

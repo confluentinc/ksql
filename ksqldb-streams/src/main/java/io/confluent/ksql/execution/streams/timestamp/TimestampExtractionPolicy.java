@@ -22,6 +22,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
+import java.util.Optional;
 
 @Immutable
 @JsonTypeInfo(
@@ -36,14 +38,14 @@ import io.confluent.ksql.name.ColumnName;
 public interface TimestampExtractionPolicy {
 
   default KsqlTimestampExtractor create(
-      final int columnIndex,
+      final Optional<Column> tsColumn,
       final boolean throwOnInvalid,
       final ProcessingLogger logger
   ) {
-    return new LoggingTimestampExtractor(create(columnIndex), logger, throwOnInvalid);
+    return new LoggingTimestampExtractor(create(tsColumn), logger, throwOnInvalid);
   }
 
-  KsqlTimestampExtractor create(int columnIndex);
+  KsqlTimestampExtractor create(Optional<Column> tsColumn);
 
   default ColumnName getTimestampField() {
     return null;

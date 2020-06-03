@@ -54,7 +54,7 @@ public final class TimestampExtractionPolicyFactory {
     final ColumnName col = timestampColumn.get().getColumn();
     final Optional<String> timestampFormat = timestampColumn.get().getFormat();
 
-    final Column column = schema.findValueColumn(col)
+    final Column column = schema.findColumn(col)
         .orElseThrow(() -> new KsqlException(
             "The TIMESTAMP column set in the WITH clause does not exist in the schema: '"
                 + col.toString(FormatOptions.noEscape()) + "'"));

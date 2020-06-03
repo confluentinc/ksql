@@ -6,9 +6,9 @@
 **Discussion**: [Github PR](https://github.com/confluentinc/ksql/pull/5530)
 
 **tl;dr:** Up until now ksqlDB has added an implicit `ROWKEY STRING (PRIMARY) KEY` to a `CREATE TABLE`
-or `CREATE STREAM` statement that does not itself explicitly define a key column. This KLIP proposes
+or `CREATE STREAM` statement that does not explicitly define a key column. This KLIP proposes
 removing this implicit column creation and instead requiring tables to define their PRIMARY KEY, and
-changing `CREATE STREAM` to create a stream without a KEY column, should not be defined.
+changing `CREATE STREAM` to create a stream without a KEY column, should none be defined.
 
 ## Motivation and background
 
@@ -71,7 +71,7 @@ Statements with a `PRIMARY KEY` column will continue to work as before.
 Where schema inference is used, the error message will include an example of how to define a partial
 schema to add the primary key:
 
-```ql
+```sql
 ksql> CREATE TABLE INPUT WITH (value_foramt='Avro', ...);
 Tables require a PRIMARY KEY. Please define the PRIMARY KEY.
 You can define just the primary key and still load the value columns from the Schema registry, for example:
@@ -94,7 +94,7 @@ Statements with a `KEY` column will continue to work as before.
 
 This is mainly a syntax only change, as detailed about. 
 
-Streams with out a key column will work just like any other stream. However, `GROUP BY`, `PARTITION BY`
+Streams without a key column will work just like any other stream. However, `GROUP BY`, `PARTITION BY`
 and `JOIN`s will _always_ result in a repartition, as the grouping, partitioning or joining expression
 can never be the key column.
 
@@ -117,10 +117,10 @@ Release notes to call out this change in behaviour.
 
 ## Compatibility Implications
 
-CREATE Statements submitted on previous versions of ksqlDB will continue to work as expected.
+CREATE statements submitted on previous versions of ksqlDB will continue to work as expected.
 
 Users submitting previously written statements may see `CREATE TABLE` statements that previously ran,
-now fail, and see `CREATE STREAM` statements create streams without a `ROwKEY STRING KEY` column. 
+now fail, and see `CREATE STREAM` statements create streams without a `ROWKEY STRING KEY` column. 
 
 Users receiving an error when their `CREATE TABLE` statements fail will need to update their statements
 to include a suitable `PRIMARY KEY` column.  Where the statement already contains the column set, the 

@@ -305,7 +305,7 @@ by using either the [`streamQuery()`](./stream-query.md) or [`executeQuery()`](.
 
 ### Example Usage ###
 
-Here's an example of terminating a push query issued using the `streamQuery()` method:
+Here's an example of terminating a push query issued by using the `streamQuery()` method:
 
 ```java
 String pushQuery = "SELECT * FROM MY_STREAM EMIT CHANGES;";
@@ -315,7 +315,7 @@ String queryId = streamedQueryResult.queryID();
 client.terminatePushQuery(queryId).get();
 ```
 
-And here's an analogous example for terminating a push query issued using the `executeQuery()` method:
+And here's an analogous example for terminating a push query issued by using the `executeQuery()` method:
 
 ```java
 String pullQuery = "SELECT * FROM MY_STREAM EMIT CHANGES LIMIT 10;";

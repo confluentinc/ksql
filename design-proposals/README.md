@@ -69,4 +69,6 @@ Next KLIP number: **28**
 | [KLIP-26: Java client interfaces](klip-26-java-client-interfaces.md)               | Proposal       | N/A     |
 | KLIP-27: Enhanced UDF Configuration Options                                        | Proposal       | N/A     |
 | KLIP-28: Introduce 'CREATE OR REPLACE' for Query Upgrades                          | Proposal       | N/A     |
+| KLIP-29: Explicit Table Primary Keys and Key-less Streams                          | Proposal [Discussion](https://github.com/confluentinc/ksql/pull/5530)       | N/A     |
+
 

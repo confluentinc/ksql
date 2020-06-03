@@ -376,7 +376,7 @@ The length of a string.
 LPAD(input, length, padding)
 ```
 
-Pads the input string, beginning from the left, with the specified padding string until the target length is reached. 
+Pads the input string, beginning from the left, with the specified padding string, until the target length is reached. 
 If the input string is longer than the specified target length it will be truncated.
 
 If the padding string is empty or NULL, or the target length is negative, then NULL is returned.

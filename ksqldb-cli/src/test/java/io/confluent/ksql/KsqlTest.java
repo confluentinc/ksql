@@ -73,6 +73,27 @@ public class KsqlTest {
   }
 
   @Test
+  public void shouldRunInteractively() {
+    // When:
+    ksql.run();
+
+    // Then:
+    verify(cli).runInteractively();
+  }
+
+  @Test
+  public void shouldRunNonInteractiveCommandWhenExecuteOptionIsUsed() {
+    // Given:
+    when(options.getExecute()).thenReturn("this is a command");
+
+    // When:
+    ksql.run();
+
+    // Then:
+    verify(cli).runCommand("this is a command");
+  }
+
+  @Test
   public void shouldBuildClientWithCorrectServerAddress() {
     // Given:
     when(options.getServer()).thenReturn("in a galaxy far far away");

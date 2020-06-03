@@ -112,7 +112,11 @@ public final class Ksql {
           options.getOutputFormat(),
           restClient)
       ) {
-        cli.runInteractively();
+        if (options.getExecute() != null) {
+          cli.runCommand(options.getExecute());
+        } else {
+          cli.runInteractively();
+        }
       }
     }
   }

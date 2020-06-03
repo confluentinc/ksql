@@ -1566,7 +1566,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of()), any());
@@ -1580,7 +1580,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg1")), any());
@@ -1594,7 +1594,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
@@ -1608,7 +1608,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
@@ -1622,7 +1622,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1636,7 +1636,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1650,7 +1650,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1664,7 +1664,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand, never()).execute(any(), any());
@@ -1678,7 +1678,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    final String result = console.readLine();
+    final String result = console.nextNonCliCommand();
 
     // Then:
     assertThat(result, is("not a CLI command;"));
@@ -1692,7 +1692,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    final String result = console.readLine();
+    final String result = console.nextNonCliCommand();
 
     // Then:
     assertThat(result, is("not a CLI command;"));

@@ -285,10 +285,10 @@ Concatenate two or more strings.
 ENCODE(col1, input_encoding, output_encoding)
 ```
 
-Given a STRING that is encoded as input_encoding, encode it using the output_encoding. The accepted input and output encodings are:
-hex, utf8, ascii and base64. Throws exception if provided encodings are not supported.
+Given a STRING that is encoded as `input_encoding`, encode it using the `output_encoding`. The accepted input and output encodings are:
+`hex`, `utf8`, `ascii`, and `base64`. Throws an exception if the provided encodings are not supported.
 
-For example, to encode a string in hex to utf8 use `ENCODE(string, 'hex', 'utf8')` 
+For example, to encode a string in `hex` to `utf8`, use `ENCODE(string, 'hex', 'utf8')`.
 ### `EXTRACTJSONFIELD`
 
 ```sql

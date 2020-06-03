@@ -20,9 +20,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Iterator;
 import java.util.List;
@@ -77,23 +75,14 @@ public final class TableElements implements Iterable<TableElement> {
   }
 
   /**
-   * @param withImplicitColumns controls if schema has implicit columns such as ROWTIME or ROWKEY.
    * @return the logical schema.
    */
-  public LogicalSchema toLogicalSchema(final boolean withImplicitColumns) {
+  public LogicalSchema toLogicalSchema() {
     if (elements.isEmpty()) {
       throw new KsqlException("No columns supplied.");
     }
 
     final Builder builder = LogicalSchema.builder();
-
-    if (withImplicitColumns) {
-
-      final boolean noKey = elements.stream().noneMatch(e -> e.getNamespace().isKey());
-      if (noKey) {
-        builder.keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
-      }
-    }
 
     for (final TableElement tableElement : this) {
       final ColumnName fieldName = tableElement.getName();

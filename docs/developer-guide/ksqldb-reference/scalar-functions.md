@@ -274,10 +274,10 @@ include both endpoints.
 ### `CONCAT`
 
 ```sql
-CONCAT(col1, '_hello')
+CONCAT(col1, col2, 'hello', ..., col-n)
 ```
 
-Concatenate two or more strings.
+Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
 
 ### `EXTRACTJSONFIELD`
 
@@ -463,7 +463,7 @@ the entire substring is returned by default.
 For example, `REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2)`
 returns "there".
 
-### REGEXP_EXTRACT_ALL
+### `REGEXP_EXTRACT_ALL`
 
 ```sql
 REGEXP_EXTRACT_ALL('.*', col1)
@@ -480,6 +480,34 @@ the entire substring is returned by default.
 
 For example, `REGEXP_EXTRACT("(\\w+) (\\w+)", 'hello there nice day', 2)`
 returns `['there', 'day']`.
+
+### `REGEXP_REPLACE`
+
+```sql
+REGEXP_REPLACE(col1, 'a.b+', 'bar')
+```
+
+Replace all matches of a regex in an input string with a new string.
+If either the input string, regular expression, or new string is null,
+the result is null.
+
+### `REGEXP_SPLIT_TO_ARRAY`
+
+```sql
+REGEXP_SPLIT_TO_ARRAY(col1, 'a.b+')
+```
+
+Splits a string into an array of substrings based
+on a regular expression. If there is no match,
+the original string is returned as the only
+element in the array. If the regular expression is empty,
+then all characters in the string are split.
+If either the string or the regular expression is `NULL`, a
+NULL value is returned.
+
+If the regular expression is found at the beginning or end
+of the string, or there are contiguous matches,
+then an empty element is added to the array.
 
 ### `SPLIT`
 

@@ -65,7 +65,6 @@ import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -261,18 +260,10 @@ public class LogicalPlanner {
       final String id,
       final SourceName sourceAlias
   ) {
-    final List<SelectExpression> projection = selectWithPrependAlias(
-        sourceAlias,
-        parent.getSchema()
-    );
-
-    final LogicalSchema schema = buildJoinSourceSchema(sourceAlias, parent.getSchema());
-
     return new PreJoinProjectNode(
         new PlanNodeId(id),
         parent,
-        projection,
-        schema
+        sourceAlias
     );
   }
 
@@ -381,26 +372,6 @@ public class LogicalPlanner {
     }
 
     return buildInternalRepartitionNode(joinedSource, side, joinExpression, refRewriter::process);
-  }
-
-  private static LogicalSchema buildJoinSourceSchema(
-      final SourceName alias,
-      final LogicalSchema parentSchema
-  ) {
-    final Builder builder = LogicalSchema.builder();
-
-    parentSchema.columns()
-        .forEach(c -> {
-          final ColumnName aliasedName = ColumnNames.generatedJoinColumnAlias(alias, c.name());
-
-          if (c.namespace() == Namespace.KEY) {
-            builder.keyColumn(aliasedName, c.type());
-          } else {
-            builder.valueColumn(aliasedName, c.type());
-          }
-        });
-
-    return builder.build();
   }
 
   private PlanNode buildSourceNode() {
@@ -594,17 +565,6 @@ public class LogicalPlanner {
         partitionBy,
         functionRegistry
     );
-  }
-
-  private static List<SelectExpression> selectWithPrependAlias(
-      final SourceName alias,
-      final LogicalSchema schema
-  ) {
-    return schema.value().stream()
-        .map(c -> SelectExpression.of(
-            ColumnNames.generatedJoinColumnAlias(alias, c.name()),
-            new UnqualifiedColumnReferenceExp(c.name()))
-        ).collect(Collectors.toList());
   }
 
   private static final class ColumnReferenceRewriter

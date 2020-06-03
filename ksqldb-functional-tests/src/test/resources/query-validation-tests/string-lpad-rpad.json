@@ -1,0 +1,67 @@
+{
+  "comments": [
+    "Tests covering usage of the Lpad and RPad string functions."
+  ],
+  "tests": [
+    {
+      "name": "LPad with all args from record",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, subject STRING, len INT, padding STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, lpad(subject, len, padding) as result FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"subject": "foo", "len": 7, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r2", "value": {"subject": "foo", "len": 5, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r3", "value": {"subject": "foo", "len": 2, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r4", "value": {"subject": "foo", "len": -1, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r5", "value": {"subject": "foo", "len": 5, "padding": null}},
+        {"topic": "test_topic", "key": "r6", "value": {"subject": "foo", "len": null, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r7", "value": {"subject": null, "len": -5, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r8", "value": {"subject": "foo", "len": 7, "padding": ""}},
+        {"topic": "test_topic", "key": "r9", "value": {"subject": "", "len": 7, "padding": "Bar"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"RESULT": "BarBfoo"}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"RESULT": "Bafoo"}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"RESULT": "fo"}},
+        {"topic": "OUTPUT", "key": "r4", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r5", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r6", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r7", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r8", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r9", "value": {"RESULT": "BarBarB"}}
+      ]
+    },
+    {
+      "name": "RPad with all args from record",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, subject STRING, len INT, padding STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, rpad(subject, len, padding) as result FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"subject": "foo", "len": 7, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r2", "value": {"subject": "foo", "len": 5, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r3", "value": {"subject": "foo", "len": 2, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r4", "value": {"subject": "foo", "len": -1, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r5", "value": {"subject": "foo", "len": 5, "padding": null}},
+        {"topic": "test_topic", "key": "r6", "value": {"subject": "foo", "len": null, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r7", "value": {"subject": null, "len": -5, "padding": "Bar"}},
+        {"topic": "test_topic", "key": "r8", "value": {"subject": "foo", "len": 7, "padding": ""}},
+        {"topic": "test_topic", "key": "r9", "value": {"subject": "", "len": 7, "padding": "Bar"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"RESULT": "fooBarB"}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"RESULT": "fooBa"}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"RESULT": "fo"}},
+        {"topic": "OUTPUT", "key": "r4", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r5", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r6", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r7", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r8", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r9", "value": {"RESULT": "BarBarB"}}
+      ]
+    }
+ ]
+}

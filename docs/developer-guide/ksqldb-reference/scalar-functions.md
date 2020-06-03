@@ -259,6 +259,52 @@ MAP(key VARCHAR := value, ...)
 
 Construct a map from specific key-value tuples.
 
+### `MAP_KEYS`
+
+```sql
+MAP_KEYS(a_map)
+```
+
+Returns an array that contains all of the keys from the specified map.
+
+Returns NULL if the input map is NULL.
+
+Example:
+```sql
+map_keys( map('apple' := 10, 'banana' := 20) )  => ['apple', 'banana'] 
+```
+
+### `MAP_VALUES`
+
+```sql
+MAP_VALUES(a_map)
+```
+
+Returns an array that contains all of the values from the specified map.
+
+Returns NULL if the input map is NULL.
+
+Example:
+```sql
+map_values( map('apple' := 10, 'banana' := 20) )  => [10, 20] 
+```
+
+### `MAP_UNION`
+
+```sql
+MAP_UNION(map1, map2)
+```
+
+Returns a new map containing the union of all entries from both input maps. If a key is present in both input maps, the corresponding value from _map2_ is returned.
+
+Returns NULL if all of the input maps are NULL.
+
+Example:
+```sql
+map_union( map('apple' := 10, 'banana' := 20), map('cherry' := 99) )  => ['apple': 10, 'banana': 20, 'cherry': 99] 
+
+map_union( map('apple' := 10, 'banana' := 20), map('apple' := 50) )  => ['apple': 50, 'banana': 20] 
+```
 
 ### `SLICE`
 

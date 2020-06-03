@@ -126,6 +126,8 @@
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
         <compile.warnings-flag>-Werror</compile.warnings-flag>
+        <!-- pinned so it contains hotfix -->
+        <kafka.version>6.0.0-beta200522114954-hf-1</kafka.version>
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.28.v20200408</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>

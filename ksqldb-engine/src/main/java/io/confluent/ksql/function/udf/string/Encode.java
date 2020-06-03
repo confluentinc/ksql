@@ -35,24 +35,20 @@ import org.apache.commons.codec.binary.Hex;
 public class Encode {
 
   static ImmutableMap<String, Encoder> ENCODER_MAP = new ImmutableMap.Builder<String, Encoder>()
+      .put("hexascii", new HexToAscii())
+      .put("hexutf8", new HexToUtf8())
+      .put("hexbase64", new HexToBase64())
+      .put("utf8ascii", new Utf8ToAscii())
+      .put("utf8hex", new Utf8ToHex())
+      .put("utf8base64", new Utf8ToBase64())
+      .put("asciiutf8", new AsciiToUtf8())
+      .put("asciihex", new AsciiToHex())
+      .put("asciibase64", new AsciiToBase64())
+      .put("base64ascii", new Base64ToAscii())
+      .put("base64utf8", new Base64ToUtf8())
+      .put("base64hex", new Base64ToHex())
       .build();
-
-
-  static {
-    ENCODER_MAP.put("hexascii", new HexToAscii());
-    ENCODER_MAP.put("hexutf8", new HexToUtf8());
-    ENCODER_MAP.put("hexbase64", new HexToBase64());
-    ENCODER_MAP.put("utf8ascii", new Utf8ToAscii());
-    ENCODER_MAP.put("utf8hex", new Utf8ToHex());
-    ENCODER_MAP.put("utf8base64", new Utf8ToBase64());
-    ENCODER_MAP.put("asciiutf8", new AsciiToUtf8());
-    ENCODER_MAP.put("asciihex", new AsciiToHex());
-    ENCODER_MAP.put("asciibase64", new AsciiToBase64());
-    ENCODER_MAP.put("base64ascii", new Base64ToAscii());
-    ENCODER_MAP.put("base64utf8", new Base64ToUtf8());
-    ENCODER_MAP.put("base64hex", new Base64ToHex());
-  }
-
+  
   @Udf(description = "Returns a new string encoded using the outputEncoding ")
   public String encode(
       @UdfParameter(

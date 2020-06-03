@@ -303,7 +303,7 @@ public final class QueryExecutor {
       final QueryId queryId
   ) {
     final Map<String, Object> newStreamsProperties
-        = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
+        = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps(applicationId));
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
     final ProcessingLogger logger
         = processingLogContext.getLoggerFactory().getLogger(queryId.toString());

@@ -97,7 +97,6 @@ import java.util.Properties;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.test.TestUtils;

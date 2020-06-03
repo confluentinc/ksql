@@ -148,7 +148,7 @@ public class KsqlRestApplicationTest {
 
   @SuppressWarnings("unchecked")
   @Before
-  public void setUp() throws ExecutionException, InterruptedException, TimeoutException {
+  public void setUp() {
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
         .thenReturn(true);
     when(processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME))

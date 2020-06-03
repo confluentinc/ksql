@@ -50,6 +50,7 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
 
 @EffectivelyImmutable
@@ -67,12 +68,10 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
-
-  private static final String METRIC_REPORTERS_PREFIX = "metric.reporters";
+  
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
       ImmutableSet.of(
-          METRIC_REPORTERS_PREFIX,
           TELEMETRY_PREFIX,
           CommonClientConfigs.METRICS_CONTEXT_PREFIX
       );
@@ -774,34 +773,59 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
+  public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {
+    final Map<String, Object> map = new HashMap<>(getKsqlStreamConfigProps());
+    map.put(
+        MetricCollectors.RESOURCE_LABEL_PREFIX
+            + StreamsConfig.APPLICATION_ID_CONFIG,
+        applicationId
+    );
+    map.putAll(
+        addConfluentMetricsContextConfigsKafka(
+            Collections.emptyMap(),
+            getString(KSQL_SERVICE_ID_CONFIG)));
+    return Collections.unmodifiableMap(map);
+  }
+
   public Map<String, Object> getKsqlStreamConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     for (final ConfigValue config : ksqlStreamConfigProps.values()) {
       map.put(config.key, config.value);
     }
-    map.putAll(getMetricsContextConfigs());
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
-    map.putAll(getMetricsContextConfigs());
+    map.putAll(
+        addConfluentMetricsContextConfigsKafka(Collections.emptyMap(),
+        getString(KSQL_SERVICE_ID_CONFIG)));
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
-    map.putAll(getMetricsContextConfigs());
+    map.putAll(
+        addConfluentMetricsContextConfigsKafka(Collections.emptyMap(),
+        getString(KSQL_SERVICE_ID_CONFIG)));
     return Collections.unmodifiableMap(map);
   }
 
-  private Map<String,Object> getMetricsContextConfigs() {
-    final Map<String, Object> map = new HashMap<>();
-    map.put(MetricCollectors.RESOURCE_LABEL_CLUSTER_ID, getString(KSQL_SERVICE_ID_CONFIG));
-    map.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
-    return map;
+  public Map<String, Object> addConfluentMetricsContextConfigsKafka(
+      final Map<String,Object> props,
+      final String ksqlServiceId
+  ) {
+    final Map<String, Object> updatedProps = new HashMap<>(props);
+    final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
+    updatedProps.put(MetricCollectors.RESOURCE_LABEL_VERSION, appInfo.getVersion());
+    updatedProps.put(MetricCollectors.RESOURCE_LABEL_COMMIT_ID, appInfo.getCommitId());
+
+    updatedProps.putAll(
+        MetricCollectors.addConfluentMetricsContextConfigs(ksqlServiceId));
+    updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
+    return updatedProps;
   }
 
   public Map<String, Object> getProcessingLogConfigProps() {

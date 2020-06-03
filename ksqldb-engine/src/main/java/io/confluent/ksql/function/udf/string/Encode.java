@@ -34,7 +34,7 @@ import org.apache.commons.codec.binary.Hex;
         + "hex, utf8, ascii and base64. Throws exception if provided encodings are not supported.")
 public class Encode {
 
-  static ImmutableMap<String, Encoder> ENCODER_MAP = new ImmutableMap.Builder<String, Encoder>()
+  private static ImmutableMap<String, Encoder> ENCODER_MAP = new ImmutableMap.Builder<String, Encoder>()
       .put("hexascii", new HexToAscii())
       .put("hexutf8", new HexToUtf8())
       .put("hexbase64", new HexToBase64())
@@ -48,7 +48,7 @@ public class Encode {
       .put("base64utf8", new Base64ToUtf8())
       .put("base64hex", new Base64ToHex())
       .build();
-  
+
   @Udf(description = "Returns a new string encoded using the outputEncoding ")
   public String encode(
       @UdfParameter(

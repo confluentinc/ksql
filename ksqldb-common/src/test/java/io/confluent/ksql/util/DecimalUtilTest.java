@@ -86,6 +86,14 @@ public class DecimalUtilTest {
   }
 
   @Test
+  public void shouldExtractPrecisionFromZeroValue() {
+    // When:
+    final SqlType precision = DecimalUtil.fromValue(BigDecimal.ZERO.setScale(2));
+
+    // Then:
+    assertThat(precision, is(3));
+  }
+  @Test
   public void shouldCastDecimal() {
     // When:
     final BigDecimal decimal = DecimalUtil.cast(new BigDecimal("1.1"), 3, 2);

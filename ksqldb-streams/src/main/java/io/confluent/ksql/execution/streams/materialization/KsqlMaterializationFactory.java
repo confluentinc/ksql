@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.context.QueryLoggerUtil.QueryType;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.PredicateInfo;
@@ -126,7 +127,7 @@ public final class KsqlMaterializationFactory {
         stacker = stacker.push(ctx);
       }
       return processingLogContext.getLoggerFactory().getLogger(
-          QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext())
+          QueryLoggerUtil.queryLoggerName(QueryType.PULL_QUERY, stacker.getQueryContext())
       );
     }
   }

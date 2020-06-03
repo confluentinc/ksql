@@ -112,8 +112,8 @@ public class KsqlMaterializationFactoryTest {
     );
 
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger("start.filter")).thenReturn(filterProcessingLogger);
-    when(processingLoggerFactory.getLogger("start.project")).thenReturn(mapProcessingLogger);
+    when(processingLoggerFactory.getLogger("pull_query.filter")).thenReturn(filterProcessingLogger);
+    when(processingLoggerFactory.getLogger("pull_query.project")).thenReturn(mapProcessingLogger);
 
     when(mapperInfo.visit(any())).thenCallRealMethod();
     when(predicateInfo.visit(any())).thenCallRealMethod();

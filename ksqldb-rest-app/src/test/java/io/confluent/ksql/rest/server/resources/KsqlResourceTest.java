@@ -1864,13 +1864,13 @@ public class KsqlResourceTest {
     givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
     givenKafkaTopicExists("topic2");
     final String createSql =
-        "CREATE TABLE SOURCE (val int) WITH (kafka_topic='topic2', value_format='json');";
+        "CREATE TABLE SOURCE (id int primary key, val int) WITH (kafka_topic='topic2', value_format='json');";
 
     // When:
     final KsqlRestException e = assertThrows(
         KsqlRestException.class,
         () -> makeSingleRequest(createSql, CommandStatusEntity.class)
-);
+    );
 
     // Then:
     assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));

@@ -47,6 +47,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
@@ -346,12 +347,18 @@ public final class SourceBuilder {
     return consumed.withOffsetResetPolicy(getAutoOffsetReset(defaultReset, queryBuilder));
   }
 
-  private static org.apache.kafka.connect.data.Field getKeySchemaSingleField(
-      final LogicalSchema schema) {
+  private static Optional<org.apache.kafka.connect.data.Field> getKeySchemaSingleField(
+      final LogicalSchema schema
+  ) {
+    if (schema.key().isEmpty()) {
+      return Optional.empty();
+    }
+
     if (schema.keyConnectSchema().fields().size() != 1) {
       throw new IllegalStateException("Only single key fields are currently supported");
     }
-    return schema.keyConnectSchema().fields().get(0);
+
+    return Optional.of(schema.keyConnectSchema().fields().get(0));
   }
 
   private static String tableChangeLogOpName(final ExecutionStepPropertiesV1 props) {
@@ -366,7 +373,7 @@ public final class SourceBuilder {
   private static Function<Windowed<Struct>, Collection<?>> windowedKeyGenerator(
       final LogicalSchema schema
   ) {
-    final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField(schema);
+    final Optional<Field> keyField = getKeySchemaSingleField(schema);
 
     return windowedKey -> {
       if (windowedKey == null) {
@@ -374,7 +381,7 @@ public final class SourceBuilder {
       }
 
       final Window window = windowedKey.window();
-      final Object key = windowedKey.key().get(keyField);
+      final Object key = windowedKey.key().get(keyField.orElseThrow(IllegalStateException::new));
       return Arrays.asList(key, window.start(), window.end());
     };
   }
@@ -382,13 +389,13 @@ public final class SourceBuilder {
   private static Function<Struct, Collection<?>> nonWindowedKeyGenerator(
       final LogicalSchema schema
   ) {
-    final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField(schema);
+    final Optional<Field> keyField = getKeySchemaSingleField(schema);
     return key -> {
       if (key == null) {
         return Collections.singletonList(null);
       }
 
-      return Collections.singletonList(key.get(keyField));
+      return Collections.singletonList(key.get(keyField.orElseThrow(IllegalStateException::new)));
     };
   }
 

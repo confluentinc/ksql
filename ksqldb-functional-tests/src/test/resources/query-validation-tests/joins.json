@@ -1966,6 +1966,46 @@
       "outputs": [
         {"topic": "OUTPUT", "key": "user_0", "value": {"IMPRESSION_ID": 24, "URL": "urlA"}, "timestamp":  12}
       ]
+    },
+    {
+      "name": "streams with no key columns (stream->stream)",
+      "statements": [
+        "CREATE STREAM L (A INT, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (A INT, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = R.A;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "value": {"A": 0, "B": 1, "C": 2}, "timestamp": 10},
+        {"topic": "RIGHT", "value": {"A": 0, "B": -1, "C": -2}, "timestamp": 11}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"R_A": 0, "L_B": 1, "R_B": -1, "L_C": 2, "R_C": -2}, "timestamp":  11}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, R_A INT, R_B INT, R_C INT"}
+        ]
+      }
+    },
+    {
+      "name": "streams with no key columns (stream->table)",
+      "statements": [
+        "CREATE STREAM L (A INT, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE TABLE R (A INT PRIMARY KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R ON L.A = R.A;"
+      ],
+      "inputs": [
+        {"topic": "RIGHT", "key": 0, "value": {"B": -1, "C": -2}, "timestamp": 10},
+        {"topic": "LEFT", "key": "ignored", "value": {"A": 0, "B": 1, "C": 2}, "timestamp": 11}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"R_A": 0, "L_B": 1, "R_B": -1, "L_C": 2, "R_C": -2}, "timestamp":  11}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, R_A INT, R_B INT, R_C INT"}
+        ]
+      }
     }
   ]
 }

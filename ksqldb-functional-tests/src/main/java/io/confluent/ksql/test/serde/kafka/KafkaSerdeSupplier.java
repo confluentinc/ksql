@@ -63,6 +63,19 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
     return columns.get(0).type();
   }
 
+  private Serde<?> getSerde(final boolean isKey) {
+    final List<Column> columns = isKey ? schema.key() : schema.value();
+    if (columns.isEmpty()) {
+      return Serdes.Void();
+    }
+
+    if (columns.size() != 1) {
+      throw new IllegalStateException("KAFKA format only supports single column schemas.");
+    }
+
+    return getSerde(columns.get(0).type());
+  }
+
   private static Serde<?> getSerde(final SqlType sqlType) {
     final Type connectType = SchemaConverters.sqlToConnectConverter()
         .toConnectSchema(sqlType)
@@ -89,8 +102,7 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public void configure(final Map<String, ?> configs, final boolean isKey) {
-      final SqlType sqlType = getColumnType(isKey);
-      delegate = (Serializer)getSerde(sqlType).serializer();
+      delegate = (Serializer)getSerde(isKey).serializer();
       delegate.configure(configs, isKey);
     }
 
@@ -108,8 +120,7 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
     @Override
     public void configure(final Map<String, ?> configs, final boolean isKey) {
       this.type = isKey ? "key" : "value";
-      final SqlType sqlType = getColumnType(isKey);
-      delegate = getSerde(sqlType).deserializer();
+      delegate = getSerde(isKey).deserializer();
       delegate.configure(configs, isKey);
     }
 

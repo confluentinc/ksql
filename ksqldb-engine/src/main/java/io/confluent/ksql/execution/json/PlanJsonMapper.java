@@ -38,7 +38,7 @@ public enum PlanJsonMapper {
           new JavaTimeModule(),
           new KsqlParserSerializationModule(),
           new KsqlTypesSerializationModule(),
-          new KsqlTypesDeserializationModule(true)
+          new KsqlTypesDeserializationModule()
       )
       .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
       .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)

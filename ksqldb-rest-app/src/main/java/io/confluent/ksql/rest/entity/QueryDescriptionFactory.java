@@ -72,7 +72,8 @@ public final class QueryDescriptionFactory {
         queryMetadata.getExecutionPlan(),
         queryMetadata.getOverriddenProperties(),
         ksqlHostQueryStatus,
-        queryMetadata.getQueryType()
+        queryMetadata.getQueryType(),
+        queryMetadata.getQueryErrors()
     );
   }
 }

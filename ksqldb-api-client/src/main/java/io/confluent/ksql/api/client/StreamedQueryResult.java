@@ -90,9 +90,4 @@ public interface StreamedQueryResult extends Publisher<Row> {
    */
   boolean isFailed();
 
-  /**
-   * Closes the {@code StreamedQueryResult}.
-   */
-  void close();
-
 }

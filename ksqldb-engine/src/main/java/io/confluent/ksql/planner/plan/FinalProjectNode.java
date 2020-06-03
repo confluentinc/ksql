@@ -15,12 +15,25 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.planner.Projection;
+import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The user supplied projection.
@@ -31,20 +44,119 @@ import java.util.List;
 public class FinalProjectNode extends ProjectNode implements VerifiableNode {
 
   private final Projection projection;
+  private final boolean persistent;
+  private final LogicalSchema schema;
+  private final ImmutableList<SelectExpression> selectExpressions;
 
   public FinalProjectNode(
       final PlanNodeId id,
       final PlanNode source,
-      final List<SelectExpression> projectExpressions,
-      final LogicalSchema schema,
-      final List<SelectItem> selectItems
-  ) {
-    super(id, source, projectExpressions, schema, false);
+      final List<SelectItem> selectItems,
+      final boolean persistent,
+      final FunctionRegistry functionRegistry) {
+    super(id, source);
     this.projection = Projection.of(selectItems);
+    this.persistent = persistent;
+
+    validateProjection(functionRegistry);
+
+    final Pair<LogicalSchema, List<SelectExpression>> result = build(functionRegistry);
+    this.schema = result.left;
+    this.selectExpressions = ImmutableList.copyOf(result.right);
+
+    validate();
+  }
+
+  @Override
+  public LogicalSchema getSchema() {
+    return schema;
+  }
+
+  @Override
+  public List<SelectExpression> getSelectExpressions() {
+    return selectExpressions;
   }
 
   @Override
   public void validateKeyPresent(final SourceName sinkName) {
     getSource().validateKeyPresent(sinkName, projection);
+  }
+
+  /**
+   * Called to validate that columns referenced in the projection are valid.
+   *
+   * <p>This is necessary as some joins can create synthetic key columns that do not come
+   * from any data source.  This means the normal column validation done during analysis can not
+   * fail on unknown column with generated column names.
+   *
+   * <p>Once the logical model has been built the synthetic key names are known and generated
+   * column names can be validated.
+   */
+  private void validateProjection(
+      final FunctionRegistry functionRegistry
+  ) {
+    // Validate any column in the projection that might be a synthetic
+    // Only really need to include any that might be, but we include all:
+    final RequiredColumns requiredColumns = RequiredColumns.builder()
+        .addAll(projection.singleExpressions())
+        .build();
+
+    final Set<ColumnReferenceExp> unknown = getSource().validateColumns(requiredColumns);
+    if (!unknown.isEmpty()) {
+      final String errors = unknown.stream()
+          .map(columnRef -> NodeLocation.asPrefix(columnRef.getLocation())
+              + "Column '" + columnRef + "' cannot be resolved."
+          ).collect(Collectors.joining(System.lineSeparator()));
+
+      throw new KsqlException(errors);
+    }
+  }
+
+  private Pair<LogicalSchema, List<SelectExpression>> build(
+      final FunctionRegistry functionRegistry
+  ) {
+    final LogicalSchema parentSchema = getSource().getSchema();
+
+    final List<SelectExpression> selectExpressions = SelectionUtil
+        .buildSelectExpressions(getSource(), projection.selectItems());
+
+    final LogicalSchema schema =
+        SelectionUtil.buildProjectionSchema(parentSchema, selectExpressions, functionRegistry);
+
+    if (persistent) {
+      // Persistent queries have key columns as key columns - so final projection can exclude them:
+      selectExpressions.removeIf(se -> {
+        if (se.getExpression() instanceof UnqualifiedColumnReferenceExp) {
+          final ColumnName columnName = ((UnqualifiedColumnReferenceExp) se.getExpression())
+              .getColumnName();
+
+          // Window bounds columns are currently removed if not aliased:
+          if (SystemColumns.isWindowBound(columnName) && se.getAlias().equals(columnName)) {
+            return true;
+          }
+
+          return parentSchema.isKeyColumn(columnName);
+        }
+        return false;
+      });
+    }
+
+    final LogicalSchema nodeSchema;
+    if (persistent) {
+      nodeSchema = schema.withoutPseudoAndKeyColsInValue();
+    } else {
+      // Transient queries return key columns in the value, so the projection includes them, and
+      // the schema needs to include them too:
+      final Builder builder = LogicalSchema.builder();
+
+      builder.keyColumns(parentSchema.key());
+
+      schema.columns()
+          .forEach(builder::valueColumn);
+
+      nodeSchema = builder.build();
+    }
+
+    return Pair.of(nodeSchema, selectExpressions);
   }
 }

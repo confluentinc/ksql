@@ -55,7 +55,10 @@ import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.Sandbox;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
@@ -197,6 +200,7 @@ public class RequestValidatorTest {
   public void shouldThrowIfTooManyPersistentQueries() {
     // Given:
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)).thenReturn(1);
+    givenPersistentQueryCount(2);
 
     final List<ParsedStatement> statements =
         givenParsed(
@@ -302,6 +306,13 @@ public class RequestValidatorTest {
         ksqlConfig,
         distributedStatementValidator
     );
+  }
+
+  @SuppressWarnings("unchecked")
+  private void givenPersistentQueryCount(final int value) {
+    final List<PersistentQueryMetadata> queries = mock(List.class);
+    when(queries.size()).thenReturn(value);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(queries);
   }
 
   @Sandbox

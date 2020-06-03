@@ -26,7 +26,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KeyValue;
 
-public abstract class TestDataProvider<K> {
+public class TestDataProvider<K> {
 
   private final String topicName;
   private final PhysicalSchema schema;

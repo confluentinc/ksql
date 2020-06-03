@@ -146,22 +146,24 @@ If we are to require users to explicitly include this synthesised column in any 
 explicit columns, i.e. non select-star projections, then the user must be able to determine the name
 and be able to provide their own.
 
-Though not ideal, we propose that in the short term the synthesised column can be included in the
-projection via a new `JOINKEY` udf. For example, the above examples that used `*` in
-their projections could be expanded to the following explicit column lists:
+Though not ideal, we propose that in the short term the synthesised column will be given a system
+generated name. This name will remain `ROWKEY` unless such a column already exists in the schema,
+where a integer will be appended to ensure the name is unique, e.g. `ROWKEY_0`, `ROWKEY_1`, etc.
+For example, the above examples that used `*` in their projections could be expanded to the
+following explicit column lists:
 
 ```sql
 -- full outer join:
 CREATE TABLE OUTPUT AS
-   SELECT JOINKEY(I1.ID, I2.ID), I1.ID, I1.V0, I1.V1, I2.ID, I2.V0, I2.V1
+   SELECT ROWKEY, I1.ID, I1.V0, I1.V1, I2.ID, I2.V0, I2.V1
       FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
--- resulting schema: KSQL_COL_0 INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
+-- resulting schema: ROWKEY INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 
 -- inner join on expression:
 CREATE TABLE OUTPUT AS
-   SELECT JOINKEY(ABS(I1.ID), ABS(I2.ID)), I1.ID, I1.V0, I1.V1, I2.ID, I2.V0, I2.V1 INT
+   SELECT ROWKEY, I1.ID, I1.V0, I1.V1, I2.ID, I2.V0, I2.V1 INT
       FROM INPUT I1 JOIN INPUT_2 I2 ON ABS(I1.ID) = ABS(I2.ID);
--- resulting schema: KSQL_COL_0 INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
+-- resulting schema: ROWKEY INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_ID INT, I2_V0 INT, I2_V1 INT
 ```
 
 Key to this solution, is the ability for users to provide their own name for the synthesised key
@@ -169,13 +171,17 @@ column. For example:
 
 ```sql
 CREATE TABLE OUTPUT AS
-   SELECT JOINKEY(I1.ID, I2.ID) AS ID, I1.V0, I1.V1, I2.V0, I2.V1 INT
+   SELECT ROWKEY AS ID, I1.V0, I1.V1, I2.V0, I2.V1 INT
       FROM INPUT I1 OUTER JOIN INPUT_2 I2 ON I1.ID = I2.ID;
 -- resulting schema: ID INT KEY, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT
 ```
 
-Requiring the user to include a synthesised column in the projection is not idea. However, we
+Requiring the user to include a synthesised column in the projection is not ideal. However, we
 propose this is best short term solution given the current functionality.
+
+The name of the column will always be `ROWKEY` unless a column with that name already exists.
+When the synthetic column is missing, the error message will detail the name and its reason for
+being.
 
 A more correct implementation might store both sides of the join criteria in the key for all join
 types. However, such an approach would require support for multiple key columns and extensive
@@ -353,8 +359,7 @@ If anyone has any suggestions on how we can support this in a compatible manner,
   in favour of standard aliasing of the key column in the projection.
 - removal of duplicate left join column on 'select *' joins.
 - Addition of a `AV_VALUE` function to allow users to copy key column into value columns.
-- Addition of a `JOINKEY` function to allow users to reference the synthetic key column created by
-  some join types, and to define an alias for it.
+- Exposure of synthetic key columns in some joins, and ability to define an alias for it.
 
 ## What is not in scope
 
@@ -432,14 +437,18 @@ CREATE TABLE OUTPUT AS
 -- resulting schema: ID INT KEY, V0 INT, V1 INT, V2 INT
 ```
 
-5. New `JOINKEY` function to match the synthetic key column of some joins
+5. Exposure of synthetic key columns in some joins, and ability to define an alias for it.
 
-A new `JOINKEY` method will be added to allow users to include the synthesised key column, created
-by some joins, in the projection and, optionally, define an alias for it. For example:
+The synthetic key column created by some joins will be given a system generated name in the form
+`ROWKEY[_n]`, where `n` is a positive integer. This will generally be `ROWKEY` unless the
+the schemas already include similarly named columns.
+
+Users will be required to explicitly include this synthetic key column in projections and,
+optionally, define an alias for it. For example:
 
 ```sql
 CREATE TABLE OUTPUT AS
-   SELECT JOINKEY(I1.ID, I2.V0) AS ID, I1.V0, I2.ID FROM I1 FULL OUTER JOIN I2 ON I1.ID = I2.V0;
+   SELECT ROWKEY AS ID, I1.V0, I2.ID FROM I1 FULL OUTER JOIN I2 ON I1.ID = I2.V0;
 -- resulting schema: ID INT KEY, V0 INT, ID INT
 ```
 
@@ -527,42 +536,20 @@ However, this is rejected as a solution for now for the following reasons:
      where some key columns may initially be `null` and later populated. Any solution needs to ensure
      correct partitioning and update semantics for such rows.
 
-### System generated naming for the synthesised join column
+### Special UDF used to include the synthesised join column
 
-Where a join introduces a synthesised key column the column would have a system generated name.
+Where a join introduces a synthesised key column the column could be included in the projection
+using a special UDF, for example:
 
-Requiring the user to include a column within the projection that does not belong to any source
-schema, regardless of naming strategy, poses a problem. KsqlDB validates that all column references
-exist in source schemas. This validation would now fail as it does not have the context to reason
-about any synthetic key col. While this is purely an implementation detail, fixing this would
-increase the effort of this change, which is already large.
+```sql
+CREATE TABLE OUTPUT AS
+   SELECT JOINKEY(I1.ID, I2.ID), I1.V0, I2.V1 FROM I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
+```
 
-The following naming strategies were rejected:
-
-#### `ROWKEY`/`JOINKEY` or other hardcoded name
-
-The synthesised column would take on a hardcoded name. This name would need to be reserved to avoid
-name clashes.
-
-`ROWKEY` was rejected as existing users will have sources with key columns called `ROWKEY`.
-Reserving this name would cause the statements building these sources to fail post-upgrade.synthesised
-
-`JOINKEY` or some other hardcoded name was rejected primarliy due to the implementation issues
-mentioned above: not only would it be possible to validate the presence of `JOINKEY` in the
-projection, the user would also be free to use `JOINKEY` in other places, e.g. as a parameter to a
-UDF or within a binary expression, etc.  This would not work by default and would require extra
-effort to make work, including additional steps in the streams topology - there seems little ROI on
-such effort or the complexity it will add to the code.
-
-#### `KSQL_COL_x`
-
-The synthesised column would take on a generated name in the form `KSQL_COL_x`, where `x` is an
-integer and the name is guaranteed to be unique, i.e. to not clash with any other system generated
-column names.
-
-This was rejected as the name would be hard for the user to know by looking at the query, i.e. the
-presence of other columns with generated names may affect the name of the synthesised column. This
-was deemed to make this solution unworkable.
+This was rejected as:
+  1. it requires introducing a special udf, which would then need to be supported going forward
+     even once joins supported storing all key columns in th key.
+  2. it's horrible syntax!
 
 #### Data driven naming
 

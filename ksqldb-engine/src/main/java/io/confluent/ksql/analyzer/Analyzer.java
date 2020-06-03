@@ -24,12 +24,11 @@ import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -64,8 +63,9 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -249,15 +249,19 @@ class Analyzer {
 
       process(node.getSelect(), context);
 
-      throwOnUnknownColumnReference();
+      throwOnUnknownColumnReference(
+          !node.isPullQuery() && !node.getGroupBy().isPresent()
+      );
 
       return null;
     }
 
-    private void throwOnUnknownColumnReference() {
+    private void throwOnUnknownColumnReference(final boolean possibleSyntheticColumns) {
 
-      final ColumnReferenceValidator columnValidator =
-          new ColumnReferenceValidator(analysis.getFromSourceSchemas(true));
+      final ColumnReferenceValidator columnValidator = new ColumnReferenceValidator(
+          analysis.getFromSourceSchemas(true),
+          possibleSyntheticColumns
+      );
 
       analysis.getWhereExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "WHERE"));
@@ -310,7 +314,7 @@ class Analyzer {
       }
 
       final ColumnReferenceValidator columnValidator =
-          new ColumnReferenceValidator(analysis.getFromSourceSchemas(false));
+          new ColumnReferenceValidator(analysis.getFromSourceSchemas(false), false);
 
       final Set<SourceName> srcsUsedInLeft = columnValidator
           .analyzeExpression(comparisonExpression.getLeft(), "JOIN ON");
@@ -482,18 +486,18 @@ class Analyzer {
 
     @Override
     protected AstNode visitAliasedRelation(final AliasedRelation node, final Void context) {
-      final SourceName structuredDataSourceName = ((Table) node.getRelation()).getName();
+      final SourceName sourceName = ((Table) node.getRelation()).getName();
 
-      final DataSource source = metaStore.getSource(structuredDataSourceName);
+      final DataSource source = metaStore.getSource(sourceName);
       if (source == null) {
-        throw new KsqlException(structuredDataSourceName + " does not exist.");
+        throw new UnknownSourceException(Optional.empty(), sourceName);
       }
 
       final Optional<AliasedDataSource> existing = analysis.getSourceByName(source.getName());
       if (existing.isPresent()) {
         throw new KsqlException(
             "Can not join '"
-                + structuredDataSourceName.toString(FormatOptions.noEscape())
+                + sourceName.toString(FormatOptions.noEscape())
                 + "' to '"
                 + existing.get().getDataSource().getName().toString(FormatOptions.noEscape())
                 + "': self joins are not yet supported."
@@ -600,27 +604,9 @@ class Analyzer {
     }
 
     private void captureReferencedSourceColumns(final Expression exp) {
-      final Set<ColumnName> columnNames = new HashSet<>();
-
-      new TraversalExpressionVisitor<Void>() {
-        @Override
-        public Void visitUnqualifiedColumnReference(
-            final UnqualifiedColumnReferenceExp node,
-            final Void context
-        ) {
-          columnNames.add(node.getColumnName());
-          return null;
-        }
-
-        @Override
-        public Void visitQualifiedColumnReference(
-            final QualifiedColumnReferenceExp node,
-            final Void context
-        ) {
-          columnNames.add(node.getColumnName());
-          return null;
-        }
-      }.process(exp, null);
+      final List<ColumnName> columnNames = ColumnExtractor.extractColumns(exp).stream()
+          .map(ColumnReferenceExp::getColumnName)
+          .collect(Collectors.toList());
 
       analysis.addSelectColumnRefs(columnNames);
     }

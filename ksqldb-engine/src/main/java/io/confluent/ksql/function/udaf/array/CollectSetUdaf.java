@@ -19,13 +19,16 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 
 @UdafDescription(name = "collect_set", 
     description = "Gather all of the distinct values from an input grouping into a single Array."
         + "\nNot available for aggregating values from an input Table."
         + "\nThis version limits the size of the resultant Array to 1000 entries, beyond which"
-        + " any further values will be silently ignored.")
+        + " any further values will be silently ignored.",
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public final class CollectSetUdaf {
 
   private static final int LIMIT = 1000;

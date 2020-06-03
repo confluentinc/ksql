@@ -22,6 +22,7 @@ import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -60,7 +61,11 @@ There isn't any BigDecimal rounding mode which captures the java.lang.Math behav
 we need to use different rounding modes on BigDecimal depending on whether the value
 is +ve or -ve to get consistent behaviour.
 */
-@UdfDescription(name = "Round", description = Round.DESCRIPTION)
+@UdfDescription(
+    name = "Round",
+    description = Round.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class Round {
 
   static final String DESCRIPTION =

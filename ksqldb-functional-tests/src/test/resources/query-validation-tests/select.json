@@ -76,6 +76,17 @@
       }
     },
     {
+      "name": "key missing from projection",
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT NAME FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the key column ID in its projection."
+      }
+    },
+    {
       "name": "unknown column",
       "statements": [
         "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -83,7 +94,18 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Line: 3, Col: 3: SELECT column 'INPUT.BOB' cannot be resolved."
+        "message": "Line: 3, Col: 3: SELECT column 'BOB' cannot be resolved."
+      }
+    },
+    {
+      "name": "unknown aliased column",
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, I.BOB, NAME FROM INPUT I;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Line: 3, Col: 3: SELECT column 'I.BOB' cannot be resolved."
       }
     }
   ]

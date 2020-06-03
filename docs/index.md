@@ -149,9 +149,7 @@ ksqlDB CLI
 
 :   You can write SQL queries interactively by using the ksqlDB command
     line interface (CLI). The ksqlDB CLI acts as a client to ksqlDB
-    Server. For production scenarios, you may also configure ksqlDB clusters
-    to run in non-interactive "headless" configuration, which prevents access
-    from ksqlDB CLI.
+    Server.
 
 ksqlDB servers, clients, queries, and applications run outside of {{ site.ak }}
 brokers, in separate JVM instances, or in separate clusters entirely.

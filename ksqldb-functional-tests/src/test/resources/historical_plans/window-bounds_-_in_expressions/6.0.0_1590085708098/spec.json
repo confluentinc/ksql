@@ -1,0 +1,131 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1590085708098,
+  "path" : "query-validation-tests/window-bounds.json",
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, KSQL_INTERNAL_COL_1 INT> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<KSQL_COL_0 BIGINT, KSQL_COL_1 BIGINT, COUNT BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "in expressions",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : "2",
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : "100",
+      "timestamp" : 2000
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : "2",
+      "timestamp" : 4999
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : "2",
+      "timestamp" : 5000
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 2,
+      "value" : "0,15000,1",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : "0,300,1",
+      "timestamp" : 2000,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 2,
+      "value" : "0,15000,2",
+      "timestamp" : 4999,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 2,
+      "value" : "0,15000,3",
+      "timestamp" : 5000,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, IGNORED STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE S2 as SELECT ID, Test.WindowStart / 2, WindowEnd / id, COUNT(1) AS Count FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

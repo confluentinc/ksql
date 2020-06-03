@@ -23,6 +23,9 @@ import java.util.Optional;
 
 public class Topic {
 
+  public static final int DEFAULT_PARTITIONS = 4;
+  public static final short DEFAULT_RF = 1;
+
   private final String name;
   private final int numPartitions;
   private final short replicas;
@@ -32,7 +35,7 @@ public class Topic {
       final String name,
       final Optional<ParsedSchema> schema
   ) {
-    this(name, 4, 1, schema);
+    this(name, DEFAULT_PARTITIONS, DEFAULT_RF, schema);
   }
 
   public Topic(

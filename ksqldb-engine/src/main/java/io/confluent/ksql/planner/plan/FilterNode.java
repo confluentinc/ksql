@@ -16,16 +16,15 @@
 package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 import java.util.Objects;
 
-@Immutable
 public class FilterNode extends PlanNode {
 
   private final PlanNode source;
@@ -36,7 +35,7 @@ public class FilterNode extends PlanNode {
       final PlanNode source,
       final Expression predicate
   ) {
-    super(id, source.getNodeOutputType(), source.getSchema(), source.getSourceName());
+    super(id, source.getNodeOutputType(), source.getSourceName());
 
     this.source = Objects.requireNonNull(source, "source");
     this.predicate = Objects.requireNonNull(predicate, "predicate");
@@ -44,6 +43,11 @@ public class FilterNode extends PlanNode {
 
   public Expression getPredicate() {
     return predicate;
+  }
+
+  @Override
+  public LogicalSchema getSchema() {
+    return source.getSchema();
   }
 
   @Override
@@ -56,11 +60,6 @@ public class FilterNode extends PlanNode {
   }
 
   @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitFilter(this, context);
-  }
-
-  @Override
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }
@@ -69,7 +68,7 @@ public class FilterNode extends PlanNode {
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final Stacker contextStacker = builder.buildNodeContext(getId().toString());
 
-    return getSource().buildStream(builder)
+    return source.buildStream(builder)
         .filter(
             getPredicate(),
             contextStacker

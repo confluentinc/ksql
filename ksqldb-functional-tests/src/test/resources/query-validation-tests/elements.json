@@ -733,7 +733,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "SELECT column 'INPUT.UNKNOWN' cannot be resolved."
+        "message": "Line: 3, Col: 3: SELECT column 'UNKNOWN' cannot be resolved."
       }
     },
     {
@@ -745,7 +745,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Column 'UNKNOWN' cannot be resolved"
+        "message": "Line: 3, Col: 3: SELECT column 'UNKNOWN' cannot be resolved"
       }
     },
     {
@@ -769,7 +769,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Column 'F0' is ambiguous."
+        "message": "Line: 3, Col: 38: Column 'F0' is ambiguous. Could be I1.F0 or I2.F0."
       }
     },
     {

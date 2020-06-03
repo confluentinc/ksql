@@ -134,8 +134,6 @@ public class JoinNodeTest {
   private StreamsBuilder builder;
   private JoinNode joinNode;
 
-  private static final ColumnName LEFT_JOIN_FIELD_REF = ColumnName.of("C0");
-
   private static final Optional<WithinExpression> WITHIN_EXPRESSION =
       Optional.of(new WithinExpression(10, TimeUnit.SECONDS));
 
@@ -202,9 +200,6 @@ public class JoinNodeTest {
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
 
-    when(left.getAlias()).thenReturn(LEFT_ALIAS);
-    when(right.getAlias()).thenReturn(RIGHT_ALIAS);
-
     when(left.getSourceName()).thenReturn(Optional.of(LEFT_ALIAS));
     when(right.getSourceName()).thenReturn(Optional.of(RIGHT_ALIAS));
 
@@ -212,8 +207,8 @@ public class JoinNodeTest {
 
     when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processLogger);
 
-    setUpSource(left, VALUE_FORMAT, leftSource, "Foobar1");
-    setUpSource(right, OTHER_FORMAT, rightSource, "Foobar2");
+    setUpSource(left, VALUE_FORMAT, leftSource);
+    setUpSource(right, OTHER_FORMAT, rightSource);
   }
 
   @Test
@@ -255,8 +250,8 @@ public class JoinNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Can't join T1 with T2 since the number of partitions don't match. T1 "
-            + "partitions = 1; T2 partitions = 2. Please repartition either one so that the "
+        "Can't join `T1` with `T2` since the number of partitions don't match. "
+            + "`T1` partitions = 1; `T2` partitions = 2. Please repartition either one so that the "
             + "number of partitions match."));
   }
 
@@ -346,29 +341,6 @@ public class JoinNodeTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Stream-Stream joins must have a WITHIN clause specified. None was provided."));
-  }
-
-  @Test
-  public void shouldNotPerformJoinIfInputPartitionsMisMatch() {
-    // Given:
-    when(left.getTheSourceNode()).thenReturn(left);
-    when(right.getTheSourceNode()).thenReturn(right);
-    when(left.getAlias()).thenReturn(LEFT_ALIAS);
-    when(right.getAlias()).thenReturn(RIGHT_ALIAS);
-    when(left.getPartitions(mockKafkaTopicClient)).thenReturn(3);
-
-    final JoinNode joinNode =
-        new JoinNode(nodeId, OUTER, joinKey, true, left, right, WITHIN_EXPRESSION);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> joinNode.buildStream(ksqlStreamBuilder)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Can't join left with right since the number of partitions don't match."));
   }
 
   @Test
@@ -766,8 +738,7 @@ public class JoinNodeTest {
 
     final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
-    when(joinKey.getOriginalViableKeys()).thenReturn((List) ImmutableList.of(expression1));
-    when(joinKey.getViableKeys()).thenReturn((List) ImmutableList.of(expression2));
+    when(joinKey.getAllViableKeys(any())).thenReturn((List) ImmutableList.of(expression1, expression2));
 
     // When:
     joinNode.validateKeyPresent(SINK, projection);
@@ -782,8 +753,9 @@ public class JoinNodeTest {
     // Given:
     final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
 
+    when(joinKey.getAllViableKeys(any())).thenReturn((List) ImmutableList.of(expression1, expression2));
     when(projection.containsExpression(any())).thenReturn(false);
-    when(joinKey.getOriginalViableKeys())
+    when(joinKey.getOriginalViableKeys(any()))
         .thenReturn((List)ImmutableList.of(expression1, expression1, expression2));
 
     // When:
@@ -813,7 +785,7 @@ public class JoinNodeTest {
       final SchemaKStream stream
   ) {
     when(node.buildStream(ksqlStreamBuilder)).thenReturn(stream);
-    when(node.getTheSourceNode()).thenReturn(node);
+    when(node.getLeftmostSourceNode()).thenReturn(node);
     when(node.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
   }
 
@@ -872,8 +844,7 @@ public class JoinNodeTest {
   private static void setUpSource(
       final DataSourceNode node,
       final ValueFormat valueFormat,
-      final DataSource dataSource,
-      final String name
+      final DataSource dataSource
   ) {
     when(node.getDataSource()).thenReturn(dataSource);
 

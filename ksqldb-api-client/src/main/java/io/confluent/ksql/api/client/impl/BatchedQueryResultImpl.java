@@ -24,6 +24,11 @@ public class BatchedQueryResultImpl extends BatchedQueryResult {
 
   BatchedQueryResultImpl() {
     this.queryId = new CompletableFuture<>();
+
+    this.exceptionally(t -> {
+      queryId.completeExceptionally(t);
+      return null;
+    });
   }
 
   @Override

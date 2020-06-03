@@ -53,6 +53,7 @@ public class TestEndpoints implements Endpoints {
   private int acksBeforePublisherError = -1;
   private int rowsBeforePublisherError = -1;
   private RuntimeException createQueryPublisherException;
+  private RuntimeException createInsertsSubscriberException;
   private ApiSecurityContext lastApiSecurityContext;
 
   @Override
@@ -88,14 +89,22 @@ public class TestEndpoints implements Endpoints {
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    this.lastTarget = target;
-    this.lastProperties = properties;
-    this.lastApiSecurityContext = apiSecurityContext;
-    BufferedPublisher<InsertResult> acksPublisher = new BufferedPublisher<>(Vertx.currentContext());
-    acksPublisher.subscribe(acksSubscriber);
-    this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), acksPublisher,
-        acksBeforePublisherError);
-    return CompletableFuture.completedFuture(insertsSubscriber);
+    CompletableFuture<InsertsStreamSubscriber> completableFuture = new CompletableFuture<>();
+    if (createInsertsSubscriberException != null) {
+      createInsertsSubscriberException.fillInStackTrace();
+      completableFuture.completeExceptionally(createInsertsSubscriberException);
+    } else {
+      this.lastTarget = target;
+      this.lastProperties = properties;
+      this.lastApiSecurityContext = apiSecurityContext;
+      BufferedPublisher<InsertResult> acksPublisher = new BufferedPublisher<>(
+          Vertx.currentContext());
+      acksPublisher.subscribe(acksSubscriber);
+      this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), acksPublisher,
+          acksBeforePublisherError);
+      completableFuture.complete(insertsSubscriber);
+    }
+    return completableFuture;
   }
 
   @Override
@@ -225,6 +234,10 @@ public class TestEndpoints implements Endpoints {
 
   public synchronized void setCreateQueryPublisherException(final RuntimeException exception) {
     this.createQueryPublisherException = exception;
+  }
+
+  public synchronized void setCreateInsertsSubscriberException(final RuntimeException exception) {
+    this.createInsertsSubscriberException = exception;
   }
 
   private static int extractLimit(final String sql) {

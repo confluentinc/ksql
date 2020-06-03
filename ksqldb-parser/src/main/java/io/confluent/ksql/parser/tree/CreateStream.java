@@ -94,7 +94,7 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
         .findFirst();
 
     wrongKey.ifPresent(col -> {
-      final String loc = col.getLocation().map(NodeLocation::asPrefix).orElse("");
+      final String loc = NodeLocation.asPrefix(col.getLocation());
       throw new ParseFailedException(
           loc + "Column " + col.getName() + " is a 'PRIMARY KEY' column: "
               + "please use 'KEY' for streams."

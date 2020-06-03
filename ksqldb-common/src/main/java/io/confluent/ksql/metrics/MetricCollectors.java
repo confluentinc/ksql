@@ -26,8 +26,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.metrics.JmxReporter;
+import org.apache.kafka.common.metrics.KafkaMetricsContext;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.common.utils.SystemTime;
 
@@ -35,9 +37,11 @@ import org.apache.kafka.common.utils.SystemTime;
  * Topic based collectors for producer/consumer related statistics that can be mapped on to
  * streams/tables/queries for ksql entities (Stream, Table, Query)
  */
+@SuppressWarnings("ClassDataAbstractionCoupling")
 public final class MetricCollectors {
   private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
+  private static final String JMX_PREFIX = "io.confluent.ksql.metrics";
 
   static {
     initialize();
@@ -59,13 +63,14 @@ public final class MetricCollectors {
             TimeUnit.MILLISECONDS
         );
     final List<MetricsReporter> reporters = new ArrayList<>();
-    reporters.add(new JmxReporter("io.confluent.ksql.metrics"));
+    reporters.add(new JmxReporter());
+    final MetricsContext metricsContext = new KafkaMetricsContext(JMX_PREFIX);
     // Replace all static contents other than Time to ensure they are cleaned for tests that are
     // not aware of the need to initialize/cleanup this test, in case test processes are reused.
     // Tests aware of the class clean everything up properly to get the state into a clean state,
     // a full, fresh instantiation here ensures something like KsqlEngineMetricsTest running after
     // another test that used MetricsCollector without running cleanUp will behave correctly.
-    metrics = new Metrics(metricConfig, reporters, new SystemTime());
+    metrics = new Metrics(metricConfig, reporters, new SystemTime(), metricsContext);
     collectorMap = new ConcurrentHashMap<>();
   }
 

@@ -16,7 +16,6 @@
 package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import static io.confluent.ksql.util.GrammaticalJoiner.and;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
@@ -41,6 +40,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -79,9 +79,11 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
   private final ImmutableList<FunctionCall> functionList;
   private final ImmutableList<ColumnReferenceExp> requiredColumns;
   private final Optional<Expression> havingExpressions;
-  private final ImmutableList<SelectExpression> projection;
+  private final ImmutableList<SelectExpression> selectExpressions;
   private final ImmutableList<SelectExpression> finalSelectExpressions;
   private final ValueFormat valueFormat;
+  private final Projection projection;
+  private final LogicalSchema schema;
 
   public AggregateNode(
       final PlanNodeId id,
@@ -93,11 +95,13 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
       final AggregateAnalysisResult rewrittenAggregateAnalysis,
       final List<SelectExpression> projectionExpressions
   ) {
-    super(id, DataSourceType.KTABLE, schema, Optional.empty());
+    super(id, DataSourceType.KTABLE, Optional.empty());
 
+    this.schema = requireNonNull(schema, "schema");
     this.source = requireNonNull(source, "source");
     this.groupBy = requireNonNull(groupBy, "groupBy");
     this.windowExpression = requireNonNull(analysis, "analysis").getWindowExpression();
+    this.projection = Projection.of(analysis.getSelectItems());
 
     final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(functionRegistry);
@@ -108,26 +112,32 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
         .copyOf(rewrittenAggregateAnalysis.getAggregateFunctions());
     this.requiredColumns = ImmutableList
         .copyOf(rewrittenAggregateAnalysis.getRequiredColumns());
+    this.selectExpressions = ImmutableList
+        .copyOf(requireNonNull(projectionExpressions, "projectionExpresions"));
 
-    this.projection = ImmutableList.copyOf(projectionExpressions.stream()
+    final Set<Expression> groupings = ImmutableSet.copyOf(groupBy.getGroupingExpressions());
+
+    this.finalSelectExpressions = ImmutableList.copyOf(projectionExpressions.stream()
         .map(se -> SelectExpression.of(
             se.getAlias(),
             ExpressionTreeRewriter
                 .rewriteWith(aggregateExpressionRewriter::process, se.getExpression())
         ))
-        .collect(Collectors.toList()));
-
-    final Set<Expression> groupings = ImmutableSet.copyOf(groupBy.getGroupingExpressions());
-    this.finalSelectExpressions = ImmutableList.copyOf(projection.stream()
         .filter(e -> !groupings.contains(e.getExpression()))
         .collect(Collectors.toList()));
 
     this.havingExpressions = rewrittenAggregateAnalysis.getHavingExpression()
         .map(exp -> ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, exp));
-    this.valueFormat = getTheSourceNode()
+
+    this.valueFormat = getLeftmostSourceNode()
         .getDataSource()
         .getKsqlTopic()
         .getValueFormat();
+  }
+
+  @Override
+  public LogicalSchema getSchema() {
+    return schema;
   }
 
   @Override
@@ -156,11 +166,6 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
   }
 
   @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitAggregate(this, context);
-  }
-
-  @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
     final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(builder);
@@ -184,12 +189,12 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
   public void validateKeyPresent(final SourceName sinkName) {
     final List<Expression> missing = new ArrayList<>(groupBy.getGroupingExpressions());
 
-    projection.stream()
+    selectExpressions.stream()
         .map(SelectExpression::getExpression)
         .forEach(missing::remove);
 
     if (!missing.isEmpty()) {
-      throwKeysNotIncludedError(sinkName, "grouping expression", missing, and());
+      throwKeysNotIncludedError(sinkName, "grouping expression", missing);
     }
   }
 

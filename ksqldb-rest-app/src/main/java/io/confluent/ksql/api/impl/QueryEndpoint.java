@@ -18,6 +18,7 @@ package io.confluent.ksql.api.impl;
 import io.confluent.ksql.api.server.PushQueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -26,7 +27,6 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -37,11 +37,11 @@ import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class QueryEndpoint {
 
@@ -65,7 +65,10 @@ public class QueryEndpoint {
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
-    properties.put("auto.offset.reset", "earliest");
+    if (!properties.containsKey("auto.offset.reset")
+        && !properties.containsKey("ksql.streams.auto.offset.reset")) {
+      properties.put("auto.offset.reset", "earliest");
+    }
 
     final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap());
 
@@ -91,13 +94,20 @@ public class QueryEndpoint {
     return publisher;
   }
 
-  private QueryPublisher createPullQueryPublisher(final Context context,
+  private QueryPublisher createPullQueryPublisher(
+      final Context context,
       final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> statement) {
+      final ConfiguredStatement<Query> statement
+  ) {
     final TableRowsEntity tableRows = pullQueryExecutor.execute(
         statement, serviceContext, Optional.empty(), Optional.of(false));
-    return new PullQueryPublisher(context, tableRows, colNamesFromSchema(tableRows.getSchema()),
-        colTypesFromSchema(tableRows.getSchema()));
+
+    return new PullQueryPublisher(
+        context,
+        tableRows,
+        colNamesFromSchema(tableRows.getSchema().columns()),
+        colTypesFromSchema(tableRows.getSchema().columns())
+    );
   }
 
   private ConfiguredStatement<Query> createStatement(final String queryString,
@@ -119,30 +129,18 @@ public class QueryEndpoint {
     return ConfiguredStatement.of(psq, properties, ksqlConfig);
   }
 
-  private static List<String> colTypesFromSchema(final LogicalSchema logicalSchema) {
-    final List<Column> key = logicalSchema.key();
-    final List<Column> val = logicalSchema.value();
-    final List<String> colTypes = new ArrayList<>(key.size() + val.size());
-    for (Column col : key) {
-      colTypes.add(col.type().toString(FormatOptions.none()));
-    }
-    for (Column col : val) {
-      colTypes.add(col.type().toString(FormatOptions.none()));
-    }
-    return colTypes;
+  private static List<String> colTypesFromSchema(final List<Column> columns) {
+    return columns.stream()
+        .map(Column::type)
+        .map(type -> type.toString(FormatOptions.none()))
+        .collect(Collectors.toList());
   }
 
-  private static List<String> colNamesFromSchema(final LogicalSchema logicalSchema) {
-    final List<Column> key = logicalSchema.key();
-    final List<Column> val = logicalSchema.value();
-    final List<String> colNames = new ArrayList<>(key.size() + val.size());
-    for (Column col : key) {
-      colNames.add(col.name().text());
-    }
-    for (Column col : val) {
-      colNames.add(col.name().text());
-    }
-    return colNames;
+  private static List<String> colNamesFromSchema(final List<Column> columns) {
+    return columns.stream()
+        .map(Column::name)
+        .map(ColumnName::text)
+        .collect(Collectors.toList());
   }
 
   private static class KsqlQueryHandle implements PushQueryHandle {
@@ -155,12 +153,12 @@ public class QueryEndpoint {
 
     @Override
     public List<String> getColumnNames() {
-      return colNamesFromSchema(queryMetadata.getLogicalSchema());
+      return colNamesFromSchema(queryMetadata.getLogicalSchema().value());
     }
 
     @Override
     public List<String> getColumnTypes() {
-      return colTypesFromSchema(queryMetadata.getLogicalSchema());
+      return colTypesFromSchema(queryMetadata.getLogicalSchema().value());
     }
 
     @Override

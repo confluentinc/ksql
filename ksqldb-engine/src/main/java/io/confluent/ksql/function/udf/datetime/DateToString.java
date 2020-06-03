@@ -27,11 +27,14 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutionException;
 
-@UdfDescription(name = "datetostring", author = KsqlConstants.CONFLUENT_AUTHOR,
+@UdfDescription(
+    name = "datetostring",
+    author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Converts an integer representing days since epoch to a date string"
         + " using the given format pattern. Note this is the format Kafka Connect uses"
         + " to represent dates with no time component.  The format pattern should be"
-        + " in the format expected by java.time.format.DateTimeFormatter")
+        + " in the format expected by java.time.format.DateTimeFormatter"
+)
 public class DateToString {
 
   private final LoadingCache<String, DateTimeFormatter> formatters =

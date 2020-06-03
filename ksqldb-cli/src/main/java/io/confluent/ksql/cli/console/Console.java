@@ -44,6 +44,7 @@ import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TypeListTableBuilder;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -575,6 +576,14 @@ public class Console implements Closeable {
         .print(this);
   }
 
+  private void printQueryError(final QueryDescription query) {
+    writer().println();
+    for (final QueryError error : query.getQueryErrors()) {
+      writer().println(String.format("%-20s : %s", "Error Details", error.getErrorMessage()));
+      writer().println(String.format("%-20s : %s", "Error Type", error.getType()));
+    }
+  }
+
   private void printSourceDescription(final SourceDescription source) {
     final boolean isTable = source.getType().equalsIgnoreCase("TABLE");
 
@@ -665,6 +674,7 @@ public class Console implements Closeable {
     printExecutionPlan(query);
     printTopology(query);
     printOverriddenProperties(query);
+    printQueryError(query);
   }
 
   private void printConnectorDescription(final ConnectorDescription description) {

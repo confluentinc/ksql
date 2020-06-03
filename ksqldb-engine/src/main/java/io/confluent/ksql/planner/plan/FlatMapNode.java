@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
@@ -46,12 +45,12 @@ import java.util.Optional;
  * A node in the logical plan which represents a flat map operation - transforming a single row into
  * zero or more rows.
  */
-@Immutable
 public class FlatMapNode extends PlanNode {
 
   private final PlanNode source;
   private final ImmutableList<FunctionCall> tableFunctions;
-  private final ImmutableMap<Integer, Expression> columnMappings;
+  private final ImmutableMap<Integer, UnqualifiedColumnReferenceExp> columnMappings;
+  private final LogicalSchema schema;
 
   public FlatMapNode(
       final PlanNodeId id,
@@ -62,12 +61,17 @@ public class FlatMapNode extends PlanNode {
     super(
         id,
         source.getNodeOutputType(),
-        buildSchema(source, functionRegistry, analysis),
         Optional.empty()
     );
+    this.schema = buildSchema(source, functionRegistry, analysis);
     this.source = Objects.requireNonNull(source, "source");
     this.tableFunctions = ImmutableList.copyOf(analysis.getTableFunctions());
     this.columnMappings = buildColumnMappings(functionRegistry, analysis);
+  }
+
+  @Override
+  public LogicalSchema getSchema() {
+    return schema;
   }
 
   @Override
@@ -80,18 +84,14 @@ public class FlatMapNode extends PlanNode {
   }
 
   @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitFlatMap(this, context);
-  }
-
-  @Override
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }
 
   @Override
   public Expression resolveSelect(final int idx, final Expression expression) {
-    return columnMappings.getOrDefault(idx, expression);
+    final Expression resolved = columnMappings.get(idx);
+    return resolved == null ? expression : resolved;
   }
 
   @Override
@@ -105,14 +105,15 @@ public class FlatMapNode extends PlanNode {
     );
   }
 
-  private static ImmutableMap<Integer, Expression> buildColumnMappings(
+  private static ImmutableMap<Integer, UnqualifiedColumnReferenceExp> buildColumnMappings(
       final FunctionRegistry functionRegistry,
       final ImmutableAnalysis analysis
   ) {
     final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
         new TableFunctionExpressionRewriter(functionRegistry);
 
-    final ImmutableMap.Builder<Integer, Expression> builder = ImmutableMap.builder();
+    final ImmutableMap.Builder<Integer, UnqualifiedColumnReferenceExp> builder = ImmutableMap
+        .builder();
 
     for (int idx = 0; idx < analysis.getSelectItems().size(); idx++) {
       final SelectItem selectItem = analysis.getSelectItems().get(idx);
@@ -125,7 +126,7 @@ public class FlatMapNode extends PlanNode {
           tableFunctionExpressionRewriter::process, singleColumn.getExpression());
 
       if (!rewritten.equals(singleColumn.getExpression())) {
-        builder.put(idx, rewritten);
+        builder.put(idx, (UnqualifiedColumnReferenceExp) rewritten);
       }
     }
 

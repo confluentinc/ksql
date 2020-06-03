@@ -259,7 +259,11 @@ public final class PullQueryExecutor {
     );
 
     if (filteredAndOrderedNodes.isEmpty()) {
-      throw new MaterializationException("All nodes are dead or exceed max allowed lag.");
+      LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
+                statement.getStatementText());
+      throw new MaterializationException(String.format(
+          "Unable to execute pull query %s. All nodes are dead or exceed max allowed lag.",
+          statement.getStatementText()));
     }
 
     // Nodes are ordered by preference: active is first if alive then standby nodes in
@@ -268,8 +272,8 @@ public final class PullQueryExecutor {
       try {
         return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
       } catch (Exception t) {
-        LOG.debug("Error routing query {} to host {} at timestamp {}",
-                 statement.getStatementText(), node, System.currentTimeMillis());
+        LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
+                  statement.getStatementText(), node, System.currentTimeMillis(), t);
       }
     }
     throw new MaterializationException(String.format(

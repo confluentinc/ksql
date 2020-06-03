@@ -119,11 +119,6 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
     sendError(e);
   }
 
-  @Override
-  public void close() {
-    pollableSubscriber.close();
-  }
-
   private void handleErrorWhilePolling(final Throwable t) {
     log.error("Unexpected error while polling: " + t);
   }

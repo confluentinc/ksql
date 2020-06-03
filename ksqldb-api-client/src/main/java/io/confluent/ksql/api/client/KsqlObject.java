@@ -300,7 +300,9 @@ public class KsqlObject {
    * @return a reference to this
    */
   public KsqlObject put(final String key, final BigDecimal value) {
-    delegate.put(key, value);
+    // Vert.x JsonObject does not accept BigDecimal values. Instead we store the value as a string
+    // so as to not lose precision.
+    delegate.put(key, value.toString());
     return this;
   }
 
@@ -312,7 +314,7 @@ public class KsqlObject {
    * @return a reference to this
    */
   public KsqlObject put(final String key, final KsqlArray value) {
-    delegate.put(key, value);
+    delegate.put(key, KsqlArray.toJsonArray(value));
     return this;
   }
 
@@ -324,7 +326,7 @@ public class KsqlObject {
    * @return a reference to this
    */
   public KsqlObject put(final String key, final KsqlObject value) {
-    delegate.put(key, value);
+    delegate.put(key, KsqlObject.toJsonObject(value));
     return this;
   }
 
@@ -422,7 +424,7 @@ public class KsqlObject {
     return ret;
   }
 
-  private static JsonObject toJsonObject(final KsqlObject ksqlObject) {
+  static JsonObject toJsonObject(final KsqlObject ksqlObject) {
     return new JsonObject(ksqlObject.getMap());
   }
 }

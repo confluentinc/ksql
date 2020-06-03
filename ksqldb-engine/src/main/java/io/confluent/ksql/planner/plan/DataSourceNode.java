@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.util.GrammaticalJoiner.and;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
@@ -32,12 +31,16 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
+import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKSourceFactory;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Immutable
@@ -47,6 +50,7 @@ public class DataSourceNode extends PlanNode {
 
   private final DataSource dataSource;
   private final SchemaKStreamFactory schemaKStreamFactory;
+  private final LogicalSchema schema;
 
   public DataSourceNode(
       final PlanNodeId id,
@@ -62,9 +66,9 @@ public class DataSourceNode extends PlanNode {
       final SourceName alias,
       final SchemaKStreamFactory schemaKStreamFactory
   ) {
-    super(id, dataSource.getDataSourceType(), buildSchema(dataSource), Optional.of(alias));
+    super(id, dataSource.getDataSourceType(), Optional.of(alias));
+    this.schema = buildSchema(dataSource);
     this.dataSource = requireNonNull(dataSource, "dataSource");
-
     this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");
   }
 
@@ -81,6 +85,11 @@ public class DataSourceNode extends PlanNode {
   }
 
   @Override
+  public LogicalSchema getSchema() {
+    return schema;
+  }
+
+  @Override
   public int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     final String topicName = dataSource.getKsqlTopic().getKafkaTopicName();
 
@@ -92,11 +101,6 @@ public class DataSourceNode extends PlanNode {
   @Override
   public List<PlanNode> getSources() {
     return ImmutableList.of();
-  }
-
-  @Override
-  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitDataSourceNode(this, context);
   }
 
   @Override
@@ -130,8 +134,37 @@ public class DataSourceNode extends PlanNode {
         && !projection.containsExpression(new UnqualifiedColumnReferenceExp(keyName))
     ) {
       throwKeysNotIncludedError(sinkName, "key column", ImmutableList.of(
-          (ColumnReferenceExp) new UnqualifiedColumnReferenceExp(keyName)), and());
+          (ColumnReferenceExp) new UnqualifiedColumnReferenceExp(keyName)));
     }
+  }
+
+  @Override
+  public Set<ColumnReferenceExp> validateColumns(final RequiredColumns requiredColumns) {
+    return requiredColumns.get().stream()
+        .filter(this::nonKnownColumn)
+        .collect(Collectors.toSet());
+  }
+
+  private boolean nonKnownColumn(final ColumnReferenceExp columnRef) {
+    if (columnRef.maybeQualifier().isPresent()
+        && !columnRef.maybeQualifier().get().equals(getAlias())
+    ) {
+      return true;
+    }
+
+    final ColumnName columnName = columnRef.getColumnName();
+
+    if (SystemColumns.isPseudoColumn(columnName)) {
+      return false;
+    }
+
+    if (SystemColumns.isWindowBound(columnName)) {
+      return !dataSource.getKsqlTopic().getKeyFormat().isWindowed();
+    }
+
+    return !dataSource.getSchema()
+        .findColumn(columnName)
+        .isPresent();
   }
 
   private static LogicalSchema buildSchema(final DataSource dataSource) {

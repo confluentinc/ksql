@@ -18,11 +18,16 @@ package io.confluent.ksql.function.udf.map;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@UdfDescription(name = "AS_MAP", description = "Construct a list based on some inputs")
+@UdfDescription(
+    name = "AS_MAP",
+    description = "Construct a list based on some inputs",
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class AsMap {
 
   @Udf

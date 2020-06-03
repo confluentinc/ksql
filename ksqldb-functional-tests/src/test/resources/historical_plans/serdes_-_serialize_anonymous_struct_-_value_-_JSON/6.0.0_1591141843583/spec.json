@@ -1,0 +1,106 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1591141843583,
+  "path" : "query-validation-tests/serdes.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO STRUCT<F0 INT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<F0 INT>"
+  },
+  "testCase" : {
+    "name" : "serialize anonymous struct - value - JSON",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : {
+          "F0" : 1
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : {
+          "F0" : null
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "F0" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "F0" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "schema" : {
+        "type" : "record",
+        "name" : "ignored",
+        "fields" : [ {
+          "name" : "F0",
+          "type" : [ "null", "int" ]
+        } ]
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

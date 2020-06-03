@@ -561,6 +561,16 @@ UCASE(col1)
 
 Convert a string to uppercase.
 
+### `UUID`
+
+```sql
+UUID()
+```
+Create a Universally Unique Identifier (UUID) generated according to RFC 4122. 
+A call to UUID() returns a value conforming to UUID version 4, sometimes called 
+"random UUID", as described in RFC 4122. The value is a 128-bit number represented 
+as a string of five hexadecimal numbers _aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_.
+
 ## Nulls
 
 ### `COALESCE`

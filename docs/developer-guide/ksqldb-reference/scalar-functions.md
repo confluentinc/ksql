@@ -325,6 +325,22 @@ CONCAT(col1, col2, 'hello', ..., col-n)
 
 Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
 
+### `CONCAT_WS`
+
+```sql
+CONCAT_WS(separator, expr1, expr2, ...)
+```
+
+Concatenates two or more string expressions, inserting a separator string between each.
+
+If the separator is NULL, this function returns NULL.
+Any expressions which evaluate to NULL are skipped.
+
+Example: 
+```sql
+CONCAT_WS(', ', 'apple', 'banana', NULL, 'date')  ->  'apple, banana, date'
+```
+
 ### `ENCODE`
 
 ```sql
@@ -335,6 +351,7 @@ Given a STRING that is encoded as `input_encoding`, encode it using the `output_
 `hex`, `utf8`, `ascii`, and `base64`. Throws an exception if the provided encodings are not supported.
 
 For example, to encode a string in `hex` to `utf8`, use `ENCODE(string, 'hex', 'utf8')`.
+
 ### `EXTRACTJSONFIELD`
 
 ```sql

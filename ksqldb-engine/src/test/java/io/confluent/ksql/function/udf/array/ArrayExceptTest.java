@@ -67,6 +67,22 @@ public class ArrayExceptTest {
   }
 
   @Test
+  public void shouldExceptFromArrayContainingNulls() {
+    final List<String> input1 = Arrays.asList("foo", null, "foo", "bar");
+    final List<String> input2 = Arrays.asList("foo");
+    final List<String> result = udf.except(input1, input2);
+    assertThat(result, contains(null, "bar"));
+  }
+
+  @Test
+  public void shouldExceptNulls() {
+    final List<String> input1 = Arrays.asList("foo", null, "foo", "bar");
+    final List<String> input2 = Arrays.asList(null, "foo");
+    final List<String> result = udf.except(input1, input2);
+    assertThat(result, contains("bar"));
+  }
+
+  @Test
   public void shouldReturnNullForNullLeftInput() {
     final List<String> input1 = Arrays.asList("foo");
     final List<String> result = udf.except(input1, null);

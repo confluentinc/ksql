@@ -76,10 +76,6 @@ public class TlsTest extends ApiTest {
     String clientTrustStorePassword = ServerKeyStore.clientKeyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
-    final int port = server.getListeners().get(0).getPort();
-    // additional logging to help debug potential flakiness with shouldReloadCert()
-    log.info("Creating client to listen on port: " + port);
-
     return new WebClientOptions().setSsl(true).
         setUseAlpn(true).
         setProtocolVersion(HttpVersion.HTTP_2).
@@ -87,7 +83,7 @@ public class TlsTest extends ApiTest {
             new JksOptions().setPath(clientTrustStorePath).setPassword(clientTrustStorePassword)).
         setVerifyHost(false).
         setDefaultHost("localhost").
-        setDefaultPort(port);
+        setDefaultPort(server.getListeners().get(0).getPort());
   }
 
   @Test
@@ -111,15 +107,14 @@ public class TlsTest extends ApiTest {
             try {
               // this should fail
               sendRequest("/query-stream", requestBody.toBuffer());
-              return false;
+              return "error: request should have failed but did not";
             } catch (Exception e) {
               assertThat(e,
                   instanceOf(ExecutionException.class)); // thrown from CompletableFuture.get()
-              return e.getMessage()
-                  .contains("javax.net.ssl.SSLHandshakeException: Failed to create SSL connection");
+              return e.getMessage();
             }
           },
-          is(true),
+          containsString("javax.net.ssl.SSLHandshakeException: Failed to create SSL connection"),
           TimeUnit.SECONDS.toMillis(1),
           TimeUnit.SECONDS.toMillis(1)
       );

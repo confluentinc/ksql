@@ -93,7 +93,8 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
       final FunctionRegistry functionRegistry,
       final ImmutableAnalysis analysis,
       final AggregateAnalysisResult rewrittenAggregateAnalysis,
-      final List<SelectExpression> projectionExpressions
+      final List<SelectExpression> projectionExpressions,
+      final boolean persistentQuery
   ) {
     super(id, DataSourceType.KTABLE, Optional.empty());
 
@@ -113,7 +114,7 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
     this.requiredColumns = ImmutableList
         .copyOf(rewrittenAggregateAnalysis.getRequiredColumns());
     this.selectExpressions = ImmutableList
-        .copyOf(requireNonNull(projectionExpressions, "projectionExpresions"));
+        .copyOf(requireNonNull(projectionExpressions, "projectionExpressions"));
 
     final Set<Expression> groupings = ImmutableSet.copyOf(groupBy.getGroupingExpressions());
 
@@ -123,7 +124,7 @@ public class AggregateNode extends PlanNode implements VerifiableNode {
             ExpressionTreeRewriter
                 .rewriteWith(aggregateExpressionRewriter::process, se.getExpression())
         ))
-        .filter(e -> !groupings.contains(e.getExpression()))
+        .filter(e -> !persistentQuery || !groupings.contains(e.getExpression()))
         .collect(Collectors.toList()));
 
     this.havingExpressions = rewrittenAggregateAnalysis.getHavingExpression()

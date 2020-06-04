@@ -76,6 +76,10 @@ public class TlsTest extends ApiTest {
     String clientTrustStorePassword = ServerKeyStore.clientKeyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
+    final int port = server.getListeners().get(0).getPort();
+    // additional logging to help debug potential flakiness with shouldReloadCert()
+    log.info("Creating client to listen on port: " + port);
+
     return new WebClientOptions().setSsl(true).
         setUseAlpn(true).
         setProtocolVersion(HttpVersion.HTTP_2).
@@ -83,7 +87,7 @@ public class TlsTest extends ApiTest {
             new JksOptions().setPath(clientTrustStorePath).setPassword(clientTrustStorePassword)).
         setVerifyHost(false).
         setDefaultHost("localhost").
-        setDefaultPort(server.getListeners().get(0).getPort());
+        setDefaultPort(port);
   }
 
   @Test

@@ -78,6 +78,8 @@ public class SandboxedKafkaTopicClientTest {
           .ignore("describeTopic", String.class)
           .ignore("describeTopics", Collection.class)
           .ignore("deleteTopics", Collection.class)
+          .ignore("listTopicStartOffsets", String.class)
+          .ignore("listTopicEndOffsets", String.class)
           .build();
     }
 

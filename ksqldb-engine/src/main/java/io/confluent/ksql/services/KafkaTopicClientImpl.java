@@ -82,9 +82,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private final Supplier<Admin> adminClient;
 
   /**
-   * Construct a topic client from an existing admin client.
-   * Note, the admin client is shared between all methods of this class, i.e the admin client
-   * is created only once and then reused.
+   * Construct a topic client from an existing admin client. Note, the admin client is shared
+   * between all methods of this class, i.e the admin client is created only once and then reused.
    *
    * @param sharedAdminClient the admin client .
    */
@@ -147,9 +146,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   /**
-   * We need this method because {@link Admin#createTopics(Collection)} does not allow
-   * you to pass in only partitions. Instead, we determine the default number from the cluster
-   * config and then pass that value back.
+   * We need this method because {@link Admin#createTopics(Collection)} does not allow you to pass
+   * in only partitions. Instead, we determine the default number from the cluster config and then
+   * pass that value back.
    *
    * @return the default broker configuration
    */
@@ -313,7 +312,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
     if (!failList.isEmpty()) {
       throw new KafkaDeleteTopicsException("Failed to clean up topics: "
-              + String.join(",", failList), exceptionList);
+          + String.join(",", failList), exceptionList);
     }
   }
 
@@ -339,22 +338,22 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   @Override
   public Map<TopicPartition, ListOffsetsResultInfo> listTopicOffsets(
-          String topicName,
-          OffsetSpec offsetSpec
+      final String topicName,
+      final OffsetSpec offsetSpec
   ) {
     final TopicDescription topicDescription = describeTopic(topicName);
     final Map<TopicPartition, OffsetSpec> offsetsRequest = new LinkedHashMap<>();
-    for (TopicPartitionInfo tpInfo: topicDescription.partitions()) {
-      TopicPartition tp = new TopicPartition(topicName, tpInfo.partition());
+    for (TopicPartitionInfo tpInfo : topicDescription.partitions()) {
+      final TopicPartition tp = new TopicPartition(topicName, tpInfo.partition());
       offsetsRequest.put(tp, offsetSpec);
     }
     try {
       return ExecutorUtil.executeWithRetries(
-              () -> adminClient.get().listOffsets(offsetsRequest).all().get(),
-              RetryBehaviour.ON_RETRYABLE);
+          () -> adminClient.get().listOffsets(offsetsRequest).all().get(),
+          RetryBehaviour.ON_RETRYABLE);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
-              "Failed to get offsets for Kafka Topic " + topicName, e);
+          "Failed to get offsets for Kafka Topic " + topicName, e);
     }
   }
 

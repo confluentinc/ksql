@@ -221,7 +221,7 @@ public final class ListSourceExecutor {
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
-        String kafkaTopicName = dataSource.getKafkaTopicName();
+        final String kafkaTopicName = dataSource.getKafkaTopicName();
         final TopicDescription topicDescription = serviceContext.getTopicClient()
             .describeTopic(kafkaTopicName);
         topicDescriptionOptional = Optional.of(topicDescription);

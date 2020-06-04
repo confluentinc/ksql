@@ -56,7 +56,10 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     try {
       final Map<String, ConsumerGroupDescription> groups = ExecutorUtil
           .executeWithRetries(
-              () -> adminClient.get().describeConsumerGroups(Collections.singleton(group)).all().get(),
+              () -> adminClient.get()
+                  .describeConsumerGroups(Collections.singleton(group))
+                  .all()
+                  .get(),
               RetryBehaviour.ON_RETRYABLE);
 
       final Set<ConsumerSummary> results = groups
@@ -79,10 +82,13 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
   }
 
   @Override
-  public Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(String group) {
+  public Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(final String group) {
     try {
       return ExecutorUtil.executeWithRetries(
-          () -> adminClient.get().listConsumerGroupOffsets(group).partitionsToOffsetAndMetadata().get(),
+          () -> adminClient.get()
+              .listConsumerGroupOffsets(group)
+              .partitionsToOffsetAndMetadata()
+              .get(),
           RetryBehaviour.ON_RETRYABLE);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka consumer groups", e);

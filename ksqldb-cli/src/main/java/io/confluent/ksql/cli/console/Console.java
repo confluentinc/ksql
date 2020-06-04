@@ -630,7 +630,8 @@ public class Console implements Closeable {
         .getConsumerGroupOffsets();
     if (consumerGroupOffsetsOptional.isPresent()) {
       writer().println();
-      final SourceConsumerGroupOffsets sourceConsumerGroupOffsets = consumerGroupOffsetsOptional.get();
+      final SourceConsumerGroupOffsets sourceConsumerGroupOffsets =
+          consumerGroupOffsetsOptional.get();
       writer().println(String.format("%-20s : %s",
           "Consumer Group", sourceConsumerGroupOffsets.getGroupId()));
       writer().println(String.format("%-20s : %s",

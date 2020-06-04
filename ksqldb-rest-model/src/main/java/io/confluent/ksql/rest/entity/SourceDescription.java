@@ -68,7 +68,8 @@ public class SourceDescription {
       @JsonProperty("partitions") final int partitions,
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
-      @JsonProperty("consumerOffsets") final Optional<SourceConsumerGroupOffsets> consumerGroupOffsets) {
+      @JsonProperty("consumerOffsets")
+      final Optional<SourceConsumerGroupOffsets> consumerGroupOffsets) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
     this.windowType = Objects.requireNonNull(windowType, "windowType");

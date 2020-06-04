@@ -186,7 +186,7 @@ public interface KafkaTopicClient {
   boolean addTopicConfig(String topicName, Map<String, ?> overrides);
 
   /**
-   * Call to get a topic's cleanup policy
+   * Call to get a topic's cleanup policy.
    *
    * @param topicName topicNames to retrieve cleanup policy for.
    * @return the clean up policy of the topic.
@@ -203,7 +203,10 @@ public interface KafkaTopicClient {
    */
   void deleteInternalTopics(String applicationId);
 
-  Map<TopicPartition, ListOffsetsResultInfo> listTopicOffsets(String topicName, OffsetSpec offsetSpec);
+  Map<TopicPartition, ListOffsetsResultInfo> listTopicOffsets(
+      String topicName,
+      OffsetSpec offsetSpec
+  );
 
   default Map<TopicPartition, ListOffsetsResultInfo> listTopicStartOffsets(String topicName) {
     return listTopicOffsets(topicName, OffsetSpec.earliest());

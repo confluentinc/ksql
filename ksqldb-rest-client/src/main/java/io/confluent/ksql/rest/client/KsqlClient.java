@@ -36,7 +36,7 @@ import org.apache.kafka.common.config.SslConfigs;
 public final class KsqlClient implements AutoCloseable {
 
   static {
-    ApiJsonMapper.INSTANCE.get().registerModule(new KsqlTypesDeserializationModule(false));
+    ApiJsonMapper.INSTANCE.get().registerModule(new KsqlTypesDeserializationModule());
   }
 
   private final Vertx vertx;

@@ -18,8 +18,13 @@ package io.confluent.ksql.function.udf.string;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 
-@UdfDescription(name = "field", description = Field.DESCRIPTION)
+@UdfDescription(
+    name = "field",
+    description = Field.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class Field {
 
   static final String DESCRIPTION = "Returns the position (1-indexed) of str in args, or 0 if"

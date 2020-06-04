@@ -19,12 +19,15 @@ import com.google.common.base.Splitter;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.net.URI;
 import java.util.List;
 
 @UdfDescription(
     name = UrlExtractParameterKudf.NAME,
-    description = UrlExtractParameterKudf.DESCRIPTION)
+    description = UrlExtractParameterKudf.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class UrlExtractParameterKudf {
 
   static final String DESCRIPTION =

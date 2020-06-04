@@ -259,6 +259,52 @@ MAP(key VARCHAR := value, ...)
 
 Construct a map from specific key-value tuples.
 
+### `MAP_KEYS`
+
+```sql
+MAP_KEYS(a_map)
+```
+
+Returns an array that contains all of the keys from the specified map.
+
+Returns NULL if the input map is NULL.
+
+Example:
+```sql
+map_keys( map('apple' := 10, 'banana' := 20) )  => ['apple', 'banana'] 
+```
+
+### `MAP_VALUES`
+
+```sql
+MAP_VALUES(a_map)
+```
+
+Returns an array that contains all of the values from the specified map.
+
+Returns NULL if the input map is NULL.
+
+Example:
+```sql
+map_values( map('apple' := 10, 'banana' := 20) )  => [10, 20] 
+```
+
+### `MAP_UNION`
+
+```sql
+MAP_UNION(map1, map2)
+```
+
+Returns a new map containing the union of all entries from both input maps. If a key is present in both input maps, the corresponding value from _map2_ is returned.
+
+Returns NULL if all of the input maps are NULL.
+
+Example:
+```sql
+map_union( map('apple' := 10, 'banana' := 20), map('cherry' := 99) )  => ['apple': 10, 'banana': 20, 'cherry': 99] 
+
+map_union( map('apple' := 10, 'banana' := 20), map('apple' := 50) )  => ['apple': 50, 'banana': 20] 
+```
 
 ### `SLICE`
 
@@ -274,10 +320,37 @@ include both endpoints.
 ### `CONCAT`
 
 ```sql
-CONCAT(col1, '_hello')
+CONCAT(col1, col2, 'hello', ..., col-n)
 ```
 
-Concatenate two or more strings.
+Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
+
+### `CONCAT_WS`
+
+```sql
+CONCAT_WS(separator, expr1, expr2, ...)
+```
+
+Concatenates two or more string expressions, inserting a separator string between each.
+
+If the separator is NULL, this function returns NULL.
+Any expressions which evaluate to NULL are skipped.
+
+Example: 
+```sql
+CONCAT_WS(', ', 'apple', 'banana', NULL, 'date')  ->  'apple, banana, date'
+```
+
+### `ENCODE`
+
+```sql
+ENCODE(col1, input_encoding, output_encoding)
+```
+
+Given a STRING that is encoded as `input_encoding`, encode it using the `output_encoding`. The accepted input and output encodings are:
+`hex`, `utf8`, `ascii`, and `base64`. Throws an exception if the provided encodings are not supported.
+
+For example, to encode a string in `hex` to `utf8`, use `ENCODE(string, 'hex', 'utf8')`.
 
 ### `EXTRACTJSONFIELD`
 
@@ -369,6 +442,25 @@ LEN(col1)
 ```
 
 The length of a string.
+
+### `LPAD`
+
+```sql
+LPAD(input, length, padding)
+```
+
+Pads the input string, beginning from the left, with the specified padding string, until the target length is reached. 
+If the input string is longer than the specified target length, it is truncated.
+
+If the padding string is empty or NULL, or the target length is negative, NULL is returned.
+
+Examples:
+```sql
+LPAD('Foo', 7, 'Bar')  =>  'BarBFoo'
+LPAD('Foo', 2, 'Bar')  =>  'Fo'
+LPAD('', 2, 'Bar')  =>  'Ba'
+LPAD('123', 5, '0')  => '00123'
+```
 
 ### `MASK`
 
@@ -463,7 +555,7 @@ the entire substring is returned by default.
 For example, `REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2)`
 returns "there".
 
-### REGEXP_EXTRACT_ALL
+### `REGEXP_EXTRACT_ALL`
 
 ```sql
 REGEXP_EXTRACT_ALL('.*', col1)
@@ -480,6 +572,51 @@ the entire substring is returned by default.
 
 For example, `REGEXP_EXTRACT("(\\w+) (\\w+)", 'hello there nice day', 2)`
 returns `['there', 'day']`.
+
+### `REGEXP_REPLACE`
+
+```sql
+REGEXP_REPLACE(col1, 'a.b+', 'bar')
+```
+
+Replace all matches of a regex in an input string with a new string.
+If either the input string, regular expression, or new string is null,
+the result is null.
+
+### `REGEXP_SPLIT_TO_ARRAY`
+
+```sql
+REGEXP_SPLIT_TO_ARRAY(col1, 'a.b+')
+```
+
+Splits a string into an array of substrings based
+on a regular expression. If there is no match,
+the original string is returned as the only
+element in the array. If the regular expression is empty,
+then all characters in the string are split.
+If either the string or the regular expression is `NULL`, a
+NULL value is returned.
+
+If the regular expression is found at the beginning or end
+of the string, or there are contiguous matches,
+then an empty element is added to the array.
+
+### `RPAD`
+
+```sql
+RPAD(input, length, padding)
+```
+
+Pads the input string, starting from the end, with the specified padding string until the target length is reached. If the input string is longer than the specified target length it will be truncated. 
+
+If the padding string is empty or NULL, or the target length is negative, then NULL is returned.
+
+Examples:
+```sql
+RPAD('Foo', 7, 'Bar')  =>  'FooBarB'
+RPAD('Foo', 2, 'Bar')  =>  'Fo'
+RPAD('', 2, 'Bar')  =>  'Ba'
+```
 
 ### `SPLIT`
 
@@ -532,6 +669,16 @@ UCASE(col1)
 ```
 
 Convert a string to uppercase.
+
+### `UUID`
+
+```sql
+UUID()
+```
+Create a Universally Unique Identifier (UUID) generated according to RFC 4122. 
+A call to UUID() returns a value conforming to UUID version 4, sometimes called 
+"random UUID", as described in RFC 4122. The value is a 128-bit number represented 
+as a string of five hexadecimal numbers _aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_.
 
 ## Nulls
 

@@ -18,11 +18,14 @@ package io.confluent.ksql.function.udaf.sum;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.function.BinaryOperator;
 
 @UdafDescription(name = "sum_list",
-    description = "Returns the sum of elements contained in the list.")
+    description = "Returns the sum of elements contained in the list.",
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public final class ListSumUdaf {
 
   private ListSumUdaf() {

@@ -41,7 +41,7 @@ public class MetadataTimestampExtractor implements KsqlTimestampExtractor {
   }
 
   @Override
-  public long extract(final GenericRow row) {
+  public long extract(final Object key, final GenericRow value) {
     throw new UnsupportedOperationException("Operation not supported for class: "
         + timestampExtractor.getClass());
   }

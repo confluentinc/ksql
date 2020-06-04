@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -33,7 +32,7 @@ public class LogicalSchemaDeserializerTest {
 
   @BeforeClass
   public static void classSetUp() {
-    MAPPER.registerModule(new TestModule(false));
+    MAPPER.registerModule(new TestModule());
   }
 
   @Test
@@ -81,29 +80,12 @@ public class LogicalSchemaDeserializerTest {
         .build()));
   }
 
-  @Test
-  public void shouldAddImplicitColumns() throws Exception {
-    // Given:
-    final ObjectMapper mapper = new ObjectMapper();
-    mapper.registerModule(new TestModule(true));
-    final String json = "\"`v0` INTEGER\"";
-
-    // When:
-    final LogicalSchema schema = mapper.readValue(json, LogicalSchema.class);
-
-    // Then:
-    assertThat(schema, is(LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
-        .build()));
-  }
-
   private static class TestModule extends SimpleModule {
 
-    private TestModule(final boolean withImplicitColumns) {
+    private TestModule() {
       addDeserializer(
           LogicalSchema.class,
-          new LogicalSchemaDeserializer(withImplicitColumns)
+          new LogicalSchemaDeserializer()
       );
     }
   }

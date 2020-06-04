@@ -128,6 +128,11 @@ public class DataSourceNode extends PlanNode {
 
   @Override
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
+    if (getSchema().key().isEmpty()) {
+      // No key column.
+      return;
+    }
+
     final ColumnName keyName = Iterables.getOnlyElement(getSchema().key()).name();
 
     if (!projection.containsExpression(new QualifiedColumnReferenceExp(getAlias(), keyName))

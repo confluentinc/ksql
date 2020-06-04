@@ -19,7 +19,6 @@ import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
-import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -28,6 +27,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -48,6 +48,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -172,7 +173,7 @@ public class AggregateNodeTest {
     postAggSelect.init(ctx);
     final GenericRow result = (GenericRow) postAggSelect
         .transform(null, genericRow(0L, "-1", 2.0D, 3L, 4.0D));
-    assertThat("should select col0, agg1, agg2", result.values(), contains(2.0, 3L, 4.0));
+    assertThat("should select col0, agg1, agg2 agg3", result.values(), contains(0L, 2.0, 3L, 4.0));
   }
 
   @Test
@@ -238,14 +239,18 @@ public class AggregateNodeTest {
   @Test
   public void shouldBuildCorrectAggregateSchema() {
     // When:
-    final SchemaKStream stream = buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
+    final SchemaKStream<?> stream = buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
         + "window TUMBLING (size 2 second) "
         + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;");
 
     // Then:
-    assertThat(stream.getSchema().value(), contains(
-        valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.DOUBLE),
-        valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.BIGINT)));
+    assertThat(stream.getSchema(), is(LogicalSchema.builder()
+        .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.BIGINT)
+        .build()
+    ));
   }
 
   @Test

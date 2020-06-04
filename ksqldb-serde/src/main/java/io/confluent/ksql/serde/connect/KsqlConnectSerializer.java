@@ -49,7 +49,7 @@ public class KsqlConnectSerializer implements Serializer<Object> {
       return converter.fromConnectData(topic, schema, connectRow);
     } catch (final Exception e) {
       throw new SerializationException(
-          "Error serializing message to topic: " + topic, e);
+          "Error serializing message to topic: " + topic + ". " + e.getMessage() , e);
     }
   }
 

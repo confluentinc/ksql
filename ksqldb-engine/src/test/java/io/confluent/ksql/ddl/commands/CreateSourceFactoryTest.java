@@ -19,6 +19,7 @@ import static io.confluent.ksql.model.WindowType.HOPPING;
 import static io.confluent.ksql.model.WindowType.SESSION;
 import static io.confluent.ksql.model.WindowType.TUMBLING;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.PRIMARY_KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWKEY_NAME;
@@ -105,7 +106,10 @@ public class CreateSourceFactoryTest {
   private static final TableElement ELEMENT2 =
       tableElement(VALUE, "hojjat", new Type(BIGINT));
 
-  private static final TableElements ONE_ELEMENTS = TableElements.of(ELEMENT1);
+  private static final TableElements ONE_ELEMENT = TableElements.of(ELEMENT1);
+
+  private static final TableElements TABLE_ELEMENTS_1_VALUE =
+      TableElements.of(EXPLICIT_PRIMARY_KEY, ELEMENT1);
 
   private static final TableElements TABLE_ELEMENTS =
       TableElements.of(EXPLICIT_PRIMARY_KEY, ELEMENT1, ELEMENT2);
@@ -192,7 +196,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateTable ddlStatement = new CreateTable(SOME_NAME,
         TableElements.of(
-            tableElement(VALUE, "COL1", new Type(BIGINT)),
+            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
             tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
         true, withProperties);
 
@@ -219,7 +223,7 @@ public class CreateSourceFactoryTest {
     givenProperty(CommonCreateConfigs.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
 
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory
@@ -240,7 +244,7 @@ public class CreateSourceFactoryTest {
     ));
 
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory
@@ -254,7 +258,7 @@ public class CreateSourceFactoryTest {
   public void shouldCreateStreamCommandWithSingleValueWrappingFromDefaultConfig() {
     // Given:
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory
@@ -278,7 +282,7 @@ public class CreateSourceFactoryTest {
     givenProperty(CommonCreateConfigs.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
 
     final CreateTable statement =
-        new CreateTable(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE, true, withProperties);
 
     // When:
     final CreateTableCommand cmd = createSourceFactory
@@ -298,7 +302,7 @@ public class CreateSourceFactoryTest {
     ));
 
     final CreateTable statement =
-        new CreateTable(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE, true, withProperties);
 
     // When:
     final CreateTableCommand cmd = createSourceFactory
@@ -312,7 +316,7 @@ public class CreateSourceFactoryTest {
   public void shouldCreateTableCommandWithSingleValueWrappingFromDefaultConfig() {
     // Given:
     final CreateTable statement =
-        new CreateTable(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE, true, withProperties);
 
     // When:
     final CreateTableCommand cmd = createSourceFactory
@@ -360,7 +364,7 @@ public class CreateSourceFactoryTest {
   public void shouldNotThrowWhenThereAreElementsInCreateStream() {
     // Given:
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     createSourceFactory.createStreamCommand(statement, ksqlConfig);
@@ -372,7 +376,7 @@ public class CreateSourceFactoryTest {
   public void shouldNotThrowWhenThereAreElementsInCreateTable() {
     // Given:
     final CreateTable statement =
-        new CreateTable(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE, true, withProperties);
 
     // When:
     createSourceFactory.createTableCommand(statement, ksqlConfig);
@@ -385,7 +389,7 @@ public class CreateSourceFactoryTest {
     // Given:
     when(topicClient.isTopicExists(any())).thenReturn(false);
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     final Exception e = assertThrows(
@@ -403,7 +407,7 @@ public class CreateSourceFactoryTest {
   public void shouldNotThrowIfTopicDoesExist() {
     // Given:
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     createSourceFactory.createStreamCommand(statement, ksqlConfig);
@@ -420,7 +424,7 @@ public class CreateSourceFactoryTest {
         new StringLiteral("`will-not-find-me`")
     );
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     final Exception e = assertThrows(
@@ -438,9 +442,8 @@ public class CreateSourceFactoryTest {
   public void shouldBuildSerdeOptionsForStream() {
     // Given:
     givenCommandFactoriesWithMocks();
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
     when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
@@ -639,7 +642,7 @@ public class CreateSourceFactoryTest {
 
   @Test
   public void shouldDefaultToKafkaKeySerdeForStream() {
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -658,7 +661,7 @@ public class CreateSourceFactoryTest {
     givenCommandFactoriesWithMocks();
     givenProperty("VALUE_FORMAT", new StringLiteral("Avro"));
     givenProperty("value_avro_schema_full_name", new StringLiteral("full.schema.name"));
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -676,7 +679,7 @@ public class CreateSourceFactoryTest {
   public void shouldHandleSessionWindowedKeyForStream() {
     // Given:
     givenProperty("window_type", new StringLiteral("session"));
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -696,7 +699,7 @@ public class CreateSourceFactoryTest {
         "window_type", new StringLiteral("tumbling"),
         "window_size", new StringLiteral("1 MINUTE")
     ));
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -719,7 +722,7 @@ public class CreateSourceFactoryTest {
         "window_type", new StringLiteral("Hopping"),
         "window_size", new StringLiteral("2 SECONDS")
     ));
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENTS, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -873,6 +876,27 @@ public class CreateSourceFactoryTest {
     assertThat(result.getSchema().key(), contains(
         keyColumn(ColumnName.of("someKey"), SqlTypes.STRING)
     ));
+  }
+
+  @Test
+  public void shouldThrowIfTableIsMissingPrimaryKey() {
+    // Given:
+    ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
+    ));
+
+    final CreateTable statement =
+        new CreateTable(SOME_NAME, ONE_ELEMENT, true, withProperties);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> createSourceFactory.createTableCommand(statement, ksqlConfig)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Tables require a PRIMARY KEY. Please define the PRIMARY KEY."));
   }
 
   private void givenProperty(final String name, final Literal value) {

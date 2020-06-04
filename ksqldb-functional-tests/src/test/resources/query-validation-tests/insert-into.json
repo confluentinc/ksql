@@ -19,6 +19,23 @@
       ]
     },
     {
+      "name": "streams with no key columns",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING, data VARCHAR) WITH (kafka_topic='stream-source', value_format='JSON');",
+        "CREATE STREAM SOURCE2 (K STRING, data VARCHAR) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT SELECT * FROM SOURCE2;"
+      ],
+      "inputs": [
+        {"topic": "stream-source", "value": {"K": "k1", "data": "v1"}},
+        {"topic": "insert-source", "value": {"K": "k2", "data": "v2"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"K": "k1", "DATA": "v1"}},
+        {"topic": "OUTPUT", "key": null, "value": {"K": "k2", "DATA": "v2"}}
+      ]
+    },
+    {
       "name": "with custom topic name",
       "statements": [
         "CREATE STREAM SOURCE1 (K STRING KEY, data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",

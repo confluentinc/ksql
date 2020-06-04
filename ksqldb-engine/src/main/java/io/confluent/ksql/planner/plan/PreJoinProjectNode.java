@@ -15,12 +15,9 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -28,15 +25,20 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.planner.RequiredColumns.Builder;
-import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
+import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Logical plan node that prepends a source's alias to the start of each column name.
+ *
+ * <p>This aliasing avoids column name clashes between the sources within a join.
+ */
 @Immutable
 public class PreJoinProjectNode extends ProjectNode {
 
@@ -47,17 +49,16 @@ public class PreJoinProjectNode extends ProjectNode {
   public PreJoinProjectNode(
       final PlanNodeId id,
       final PlanNode source,
-      final List<SelectExpression> projectExpressions,
-      final LogicalSchema schema
+      final SourceName alias
   ) {
     super(id, source);
 
-    this.selectExpressions = ImmutableList
-        .copyOf(requireNonNull(projectExpressions, "projectExpressions"));
-    this.aliases = buildAliasMapping(projectExpressions);
-    this.schema = requireNonNull(schema, "schema");
-
-    validate();
+    this.selectExpressions = ImmutableList.copyOf(buildSelectExpressions(
+        alias,
+        source.getSchema()
+    ));
+    this.aliases = buildAliasMapping(selectExpressions);
+    this.schema = buildSchema(alias, source.getSchema());
   }
 
   @Override
@@ -67,22 +68,6 @@ public class PreJoinProjectNode extends ProjectNode {
 
   public List<SelectExpression> getSelectExpressions() {
     return selectExpressions;
-  }
-
-  @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    final SchemaKStream<?> stream = getSource().buildStream(builder);
-
-    final List<ColumnName> keyColumnNames = getSchema().key().stream()
-        .map(Column::name)
-        .collect(Collectors.toList());
-
-    return stream.select(
-        keyColumnNames,
-        selectExpressions,
-        builder.buildNodeContext(getId().toString()),
-        builder
-    );
   }
 
   @Override
@@ -126,5 +111,36 @@ public class PreJoinProjectNode extends ProjectNode {
         ));
 
     return builder.build();
+  }
+
+  private static LogicalSchema buildSchema(
+      final SourceName alias,
+      final LogicalSchema parentSchema
+  ) {
+    final LogicalSchema.Builder builder = LogicalSchema.builder();
+
+    parentSchema.columns()
+        .forEach(c -> {
+          final ColumnName aliasedName = ColumnNames.generatedJoinColumnAlias(alias, c.name());
+
+          if (c.namespace() == Namespace.KEY) {
+            builder.keyColumn(aliasedName, c.type());
+          } else {
+            builder.valueColumn(aliasedName, c.type());
+          }
+        });
+
+    return builder.build();
+  }
+
+  private static List<SelectExpression> buildSelectExpressions(
+      final SourceName alias,
+      final LogicalSchema schema
+  ) {
+    return schema.value().stream()
+        .map(c -> SelectExpression.of(
+            ColumnNames.generatedJoinColumnAlias(alias, c.name()),
+            new UnqualifiedColumnReferenceExp(c.name()))
+        ).collect(Collectors.toList());
   }
 }

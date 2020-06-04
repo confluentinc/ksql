@@ -234,6 +234,14 @@ public final class DecimalUtil {
   }
 
   public static SqlType fromValue(final BigDecimal value) {
+    final BigDecimal bigDecimalZero = BigDecimal.ZERO;
+
+    /* When a BigDecimal has value 0, the built-in method precision() always returns 1. To account
+    for this edge case, we just take the scale and add one and use that for the precision instead.
+    */
+    if (value.compareTo(bigDecimalZero) == 0) {
+      return SqlTypes.decimal(value.scale() + 1, value.scale());
+    }
     return SqlTypes.decimal(value.precision(), value.scale());
   }
 }

@@ -456,7 +456,7 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(functionList.getFunctions(), hasItems(
-        new SimpleFunctionInfo("CONCAT", FunctionType.SCALAR),
+        new SimpleFunctionInfo("TRIM", FunctionType.SCALAR),
         new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
         new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE)
     ));
@@ -1864,13 +1864,13 @@ public class KsqlResourceTest {
     givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
     givenKafkaTopicExists("topic2");
     final String createSql =
-        "CREATE TABLE SOURCE (val int) WITH (kafka_topic='topic2', value_format='json');";
+        "CREATE TABLE SOURCE (id int primary key, val int) WITH (kafka_topic='topic2', value_format='json');";
 
     // When:
     final KsqlRestException e = assertThrows(
         KsqlRestException.class,
         () -> makeSingleRequest(createSql, CommandStatusEntity.class)
-);
+    );
 
     // Then:
     assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));
@@ -1934,7 +1934,7 @@ public class KsqlResourceTest {
     assertThat(e, exceptionStatusCode(is(INTERNAL_SERVER_ERROR.code())));
     assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Could not write the statement '" + statement
-            + "' into the command topic.\nCaused by: blah"))));
+            + "' into the command topic." + System.lineSeparator() + "Caused by: blah"))));
   }
 
   private Answer<?> executeAgainstEngine(final String sql) {

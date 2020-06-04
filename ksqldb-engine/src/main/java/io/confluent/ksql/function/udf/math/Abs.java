@@ -21,11 +21,16 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.util.List;
 
-@UdfDescription(name = "Abs", description = Abs.DESCRIPTION)
+@UdfDescription(
+    name = "Abs",
+    description = Abs.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class Abs {
 
   static final String DESCRIPTION = "Returns the absolute value of its argument. If the argument "

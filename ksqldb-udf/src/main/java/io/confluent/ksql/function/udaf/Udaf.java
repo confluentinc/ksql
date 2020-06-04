@@ -50,7 +50,7 @@ public interface Udaf<I, A, O> {
   A aggregate(I current, A aggregate);
 
   /**
-   * Merge two aggregates
+   * Merge two aggregates. Only called when SESSION windows are merged.
    * @param aggOne first aggregate
    * @param aggTwo second aggregate
    * @return new aggregate

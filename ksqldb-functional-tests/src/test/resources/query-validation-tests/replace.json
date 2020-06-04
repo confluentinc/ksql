@@ -23,6 +23,25 @@
         {"topic": "OUTPUT", "value": {"REPLACE":null, "REPLACE_NULL":null, "REPLACE_W_NULL":null}},
         {"topic": "OUTPUT", "value": {"REPLACE":"popcorn", "REPLACE_NULL":null, "REPLACE_W_NULL":null}}
       ]
+    },
+    {
+      "name": "regexp_replace",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR, pattern VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, REGEXP_REPLACE(input_string, pattern, 'cat') AS EXTRACTED FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"input_string": "baababaa", "pattern": "(ab)+"}},
+        {"topic": "test_topic", "value": {"input_string": "baabbabaa", "pattern": "(ab)+"}},
+        {"topic": "test_topic", "value": {"input_string": null, "pattern": "(ab)+"}},
+        {"topic": "test_topic", "value": {"input_string": "baababaa", "pattern": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"EXTRACTED": "bacataa"}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED": "bacatbcataa"}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED": null}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED": null}}
+      ]
     }
   ]
 }

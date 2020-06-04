@@ -117,6 +117,22 @@ public final class CreateSourceFactory {
     final SourceName sourceName = statement.getName();
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
+    if (schema.key().isEmpty()) {
+      final boolean usingSchemaInference = statement.getProperties().getSchemaId().isPresent();
+
+      final String additional = usingSchemaInference
+          ? System.lineSeparator()
+          + "Use a partial schema to define the primary key and still load the value columns from "
+          + "the Schema Registry, for example:"
+          + System.lineSeparator()
+          + "\tCREATE TABLE " + statement.getName().text() + " (ID INT PRIMARY KEY) WITH (...);"
+          : "";
+
+      throw new KsqlException(
+          "Tables require a PRIMARY KEY. Please define the PRIMARY KEY." + additional
+      );
+    }
+
     final Optional<TimestampColumn> timestampColumn = buildTimestampColumn(
         ksqlConfig,
         statement.getProperties(),
@@ -153,7 +169,7 @@ public final class CreateSourceFactory {
       }
     });
 
-    return tableElements.toLogicalSchema(true);
+    return tableElements.toLogicalSchema();
   }
 
   private static KsqlTopic buildTopic(

@@ -17,7 +17,9 @@ package io.confluent.ksql.execution.streams.timestamp;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
 public class LongColumnTimestampExtractionPolicy implements TimestampExtractionPolicy {
@@ -30,8 +32,9 @@ public class LongColumnTimestampExtractionPolicy implements TimestampExtractionP
   }
 
   @Override
-  public KsqlTimestampExtractor create(final int columnIndex) {
-    return new LongTimestampExtractor(columnIndex);
+  public KsqlTimestampExtractor create(final Optional<Column> tsColumn) {
+    final Column column = tsColumn.orElseThrow(IllegalArgumentException::new);
+    return new LongTimestampExtractor(TimestampColumnExtractors.create(column));
   }
 
   @Override

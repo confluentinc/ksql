@@ -15,25 +15,25 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
+import io.confluent.ksql.schema.ksql.Column;
 import java.util.Objects;
-import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
+import java.util.Optional;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 public class MetadataTimestampExtractionPolicy implements TimestampExtractionPolicy {
-  private final TimestampExtractor timestampExtractor;
 
-  @JsonCreator
-  public MetadataTimestampExtractionPolicy() {
-    this(new FailOnInvalidTimestamp());
-  }
+  private final TimestampExtractor timestampExtractor;
 
   public MetadataTimestampExtractionPolicy(final TimestampExtractor timestampExtractor) {
     this.timestampExtractor = timestampExtractor;
   }
 
   @Override
-  public KsqlTimestampExtractor create(final int columnIndex) {
+  public KsqlTimestampExtractor create(final Optional<Column> tsColumn) {
+    if (tsColumn.isPresent()) {
+      throw new IllegalArgumentException("No column expected");
+    }
+
     return new MetadataTimestampExtractor(timestampExtractor);
   }
 

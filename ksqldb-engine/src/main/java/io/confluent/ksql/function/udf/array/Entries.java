@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udf.array;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -33,10 +34,12 @@ import org.apache.kafka.connect.data.Struct;
  * name "K" containing the key (this is always a String) and a field with name "V" holding the
  * value;
  */
-@UdfDescription(name = "ENTRIES",
+@UdfDescription(
+    name = "ENTRIES",
     description =
         "Construct an array from the entries in a map."
-            + "The array can be optionally sorted on the keys."
+            + "The array can be optionally sorted on the keys.",
+    author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class Entries {
 

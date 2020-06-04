@@ -63,7 +63,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class PhysicalPlanBuilderTest {
 
   private static final String CREATE_STREAM_TEST1 = "CREATE STREAM TEST1 "
-      + "(COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) "
+      + "(ROWKEY STRING KEY, COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) "
       + "WITH (KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_STREAM_TEST2 = "CREATE STREAM TEST2 "
@@ -214,7 +214,7 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldCreatePlanForInsertIntoStreamFromStream() {
     // Given:
-    final String cs = "CREATE STREAM test1 (col0 INT) "
+    final String cs = "CREATE STREAM test1 (ROWKEY STRING KEY, col0 INT) "
         + "WITH (KAFKA_TOPIC='test1', VALUE_FORMAT='JSON');";
     final String csas = "CREATE STREAM s0 AS SELECT * FROM test1;";
     final String insertInto = "INSERT INTO s0 SELECT * FROM test1;";

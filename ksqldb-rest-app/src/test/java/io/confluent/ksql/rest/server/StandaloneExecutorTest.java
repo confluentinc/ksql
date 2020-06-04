@@ -25,7 +25,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyShort;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -316,8 +318,9 @@ public class StandaloneExecutorTest {
     // When:
     final MetricsReporter mockReporter = mock(MetricsReporter.class);
     final KsqlConfig mockKsqlConfig = mock(KsqlConfig.class);
-    when(mockKsqlConfig.getConfiguredInstances(any(), any()))
+    when(mockKsqlConfig.getConfiguredInstances(anyString(), any(), any()))
         .thenReturn(Collections.singletonList(mockReporter));
+    when(mockKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
         processingLogConfig,

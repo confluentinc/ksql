@@ -241,7 +241,8 @@ public class LogicalPlanner {
         functionRegistry,
         analysis,
         aggregateAnalysis,
-        projectionExpressions
+        projectionExpressions,
+        analysis.getInto().isPresent()
     );
   }
 
@@ -535,15 +536,23 @@ public class LogicalPlanner {
           );
     }
 
-    final Set<ColumnName> keyColumnNames = groupBy.getGroupingExpressions().stream()
-        .map(selectResolver)
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .collect(Collectors.toSet());
+    final List<Column> valueColumns;
+    if (analysis.getInto().isPresent()) {
+      // Persistent query:
+      final Set<ColumnName> keyColumnNames = groupBy.getGroupingExpressions().stream()
+          .map(selectResolver)
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .collect(Collectors.toSet());
 
-    final List<Column> valueColumns = projectionSchema.value().stream()
-        .filter(col -> !keyColumnNames.contains(col.name()))
-        .collect(Collectors.toList());
+      valueColumns = projectionSchema.value().stream()
+          .filter(col -> !keyColumnNames.contains(col.name()))
+          .collect(Collectors.toList());
+    } else {
+      // Transient query:
+      // Transient queries only return value columns, so must leave key columns in the value:
+      valueColumns = projectionSchema.value();
+    }
 
     final Builder builder = LogicalSchema.builder();
 

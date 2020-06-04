@@ -31,8 +31,10 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
 
@@ -57,6 +59,8 @@ final class SandboxedKafkaTopicClient {
         .forward("describeTopic", methodParams(String.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class), sandbox)
         .forward("deleteTopics", methodParams(Collection.class), sandbox)
+        .forward("listTopicStartOffsets", methodParams(String.class), sandbox)
+        .forward("listTopicEndOffsets", methodParams(String.class), sandbox)
         .build();
   }
 
@@ -152,5 +156,13 @@ final class SandboxedKafkaTopicClient {
     final TopicDescription existingTopic = describeTopic(topic);
     TopicValidationUtil
         .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
+  }
+
+  private Map<TopicPartition, ListOffsetsResultInfo> listTopicStartOffsets(String topic) {
+    return delegate.listTopicStartOffsets(topic);
+  }
+
+  private Map<TopicPartition, ListOffsetsResultInfo> listTopicEndOffsets(String topic) {
+    return delegate.listTopicEndOffsets(topic);
   }
 }

@@ -23,7 +23,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.TopicPartition;
 
 /**
  * Note: all methods are synchronous, i.e. they wait for responses from Kafka before returning.
@@ -199,4 +202,14 @@ public interface KafkaTopicClient {
    * Delete the internal topics of a given application.
    */
   void deleteInternalTopics(String applicationId);
+
+  Map<TopicPartition, ListOffsetsResultInfo> listTopicOffsets(String topicName, OffsetSpec offsetSpec);
+
+  default Map<TopicPartition, ListOffsetsResultInfo> listTopicStartOffsets(String topicName) {
+    return listTopicOffsets(topicName, OffsetSpec.earliest());
+  }
+
+  default Map<TopicPartition, ListOffsetsResultInfo> listTopicEndOffsets(String topicName) {
+    return listTopicOffsets(topicName, OffsetSpec.latest());
+  }
 }

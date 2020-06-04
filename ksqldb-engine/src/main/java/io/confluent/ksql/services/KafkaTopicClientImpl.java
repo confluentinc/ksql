@@ -30,6 +30,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,9 +48,13 @@ import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
@@ -329,6 +334,27 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       LOG.error("Exception while trying to clean up internal topics for application id: {}.",
           applicationId, e
       );
+    }
+  }
+
+  @Override
+  public Map<TopicPartition, ListOffsetsResultInfo> listTopicOffsets(
+          String topicName,
+          OffsetSpec offsetSpec
+  ) {
+    final TopicDescription topicDescription = describeTopic(topicName);
+    final Map<TopicPartition, OffsetSpec> offsetsRequest = new LinkedHashMap<>();
+    for (TopicPartitionInfo tpInfo: topicDescription.partitions()) {
+      TopicPartition tp = new TopicPartition(topicName, tpInfo.partition());
+      offsetsRequest.put(tp, offsetSpec);
+    }
+    try {
+      return ExecutorUtil.executeWithRetries(
+              () -> adminClient.get().listOffsets(offsetsRequest).all().get(),
+              RetryBehaviour.ON_RETRYABLE);
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException(
+              "Failed to get offsets for Kafka Topic " + topicName, e);
     }
   }
 

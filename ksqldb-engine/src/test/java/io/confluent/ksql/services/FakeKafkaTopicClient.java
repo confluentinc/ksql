@@ -31,8 +31,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
@@ -194,6 +197,12 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public void deleteInternalTopics(final String applicationId) {
+  }
+
+  @Override
+  public Map<TopicPartition, ListOffsetsResultInfo> listTopicOffsets(String topicName,
+      OffsetSpec offsetSpec) {
+    return Collections.emptyMap();
   }
 
   private static FakeTopic createFakeTopic(

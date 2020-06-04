@@ -42,6 +42,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
+import io.confluent.ksql.test.tools.stubs.StubKafkaConsumerGroupClient;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -430,7 +431,8 @@ public class TestExecutor implements Closeable {
         new StubKafkaTopicClient(),
         () -> schemaRegistryClient,
         () -> new DefaultConnectClient("http://localhost:8083", Optional.empty()),
-        DisabledKsqlClient::instance
+        DisabledKsqlClient::instance,
+        new StubKafkaConsumerGroupClient()
     );
   }
 

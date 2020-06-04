@@ -24,9 +24,9 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.test.util.ConsumerGroupTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
-import io.confluent.ksql.util.KafkaConsumerGroupClient;
-import io.confluent.ksql.util.KafkaConsumerGroupClient.ConsumerSummary;
-import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
+import io.confluent.ksql.services.KafkaConsumerGroupClient;
+import io.confluent.ksql.services.KafkaConsumerGroupClient.ConsumerSummary;
+import io.confluent.ksql.services.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.time.Duration;
@@ -79,7 +79,7 @@ public class KafkaConsumerGroupClientTest {
     final KsqlConfig ksqlConfig = KsqlConfigTestUtil.create(TEST_HARNESS.getKafkaCluster());
 
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    consumerGroupClient = new KafkaConsumerGroupClientImpl(adminClient);
+    consumerGroupClient = new KafkaConsumerGroupClientImpl(() -> adminClient);
 
     topicName = TopicTestUtil.uniqueTopicName();
 

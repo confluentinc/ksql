@@ -35,6 +35,7 @@ public final class SandboxedServiceContext implements ServiceContext {
   private final KafkaClientSupplier kafkaClientSupplier;
   private final ConnectClient connectClient;
   private final Admin adminClient;
+  private final KafkaConsumerGroupClient consumerGroupClient;
 
   public static SandboxedServiceContext create(final ServiceContext serviceContext) {
     if (serviceContext instanceof SandboxedServiceContext) {
@@ -48,13 +49,16 @@ public final class SandboxedServiceContext implements ServiceContext {
         SandboxedSchemaRegistryClient.createProxy(serviceContext.getSchemaRegistryClient());
     final ConnectClient connectClient = SandboxConnectClient.createProxy();
     final Admin adminClient = serviceContext.getAdminClient();
+    final KafkaConsumerGroupClient kafkaConsumerGroupClient = SandboxedKafkaConsumerGroupClient
+        .createProxy(serviceContext.getConsumerGroupClient());
 
     return new SandboxedServiceContext(
         kafkaClientSupplier,
         kafkaTopicClient,
         schemaRegistryClient,
         connectClient,
-        adminClient);
+        adminClient,
+        kafkaConsumerGroupClient);
   }
 
   private SandboxedServiceContext(
@@ -62,18 +66,20 @@ public final class SandboxedServiceContext implements ServiceContext {
       final KafkaTopicClient topicClient,
       final SchemaRegistryClient srClient,
       final ConnectClient connectClient,
-      final Admin adminClient
+      final Admin adminClient,
+      final KafkaConsumerGroupClient consumerGroupClient
   ) {
     this.kafkaClientSupplier = Objects.requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.srClient = Objects.requireNonNull(srClient, "srClient");
     this.connectClient = Objects.requireNonNull(connectClient, "connectClient");
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
+    this.consumerGroupClient = Objects.requireNonNull(consumerGroupClient, "consumerGroupClient");
   }
 
   @Override
   public Admin getAdminClient() {
-    return adminClient;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -104,6 +110,11 @@ public final class SandboxedServiceContext implements ServiceContext {
   @Override
   public SimpleKsqlClient getKsqlClient() {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public KafkaConsumerGroupClient getConsumerGroupClient() {
+    return consumerGroupClient;
   }
 
   @Override

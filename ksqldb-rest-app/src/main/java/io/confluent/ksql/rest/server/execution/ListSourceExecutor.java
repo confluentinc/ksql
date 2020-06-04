@@ -42,6 +42,7 @@ import io.confluent.ksql.rest.entity.SourceInfo.Table;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
+import io.confluent.ksql.services.KafkaConsumerGroupClient.ConsumerGroupSummary;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -51,17 +52,13 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
-import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
@@ -139,7 +136,8 @@ public final class ListSourceExecutor {
     if (listTables.getShowExtended()) {
       return sourceDescriptionList(
           statement,
-          sessionProperties, executionContext,
+          sessionProperties,
+          executionContext,
           serviceContext,
           ksqlTables
       );
@@ -217,65 +215,45 @@ public final class ListSourceExecutor {
     final List<RunningQuery> sinkQueries = getQueries(ksqlEngine,
         q -> q.getSinkName().equals(dataSource.getName()));
 
-    Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescriptionOptional = Optional.empty();
+    Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescriptionOptional = Optional
+        .empty();
     Optional<SourceConsumerOffsets> sourceConsumerOffsets = Optional.empty();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
+        String kafkaTopicName = dataSource.getKafkaTopicName();
         final TopicDescription topicDescription = serviceContext.getTopicClient()
-            .describeTopic(dataSource.getKafkaTopicName());
+            .describeTopic(kafkaTopicName);
         topicDescriptionOptional = Optional.of(topicDescription);
         if (!sourceQueries.isEmpty()) {
           final QueryId queryId = sourceQueries.get(0).getId();
           final String persistenceQueryPrefix =
-                  ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
+              ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
           final String applicationId = getQueryApplicationId(
               getServiceId(ksqlConfig),
               persistenceQueryPrefix,
               queryId
           );
-          final Optional<ConsumerGroupDescription> consumerGroupDescription = Optional.of(
-              serviceContext.getAdminClient()
-                  .describeConsumerGroups(Collections.singletonList(applicationId))
-                  .describedGroups()
-                  .get(applicationId)
-                  .get()
+          final Optional<ConsumerGroupSummary> consumerGroupDescription = Optional.of(
+              serviceContext.getConsumerGroupClient().describeConsumerGroup(applicationId)
           );
           final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets =
-              serviceContext.getAdminClient()
-                  .listConsumerGroupOffsets(applicationId)
-                  .partitionsToOffsetAndMetadata()
-                  .get();
-          final Map<TopicPartition, OffsetSpec> startRequest = new LinkedHashMap<>();
-          final Map<TopicPartition, OffsetSpec> endRequest = new LinkedHashMap<>();
-          for (Map.Entry<TopicPartition, OffsetAndMetadata> entry:
-              topicAndConsumerOffsets.entrySet()) {
-            startRequest.put(entry.getKey(), OffsetSpec.earliest());
-            endRequest.put(entry.getKey(), OffsetSpec.latest());
-          }
+              serviceContext.getConsumerGroupClient().listConsumerGroupOffsets(applicationId);
           final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets =
-              serviceContext.getAdminClient()
-                  .listOffsets(startRequest)
-                  .all()
-                  .get();
+              serviceContext.getTopicClient().listTopicStartOffsets(kafkaTopicName);
           final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets =
-              serviceContext.getAdminClient()
-                  .listOffsets(endRequest)
-                  .all()
-                  .get();
+              serviceContext.getTopicClient().listTopicEndOffsets(kafkaTopicName);
           sourceConsumerOffsets = consumerGroupDescription.map(cg ->
               new SourceConsumerOffsets(
-                  cg.groupId(),
+                  applicationId,
                   topicDescription.name(),
                   consumerOffsets(
-                          topicDescription,
-                          topicAndStartOffsets,
-                          topicAndEndOffsets,
-                          topicAndConsumerOffsets
-                  )));
+                      topicDescription,
+                      topicAndStartOffsets,
+                      topicAndEndOffsets,
+                      topicAndConsumerOffsets)));
         }
-      } catch (final KafkaException | KafkaResponseGetFailedException
-          | InterruptedException | ExecutionException e) {
+      } catch (final KafkaException | KafkaResponseGetFailedException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
       }
     }
@@ -294,25 +272,25 @@ public final class ListSourceExecutor {
   }
 
   private static List<SourceConsumerOffset> consumerOffsets(
-          final TopicDescription topicDescription,
-          final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
-          final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
-          final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
+      final TopicDescription topicDescription,
+      final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
+      final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
+      final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
   ) {
     final List<SourceConsumerOffset> sourceConsumerOffsets = new ArrayList<>();
     for (TopicPartitionInfo topicPartitionInfo : topicDescription.partitions()) {
       final TopicPartition tp = new TopicPartition(topicDescription.name(),
-              topicPartitionInfo.partition());
+          topicPartitionInfo.partition());
       final ListOffsetsResultInfo startOffsetResultInfo = topicAndStartOffsets.get(tp);
       final ListOffsetsResultInfo endOffsetResultInfo = topicAndEndOffsets.get(tp);
       final OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
       sourceConsumerOffsets.add(
-              new SourceConsumerOffset(
-                      topicPartitionInfo.partition(),
-                      startOffsetResultInfo != null ? startOffsetResultInfo.offset() : 0,
-                      endOffsetResultInfo != null ? endOffsetResultInfo.offset() : 0,
-                      offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
-              ));
+          new SourceConsumerOffset(
+              topicPartitionInfo.partition(),
+              startOffsetResultInfo != null ? startOffsetResultInfo.offset() : 0,
+              endOffsetResultInfo != null ? endOffsetResultInfo.offset() : 0,
+              offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
+          ));
     }
     return sourceConsumerOffsets;
   }
@@ -364,6 +342,7 @@ public final class ListSourceExecutor {
   }
 
   private static final class SourceDescriptionWithWarnings {
+
     private final List<KsqlWarning> warnings;
     private final SourceDescription description;
 

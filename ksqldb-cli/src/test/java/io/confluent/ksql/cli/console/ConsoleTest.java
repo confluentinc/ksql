@@ -67,8 +67,8 @@ import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
-import io.confluent.ksql.rest.entity.SourceConsumerOffset;
-import io.confluent.ksql.rest.entity.SourceConsumerOffsets;
+import io.confluent.ksql.rest.entity.SourceConsumerGroupOffset;
+import io.confluent.ksql.rest.entity.SourceConsumerGroupOffsets;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -1180,12 +1180,12 @@ public class ConsoleTest {
                 2, 1,
                 "sql statement text",
                 Optional.of(
-                    new SourceConsumerOffsets(
+                    new SourceConsumerGroupOffsets(
                         "consumer1",
                         "kadka-topic",
                         ImmutableList.of(
-                            new SourceConsumerOffset(0, 100, 900, 800),
-                            new SourceConsumerOffset(1, 50, 900, 900)
+                            new SourceConsumerGroupOffset(0, 100, 900, 800),
+                            new SourceConsumerGroupOffset(1, 50, 900, 900)
                         ))
                 )),
             Collections.emptyList()

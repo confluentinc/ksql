@@ -35,7 +35,7 @@ public final class SourceDescriptionFactory {
       final List<RunningQuery> readQueries,
       final List<RunningQuery> writeQueries,
       final Optional<TopicDescription> topicDescription,
-      final Optional<SourceConsumerOffsets> sourceConsumerOffsets
+      final Optional<SourceConsumerGroupOffsets> sourceConsumerOffsets
   ) {
     return new SourceDescription(
         dataSource.getName().toString(FormatOptions.noEscape()),

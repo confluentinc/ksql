@@ -22,16 +22,16 @@ import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SourceConsumerOffsets {
+public class SourceConsumerGroupOffsets {
   private final String groupId;
   private final String kafkaTopic;
-  private final List<SourceConsumerOffset> offsets;
+  private final List<SourceConsumerGroupOffset> offsets;
 
   @JsonCreator
-  public SourceConsumerOffsets(
+  public SourceConsumerGroupOffsets(
       @JsonProperty("groupId") final String groupId,
       @JsonProperty("kafkaTopic") final String kafkaTopic,
-      @JsonProperty("offsets") final List<SourceConsumerOffset> offsets
+      @JsonProperty("offsets") final List<SourceConsumerGroupOffset> offsets
   ) {
     this.groupId = groupId;
     this.kafkaTopic = kafkaTopic;
@@ -46,7 +46,7 @@ public class SourceConsumerOffsets {
     return kafkaTopic;
   }
 
-  public List<SourceConsumerOffset> getOffsets() {
+  public List<SourceConsumerGroupOffset> getOffsets() {
     return offsets;
   }
 
@@ -58,7 +58,7 @@ public class SourceConsumerOffsets {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final SourceConsumerOffsets that = (SourceConsumerOffsets) o;
+    final SourceConsumerGroupOffsets that = (SourceConsumerGroupOffsets) o;
     return Objects.equals(groupId, that.groupId)
         && Objects.equals(kafkaTopic, that.kafkaTopic)
         && Objects.equals(offsets, that.offsets);

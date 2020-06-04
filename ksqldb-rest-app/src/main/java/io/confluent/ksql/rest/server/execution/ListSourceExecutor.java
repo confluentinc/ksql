@@ -31,8 +31,8 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.SourceConsumerOffset;
-import io.confluent.ksql.rest.entity.SourceConsumerOffsets;
+import io.confluent.ksql.rest.entity.SourceConsumerGroupOffset;
+import io.confluent.ksql.rest.entity.SourceConsumerGroupOffsets;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
@@ -217,7 +217,7 @@ public final class ListSourceExecutor {
 
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescriptionOptional = Optional
         .empty();
-    Optional<SourceConsumerOffsets> sourceConsumerOffsets = Optional.empty();
+    Optional<SourceConsumerGroupOffsets> sourceConsumerOffsets = Optional.empty();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
@@ -244,7 +244,7 @@ public final class ListSourceExecutor {
           final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets =
               serviceContext.getTopicClient().listTopicEndOffsets(kafkaTopicName);
           sourceConsumerOffsets = consumerGroupDescription.map(cg ->
-              new SourceConsumerOffsets(
+              new SourceConsumerGroupOffsets(
                   applicationId,
                   topicDescription.name(),
                   consumerOffsets(
@@ -271,28 +271,28 @@ public final class ListSourceExecutor {
     );
   }
 
-  private static List<SourceConsumerOffset> consumerOffsets(
+  private static List<SourceConsumerGroupOffset> consumerOffsets(
       final TopicDescription topicDescription,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
       final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
   ) {
-    final List<SourceConsumerOffset> sourceConsumerOffsets = new ArrayList<>();
+    final List<SourceConsumerGroupOffset> sourceConsumerGroupOffsets = new ArrayList<>();
     for (TopicPartitionInfo topicPartitionInfo : topicDescription.partitions()) {
       final TopicPartition tp = new TopicPartition(topicDescription.name(),
           topicPartitionInfo.partition());
       final ListOffsetsResultInfo startOffsetResultInfo = topicAndStartOffsets.get(tp);
       final ListOffsetsResultInfo endOffsetResultInfo = topicAndEndOffsets.get(tp);
       final OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
-      sourceConsumerOffsets.add(
-          new SourceConsumerOffset(
+      sourceConsumerGroupOffsets.add(
+          new SourceConsumerGroupOffset(
               topicPartitionInfo.partition(),
               startOffsetResultInfo != null ? startOffsetResultInfo.offset() : 0,
               endOffsetResultInfo != null ? endOffsetResultInfo.offset() : 0,
               offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
           ));
     }
-    return sourceConsumerOffsets;
+    return sourceConsumerGroupOffsets;
   }
 
   private static String getServiceId(final KsqlConfig ksqlConfig) {

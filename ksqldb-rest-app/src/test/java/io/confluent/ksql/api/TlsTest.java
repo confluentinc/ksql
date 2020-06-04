@@ -95,47 +95,49 @@ public class TlsTest extends ApiTest {
     assertThat(response.statusCode(), is(200));
     assertThat(response.statusMessage(), is("OK"));
 
-    // When: load expired key store
-    ServerKeyStore.loadExpiredServerKeyStore();
-    assertThatEventually(
-        "Should fail to execute query with expired key store",
-        () -> {
-          // re-create client since server port changes on restart
-          this.client = createClient();
+    try {
+      // When: load expired key store
+      ServerKeyStore.loadExpiredServerKeyStore();
+      assertThatEventually(
+          "Should fail to execute query with expired key store",
+          () -> {
+            // re-create client since server port changes on restart
+            this.client = createClient();
 
-          try {
-            // this should fail
-            sendRequest("/query-stream", requestBody.toBuffer());
-            return false;
-          } catch (Exception e) {
-            assertThat(e, instanceOf(ExecutionException.class)); // thrown from CompletableFuture.get()
-            assertThat(e.getMessage(),
-                containsString("javax.net.ssl.SSLHandshakeException: Failed to create SSL connection"));
-            return true;
-          }
-        },
-        is(true),
-        TimeUnit.SECONDS.toMillis(1),
-        TimeUnit.SECONDS.toMillis(1)
-    );
+            try {
+              // this should fail
+              sendRequest("/query-stream", requestBody.toBuffer());
+              return false;
+            } catch (Exception e) {
+              assertThat(e,
+                  instanceOf(ExecutionException.class)); // thrown from CompletableFuture.get()
+              return e.getMessage()
+                  .contains("javax.net.ssl.SSLHandshakeException: Failed to create SSL connection");
+            }
+          },
+          is(true),
+          TimeUnit.SECONDS.toMillis(1),
+          TimeUnit.SECONDS.toMillis(1)
+      );
+    } finally { // restore cert regardless of failure above so as to not affect other tests
+      // When: load valid store
+      ServerKeyStore.loadValidServerKeyStore();
+      assertThatEventually(
+          "Should successfully execute query with valid key store",
+          () -> {
+            // re-create client since server port changes on restart
+            this.client = createClient();
 
-    // When: load valid store
-    ServerKeyStore.loadValidServerKeyStore();
-    assertThatEventually(
-        "Should successfully execute query with valid key store",
-        () -> {
-          // re-create client since server port changes on restart
-          this.client = createClient();
-
-          try {
-            return sendRequest("/query-stream", requestBody.toBuffer()).statusCode();
-          } catch (Exception e) {
-            return 0;
-          }
-        },
-        is(200),
-        TimeUnit.SECONDS.toMillis(1),
-        TimeUnit.SECONDS.toMillis(1)
-    );
+            try {
+              return sendRequest("/query-stream", requestBody.toBuffer()).statusCode();
+            } catch (Exception e) {
+              return 0;
+            }
+          },
+          is(200),
+          TimeUnit.SECONDS.toMillis(1),
+          TimeUnit.SECONDS.toMillis(1)
+      );
+    }
   }
 }

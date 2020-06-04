@@ -36,9 +36,9 @@ public class StubKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
   }
 
   @Override
-  public ConsumerGroupSummary describeConsumerGroup(String group) {
+  public ConsumerGroupSummary describeConsumerGroup(final String group) {
     if (groups.contains(group)) {
-      Set<ConsumerSummary> instances = ImmutableSet.of(
+      final Set<ConsumerSummary> instances = ImmutableSet.of(
           new ConsumerSummary(group + "-1"),
           new ConsumerSummary(group + "-2")
       );
@@ -49,9 +49,9 @@ public class StubKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
   }
 
   @Override
-  public Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(String group) {
+  public Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(final String group) {
     if (groups.contains(group)) {
-      Map<TopicPartition, OffsetAndMetadata> offsets = new LinkedHashMap<>();
+      final Map<TopicPartition, OffsetAndMetadata> offsets = new LinkedHashMap<>();
       offsets.put(new TopicPartition("topic1", 0), new OffsetAndMetadata(10));
       offsets.put(new TopicPartition("topic1", 1), new OffsetAndMetadata(11));
       return offsets;

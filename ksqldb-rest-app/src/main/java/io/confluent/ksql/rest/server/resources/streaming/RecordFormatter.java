@@ -103,10 +103,25 @@ public final class RecordFormatter {
     this.valueDeserializers = requireNonNull(valueDeserializers, "valueDeserializers");
   }
 
-  public List<Supplier<String>> format(final Iterable<ConsumerRecord<Bytes, Bytes>> records) {
-    return StreamSupport.stream(records.spliterator(), false)
-        .map(this::delayedFormat)
-        .collect(Collectors.toList());
+  public List<String> format(final Iterable<ConsumerRecord<Bytes, Bytes>> records) {
+    final String activeKeyFormat = keyDeserializers.getPossibleFormats().get(0);
+    final String activeValueFormat = valueDeserializers.getPossibleFormats().get(0);
+
+    final List<String> formatted = formatRecords(records);
+
+    final boolean sameKeyFormatChanged = activeKeyFormat
+        .equals(keyDeserializers.getPossibleFormats().get(0));
+
+    final boolean sameValueFormatChanged = activeValueFormat
+        .equals(valueDeserializers.getPossibleFormats().get(0));
+
+    if (sameKeyFormatChanged && sameValueFormatChanged) {
+      return formatted;
+    }
+
+    // The active key/value format has been eliminated as a possibility while processing this batch.
+    // Reformat with the new active format:
+    return formatRecords(records);
   }
 
   /**
@@ -133,8 +148,14 @@ public final class RecordFormatter {
     return valueDeserializers.getPossibleFormats();
   }
 
-  private Supplier<String> delayedFormat(final ConsumerRecord<Bytes, Bytes> record) {
-    return () -> "rowtime: " + formatRowTime(record.timestamp())
+  private List<String> formatRecords(final Iterable<ConsumerRecord<Bytes, Bytes>> records) {
+    return StreamSupport.stream(records.spliterator(), false)
+        .map(this::formatRecord)
+        .collect(Collectors.toList());
+  }
+
+  private String formatRecord(final ConsumerRecord<Bytes, Bytes> record) {
+    return "rowtime: " + formatRowTime(record.timestamp())
         + ", " + "key: " + keyDeserializers.format(record.key())
         + ", value: " + valueDeserializers.format(record.value());
   }

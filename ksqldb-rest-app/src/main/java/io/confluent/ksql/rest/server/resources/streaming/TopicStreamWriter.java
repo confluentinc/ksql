@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.utils.Bytes;
@@ -113,16 +112,16 @@ public class TopicStreamWriter implements StreamingOutput {
           continue;
         }
 
-        final List<Supplier<String>> values = formatter.format(records.records(topicName));
+        final List<String> values = formatter.format(records.records(topicName));
         if (values.isEmpty()) {
           continue;
         }
 
         final List<String> toOutput = new ArrayList<>();
-        for (final Supplier<String> value : values) {
+        for (final String value : values) {
           if (messagesPolled++ % interval == 0) {
             messagesWritten++;
-            toOutput.add(value.get());
+            toOutput.add(value);
           }
 
           if (limitReached.test(messagesWritten)) {

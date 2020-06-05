@@ -124,10 +124,8 @@ public final class AuthHandlers {
     return basicAuthHandler;
   }
 
-
   /**
    * Gets the SystemAuthenticationHandler, if the requirements are met for it to be installed.
-   *
    * The requirements for installation are that SSL mutual auth is in effect for the connection
    * (meaning that the request is verified to be coming from a known set of servers in the cluster),
    * and that it came on the internal listener interface, meaning that it's being done with the

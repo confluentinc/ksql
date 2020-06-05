@@ -69,30 +69,8 @@ public final class KsqlRestClient implements Closeable {
         localProps,
         clientProps,
         creds,
-        Optional.empty()
-    );
-  }
-
-  /**
-   * @param serverAddress the address of the KSQL server to connect to.
-   * @param localProps initial set of local properties.
-   * @param clientProps properties used to build the client.
-   * @param creds optional credentials
-   */
-  public static KsqlRestClient create(
-      final String serverAddress,
-      final Map<String, ?> localProps,
-      final Map<String, String> clientProps,
-      final Optional<BasicCredentials> creds,
-      final Optional<HostAliasResolver> hostAliasResolver
-  ) {
-    return create(
-        serverAddress,
-        localProps,
-        clientProps,
-        creds,
         (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops,
-            new HttpClientOptions(), hostAliasResolver)
+            new HttpClientOptions())
     );
   }
 

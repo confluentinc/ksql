@@ -21,7 +21,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
-import io.confluent.ksql.rest.client.HostAliasResolver;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlTarget;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -36,12 +35,14 @@ import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.kafka.common.config.SslConfigs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,11 +54,19 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
 
-  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps,
-      final Optional<HostAliasResolver> hostAliasResolver) {
+  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps) {
     this(
         authHeader,
-        getInternalClient(toClientProps(clientProps), hostAliasResolver)
+        getInternalClient(toClientProps(clientProps), SocketAddress::inetSocketAddress)
+    );
+  }
+
+  @VisibleForTesting
+  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps,
+      final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
+    this(
+        authHeader,
+        getInternalClient(toClientProps(clientProps), socketAddressFactory)
     );
   }
 
@@ -167,9 +176,13 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     return clientProps;
   }
 
-  private static Consumer<HttpClientOptions> prepareHttpOptionsForSSL(
+  private static Function<Boolean, HttpClientOptions> httpOptionsFactory(
       final Map<String, String> clientProps, final boolean verifyHost) {
-    return (httpClientOptions) -> {
+    return (tls) -> {
+      final HttpClientOptions httpClientOptions = createClientOptions();
+      if (!tls) {
+        return httpClientOptions;
+      }
       httpClientOptions.setVerifyHost(verifyHost);
       httpClientOptions.setSsl(true);
       final String internalAlias = clientProps
@@ -199,11 +212,12 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
           httpClientOptions.setKeyStoreOptions(keyStoreOptions);
         }
       }
+      return httpClientOptions;
     };
   }
 
   private static KsqlClient getInternalClient(final Map<String, String> clientProps,
-      final Optional<HostAliasResolver> hostAliasResolver) {
+      final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
     final boolean verifyHost =
         !KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE.equals(clientProps.get(
         KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG));
@@ -211,9 +225,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     return new KsqlClient(
         Optional.empty(),
         new LocalProperties(ImmutableMap.of()),
-        createClientOptions(),
-        prepareHttpOptionsForSSL(clientProps, verifyHost),
-        hostAliasResolver
+        httpOptionsFactory(clientProps, verifyHost),
+        socketAddressFactory
     );
   }
 }

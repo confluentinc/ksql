@@ -36,7 +36,6 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.rest.client.HostAliasResolver;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -48,11 +47,13 @@ import io.confluent.ksql.test.util.secure.MultiNodeTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
+import io.vertx.core.net.SocketAddress;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
@@ -91,8 +92,8 @@ public class SystemAuthenticationFunctionalTest {
       8188);
   private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("node-2.example.com",
       8189);
-  private static final Optional<HostAliasResolver> HOST_ALIAS_RESOLVER =
-      Optional.of(new LocalhostResolver());
+  private static final BiFunction<Integer, String, SocketAddress> LOCALHOST_FACTORY =
+      (port, host) -> SocketAddress.inetSocketAddress(port, "localhost");
 
   private static final Map<String, Object> JASS_AUTH_CONFIG = ImmutableMap.<String, Object>builder()
       .put("authentication.method", "BASIC")
@@ -155,7 +156,7 @@ public class SystemAuthenticationFunctionalTest {
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
     private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
-        .withEnabledKsqlClient(HOST_ALIAS_RESOLVER)
+        .withEnabledKsqlClient(LOCALHOST_FACTORY)
         .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:8088")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
             "https://node-1.example.com:8188")
@@ -170,7 +171,7 @@ public class SystemAuthenticationFunctionalTest {
 
     private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
-        .withEnabledKsqlClient(HOST_ALIAS_RESOLVER)
+        .withEnabledKsqlClient(LOCALHOST_FACTORY)
         .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:8089")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
             "https://node-2.example.com:8189")
@@ -238,7 +239,7 @@ public class SystemAuthenticationFunctionalTest {
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
     private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
-        .withEnabledKsqlClient(HOST_ALIAS_RESOLVER)
+        .withEnabledKsqlClient(LOCALHOST_FACTORY)
         .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:8088")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
             "https://node-1.example.com:8188")
@@ -252,7 +253,7 @@ public class SystemAuthenticationFunctionalTest {
 
     private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
-        .withEnabledKsqlClient(HOST_ALIAS_RESOLVER)
+        .withEnabledKsqlClient(LOCALHOST_FACTORY)
         .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:8089")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
             "https://node-2.example.com:8189")
@@ -325,14 +326,6 @@ public class SystemAuthenticationFunctionalTest {
       return TMP.newFolder().getAbsolutePath();
     } catch (final IOException e) {
       throw new AssertionError("Failed to create new state dir", e);
-    }
-  }
-
-  private static class LocalhostResolver implements HostAliasResolver {
-
-    @Override
-    public String resolve(String host) {
-      return "localhost";
     }
   }
 }

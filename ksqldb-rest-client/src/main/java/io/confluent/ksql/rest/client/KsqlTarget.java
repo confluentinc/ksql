@@ -75,6 +75,14 @@ public final class KsqlTarget {
   private final Optional<String> authHeader;
   private final String host;
 
+  /**
+   * Create a KsqlTarget containing all of the connection information required to make a request
+   * @param httpClient The HttpClient to use to make the request
+   * @param socketAddress The SocketAddress to use for connecting to the remote host
+   * @param localProperties Properties sent with ksql requests
+   * @param authHeader Optional auth headers
+   * @param host The hostname to use for the request, used to set the host header of the request
+   */
   KsqlTarget(
       final HttpClient httpClient,
       final SocketAddress socketAddress,

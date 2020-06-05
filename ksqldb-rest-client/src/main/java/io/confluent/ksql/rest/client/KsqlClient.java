@@ -30,7 +30,8 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
@@ -45,20 +46,19 @@ public final class KsqlClient implements AutoCloseable {
   private final HttpClient httpTlsClient;
   private final LocalProperties localProperties;
   private final Optional<String> basicAuthHeader;
-  private final Optional<HostAliasResolver> hostAliasResolver;
+  private final BiFunction<Integer, String, SocketAddress> socketAddressFactory;
 
   public KsqlClient(
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
-      final HttpClientOptions httpClientOptions,
-      final Optional<HostAliasResolver> hostAliasResolver
+      final HttpClientOptions httpClientOptions
   ) {
     this.vertx = Vertx.vertx();
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
-    this.hostAliasResolver = Objects.requireNonNull(hostAliasResolver, "hostAliasResolver");
+    this.socketAddressFactory = SocketAddress::inetSocketAddress;
     this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false);
     this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true);
   }
@@ -66,28 +66,24 @@ public final class KsqlClient implements AutoCloseable {
   public KsqlClient(
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
-      final HttpClientOptions httpClientOptions,
-      final Consumer<HttpClientOptions> sslHttpClientOptionsConsumer,
-      final Optional<HostAliasResolver> hostAliasResolver
+      final Function<Boolean, HttpClientOptions> httpClientOptionsFactory,
+      final BiFunction<Integer, String, SocketAddress> socketAddressFactory
   ) {
     this.vertx = Vertx.vertx();
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
-    this.hostAliasResolver = Objects.requireNonNull(hostAliasResolver, "hostAliasResolver");
-    this.httpNonTlsClient = createHttpClient(vertx, httpClientOptions, sslHttpClientOptionsConsumer,
-        false);
-    this.httpTlsClient = createHttpClient(vertx, httpClientOptions, sslHttpClientOptionsConsumer,
-        true);
+    this.socketAddressFactory = Objects.requireNonNull(
+        socketAddressFactory, "socketAddressFactory");
+    this.httpNonTlsClient = createHttpClient(vertx, httpClientOptionsFactory, false);
+    this.httpTlsClient = createHttpClient(vertx, httpClientOptionsFactory, true);
   }
 
   public KsqlTarget target(final URI server) {
     final boolean isUriTls = server.getScheme().equalsIgnoreCase("https");
     final HttpClient client = isUriTls ? httpTlsClient : httpNonTlsClient;
-    final String aliasHost = hostAliasResolver.map(resolver -> resolver.resolve(server.getHost()))
-        .orElse(server.getHost());
     return new KsqlTarget(client,
-        SocketAddress.inetSocketAddress(server.getPort(), aliasHost), localProperties,
+        socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
         basicAuthHeader, server.getHost());
   }
 
@@ -145,14 +141,10 @@ public final class KsqlClient implements AutoCloseable {
   }
 
   private static HttpClient createHttpClient(final Vertx vertx,
-      final HttpClientOptions httpClientOptions,
-      final Consumer<HttpClientOptions> sslHttpClientOptionsConsumer,
+      final Function<Boolean, HttpClientOptions> httpClientOptionsFactory,
       final boolean tls) {
-    if (tls) {
-      sslHttpClientOptionsConsumer.accept(httpClientOptions);
-    }
     try {
-      return vertx.createHttpClient(httpClientOptions);
+      return vertx.createHttpClient(httpClientOptionsFactory.apply(tls));
     } catch (VertxException e) {
       throw new KsqlRestClientException(e.getMessage(), e);
     }

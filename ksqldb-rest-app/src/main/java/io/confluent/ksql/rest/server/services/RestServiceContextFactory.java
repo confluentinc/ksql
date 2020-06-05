@@ -74,7 +74,7 @@ public final class RestServiceContextFactory {
         srClientFactory,
         () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
             authHeader),
-        () -> new DefaultKsqlClient(authHeader, ksqlConfig.originals(), Optional.empty())
+        () -> new DefaultKsqlClient(authHeader, ksqlConfig.originals())
     );
   }
 

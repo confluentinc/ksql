@@ -19,7 +19,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.vertx.core.buffer.Buffer;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;

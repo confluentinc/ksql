@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.rest.client.HostAliasResolver;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;

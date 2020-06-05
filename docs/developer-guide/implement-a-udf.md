@@ -389,7 +389,8 @@ directory. For more information, see [UDTFs](../concepts/functions.md#udtfs).
 Suggested Reading
 -----------------
 
-- [KSQL UDFs and UDAFs Made Easy](https://www.confluent.io/blog/kafka-ksql-udf-udaf-with-maven-made-easy/)
+- [ksqlDB UDFs and UDAFs Made Easy](https://www.confluent.io/blog/kafka-ksql-udf-udaf-with-maven-made-easy/)
+- [How to Build a UDF and/or UDAF in ksqlDB 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)
 - [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)
 - [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 

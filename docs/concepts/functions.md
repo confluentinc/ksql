@@ -945,4 +945,5 @@ processing time.
 
 ### Suggested Reading
 
-- [KSQL UDFs and UDAFs Made Easy](https://www.confluent.io/blog/kafka-ksql-udf-udaf-with-maven-made-easy/)
+- [ksqlDB UDFs and UDAFs Made Easy](https://www.confluent.io/blog/kafka-ksql-udf-udaf-with-maven-made-easy/)
+- [How to Build a UDF and/or UDAF in ksqlDB 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)

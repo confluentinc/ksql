@@ -185,22 +185,22 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       }
       httpClientOptions.setVerifyHost(verifyHost);
       httpClientOptions.setSsl(true);
-      final String internalAlias = clientProps
-          .get(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG);
       final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-      if (trustStoreLocation != null && !trustStoreLocation.isEmpty()) {
+      if (!Strings.isNullOrEmpty(trustStoreLocation)) {
         final String suppliedTruststorePassword = clientProps
             .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
         httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
-            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
+            .setPassword(Strings.nullToEmpty(suppliedTruststorePassword)));
 
         final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-        if (keyStoreLocation != null && !keyStoreLocation.isEmpty()) {
-          final String suppliedKeyStorePassword = Strings.nullToEmpty(clientProps
-              .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG));
+        if (!Strings.isNullOrEmpty(keyStoreLocation)) {
+          final String suppliedKeyStorePassword = clientProps
+              .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+          final String internalAlias = clientProps
+              .get(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG);
           final JksOptions keyStoreOptions = new JksOptions()
-              .setPassword(suppliedKeyStorePassword);
-          if (!internalAlias.isEmpty()) {
+              .setPassword(Strings.nullToEmpty(suppliedKeyStorePassword));
+          if (!Strings.isNullOrEmpty(internalAlias)) {
             keyStoreOptions.setValue(KeystoreUtil.getKeyStore(
                 keyStoreLocation,
                 Optional.ofNullable(Strings.emptyToNull(suppliedKeyStorePassword)),
@@ -218,9 +218,10 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
   private static KsqlClient getInternalClient(final Map<String, String> clientProps,
       final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
-    final boolean verifyHost =
-        !KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE.equals(clientProps.get(
-        KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG));
+    final String internalClientAuth = clientProps.get(
+        KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG);
+    final boolean verifyHost = !Strings.isNullOrEmpty(internalClientAuth)
+        && !KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE.equals(internalClientAuth);
 
     return new KsqlClient(
         Optional.empty(),

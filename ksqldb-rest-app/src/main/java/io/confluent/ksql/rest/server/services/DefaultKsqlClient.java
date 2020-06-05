@@ -175,21 +175,24 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final String internalAlias = clientProps
           .get(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG);
       final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-      if (trustStoreLocation != null) {
+      if (trustStoreLocation != null && !trustStoreLocation.isEmpty()) {
         final String suppliedTruststorePassword = clientProps
             .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
         httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
             .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
 
         final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-        if (keyStoreLocation != null) {
-          final String suppliedKeyStorePassord = Strings.nullToEmpty(clientProps
+        if (keyStoreLocation != null && !keyStoreLocation.isEmpty()) {
+          final String suppliedKeyStorePassword = Strings.nullToEmpty(clientProps
               .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG));
           final JksOptions keyStoreOptions = new JksOptions()
-              .setPassword(suppliedKeyStorePassord);
-          if (internalAlias != null && !internalAlias.isEmpty()) {
+              .setPassword(suppliedKeyStorePassword);
+          if (!internalAlias.isEmpty()) {
             keyStoreOptions.setValue(KeystoreUtil.getKeyStore(
-                keyStoreLocation, suppliedKeyStorePassord, internalAlias));
+                keyStoreLocation,
+                Optional.ofNullable(Strings.emptyToNull(suppliedKeyStorePassword)),
+                Optional.ofNullable(Strings.emptyToNull(suppliedKeyStorePassword)),
+                internalAlias));
           } else {
             keyStoreOptions.setPath(keyStoreLocation);
           }

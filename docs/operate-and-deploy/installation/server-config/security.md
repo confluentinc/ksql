@@ -222,27 +222,94 @@ credentials when starting the CLI by using the `--user` and
 Configure ksqlDB for Internal Authentication
 --------------------------------------------
 
-Since some system requests aren't done on behalf of a user, like `/heartbeat` and `/lag`, 
-user-based authentication is not appropriate for them. Instead, ksqlDB supports SSL mutual authentication for system requests.
+ksqlDB supports securing inter-node communication using SSL mutual authentication.
 
-In addition to some of the HTTPS configurations above, your key store must now
-contain not only the certificate/key for the endpoints exposed with `listeners`, but also
-the additional certificate/key for your internal listener set with
-`ksql.internal.listener`.  If your internal certificate is self-signed, a trust store is required to contain certificates for nodes in your cluster.
+For more information about configuring `ksql.internal.listener`, see [Configuring Listeners of a ksqlDB Cluster](index.html#configuring-listeners-of-a-ksqldb-cluster).
+
+### Using Authentication on the Internal Listener
+
+Your key store must contain the key pair for your internal listener set with
+`ksql.internal.listener`.  If your internal certificate is not signed by a recognized
+public Certificate Authority, a trust store is required to contain certificates for
+nodes in your cluster.  Below is an example configuration:
 
 ```properties
-# Contains the external certificate for this node under the alias 'external'.
-# (e.g. cert and key for external.example.com)
-# Also contains the internal certificate for this node under the alias 'internal'.
-# (e.g. cert and key for node-1.internal.example.com)
+# Contains the internal key pair for this node.
+# (e.g. key pair for node-1.internal.example.com)
 ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
 ssl.keystore.password=xxxx
 ssl.key.password=yyyy
-ksql.ssl.keystore.alias.external=external
-ksql.ssl.keystore.alias.internal=internal
 
-# Contains certificates for trusted external clients.
-# Also contains the certificates for nodes in the cluster.
+# Contains the certificates for nodes in the cluster.
+# (e.g. certs for node-1.internal.example.com, node-2.internal.example.com)
+ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
+ssl.truststore.password=zzzz
+
+listeners=http://0.0.0.0:8088
+ksql.internal.listener=https://node-1.internal.example.com:8099
+
+# This enables mutual auth checking for the internal listener
+ksql.internal.ssl.client.authentication=REQUIRED
+```
+
+### Using Authentication for Both the Internal and External Listener
+
+Client facing basic HTTP authentication can be used alongside authentication for the 
+internal listener. This ensures that neither the client or internal
+APIs can be accessed by unauthorized users.
+Below is an example configuration:
+
+```properties
+ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
+ssl.keystore.password=xxxx
+ssl.key.password=yyyy
+
+ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
+ssl.truststore.password=zzzz
+
+listeners=http://0.0.0.0:8088
+ksql.internal.listener=https://node-1.internal.example.com:8099
+
+ksql.internal.ssl.client.authentication=REQUIRED
+
+authentication.method=BASIC
+authentication.roles=admin,developer,user,ksq-user
+authentication.realm=KsqlServer-Props
+
+```
+
+For more detail on basic authentication, 
+[see above](#configure-ksqldb-for-basic-http-authentication).
+
+### Configuring HTTPS on the Internal and External Listeners
+
+If you want to use HTTPS on `listeners` as well as use SSL mutual
+auth for internal communication on `ksql.internal.listener`, you will likely
+require two different key pairs, since your host's identity to clients may be
+different from its internal identity.  In order to create such a key store,
+refer [below](#setting-up-a-key-store-and-trust-store).
+
+In such a configuration, you must specify which key pair is used for a given
+listener by providing a key store alias.  For example, 
+if set, `ksql.ssl.keystore.alias.internal` will be used to find the key store entry
+with the given alias when setting up the internal listener.  Similarly,
+`ksql.ssl.keystore.alias.external` is used for the client listener `listeners`.
+Below is an example configuration:
+
+```properties
+# Contains the client certificate for this node under the alias 'client'.
+# (e.g. key pair for external.example.com)
+# Contains the internal certificate for this node under the alias 'internal_node1'.
+# (e.g. key pair for node-1.internal.example.com)
+ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
+ssl.keystore.password=xxxx
+ssl.key.password=yyyy
+
+# The aliases referenced above
+ksql.ssl.keystore.alias.external=client
+ksql.ssl.keystore.alias.internal=internal_node1
+
+# Contains the certificates for nodes in the cluster.
 # (e.g. certs for node-1.internal.example.com, node-2.internal.example.com)
 ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
 ssl.truststore.password=zzzz
@@ -254,8 +321,31 @@ ksql.internal.listener=https://node-1.internal.example.com:8099
 ksql.internal.ssl.client.authentication=REQUIRED
 ```
 
-For more information about configuring `ksql.internal.listener`, see [Configure ksqlDB for HTTPS](index.html#configure-ksqldb-for-https).
+### Setting up a Key Store and Trust Store
 
+In order to create a keystore with multiple key pairs with aliases, follow the
+below examples, depending on the source of the keys. 
+
+```bash
+# Generated key pairs with aliases 'client' and 'internal_node1' 
+keytool -genkey -alias client -keyalg RSA -keypass password -storepass password -keystore ksql.server.keystore.jks -storetype PKCS12
+keytool -genkey -alias internal_node1 -keyalg RSA -keypass password -storepass password -keystore ksql.server.keystore.jks -storetype PKCS12
+
+# Imported key pairs, with aliases 'client' and 'internal_node1'
+keytool -importkeystore -deststorepass password -destkeystore ksql.server.keystore.jks -deststoretype PKCS12 -destalias client -srckeystore client_api.p12 -srcstoretype PKCS12 -srcalias client
+keytool -importkeystore -deststorepass password -destkeystore ksql.server.keystore.jks -deststoretype PKCS12 -destalias internal_node1 -srckeystore internal_node1.p12 -srcstoretype PKCS12 -srcalias internal_node1
+```
+
+Also, extracting certificates to add to a trust store can be done with the following
+commands:
+
+```bash
+keytool -export -alias internal_node1 -storepass password -file node1.cer -keystore internal_node1.p12 -srcstoretype PKCS12
+keytool -export -alias internal_node2 -storepass password -file node2.cer -keystore internal_node2.p12 -srcstoretype PKCS12
+
+keytool -import -v -trustcacerts -alias internal_node1 -file node1.cer -keystore ksql.server.truststore.jks -keypass password -storepass password
+keytool -import -v -trustcacerts -alias internal_node1 -file node2.cer -keystore ksql.server.truststore.jks -keypass password -storepass password
+```
 
 Configure ksqlDB for Confluent Cloud
 ------------------------------------

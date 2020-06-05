@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -119,7 +120,7 @@ public class Server {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
-                listener.getScheme().equalsIgnoreCase("https"), isInternalListener),
+                listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false)),
             this, isInternalListener);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
@@ -274,7 +275,7 @@ public class Server {
 
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,
       final String host, final int port, final boolean tls,
-      final Optional<Boolean> isInternalListener) {
+      final boolean isInternalListener) {
 
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(host)
@@ -286,14 +287,14 @@ public class Server {
         .setPerFrameWebSocketCompressionSupported(true);
 
     if (tls) {
-      final String externalAlias = ksqlRestConfig
-          .getString(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG);
-      final String internalAlias = ksqlRestConfig
-          .getString(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG);
-      if (isInternalListener.isPresent() && isInternalListener.get()) {
+      if (isInternalListener) {
+        final String internalAlias = ksqlRestConfig
+            .getString(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG);
         setTlsOptions(ksqlRestConfig, options, internalAlias,
             ksqlRestConfig.getClientAuthInternal());
       } else {
+        final String externalAlias = ksqlRestConfig
+            .getString(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG);
         setTlsOptions(ksqlRestConfig, options, externalAlias, ksqlRestConfig.getClientAuth());
       }
     }
@@ -317,7 +318,10 @@ public class Server {
           .setPassword(keyStorePassword.value());
       if (keyStoreAlias != null && !keyStoreAlias.isEmpty()) {
         keyStoreOptions.setValue(KeystoreUtil.getKeyStore(
-            keyStorePath, keyStorePassword.value(), keyStoreAlias));
+            keyStorePath,
+            Optional.ofNullable(Strings.emptyToNull(keyStorePassword.value())),
+            Optional.ofNullable(Strings.emptyToNull(keyStorePassword.value())),
+            keyStoreAlias));
       } else {
         keyStoreOptions.setPath(keyStorePath);
       }

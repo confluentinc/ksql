@@ -245,6 +245,7 @@ public class SystemAuthenticationFunctionalTest {
         .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8188")
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
+        .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-1.example.com")
         .withProperties(COMMON_CONFIG)
         .withProperties(internalKeyStoreProps(true))
         .build();
@@ -258,6 +259,7 @@ public class SystemAuthenticationFunctionalTest {
         .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8189")
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
+        .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-2.example.com")
         .withProperties(COMMON_CONFIG)
         .withProperties(internalKeyStoreProps(false))
         .build();

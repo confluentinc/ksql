@@ -54,7 +54,7 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
       return;
     }
 
-    if (SystemAuthenticationHandler.hasAuthorization(routingContext)) {
+    if (SystemAuthenticationHandler.isAuthenticatedAsSystemUser(routingContext)) {
       routingContext.next();
       return;
     }

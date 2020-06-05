@@ -22,7 +22,7 @@
   <parent>
     <artifactId>ksqldb-parent</artifactId>
     <groupId>io.confluent.ksql</groupId>
-    <version>0.10.0-rc322</version>
+    <version>0.10.0-rc359</version>
   </parent>
 
   <artifactId>ksqldb-docker</artifactId>

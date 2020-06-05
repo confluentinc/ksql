@@ -163,7 +163,7 @@ ARRAY_DISTINCT([1, 2, 3])
 ```
 
 Returns an array of all the distinct values, including NULL if present, from the input array.
-The output array elements will be in order of their first occurrence in the input.
+The output array elements are in order of their first occurrence in the input.
 
 Returns NULL if the input array is NULL.
 
@@ -179,7 +179,7 @@ ARRAY_DISTINCT(ARRAY['apple', 'apple', NULL, 'cherry'])  => ['apple', NULL, 'che
 ARRAY_EXCEPT(array1, array2)
 ```
 
-Returns an array of all the distinct elements from an array except for those also present in a second array. The order of entries in the first array is preserved although any duplicates are removed. 
+Returns an array of all the distinct elements from an array, except for those also present in a second array. The order of entries in the first array is preserved but duplicates are removed. 
 
 Returns NULL if either input is NULL.
 

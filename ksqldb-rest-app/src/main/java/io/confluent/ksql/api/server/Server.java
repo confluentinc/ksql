@@ -26,7 +26,6 @@ import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
-import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.HttpConnection;
@@ -96,11 +95,9 @@ public class Server {
     if (!deploymentIds.isEmpty()) {
       throw new IllegalStateException("Already started");
     }
-    final DeploymentOptions options = new DeploymentOptions()
-        .setInstances(config.getInt(KsqlRestConfig.VERTICLE_INSTANCES));
     this.workerExecutor = vertx.createSharedWorkerExecutor("ksql-workers",
         config.getInt(KsqlRestConfig.WORKER_POOL_SIZE));
-    log.debug("Deploying " + options.getInstances() + " instances of server verticle");
+    configureTlsCertReload(config);
 
     final List<URI> listenUris = parseListeners(config);
     final Optional<URI> internalListenUri = parseInternalListener(config, listenUris);
@@ -108,6 +105,7 @@ public class Server {
     internalListenUri.ifPresent(allListenUris::add);
 
     final int instances = config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
+    log.debug("Deploying " + instances + " instances of server verticle");
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
     final Map<URI, URI> uris = new ConcurrentHashMap<>();
@@ -138,8 +136,6 @@ public class Server {
         deployFutures.add(deployFuture);
       }
     }
-
-    configureTlsCertReload(config);
 
     final CompletableFuture<Void> allDeployFuture = CompletableFuture.allOf(deployFutures
         .toArray(new CompletableFuture<?>[0]));

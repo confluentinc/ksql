@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Watches a file and calls a callback when it is changed.
  */
-public class FileWatcher implements Runnable {
+public class FileWatcher extends Thread {
 
   private static final Logger log = LoggerFactory.getLogger(FileWatcher.class);
 
@@ -46,7 +46,6 @@ public class FileWatcher implements Runnable {
   private final WatchService watchService;
   private final Path file;
   private final Callback callback;
-  private Thread thread;
 
   @SuppressFBWarnings(
       value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
@@ -64,32 +63,15 @@ public class FileWatcher implements Runnable {
   }
 
   /**
-   * Starts the file watcher in a separate thread
+   * Closes the file watcher
    */
-  public synchronized void start() {
-    log.info("Starting file watcher to watch for changes: " + file);
-    thread = new Thread(this);
-    thread.start();
-  }
-
-  /**
-   * Stops watching the file and closes the watch service
-   */
-  public synchronized void shutdown() {
+  public void shutdown() {
     shutdown = true;
-    log.info("Stopped watching for TLS cert changes.");
-    if (thread != null) {
-      thread.interrupt();
-    }
-    try {
-      watchService.close();
-    } catch (IOException e) {
-      log.info("Error closing watch service", e);
-    }
   }
 
   @Override
   public void run() {
+    log.info("Starting file watcher to watch for changes: " + file);
     try {
       while (!shutdown) {
         try {
@@ -102,6 +84,13 @@ public class FileWatcher implements Runnable {
       }
     } catch (InterruptedException e) {
       log.info("Ending watch due to interrupt");
+    } finally {
+      log.info("Stopped watching for TLS cert changes");
+      try {
+        watchService.close();
+      } catch (IOException e) {
+        log.info("Error closing watch service", e);
+      }
     }
   }
 
@@ -129,7 +118,7 @@ public class FileWatcher implements Runnable {
         try {
           callback.run();
         } catch (Exception e) {
-          log.warn("Hit error callback on file change", e);
+          log.error("Hit error callback on file change", e);
         }
         break;
       }

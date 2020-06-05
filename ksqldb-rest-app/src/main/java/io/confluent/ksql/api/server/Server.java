@@ -93,10 +93,6 @@ public class Server {
   }
 
   public synchronized void start() {
-    start(true);
-  }
-
-  private synchronized void start(final boolean startFileWatcher) {
     if (!deploymentIds.isEmpty()) {
       throw new IllegalStateException("Already started");
     }
@@ -143,7 +139,7 @@ public class Server {
       }
     }
 
-    configureTlsCertReload(startFileWatcher, config);
+    configureTlsCertReload(config);
 
     final CompletableFuture<Void> allDeployFuture = CompletableFuture.allOf(deployFutures
         .toArray(new CompletableFuture<?>[0]));
@@ -166,17 +162,13 @@ public class Server {
   }
 
   public synchronized void stop() {
-    stop(true);
-  }
-
-  private synchronized void stop(final boolean stopFileWatcher) {
     if (deploymentIds.isEmpty()) {
       throw new IllegalStateException("Not started");
     }
     if (workerExecutor != null) {
       workerExecutor.close();
     }
-    if (stopFileWatcher && fileWatcher != null) {
+    if (fileWatcher != null) {
       fileWatcher.shutdown();
     }
     final List<CompletableFuture<Void>> undeployFutures = new ArrayList<>();
@@ -197,9 +189,8 @@ public class Server {
 
   public synchronized void restart() {
     log.info("Restarting server");
-    // Do not restart file watcher as the file watcher calls this method
-    stop(false);
-    start(false);
+    stop();
+    start();
   }
 
   public WorkerExecutor getWorkerExecutor() {
@@ -263,8 +254,8 @@ public class Server {
     return Optional.ofNullable(internalListener);
   }
 
-  private void configureTlsCertReload(final boolean startFileWatcher, final KsqlRestConfig config) {
-    if (startFileWatcher && config.getBoolean(KsqlRestConfig.SSL_KEYSTORE_RELOAD_CONFIG)) {
+  private void configureTlsCertReload(final KsqlRestConfig config) {
+    if (config.getBoolean(KsqlRestConfig.SSL_KEYSTORE_RELOAD_CONFIG)) {
       final Path watchLocation;
       if (!config.getString(KsqlRestConfig.SSL_KEYSTORE_WATCH_LOCATION_CONFIG).isEmpty()) {
         watchLocation = Paths.get(

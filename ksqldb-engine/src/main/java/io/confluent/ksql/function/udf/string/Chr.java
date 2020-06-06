@@ -39,7 +39,7 @@ public class Chr {
 
   @Udf
   public String chr(@UdfParameter(
-      description = "UTF16 code for the desired character e.g. '\u004b'") final String utf16Code) {
+      description = "UTF16 code for the desired character e.g. '\\u004b'") final String utf16Code) {
     if (utf16Code == null || utf16Code.length() < 6 || !utf16Code.startsWith("\\u")) {
       return null;
     }

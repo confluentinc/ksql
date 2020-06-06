@@ -61,7 +61,7 @@ public final class KsqlInternalTopicUtils {
     
     final short minInsyncReplica = 
         ksqlConfig.getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY);
-    final long requiredTopicRetention = Long.MAX_VALUE;
+    final long requiredTopicRetention = -1L;
 
     if (topicClient.isTopicExists(name)) {
       final TopicDescription description = topicClient.describeTopic(name);

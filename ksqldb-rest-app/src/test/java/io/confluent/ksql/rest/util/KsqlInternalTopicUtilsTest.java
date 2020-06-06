@@ -54,7 +54,7 @@ public class KsqlInternalTopicUtilsTest {
   private static final boolean ENABLE_UNCLEAN_ELECTION = false;
 
   private final Map<String, ?> commandTopicConfig = ImmutableMap.of(
-      TopicConfig.RETENTION_MS_CONFIG, Long.MAX_VALUE,
+      TopicConfig.RETENTION_MS_CONFIG, -1L,
       TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE,
       TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, INSYNC_REPLICAS,
       TopicConfig.UNCLEAN_LEADER_ELECTION_ENABLE_CONFIG, ENABLE_UNCLEAN_ELECTION);
@@ -119,7 +119,7 @@ public class KsqlInternalTopicUtilsTest {
 
     // Then:
     verify(topicClient).addTopicConfig(TOPIC_NAME, ImmutableMap.of(
-        TopicConfig.RETENTION_MS_CONFIG, Long.MAX_VALUE,
+        TopicConfig.RETENTION_MS_CONFIG, -1L,
         TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE
     ));
   }

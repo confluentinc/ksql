@@ -382,6 +382,26 @@ include both endpoints.
 
 ## Strings
 
+### `CHR`
+
+```sql
+CHR(decimal_code | utf_string)
+```
+
+Returns a single-character string representing the Unicode code-point described by the input. The input parameter can be either a decimal character code or a string representation of a UTF code.
+
+Returns NULL if the input is NULL or does not represent a valid code-point.
+
+Commonly used to insert control characters such as ```Tab``` (9), ```Line Feed``` (10), or ```Carriage Return``` (13) into strings.
+
+Examples:
+```sql
+CHR(75)        => 'K'
+CHR('\u004b')  => 'K'
+CHR(22909)     => '好'
+CHR('\u597d')  => '好'
+```
+
 ### `CONCAT`
 
 ```sql

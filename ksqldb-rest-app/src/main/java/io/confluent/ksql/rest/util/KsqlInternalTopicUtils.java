@@ -35,7 +35,7 @@ public final class KsqlInternalTopicUtils {
   private static final Logger log = LoggerFactory.getLogger(KsqlInternalTopicUtils.class);
 
   private static final int INTERNAL_TOPIC_PARTITION_COUNT = 1;
-  private static final long INTERNAL_TOPIC_RETENTION_MS = Long.MAX_VALUE;
+  private static final long INTERNAL_TOPIC_RETENTION_MS = -1;
 
   private static final ImmutableMap<String, ?> INTERNAL_TOPIC_CONFIG = ImmutableMap.of(
       TopicConfig.RETENTION_MS_CONFIG, INTERNAL_TOPIC_RETENTION_MS,

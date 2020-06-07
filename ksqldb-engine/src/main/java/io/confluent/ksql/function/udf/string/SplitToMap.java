@@ -48,8 +48,7 @@ public class SplitToMap {
     }
 
     final Iterable<String> entries = Splitter.on(entryDelimiter).omitEmptyStrings().split(input);
-    Map<String, String> output = StreamSupport.stream(entries.spliterator(),
-        false)
+    final Map<String, String> output = StreamSupport.stream(entries.spliterator(), false)
         .filter(e -> e.contains(kvDelimiter))
         .map(kv -> Splitter.on(kvDelimiter).split(kv).iterator())
         .collect(Collectors.toMap(

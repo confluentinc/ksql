@@ -49,7 +49,7 @@ public class SplitToMap {
     }
 
     Map<String, String> output = new HashMap<>();
-    Iterable<String> entries = Splitter.on(entryDelimiter).omitEmptyStrings().split(input);
+    final Iterable<String> entries = Splitter.on(entryDelimiter).omitEmptyStrings().split(input);
     output = StreamSupport.stream(entries.spliterator(), false)
         .filter(e -> e.contains(kvDelimiter))
         .map(kv -> Splitter.on(kvDelimiter).split(kv).iterator())

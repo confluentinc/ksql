@@ -73,6 +73,7 @@ nav:
       - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
       - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
       - Use connector management: how-to-guides/use-connector-management.md
+      - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:

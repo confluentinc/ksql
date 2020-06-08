@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.test.planned;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -22,6 +26,9 @@ public class PlannedTestRewriterTest {
 
   /**
    * Re-write ALL existing test plans.
+   *
+   * <p>NB: You'll need to temporarily comment out the {@code @Ignore} annotation to run the test,
+   * but make sure you put it back afterwards!
    *
    * <p>You almost certainly do NOT want to do this as historical plans should be IMMUTABLE.
    * The only time this is really valid is if you have fixed a bug in the testing framework
@@ -32,5 +39,18 @@ public class PlannedTestRewriterTest {
   public void rewritePlans() {
     new PlannedTestRewriter(PlannedTestRewriter.FULL)
         .rewriteTestCasePlans(new TestCasePlanLoader().all());
+  }
+
+  @Test
+  public void shouldNotCheckInThisClassWithTheAboveTestEnabled() throws Exception {
+    final Ignore ignoreAnnotation = this.getClass()
+        .getMethod("rewritePlans")
+        .getAnnotation(Ignore.class);
+
+    assertThat(
+        "Ensure you add back the @Ignore annotation above before committing your change.",
+        ignoreAnnotation,
+        is(notNullValue())
+    );
   }
 }

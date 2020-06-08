@@ -31,7 +31,7 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "FOO" : {
           "a" : 1,
@@ -41,13 +41,13 @@
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "FOO" : { }
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : null
     } ],
     "topics" : [ {

@@ -19,7 +19,7 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "V0" : {
           "k1" : 1

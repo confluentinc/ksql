@@ -23,19 +23,19 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "FOO" : [ "a", "b", "c" ]
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "FOO" : [ "a", "b", null ]
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : null
     } ],
     "topics" : [ {

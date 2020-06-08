@@ -21,7 +21,7 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "C1" : true,
         "C2" : 1,

@@ -30,14 +30,12 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -220,26 +218,6 @@ public class LogicalPlannerTest {
         repart.getPartitionBy(),
         equalTo(new UnqualifiedColumnReferenceExp(ColumnName.of("T1_COL1")))
     );
-  }
-
-  @Test
-  public void testComplexAggregateLogicalPlan() {
-    final String simpleQuery = "SELECT col0, sum(floor(col3)*100)/count(col3) FROM test1 window "
-                         + "HOPPING ( size 2 second, advance by 1 second) "
-                         + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;";
-
-    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
-
-    assertThat(logicalPlan.getSources().get(0), instanceOf(AggregateNode.class));
-    final AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
-    assertThat(aggregateNode.getFunctionCalls().size(), equalTo(2));
-    assertThat(aggregateNode.getFunctionCalls().get(0).getName().text(), equalTo("SUM"));
-    assertThat(aggregateNode.getWindowExpression().get().getKsqlWindowExpression().toString(), equalTo(" HOPPING ( SIZE 2 SECONDS , ADVANCE BY 1 SECONDS ) "));
-    assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
-    assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("COL0"));
-    assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
-    assertThat(aggregateNode.getSchema().value().get(0).type(), equalTo(SqlTypes.DOUBLE));
-    assertThat(logicalPlan.getSources().get(0).getSchema().value().size(), equalTo(1));
   }
 
   @Test

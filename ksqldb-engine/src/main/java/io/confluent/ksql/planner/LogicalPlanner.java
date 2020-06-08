@@ -579,8 +579,8 @@ public class LogicalPlanner {
           .collect(Collectors.toList());
     } else {
       // Transient query:
-      // Transient queries only return value columns, so must leave key columns in the value:
-      valueColumns = projectionSchema.value();
+      // Transient queries only return value columns, so must have key columns in the value:
+      valueColumns = projectionSchema.columns();
     }
 
     final Builder builder = LogicalSchema.builder();

@@ -225,7 +225,7 @@ They can define the following attributes:
 | Attribute | Description |
 |-----------|:------------|
 | topic     | (Required) the name of the topic |
-| key       | (Optional) the key of the message. If absent the key will be an empty string |
+| key       | (Optional for streams, Required for tables) the key of the message. If absent the key will be set to `null` |
 | value     | (Required) the value of the message |
 | timestamp | (Optional) the timestamp of the message. If not supplied it will be set using the system clock if it was from an `INSERT INTO VALUES` statement, and 0 otherwise.\* |
 | window    | (Optional) the window information for the message. (See below for more info) |
@@ -275,7 +275,7 @@ A test can define a set of post conditions that must be met for the test to pass
 {
   "post": {
     "sources": [
-      {"name": "INPUT", "type": "stream", "keyField": null}
+      {"name": "INPUT", "type": "stream"}
     ],
     "topics": {
       "blacklist": ".*-not-allowed",

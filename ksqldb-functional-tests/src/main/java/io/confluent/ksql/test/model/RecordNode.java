@@ -126,9 +126,7 @@ public final class RecordNode {
 
       final String topic = JsonParsingUtil.getRequired("topic", node, jp, String.class);
 
-      final Optional<Object> key = node.has("key")
-          ? JsonParsingUtil.getOptional("key", node, jp, Object.class)
-          : Optional.of("");
+      final Optional<Object> key = JsonParsingUtil.getOptional("key", node, jp, Object.class);
 
       final JsonNode value = JsonParsingUtil.getRequired("value", node, jp, JsonNode.class);
 

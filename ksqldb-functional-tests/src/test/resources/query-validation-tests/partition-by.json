@@ -564,7 +564,7 @@
         "CREATE STREAM OUTPUT AS select * from INPUT partition by ROWTIME;"
       ],
       "inputs": [{"topic": "input", "value": {"ID":  22}, "timestamp": 10}],
-      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"ID":  22, "K": ""}, "timestamp": 10}]
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"ID":  22, "K": null}, "timestamp": 10}]
     },
     {
       "name": "partition by key in join on key",

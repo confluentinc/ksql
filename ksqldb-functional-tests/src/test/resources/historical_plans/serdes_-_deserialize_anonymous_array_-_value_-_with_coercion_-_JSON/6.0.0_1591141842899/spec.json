@@ -15,7 +15,7 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "FOO" : [ "1", "2", "3" ]
       }

@@ -22,7 +22,7 @@
     } ],
     "outputs" : [ {
       "topic" : "SINK",
-      "key" : "0",
+      "key" : null,
       "value" : {
         "M1" : {
           "K1" : 123

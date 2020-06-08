@@ -33,19 +33,19 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : [ 12, 34, 999 ]
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : [ 12, 34, null ]
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : null
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : null
     } ],
     "topics" : [ {

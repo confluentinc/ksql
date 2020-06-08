@@ -17,7 +17,7 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "KSQL_COL_0" : [ {
           "A" : 123

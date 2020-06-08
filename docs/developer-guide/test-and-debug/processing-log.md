@@ -10,17 +10,11 @@ to help you with debugging your SQL queries. As ksqlDB executes a query,
 it writes records to the processing log that detail how it processes
 each row, including any errors it encounters along the way.
 
-Log entries are written with a log level, so you can tune the log to
-emit a verbose trace of every record processed, to log only errors, or
-to disable it completely. Also, log entries are written with a
-hierarchical name that you can use to track back to the query execution
-plan. This way, you can tune the log level for specific queries, and
-even specific steps of a given query.
-
-Log entries are structured events, so in addition to using them to help
-you debug, they should be easy to consume from downstream applications
-and from ksqlDB itself. In fact, ksqlDB supports writing the processing log
-to {{ site.ak }} and consuming it as ksqlDB stream.
+Log entries are written with a hierarchical name that you can use to track
+back to the query execution plan. Log entries are structured events, so in
+addition to using them to help you debug, they should be easy to consume from
+downstream applications and from ksqlDB itself. In fact, ksqlDB supports
+writing the processing log to {{ site.ak }} and consuming it as ksqlDB stream.
 
 !!! important
 	The processing log is not for server logging, but rather for per-record
@@ -65,16 +59,6 @@ log4j.appender.stdout=org.apache.log4j.ConsoleAppender
 log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
 log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c:%L)%n
 log4j.logger.processing=ERROR, stdout
-log4j.additivity.processing=false
-```
-
-For example, if you want to set the log level to DEBUG for a query named
-`CSAS_PAGEVIEWS_UPPER_0`, you could write the following into your log4j
-properties file:
-
-```properties
-log4j.logger.processing=ERROR, stdout
-log4j.logger.processing.CSAS_PAGEVIEWS_UPPER_0=DEBUG
 log4j.additivity.processing=false
 ```
 

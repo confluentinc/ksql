@@ -35,22 +35,34 @@ final class KeyStoreUtil {
   /**
    * Write the supplied store to a temporary file.
    * @param name                 the name of the store being written.
-   * @param base64EncodedStore   the base64 encode store content.
-   * @return the path to the
+   * @param base64EncodedStore   the base64 encoded store content.
+   * @return the path of the temporary file
    */
   static Path createTemporaryStore(final String name, final String base64EncodedStore) {
     try {
-      final byte[] decoded = Base64.getDecoder().decode(base64EncodedStore);
-
       final File tempFile = TestUtils.tempFile();
-
-      Files.write(tempFile.toPath(), decoded);
-
       final Path path = tempFile.toPath();
+
+      putStore(path, base64EncodedStore);
+
       System.out.println("Wrote temporary " + name + " for testing: " + path);
       return path;
     } catch (final Exception e) {
       throw new RuntimeException("Failed to create temporary store", e);
+    }
+  }
+
+  /**
+   * Write the supplied store to the supplied path.
+   * @param path                the path to write to.
+   * @param base64EncodedStore  the base64 encoded store content.
+   */
+  static void putStore(final Path path, final String base64EncodedStore) {
+    try {
+      final byte[] decoded = Base64.getDecoder().decode(base64EncodedStore);
+      Files.write(path, decoded);
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to put store", e);
     }
   }
 

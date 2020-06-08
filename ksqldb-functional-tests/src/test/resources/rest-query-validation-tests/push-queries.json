@@ -4,6 +4,66 @@
   ],
   "tests": [
     {
+      "name": "only key column",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT K FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING"}},
+          {"row":{"columns":["11"]}},
+          {"row":{"columns":["12"]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "only value column",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT ID FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER"}},
+          {"row":{"columns":[100]}},
+          {"row":{"columns":[101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "only literal",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT 1 AS I FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`I` INTEGER"}},
+          {"row":{"columns":[1]}},
+          {"row":{"columns":[1]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
       "name": "explicit ROWTIME",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -504,6 +564,27 @@
           {"header":{"schema":"`COUNT` BIGINT"}},
           {"row":{"columns":[1]}},
           {"row":{"columns":[2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "aggregate with no value columns",
+      "statements": [
+        "CREATE STREAM TEST (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT K FROM test GROUP BY K HAVING COUNT(K) > 1 EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 13251},
+        {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 13253}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER"}},
+          {"row":{"columns":[0]}},
+          {"row":{"columns":[0]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]

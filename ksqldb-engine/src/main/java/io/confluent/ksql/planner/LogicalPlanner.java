@@ -577,6 +577,10 @@ public class LogicalPlanner {
       valueColumns = projectionSchema.value().stream()
           .filter(col -> !keyColumnNames.contains(col.name()))
           .collect(Collectors.toList());
+
+      if (valueColumns.isEmpty()) {
+        throw new KsqlException("The projection contains no value columns.");
+      }
     } else {
       // Transient query:
       // Transient queries only return value columns, so must have key columns in the value:

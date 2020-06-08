@@ -77,13 +77,13 @@
         "CREATE TABLE TS WITH (timestamp='sink_ts') AS SELECT K, id as sink_ts, id FROM test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"ID": 1}, "timestamp": 1526075913000},
-        {"topic": "test_topic", "value": {"ID": -2}, "timestamp": 1526075913000},
-        {"topic": "test_topic", "value": {"ID": 3}, "timestamp": 1589234313000}
+        {"topic": "test_topic", "key": "a", "value": {"ID": 1}, "timestamp": 1526075913000},
+        {"topic": "test_topic", "key": "a", "value": {"ID": -2}, "timestamp": 1526075913000},
+        {"topic": "test_topic", "key": "a", "value": {"ID": 3}, "timestamp": 1589234313000}
       ],
       "outputs": [
-        {"topic": "TS", "value": {"SINK_TS":1, "ID": 1}, "timestamp": 1},
-        {"topic": "TS", "value": {"SINK_TS":3, "ID": 3}, "timestamp": 3}
+        {"topic": "TS", "key": "a", "value": {"SINK_TS":1, "ID": 1}, "timestamp": 1},
+        {"topic": "TS", "key": "a", "value": {"SINK_TS":3, "ID": 3}, "timestamp": 3}
       ]
     },
     {

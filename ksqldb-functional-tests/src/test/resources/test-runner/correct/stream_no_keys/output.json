@@ -1,0 +1,6 @@
+{
+  "outputs": [
+    {"topic": "OUTPUT", "key": null, "value": {"NAME": "vic"}},
+    {"topic": "OUTPUT", "key": null, "value": {"NAME": "bob"}}
+  ]
+}

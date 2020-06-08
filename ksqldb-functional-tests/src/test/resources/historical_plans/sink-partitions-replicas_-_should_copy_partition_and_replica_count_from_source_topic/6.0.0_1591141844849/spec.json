@@ -17,7 +17,7 @@
     } ],
     "outputs" : [ {
       "topic" : "S",
-      "key" : "",
+      "key" : null,
       "value" : {
         "C1" : 4
       }

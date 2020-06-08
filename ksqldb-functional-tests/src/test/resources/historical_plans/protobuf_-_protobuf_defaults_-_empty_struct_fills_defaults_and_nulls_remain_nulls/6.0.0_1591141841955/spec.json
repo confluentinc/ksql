@@ -31,7 +31,7 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "S" : {
           "FOO" : 0
@@ -39,7 +39,7 @@
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "S" : {
           "FOO" : 0
@@ -47,7 +47,7 @@
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "S" : null
       }

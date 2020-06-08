@@ -566,6 +566,21 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause().getMessage(), containsString("Message: Error in processing inserts"));
   }
 
+  @Test
+  public void shouldStreamInserts() {
+
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromStreamInserts() {
+
+  }
+
+  @Test
+  public void shouldHandleErrorFromStreamInserts() {
+
+  }
+
   protected Client createJavaClient() {
     return Client.create(createJavaClientOptions(), vertx);
   }

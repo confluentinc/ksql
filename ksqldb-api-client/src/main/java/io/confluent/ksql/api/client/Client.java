@@ -19,6 +19,7 @@ import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.vertx.core.Vertx;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
 
 /**
  * A client that connects to a specific ksqlDB server.
@@ -89,6 +90,9 @@ public interface Client {
    * @return a future that completes once the server response is received
    */
   CompletableFuture<Void> insertInto(String streamName, KsqlObject row);
+
+  CompletableFuture<AcksPublisher>
+      streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
 
   /**
    * Terminates a push query with the specified query ID.

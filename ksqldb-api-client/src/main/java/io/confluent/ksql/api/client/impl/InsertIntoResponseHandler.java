@@ -22,11 +22,11 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.concurrent.CompletableFuture;
 
-public class InsertsResponseHandler extends ResponseHandler<CompletableFuture<Void>> {
+public class InsertIntoResponseHandler extends ResponseHandler<CompletableFuture<Void>> {
 
   private int numAcks;
 
-  InsertsResponseHandler(
+  InsertIntoResponseHandler(
       final Context context, final RecordParser recordParser, final CompletableFuture<Void> cf) {
     super(context, recordParser, cf);
   }

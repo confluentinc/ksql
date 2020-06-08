@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client.impl;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
+import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
@@ -43,6 +44,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
 
 public class ClientImpl implements Client {
 
@@ -91,7 +93,8 @@ public class ClientImpl implements Client {
       final Map<String, Object> properties
   ) {
     final CompletableFuture<StreamedQueryResult> cf = new CompletableFuture<>();
-    makeQueryRequest(sql, properties, cf, StreamQueryResponseHandler::new);
+    makeQueryRequest(sql, properties, cf,
+        (ctx, rp, fut, req) -> new StreamQueryResponseHandler(ctx, rp, fut));
     return cf;
   }
 
@@ -110,7 +113,7 @@ public class ClientImpl implements Client {
         sql,
         properties,
         result,
-        (context, recordParser, cf) -> new ExecuteQueryResponseHandler(
+        (context, recordParser, cf, request) -> new ExecuteQueryResponseHandler(
             context, recordParser, cf, clientOptions.getExecuteQueryMaxResultRows())
     );
     return result;
@@ -129,7 +132,31 @@ public class ClientImpl implements Client {
         "/inserts-stream",
         requestBody,
         cf,
-        response -> handleResponse(response, cf, InsertsResponseHandler::new)
+        response -> handleResponse(response, cf,
+            (ctx, rp, fut, req) -> new InsertIntoResponseHandler(ctx, rp, fut))
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<AcksPublisher> streamInserts(
+      final String streamName,
+      final Publisher<KsqlObject> insertsPublisher) {
+    final CompletableFuture<AcksPublisher> cf = new CompletableFuture<>();
+
+    final Buffer requestBody = Buffer.buffer();
+    final JsonObject params = new JsonObject().put("target", streamName);
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n"); // TODO: is this extra newline needed?
+
+    makeRequest(
+        "/inserts-stream",
+        requestBody,
+        cf,
+        response -> handleResponse(response, cf,
+            (ctx, rp, fut, req) ->
+                new StreamInsertsResponseHandler(ctx, rp, fut, req, insertsPublisher)),
+        false
     );
 
     return cf;
@@ -159,7 +186,7 @@ public class ClientImpl implements Client {
 
   @FunctionalInterface
   private interface ResponseHandlerSupplier<T extends CompletableFuture<?>> {
-    ResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf);
+    ResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf, HttpClientRequest request);
   }
 
   private <T extends CompletableFuture<?>> void makeQueryRequest(
@@ -191,6 +218,15 @@ public class ClientImpl implements Client {
       final Buffer requestBody,
       final T cf,
       final Handler<HttpClientResponse> responseHandler) {
+    makeRequest(path, requestBody, cf, responseHandler, true);
+  }
+
+  private <T extends CompletableFuture<?>> void makeRequest(
+      final String path,
+      final Buffer requestBody,
+      final T cf,
+      final Handler<HttpClientResponse> responseHandler,
+      final boolean endRequest) {
     HttpClientRequest request = httpClient.request(HttpMethod.POST,
         serverSocketAddress, clientOptions.getPort(), clientOptions.getHost(),
         path,
@@ -199,7 +235,11 @@ public class ClientImpl implements Client {
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
     }
-    request.end(requestBody);
+    if (endRequest) {
+      request.end(requestBody);
+    } else {
+      request.write(requestBody);
+    }
   }
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
@@ -213,7 +253,7 @@ public class ClientImpl implements Client {
     if (response.statusCode() == OK.code()) {
       final RecordParser recordParser = RecordParser.newDelimited("\n", response);
       final ResponseHandler<T> responseHandler =
-          responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf);
+          responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf, response.request());
 
       recordParser.handler(responseHandler::handleBodyBuffer);
       recordParser.endHandler(responseHandler::handleBodyEnd);

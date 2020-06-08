@@ -244,7 +244,7 @@ public class AggregateAnalyzer {
     private void enforceAggregateRules() {
       if (aggregateAnalysis.getAggregateFunctions().isEmpty()) {
         throw new KsqlException(
-            "GROUP BY requires columns using aggregate functions in SELECT clause.");
+            "GROUP BY requires aggregate functions in either the SELECT or HAVING clause.");
       }
 
       final String unmatchedSelects = nonAggSelectsNotPartOfGroupBy.stream()

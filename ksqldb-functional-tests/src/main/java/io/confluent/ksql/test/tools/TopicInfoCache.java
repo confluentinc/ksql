@@ -267,8 +267,9 @@ public class TopicInfoCache {
 
     private Function<Object, Object> keyCoercer() {
       if (schema.key().isEmpty()) {
-        // No key column:
-        return key -> null;
+        // No key column - pass the key in as a string to allow tests to pass in data that should
+        // be ignored:
+        return key -> key == null ? null : String.valueOf(key);
       }
 
       final SqlType keyType = schema

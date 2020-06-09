@@ -62,10 +62,10 @@
         "CREATE TABLE OUTPUT AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"v": "key"}}
+        {"topic": "test_topic", "key": "a", "value": {"v": "key"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"V": "key"}}
+        {"topic": "OUTPUT", "key": "a", "value": {"V": "key"}}
       ]
     },
     {

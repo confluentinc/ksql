@@ -1,0 +1,6 @@
+{
+  "inputs": [
+    {"topic": "test_topic", "key": null, "value": {"NAME": "vic"}},
+    {"topic": "test_topic", "key": "this data should be ignored", "value": {"NAME": "bob"}}
+  ]
+}

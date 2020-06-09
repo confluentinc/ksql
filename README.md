@@ -1,4 +1,4 @@
-# ![KSQL rocket](ksql-rocket.png) ksqlDB
+# ![KSQL rocket](ksql-rocket.png) ksqlDB - hello world
 
 ### The event streaming database purpose-built for stream processing applications
 

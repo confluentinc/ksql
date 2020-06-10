@@ -433,7 +433,7 @@ public class ApiIntegrationTest {
   }
 
   @Test
-  public void shouldTreatInsertTargetAsCaseSensitiveIfQuoted() {
+  public void shouldTreatInsertTargetAsCaseSensitiveIfQuotedWithBackticks() {
     // Given:
     String target = "`" + TEST_STREAM.toLowerCase() + "`";
     JsonObject row = new JsonObject()
@@ -448,7 +448,36 @@ public class ApiIntegrationTest {
   }
 
   @Test
-  public void shouldTreatInsertColumnNamesAsCaseSensitiveIfQuoted() {
+  public void shouldTreatInsertTargetAsCaseSensitiveIfQuotedWithDoubleQuotes() {
+    // Given:
+    String target = "\"" + TEST_STREAM.toLowerCase() + "\"";
+    JsonObject row = new JsonObject()
+        .put("STR", "HELLO")
+        .put("LONG", 1000L)
+        .put("DEC", 12.21) // JsonObject does not accept BigDecimal
+        .put("ARRAY", new JsonArray().add("a").add("b"))
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+
+    // Then: request fails because stream name is invalid
+    shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: " + target);
+  }
+
+  @Test
+  public void shouldTreatInsertColumnNamesAsCaseSensitiveIfQuotedWithBackticks() {
+    // Given:
+    JsonObject row = new JsonObject()
+        .put("`str`", "HELLO")
+        .put("LONG", 1000L)
+        .put("DEC", 12.21) // JsonObject does not accept BigDecimal
+        .put("ARRAY", new JsonArray().add("a").add("b"))
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+
+    // Then: request fails because column name is incorrect
+    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST, "Key field must be specified: STR");
+  }
+
+  @Test
+  public void shouldTreatInsertColumnNamesAsCaseSensitiveIfQuotedWithDoubleQuotes() {
     // Given:
     JsonObject row = new JsonObject()
         .put("\"str\"", "HELLO")

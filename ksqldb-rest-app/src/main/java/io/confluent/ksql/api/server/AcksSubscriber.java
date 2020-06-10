@@ -106,7 +106,7 @@ public class AcksSubscriber extends BaseSubscriber<InsertResult> {
           exception.getMessage());
     } else {
       insertError = new InsertError(result.sequenceNumber(), ERROR_CODE_SERVER_ERROR,
-          "Error in processing inserts");
+          "Error in processing inserts. Check server logs for details.");
     }
     insertsStreamResponseWriter.writeError(insertError).end();
     responseEnded = true;

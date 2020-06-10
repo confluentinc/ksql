@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
 
 public class Analysis implements ImmutableAnalysis {
 
-  private final ResultMaterialization resultMaterialization;
+  private final Optional<ResultMaterialization> resultMaterialization;
   private final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> allDataSources = new ArrayList<>();
@@ -73,20 +73,20 @@ public class Analysis implements ImmutableAnalysis {
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
 
-  public Analysis(final ResultMaterialization resultMaterialization) {
+  public Analysis(final Optional<ResultMaterialization> resultMaterialization) {
     this(resultMaterialization, SourceSchemas::new);
   }
 
   @VisibleForTesting
   Analysis(
-      final ResultMaterialization resultMaterialization,
+      final Optional<ResultMaterialization> resultMaterialization,
       final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory
   ) {
     this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
   }
 
-  ResultMaterialization getResultMaterialization() {
+  Optional<ResultMaterialization> getResultMaterialization() {
     return resultMaterialization;
   }
 

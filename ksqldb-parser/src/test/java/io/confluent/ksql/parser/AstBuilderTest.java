@@ -430,7 +430,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be pull", result.isPullQuery(), is(true));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.FINAL)));
   }
 
   @Test
@@ -444,7 +444,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
   }
 
 
@@ -459,7 +459,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
   }
 
   @Test
@@ -473,7 +473,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
   }
 
   @Test
@@ -487,7 +487,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
   }
 
   @Test
@@ -501,7 +501,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
   }
 
   @Test
@@ -515,7 +515,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
   }
 
   @Test
@@ -529,7 +529,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
   }
 
   @Test

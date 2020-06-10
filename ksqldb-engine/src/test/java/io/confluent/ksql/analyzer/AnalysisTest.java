@@ -67,7 +67,7 @@ public class AnalysisTest {
 
   @Before
   public void setUp() {
-    analysis = new Analysis(resultMaterialization, sourceSchemasFactory);
+    analysis = new Analysis(Optional.of(resultMaterialization), sourceSchemasFactory);
 
     when(dataSource.getSchema()).thenReturn(SOURCE_SCHEMA);
   }

@@ -414,7 +414,7 @@ public class AstBuilder {
       );
 
       final boolean pullQuery = context.EMIT() == null && !buildingPersistentQuery;
-
+      /*
       final ResultMaterialization resultMaterialization = Optional
           .ofNullable(context.resultMaterialization())
           .map(rm -> rm.CHANGES() == null
@@ -425,6 +425,27 @@ public class AstBuilder {
               ? ResultMaterialization.CHANGES
               : ResultMaterialization.FINAL
           );
+
+      */
+      final Optional<ResultMaterialization> resultMaterialization;
+
+      if (pullQuery) {
+        resultMaterialization = Optional.empty();
+      } else if (buildingPersistentQuery) {
+        resultMaterialization = Optional
+            .ofNullable(context.resultMaterialization())
+            .map(rm -> rm.FINAL() == null
+                ? ResultMaterialization.CHANGES
+                : ResultMaterialization.FINAL
+            );
+        // Push query
+      } else {
+        resultMaterialization = Optional
+            .of(context.resultMaterialization().CHANGES() == null
+                ? ResultMaterialization.FINAL
+                : ResultMaterialization.CHANGES);
+      }
+
 
       final OptionalInt limit = getLimit(context.limitClause());
 
@@ -441,6 +462,7 @@ public class AstBuilder {
           visitIfPresent(context.groupBy(), GroupBy.class),
           partitionBy,
           visitIfPresent(context.having, Expression.class),
+          //visitIfPresent(context.resultMaterialization(), ResultMaterialization.class),
           resultMaterialization,
           pullQuery,
           limit

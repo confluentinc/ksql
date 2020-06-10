@@ -170,7 +170,8 @@ public class StatementRewriterTest {
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
       final Optional<PartitionBy> partitionBy,
-      final Optional<Expression> having
+      final Optional<Expression> having,
+      final Optional<ResultMaterialization> resultMaterialization
   ) {
     when(mockRewriter.apply(select, context)).thenReturn(rewrittenSelect);
     when(mockRewriter.apply(relation, context)).thenReturn(rewrittenRelation);
@@ -193,7 +194,7 @@ public class StatementRewriterTest {
   public void shouldRewriteQuery() {
     // Given:
     final Query query =
-        givenQuery(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+        givenQuery(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),Optional.empty());
 
     // When:
     final AstNode rewritten = rewriter.rewrite(query, context);
@@ -208,7 +209,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        resultMaterialization,
+        Optional.of(resultMaterialization),
         false,
         optionalInt))
     );
@@ -229,7 +230,7 @@ public class StatementRewriterTest {
   public void shouldRewriteQueryWithFilter() {
     // Given:
     final Query query =
-        givenQuery(Optional.empty(), Optional.of(expression), Optional.empty(), Optional.empty(), Optional.empty());
+        givenQuery(Optional.empty(), Optional.of(expression), Optional.empty(), Optional.empty(), Optional.empty(),Optional.empty());
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
     // When:
@@ -245,7 +246,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        resultMaterialization,
+        Optional.of(resultMaterialization),
         false,
         optionalInt))
     );
@@ -257,7 +258,7 @@ public class StatementRewriterTest {
     final GroupBy groupBy = mock(GroupBy.class);
     final GroupBy rewrittenGroupBy = mock(GroupBy.class);
     final Query query =
-        givenQuery(Optional.empty(), Optional.empty(), Optional.of(groupBy), Optional.empty(), Optional.empty());
+        givenQuery(Optional.empty(), Optional.empty(), Optional.of(groupBy), Optional.empty(), Optional.empty(),Optional.empty());
     when(mockRewriter.apply(groupBy, context)).thenReturn(rewrittenGroupBy);
 
     // When:
@@ -273,7 +274,7 @@ public class StatementRewriterTest {
         Optional.of(rewrittenGroupBy),
         Optional.empty(),
         Optional.empty(),
-        resultMaterialization,
+        Optional.of(resultMaterialization),
         false,
         optionalInt))
     );
@@ -287,7 +288,7 @@ public class StatementRewriterTest {
 
     final Query query =
         givenQuery(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(partitionBy),
-            Optional.empty());
+            Optional.empty(),Optional.empty());
 
     when(mockRewriter.apply(partitionBy, context)).thenReturn(rewrittenPartitionBy);
 
@@ -304,7 +305,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.of(rewrittenPartitionBy),
         Optional.empty(),
-        resultMaterialization,
+        Optional.of(resultMaterialization),
         false,
         optionalInt))
     );
@@ -317,7 +318,7 @@ public class StatementRewriterTest {
     final WindowExpression rewrittenWindow = mock(WindowExpression.class);
     final Query query =
         givenQuery(Optional.of(window), Optional.empty(), Optional.empty(),
-             Optional.empty(), Optional.empty());
+             Optional.empty(), Optional.empty(),Optional.empty());
     when(mockRewriter.apply(window, context)).thenReturn(rewrittenWindow);
 
     // When:
@@ -333,7 +334,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        resultMaterialization,
+        Optional.of(resultMaterialization),
         false,
         optionalInt))
     );
@@ -343,7 +344,7 @@ public class StatementRewriterTest {
   public void shouldRewriteQueryWithHaving() {
     // Given:
     final Query query =
-        givenQuery(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(expression));
+        givenQuery(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(expression),Optional.empty());
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
     // When:
@@ -359,7 +360,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.of(rewrittenExpression),
-        resultMaterialization,
+        Optional.of(resultMaterialization),
         false,
         optionalInt))
     );

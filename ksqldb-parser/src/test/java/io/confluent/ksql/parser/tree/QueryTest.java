@@ -57,6 +57,12 @@ public class QueryTest {
   private static final Optional<Expression> SOME_HAVING = Optional.of(
       mock(Expression.class)
   );
+  private static final Optional<ResultMaterialization> FINAL = Optional.of(
+      mock(ResultMaterialization.class)
+  );
+  private static final Optional<ResultMaterialization> CHANGES = Optional.of(
+      mock(ResultMaterialization.class)
+  );
   private static final OptionalInt SOME_LIMIT = OptionalInt.of(1);
 
   @SuppressWarnings("UnstableApiUsage")

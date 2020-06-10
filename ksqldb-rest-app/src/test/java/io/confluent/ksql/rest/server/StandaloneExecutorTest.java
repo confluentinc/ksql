@@ -156,7 +156,7 @@ public class StandaloneExecutorTest {
           Optional.empty(),
           Optional.empty(),
           Optional.empty(),
-          ResultMaterialization.CHANGES,
+          Optional.of(ResultMaterialization.CHANGES),
           false,
           OptionalInt.empty()
       ),

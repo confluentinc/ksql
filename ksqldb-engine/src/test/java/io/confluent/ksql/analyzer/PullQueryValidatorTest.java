@@ -55,13 +55,13 @@ public class PullQueryValidatorTest {
   public void setUp() {
     validator = new PullQueryValidator();
 
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
+    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.FINAL));
   }
 
   @Test
   public void shouldThrowOnPullQueryThatIsNotFinal() {
     // Given:
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
+    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.CHANGES));
 
     // When:
     final Exception e = assertThrows(

@@ -61,7 +61,7 @@ public class PushQueryValidatorTest {
   @Test
   public void shouldThrowOnContinuousQueryThatIsFinal() {
     // Given:
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
+    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.FINAL));
 
     // When:
     final Exception e = assertThrows(
@@ -128,7 +128,7 @@ public class PushQueryValidatorTest {
   }
 
   private void givenPushQuery() {
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
+    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.CHANGES));
   }
 
   private void givenPersistentQuery() {

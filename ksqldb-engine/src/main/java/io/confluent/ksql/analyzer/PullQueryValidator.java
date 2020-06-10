@@ -18,7 +18,6 @@ package io.confluent.ksql.analyzer;
 import static io.confluent.ksql.links.DocumentationLinks.PUSH_PULL_QUERY_DOC_LINK;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
@@ -33,8 +32,8 @@ public class PullQueryValidator implements QueryValidator {
 
   private static final List<Rule> RULES = ImmutableList.of(
       Rule.of(
-          analysis -> analysis.getResultMaterialization() == ResultMaterialization.FINAL,
-          "Pull queries don't support `EMIT CHANGES`."
+          analysis -> analysis.getResultMaterialization().isPresent(),
+          "Pull queries don't support EMIT clauses."
       ),
       Rule.of(
           analysis -> !analysis.getInto().isPresent(),

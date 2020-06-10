@@ -434,14 +434,14 @@ public class ClientIntegrationTest {
   public void shouldInsertInto() throws Exception {
     // Given
     final KsqlObject insertRow = new KsqlObject()
-        .put("STR", "HELLO")
-        .put("LONG", 100L)
+        .put("str", "HELLO") // Column names are case-insensitive
+        .put("`LONG`", 100L) // Quotes may be used to preserve case-sensitivity
         .put("DEC", new BigDecimal("13.31"))
         .put("ARRAY", new KsqlArray().add("v1").add("v2"))
         .put("MAP", new KsqlObject().put("some_key", "a_value").put("another_key", ""));
 
     // When
-    client.insertInto(EMPTY_TEST_STREAM, insertRow).get();
+    client.insertInto(EMPTY_TEST_STREAM.toLowerCase(), insertRow).get(); // Stream name is case-insensitive
 
     // Then: should receive new row
     final String query = "SELECT * FROM " + EMPTY_TEST_STREAM + " EMIT CHANGES LIMIT 1;";

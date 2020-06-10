@@ -417,6 +417,21 @@ public class ApiIntegrationTest {
   }
 
   @Test
+  public void shouldInsertWithCaseInsensitivity() {
+
+    // Given: lowercase fields names and stream name
+    String target = TEST_STREAM.toLowerCase();
+    JsonObject row = new JsonObject()
+        .put("str", "HELLO")
+        .put("dec", 12.21) // JsonObject does not accept BigDecimal
+        .put("array", new JsonArray().add("a").add("b"))
+        .put("map", new JsonObject().put("k1", "v1").put("k2", "v2"));
+
+    // Then:
+    shouldInsert(target, row);
+  }
+
+  @Test
   public void shouldExecutePushQueryFromLatestOffset() {
 
     KsqlEngine engine = (KsqlEngine) REST_APP.getEngine();
@@ -515,9 +530,13 @@ public class ApiIntegrationTest {
   }
 
   private void shouldInsert(final JsonObject row) {
+    shouldInsert(TEST_STREAM, row);
+  }
+
+  private void shouldInsert(final String target, final JsonObject row) {
     JsonObject properties = new JsonObject();
     JsonObject requestBody = new JsonObject()
-        .put("target", TEST_STREAM).put("properties", properties);
+        .put("target", target).put("properties", properties);
     Buffer bodyBuffer = requestBody.toBuffer();
     bodyBuffer.appendString("\n");
 

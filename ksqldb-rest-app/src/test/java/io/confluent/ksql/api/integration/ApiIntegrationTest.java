@@ -21,6 +21,7 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -432,6 +433,35 @@ public class ApiIntegrationTest {
   }
 
   @Test
+  public void shouldTreatInsertTargetAsCaseSensitiveIfQuoted() {
+    // Given:
+    String target = "`" + TEST_STREAM.toLowerCase() + "`";
+    JsonObject row = new JsonObject()
+        .put("STR", "HELLO")
+        .put("LONG", 1000L)
+        .put("DEC", 12.21) // JsonObject does not accept BigDecimal
+        .put("ARRAY", new JsonArray().add("a").add("b"))
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+
+    // Then: request fails because stream name is invalid
+    shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: " + target);
+  }
+
+  @Test
+  public void shouldTreatInsertColumnNamesAsCaseSensitiveIfQuoted() {
+    // Given:
+    JsonObject row = new JsonObject()
+        .put("\"str\"", "HELLO")
+        .put("LONG", 1000L)
+        .put("DEC", 12.21) // JsonObject does not accept BigDecimal
+        .put("ARRAY", new JsonArray().add("a").add("b"))
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+
+    // Then: request fails because column name is incorrect
+    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST, "Key field must be specified: STR");
+  }
+
+  @Test
   public void shouldExecutePushQueryFromLatestOffset() {
 
     KsqlEngine engine = (KsqlEngine) REST_APP.getEngine();
@@ -509,15 +539,7 @@ public class ApiIntegrationTest {
   }
 
   private void shouldFailToInsert(final JsonObject row, final int errorCode, final String message) {
-    JsonObject properties = new JsonObject();
-    JsonObject requestBody = new JsonObject()
-        .put("target", TEST_STREAM).put("properties", properties);
-    Buffer bodyBuffer = requestBody.toBuffer();
-    bodyBuffer.appendString("\n");
-
-    bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
-
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
+    final HttpResponse<Buffer> response = makeInsertsRequest(TEST_STREAM, row);
 
     assertThat(response.statusCode(), is(200));
 
@@ -534,6 +556,27 @@ public class ApiIntegrationTest {
   }
 
   private void shouldInsert(final String target, final JsonObject row) {
+    HttpResponse<Buffer> response = makeInsertsRequest(target, row);
+
+    assertThat(response.statusCode(), is(200));
+
+    InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
+    assertThat(insertsResponse.acks, hasSize(1));
+    assertThat(insertsResponse.error, is(nullValue()));
+  }
+
+  private void shouldRejectInsertRequest(final String target, final JsonObject row, final String message) {
+    HttpResponse<Buffer> response = makeInsertsRequest(target, row);
+
+    assertThat(response.statusCode(), is(400));
+    assertThat(response.statusMessage(), is("Bad Request"));
+
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    assertThat(queryResponse.responseObject.getInteger("error_code"), is(ERROR_CODE_BAD_STATEMENT));
+    assertThat(queryResponse.responseObject.getString("message"), containsString(message));
+  }
+
+  private HttpResponse<Buffer> makeInsertsRequest(final String target, final JsonObject row) {
     JsonObject properties = new JsonObject();
     JsonObject requestBody = new JsonObject()
         .put("target", target).put("properties", properties);
@@ -542,13 +585,7 @@ public class ApiIntegrationTest {
 
     bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
 
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
-
-    assertThat(response.statusCode(), is(200));
-
-    InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
-    assertThat(insertsResponse.acks, hasSize(1));
-    assertThat(insertsResponse.error, is(nullValue()));
+    return sendRequest("/inserts-stream", bodyBuffer);
   }
 
   private WebClient createClient() {

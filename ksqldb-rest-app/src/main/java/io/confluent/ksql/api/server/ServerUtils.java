@@ -97,6 +97,20 @@ public final class ServerUtils {
     return out.toString();
   }
 
+  // See ParserUtil#getIdentifierText()
+  public static String getIdentifierText(final String text) {
+    if (text.isEmpty()) {
+      return "";
+    }
+
+    final char firstChar = text.charAt(0);
+    if (firstChar == '`' || firstChar == '"') {
+      return unquote(text, firstChar);
+    }
+
+    return text.toUpperCase();
+  }
+
   public static boolean checkHttp2(final RoutingContext routingContext) {
     if (routingContext.request().version() != HttpVersion.HTTP_2) {
       routingContext.fail(BAD_REQUEST.code(),
@@ -130,5 +144,29 @@ public final class ServerUtils {
             + " Please consult the server logs for more information.",
         ERROR_CODE_SERVER_ERROR));
     return null;
+  }
+
+  private static String unquote(final String value, final char quote) {
+    if (value.charAt(0) != quote) {
+      throw new IllegalStateException("Value must begin with quote");
+    }
+    if (value.charAt(value.length() - 1) != quote || value.length() < 2) {
+      throw new IllegalArgumentException("Expected matching quote at end of value");
+    }
+
+    int i = 1;
+    while (i < value.length() - 1) {
+      if (value.charAt(i) == quote) {
+        if (value.charAt(i + 1) != quote || i + 1 == value.length() - 1) {
+          throw new IllegalArgumentException("Un-escaped quote in middle of value at index " + i);
+        }
+        i += 2;
+      } else {
+        i++;
+      }
+    }
+
+    return value.substring(1, value.length() - 1)
+        .replace("" + quote + quote, "" + quote);
   }
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.impl;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 
 import io.confluent.ksql.api.server.InsertResult;
@@ -53,6 +54,12 @@ public class InsertsStreamEndpoint {
       final WorkerExecutor workerExecutor,
       final ServiceContext serviceContext) {
     VertxUtils.checkIsWorker();
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED)) {
+      throw new KsqlApiException("The server has disabled INSERT INTO ... VALUES functionality. "
+          + "To enable it, restart your ksqlDB server "
+          + "with 'ksql.insert.into.values.enabled'=true",
+          ERROR_CODE_BAD_REQUEST);
+    }
     final DataSource dataSource = getDataSource(ksqlEngine.getMetaStore(),
         SourceName.of(target));
     if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {

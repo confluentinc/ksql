@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,13 +13,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.loader;
+package io.confluent.ksql.test.model;
 
-import io.confluent.ksql.test.model.TestFileContext;
-import io.confluent.ksql.test.tools.Test;
-import java.util.stream.Stream;
+import java.nio.file.Path;
 
-public interface TestFile<TestTypeT extends Test> {
+/**
+ * Location of test.
+ *
+ * <p>{@link #toString()} should return a file path e.g. {@code file://some/path/to/file}
+ */
+public interface TestLocation {
 
-  Stream<TestTypeT> buildTests(TestFileContext ctx);
+  /**
+   * @return the path to the file containing the test.
+   */
+  Path getTestPath();
 }

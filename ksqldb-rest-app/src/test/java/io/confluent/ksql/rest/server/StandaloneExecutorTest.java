@@ -119,7 +119,9 @@ public class StandaloneExecutorTest {
           ProcessingLogConfig.TOPIC_AUTO_CREATE, true,
           ProcessingLogConfig.TOPIC_NAME, PROCESSING_LOG_TOPIC_NAME
       ));
-  private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
+  private static final KsqlConfig ksqlConfig = new KsqlConfig(
+      ImmutableMap.of(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+  );
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
       new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));

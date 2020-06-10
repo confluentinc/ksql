@@ -201,5 +201,6 @@ extra:
         release: 0.9.0
         cprelease: 5.5.0
         releasepostbranch: 5.5.0-post
+        ksqldbreleasebranch: 0.9.0-ksqldb 
         scalaversion: 2.12
         version: 5.5

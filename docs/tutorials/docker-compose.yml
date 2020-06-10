@@ -41,7 +41,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: zookeeper:32181
 
   ksql-server:
-    image: "confluentinc/ksqldb-server:latest"
+    image: "confluentinc/cp-ksqldb-server:latest"
     depends_on:
       - kafka
       - schema-registry

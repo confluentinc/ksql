@@ -1,9 +1,9 @@
 ---
 layout: page
-title: ksqlDB Quick Start
+title: Write streaming queries against Apache Kafka® by using ksqlDB
 tagline: Use ksqlDB for event streaming applications
-description: Write streaming queries against Apache Kafka® by using ksqlDB
-keywords: ksql, docker
+description: Learn to write streaming SQL queries
+keywords: ksqldb, docker
 ---
 
 This tutorial demonstrates a simple workflow using ksqlDB to write
@@ -49,7 +49,7 @@ cd ksql
 Switch to the correct ksqlDB release branch.
 
 ```bash
-git checkout {{ site.releasepostbranch }}
+git checkout {{ site.ksqldbreleasebranch }}
 ```
 
 ### 3. Launch the tutorial in Docker
@@ -85,7 +85,7 @@ docker run --network tutorials_default --rm --name datagen-users \
     ksql-datagen \
         bootstrap-server=kafka:39092 \
         quickstart=users \
-        format=avro \
+        format=delimited \
         topic=users \
         msgRate=1 
 ```
@@ -116,7 +116,7 @@ Your output should resemble:
 
 Copyright 2017-2020 Confluent Inc.
 
-CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksql-server:8088
+CLI v{{ site.release }}, Server v{{ site.cprelease }} located at http://ksql-server:8088
 
 Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
@@ -185,12 +185,14 @@ Your output should resemble:
 
 ```json
     Key format: KAFKA_STRING
-    Value format: AVRO
-    rowtime: 10/30/18 10:15:51 PM GMT, key: User_1, value: {"registertime":1516754966866,"userid":"User_1","regionid":"Region_9","gender":"MALE"}
-    rowtime: 10/30/18 10:15:51 PM GMT, key: User_3, value: {"registertime":1491558386780,"userid":"User_3","regionid":"Region_2","gender":"MALE"}
-    rowtime: 10/30/18 10:15:53 PM GMT, key: User_7, value: {"registertime":1514374073235,"userid":"User_7","regionid":"Region_2","gender":"OTHER"}
-    rowtime: 10/30/18 10:15:59 PM GMT, key: User_4, value: {"registertime":1510034151376,"userid":"User_4","regionid":"Region_8","gender":"FEMALE"}
-    Topic printing ceased
+    Value format: KAFKA_STRING
+    rowtime: 6/10/20 9:25:39 PM UTC, key: User_1, value: 1500241674756,User_1,Region_7,MALE
+    rowtime: 6/10/20 9:25:40 PM UTC, key: User_1, value: 1491524185606,User_1,Region_9,OTHER
+    rowtime: 6/10/20 9:25:41 PM UTC, key: User_3, value: 1519250711583,User_3,Region_4,MALE
+    rowtime: 6/10/20 9:25:42 PM UTC, key: User_7, value: 1507812294830,User_7,Region_4,OTHER
+    rowtime: 6/10/20 9:25:43 PM UTC, key: User_8, value: 1499893930696,User_8,Region_8,MALE
+    rowtime: 6/10/20 9:25:44 PM UTC, key: User_3, value: 1510178846565,User_3,Region_3,OTHER
+    ^CTopic printing ceased
 ```
 
 Press Ctrl+C to stop printing messages.
@@ -216,8 +218,8 @@ Your output should resemble:
 Press Ctrl+C to stop printing messages.
 
 !!! note
-    KsqlDB has determined that the key format is either `KAFKA_BIGINT` or `KAFKA_DOUBLE`.
-    KsqlDB has not narrowed it further because it is not possible to rule out
+    ksqlDB has determined that the key format is either `KAFKA_BIGINT` or `KAFKA_DOUBLE`.
+    ksqlDB has not narrowed it further because it is not possible to rule out
     either format just by inspecting the key's serialized bytes. In this case we know the key is
     a `BIGINT`. For other cases you may know the key type or you may need to speak to the author
     of the data.
@@ -238,7 +240,7 @@ Create a stream, named `pageviews_original`, from the `pageviews`
 {{ site.ak }} topic, specifying the `value_format` of `DELIMITED`.
 
 ```sql
-CREATE STREAM pageviews_original (rowkey bigint key, viewtime bigint, userid varchar, pageid varchar)
+CREATE STREAM pageviews_original (rowkey string key, viewtime bigint, userid varchar, pageid varchar)
   WITH (kafka_topic='pageviews', value_format='DELIMITED');
 ```
 
@@ -246,9 +248,9 @@ Your output should resemble:
 
 ```
  Message
----------------
+----------------
  Stream created
----------------
+----------------
 ```
 
 !!! tip
@@ -257,33 +259,21 @@ Your output should resemble:
 ### 2. Create a ksqlDB table
 
 Create a table, named `users_original`, from the `users` topic, specifying
-the `value_format` of `AVRO`.
+the `value_format` of `DELIMITED`.
 
 ```sql
-CREATE TABLE users_original WITH (kafka_topic='users', value_format='AVRO', key = 'userid');
+CREATE TABLE users_original (registertime BIGINT, userid VARCHAR, gender VARCHAR, regionid VARCHAR)
+  WITH (KAFKA_TOPIC = 'users', VALUE_FORMAT='DELIMITED', KEY = 'userid');
 ```
 
 Your output should resemble:
 
 ```
-  Message
+ Message
 ---------------
-  Table created
+ Table created
 ---------------
 ```
-
-!!! note
-      You may have noticed the CREATE TABLE did not define the set of columns
-      like the CREATE STREAM statement did. This is because the value format
-      is Avro, and the DataGen tool publishes the Avro schema to {{ site.sr }}.
-      ksqlDB retrieves the schema from {{ site.sr }} and uses this to build
-      the SQL schema for the table. You may still provide the schema if you wish.
-      Until [Github issue #4462](https://github.com/confluentinc/ksql/issues/4462)
-      is complete, schema inference is only available for the value columns. By
-      default, it is assumed the key schema is a single `KAFKA` formatted `STRING`
-      column and is called `ROWKEY`. It is also possible to supply just the key
-      column in the statement, allowing you to specify the key column type. For example:
-      `CREATE TABLE users_original (ROWKEY INT PRIMARY KEY) WITH (...);`
 
 !!! note
       The data generated has the same value in the {{ site.ak }} record's key
@@ -294,35 +284,49 @@ Your output should resemble:
       on either yields the same results. If your data doesn't
       contain a copy of the key in the value, you can join on `ROWKEY`.
 
-!!! tip
-    You can run `DESCRIBE users_original;` to see the schema for the
-    Table.
+Inspect the schema for the table.
 
-Optional: Show all streams and tables.
+```sql
+DESCRIBE users_original;
+```
+
+```
+Name                 : USERS_ORIGINAL
+ Field        | Type
+--------------------------------
+ ROWTIME      | BIGINT
+ ROWKEY       | VARCHAR(STRING)
+ REGISTERTIME | BIGINT
+ USERID       | VARCHAR(STRING)
+ GENDER       | VARCHAR(STRING)
+ REGIONID     | VARCHAR(STRING)
+--------------------------------
+For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
+```
+
+Show all streams and tables.
+
+```sql
+SHOW STREAMS;
+SHOW TABLES;
+```
+
+Your output should resemble:
 
 ```
 ksql> SHOW STREAMS;
 
- Stream Name         | Kafka Topic                 | Format    
----------------------------------------------------------------
- KSQL_PROCESSING_LOG | default_ksql_processing_log | JSON      
- PAGEVIEWS_ORIGINAL  | pageviews                   | DELIMITED 
----------------------------------------------------------------
-
+ Stream Name        | Kafka Topic | Format
+----------------------------------------------
+ PAGEVIEWS_ORIGINAL | pageviews   | DELIMITED
+----------------------------------------------
 ksql> SHOW TABLES;
 
- Table Name     | Kafka Topic | Format | Windowed 
---------------------------------------------------
- USERS_ORIGINAL | users       | AVRO   | false    
---------------------------------------------------
+ Table Name     | Kafka Topic | Format    | Windowed
+-----------------------------------------------------
+ USERS_ORIGINAL | users       | DELIMITED | false
+-----------------------------------------------------
 ```
-
-!!! tip
-    Notice the `KSQL_PROCESSING_LOG` stream listed in the SHOW STREAMS
-    output? ksqlDB appends messages that describe any issues it
-    encountered while processing your data. If things aren't working
-    as you expect, check the contents of this stream
-    to see if ksqlDB is encountering data errors.
 
 Viewing your data
 -----------------
@@ -339,34 +343,30 @@ different query types. Note that exact data output may vary because
 of the randomness of the data generation.
 
 ```sql
-SELECT ROWTIME, * from users_original emit changes limit 5;
+SELECT * from users_original emit changes limit 5;
 ```
 
 Your output should resemble:
 
 ```
-+--------------------+--------------+--------------+---------+----------+-------------+
-|ROWTIME             |ROWKEY        |REGISTERTIME  |GENDER   |REGIONID  |USERID       |
-+--------------------+--------------+--------------+---------+----------+-------------+
-|1581077558655       |User_9        |1513529638461 |OTHER    |Region_1  |User_9       |
-|1581077561454       |User_7        |1489408314958 |OTHER    |Region_2  |User_7       |
-|1581077561654       |User_3        |1511291005264 |MALE     |Region_2  |User_3       |
-|1581077561857       |User_4        |1496797956753 |OTHER    |Region_1  |User_4       |
-|1581077562858       |User_8        |1489169082491 |FEMALE   |Region_8  |User_8       |
++----------------+----------------+----------------+----------------+----------------+----------------+
+|ROWTIME         |ROWKEY          |REGISTERTIME    |USERID          |GENDER          |REGIONID        |
++----------------+----------------+----------------+----------------+----------------+----------------+
+|1591825087142   |User_6          |1497791942007   |User_6          |Region_1        |FEMALE          |
+|1591825090142   |User_1          |1500394777538   |User_1          |Region_2        |FEMALE          |
+|1591825092142   |User_8          |1512408593783   |User_8          |Region_2        |FEMALE          |
+|1591825093141   |User_4          |1515780973022   |User_4          |Region_4        |OTHER           |
+|1591825094142   |User_2          |1487969622095   |User_2          |Region_7        |OTHER           |
 Limit Reached
 Query terminated
 ```
 
 !!! note
-    Note the use of the pseudo column `ROWTIME` in the above query to access each rows timestamp.
-    `ROWTIME` is not included by default when the `*` in the projection is expanded, but can be
-    included explicitly when needed.
-
-!!! note
     Push queries on tables output the full history of the table that is stored
-    in the {{ site.ak }} changelog topic, which means that it outputs historic data, followed by the
-    stream of updates to the table. So it's likely that rows with matching
-    `ROWKEY` are output as existing rows in the table are updated.
+    in the {{ site.ak }} changelog topic, which means that it outputs historic
+    data, followed by the stream of updates to the table. So it's likely that
+    rows with matching `ROWKEY` are output as existing rows in the table are
+    updated.
 
 ### 2. Create a query that returns data from a stream
 
@@ -380,12 +380,12 @@ SELECT viewtime, userid, pageid FROM pageviews_original emit changes LIMIT 3;
 Your output should resemble:
 
 ```
-+--------------+--------------+--------------+
-|VIEWTIME      |USERID        |PAGEID        |
-+--------------+--------------+--------------+
-|1581078296791 |User_1        |Page_54       |
-|1581078297792 |User_8        |Page_93       |
-|1581078298792 |User_6        |Page_26       |
++-----------------------------------+-----------------------------------+-----------------------------------+
+|VIEWTIME                           |USERID                             |PAGEID                             |
++-----------------------------------+-----------------------------------+-----------------------------------+
+|1591825136802                      |User_6                             |Page_57                            |
+|1591825137003                      |User_7                             |Page_12                            |
+|1591825137202                      |User_8                             |Page_72                            |
 Limit Reached
 Query terminated
 ```
@@ -420,14 +420,14 @@ SELECT users_original.userid AS userid, pageid, regionid, gender
 Your output should resemble:
 
 ```
-+-------------------+-------------------+-------------------+-------------------+
-|USERID             |PAGEID             |REGIONID           |GENDER             |
-+-------------------+-------------------+-------------------+-------------------+
-|User_7             |Page_23            |Region_2           |OTHER              |
-|User_3             |Page_42            |Region_2           |MALE               |
-|User_7             |Page_87            |Region_2           |OTHER              |
-|User_2             |Page_57            |Region_5           |FEMALE             |
-|User_9             |Page_59            |Region_1           |OTHER              |
++--------------------------+--------------------------+--------------------------+--------------------------+
+|USERID                    |PAGEID                    |REGIONID                  |GENDER                    |
++--------------------------+--------------------------+--------------------------+--------------------------+
+|User_7                    |Page_81                   |FEMALE                    |Region_2                  |
+|User_9                    |Page_70                   |OTHER                     |Region_3                  |
+|User_6                    |Page_87                   |FEMALE                    |Region_6                  |
+|User_9                    |Page_82                   |OTHER                     |Region_3                  |
+|User_4                    |Page_60                   |OTHER                     |Region_3                  |
 Limit Reached
 Query terminated
 ```
@@ -458,10 +458,10 @@ CREATE STREAM pageviews_enriched AS
 Your output should resemble:
 
 ```
- Message                                                                                                  
-----------------------------------------------------------------------------------------------------------
- Stream PAGEVIEWS_ENRICHED created and running. Created by query with query ID: CSAS_PAGEVIEWS_ENRICHED_0 
-----------------------------------------------------------------------------------------------------------
+ Message
+-------------------------------------------------
+ Created query with ID CSAS_PAGEVIEWS_ENRICHED_0
+-------------------------------------------------
 ```
 
 !!! tip
@@ -475,23 +475,23 @@ console but it does not terminate the actual query. The query
 continues to run in the underlying ksqlDB application.
 
 ```sql
-SELECT * FROM pageviews_enriched emit changes;
+SELECT * FROM pageviews_enriched emit changes LIMIT 5;
 ```
 
 Your output should resemble:
 
 ```
-+------------+------------+------------+------------+------------+
-|ROWKEY      |USERID      |PAGEID      |REGIONID    |GENDER      |
-+------------+------------+------------+------------+------------+
-|User_5      |User_5      |Page_53     |Region_3    |FEMALE      |
-|User_2      |User_2      |Page_86     |Region_5    |OTHER       |
-|User_9      |User_9      |Page_75     |Region_1    |OTHER       |
-
-^CQuery terminated
++----------------+----------------+----------------+----------------+----------------+----------------+
+|ROWTIME         |ROWKEY          |USERID          |PAGEID          |REGIONID        |GENDER          |
++----------------+----------------+----------------+----------------+----------------+----------------+
+|1591825269603   |User_6          |User_6          |Page_83         |MALE            |Region_5        |
+|1591825269802   |User_6          |User_6          |Page_88         |MALE            |Region_5        |
+|1591825270002   |User_9          |User_9          |Page_14         |MALE            |Region_1        |
+|1591825270202   |User_1          |User_1          |Page_71         |OTHER           |Region_1        |
+|1591825270403   |User_7          |User_7          |Page_77         |MALE            |Region_8        |
+Limit Reached
+Query terminated
 ```
-
-Use CTRL+C to terminate the query.
 
 ### 4. Create a filter query
 
@@ -509,10 +509,10 @@ CREATE STREAM pageviews_female AS
 Your output should resemble:
 
 ```
- Message                                                                                               
--------------------------------------------------------------------------------------------------------
- Stream PAGEVIEWS_FEMALE created and running. Created by query with query ID: CSAS_PAGEVIEWS_FEMALE_11 
--------------------------------------------------------------------------------------------------------
+ Message
+-----------------------------------------------
+ Created query with ID CSAS_PAGEVIEWS_FEMALE_5
+-----------------------------------------------
 ```
 
 !!! tip
@@ -535,10 +535,10 @@ CREATE STREAM pageviews_female_like_89
 Your output should resemble:
 
 ```
- Message                                                                                                               
------------------------------------------------------------------------------------------------------------------------
- Stream PAGEVIEWS_FEMALE_LIKE_89 created and running. Created by query with query ID: CSAS_PAGEVIEWS_FEMALE_LIKE_89_13 
------------------------------------------------------------------------------------------------------------------------
+ Message
+-------------------------------------------------------
+ Created query with ID CSAS_PAGEVIEWS_FEMALE_LIKE_89_7
+-------------------------------------------------------
 ```
 
 ### 6. Count and group pageview events
@@ -565,10 +565,10 @@ EMIT CHANGES;
 Your output should resemble:
 
 ```
- Message                                                                                                
---------------------------------------------------------------------------------------------------------
- Table PAGEVIEWS_REGIONS created and running. Created by query with query ID: CTAS_PAGEVIEWS_REGIONS_15 
---------------------------------------------------------------------------------------------------------
+ Message
+------------------------------------------------
+ Created query with ID CTAS_PAGEVIEWS_REGIONS_9
+------------------------------------------------
 ```
 
 !!! tip
@@ -585,14 +585,19 @@ SELECT * FROM pageviews_regions EMIT CHANGES LIMIT 5;
 Your output should resemble:
 
 ```
-+-----------------+---------------+---------------+---------------+---------------+---------------+
-|ROWKEY           |WINDOWSTART    |WINDOWEND      |GENDER         |REGIONID       |NUMUSERS       |
-+-----------------+---------------+---------------+---------------+---------------+---------------+
-|OTHER|+|Region_9 |1581080490000  |1581080520000  |OTHER          |Region_9       |1              |
-|OTHER|+|Region_5 |1581080490000  |1581080520000  |OTHER          |Region_5       |2              |
-|MALE|+|Region_7  |1581080490000  |1581080520000  |MALE           |Region_7       |4              |
-|FEMALE|+|Region_1|1581080490000  |1581080520000  |FEMALE         |Region_1       |2              |
-|MALE|+|Region_2  |1581080490000  |1581080520000  |MALE           |Region_2       |3              |
++--------------+--------------+--------------+--------------+--------------+--------------+--------------+
+|ROWTIME       |ROWKEY        |WINDOWSTART   |WINDOWEND     |GENDER        |REGIONID      |NUMUSERS      |
++--------------+--------------+--------------+--------------+--------------+--------------+--------------+
+|1591825365002 |Region_6|+|FEM|1591825350000 |1591825380000 |Region_6      |FEMALE        |3             |
+|              |ALE           |              |              |              |              |              |
+|1591825366203 |Region_1|+|OTH|1591825350000 |1591825380000 |Region_1      |OTHER         |1             |
+|              |ER            |              |              |              |              |              |
+|1591825368003 |Region_6|+|MAL|1591825350000 |1591825380000 |Region_6      |MALE          |5             |
+|              |E             |              |              |              |              |              |
+|1591825368802 |Region_7|+|OTH|1591825350000 |1591825380000 |Region_7      |OTHER         |1             |
+|              |ER            |              |              |              |              |              |
+|1591825374003 |Region_1|+|MAL|1591825350000 |1591825380000 |Region_1      |MALE          |8             |
+|              |E             |              |              |              |              |              |
 Limit Reached
 Query terminated
 ```
@@ -623,27 +628,30 @@ Pull queries do not have the `EMIT CHANGES` clause.
 View all of the windows and user counts that are available for a specific gender and region by using a pull query:
 
 ```sql
-SELECT * FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9';
+SELECT * FROM pageviews_regions WHERE ROWKEY='Region_1|+|OTHER';
 ```
 
 Your output should resemble:
 
 ```
-+------------------+------------------+------------------+------------------+------------------+------------------+
-|ROWKEY            |WINDOWSTART       |WINDOWEND         |GENDER            |REGIONID          |NUMUSERS          |
-+------------------+------------------+------------------+------------------+------------------+------------------+
-|OTHER|+|Region_9  |1581080490000     |1581080520000     |OTHER             |Region_9          |1                 |
-|OTHER|+|Region_9  |1581080550000     |1581080580000     |OTHER             |Region_9          |4                 |
-|OTHER|+|Region_9  |1581080580000     |1581080610000     |OTHER             |Region_9          |4                 |
-|OTHER|+|Region_9  |1581080610000     |1581080640000     |OTHER             |Region_9          |3                 |
-|OTHER|+|Region_9  |1581080640000     |1581080670000     |OTHER             |Region_9          |6                 |
-...
++--------------+--------------+--------------+--------------+--------------+--------------+--------------+
+|ROWKEY        |WINDOWSTART   |WINDOWEND     |ROWTIME       |GENDER        |REGIONID      |NUMUSERS      |
++--------------+--------------+--------------+--------------+--------------+--------------+--------------+
+|Region_1|+|OTH|1591825350000 |1591825380000 |1591825366203 |Region_1      |OTHER         |1             |
+|ER            |              |              |              |              |              |              |
+|Region_1|+|OTH|1591825380000 |1591825410000 |1591825409602 |Region_1      |OTHER         |20            |
+|ER            |              |              |              |              |              |              |
+|Region_1|+|OTH|1591825410000 |1591825440000 |1591825413002 |Region_1      |OTHER         |3             |
+|ER            |              |              |              |              |              |              |
+|Region_1|+|OTH|1591825440000 |1591825470000 |1591825462002 |Region_1      |OTHER         |2             |
+|ER            |              |              |              |              |              |              |
+Query terminated
 ```
 
 Pull queries on windowed tables such as `pageviews_regions` also support querying a single window's result:
 
 ```sql
-SELECT NUMUSERS FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9' AND WINDOWSTART=1581080550000;
+SELECT NUMUSERS FROM pageviews_regions WHERE ROWKEY='Region_1|+|OTHER' AND WINDOWSTART=1591825350000;
 ```
 
 !!! important
@@ -653,17 +661,17 @@ SELECT NUMUSERS FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9' AND WINDO
 Your output should resemble:
 
 ```
-+----------+
-|NUMUSERS  |
-+----------+
-|4         |
++--------------------------------------------------------------------------------------------------------------+
+|NUMUSERS                                                                                                      |
++--------------------------------------------------------------------------------------------------------------+
+|1                                                                                                             |
 Query terminated
 ```
 
 Or querying a range of windows:
 
 ```sql
-SELECT WINDOWSTART, WINDOWEND, NUMUSERS FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9' AND 1581080550000 <= WINDOWSTART AND WINDOWSTART <= 1581080610000;
+SELECT WINDOWSTART, WINDOWEND, NUMUSERS FROM pageviews_regions WHERE ROWKEY='Region_1|+|OTHER' AND 1591825350000 <= WINDOWSTART AND WINDOWSTART <= 1591825440000;
 ```
 
 !!! important
@@ -673,12 +681,13 @@ SELECT WINDOWSTART, WINDOWEND, NUMUSERS FROM pageviews_regions WHERE ROWKEY='OTH
 Your output should resemble:
 
 ```
-+----------------------------+----------------------------+----------------------------+
-|WINDOWSTART                 |WINDOWEND                   |NUMUSERS                    |
-+----------------------------+----------------------------+----------------------------+
-|1581080550000               |1581080580000               |4                           |
-|1581080580000               |1581080610000               |4                           |
-|1581080610000               |1581080640000               |3                           |
++-----------------------------------+-----------------------------------+-----------------------------------+
+|WINDOWSTART                        |WINDOWEND                          |NUMUSERS                           |
++-----------------------------------+-----------------------------------+-----------------------------------+
+|1591825350000                      |1591825380000                      |1                                  |
+|1591825380000                      |1591825410000                      |20                                 |
+|1591825410000                      |1591825440000                      |3                                  |
+|1591825440000                      |1591825470000                      |2                                  |
 Query terminated
 ```
 
@@ -764,7 +773,7 @@ it running.
 
 ```bash
 docker run --network tutorials_default --rm  \
-  confluentinc/ksqldb-examples:{{ site.release }} \
+  confluentinc/ksqldb-examples:{{ site.cprelease }} \
   ksql-datagen \
       quickstart=orders \
       format=json \
@@ -814,7 +823,8 @@ Your output should resemble:
 Name                 : ORDERS
  Field      | Type
 ----------------------------------------------------------------------------------
- ROWKEY     | INT              (key)
+ ROWTIME    | BIGINT
+ ROWKEY     | INTEGER
  ORDERTIME  | BIGINT
  ORDERID    | INTEGER
  ITEMID     | VARCHAR(STRING)
@@ -822,7 +832,6 @@ Name                 : ORDERS
  ADDRESS    | STRUCT<CITY VARCHAR(STRING), STATE VARCHAR(STRING), ZIPCODE BIGINT>
 ----------------------------------------------------------------------------------
 For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
-ksql>
 ```
 
 ### 4. Access the struct data
@@ -836,16 +845,15 @@ SELECT ORDERID, ADDRESS->CITY FROM ORDERS EMIT CHANGES LIMIT 5;
 Your output should resemble:
 
 ```
-+-----------------------------------+-----------------------------------+
-|ORDERID                            |ADDRESS__CITY                      |
-+-----------------------------------+-----------------------------------+
-|1188                               |City_95                            |
-|1189                               |City_24                            |
-|1190                               |City_57                            |
-|1191                               |City_37                            |
-|1192                               |City_82                            |
-Limit Reached
-Query terminated
++------------------------------------------------------+------------------------------------------------------+
+|ORDERID                                               |ADDRESS__CITY                                         |
++------------------------------------------------------+------------------------------------------------------+
+|350                                                   |City_11                                               |
+|351                                                   |City_29                                               |
+|352                                                   |City_26                                               |
+|353                                                   |City_25                                               |
+|354                                                   |City_22                                               |
+^CQuery terminated
 ```
 
 Stream-Stream join
@@ -921,18 +929,18 @@ Query the streams to confirm that events are present in the topics.
 For the `NEW_ORDERS` stream, run:
 
 ```sql
-SELECT ROWTIME, * FROM NEW_ORDERS EMIT CHANGES LIMIT 3;
+SELECT * FROM NEW_ORDERS EMIT CHANGES LIMIT 3;
 ```
 
 Your output should resemble:
 
 ```
-+-------------------------+-------------------------+-------------------------+-------------------------+
-|ROWTIME                  |ROWKEY                   |TOTAL_AMOUNT             |CUSTOMER_NAME            |
-+-------------------------+-------------------------+-------------------------+-------------------------+
-|1581083057609            |1                        |10.5                     |Bob Smith                |
-|1581083178418            |2                        |3.32                     |Sarah Black              |
-|1581083210494            |3                        |21.0                     |Emma Turner              |
++--------------------------+--------------------------+--------------------------+--------------------------+
+|ROWTIME                   |ROWKEY                    |TOTAL_AMOUNT              |CUSTOMER_NAME             |
++--------------------------+--------------------------+--------------------------+--------------------------+
+|1591825956028             |2                         |3.32                      |Sarah Black               |
+|1591825956188             |3                         |21.0                      |Emma Turner               |
+|1591825955781             |1                         |10.5                      |Bob Smith                 |
 Limit Reached
 Query terminated
 ```
@@ -946,11 +954,11 @@ SELECT * FROM SHIPMENTS EMIT CHANGES LIMIT 2;
 Your output should resemble:
 
 ```
-+-------------------------+-------------------------+-------------------------+
-|ROWKEY                   |SHIPMENT_ID              |WAREHOUSE                |
-+-------------------------+-------------------------+-------------------------+
-|1                        |42                       |Nashville                |
-|3                        |43                       |Palo Alto                |
++--------------------------+--------------------------+--------------------------+--------------------------+
+|ROWTIME                   |ROWKEY                    |SHIPMENT_ID               |WAREHOUSE                 |
++--------------------------+--------------------------+--------------------------+--------------------------+
+|1591825956368             |1                         |42                        |Nashville                 |
+|1591825958498             |3                         |43                        |Palo Alto                 |
 Limit Reached
 Query terminated
 ```
@@ -973,11 +981,11 @@ EMIT CHANGES;
 Your output should resemble:
 
 ```
-+--------------------------+--------------------------+--------------------------+--------------------------+--------------------------+
-|ORDER_ID                  |TOTAL_AMOUNT              |CUSTOMER_NAME             |SHIPMENT_ID               |WAREHOUSE                 |
-+--------------------------+--------------------------+--------------------------+--------------------------+--------------------------+
-|1                         |10.5                      |Bob Smith                 |42                        |Nashville                 |
-|3                         |21.0                      |Emma Turner               |43                        |Palo Alto                 |
++--------------------+--------------------+--------------------+--------------------+--------------------+
+|ORDER_ID            |TOTAL_AMOUNT        |CUSTOMER_NAME       |SHIPMENT_ID         |WAREHOUSE           |
++--------------------+--------------------+--------------------+--------------------+--------------------+
+|3                   |21.0                |Emma Turner         |43                  |Palo Alto           |
+|1                   |10.5                |Bob Smith           |42                  |Nashville           |
 ```
 
 Messages with `ORDER_ID=2` have no corresponding `SHIPMENT_ID` or
@@ -1003,12 +1011,12 @@ Switching back to your primary ksqlDB CLI window, notice that a third
 row has now been output:
 
 ```
-+--------------------------+--------------------------+--------------------------+--------------------------+--------------------------+
-|ORDER_ID                  |TOTAL_AMOUNT              |CUSTOMER_NAME             |SHIPMENT_ID               |WAREHOUSE                 |
-+--------------------------+--------------------------+--------------------------+--------------------------+--------------------------+
-|1                         |10.5                      |Bob Smith                 |42                        |Nashville                 |
-|3                         |21.0                      |Emma Turner               |43                        |Palo Alto                 |
-|2                         |3.32                      |Sarah Black               |49                        |London                    |
++--------------------+--------------------+--------------------+--------------------+--------------------+
+|ORDER_ID            |TOTAL_AMOUNT        |CUSTOMER_NAME       |SHIPMENT_ID         |WAREHOUSE           |
++--------------------+--------------------+--------------------+--------------------+--------------------+
+|1                   |10.5                |Bob Smith           |42                  |Nashville           |
+|3                   |21.0                |Emma Turner         |43                  |Palo Alto           |
+|2                   |3.32                |Sarah Black         |49                  |London              |
 ```
 
 Press Ctrl+C to cancel the `SELECT` query and return to the prompt.
@@ -1032,14 +1040,14 @@ in the value:
 
 ```sql
 CREATE TABLE WAREHOUSE_LOCATION 
-   (ROWKEY INT PRIMARY KEY, WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR)
+   (ROWKEY INTEGER KEY, WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR)
    WITH (KAFKA_TOPIC='warehouse_location',
       VALUE_FORMAT='JSON',
       KEY='WAREHOUSE_ID',
       PARTITIONS=2);
 
 CREATE TABLE WAREHOUSE_SIZE 
-   (ROWKEY INT PRIMARY KEY, WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE)
+   (ROWKEY INTEGER KEY, WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE)
    WITH (KAFKA_TOPIC='warehouse_size',
       VALUE_FORMAT='JSON',
       KEY='WAREHOUSE_ID',
@@ -1085,12 +1093,12 @@ SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_LOCATION EMIT CHANGES LIMIT 3;
 Your output should resemble:
 
 ```
-+---------------------------------------+---------------------------------------+
-|ROWKEY                                 |WAREHOUSE_ID                           |
-+---------------------------------------+---------------------------------------+
-|2                                      |2                                      |
-|1                                      |1                                      |
-|3                                      |3                                      |
++------------------------------------------------------+------------------------------------------------------+
+|ROWKEY                                                |WAREHOUSE_ID                                          |
++------------------------------------------------------+------------------------------------------------------+
+|2                                                     |2                                                     |
+|3                                                     |3                                                     |
+|1                                                     |1                                                     |
 Limit Reached
 Query terminated
 ```
@@ -1104,12 +1112,12 @@ SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_SIZE EMIT CHANGES LIMIT 3;
 Your output should resemble:
 
 ```
-+---------------------------------------+---------------------------------------+
-|ROWKEY                                 |WAREHOUSE_ID                           |
-+---------------------------------------+---------------------------------------+
-|2                                      |2                                      |
-|1                                      |1                                      |
-|3                                      |3                                      |
++------------------------------------------------------+------------------------------------------------------+
+|ROWKEY                                                |WAREHOUSE_ID                                          |
++------------------------------------------------------+------------------------------------------------------+
+|1                                                     |1                                                     |
+|2                                                     |2                                                     |
+|3                                                     |3                                                     |
 Limit Reached
 Query terminated
 ```
@@ -1130,12 +1138,12 @@ LIMIT 3;
 Your output should resemble:
 
 ```
-+------------------+------------------+------------------+------------------+
-|WL_WAREHOUSE_ID   |CITY              |COUNTRY           |SQUARE_FOOTAGE    |
-+------------------+------------------+------------------+------------------+
-|1                 |Leeds             |UK                |16000.0           |
-|1                 |Leeds             |UK                |16000.0           |
-|2                 |Sheffield         |UK                |42000.0           |
++--------------------------+--------------------------+--------------------------+--------------------------+
+|WL_WAREHOUSE_ID           |CITY                      |COUNTRY                   |SQUARE_FOOTAGE            |
++--------------------------+--------------------------+--------------------------+--------------------------+
+|2                         |Sheffield                 |UK                        |42000.0                   |
+|3                         |Berlin                    |Germany                   |94000.0                   |
+|2                         |Sheffield                 |UK                        |42000.0                   |
 Limit Reached
 Query terminated
 ```
@@ -1154,7 +1162,7 @@ order data arriving from a local installation vs from a third-party:
 
 ```bash
 docker run --network tutorials_default --rm  --name datagen-orders-local \
-  confluentinc/ksqldb-examples:{{ site.release }} \
+  confluentinc/ksqldb-examples:{{ site.cprelease }} \
   ksql-datagen \
       quickstart=orders \
       format=json \
@@ -1165,7 +1173,7 @@ docker run --network tutorials_default --rm  --name datagen-orders-local \
 
 ```bash
 docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
-  confluentinc/ksqldb-examples:{{ site.release }} \
+  confluentinc/ksqldb-examples:{{ site.cprelease }} \
   ksql-datagen \
       quickstart=orders \
       format=json \
@@ -1225,10 +1233,10 @@ CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL EMIT 
 Your output should resemble:
 
 ```
- Message                                                                                   
--------------------------------------------------------------------------------------------
- Stream ALL_ORDERS created and running. Created by query with query ID: CSAS_ALL_ORDERS_17 
--------------------------------------------------------------------------------------------
+ Message
+------------------------------------------
+ Created query with ID CSAS_ALL_ORDERS_11
+------------------------------------------
 ```
 
 ### 4. Examine the stream's schema
@@ -1267,10 +1275,10 @@ INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY EMI
 Your output should resemble:
 
 ```
- Message                                                    
-------------------------------------------------------------
- Insert Into query is running with query ID: INSERTQUERY_43
-------------------------------------------------------------
+ Message
+--------------------------------------
+ Created query with ID InsertQuery_27
+--------------------------------------
 ```
 
 ### 6. Query the output stream
@@ -1279,24 +1287,40 @@ Query the output stream to verify that data from each source is being
 written to it:
 
 ```sql
-SELECT * FROM ALL_ORDERS EMIT CHANGES;
+SELECT * FROM ALL_ORDERS EMIT CHANGES LIMIT 5;
 ```
 
 Your output should resemble:
 
 ```
-+----------+-----------+--------------+----------+-------------+----------------------+---------------------------------------------+
-|ROWKEY    |SRC        |ORDERTIME     |ORDERID   |ITEMID       |ORDERUNITS            |ADDRESS                                      |
-+----------+-----------+--------------+----------+-------------+----------------------+---------------------------------------------+
-|510       |3RD PARTY  |1503198352036 |510       |Item_643     |1.653210222047296     |{CITY=City_94, STATE=State_72, ZIPCODE=61274}|
-|546       |LOCAL      |1498476865306 |546       |Item_234     |9.284691223615178     |{CITY=City_44, STATE=State_29, ZIPCODE=84678}|
-|511       |3RD PARTY  |1489945722538 |511       |Item_264     |8.213163488516212     |{CITY=City_36, STATE=State_13, ZIPCODE=44821}|
-…
++------------+------------+------------+------------+------------+------------+------------+------------+
+|ROWTIME     |ROWKEY      |SRC         |ORDERTIME   |ORDERID     |ITEMID      |ORDERUNITS  |ADDRESS     |
++------------+------------+------------+------------+------------+------------+------------+------------+
+|159182661634|0           |LOCAL       |151718678870|0           |Item_605    |6.2818393891|{CITY=City_9|
+|6           |            |            |5           |            |            |66553       |9, STATE=Sta|
+|            |            |            |            |            |            |            |te_61, ZIPCO|
+|            |            |            |            |            |            |            |DE=95427}   |
+|159182661637|1           |LOCAL       |150403178993|1           |Item_291    |1.9701245349|{CITY=City_1|
+|1           |            |            |2           |            |            |00344       |3, STATE=Sta|
+|            |            |            |            |            |            |            |te_42, ZIPCO|
+|            |            |            |            |            |            |            |DE=88155}   |
+|159182661659|2           |LOCAL       |150087908278|2           |Item_398    |4.3000220453|{CITY=City_7|
+|4           |            |            |4           |            |            |45575       |7, STATE=Sta|
+|            |            |            |            |            |            |            |te_56, ZIPCO|
+|            |            |            |            |            |            |            |DE=89098}   |
+|159182661709|3           |LOCAL       |150801615765|3           |Item_768    |8.5027061574|{CITY=City_3|
+|4           |            |            |1           |            |            |8345        |7, STATE=Sta|
+|            |            |            |            |            |            |            |te_87, ZIPCO|
+|            |            |            |            |            |            |            |DE=30173}   |
+|159182661759|4           |LOCAL       |149567554961|4           |Item_814    |2.1522597994|{CITY=City_5|
+|3           |            |            |7           |            |            |61952       |1, STATE=Sta|
+|            |            |            |            |            |            |            |te_25, ZIPCO|
+|            |            |            |            |            |            |            |DE=63275}   |
+Limit Reached
+Query terminated
 ```
 
 Events from both source topics are present, denoted by `LOCAL` and `3RD PARTY` respectively.
-
-Press Ctrl+C to cancel the `SELECT` query and return to the ksqlDB prompt.
 
 ### 7. View the queries
 
@@ -1353,11 +1377,16 @@ To stop all data generator containers, run the following:
 docker ps|grep ksql-datagen|awk '{print $1}'|xargs -Ifoo docker stop foo
 ```
 
+To stop all Docker containers, run the following:
+
+```bash
+docker container stop $(docker container list -q)
+```
+
 If you're running {{ site.ak }} using Docker Compose, you can stop it
 and remove the containers and their data with this command.
 
 ```bash
-cd docs/tutorials/
 docker-compose down
 ```
 

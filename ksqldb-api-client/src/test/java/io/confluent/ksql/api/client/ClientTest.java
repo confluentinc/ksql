@@ -327,7 +327,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThatEventually(subscriber::getError, is(notNullValue()));
     assertThat(subscriber.getError(), instanceOf(KsqlException.class));
-    assertThat(subscriber.getError().getMessage(), containsString("Error in processing query"));
+    assertThat(subscriber.getError().getMessage(), containsString("Error in processing query. Check server logs for details."));
 
     assertThatEventually(streamedQueryResult::isFailed, is(true));
     assertThat(streamedQueryResult.isComplete(), is(false));
@@ -563,7 +563,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received error from /inserts-stream"));
     assertThat(e.getCause().getMessage(), containsString("Error code: 50000"));
-    assertThat(e.getCause().getMessage(), containsString("Message: Error in processing inserts"));
+    assertThat(e.getCause().getMessage(), containsString("Message: Error in processing inserts. Check server logs for details."));
   }
 
   protected Client createJavaClient() {

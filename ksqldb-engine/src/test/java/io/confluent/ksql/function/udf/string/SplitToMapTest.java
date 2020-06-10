@@ -12,6 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package io.confluent.ksql.function.udf.string;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,7 +26,7 @@ import java.util.Map;
 import org.junit.Test;
 
 public class SplitToMapTest {
-  private final static SplitToMap udf = new SplitToMap();
+  private static final SplitToMap udf = new SplitToMap();
 
   @Test
   public void shouldSplitStringByGivenDelimiterChars() {
@@ -48,6 +49,14 @@ public class SplitToMapTest {
     Map<String, String> result = udf.splitToMap("foo=apple", ";", "=");
     assertThat(result, hasEntry("foo", "apple"));
     assertThat(result.size(), equalTo(1));
+  }
+
+  @Test
+  public void shouldRetainWhitespacebetweenDelimiters() {
+    Map<String, String> result = udf.splitToMap("foo :=\tapple || bar:=cherry", "||", ":=");
+    assertThat(result, hasEntry("foo ", "\tapple "));
+    assertThat(result, hasEntry(" bar", "cherry"));
+    assertThat(result.size(), equalTo(2));
   }
 
   @Test

@@ -74,7 +74,7 @@ public class QuerySubscriber extends BaseSubscriber<GenericRow> {
   public void handleError(final Throwable t) {
     log.error("Error in processing query", t);
     final KsqlErrorMessage errorResponse = new KsqlErrorMessage(ERROR_CODE_SERVER_ERROR,
-        "Error in processing query");
+        "Error in processing query. Check server logs for details.");
     queryStreamResponseWriter.writeError(errorResponse).end();
   }
 

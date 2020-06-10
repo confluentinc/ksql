@@ -156,6 +156,55 @@ Given an array, checks if a search value is contained in the array.
 
 Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
 
+### ``ARRAY_DISTINCT``
+
+```sql
+ARRAY_DISTINCT([1, 2, 3])
+```
+
+Returns an array of all the distinct values, including NULL if present, from the input array.
+The output array elements are in order of their first occurrence in the input.
+
+Returns NULL if the input array is NULL.
+
+Examples:
+```sql 
+ARRAY_DISTINCT(ARRAY[1, 1, 2, 3, 1, 2])  => [1, 2, 3]
+ARRAY_DISTINCT(ARRAY['apple', 'apple', NULL, 'cherry'])  => ['apple', NULL, 'cherry']
+```
+
+### ``ARRAY_EXCEPT``
+
+```sql
+ARRAY_EXCEPT(array1, array2)
+```
+
+Returns an array of all the distinct elements from an array, except for those also present in a second array. The order of entries in the first array is preserved but duplicates are removed. 
+
+Returns NULL if either input is NULL.
+
+Examples:
+```sql 
+ARRAY_EXCEPT(ARRAY[1, 2, 3, 1, 2], [2, 3])  => [1]
+ARRAY_EXCEPT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL]
+```
+
+### ``ARRAY_INTERSECT``
+
+```sql
+ARRAY_INTERSECT(array1, array2)
+```
+
+Returns an array of all the distinct elements from the intersection of both input arrays. The order of entries in the output is the same as in the first input array.
+
+Returns NULL if either input array is NULL.
+
+Examples:
+```sql 
+ARRAY_INTERSECT(ARRAY[1, 2, 3, 1, 2], [2, 1])  => [1, 2]
+ARRAY_INTERSECT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['apple'])  => ['apple']
+```
+
 ### `ARRAY_LENGTH`
 
 ```sql
@@ -212,6 +261,22 @@ For example:
 If the array field is NULL then NULL is returned.
 
 An optional second parameter can be used to specify whether to sort the elements in 'ASC'ending or 'DESC'ending order. If neither is specified then the default is ascending order. 
+
+### ``ARRAY_UNION``
+
+```sql
+ARRAY_UNION(array1, array2)
+```
+
+Returns an array of all the distinct elements from both input arrays, in the order in which they are first encountered.
+
+Returns NULL if either input array is NULL.
+
+Examples:
+```sql 
+ARRAY_UNION(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 4]
+ARRAY_UNION(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL, 'cherry']
+```
 
 ### `AS_MAP`
 

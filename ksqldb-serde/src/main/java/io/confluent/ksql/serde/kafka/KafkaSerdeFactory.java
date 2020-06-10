@@ -24,6 +24,7 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.voids.KsqlVoidSerde;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -88,7 +89,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     final List<Field> fields = schema.fields();
     if (fields.isEmpty()) {
       // No columns:
-      return (Serde) Serdes.Void();
+      return (Serde) new KsqlVoidSerde();
     }
 
     if (fields.size() != 1) {

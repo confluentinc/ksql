@@ -386,10 +386,11 @@ that you implement a UDF. You use the `UdtfDescription` and `Udtf`
 annotations in your Java code, and you deploy a JAR to the `ksql` extensions
 directory. For more information, see [UDTFs](../concepts/functions.md#udtfs).
 
-Next Steps
-----------
+Suggested Reading
+-----------------
 
--   [How to Build a UDF and/or UDAF in KSQL 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)
--   [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)
--   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
+- [ksqlDB UDFs and UDAFs Made Easy](https://www.confluent.io/blog/kafka-ksql-udf-udaf-with-maven-made-easy/)
+- [How to Build a UDF and/or UDAF in ksqlDB 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)
+- [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)
+- [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 

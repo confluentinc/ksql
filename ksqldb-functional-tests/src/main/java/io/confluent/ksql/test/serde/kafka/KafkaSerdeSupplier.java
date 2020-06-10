@@ -66,7 +66,9 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   private Serde<?> getSerde(final boolean isKey) {
     final List<Column> columns = isKey ? schema.key() : schema.value();
     if (columns.isEmpty()) {
-      return Serdes.Void();
+      // Actual serde should be Serdes.Void(), but the test framework uses strings to allow tests
+      // to pass in data that should be ignored:
+      return Serdes.String();
     }
 
     if (columns.size() != 1) {

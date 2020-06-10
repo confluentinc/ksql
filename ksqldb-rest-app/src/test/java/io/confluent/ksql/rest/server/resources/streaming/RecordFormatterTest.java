@@ -26,10 +26,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,7 +51,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
@@ -109,6 +106,9 @@ public class RecordFormatterTest {
 
     @Before
     public void setUp() {
+      when(keyDeserializers.getPossibleFormats()).thenReturn(ImmutableList.of("key-format"));
+      when(valueDeserializers.getPossibleFormats()).thenReturn(ImmutableList.of("value-format"));
+
       formatter = new RecordFormatter(
           keyDeserializers,
           valueDeserializers
@@ -166,23 +166,9 @@ public class RecordFormatterTest {
     }
 
     @Test
-    public void shouldDelayFormatting() {
+    public void shouldFormat() {
       // When:
       formatter.format(consumerRecords(KEY_BYTES, VALUE_BYTES));
-
-      // Then:
-      verify(keyDeserializers, never()).format(any());
-      verify(valueDeserializers, never()).format(any());
-    }
-
-    @Test
-    public void shouldFormatOnDemand() {
-      // Given:
-      final List<Supplier<String>> result = formatter
-          .format(consumerRecords(KEY_BYTES, VALUE_BYTES));
-
-      // When:
-      result.get(0).get();
 
       // Then:
       verify(keyDeserializers).format(KEY_BYTES);
@@ -254,9 +240,9 @@ public class RecordFormatterTest {
     }
 
     private String formatSingle(final ConsumerRecord<Bytes, Bytes> consumerRecord) {
-      final List<Supplier<String>> result = formatter.format(ImmutableList.of(consumerRecord));
+      final List<String> result = formatter.format(ImmutableList.of(consumerRecord));
       assertThat(result, hasSize(1));
-      return result.get(0).get();
+      return result.get(0);
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -1257,6 +1243,79 @@ public class RecordFormatterTest {
 
       final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
       return new KafkaJsonSchemaSerializer<>(schemaRegistryClient, props);
+    }
+  }
+
+  @RunWith(MockitoJUnitRunner.class)
+  public static class CombinedTest {
+
+    @Mock
+    private SchemaRegistryClient schemaRegistryClient;
+
+    private RecordFormatter formatter;
+
+    @Before
+    public void setUp() {
+      formatter = new RecordFormatter(schemaRegistryClient, "some-topic");
+    }
+
+    @Test
+    public void shouldReprocessBatchIfLikelyKeyFormatChanges() {
+      // Given:
+      final Iterable<ConsumerRecord<Bytes, Bytes>> records = consumerRecords(
+          // Key that is same size as  BIGINT / DOUBLE:
+          consumerRecord(Bytes.wrap("Die Hard".getBytes(UTF_8)), null),
+          consumerRecord(Bytes.wrap("Key that's clearly a string".getBytes(UTF_8)), null)
+      );
+
+      // When:
+      final List<String> formatted = formatter.format(records);
+
+      // Then:
+      assertThat(formatted.get(0), containsString("Die Hard"));
+    }
+
+    @Test
+    public void shouldReprocessBatchIfLikelyValueFormatChanges() {
+      // Given:
+      final Iterable<ConsumerRecord<Bytes, Bytes>> records = consumerRecords(
+          // Value that is same size as  BIGINT / DOUBLE:
+          consumerRecord(null, Bytes.wrap("Die Hard".getBytes(UTF_8))),
+          consumerRecord(null, Bytes.wrap("Key that's clearly a string".getBytes(UTF_8)))
+      );
+
+      // When:
+      final List<String> formatted = formatter.format(records);
+
+      // Then:
+      assertThat(formatted.get(0), containsString("Die Hard"));
+    }
+
+
+    @SuppressWarnings("varargs")
+    @SafeVarargs
+    private static Iterable<ConsumerRecord<Bytes, Bytes>> consumerRecords(
+        final ConsumerRecord<Bytes, Bytes>... records
+    ) {
+      return ImmutableList.copyOf(records);
+    }
+
+    private static ConsumerRecord<Bytes, Bytes> consumerRecord(
+        final Bytes keyBytes,
+        final Bytes valueBytes
+    ) {
+      return new ConsumerRecord<>(
+          TOPIC_NAME,
+          1,
+          1,
+          1234L,
+          TimestampType.CREATE_TIME,
+          123,
+          1,
+          1,
+          keyBytes,
+          valueBytes
+      );
     }
   }
 

@@ -17,14 +17,20 @@ package io.confluent.ksql.test.util.secure;
 
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.common.config.SslConfigs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Helper for creating a client key store to enable SSL in tests.
  */
 public final class ServerKeyStore {
+
+  protected static final Logger log = LoggerFactory.getLogger(ServerKeyStore.class);
+
   private static final String BASE64_ENCODED_STORE =
       "/u3+7QAAAAIAAAACAAAAAgAGY2Fyb290AAABYgp9KI4ABVguNTA5AAADLDCCAygwggIQAgkAvZW/3jNCgKgwDQYJKoZI"
       + "hvcNAQELBQAwVTELMAkGA1UEBhMCVUsxDzANBgNVBAgMBkxvbmRvbjEPMA0GA1UEBwwGTG9uZG9uMRUwEwYDVQQKDA"
@@ -85,16 +91,54 @@ public final class ServerKeyStore {
       + "jBkD4gXusp6pUOWkzmVSJ19ySasXdPGZLp3Vo3/VZJm0NkKc0rz6Houutu1JAyxLpVbd7XBbhjLYzEPCms/xnf3AAs"
       + "XA==";
 
+  private static final String EXPIRED_BASE64_ENCODED_STORE =
+      "/u3+7QAAAAIAAAABAAAAAQADYmFkAAABcmJlWWEAAAUBMIIE/TAOBgorBgEEASoCEQEBBQAEggTp5B9lmw0sNM0Db50V"
+      + "zcdYaSEfkbDWyaTp4syeFm9srNGcYmO1LWCToCMXLcQXeyaMaSeOaUXXPv4BhpFUO6l7Za7pKYwKvZoV6lSsvMBttI"
+      + "7hY8hCIqGvqbXn6a7gFyEYnZ8lKxhQr4AcOsy6c5tE3gqvVABlB98PTFNNlNR9wDHfeyXDNf5gHLC2hHNZz+jaCu5w"
+      + "8xEmQ7EWTMsW0Li/adUYkx/zicQKwU2bGGKuYuahDZ5OZE4Fa6OE4cOk2jCOeQSQn4S0g1ZtwCHq6XjAYUHG1NlFaq"
+      + "5WJM7qGiLO+05qIoyL8ju7F7v+GVgerwRKyinmEOPmUZxKewG2DCbX+m/Hly+vjPpNjlwa1o93UJAyW4QZ85/wJU8u"
+      + "vLJXWqSVlJb+97XgJTKQ9nzXvGEOqCXBbAv7l3IqFahgCC/3dikTqkWLZH9V8rypdtOf9/W1X8KAQBvTP5NSjW/kaz"
+      + "q/e7ZmiP0+NpS2sjzGdPyGqO6DzATzJ+Jg8a7jyJg496bV0QbGq6XHaX4+XiPtkaB8zP+jeWFw/NEFnIpfROIiY4/t"
+      + "u+fbH/VVcb4rhVchdM57pTZLnQHPN5tvxlDmOoXSzUojGAZnQRg97ldFmUk5QlXB2hJhQ33Wg+Py81iFKqeJEevgGU"
+      + "DCVZ8/xm52mRID0K1zXsKYW52P8Kf+C6MCBd9ccx/oW9ljQRPThrkw0NpSCGdzfL8pyXe4n3suWmysIMdi4kixQbcb"
+      + "JKC59T+S5HtCiVoq24iZlI8vJS1slYm7LefQsqOIqg8Ib9VSi6bgWZEpng6yJYt0X33BUpNp6GAf+mntDLD2GEjz3B"
+      + "6poZHmuqgEL9ysoBy1D/MmkquVVyQQDBDCojp/NtDikSxLJMBOUI456sOGnikFYcuyWRSsf1HE7VI5Nd3+lrVANpB4"
+      + "dx6v8y9gduNeiL9k8pfXkWu83Hz4jS9SQZRavTD0Kmrg05ZmNbTu7kNbI0H0xLPcRK1NjeTtXYI4xCTLVy52aEosTp"
+      + "QGbPU372d0vkav1zR47LA+kRuwreBp4jmMGq9QsiMDeqCz+wwIWP4jgLhucuNy5H9MLmSQLRD4i616sNXXu+/qPb9s"
+      + "HL7LatpvoS5siEOZ1dGWdf8CfkPJtnVu1/SNsDPfz0agm96yG7v5d/BWModKaz1W+6AZGFHI4HPcFzGy5JTYe6qSlN"
+      + "KNfuYG25Npvn8GdwEUsEqhApIlmoM5B+jJumjYT24flD1UZ8nMwxAOg7Rlgi+UdSjEAgesKrxjByjuLzqEB93BrMuY"
+      + "ZNaT3I/fDC1pary8CyJTZfU5u37oErlgJJ2mB7GcuDzBoLn92mTHlRIXB5EjSjN69+ZUDS+0PQIhAWsUrp3dsbalLr"
+      + "ijZtQJpO2xifp6/QjmKRwEfxZ4tLXst5YEEWUnPCazjrIvEbgZKikbN8skOuuVXNiTvNruAWbfk6t6PViuWfjnJyNv"
+      + "DcXXF/UaH0EPW+FKTeleDGaE85mSRKvOqFp2fkMQZnCfZcEGy3BIutoRWJwDsqfy1FvxsZ+e2WZam6fVMH4D9NoXLk"
+      + "Dm6vEGkpnAzwm9qszRiAGubiuTWWBfK+17T8axX5/lFEg7huBQAA/uL+GP86dkSY5icPo7IPkbC+1ozUespMSDEjQd"
+      + "lp9Gge6nEoP6YlmnqZ5EnhdVNQfIBtiYZFYNAvnaAAAAAQAFWC41MDkAAANLMIIDRzCCAi+gAwIBAgIEJ95VKzANBg"
+      + "kqhkiG9w0BAQsFADBUMQwwCgYDVQQGEwNiYWQxDDAKBgNVBAgTA2JhZDEMMAoGA1UEBxMDYmFkMQwwCgYDVQQKEwNi"
+      + "YWQxDDAKBgNVBAsTA2JhZDEMMAoGA1UEAxMDYmFkMB4XDTIwMDUyOTIxNDUwOFoXDTIwMDUzMDIxNDUwOFowVDEMMA"
+      + "oGA1UEBhMDYmFkMQwwCgYDVQQIEwNiYWQxDDAKBgNVBAcTA2JhZDEMMAoGA1UEChMDYmFkMQwwCgYDVQQLEwNiYWQx"
+      + "DDAKBgNVBAMTA2JhZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAIr/LFqkCmt/HKa5EmJVNrVv19hi7o"
+      + "KPJvxGwj8qFTl5eXu1K+msOsz8CKTdYZsJnjScoIXvHJaI8sV1FkxgZJ5iGQWtZ2JoqzvFwRrtWjQtvHf0HOqayaE8"
+      + "d2R31b3gACUFMw3MBOk5oZrumGT823NW8aEYuwZctcvNmJR2CjUvu4B8r8js2Yl/1ym8JMuXo4BzpFc6dpokMWBFSb"
+      + "k7ccgnNQ6aiAmiheOUSs8vpRc6NorANaiGGHIH0vOCzSCwYyfnz6keapB6oBCriAdB8EoEw1mafQ4QgbeoAplXJ139"
+      + "dY7t011z34wHumtfbCH0s8qzh9qUVJgUbA97nMQKJMsCAwEAAaMhMB8wHQYDVR0OBBYEFP+CdVtbliAqK/z/txCF/+"
+      + "qg9hOEMA0GCSqGSIb3DQEBCwUAA4IBAQAMy/hbT9rvgu12TraF8JmrzdG+6NDlHAsFi1kjcYKAArF5BgoVunpVVhnc"
+      + "YDFrQfKgEMf2v3+L3GNRsC7w1sWZmW3nlJHUCWDUV7MyWD1iDhEKwXVmRNNPXBhyqTbCmhifyQWtcf6i5WePv/8sVD"
+      + "tJHjCGrFSEI4KEh44uWNcr0AN61ybTfIiyqj13QYbovUx37tE2dYy5bvZxcgbSYw01L1NRNecnUv6GsiZe6MFxANLt"
+      + "Ie3ZnMjshmx1VRF1EAb9vAW5Y2E/hnXwnC4q0dpJPWotc6BZfU3aG1dtrQi0LvbtYJd2ivBCrBNyeUC7lWeCFuAXhR"
+      + "pzVZmjiWWD9P/+PQmhOrEAKd+Yo64eW62WWV8htPg=";
+
   private static final String KEY_PASSWORD = "password";
   private static final String KEYSTORE_PASSWORD = "password";
   private static final String TRUSTSTORE_PASSWORD = "password";
   private static final AtomicReference<Path> keyStorePath = new AtomicReference<>();
+  private static final AtomicReference<Path> clientKeyStorePath = new AtomicReference<>();
 
   private ServerKeyStore() {
   }
 
   /**
    * @return props brokers will need to connect to support SSL connections.
+   *         The store at this path may be replaced with an expired store via the method
+   *         {@link #loadExpiredServerKeyStore}.
    */
   public static Map<String, String> keyStoreProps() {
     return ImmutableMap.of(
@@ -106,6 +150,31 @@ public final class ServerKeyStore {
     );
   }
 
+  /**
+   * @return props clients may use to connect to support SSL connections.
+   *         In contrast to {@link #keyStoreProps}, the store at this path will not replaced
+   *         with an expired store when the method {@link #loadExpiredServerKeyStore} is called.
+   */
+  public static Map<String, String> clientKeyStoreProps() {
+    return ImmutableMap.of(
+        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, clientKeyStorePath(),
+        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PASSWORD,
+        SslConfigs.SSL_KEY_PASSWORD_CONFIG, KEY_PASSWORD,
+        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, clientKeyStorePath(),
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PASSWORD
+    );
+  }
+
+  public static void loadExpiredServerKeyStore() {
+    KeyStoreUtil.putStore(Paths.get(keyStorePath()), EXPIRED_BASE64_ENCODED_STORE);
+    log.info("Loaded expired store");
+  }
+
+  public static void loadValidServerKeyStore() {
+    KeyStoreUtil.putStore(Paths.get(keyStorePath()), BASE64_ENCODED_STORE);
+    log.info("Loaded valid store");
+  }
+
   private static String keyStorePath() {
     final Path path = keyStorePath.updateAndGet(existing -> {
       if (existing != null) {
@@ -113,6 +182,18 @@ public final class ServerKeyStore {
       }
 
       return KeyStoreUtil.createTemporaryStore("server-key-store", BASE64_ENCODED_STORE);
+    });
+
+    return path.toAbsolutePath().toString();
+  }
+
+  private static String clientKeyStorePath() {
+    final Path path = clientKeyStorePath.updateAndGet(existing -> {
+      if (existing != null) {
+        return existing;
+      }
+
+      return KeyStoreUtil.createTemporaryStore("client-key-store", BASE64_ENCODED_STORE);
     });
 
     return path.toAbsolutePath().toString();

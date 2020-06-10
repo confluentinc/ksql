@@ -32,15 +32,14 @@ Make a stream `s1` with four columns. `k` represents the key of the table. Rows 
 
 ```sql
 CREATE STREAM s1 (
-    k VARCHAR,
+    k VARCHAR KEY,
     v1 INT,
     v2 VARCHAR,
     v3 BOOLEAN
 ) WITH (
     kafka_topic = 's1',
     partitions = 1,
-    value_format = 'avro',
-    key = 'k'
+    value_format = 'avro'
 );
 ```
 

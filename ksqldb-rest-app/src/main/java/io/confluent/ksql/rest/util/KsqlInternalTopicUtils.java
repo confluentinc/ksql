@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.util;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.slf4j.Logger;
@@ -35,7 +36,7 @@ public final class KsqlInternalTopicUtils {
   private static final Logger log = LoggerFactory.getLogger(KsqlInternalTopicUtils.class);
 
   private static final int INTERNAL_TOPIC_PARTITION_COUNT = 1;
-  private static final long INTERNAL_TOPIC_RETENTION_MS = Long.MAX_VALUE;
+  private static final long INTERNAL_TOPIC_RETENTION_MS = -1;
 
   private static final ImmutableMap<String, ?> INTERNAL_TOPIC_CONFIG = ImmutableMap.of(
       TopicConfig.RETENTION_MS_CONFIG, INTERNAL_TOPIC_RETENTION_MS,
@@ -119,11 +120,14 @@ public final class KsqlInternalTopicUtils {
           name, replicationFactor);
     }
 
+    final Map<String, String> existingConfig = topicClient.getTopicConfig(name);
     if (topicClient.addTopicConfig(name, INTERNAL_TOPIC_CONFIG)) {
-      log.info(
-          "Corrected retention.ms on ksql internal topic. topic:{}, retention.ms:{}",
+      log.warn(
+          "Topic {} was created with or modified to have an invalid configuration: {} "
+              + "- overriding the following configurations: {}",
           name,
-          INTERNAL_TOPIC_RETENTION_MS);
+          existingConfig,
+          INTERNAL_TOPIC_CONFIG);
     }
   }
 }

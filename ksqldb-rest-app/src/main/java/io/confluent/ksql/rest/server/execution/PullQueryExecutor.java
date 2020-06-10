@@ -64,6 +64,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -984,8 +985,15 @@ public final class PullQueryExecutor {
 
     final QueryId queryId = new QueryId(Iterables.get(queries, 0));
 
-    return executionContext.getPersistentQuery(queryId)
+    final PersistentQueryMetadata query = executionContext
+        .getPersistentQuery(queryId)
         .orElseThrow(() -> new KsqlException("Materializing query has been stopped"));
+
+    if (query.getDataSourceType() != DataSourceType.KTABLE) {
+      throw new KsqlException("Pull queries are not supported on streams.");
+    }
+
+    return query;
   }
 
   private static SourceName getSourceName(final ImmutableAnalysis analysis) {

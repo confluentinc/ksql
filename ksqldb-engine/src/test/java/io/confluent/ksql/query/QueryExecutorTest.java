@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -190,7 +191,7 @@ public class QueryExecutorTest {
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
-    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(Collections.emptyMap());
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
@@ -420,7 +421,7 @@ public class QueryExecutorTest {
     // Given:
     final Map<String, Object> properties =
         Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION, value);
-    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(properties);
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(properties);
 
     // When:
     queryBuilder.buildQuery(
@@ -473,7 +474,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldAddMetricsInterceptorsToExistingList() {
     // Given:
-    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of(
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(ImmutableMap.of(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         ImmutableList.of(DummyConsumerInterceptor.class.getName()),
         StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
@@ -497,7 +498,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldAddMetricsInterceptorsToExistingString() {
     // When:
-    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of(
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(ImmutableMap.of(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         DummyConsumerInterceptor.class.getName(),
         StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
@@ -522,7 +523,7 @@ public class QueryExecutorTest {
   @SuppressWarnings("unchecked")
   public void shouldAddMetricsInterceptorsToExistingStringList() {
     // When:
-    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of(
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(ImmutableMap.of(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         DummyConsumerInterceptor.class.getName()
             + ","

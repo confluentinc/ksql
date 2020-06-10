@@ -44,12 +44,12 @@
         "CREATE STREAM OUTPUT AS SELECT K, source FROM INPUT WHERE 1581323504001 <= WINDOWSTART AND WINDOWEND <= 1581323505001;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"source": 1}, "window": {"start": 1581323504000, "end": 1581323505001, "type": "session"}},
-        {"topic": "test_topic", "value": {"source": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "session"}},
-        {"topic": "test_topic", "value": {"source": 3}, "window": {"start": 1581323504001, "end": 1581323505002, "type": "session"}}
+        {"topic": "test_topic", "key": "a", "value": {"source": 1}, "window": {"start": 1581323504000, "end": 1581323505001, "type": "session"}},
+        {"topic": "test_topic", "key": "a", "value": {"source": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "session"}},
+        {"topic": "test_topic", "key": "a", "value": {"source": 3}, "window": {"start": 1581323504001, "end": 1581323505002, "type": "session"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"SOURCE": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "session"}}
+        {"topic": "OUTPUT", "key": "a", "value": {"SOURCE": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "session"}}
       ]
     },
     {
@@ -59,12 +59,12 @@
         "CREATE STREAM OUTPUT AS SELECT K, source FROM INPUT WHERE '2020-02-10T08:31:44.001+0000' <= WINDOWSTART AND WINDOWEND <= '2020-02-10T08:31:45.001+0000';"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"source": 1}, "window": {"start": 1581323504000, "end": 1581323505001, "type": "session"}},
-        {"topic": "test_topic", "value": {"source": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "session"}},
-        {"topic": "test_topic", "value": {"source": 3}, "window": {"start": 1581323504001, "end": 1581323505002, "type": "session"}}
+        {"topic": "test_topic", "key": "a", "value": {"source": 1}, "window": {"start": 1581323504000, "end": 1581323505001, "type": "session"}},
+        {"topic": "test_topic", "key": "a", "value": {"source": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "session"}},
+        {"topic": "test_topic", "key": "a", "value": {"source": 3}, "window": {"start": 1581323504001, "end": 1581323505002, "type": "session"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"SOURCE": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "session"}}
+        {"topic": "OUTPUT", "key": "a", "value": {"SOURCE": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "session"}}
       ]
     },
     {
@@ -108,14 +108,14 @@
         "CREATE STREAM OUTPUT AS SELECT K, source FROM INPUT WHERE WINDOWSTART BETWEEN '2020-02-10T08:31:44.001+0000' AND '2020-02-10T08:31:44.011+0000';"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"source": 1}, "window": {"start": 1581323504000, "end": 1581323505000, "type": "time"}},
-        {"topic": "test_topic", "value": {"source": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "time"}},
-        {"topic": "test_topic", "value": {"source": 3}, "window": {"start": 1581323504011, "end": 1581323505011, "type": "time"}},
-        {"topic": "test_topic", "value": {"source": 4}, "window": {"start": 1581323504012, "end": 1581323505012, "type": "time"}}
+        {"topic": "test_topic", "key": "a", "value": {"source": 1}, "window": {"start": 1581323504000, "end": 1581323505000, "type": "time"}},
+        {"topic": "test_topic", "key": "a", "value": {"source": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "time"}},
+        {"topic": "test_topic", "key": "a", "value": {"source": 3}, "window": {"start": 1581323504011, "end": 1581323505011, "type": "time"}},
+        {"topic": "test_topic", "key": "a", "value": {"source": 4}, "window": {"start": 1581323504012, "end": 1581323505012, "type": "time"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"SOURCE": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "time"}},
-        {"topic": "OUTPUT", "value": {"SOURCE": 3}, "window": {"start": 1581323504011, "end": 1581323505011, "type": "time"}}
+        {"topic": "OUTPUT", "key": "a", "value": {"SOURCE": 2}, "window": {"start": 1581323504001, "end": 1581323505001, "type": "time"}},
+        {"topic": "OUTPUT", "key": "a", "value": {"SOURCE": 3}, "window": {"start": 1581323504011, "end": 1581323505011, "type": "time"}}
       ]
     },
     {

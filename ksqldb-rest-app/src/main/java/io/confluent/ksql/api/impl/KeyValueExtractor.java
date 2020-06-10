@@ -17,6 +17,7 @@ package io.confluent.ksql.api.impl;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.KsqlApiException;
+import io.confluent.ksql.api.server.ServerUtils;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -30,6 +31,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 
@@ -67,6 +69,28 @@ public final class KeyValueExtractor {
       vals.add(coercedValue);
     }
     return GenericRow.fromList(vals);
+  }
+
+  static JsonObject convertColumnNameCase(final JsonObject jsonObjectWithCaseInsensitiveFields) {
+    final JsonObject jsonObject = new JsonObject();
+
+    for (Map.Entry<String, Object> entry :
+        jsonObjectWithCaseInsensitiveFields.getMap().entrySet()) {
+      final String key;
+      try {
+        key = ServerUtils.getIdentifierText(entry.getKey());
+      } catch (IllegalArgumentException e) {
+        throw new KsqlApiException(
+            String.format("Invalid column name. Column: %s. Reason: %s",
+                entry.getKey(), e.getMessage()),
+            Errors.ERROR_CODE_BAD_REQUEST
+        );
+      }
+
+      jsonObject.put(key, entry.getValue());
+    }
+
+    return jsonObject;
   }
 
   private static Object coerceObject(

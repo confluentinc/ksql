@@ -21,6 +21,7 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.KsqlApiException;
+import io.confluent.ksql.api.server.ServerUtils;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -48,18 +49,28 @@ public class InsertsStreamEndpoint {
     this.reservedInternalTopics = reservedInternalTopics;
   }
 
-  public InsertsStreamSubscriber createInsertsSubscriber(final String target,
+  public InsertsStreamSubscriber createInsertsSubscriber(final String caseInsensitiveTarget,
       final JsonObject properties,
       final Subscriber<InsertResult> acksSubscriber, final Context context,
       final WorkerExecutor workerExecutor,
       final ServiceContext serviceContext) {
     VertxUtils.checkIsWorker();
+
     if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED)) {
       throw new KsqlApiException("The server has disabled INSERT INTO ... VALUES functionality. "
           + "To enable it, restart your ksqlDB server "
           + "with 'ksql.insert.into.values.enabled'=true",
           ERROR_CODE_BAD_REQUEST);
     }
+
+    final String target;
+    try {
+      target = ServerUtils.getIdentifierText(caseInsensitiveTarget);
+    } catch (IllegalArgumentException e) {
+      throw new KsqlApiException(
+          "Invalid target name: " + e.getMessage(), ERROR_CODE_BAD_STATEMENT);
+    }
+
     final DataSource dataSource = getDataSource(ksqlEngine.getMetaStore(),
         SourceName.of(target));
     if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {

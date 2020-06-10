@@ -22,6 +22,7 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -222,7 +223,7 @@ public class ApiIntegrationTest {
       } catch (Throwable t) {
         return Integer.MAX_VALUE;
       }
-    }, is(6));
+    }, greaterThanOrEqualTo(6));
 
     // The response shouldn't have ended yet
     assertThat(writeStream.isEnded(), is(false));
@@ -459,7 +460,7 @@ public class ApiIntegrationTest {
         .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
 
     // Then: request fails because stream name is invalid
-    shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: " + target);
+    shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: `" + TEST_STREAM.toLowerCase() + "`");
   }
 
   @Test

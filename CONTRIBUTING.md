@@ -181,26 +181,31 @@ Once enabled, commitlint will reject commits with improperly formatted commit me
    ```bash
    git fetch upstream
    ```
+4. Run this command to reference 6.0.x branch as 0.10.x
 
-4. Create a feature branch to work in.
+    ```bash
+    git symbolic-ref refs/heads/0.10.x refs/heads/6.0.x
+    ```
+   
+5. Create a feature branch to work in.
 
    ```bash
    git checkout -b feature-xxx remotes/upstream/master
    ```
 
-5. Work in your feature branch.
+6. Work in your feature branch.
 
    ```bash
    git commit -a
    ```
 
-6. Periodically rebase your changes
+7. Periodically rebase your changes
 
    ```bash
    git pull --rebase
    ```
 
-7. When done, combine ("squash") related commits into a single one
+8. When done, combine ("squash") related commits into a single one
 
    ```bash
    git rebase -i upstream/master
@@ -210,7 +215,7 @@ Once enabled, commitlint will reject commits with improperly formatted commit me
    - Re-order the lines to change commit order (to the extent possible without creating conflicts)
    - Prefix commits using `s` (squash) or `f` (fixup) to merge extraneous commits.
 
-8. Submit a pull-request
+9. Submit a pull-request
 
    ```bash
    git push origin feature-xxx
@@ -231,7 +236,7 @@ Once enabled, commitlint will reject commits with improperly formatted commit me
    - In the description, explain your changes and the problem they are solving. Be sure to also call out
      any breaking changes as described [above](#breaking-changes).
 
-9. Addressing code review comments
+10. Addressing code review comments
 
    Repeat steps 5. through 7. to address any code review comments and rebase your changes if necessary.
 

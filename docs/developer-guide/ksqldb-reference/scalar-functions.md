@@ -392,7 +392,7 @@ Returns a single-character string representing the Unicode code-point described 
 
 Returns NULL if the input is NULL or does not represent a valid code-point.
 
-Commonly used to insert control characters such as ```Tab``` (9), ```Line Feed``` (10), or ```Carriage Return``` (13) into strings.
+Commonly used to insert control characters such as `Tab` (9), `Line Feed` (10), or `Carriage Return` (13) into strings.
 
 Examples:
 ```sql

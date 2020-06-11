@@ -17,7 +17,6 @@ package io.confluent.ksql.api.impl;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.KsqlApiException;
-import io.confluent.ksql.api.server.ServerUtils;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -25,6 +24,7 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.ParserUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
@@ -72,25 +72,12 @@ public final class KeyValueExtractor {
   }
 
   static JsonObject convertColumnNameCase(final JsonObject jsonObjectWithCaseInsensitiveFields) {
-    final JsonObject jsonObject = new JsonObject();
-
-    for (Map.Entry<String, Object> entry :
-        jsonObjectWithCaseInsensitiveFields.getMap().entrySet()) {
-      final String key;
-      try {
-        key = ServerUtils.getIdentifierText(entry.getKey());
-      } catch (IllegalArgumentException e) {
-        throw new KsqlApiException(
-            String.format("Invalid column name. Column: %s. Reason: %s",
-                entry.getKey(), e.getMessage()),
-            Errors.ERROR_CODE_BAD_REQUEST
-        );
-      }
-
-      jsonObject.put(key, entry.getValue());
+    try {
+      return new JsonObject(
+          ParserUtil.convertMapKeyCase(jsonObjectWithCaseInsensitiveFields.getMap()));
+    } catch (IllegalArgumentException e) {
+      throw new KsqlApiException(e.getMessage(), Errors.ERROR_CODE_BAD_REQUEST);
     }
-
-    return jsonObject;
   }
 
   private static Object coerceObject(

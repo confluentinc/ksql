@@ -24,6 +24,7 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.ParserUtil;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -199,10 +200,11 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
   private static class MapStructObject implements StructObject {
 
-    private final Map<?, ?> map;
+    private final Map<String, Object> map;
 
+    @SuppressWarnings("unchecked") // TODO: how to avoid?
     MapStructObject(final Map<?, ?> map) {
-      this.map = map;
+      this.map = ParserUtil.convertMapKeyCase((Map<String, Object>) map);
     }
 
     @Override

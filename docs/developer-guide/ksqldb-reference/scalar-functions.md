@@ -721,6 +721,23 @@ If the delimiter is found at the beginning or end
 of the string, or there are contiguous delimiters,
 then an empty space is added to the array.
 
+### `SPLIT_TO_MAP`
+
+```sql
+SPLIT_TO_MAP(input, entryDelimiter, kvDelimiter)
+```
+
+Splits a string into key-value pairs and creates a map from them. The 
+`entryDelimiter` splits the string into key-value pairs which are then split by `kvDelimiter`. If the same key is present multiple times in the input, the latest value for that key is returned. 
+
+Returns NULL if the input text is NULL.
+Returns NULL if either of the delimiters is NULL or an empty string.
+
+Example:
+```sql
+SPLIT_TO_MAP('apple':='green'/'cherry':='red', '/', ':=')  => { 'apple':'green', 'cherry':'red'}
+```
+
 ### `SUBSTRING`
 
 ```sql

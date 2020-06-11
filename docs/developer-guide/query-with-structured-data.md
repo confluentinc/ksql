@@ -14,53 +14,11 @@ The following example shows how to create a ksqlDB stream from an
 {{ site.aktm }} topic that has structured data. Also, it shows how to run
 queries to access the structured data.
 
-1.  Set up the ksqlDB environment.
-2.  Use the {{ site.kcat }} utility to create and populate a new topic,
+1.  Use the {{ site.kcat }} utility to create and populate a new topic,
     named `raw-topic`.
-3.  Create a stream on the topic that models the topic's data.
-4.  Inspect the stream to ensure that the data model matches the topic.
-5.  Query the stream to access the structured data.
-
-Set up the ksqlDB Environment
------------------------------
-
-To set up ksqlDB, follow the first three steps in
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md),
-or if you have git and Docker installed already, run the following commands:
-
-```bash
-# Step 1
-git clone https://github.com/confluentinc/ksql.git
-cd ksql
-
-# Step 2
-git checkout {{ site.release }}-post
-
-# Step 3
-cd docs/tutorials/
-docker-compose up -d
-```
-
-After all of the Docker images are pulled, confirm that the ksqlDB and
-Kafka containers are running:
-
-```bash
-docker-compose ps
-```
-
-Your output should resemble:
-
-```
-          Name                        Command            State                 Ports
-----------------------------------------------------------------------------------------------------
-tutorials_kafka_1             /etc/confluent/docker/run   Up      0.0.0.0:39092->39092/tcp, 9092/tcp
-tutorials_ksql-server_1       /etc/confluent/docker/run   Up      8088/tcp
-tutorials_schema-registry_1   /etc/confluent/docker/run   Up      8081/tcp
-tutorials_zookeeper_1         /etc/confluent/docker/run   Up      2181/tcp, 2888/tcp, 3888/tcp
-```
-
-The ksqlDB environment is ready for you to develop event streaming
-applications.
+2.  Create a stream on the topic that models the topic's data.
+3.  Inspect the stream to ensure that the data model matches the topic.
+4.  Query the stream to access the structured data.
 
 Create and Populate a New Topic With Structured Data
 ----------------------------------------------------
@@ -304,6 +262,6 @@ Next Steps
 ----------
 
 -   [STRUCT](syntax-reference.md#struct)
--   [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md)
+-   [Quickstart](../tutorials/ksqldb-quickstart.md)
 -   [Query With Arrays and Maps](query-with-arrays-and-maps.md)
 

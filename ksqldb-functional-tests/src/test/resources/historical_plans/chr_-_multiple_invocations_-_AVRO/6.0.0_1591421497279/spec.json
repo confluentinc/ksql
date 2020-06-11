@@ -1,0 +1,90 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1591421497279,
+  "path" : "query-validation-tests\\chr.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<UTFCODE1 VARCHAR, UTFCODE2 VARCHAR, UTFCODE3 INT, UTFCODE4 INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<RESULT VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "multiple invocations - AVRO",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "r1",
+      "value" : {
+        "utfcode1" : "\\u004b",
+        "utfcode2" : "\\u0053",
+        "utfcode3" : 81,
+        "utfcode4" : 76
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : {
+        "RESULT" : "KSQL"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "UTFCODE1",
+          "type" : [ "null", "string" ],
+          "default" : null
+        }, {
+          "name" : "UTFCODE2",
+          "type" : [ "null", "string" ],
+          "default" : null
+        }, {
+          "name" : "UTFCODE3",
+          "type" : [ "null", "int" ],
+          "default" : null
+        }, {
+          "name" : "UTFCODE4",
+          "type" : [ "null", "int" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id STRING KEY, utfcode1 STRING, utfcode2 STRING, utfcode3 INTEGER, utfcode4 INTEGER) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUTPUT AS SELECT id, concat(chr(utfcode1), chr(utfcode2), chr(utfcode3), chr(utfcode4)) AS result FROM INPUT;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

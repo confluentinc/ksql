@@ -376,7 +376,7 @@ versions.
 |    ksqlDB version       | {{ site.release }} |
 | ----------------------- | ------------------ |
 | {{ site.aktm }} version | 0.11.0 and later   |
-| {{ site.cp }} version   | > 3.3.0 and later  |
+| {{ site.cp }} version   | 5.5.0 and later    |
 
 Scale your ksqlDB Server deployment
 -----------------------------------

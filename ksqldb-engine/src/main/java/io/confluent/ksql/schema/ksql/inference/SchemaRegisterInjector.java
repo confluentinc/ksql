@@ -31,6 +31,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
@@ -122,11 +123,11 @@ public class SchemaRegisterInjector implements Injector {
         throw new KsqlStatementException("Could not register schema for topic.", statementText, e);
       }
     } else {
-      throw new KsqlStatementException(
+      throw new KsqlSchemaRegistryNotConfiguredException(
           String.format(
               "Cannot create topic '%s' with format %s without configuring '%s'",
-              topic, format.name(), KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
-          statementText);
+              topic, format.name(), KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
+      );
     }
   }
 }

@@ -205,9 +205,6 @@ def job = {
                             // Set the version of the parent project to use.
                             sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
 
-                            sh "mvn --batch-mode versions:set-property -Dproperty=plugin.unreleased.repository.url -DnewVersion=\"${config.maven_packages_url}\" -DgenerateBackupPoms=false"
-                            sh "cat pom.xml"
-
                             cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
                             cmd += "-DskipTests "
                             cmd += "-Dspotbugs.skip "
@@ -221,6 +218,8 @@ def job = {
                                 sh cmd
                             }
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
+
+                            sh "cp ${settingsFile} ."
 
                             if (!config.isPrJob) {
                                 def git_tag = "v${config.ksql_db_artifact_version}-ksqldb"

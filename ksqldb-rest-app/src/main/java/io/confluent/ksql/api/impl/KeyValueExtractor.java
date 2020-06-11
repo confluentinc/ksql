@@ -99,19 +99,10 @@ public final class KeyValueExtractor {
         return new BigDecimal((Long) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
       }
     }
-    final Object rawValue;
-    if (value instanceof JsonArray) {
-      rawValue = ((JsonArray) value).getList();
-    } else if (value instanceof JsonObject) {
-      rawValue = ((JsonObject) value).getMap();
-    } else {
-      rawValue = value;
-    }
-    return sqlValueCoercer.coerce(rawValue, sqlType)
-
+    return sqlValueCoercer.coerce(value, sqlType)
         .orElseThrow(() -> new KsqlApiException(
-            String.format("Can't coerce a field of type %s (%s) into type %s", rawValue.getClass(),
-                rawValue, sqlType),
+            String.format("Can't coerce a field of type %s (%s) into type %s", value.getClass(),
+                value, sqlType),
             Errors.ERROR_CODE_BAD_REQUEST))
         .orElse(null);
   }

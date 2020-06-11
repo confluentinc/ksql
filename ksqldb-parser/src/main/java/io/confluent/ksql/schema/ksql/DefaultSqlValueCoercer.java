@@ -25,6 +25,8 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.ParserUtil;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -98,8 +100,8 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     final StructObject struct;
     if (value instanceof Struct) {
       struct = new ConnectStructObject((Struct) value);
-    } else if (value instanceof Map<?, ?>) {
-      struct = new MapStructObject((Map<?, ?>) value);
+    } else if (value instanceof JsonObject) {
+      struct = new JsonStructObject((JsonObject) value);
     } else {
       return Result.failure();
     }
@@ -135,11 +137,15 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
   }
 
   private static Result coerceArray(final Object value, final SqlArray targetType) {
-    if (!(value instanceof List<?>)) {
+    final List<?> list;
+    if (value instanceof List<?>) {
+      list = (List<?>) value;
+    } else if (value instanceof JsonArray) {
+      list = ((JsonArray) value).getList();
+    } else {
       return Result.failure();
     }
 
-    final List<?> list = (List<?>) value;
     final List<Object> coerced = new ArrayList<>(list.size());
     for (final Object el : list) {
       final Result result = doCoerce(el, targetType.getItemType());
@@ -154,11 +160,15 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
   }
 
   private static Result coerceMap(final Object value, final SqlMap targetType) {
-    if (!(value instanceof Map<?, ?>)) {
+    final Map<?, ?> map;
+    if (value instanceof Map<?, ?>) {
+      map = (Map<?, ?>) value;
+    } else if (value instanceof JsonObject) {
+      map = ((JsonObject) value).getMap();
+    } else {
       return Result.failure();
     }
 
-    final Map<?, ?> map = (Map<?, ?>) value;
     final HashMap<Object, Object> coerced = new HashMap<>();
     for (final Map.Entry<?, ?> entry : map.entrySet()) {
       final Result coercedKey = doCoerce(entry.getKey(), SqlTypes.STRING);
@@ -198,13 +208,12 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     }
   }
 
-  private static class MapStructObject implements StructObject {
+  private static class JsonStructObject implements StructObject {
 
     private final Map<String, Object> map;
 
-    @SuppressWarnings("unchecked") // TODO: how to avoid?
-    MapStructObject(final Map<?, ?> map) {
-      this.map = ParserUtil.convertMapKeyCase((Map<String, Object>) map);
+    JsonStructObject(final JsonObject obj) {
+      this.map = ParserUtil.convertMapKeyCase(obj.getMap());
     }
 
     @Override

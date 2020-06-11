@@ -94,11 +94,15 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
   }
 
   private static Result coerceStruct(final Object value, final SqlStruct targetType) {
-    if (!(value instanceof Struct)) {
+    final StructObject struct;
+    if (value instanceof Struct) {
+      struct = new ConnectStructObject((Struct) value);
+    } else if (value instanceof Map<?, ?>) {
+      struct = new MapStructObject((Map<?, ?>) value);
+    } else {
       return Result.failure();
     }
 
-    final Struct struct = (Struct) value;
     final Struct coerced = new Struct(
         SchemaConverters.sqlToConnectConverter().toConnectSchema(targetType)
     );
@@ -113,7 +117,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
         return Result.failure();
       }
 
-      if (struct.schema().field(field.name()) == null) {
+      if (!struct.contains(field)) {
         // if we cannot find the field in the struct, we can ignore it
         continue;
       }
@@ -166,5 +170,49 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     }
 
     return Result.of(coerced);
+  }
+
+  private interface StructObject {
+    boolean contains(Field field);
+
+    Object get(Field field);
+  }
+
+  private static class ConnectStructObject implements StructObject {
+
+    private final Struct struct;
+
+    ConnectStructObject(final Struct struct) {
+      this.struct = struct;
+    }
+
+    @Override
+    public boolean contains(final Field field) {
+      return struct.schema().field(field.name()) != null;
+    }
+
+    @Override
+    public Object get(final Field field) {
+      return struct.get(field);
+    }
+  }
+
+  private static class MapStructObject implements StructObject {
+
+    private final Map<?, ?> map;
+
+    MapStructObject(final Map<?, ?> map) {
+      this.map = map;
+    }
+
+    @Override
+    public boolean contains(final Field field) {
+      return map.containsKey(field.name());
+    }
+
+    @Override
+    public Object get(final Field field) {
+      return map.get(field.name());
+    }
   }
 }

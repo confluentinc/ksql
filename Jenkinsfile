@@ -219,6 +219,8 @@ def job = {
                             }
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
 
+                            sh "cp ${settingsFile} ."
+
                             if (!config.isPrJob) {
                                 def git_tag = "v${config.ksql_db_artifact_version}-ksqldb"
                                 sh "git add ."

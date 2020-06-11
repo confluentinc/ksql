@@ -107,8 +107,11 @@ public class SchemaRegisterInjector implements Injector {
       final String statementText
   ) {
     final Format format = FormatFactory.of(formatInfo);
-    if (format.supportsSchemaInference()
-        && config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) != null
+    if (!format.supportsSchemaInference()) {
+      return;
+    }
+
+    if (config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) != null
         && !config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).isEmpty()) {
       try {
         serviceContext.getSchemaRegistryClient().register(
@@ -118,6 +121,12 @@ public class SchemaRegisterInjector implements Injector {
       } catch (IOException | RestClientException e) {
         throw new KsqlStatementException("Could not register schema for topic.", statementText, e);
       }
+    } else {
+      throw new KsqlStatementException(
+          String.format(
+              "Cannot create topic '%s' with format %s without configuring '%s'",
+              topic, format.name(), KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
+          statementText);
     }
   }
 }

@@ -32,6 +32,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
@@ -65,7 +66,9 @@ public class StreamsSelectAndProjectIntTest {
       .around(TEST_HARNESS);
 
   @Rule
-  public final TestKsqlContext ksqlContext = TEST_HARNESS.buildKsqlContext();
+  public final TestKsqlContext ksqlContext = TEST_HARNESS.ksqlContextBuilder()
+      .withAdditionalConfig(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .build();
 
   private String jsonTopicName;
   private String avroTopicName;

@@ -221,7 +221,7 @@ public class ApiIntegrationTest {
         QueryResponse queryResponse = new QueryResponse(buff.toString());
         return queryResponse.rows.size();
       } catch (Throwable t) {
-        return Integer.MAX_VALUE;
+        return -1;
       }
     }, greaterThanOrEqualTo(6));
 

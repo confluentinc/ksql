@@ -125,9 +125,9 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
   private Result coerceStruct(final Object value, final SqlStruct targetType) {
     final StructObject struct;
     if (value instanceof Struct) {
-      struct = new ConnectStructObject((Struct) value);
+      struct = ConnectStructObject.of((Struct) value);
     } else if (value instanceof JsonObject) {
-      struct = new JsonStructObject((JsonObject) value);
+      struct = JsonStructObject.of((JsonObject) value);
     } else {
       return Result.failure();
     }
@@ -165,9 +165,9 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
   private Result coerceArray(final Object value, final SqlArray targetType) {
     final ListObject list;
     if (value instanceof List<?>) {
-      list = new JavaListObject((List<?>) value);
+      list = JavaListObject.of((List<?>) value);
     } else if (value instanceof JsonArray) {
-      list = new JsonListObject((JsonArray) value);
+      list = JsonListObject.of((JsonArray) value);
     } else {
       return Result.failure();
     }
@@ -188,9 +188,9 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
   private Result coerceMap(final Object value, final SqlMap targetType) {
     final MapObject map;
     if (value instanceof Map<?, ?>) {
-      map = new JavaMapObject((Map<?, ?>) value);
+      map = JavaMapObject.of((Map<?, ?>) value);
     } else if (value instanceof JsonObject) {
-      map = new JsonMapObject((JsonObject) value);
+      map = JsonMapObject.of((JsonObject) value);
     } else {
       return Result.failure();
     }
@@ -215,11 +215,11 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     Object get(int index);
   }
 
-  private static class JavaListObject implements ListObject {
+  private static final class JavaListObject implements ListObject {
 
     private final List<?> list;
 
-    JavaListObject(final List<?> list) {
+    private JavaListObject(final List<?> list) {
       this.list = list;
     }
 
@@ -232,13 +232,17 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     public Object get(final int index) {
       return list.get(index);
     }
+
+    static JavaListObject of(final List<?> list) {
+      return new JavaListObject(list);
+    }
   }
 
-  private static class JsonListObject implements ListObject {
+  private static final class JsonListObject implements ListObject {
 
     private final JsonArray array;
 
-    JsonListObject(final JsonArray array) {
+    private JsonListObject(final JsonArray array) {
       this.array = array;
     }
 
@@ -251,6 +255,10 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     public Object get(final int index) {
       return array.getValue(index);
     }
+
+    static JsonListObject of(final JsonArray array) {
+      return new JsonListObject(array);
+    }
   }
 
   private interface MapObject {
@@ -259,11 +267,11 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     Object get(Object key);
   }
 
-  private static class JavaMapObject implements MapObject {
+  private static final class JavaMapObject implements MapObject {
 
     private final Map<?, ?> map;
 
-    JavaMapObject(final Map<?, ?> map) {
+    private JavaMapObject(final Map<?, ?> map) {
       this.map = map;
     }
 
@@ -276,13 +284,17 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     public Object get(final Object key) {
       return map.get(key);
     }
+
+    static JavaMapObject of(final Map<?, ?> map) {
+      return new JavaMapObject(map);
+    }
   }
 
-  private static class JsonMapObject implements MapObject {
+  private static final class JsonMapObject implements MapObject {
 
     private final JsonObject obj;
 
-    JsonMapObject(final JsonObject obj) {
+    private JsonMapObject(final JsonObject obj) {
       this.obj = obj;
     }
 
@@ -295,6 +307,10 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     public Object get(final Object key) {
       return obj.getValue(key.toString());
     }
+
+    static JsonMapObject of(final JsonObject obj) {
+      return new JsonMapObject(obj);
+    }
   }
 
   private interface StructObject {
@@ -303,11 +319,11 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     Object get(Field field);
   }
 
-  private static class ConnectStructObject implements StructObject {
+  private static final class ConnectStructObject implements StructObject {
 
     private final Struct struct;
 
-    ConnectStructObject(final Struct struct) {
+    private ConnectStructObject(final Struct struct) {
       this.struct = struct;
     }
 
@@ -320,13 +336,17 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     public Object get(final Field field) {
       return struct.get(field);
     }
+
+    static ConnectStructObject of(final Struct struct) {
+      return new ConnectStructObject(struct);
+    }
   }
 
-  private static class JsonStructObject implements StructObject {
+  private static final class JsonStructObject implements StructObject {
 
     private final JsonObject obj;
 
-    JsonStructObject(final JsonObject obj) {
+    private JsonStructObject(final JsonObject obj) {
       // Coercion of JsonObject fields is case-insensitive, as this code path does not go through
       // the parser (which handles case sensitivity automatically for Connect Structs)
       this.obj = ParserUtil.convertJsonFieldCase(obj);
@@ -340,6 +360,10 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     @Override
     public Object get(final Field field) {
       return obj.getValue(field.name());
+    }
+
+    static JsonStructObject of(final JsonObject obj) {
+      return new JsonStructObject(obj);
     }
   }
 }

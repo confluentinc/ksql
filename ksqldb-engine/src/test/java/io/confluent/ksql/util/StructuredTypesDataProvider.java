@@ -126,7 +126,6 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
     return struct;
   }
 
-  // TODO: make these more interesting
   private static Struct generateComplexStruct(final int i) {
     final Struct complexStruct = new Struct(COMPLEX_FIELD_SCHEMA);
 

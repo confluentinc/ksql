@@ -16,7 +16,6 @@
 * expose JMX metric that classifies an error state ([#5374](https://github.com/confluentinc/ksql/pull/5374)) ([52271bf](https://github.com/confluentinc/ksql/commit/52271bf6ccbfdb26e83e5c30c2e11db0c72e8efc))
 * Expose Vert.x metrics ([#5340](https://github.com/confluentinc/ksql/pull/5340)) ([e82f762](https://github.com/confluentinc/ksql/commit/e82f7626236cc62d98e62e1d51ff33e4d6ff1519))
 * implement earliest_by_offset() UDAF ([#5273](https://github.com/confluentinc/ksql/pull/5273)) ([2a356ac](https://github.com/confluentinc/ksql/commit/2a356acbc1d55c868f0cde95b72835476615f8d6))
-* Implement latest_by_offset() UDAF ([#4782](https://github.com/confluentinc/ksql/pull/4782)) ([0be4bdc](https://github.com/confluentinc/ksql/commit/0be4bdc5197e7d060a32f31f53b9ab77547e9641))
 * INSTR function [#881](https://github.com/confluentinc/ksql/issues/881) ([#5385](https://github.com/confluentinc/ksql/pull/5385)) ([ca86bbf](https://github.com/confluentinc/ksql/commit/ca86bbfad51e479d6847f84a0c7928f31d8a2b26))
 * introduce RegexClassifier for classifying errors via cfg ([#5412](https://github.com/confluentinc/ksql/pull/5412)) ([b25dd98](https://github.com/confluentinc/ksql/commit/b25dd987b219dcb8a3105beb7251503828ade023))
 * new split_to_map udf ([#5563](https://github.com/confluentinc/ksql/pull/5563)) ([a68b9ad](https://github.com/confluentinc/ksql/commit/a68b9add94ddb9f97e1cff51fb57dddd1c9458eb))

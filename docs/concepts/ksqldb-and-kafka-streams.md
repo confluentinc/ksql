@@ -117,7 +117,7 @@ To get started with {{ site.kstreams }}, try the
 Next Steps
 ----------
 
--   [Quickstart](../tutorials/ksqldb-quickstart.md)
+-   [Quickstart](https://ksqldb.io/quickstart.html)
 -   [ksqlDB Developer Guide](../developer-guide/index.md)
 -   [Streams Developer Guide](https://docs.confluent.io/current/streams/developer-guide/index.html)
 

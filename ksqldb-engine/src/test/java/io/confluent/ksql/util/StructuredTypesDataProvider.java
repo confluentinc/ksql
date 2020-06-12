@@ -28,6 +28,8 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.Map;
+import org.apache.kafka.connect.data.Struct;
 
 public class StructuredTypesDataProvider extends TestDataProvider<String> {
 
@@ -37,6 +39,7 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
       .valueColumn(ColumnName.of("DEC"), SqlTypes.decimal(4, 2))
       .valueColumn(ColumnName.of("ARRAY"), SqlTypes.array(SqlTypes.STRING))
       .valueColumn(ColumnName.of("MAP"), SqlTypes.map(SqlTypes.STRING))
+      .valueColumn(ColumnName.of("STRUCT"), SqlTypes.struct().field("F1", SqlTypes.INTEGER).build())
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
@@ -44,16 +47,26 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
 
   private static final Multimap<String, GenericRow> ROWS = ImmutableListMultimap
       .<String, GenericRow>builder()
-      .put("FOO", genericRow(1L, new BigDecimal("1.11"), Collections.singletonList("a"), Collections.singletonMap("k1", "v1")))
-      .put("BAR", genericRow(2L, new BigDecimal("2.22"), Collections.emptyList(), Collections.emptyMap()))
-      .put("BAZ", genericRow(3L, new BigDecimal("30.33"), Collections.singletonList("b"), Collections.emptyMap()))
-      .put("BUZZ", genericRow(4L, new BigDecimal("40.44"), ImmutableList.of("c", "d"), Collections.emptyMap()))
+      .put("FOO", genericRow(1L, new BigDecimal("1.11"), Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateStruct(2)))
+      .put("BAR", genericRow(2L, new BigDecimal("2.22"), Collections.emptyList(), Collections.emptyMap(), generateStruct(3)))
+      .put("BAZ", genericRow(3L, new BigDecimal("30.33"), Collections.singletonList("b"), Collections.emptyMap(), generateStruct(null)))
+      .put("BUZZ", genericRow(4L, new BigDecimal("40.44"), ImmutableList.of("c", "d"), Collections.emptyMap(), generateStruct(88)))
       // Additional entries for repeated keys
-      .put("BAZ", genericRow(5L, new BigDecimal("12"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2")))
-      .put("BUZZ", genericRow(6L, new BigDecimal("10.1"), ImmutableList.of("f", "g"), Collections.emptyMap()))
+      .put("BAZ", genericRow(5L, new BigDecimal("12"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateStruct(0)))
+      .put("BUZZ", genericRow(6L, new BigDecimal("10.1"), ImmutableList.of("f", "g"), Collections.emptyMap(), generateStruct(null)))
       .build();
 
   public StructuredTypesDataProvider() {
     super("STRUCTURED_TYPES", PHYSICAL_SCHEMA, ROWS);
+  }
+
+  public static Map<String, Integer> structToMap(final Struct struct) {
+    return Collections.singletonMap("F1", struct.getInt32("F1"));
+  }
+
+  private static Struct generateStruct(final Integer value) {
+    final Struct struct = new Struct(LOGICAL_SCHEMA.valueConnectSchema().field("STRUCT").schema());
+    struct.put("F1", value);
+    return struct;
   }
 }

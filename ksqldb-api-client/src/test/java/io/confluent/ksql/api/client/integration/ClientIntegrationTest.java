@@ -73,6 +73,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -92,9 +93,9 @@ public class ClientIntegrationTest {
   private static final String TEST_STREAM = TEST_DATA_PROVIDER.kstreamName();
   private static final int TEST_NUM_ROWS = TEST_DATA_PROVIDER.data().size();
   private static final List<String> TEST_COLUMN_NAMES =
-      ImmutableList.of("STR", "LONG", "DEC", "ARRAY", "MAP");
+      ImmutableList.of("STR", "LONG", "DEC", "ARRAY", "MAP", "STRUCT");
   private static final List<ColumnType> TEST_COLUMN_TYPES =
-      RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT", "DECIMAL", "ARRAY", "MAP"));
+      RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT", "DECIMAL", "ARRAY", "MAP", "STRUCT"));
   private static final List<KsqlArray> TEST_EXPECTED_ROWS = convertToClientRows(
       TEST_DATA_PROVIDER.data());
 
@@ -436,10 +437,11 @@ public class ClientIntegrationTest {
     // Given
     final KsqlObject insertRow = new KsqlObject()
         .put("str", "HELLO") // Column names are case-insensitive
-        .put("`LONG`", 100L) // Quotes may be used to preserve case-sensitivity
-        .put("DEC", new BigDecimal("13.31"))
+        .put("`LONG`", 100L) // Backticks may be used to preserve case-sensitivity
+        .put("\"DEC\"", new BigDecimal("13.31")) // Double quotes may also be used to preserve case-sensitivity
         .put("ARRAY", new KsqlArray().add("v1").add("v2"))
-        .put("MAP", new KsqlObject().put("some_key", "a_value").put("another_key", ""));
+        .put("MAP", new KsqlObject().put("some_key", "a_value").put("another_key", ""))
+        .put("STRUCT", new KsqlObject().put("f1", 12)); // Nested field names are case-insensitive
 
     // When
     client.insertInto(EMPTY_TEST_STREAM.toLowerCase(), insertRow).get(); // Stream name is case-insensitive
@@ -455,6 +457,7 @@ public class ClientIntegrationTest {
     assertThat(rows.get(0).getDecimal("DEC"), is(new BigDecimal("13.31")));
     assertThat(rows.get(0).getKsqlArray("ARRAY"), is(new KsqlArray().add("v1").add("v2")));
     assertThat(rows.get(0).getKsqlObject("MAP"), is(new KsqlObject().put("some_key", "a_value").put("another_key", "")));
+    assertThat(rows.get(0).getKsqlObject("STRUCT"), is(new KsqlObject().put("F1", 12)));
   }
 
   @Test
@@ -488,7 +491,8 @@ public class ClientIntegrationTest {
         .put("LONG", 2000L)
         .put("DEC", new BigDecimal("12.34"))
         .put("ARRAY", new KsqlArray().add("v1_shouldStreamQueryWithProperties").add("v2_shouldStreamQueryWithProperties"))
-        .put("MAP", new KsqlObject().put("test_name", "shouldStreamQueryWithProperties"));
+        .put("MAP", new KsqlObject().put("test_name", "shouldStreamQueryWithProperties"))
+        .put("STRUCT", new KsqlObject().put("F1", 4));
 
     // When
     final StreamedQueryResult queryResult = client.streamQuery(sql, properties).get();
@@ -509,6 +513,7 @@ public class ClientIntegrationTest {
     assertThat(row.getDecimal("DEC"), is(new BigDecimal("12.34")));
     assertThat(row.getKsqlArray("ARRAY"), is(new KsqlArray().add("v1_shouldStreamQueryWithProperties").add("v2_shouldStreamQueryWithProperties")));
     assertThat(row.getKsqlObject("MAP"), is(new KsqlObject().put("test_name", "shouldStreamQueryWithProperties")));
+    assertThat(row.getKsqlObject("STRUCT"), is(new KsqlObject().put("F1", 4)));
   }
 
   @Test
@@ -523,7 +528,8 @@ public class ClientIntegrationTest {
         .put("LONG", 2000L)
         .put("DEC", new BigDecimal("12.34"))
         .put("ARRAY", new KsqlArray().add("v1_shouldExecuteQueryWithProperties").add("v2_shouldExecuteQueryWithProperties"))
-        .put("MAP", new KsqlObject().put("test_name", "shouldExecuteQueryWithProperties"));
+        .put("MAP", new KsqlObject().put("test_name", "shouldExecuteQueryWithProperties"))
+        .put("STRUCT", new KsqlObject().put("F1", 4));
 
     // When
     final BatchedQueryResult queryResult = client.executeQuery(sql, properties);
@@ -559,6 +565,7 @@ public class ClientIntegrationTest {
     assertThat(row.getDecimal("DEC"), is(new BigDecimal("12.34")));
     assertThat(row.getKsqlArray("ARRAY"), is(new KsqlArray().add("v1_shouldExecuteQueryWithProperties").add("v2_shouldExecuteQueryWithProperties")));
     assertThat(row.getKsqlObject("MAP"), is(new KsqlObject().put("test_name", "shouldExecuteQueryWithProperties")));
+    assertThat(row.getKsqlObject("STRUCT"), is(new KsqlObject().put("F1", 4)));
   }
 
   private Client createClient() {
@@ -618,6 +625,7 @@ public class ClientIntegrationTest {
     assertThat(row.getDecimal("DEC"), is(expectedRow.getDecimal(2)));
     assertThat(row.getKsqlArray("ARRAY"), is(expectedRow.getKsqlArray(3)));
     assertThat(row.getKsqlObject("MAP"), is(expectedRow.getKsqlObject(4)));
+    assertThat(row.getKsqlObject("STRUCT"), is(expectedRow.getKsqlObject(5)));
 
     // verify index-based getters are 1-indexed
     assertThat(row.getString(1), is(row.getString("STR")));
@@ -625,6 +633,7 @@ public class ClientIntegrationTest {
     assertThat(row.getDecimal(3), is(row.getDecimal("DEC")));
     assertThat(row.getKsqlArray(4), is(row.getKsqlArray("ARRAY")));
     assertThat(row.getKsqlObject(5), is(row.getKsqlObject("MAP")));
+    assertThat(row.getKsqlObject(6), is(row.getKsqlObject("STRUCT")));
 
     // verify isNull() evaluation
     assertThat(row.isNull("STR"), is(false));
@@ -641,6 +650,7 @@ public class ClientIntegrationTest {
     assertThat(values.getDecimal(2), is(row.getDecimal("DEC")));
     assertThat(values.getKsqlArray(3), is(row.getKsqlArray("ARRAY")));
     assertThat(values.getKsqlObject(4), is(row.getKsqlObject("MAP")));
+    assertThat(values.getKsqlObject(5), is(row.getKsqlObject("STRUCT")));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 
@@ -654,6 +664,7 @@ public class ClientIntegrationTest {
     assertThat(obj.getDecimal("DEC"), is(row.getDecimal("DEC")));
     assertThat(obj.getKsqlArray("ARRAY"), is(row.getKsqlArray("ARRAY")));
     assertThat(obj.getKsqlObject("MAP"), is(row.getKsqlObject("MAP")));
+    assertThat(obj.getKsqlObject("STRUCT"), is(row.getKsqlObject("STRUCT")));
     assertThat(obj.containsKey("DEC"), is(true));
     assertThat(obj.containsKey("notafield"), is(false));
     assertThat(obj.toJsonString(), is((new JsonObject(obj.getMap())).toString()));
@@ -723,7 +734,9 @@ public class ClientIntegrationTest {
       final KsqlArray expectedRow = new KsqlArray()
           .add(entry.getKey());
       for (final Object value : entry.getValue().values()) {
-        if (value instanceof BigDecimal) {
+        if (value instanceof Struct) {
+          expectedRow.add(StructuredTypesDataProvider.structToMap((Struct) value));
+        } else if (value instanceof BigDecimal) {
           // can't use expectedRow.add((BigDecimal) value) directly since client serializes BigDecimal as string,
           // whereas this method builds up the expected result (unrelated to serialization)
           expectedRow.addAll(new KsqlArray(Collections.singletonList(value)));

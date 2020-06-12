@@ -152,9 +152,9 @@ public class ApiIntegrationTest {
     // Then:
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(
-        new JsonArray().add("STR").add("LONG").add("DEC").add("ARRAY").add("MAP")));
+        new JsonArray().add("STR").add("LONG").add("DEC").add("ARRAY").add("MAP").add("STRUCT")));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(
-        new JsonArray().add("STRING").add("BIGINT").add("DECIMAL(4, 2)").add("ARRAY<STRING>").add("MAP<STRING, STRING>")));
+        new JsonArray().add("STRING").add("BIGINT").add("DECIMAL(4, 2)").add("ARRAY<STRING>").add("MAP<STRING, STRING>").add("STRUCT<`F1` INTEGER>")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
 
@@ -333,7 +333,8 @@ public class ApiIntegrationTest {
           .put("LONG", 1000 + i)
           .put("DEC", i + 0.11) // JsonObject does not accept BigDecimal
           .put("ARRAY", new JsonArray().add("a_" + i).add("b_" + i))
-          .put("MAP", new JsonObject().put("k1", "v1_" + i).put("k2", "v2_" + i));
+          .put("MAP", new JsonObject().put("k1", "v1_" + i).put("k2", "v2_" + i))
+          .put("STRUCT", new JsonObject().put("F1", i));
       bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
     }
 
@@ -365,7 +366,8 @@ public class ApiIntegrationTest {
         .put("LONG", 1000)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
-        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
+        .put("STRUCT", new JsonObject().put("F1", 3));
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
@@ -381,7 +383,8 @@ public class ApiIntegrationTest {
         .put("LONG", 1000)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
-        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
+        .put("STRUCT", new JsonObject().put("F1", 3));
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
@@ -397,7 +400,8 @@ public class ApiIntegrationTest {
         .put("LONG", "not a number")
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
-        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
+        .put("STRUCT", new JsonObject().put("F1", 3));
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
@@ -412,7 +416,8 @@ public class ApiIntegrationTest {
         .put("STR", "HELLO")
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
-        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
+        .put("STRUCT", new JsonObject().put("F1", 3));
 
     // Then:
     shouldInsert(row);
@@ -427,7 +432,8 @@ public class ApiIntegrationTest {
         .put("str", "HELLO")
         .put("dec", 12.21) // JsonObject does not accept BigDecimal
         .put("array", new JsonArray().add("a").add("b"))
-        .put("map", new JsonObject().put("k1", "v1").put("k2", "v2"));
+        .put("map", new JsonObject().put("k1", "v1").put("k2", "v2"))
+        .put("struct", new JsonObject().put("f1", 3));
 
     // Then:
     shouldInsert(target, row);
@@ -442,7 +448,8 @@ public class ApiIntegrationTest {
         .put("LONG", 1000L)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
-        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
+        .put("STRUCT", new JsonObject().put("F1", 3));
 
     // Then: request fails because stream name is invalid
     shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: " + target);
@@ -457,7 +464,8 @@ public class ApiIntegrationTest {
         .put("LONG", 1000L)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
-        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
+        .put("STRUCT", new JsonObject().put("F1", 3));
 
     // Then: request fails because stream name is invalid
     shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: `" + TEST_STREAM.toLowerCase() + "`");
@@ -471,7 +479,8 @@ public class ApiIntegrationTest {
         .put("LONG", 1000L)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
-        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
+        .put("STRUCT", new JsonObject().put("F1", 3));
 
     // Then: request fails because column name is incorrect
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST, "Key field must be specified: STR");
@@ -485,7 +494,8 @@ public class ApiIntegrationTest {
         .put("LONG", 1000L)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
-        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"));
+        .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
+        .put("STRUCT", new JsonObject().put("F1", 3));
 
     // Then: request fails because column name is incorrect
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST, "Key field must be specified: STR");
@@ -521,7 +531,8 @@ public class ApiIntegrationTest {
         .put("LONG", 2000L)
         .put("DEC", 12.34) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a_shouldExecutePushQueryFromLatestOffset"))
-        .put("MAP", new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset"));
+        .put("MAP", new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset"))
+        .put("STRUCT", new JsonObject().put("F1", 3));
 
     // Insert a new row and wait for it to arrive
     assertThatEventually(() -> {
@@ -543,6 +554,7 @@ public class ApiIntegrationTest {
     assertThat(queryResponse.rows.get(0).getDouble(2), is(12.34));
     assertThat(queryResponse.rows.get(0).getJsonArray(3), is(new JsonArray().add("a_shouldExecutePushQueryFromLatestOffset")));
     assertThat(queryResponse.rows.get(0).getJsonObject(4), is(new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset")));
+    assertThat(queryResponse.rows.get(0).getJsonObject(5), is(new JsonObject().put("F1", 3)));
 
     // Check that query is cleaned up on the server
     assertThatEventually(engine::numberOfLiveQueries, is(1));

@@ -488,8 +488,3 @@ ksql-cli:
       echo -e "\n\n-> Sleeping…\n"
       sleep infinity
 ```
-
-Next Steps
-----------
-
--   [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../../tutorials/basics-docker.md)

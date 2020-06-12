@@ -52,11 +52,11 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
               .field("F2", SqlTypes.INTEGER)
               .build())
           .field("ARRAY_ARRAY", SqlTypes.array(SqlTypes.array(SqlTypes.STRING)))
-          .field("ARRAY_STRUCT", SqlTypes.array(SqlTypes.struct().field("F1", SqlTypes.STRING).build()))
-          .field("ARRAY_MAP", SqlTypes.array(SqlTypes.map(SqlTypes.BIGINT)))
-          .field("MAP_ARRAY", SqlTypes.map(SqlTypes.array(SqlTypes.STRING)))
-          .field("MAP_MAP", SqlTypes.map(SqlTypes.map(SqlTypes.INTEGER)))
-          .field("MAP_STRUCT", SqlTypes.map(SqlTypes.struct().field("F1", SqlTypes.STRING).build()))
+//          .field("ARRAY_STRUCT", SqlTypes.array(SqlTypes.struct().field("F1", SqlTypes.STRING).build()))
+//          .field("ARRAY_MAP", SqlTypes.array(SqlTypes.map(SqlTypes.BIGINT)))
+//          .field("MAP_ARRAY", SqlTypes.map(SqlTypes.array(SqlTypes.STRING)))
+//          .field("MAP_MAP", SqlTypes.map(SqlTypes.map(SqlTypes.INTEGER)))
+//          .field("MAP_STRUCT", SqlTypes.map(SqlTypes.struct().field("F1", SqlTypes.STRING).build()))
           .build()
       )
       .build();
@@ -139,20 +139,20 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
 
     complexStruct.put("ARRAY_ARRAY", ImmutableList.of(ImmutableList.of("foo")));
 
-    final Struct arrayStruct = new Struct(COMPLEX_FIELD_SCHEMA.field("ARRAY_STRUCT").schema().valueSchema());
-    arrayStruct.put("F1", "v" + i);
-    complexStruct.put("ARRAY_STRUCT", ImmutableList.of(arrayStruct));
+//    final Struct arrayStruct = new Struct(COMPLEX_FIELD_SCHEMA.field("ARRAY_STRUCT").schema().valueSchema());
+//    arrayStruct.put("F1", "v" + i);
+//    complexStruct.put("ARRAY_STRUCT", ImmutableList.of(arrayStruct));
 
     // TODO: figure out what's wrong
 //    complexStruct.put("ARRAY_MAP", ImmutableList.of(ImmutableMap.of("k1", i)));
 
-    complexStruct.put("MAP_ARRAY", ImmutableMap.of("k", ImmutableList.of("v" + i)));
-
-    complexStruct.put("MAP_MAP", ImmutableMap.of("k", ImmutableMap.of("k", i)));
-
-    final Struct mapStruct = new Struct(COMPLEX_FIELD_SCHEMA.field("MAP_STRUCT").schema().valueSchema());
-    mapStruct.put("F1", "v" + i);
-    complexStruct.put("MAP_STRUCT", ImmutableMap.of("k", mapStruct));
+//    complexStruct.put("MAP_ARRAY", ImmutableMap.of("k", ImmutableList.of("v" + i)));
+//
+//    complexStruct.put("MAP_MAP", ImmutableMap.of("k", ImmutableMap.of("k", i)));
+//
+//    final Struct mapStruct = new Struct(COMPLEX_FIELD_SCHEMA.field("MAP_STRUCT").schema().valueSchema());
+//    mapStruct.put("F1", "v" + i);
+//    complexStruct.put("MAP_STRUCT", ImmutableMap.of("k", mapStruct));
 
     return complexStruct;
   }

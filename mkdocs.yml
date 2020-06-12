@@ -58,8 +58,6 @@ nav:
     - Create a Table: developer-guide/create-a-table.md
     - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
     - Implement a User-defined Function (UDF, UDAF, and UDTF): developer-guide/implement-a-udf.md
-    - Query With Arrays and Maps: developer-guide/query-with-arrays-and-maps.md
-    - Query With Structured Data: developer-guide/query-with-structured-data.md
     - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
     - Example Queries: tutorials/examples.md
     - Test and Debug:
@@ -195,7 +193,7 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 2.4
+        kafkaversion: 2.5
         kafkarelease: 5.5.0-ccs
         ksqldbversion: 0.10.0
         release: 0.10.0

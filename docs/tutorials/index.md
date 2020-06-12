@@ -6,7 +6,7 @@ description: Learn how to create ksqlDB applications
 keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 ---
 
-- [Quickstart](ksqldb-quickstart.md)
+- [Quickstart](https://ksqldb.io/quickstart.html)
 - [Build a materialized view/cache](materialized.md)
 - [Build a streaming ETL pipeline](etl.md)
 - [Build an event-driven microservice](event-driven-microservice.md)

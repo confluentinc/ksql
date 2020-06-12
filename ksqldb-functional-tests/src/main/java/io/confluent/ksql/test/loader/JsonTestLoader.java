@@ -113,14 +113,12 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
   ) {
     try (InputStream stream = JsonTestLoader.class
         .getClassLoader()
-        .getResourceAsStream(testPath.toString())
-    ) {
-      if (stream == null) {
-        throw new TestFrameworkException("File not found: " + testPath);
-      }
+        .getResourceAsStream(testPath.toString());
 
-      final List<String> lines = new BufferedReader(new InputStreamReader(stream, UTF_8))
-          .lines()
+        BufferedReader reader = new BufferedReader(
+            new InputStreamReader(throwNotFoundIfNull(stream, testPath), UTF_8));
+    ) {
+      final List<String> lines = reader.lines()
           .collect(Collectors.toList());
 
       final String content = lines.stream()
@@ -132,6 +130,13 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
     } catch (final Exception e) {
       throw new RuntimeException("Unable to load test at path " + testPath, e);
     }
+  }
+
+  private static InputStream throwNotFoundIfNull(final InputStream stream, final Path testPath) {
+    if (stream == null) {
+      throw new TestFrameworkException("File not found: " + testPath);
+    }
+    return stream;
   }
 
   private static void throwOnDuplicateNames(final List<? extends Test> testCases) {

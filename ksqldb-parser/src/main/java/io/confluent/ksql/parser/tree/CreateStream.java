@@ -31,20 +31,22 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
   public CreateStream(
       final SourceName name,
       final TableElements elements,
+      final boolean orReplace,
       final boolean notExists,
       final CreateSourceProperties properties
   ) {
-    this(Optional.empty(), name, elements, notExists, properties);
+    this(Optional.empty(), name, elements, orReplace, notExists, properties);
   }
 
   public CreateStream(
       final Optional<NodeLocation> location,
       final SourceName name,
       final TableElements elements,
+      final boolean orReplace,
       final boolean notExists,
       final CreateSourceProperties properties
   ) {
-    super(location, name, elements, notExists, properties);
+    super(location, name, elements, orReplace, notExists, properties);
 
     throwOnPrimaryKeys(elements);
   }
@@ -58,6 +60,7 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
         getLocation(),
         getName(),
         elements,
+        isOrReplace(),
         isNotExists(),
         properties);
   }
@@ -83,6 +86,7 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
     return toStringHelper(this)
         .add("name", getName())
         .add("elements", getElements())
+        .add("orReplace", isOrReplace())
         .add("notExists", isNotExists())
         .add("properties", getProperties())
         .toString();

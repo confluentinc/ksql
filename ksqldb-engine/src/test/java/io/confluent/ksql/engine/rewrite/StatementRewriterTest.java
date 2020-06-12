@@ -537,6 +537,7 @@ public class StatementRewriterTest {
         sourceName,
         TableElements.of(tableElement1, tableElement2),
         false,
+        false,
         sourceProperties
     );
     when(mockRewriter.apply(tableElement1, context)).thenReturn(rewrittenTableElement1);
@@ -553,6 +554,7 @@ public class StatementRewriterTest {
                 location,
                 sourceName,
                 TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
+                false,
                 false,
                 sourceProperties
             )
@@ -578,6 +580,7 @@ public class StatementRewriterTest {
         sourceName,
         query,
         false,
+        false,
         csasProperties
     );
     when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
@@ -592,6 +595,7 @@ public class StatementRewriterTest {
                 sourceName,
                 rewrittenQuery,
                 false,
+                false,
                 csasProperties
             )
         )
@@ -604,6 +608,7 @@ public class StatementRewriterTest {
         location,
         sourceName,
         query,
+        false,
         false,
         csasProperties
     );
@@ -619,6 +624,7 @@ public class StatementRewriterTest {
                 location,
                 sourceName,
                 rewrittenQuery,
+                false,
                 false,
                 csasProperties
             )
@@ -649,6 +655,7 @@ public class StatementRewriterTest {
         sourceName,
         TableElements.of(tableElement1, tableElement2),
         false,
+        false,
         sourceProperties
     );
     when(mockRewriter.apply(tableElement1, context)).thenReturn(rewrittenTableElement1);
@@ -665,6 +672,7 @@ public class StatementRewriterTest {
                 location,
                 sourceName,
                 TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
+                false,
                 false,
                 sourceProperties
             )
@@ -691,6 +699,7 @@ public class StatementRewriterTest {
         sourceName,
         query,
         false,
+        false,
         csasProperties
     );
     when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
@@ -706,6 +715,7 @@ public class StatementRewriterTest {
                 location,
                 sourceName,
                 rewrittenQuery,
+                false,
                 false,
                 csasProperties
             )

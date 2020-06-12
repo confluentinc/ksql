@@ -49,15 +49,15 @@ statement
     | TERMINATE ALL                                                         #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
-    | CREATE STREAM (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
-    | CREATE STREAM (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createStreamAs
-    | CREATE TABLE (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
                     (tableElements)?
                     (WITH tableProperties)?                                 #createTable
-    | CREATE TABLE (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createTableAs
     | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
     | INSERT INTO sourceName query                                          #insertInto
@@ -336,6 +336,7 @@ nonReserved
     | EMIT
     | CHANGES
     | ESCAPE
+    | REPLACE
     ;
 
 EMIT: 'EMIT';
@@ -463,6 +464,7 @@ NAMESPACE: 'NAMESPACE';
 MATERIALIZED: 'MATERIALIZED';
 VIEW: 'VIEW';
 PRIMARY: 'PRIMARY';
+REPLACE: 'REPLACE';
 
 IF: 'IF';
 

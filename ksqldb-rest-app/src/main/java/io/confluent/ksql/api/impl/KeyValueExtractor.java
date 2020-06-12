@@ -22,16 +22,11 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
-import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.ParserUtil;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 
@@ -85,20 +80,6 @@ public final class KeyValueExtractor {
       final SqlType sqlType,
       final SqlValueCoercer sqlValueCoercer
   ) {
-    if (sqlType instanceof SqlDecimal) {
-      // We have to handle this manually as SqlValueCoercer doesn't seem to do it
-      final SqlDecimal decType = (SqlDecimal) sqlType;
-      if (value instanceof Double) {
-        return new BigDecimal(String.valueOf(value))
-            .setScale(decType.getScale(), RoundingMode.HALF_UP);
-      } else if (value instanceof String) {
-        return new BigDecimal((String) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
-      } else if (value instanceof Integer) {
-        return new BigDecimal((Integer) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
-      } else if (value instanceof Long) {
-        return new BigDecimal((Long) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
-      }
-    }
     return sqlValueCoercer.coerce(value, sqlType)
         .orElseThrow(() -> new KsqlApiException(
             String.format("Can't coerce a field of type %s (%s) into type %s", value.getClass(),

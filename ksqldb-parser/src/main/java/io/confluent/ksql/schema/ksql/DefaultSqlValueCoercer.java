@@ -28,6 +28,7 @@ import io.confluent.ksql.util.ParserUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +40,8 @@ import org.apache.kafka.connect.data.Struct;
 
 public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
-  INSTANCE;
+  INSTANCE(false),
+  API_INSTANCE(true);
 
   private static final Map<SqlBaseType, BiFunction<Number, SqlType, Result>> UPCASTER =
       ImmutableMap.<SqlBaseType, BiFunction<Number, SqlType, Result>>builder()
@@ -57,12 +59,18 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
             }
           }).build();
 
+  private final boolean allowCastStringAndDoubleToDecimal;
+
+  private DefaultSqlValueCoercer(final boolean allowCastStringAndDoubleToDecimal) {
+    this.allowCastStringAndDoubleToDecimal = allowCastStringAndDoubleToDecimal;
+  }
+
   @Override
   public Result coerce(final Object value, final SqlType targetType) {
     return doCoerce(value, targetType);
   }
 
-  private static Result doCoerce(final Object value, final SqlType targetType) {
+  private Result doCoerce(final Object value, final SqlType targetType) {
     if (value == null) {
       // NULL can be cast to any type:
       return Result.nullResult();
@@ -80,7 +88,18 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     }
   }
 
-  private static Result coerceOther(final Object value, final SqlType targetType) {
+  private Result coerceOther(final Object value, final SqlType targetType) {
+    if ((targetType instanceof SqlDecimal) && allowCastStringAndDoubleToDecimal) {
+      final SqlDecimal decType = (SqlDecimal) targetType;
+      if (value instanceof Double) {
+        return Result.of(new BigDecimal(String.valueOf(value))
+            .setScale(decType.getScale(), RoundingMode.HALF_UP));
+      } else if (value instanceof String) {
+        return Result.of(new BigDecimal((String) value)
+            .setScale(decType.getScale(), RoundingMode.HALF_UP));
+      }
+    }
+
     final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
         .toSqlType(value.getClass());
 
@@ -96,7 +115,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
         .apply((Number) value, targetType);
   }
 
-  private static Result coerceStruct(final Object value, final SqlStruct targetType) {
+  private Result coerceStruct(final Object value, final SqlStruct targetType) {
     final StructObject struct;
     if (value instanceof Struct) {
       struct = new ConnectStructObject((Struct) value);
@@ -136,7 +155,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     return Result.of(coerced);
   }
 
-  private static Result coerceArray(final Object value, final SqlArray targetType) {
+  private Result coerceArray(final Object value, final SqlArray targetType) {
     final List<?> list;
     if (value instanceof List<?>) {
       list = (List<?>) value;
@@ -159,7 +178,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     return Result.of(coerced);
   }
 
-  private static Result coerceMap(final Object value, final SqlMap targetType) {
+  private Result coerceMap(final Object value, final SqlMap targetType) {
     final Map<?, ?> map;
     if (value instanceof Map<?, ?>) {
       map = (Map<?, ?>) value;

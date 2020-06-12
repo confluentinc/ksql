@@ -235,22 +235,22 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
   private static class JsonStructObject implements StructObject {
 
-    private final Map<String, Object> map;
+    private final JsonObject obj;
 
     JsonStructObject(final JsonObject obj) {
       // Coercion of JsonObject fields is case-insensitive, as this code path does not go through
       // the parser (which handles case sensitivity automatically for Connect Structs)
-      this.map = ParserUtil.convertMapKeyCase(obj.getMap());
+      this.obj = ParserUtil.convertJsonFieldCase(obj);
     }
 
     @Override
     public boolean contains(final Field field) {
-      return map.containsKey(field.name());
+      return obj.containsKey(field.name());
     }
 
     @Override
     public Object get(final Field field) {
-      return map.get(field.name());
+      return obj.getValue(field.name());
     }
   }
 }

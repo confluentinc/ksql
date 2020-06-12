@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
@@ -191,9 +192,9 @@ public final class ParserUtil {
     return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
   }
 
-  public static Map<String, Object> convertMapKeyCase(final Map<String, Object> map) {
+  public static JsonObject convertJsonFieldCase(final JsonObject obj) {
     final Map<String, Object> convertedMap = new HashMap<>();
-    for (Map.Entry<String, Object> entry : map.entrySet()) {
+    for (Map.Entry<String, Object> entry : obj.getMap().entrySet()) {
       final String key;
       try {
         key = ParserUtil.getIdentifierText(entry.getKey());
@@ -209,6 +210,6 @@ public final class ParserUtil {
       }
       convertedMap.put(key, entry.getValue());
     }
-    return convertedMap;
+    return new JsonObject(convertedMap);
   }
 }

@@ -68,8 +68,7 @@ public final class KeyValueExtractor {
 
   static JsonObject convertColumnNameCase(final JsonObject jsonObjectWithCaseInsensitiveFields) {
     try {
-      return new JsonObject(
-          ParserUtil.convertMapKeyCase(jsonObjectWithCaseInsensitiveFields.getMap()));
+      return ParserUtil.convertJsonFieldCase(jsonObjectWithCaseInsensitiveFields);
     } catch (IllegalArgumentException e) {
       throw new KsqlApiException(e.getMessage(), Errors.ERROR_CODE_BAD_REQUEST);
     }

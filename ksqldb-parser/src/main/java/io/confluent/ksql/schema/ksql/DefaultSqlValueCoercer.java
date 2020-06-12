@@ -238,6 +238,8 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     private final Map<String, Object> map;
 
     JsonStructObject(final JsonObject obj) {
+      // Coercion of JsonObject fields is case-insensitive, as this code path does not go through
+      // the parser (which handles case sensitivity automatically for Connect Structs)
       this.map = ParserUtil.convertMapKeyCase(obj.getMap());
     }
 

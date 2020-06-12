@@ -409,7 +409,7 @@ For more information, see
 ### Experiment with other stacks
 
 You can try out other stacks that have different configurations, like the
-"Quickstart" and "reference" stacks.
+"Quickstart" and "PostgreSQL" stacks.
 
 #### ksqlDB Quickstart stack
 

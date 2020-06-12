@@ -15,19 +15,16 @@
 
 package io.confluent.ksql.function.udf.array;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
-import org.apache.kafka.connect.data.Struct;
 
 @SuppressWarnings("MethodMayBeStatic") // UDF methods can not be static.
 @UdfDescription(
@@ -38,8 +35,8 @@ import org.apache.kafka.connect.data.Struct;
 public class ArrayJoin {
 
   private static final String DEFAULT_DELIMITER = ",";
-  private static final Set<Class> KSQL_PRIMITIVES = new HashSet<>(
-      Arrays.asList(Boolean.class,Integer.class,BigInteger.class,Double.class,String.class)
+  private static final Set<Class> KSQL_PRIMITIVES = ImmutableSet.of(
+      Boolean.class,Integer.class,Long.class,Double.class,BigDecimal.class,String.class
   );
 
   @Udf
@@ -62,7 +59,7 @@ public class ArrayJoin {
       return null;
     }
 
-    final StringJoiner sj = new StringJoiner(delimiter);
+    final StringJoiner sj = new StringJoiner(delimiter == null ? "" : delimiter);
     array.forEach(e -> processElement(e, sj));
     return sj.toString();
 
@@ -73,12 +70,6 @@ public class ArrayJoin {
 
     if (element == null || KSQL_PRIMITIVES.contains(element.getClass())) {
       handlePrimitiveType(element, joiner);
-    } else if (element instanceof List) {
-      handleListType((List)element,joiner);
-    } else if (element instanceof Map) {
-      handleMapType((Map) element, joiner);
-    } else if (element instanceof Struct) {
-      handleStructType((Struct)element, joiner);
     } else {
       throw new KsqlFunctionException("error: hit element of type "
           + element.getClass().getTypeName() + " which is currently not supported");
@@ -88,24 +79,6 @@ public class ArrayJoin {
 
   private static void handlePrimitiveType(final Object element, final StringJoiner joiner) {
     joiner.add(element != null ? element.toString() : null);
-  }
-
-  private static void handleListType(final List<?> element, final StringJoiner joiner) {
-    element.forEach(e -> processElement(e, joiner));
-  }
-
-  private static void handleMapType(final Map<String,?> element, final StringJoiner joiner) {
-    element.entrySet().forEach(e -> {
-      joiner.add(((Map.Entry) e).getKey().toString());
-      processElement(((Map.Entry) e).getValue(), joiner);
-    });
-  }
-
-  private static void handleStructType(final Struct element, final StringJoiner joiner) {
-    element.schema().fields().forEach(f -> {
-      joiner.add(f.name());
-      processElement(element.get(f), joiner);
-    });
   }
 
 }

@@ -128,12 +128,12 @@ public class ClientIntegrationTest {
   private static final KsqlObject COMPLEX_FIELD_VALUE = new KsqlObject()
       .put("DECIMAL", new BigDecimal("1.1"))
       .put("STRUCT", new KsqlObject().put("F1", "foo").put("F2", 3))
-      .put("ARRAY_ARRAY", new KsqlArray().add(new KsqlArray().add("bar")));
-//      .put("ARRAY_STRUCT", new KsqlArray().add(new KsqlObject().put("F1", "x")))
+      .put("ARRAY_ARRAY", new KsqlArray().add(new KsqlArray().add("bar")))
+      .put("ARRAY_STRUCT", new KsqlArray().add(new KsqlObject().put("F1", "x")))
 //      .put("ARRAY_MAP", new KsqlArray().add(new KsqlObject().put("k", "v")))
 //      .put("MAP_ARRAY", new KsqlObject().put("k", new KsqlArray().add("e1").add("e2")))
 //      .put("MAP_MAP", new KsqlObject().put("k1", new KsqlObject().put("k2", 5)))
-//      .put("MAP_STRUCT", new KsqlObject().put("k", new KsqlObject().put("F1", "baz")));
+      .put("MAP_STRUCT", new KsqlObject().put("k", new KsqlObject().put("F1", "baz")));
   private static final KsqlObject EXPECTED_COMPLEX_FIELD_VALUE = COMPLEX_FIELD_VALUE.copy()
       .put("DECIMAL", 1.1d); // Expect raw decimal value, whereas put(BigDecimal) serializes as string to avoid loss of precision
 

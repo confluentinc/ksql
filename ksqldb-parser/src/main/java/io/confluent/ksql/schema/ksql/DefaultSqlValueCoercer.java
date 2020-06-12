@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
@@ -162,18 +163,18 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
   }
 
   private Result coerceArray(final Object value, final SqlArray targetType) {
-    final List<?> list;
+    final ListObject list;
     if (value instanceof List<?>) {
-      list = (List<?>) value;
+      list = new JavaListObject((List<?>) value);
     } else if (value instanceof JsonArray) {
-      list = ((JsonArray) value).getList();
+      list = new JsonListObject((JsonArray) value);
     } else {
       return Result.failure();
     }
 
     final List<Object> coerced = new ArrayList<>(list.size());
-    for (final Object el : list) {
-      final Result result = doCoerce(el, targetType.getItemType());
+    for (int i = 0; i < list.size(); i++) {
+      final Result result = doCoerce(list.get(i), targetType.getItemType());
       if (result.failed()) {
         return Result.failure();
       }
@@ -185,19 +186,19 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
   }
 
   private Result coerceMap(final Object value, final SqlMap targetType) {
-    final Map<?, ?> map;
+    final MapObject map;
     if (value instanceof Map<?, ?>) {
-      map = (Map<?, ?>) value;
+      map = new JavaMapObject((Map<?, ?>) value);
     } else if (value instanceof JsonObject) {
-      map = ((JsonObject) value).getMap();
+      map = new JsonMapObject((JsonObject) value);
     } else {
       return Result.failure();
     }
 
     final HashMap<Object, Object> coerced = new HashMap<>();
-    for (final Map.Entry<?, ?> entry : map.entrySet()) {
-      final Result coercedKey = doCoerce(entry.getKey(), SqlTypes.STRING);
-      final Result coercedValue = doCoerce(entry.getValue(), targetType.getValueType());
+    for (final Object key : map.keys()) {
+      final Result coercedKey = doCoerce(key, SqlTypes.STRING);
+      final Result coercedValue = doCoerce(map.get(key), targetType.getValueType());
       if (coercedKey.failed() || coercedValue.failed()) {
         return Result.failure();
       }
@@ -206,6 +207,94 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     }
 
     return Result.of(coerced);
+  }
+
+  private interface ListObject {
+    int size();
+
+    Object get(int index);
+  }
+
+  private static class JavaListObject implements ListObject {
+
+    private final List<?> list;
+
+    JavaListObject(final List<?> list) {
+      this.list = list;
+    }
+
+    @Override
+    public int size() {
+      return list.size();
+    }
+
+    @Override
+    public Object get(final int index) {
+      return list.get(index);
+    }
+  }
+
+  private static class JsonListObject implements ListObject {
+
+    private final JsonArray array;
+
+    JsonListObject(final JsonArray array) {
+      this.array = array;
+    }
+
+    @Override
+    public int size() {
+      return array.size();
+    }
+
+    @Override
+    public Object get(final int index) {
+      return array.getValue(index);
+    }
+  }
+
+  private interface MapObject {
+    Set<?> keys();
+
+    Object get(Object key);
+  }
+
+  private static class JavaMapObject implements MapObject {
+
+    private final Map<?, ?> map;
+
+    JavaMapObject(final Map<?, ?> map) {
+      this.map = map;
+    }
+
+    @Override
+    public Set<?> keys() {
+      return map.keySet();
+    }
+
+    @Override
+    public Object get(final Object key) {
+      return map.get(key);
+    }
+  }
+
+  private static class JsonMapObject implements MapObject {
+
+    private final JsonObject obj;
+
+    JsonMapObject(final JsonObject obj) {
+      this.obj = obj;
+    }
+
+    @Override
+    public Set<?> keys() {
+      return obj.fieldNames();
+    }
+
+    @Override
+    public Object get(final Object key) {
+      return obj.getValue(key.toString());
+    }
   }
 
   private interface StructObject {
